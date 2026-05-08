@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '@/App.css';
+import './App.css';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import CreatorProfileSetup from './pages/CreatorProfileSetup';
@@ -11,11 +11,18 @@ import BusinessDashboard from './pages/BusinessDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ProfileSettings from './pages/ProfileSettings';
 import CampaignDetails from './pages/CampaignDetails';
+import MessagesPage from './pages/MessagesPage';
 import ChatPage from './pages/ChatPage';
 import WorkSubmission from './pages/WorkSubmission';
 import WorkReview from './pages/WorkReview';
-import WithdrawalPage from './pages/WithdrawalPage';
+import PayoutWithLayout from './pages/PayoutWithLayout';
 import ShipmentTracking from './pages/ShipmentTracking';
+import BrowseBriefs from './pages/BrowseBriefs';
+import MyDealsPage from './pages/MyDealsPage';
+import MyBidsPage from './pages/MyBidsPage';
+import MyActiveWorkPage from './pages/MyActiveWorkPage';
+import ReviewsPage from './pages/ReviewsPage';
+import PortfolioPage from './pages/PortfolioPage';
 import { Toaster } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -122,6 +129,54 @@ function App() {
               }
             />
             <Route
+              path="/browse-briefs"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <BrowseBriefs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-deals"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <MyDealsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-bids"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <MyBidsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-active-work"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <MyActiveWorkPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reviews"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <ReviewsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portfolio"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <PortfolioPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/business"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
@@ -142,6 +197,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CampaignDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute allowedRoles={['creator', 'business']}>
+                  <MessagesPage />
                 </ProtectedRoute>
               }
             />
@@ -173,7 +236,7 @@ function App() {
               path="/withdrawal"
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
-                  <WithdrawalPage />
+                  <PayoutWithLayout />
                 </ProtectedRoute>
               }
             />

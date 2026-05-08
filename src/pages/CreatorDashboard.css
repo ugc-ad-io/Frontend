@@ -1,9 +1,14 @@
+:root {
+  --spacing: 0.25rem;
+}
+
 .pcd-shell {
   min-height: 100vh;
   display: flex;
-  background: #f3f3ff;
+  background: #F3F3FF;
   color: #07074e;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-size: 14px;
 }
 
 .pcd-shell button,
@@ -22,11 +27,12 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 32px;
-  background: #07074e;
+  padding: calc(var(--spacing) * 8);
+  background: #07074E;
   color: #fff;
-  border-radius: 0 32px 32px 0;
-  box-shadow: 8px 0 32px rgba(7, 7, 78, 0.08);
+  border-top-right-radius: 32px;
+  border-bottom-right-radius: 32px;
+  box-shadow: none;
   z-index: 2;
 }
 
@@ -58,9 +64,9 @@
   height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
-  background: #7387ff;
-  box-shadow: 0 10px 24px rgba(115, 135, 255, 0.28);
+  border-radius: 8px;
+  background: #6366f1;
+  box-shadow: none;
 }
 
 .pcd-nav {
@@ -99,10 +105,10 @@
 }
 
 .pcd-nav-item.is-active {
-  color: #07074e;
+  color: #07074E;
   background: #fff;
   font-weight: 700;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 .pcd-sidebar-profile {
@@ -134,6 +140,14 @@
   color: #fff;
   font-weight: 800;
   box-shadow: 0 8px 18px rgba(7, 7, 78, 0.16);
+  overflow: hidden;
+}
+
+.pcd-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .pcd-avatar.small {
@@ -145,22 +159,53 @@
 .pcd-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pcd-content {
+  flex: 1;
+  overflow: auto;
+  padding: 32px 40px 40px;
+  background: #F3F3FF;
+}
+
+/* Portfolio page specific layout */
+.pcd-content > div:has(.pcd-portfolio-grid) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.pcd-content > div:has(.pcd-portfolio-grid) > .pcd-portfolio-head {
+  flex-shrink: 0;
+  padding: 28px 40px 0;
+}
+
+.pcd-content > div:has(.pcd-portfolio-grid) > .pcd-portfolio-grid {
+  flex: 1;
+  overflow: auto;
+  padding: 32px 40px 40px;
 }
 
 .pcd-topbar {
-  min-height: 100px;
+  min-height: 90px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 20px 40px 12px;
+  padding: 24px 40px;
+  background: #F3F3FF;
+  border-bottom: none;
 }
 
 .pcd-topbar h1 {
   margin: 0 0 4px;
-  color: #07074e;
-  font-size: 26px;
-  font-weight: 750;
+  color: #1a1d3f;
+  font-size: 28px;
+  font-weight: 700;
   line-height: 1.15;
 }
 
@@ -168,9 +213,9 @@
 .pcd-section-header p,
 .pcd-rate-card p {
   margin: 0;
-  color: #9f9fd1;
+  color: #a5a8c0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .pcd-top-actions {
@@ -233,7 +278,7 @@
 }
 
 .pcd-role-switch button.is-active {
-  background: #07074e;
+  background: #07074E;
   color: #fff;
 }
 
@@ -252,10 +297,6 @@
   font-weight: 700;
 }
 
-.pcd-content {
-  padding: 14px 40px 40px;
-}
-
 .pcd-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -264,9 +305,9 @@
 
 .pcd-card {
   background: #fff;
-  border: 1px solid rgba(233, 235, 239, 0.72);
-  border-radius: 24px;
-  box-shadow: 0 4px 24px rgba(7, 7, 78, 0.04);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .pcd-stat-card {
@@ -278,15 +319,7 @@
 
 .pcd-stat-card::after,
 .pcd-rate-card::before {
-  content: "";
-  position: absolute;
-  width: 128px;
-  height: 128px;
-  right: -58px;
-  top: -58px;
-  border-radius: 50%;
-  background: rgba(115, 135, 255, 0.08);
-  filter: blur(14px);
+  display: none;
 }
 
 .pcd-stat-top {
@@ -302,36 +335,36 @@
   height: 48px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
-  background: #f3f3ff;
+  border-radius: 12px;
+  background: #f0f1ff;
 }
 
 .pcd-trend {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  background: #f3f3ff;
-  color: #27ae60;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #10b981;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .pcd-stat-card p {
   margin: 0 0 6px;
-  color: #9f9fd1;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .pcd-stat-card h2 {
   margin: 0;
-  color: #07074e;
-  font-size: 28px;
-  font-weight: 760;
+  color: #1a1d3f;
+  font-size: 32px;
+  font-weight: 700;
   line-height: 1.1;
 }
 
@@ -344,9 +377,9 @@
   gap: 40px;
   margin-top: 24px;
   padding: 32px;
-  border-radius: 24px;
-  background: linear-gradient(90deg, #7387ff, #4a63ff);
-  box-shadow: 0 8px 32px rgba(115, 135, 255, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .pcd-level-banner::before,
@@ -394,10 +427,10 @@
   height: 64px;
   display: grid;
   place-items: center;
-  border-radius: 20px;
+  border-radius: 16px;
   background: #fff;
   color: #f59e0b;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .pcd-level-title p {
@@ -534,9 +567,9 @@
 .pcd-workspace h2,
 .pcd-rate-card h2 {
   margin: 0;
-  color: #07074e;
+  color: #1a1d3f;
   font-size: 18px;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .pcd-section-header button,
@@ -580,21 +613,21 @@
 
 .pcd-table th {
   padding: 16px 32px;
-  background: rgba(243, 243, 255, 0.6);
-  color: #9f9fd1;
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0.08em;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .pcd-table td {
   padding: 18px 32px;
-  border-top: 1px solid #f3f3ff;
-  color: #07074e;
-  font-size: 13px;
-  font-weight: 650;
+  border-top: 1px solid #f3f4f6;
+  color: #1a1d3f;
+  font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -609,21 +642,20 @@
 
 .pcd-status {
   display: inline-flex;
-  padding: 5px 11px;
-  border-radius: 8px;
-  border: 1px solid rgba(115, 135, 255, 0.18);
-  background: rgba(115, 135, 255, 0.1);
-  color: #7387ff;
-  font-size: 11px;
-  font-weight: 850;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: none;
+  background: #fef3c7;
+  color: #f59e0b;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: capitalize;
 }
 
 .pcd-status.approved,
 .pcd-status.active {
-  border-color: rgba(39, 174, 96, 0.18);
-  background: rgba(39, 174, 96, 0.1);
-  color: #27ae60;
+  background: #d1fae5;
+  color: #10b981;
 }
 
 .pcd-status.revision,
@@ -635,8 +667,7 @@
 
 .pcd-status.pending,
 .pcd-status.in_progress {
-  border-color: rgba(245, 158, 11, 0.18);
-  background: rgba(245, 158, 11, 0.1);
+  background: #fef3c7;
   color: #f59e0b;
 }
 
@@ -913,6 +944,7 @@
   display: grid;
   gap: 18px;
   padding: 28px 32px 32px;
+  min-height: 100%;
 }
 
 .pcd-panel-grid {
@@ -1102,7 +1134,7 @@
 
 .pcd-empty-panel {
   grid-column: 1 / -1;
-  min-height: 150px;
+  min-height: 100%;
   display: grid;
   place-items: center;
   padding: 24px;

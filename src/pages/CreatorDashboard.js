@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import DashboardLayout from '../components/DashboardLayout';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -122,7 +123,7 @@ function MiniAreaChart({ data }) {
 }
 
 export default function CreatorDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
   const [activeCampaigns, setActiveCampaigns] = useState([]);
   const [availableCampaigns, setAvailableCampaigns] = useState([]);
@@ -144,6 +145,18 @@ export default function CreatorDashboard() {
     const interval = setInterval(fetchAllData, 10000);
     return () => clearInterval(interval);
   }, [user?.approval_status, user?.id]);
+
+  useEffect(() => {
+    const refreshUserData = async () => {
+      try {
+        const response = await axios.get(`${API}/auth/me`);
+        setUser(response.data);
+      } catch (error) {
+        console.error('Failed to refresh user data');
+      }
+    };
+    refreshUserData();
+  }, [setUser]);
 
   const fetchAllData = async () => {
     try {
@@ -249,12 +262,15 @@ export default function CreatorDashboard() {
   }, [myBids, user?.balance]);
 
   const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, action: () => setActiveTab('overview'), active: activeTab === 'overview' },
-    { name: 'Browse Briefs', icon: Briefcase, action: () => setActiveTab('browse'), active: activeTab === 'browse' },
-    { name: 'My Deals', icon: FileCheck, action: () => setActiveTab('active'), active: activeTab === 'active' },
-    { name: 'Messages', icon: MessageSquare, action: () => navigate('/chat/conversations') },
+    { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator'), active: true },
+    { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
+    { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
+    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
+    { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
+    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
+    { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
+    { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
     { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Profile', icon: User, action: () => setActiveTab('portfolio'), active: activeTab === 'portfolio' },
     { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
   ];
 
@@ -294,67 +310,13 @@ export default function CreatorDashboard() {
   }
 
   return (
-    <div className="pcd-shell">
-      <aside className="pcd-sidebar">
-        <div>
-          <div className="pcd-brand">
-            <div className="pcd-brand-mark">U</div>
-            <span>UGCad.io</span>
-          </div>
-          <nav className="pcd-nav" aria-label="Creator dashboard">
-            <span className="pcd-nav-label">Menu</span>
-            {navItems.map((item) => (
-              <button
-                key={item.name}
-                type="button"
-                className={`pcd-nav-item ${item.active ? 'is-active' : ''}`}
-                onClick={item.action}
-              >
-                <item.icon size={20} />
-                {item.name}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div className="pcd-sidebar-profile">
-          <div className="pcd-avatar">{getInitial(displayName)}</div>
-          <div>
-            <strong>{displayName}</strong>
-            <span>Top Creator</span>
-          </div>
-        </div>
-      </aside>
-
-      <div className="pcd-main">
-        <header className="pcd-topbar">
-          <div>
-            <h1>Creator Dashboard</h1>
-            <p>Welcome back, {displayName}</p>
-          </div>
-          <div className="pcd-top-actions">
-            <button type="button" className="pcd-icon-btn" aria-label="Search">
-              <Search size={18} />
-            </button>
-            <div className="pcd-role-switch">
-              <button type="button" className="is-active">Creator</button>
-              <button type="button" onClick={() => navigate('/dashboard/business')}>Brand</button>
-            </div>
-            <button type="button" className="pcd-icon-btn pcd-bell" aria-label="Notifications">
-              <Bell size={18} />
-              <span />
-            </button>
-            <button type="button" className="pcd-profile-chip" onClick={() => navigate('/settings')}>
-              <span className="pcd-avatar small">{getInitial(displayName)}</span>
-              <ChevronDown size={16} />
-            </button>
-            <button type="button" className="pcd-logout" onClick={handleLogout}>
-              <LogOut size={18} />
-              Logout
-            </button>
-          </div>
-        </header>
-
-        <main className="pcd-content">
+    <DashboardLayout
+      navItems={navItems}
+      title="Creator Dashboard"
+      description={`Welcome back, ${displayName}`}
+      topbarExtra={null}
+      sidebarExtra={null}
+    >
           <section className="pcd-stat-grid">
             {stats.map((stat) => (
               <article key={stat.title} className="pcd-card pcd-stat-card">
@@ -658,9 +620,6 @@ export default function CreatorDashboard() {
               </div>
             )}
           </section>
-        </main>
-      </div>
-
       {selectedCampaign && (
         <div className="pcd-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bid-modal-title">
           <form className="pcd-modal" onSubmit={handleBidSubmit}>
@@ -685,7 +644,7 @@ export default function CreatorDashboard() {
           </form>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
 

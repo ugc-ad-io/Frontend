@@ -472,7 +472,7 @@ export default function BusinessDashboard() {
             <button className="btn-primary" onClick={() => setShowCreateModal(true)} data-testid="create-campaign-btn">
               <Plus size={20} /> Create Campaign
             </button>
-            <button className="btn-secondary" onClick={() => navigate('/chat/conversations')} data-testid="messages-btn">
+            <button className="btn-secondary" onClick={() => navigate('/messages')} data-testid="messages-btn">
               <MessageSquare size={20} /> Messages
             </button>
             <button className="btn-secondary" onClick={() => navigate('/settings')} data-testid="settings-btn">

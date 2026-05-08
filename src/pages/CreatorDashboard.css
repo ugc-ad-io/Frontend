@@ -218,6 +218,23 @@
   font-weight: 500;
 }
 
+.pcd-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #1a1d3f;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.pcd-hamburger:hover {
+  background-color: rgba(26, 29, 63, 0.05);
+}
+
 .pcd-top-actions {
   gap: 14px;
   flex-wrap: wrap;
@@ -1919,16 +1936,51 @@
 }
 
 @media (max-width: 900px) {
+  .pcd-hamburger {
+    display: flex;
+  }
+
   .pcd-shell {
     display: block;
+    position: relative;
   }
 
   .pcd-sidebar {
-    position: static;
-    width: 100%;
-    min-height: auto;
-    border-radius: 0 0 24px 24px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 260px;
+    height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
     padding: 22px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 40;
+    overflow-y: auto;
+  }
+
+  .pcd-sidebar.is-mobile-open {
+    transform: translateX(0);
+  }
+
+  .pcd-shell::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 30;
+  }
+
+  .pcd-shell.has-mobile-sidebar::before {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .pcd-brand {
@@ -2078,5 +2130,36 @@
 
   .pcd-brief-footer small {
     justify-self: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .pcd-hamburger {
+    display: flex;
+  }
+
+  .pcd-topbar {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .pcd-topbar-title {
+    font-size: 16px;
+  }
+
+  .pcd-topbar-actions {
+    gap: 6px;
+  }
+
+  .pcd-content {
+    padding: 12px;
+  }
+
+  .pcd-stat-card {
+    padding: 16px 12px;
+  }
+
+  .pcd-stat-value {
+    font-size: 24px;
   }
 }

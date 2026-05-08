@@ -41,6 +41,7 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [mobileView, setMobileView] = useState('list');
 
   const displayName = user?.nickname || user?.full_name || user?.email || 'Creator';
 

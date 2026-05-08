@@ -1,8 +1,8 @@
 import { useAuth } from '../App';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Bell, ChevronDown, LogOut, Search } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Search, Menu } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -19,6 +19,7 @@ export default function DashboardLayout({
 }) {
   const { user, setUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -35,9 +36,18 @@ export default function DashboardLayout({
     navigate('/');
   };
 
+  const handleShellClick = (e) => {
+    if (sidebarOpen && e.target === e.currentTarget) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
-    <div className="pcd-shell">
-      <aside className="pcd-sidebar">
+    <div
+      className={`pcd-shell ${sidebarOpen ? 'has-mobile-sidebar' : ''}`}
+      onClick={handleShellClick}
+    >
+      <aside className={`pcd-sidebar ${sidebarOpen ? 'is-mobile-open' : ''}`}>
         <div>
           <div className="pcd-brand">
             <div className="pcd-brand-mark">U</div>
@@ -50,7 +60,10 @@ export default function DashboardLayout({
                 key={item.name}
                 type="button"
                 className={`pcd-nav-item ${item.active ? 'is-active' : ''}`}
-                onClick={item.action}
+                onClick={() => {
+                  item.action();
+                  setSidebarOpen(false);
+                }}
               >
                 <item.icon size={20} />
                 {item.name}
@@ -76,6 +89,14 @@ export default function DashboardLayout({
 
       <div className="pcd-main">
         <header className="pcd-topbar">
+          <button
+            type="button"
+            className="pcd-hamburger"
+            aria-label="Toggle menu"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu size={20} />
+          </button>
           <div>
             <h1>{title}</h1>
             {description && <p>{description}</p>}

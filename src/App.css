@@ -79,7 +79,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Button Styles */
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #7387FF;
   color: white;
   padding: 12px 32px;
   border-radius: 50px;
@@ -88,12 +88,12 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(115, 135, 255, 0.4);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 6px 20px rgba(115, 135, 255, 0.6);
 }
 
 .btn-primary:disabled {
@@ -104,10 +104,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-secondary {
   background: white;
-  color: #667eea;
+  color: #7387FF;
   padding: 12px 32px;
   border-radius: 50px;
-  border: 2px solid #667eea;
+  border: 2px solid #7387FF;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
@@ -115,7 +115,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary:hover {
-  background: #667eea;
+  background: #7387FF;
   color: white;
   transform: translateY(-2px);
 }
@@ -147,7 +147,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .input-field:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #7387FF;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -165,7 +165,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .textarea-field:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #7387FF;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 

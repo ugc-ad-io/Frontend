@@ -546,10 +546,14 @@ export default function CreatorDashboard() {
                     <button type="button" onClick={() => navigate(`/chat/${campaign.business_id}`)}>
                       <MessageSquare size={16} /> Message
                     </button>
-                    {campaign.requires_shipment && (
+                    {campaign.requires_shipment ? (
                       <button type="button" onClick={() => navigate(`/shipment?campaign=${campaign.id}`)}>
                         <Package size={16} /> Track Shipment
                       </button>
+                    ) : (
+                      <span style={{ padding: '8px 14px', color: '#9f9fd1', fontSize: '13px', fontWeight: '700' }}>
+                        No Shipment
+                      </span>
                     )}
                   </>
                 )}

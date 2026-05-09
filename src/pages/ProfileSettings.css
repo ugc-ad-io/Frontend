@@ -79,7 +79,7 @@
 }
 
 .ps-tab-btn.is-active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #7387FF;
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
@@ -155,8 +155,8 @@
 }
 
 .ps-photo-preview {
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   overflow: hidden;
   background: #f8f9ff;
@@ -164,6 +164,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(93, 95, 239, 0.12);
+  border: 2px solid rgba(93, 95, 239, 0.1);
 }
 
 .ps-photo-preview img {
@@ -212,7 +214,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #7387FF;
   color: white;
   border: none;
   border-radius: 12px;

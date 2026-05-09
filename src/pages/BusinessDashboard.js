@@ -15,6 +15,7 @@ export default function BusinessDashboard() {
   const [activeCampaigns, setActiveCampaigns] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
   const [completedCampaigns, setCompletedCampaigns] = useState([]);
+  const [workSubmissions, setWorkSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -33,23 +34,33 @@ export default function BusinessDashboard() {
     if (user?.approval_status === 'approved') {
       fetchCampaigns();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const fetchCampaigns = async () => {
     try {
       const response = await axios.get(`${API}/campaigns`);
       const allCampaigns = response.data;
-      
+
       // Filter to only show this business's campaigns
       const myCampaigns = allCampaigns.filter(c => c.business_id === user.id);
       setCampaigns(myCampaigns);
-      
+
+      // Get work submissions for campaigns with work_submitted status
+      const workSubmittedCampaigns = myCampaigns.filter(c => c.status === 'work_submitted');
+      if (workSubmittedCampaigns.length > 0) {
+        const workRes = await axios.get(`${API}/work/pending-review`);
+        setWorkSubmissions(workRes.data || []);
+      } else {
+        setWorkSubmissions([]);
+      }
+
       // Categorize campaigns
       setActiveCampaigns(myCampaigns.filter(c => c.status === 'active' || c.status === 'in_progress'));
       setPendingCampaigns(myCampaigns.filter(c => c.status === 'pending_approval'));
       setCompletedCampaigns(myCampaigns.filter(c => c.status === 'completed'));
     } catch (error) {
-      toast.error('Failed to load campaigns');
+      console.error('Failed to load campaigns:', error);
+      toast.error(error.response?.data?.detail || 'Failed to load campaigns');
     } finally {
       setLoading(false);
     }
@@ -756,11 +767,46 @@ export default function BusinessDashboard() {
           {activeTab === 'work-review' && (
             <div className="work-review-section">
               <h2>Work Submissions to Review</h2>
-              <div className="empty-state">
-                <FileCheck size={64} />
-                <p>No work submissions pending review</p>
-                <p className="hint">Work submissions from creators will appear here</p>
-              </div>
+              {workSubmissions.length === 0 ? (
+                <div className="empty-state">
+                  <FileCheck size={64} />
+                  <p>No work submissions pending review</p>
+                  <p className="hint">Work submissions from creators will appear here</p>
+                </div>
+              ) : (
+                <div className="work-submissions-grid">
+                  {workSubmissions.map(work => {
+                    const campaign = campaigns.find(c => c.id === work.campaign_id);
+                    return (
+                      <div key={work.id} className="work-card" data-testid={`work-${work.id}`}>
+                        <div className="work-header">
+                          <h3>{campaign?.title || 'Campaign'}</h3>
+                          <span className="badge badge-pending">Pending Review</span>
+                        </div>
+                        <p className="creator-name">Creator: {work.creator_id}</p>
+                        <p className="work-description">{work.description}</p>
+                        <div className="work-files">
+                          <strong>Files:</strong>
+                          <ul>
+                            {work.work_files?.map((file, idx) => (
+                              <li key={idx}>
+                                <a href={file} target="_blank" rel="noopener noreferrer">
+                                  File {idx + 1}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="work-actions">
+                          <button className="btn-primary" onClick={() => navigate(`/work-review/${work.id}`)}>
+                            <CheckCircle size={18} /> Review & Approve
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

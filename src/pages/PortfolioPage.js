@@ -117,7 +117,7 @@ export default function PortfolioPage() {
       ) : (
         <div>
           <div className="pcd-portfolio-head">
-            <h2>Portfolio</h2>
+            <h2>My Portfolio</h2>
             <input id="portfolio-upload-page" type="file" multiple accept="image/*,video/*" onChange={handlePortfolioUpload} />
             <label htmlFor="portfolio-upload-page">
               <Upload size={16} /> {uploadingPortfolio ? 'Uploading...' : 'Add Work'}
@@ -128,13 +128,13 @@ export default function PortfolioPage() {
               <article key={url} className="pcd-portfolio-item">
                 <div>
                   {url.match(/\.(mp4|webm|mov)$/i) ? (
-                    <video src={url} controls />
+                    <video src={url.startsWith('http') ? url : `${BACKEND_URL}${url}`} controls />
                   ) : (
-                    <img src={url} alt={`Portfolio item ${index + 1}`} />
+                    <img src={url.startsWith('http') ? url : `${BACKEND_URL}${url}`} alt={`Portfolio item ${index + 1}`} />
                   )}
                 </div>
                 <button type="button" className="pcd-remove-btn" onClick={() => handleRemovePortfolioItem(url)}>
-                  <X size={16} /> Remove
+                  <X size={16} /> Remove Portfolio
                 </button>
               </article>
             )) : <EmptyPanel text="No portfolio items yet. Upload images or videos to showcase your work." />}

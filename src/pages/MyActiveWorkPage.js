@@ -58,7 +58,7 @@ export default function MyActiveWorkPage() {
       const allCampaigns = res.data;
       setActiveCampaigns(allCampaigns.filter((campaign) =>
         campaign.selected_creator === user.id &&
-        (campaign.status === 'in_progress' || campaign.status === 'active')
+        (campaign.status === 'in_progress' || campaign.status === 'active' || campaign.status === 'work_submitted')
       ));
     } catch (error) {
       toast.error('Failed to load active work');
@@ -83,8 +83,13 @@ export default function MyActiveWorkPage() {
           empty="No active campaigns. Browse and bid on campaigns to get started."
           renderActions={(campaign) => (
             <>
-              <button type="button" className="pcd-primary" onClick={() => navigate(`/work/submit?campaign=${campaign.id}`)}>
-                <Upload size={16} /> Submit Work
+              <button
+                type="button"
+                className="pcd-primary"
+                onClick={() => navigate(`/work/submit?campaign=${campaign.id}`)}
+                disabled={campaign.status === 'work_submitted'}
+              >
+                <Upload size={16} /> {campaign.status === 'work_submitted' ? 'Work Submitted' : 'Submit Work'}
               </button>
               <button type="button" onClick={() => navigate(`/chat/${campaign.business_id}`)}>
                 <MessageSquare size={16} /> Message

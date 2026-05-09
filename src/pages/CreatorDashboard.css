@@ -136,7 +136,7 @@
   place-items: center;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7387ff, #4a63ff);
+  background: #7387FF;
   color: #fff;
   font-weight: 800;
   box-shadow: 0 8px 18px rgba(7, 7, 78, 0.16);
@@ -167,7 +167,7 @@
   flex: 1;
   overflow: auto;
   padding: 32px 40px 40px;
-  background: #F3F3FF;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
 }
 
 /* Portfolio page specific layout */
@@ -197,7 +197,7 @@
   justify-content: space-between;
   gap: 24px;
   padding: 24px 40px;
-  background: #F3F3FF;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   border-bottom: none;
 }
 
@@ -671,8 +671,10 @@
 
 .pcd-status.approved,
 .pcd-status.active {
-  background: #d1fae5;
-  color: #10b981;
+  background: linear-gradient(135deg, rgba(72, 187, 120, 0.15) 0%, rgba(56, 161, 105, 0.1) 100%);
+  color: #2f855a;
+  border-color: rgba(72, 187, 120, 0.2);
+  font-weight: 600;
 }
 
 .pcd-status.revision,
@@ -684,8 +686,10 @@
 
 .pcd-status.pending,
 .pcd-status.in_progress {
-  background: #fef3c7;
-  color: #f59e0b;
+  background: rgba(115, 135, 255, 0.15);
+  color: #7387FF;
+  border-color: rgba(115, 135, 255, 0.2);
+  font-weight: 600;
 }
 
 .pcd-empty-row {
@@ -959,9 +963,10 @@
 .pcd-review-grid,
 .pcd-portfolio-grid {
   display: grid;
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-rows: auto;
+  gap: 24px;
   padding: 28px 32px 32px;
-  min-height: 100%;
 }
 
 .pcd-panel-grid {
@@ -981,9 +986,17 @@
 .pcd-campaign-card,
 .pcd-review-card,
 .pcd-portfolio-item {
-  border: 1px solid #e9ebef;
+  border: 1px solid rgba(102, 126, 234, 0.15);
   border-radius: 16px;
-  background: #fbfbff;
+  background: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  transition: all 0.3s ease;
+}
+
+.pcd-campaign-card:hover {
+  border-color: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
 }
 
 .pcd-mini-card {
@@ -996,18 +1009,24 @@
 
 .pcd-mini-card h3,
 .pcd-campaign-card h3 {
-  margin: 0 0 7px;
+  margin: 0 0 4px;
   color: #07074e;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 850;
+  line-height: 1.2;
 }
 
 .pcd-mini-card p,
 .pcd-campaign-card p {
   margin: 0;
   color: #9f9fd1;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .pcd-mini-card button {
@@ -1015,69 +1034,117 @@
 }
 
 .pcd-campaign-grid {
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  border-radius: 20px;
+  margin: 24px 0;
+  align-items: stretch;
+  min-height: auto;
 }
 
 .pcd-campaign-card {
-  padding: 22px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: auto;
+  gap: 12px;
 }
 
 .pcd-campaign-card > div:first-child {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+}
+
+.pcd-campaign-card > div:first-child h3 {
+  flex: 1;
+  margin: 0;
+}
+
+.pcd-campaign-card > div:first-child .pcd-status {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pcd-campaign-card dl {
   display: grid;
-  gap: 10px;
-  margin: 18px 0;
+  gap: 12px;
+  margin: 12px 0;
 }
 
 .pcd-campaign-card dl div {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
 }
 
 .pcd-campaign-card dt {
   color: #9f9fd1;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 0 0 auto;
 }
 
 .pcd-campaign-card dd {
   margin: 0;
   color: #07074e;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   text-align: right;
+  flex: 0 0 auto;
 }
 
 .pcd-card-actions {
-  align-items: stretch;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  margin-top: auto;
 }
 
 .pcd-card-actions button {
   flex: 1;
   min-width: 130px;
   padding: 11px 14px;
+  background: white;
+  color: #4a5568;
+  border-color: rgba(102, 126, 234, 0.2);
+  transition: all 0.3s ease;
+}
+
+.pcd-card-actions button:hover {
+  background: #7387FF;
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
 }
 
 .pcd-card-actions .pcd-primary,
 .pcd-modal .pcd-primary {
-  border-color: #7387ff;
-  background: #7387ff;
+  background: #7387FF;
+  border-color: transparent;
   color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.pcd-card-actions .pcd-primary:hover,
+.pcd-modal .pcd-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .pcd-review-grid,
 .pcd-portfolio-grid {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: start;
 }
 
 .pcd-review-card {
@@ -1117,6 +1184,13 @@
   display: none;
 }
 
+.pcd-portfolio-head h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
 .pcd-portfolio-head label {
   padding: 11px 16px;
   background: #7387ff;
@@ -1126,11 +1200,31 @@
 
 .pcd-portfolio-item {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(93, 95, 239, 0.08);
+  border: 1px solid rgba(93, 95, 239, 0.06);
+  background: #fff;
+  transition: all 0.3s ease;
+  padding: 12px 12px 0 12px;
+}
+
+.pcd-portfolio-item:hover {
+  box-shadow: 0 8px 24px rgba(93, 95, 239, 0.15);
+  transform: translateY(-4px);
 }
 
 .pcd-portfolio-item > div {
-  aspect-ratio: 16 / 10;
   background: #f3f3ff;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  border-radius: 16px;
 }
 
 .pcd-portfolio-item img,
@@ -1138,15 +1232,35 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.pcd-portfolio-item:hover img,
+.pcd-portfolio-item:hover video {
+  transform: scale(1.05);
 }
 
 .pcd-portfolio-item button {
   width: 100%;
+  margin: 0 0 12px 0;
   border: 0;
-  border-radius: 0;
-  padding: 12px;
-  color: #d4183d;
-  background: #fff1f3;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fff;
+  background: #7387FF;
+  flex-shrink: 0;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.pcd-portfolio-item button:hover {
+  background: #5b74ff;
 }
 
 .pcd-empty-panel {

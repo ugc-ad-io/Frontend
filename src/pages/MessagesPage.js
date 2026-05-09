@@ -231,12 +231,20 @@ export default function MessagesPage() {
           <div className="msg-chat-panel">
             {/* Header */}
             <div className="msg-chat-header">
-              <div className="msg-avatar" style={{ background: avatarColor(selectedConv?.nickname) }}>
-                {getInitial(selectedConv?.nickname)}
+              <div className="msg-avatar-wrap" style={{ width: '48px', height: '48px' }}>
+                <div className="msg-avatar" style={{ background: avatarColor(selectedConv?.nickname) }}>
+                  {getInitial(selectedConv?.nickname)}
+                </div>
+                <span className="msg-online-dot"></span>
               </div>
               <div className="msg-header-info">
-                <strong>{selectedConv?.nickname}</strong>
-                <small className="msg-online">Online</small>
+                <div>
+                  <strong>{selectedConv?.nickname}</strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', background: '#48bb78', borderRadius: '50%', display: 'inline-block' }}></span>
+                  <small className="msg-online">Online</small>
+                </div>
               </div>
               <div className="msg-chat-actions">
                 <button><Phone size={18} /></button>

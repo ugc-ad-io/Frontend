@@ -184,7 +184,7 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
   if (isState(deal, 'Paid - Complete')) return { label: 'Archive Deal', disabled: false, type: 'archive' };
   if (isState(deal, 'Delivered - Awaiting Receipt Confirmation')) {
     return {
-      label: 'Mark Received + Upload Unboxing',
+      label: 'Mark Received',
       disabled: !deal.can_mark_received || !uploads.unboxingVideoUrl,
       type: 'receipt'
     };
@@ -492,6 +492,24 @@ export default function MyDealsPage() {
               )}
             </DealCard>
 
+            <DealCard className="deal-activity">
+              <div className="deal-section-title">
+                <span><Clock size={18} /></span>
+                <div><h2>Activity Feed</h2><p>Chronological deal state transitions</p></div>
+              </div>
+              <div className="deal-timeline">
+                {activity.length ? activity.map((event) => (
+                  <div key={event.id} className="deal-timeline-item">
+                    <span className="blue"><CheckCheck size={16} /></span>
+                    <article>
+                      <header><strong>{event.actor_name || event.actor_type}</strong><small>{formatDateTime(event.timestamp)}</small></header>
+                      <p>{event.message}</p>
+                    </article>
+                  </div>
+                )) : <EmptyPanel text="No activity yet." />}
+              </div>
+            </DealCard>
+
             <ShippingBlock
               deal={selectedDeal}
               unboxingVideoUrl={unboxingVideoUrl}
@@ -530,24 +548,6 @@ export default function MyDealsPage() {
             )}
 
             <RevisionTracker deal={selectedDeal} onRevisionResponse={handleRevisionResponse} />
-
-            <DealCard className="deal-activity">
-              <div className="deal-section-title">
-                <span><Clock size={18} /></span>
-                <div><h2>Activity Feed</h2><p>Chronological deal state transitions</p></div>
-              </div>
-              <div className="deal-timeline">
-                {activity.length ? activity.map((event) => (
-                  <div key={event.id} className="deal-timeline-item">
-                    <span className="blue"><CheckCheck size={16} /></span>
-                    <article>
-                      <header><strong>{event.actor_name || event.actor_type}</strong><small>{formatDateTime(event.timestamp)}</small></header>
-                      <p>{event.message}</p>
-                    </article>
-                  </div>
-                )) : <EmptyPanel text="No activity yet." />}
-              </div>
-            </DealCard>
           </main>
 
           <RightPanel
@@ -591,22 +591,24 @@ function StatusHeader({ deal, currentState, escrowAmount, primaryAction, onPrima
         <div className={`deal-header-pill ${damaged ? 'is-paused' : creatorIsActive ? 'is-urgent' : ''}`}><small>{damaged ? 'Timeline' : 'Deadline'}</small><strong>{damaged ? 'Creator timeline paused' : getCountdownLabel(deal)}</strong></div>
         <div className="deal-header-pill"><small>Escrow</small><strong>{formatMoney(escrowAmount)} held</strong></div>
       </div>
-      <div className="deal-header-actions">
-        <button type="button" className="deal-primary-action" disabled={primaryAction.disabled} onClick={onPrimaryAction}>
-          <Upload size={17} /> {primaryAction.label}
-        </button>
-        <div className="deal-more">
-          <button type="button" aria-label="More deal actions"><MoreHorizontal size={18} /></button>
-          <div>
-            <button type="button" onClick={() => onActionCard('Raise Dispute')}>Raise Dispute</button>
-            <button type="button" onClick={() => onActionCard('Message Support')}>Get Help</button>
-            <button type="button" onClick={onArchive}><Archive size={14} /> Archive if completed</button>
+      <div className="deal-header-pill is-next-step">
+        <div className="deal-next-step-copy">
+          <small>{damaged ? 'Next Step' : 'Due'}</small>
+          <strong>{damaged ? 'Admin and brand will review your uploaded evidence. You may add more evidence or contact support if needed.' : reviewTimer || formatDateTime(deadline)}</strong>
+        </div>
+        <div className="deal-header-actions">
+          <button type="button" className="deal-primary-action" disabled={primaryAction.disabled} onClick={onPrimaryAction}>
+            <Upload size={17} /> {primaryAction.label}
+          </button>
+          <div className="deal-more">
+            <button type="button" aria-label="More deal actions"><MoreHorizontal size={18} /></button>
+            <div>
+              <button type="button" onClick={() => onActionCard('Raise Dispute')}>Raise Dispute</button>
+              <button type="button" onClick={() => onActionCard('Message Support')}>Get Help</button>
+              <button type="button" onClick={onArchive}><Archive size={14} /> Archive if completed</button>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="deal-header-pill is-next-step">
-        <small>{damaged ? 'Next Step' : 'Due'}</small>
-        <strong>{damaged ? 'Admin and brand will review your uploaded evidence. You may add more evidence or contact support if needed.' : reviewTimer || formatDateTime(deadline)}</strong>
       </div>
     </section>
   );
@@ -681,7 +683,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
         </div>
       ) : (
         <>
-          <button type="button" className="deal-secondary-action" disabled={!canSubmitReceipt} onClick={onSubmitReceipt}>Mark Received + Upload Unboxing</button>
+          <button type="button" className="deal-secondary-action" disabled={!canSubmitReceipt} onClick={onSubmitReceipt}>Mark Received</button>
           <label>Upload Unboxing Video</label>
           <p className="deal-helper-text">Upload a short unboxing video showing package condition, opening, and product received.</p>
           <input type="file" id="unboxing-upload" accept="video/mp4,video/quicktime" onChange={(event) => onUpload(event.target.files?.[0])} />
@@ -849,41 +851,50 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
         ))}
       </div>
       {tab === 'chat' && (
-        <div className="deal-chat">
-          <div className="deal-pinned"><AlertTriangle size={16} /><strong>{currentState}</strong><span>{damaged ? 'Creator work paused. Admin and brand are reviewing the evidence.' : `${deal?.primary_next_action || 'No action pending'} - ${getCountdownLabel(deal)}`}</span></div>
-          <div className="deal-action-card">
-            <h3>{damaged ? 'Pending with Admin + Brand' : 'Pending Action'}</h3>
-            <p>{damaged ? 'Damage report under review. Damage report submitted, creator work paused, and admin/brand are reviewing the evidence.' : deal?.primary_next_action || 'No action pending'}</p>
-            <button type="button" onClick={() => onActionCard(damaged ? 'Add Evidence' : 'Milestone Update')}>{damaged ? 'Add Evidence' : '+ Action Card'}</button>
-          </div>
-          {actionCards.length ? (
-            <div className="deal-action-card-list">
-              {actionCards.map((card) => (
-                <article key={card.id}>
-                  <strong>{card.title}</strong>
-                  <span>{card.status}</span>
-                  <p>{card.message || card.type}</p>
-                </article>
-              ))}
+        <>
+          <div className="deal-chat">
+            <div className="deal-pinned"><AlertTriangle size={16} /><strong>{currentState}</strong><span>{damaged ? 'Creator work paused. Admin and brand are reviewing the evidence.' : `${deal?.primary_next_action || 'No action pending'} - ${getCountdownLabel(deal)}`}</span></div>
+            <div className="deal-message-list">
+              {messages.length ? messages.map((item) => (
+                <p key={item.id} className={item.sender_type === 'creator' ? 'creator' : item.sender_type === 'system' ? 'system' : 'brand'}>
+                  {item.sender_name}: {item.message}
+                </p>
+              )) : <p className="system">No messages yet.</p>}
             </div>
-          ) : null}
-          <div className="deal-message-list">
-            {messages.length ? messages.map((item) => (
-              <p key={item.id} className={item.sender_type === 'creator' ? 'creator' : item.sender_type === 'system' ? 'system' : 'brand'}>
-                {item.sender_name}: {item.message}
-              </p>
-            )) : <p className="system">No messages yet.</p>}
+            <div className="deal-chat-input">
+              <button type="button"><Smile size={17} /></button>
+              <button type="button"><Paperclip size={17} /></button>
+              <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
+              <button type="button" onClick={onSendMessage}><Send size={17} /></button>
+            </div>
           </div>
-          <div className="deal-action-menu">
-            {creatorActions.map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
+
+          <div className="deal-action-section">
+            <div className="deal-action-section-title">
+              <h3>Action Cards</h3>
+              <span>{actionCards.length}</span>
+            </div>
+            <div className="deal-action-card">
+              <h3>{damaged ? 'Pending with Admin + Brand' : 'Pending Action'}</h3>
+              <p>{damaged ? 'Damage report under review. Damage report submitted, creator work paused, and admin/brand are reviewing the evidence.' : deal?.primary_next_action || 'No action pending'}</p>
+              <button type="button" onClick={() => onActionCard(damaged ? 'Add Evidence' : 'Milestone Update')}>{damaged ? 'Add Evidence' : '+ Action Card'}</button>
+            </div>
+            {actionCards.length ? (
+              <div className="deal-action-card-list">
+                {actionCards.map((card) => (
+                  <article key={card.id}>
+                    <strong>{card.title}</strong>
+                    <span>{card.status}</span>
+                    <p>{card.message || card.type}</p>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+            <div className="deal-action-menu">
+              {creatorActions.map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
+            </div>
           </div>
-          <div className="deal-chat-input">
-            <button type="button"><Smile size={17} /></button>
-            <button type="button"><Paperclip size={17} /></button>
-            <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
-            <button type="button" onClick={onSendMessage}><Send size={17} /></button>
-          </div>
-        </div>
+        </>
       )}
       {tab === 'progress' && (
         <div className="deal-progress-tab">

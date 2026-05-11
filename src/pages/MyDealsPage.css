@@ -21,11 +21,11 @@
   top: 0;
   z-index: 3;
   display: grid;
-  grid-template-columns: auto minmax(280px, 0.72fr) minmax(0, 1.6fr) auto;
+  grid-template-columns: auto minmax(280px, 0.72fr) minmax(0, 1.6fr);
   grid-template-rows: auto auto;
   grid-template-areas:
-    "logo copy metrics actions"
-    "next next next next";
+    "logo copy metrics"
+    "next next next";
   align-items: center;
   gap: 16px;
   padding: 20px;
@@ -144,16 +144,26 @@
 
 .deal-header-pill.is-next-step {
   grid-area: next;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   min-height: 52px;
   background: #fbfcff;
 }
 
+.deal-next-step-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
 .deal-header-actions {
-  grid-area: actions;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  flex: 0 0 auto;
   min-width: 0;
 }
 
@@ -838,6 +848,7 @@
 }
 
 .deal-chat,
+.deal-action-section,
 .deal-progress-tab,
 .deal-payout-tab {
   display: grid;
@@ -846,6 +857,7 @@
 
 .deal-pinned,
 .deal-action-card,
+.deal-action-section,
 .deal-message-list,
 .deal-chat-input,
 .deal-deadline {
@@ -853,6 +865,34 @@
   border-radius: 18px;
   background: #fbfcff;
   padding: 14px;
+}
+
+.deal-action-section {
+  background: #fff;
+}
+
+.deal-action-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deal-action-section-title h3 {
+  margin: 0;
+  color: #07074e;
+  font-size: 16px;
+}
+
+.deal-action-section-title span {
+  min-width: 28px;
+  border-radius: 999px;
+  background: rgba(115, 135, 255, 0.1);
+  color: #7387ff;
+  padding: 4px 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 950;
 }
 
 .deal-pinned {
@@ -1157,11 +1197,11 @@
   }
 
   .deal-status-header {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
     grid-template-areas:
-      "logo copy actions"
-      "metrics metrics metrics"
-      "next next next";
+      "logo copy"
+      "metrics metrics"
+      "next next";
   }
 
   .deal-header-metrics {
@@ -1263,11 +1303,11 @@
   .deal-status-header {
     gap: 12px;
     padding: 16px;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
     grid-template-areas:
-      "logo copy actions"
-      "metrics metrics metrics"
-      "next next next";
+      "logo copy"
+      "metrics metrics"
+      "next next";
   }
 
   .deal-header-metrics {
@@ -1276,6 +1316,11 @@
 
   .deal-header-actions {
     gap: 8px;
+  }
+
+  .deal-header-pill.is-next-step {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .deal-primary-action {

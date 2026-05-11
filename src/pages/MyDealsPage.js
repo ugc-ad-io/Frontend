@@ -846,7 +846,7 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
   return (
     <aside className="deal-right-panel">
       <div className="deal-right-tabs">
-        {['chat', 'progress', 'payout'].map((name) => (
+        {['chat', 'progress'].map((name) => (
           <button key={name} type="button" className={tab === name ? 'is-active' : ''} onClick={() => setTab(name)}>{name}</button>
         ))}
       </div>
@@ -866,6 +866,37 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
               <button type="button"><Paperclip size={17} /></button>
               <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
               <button type="button" onClick={onSendMessage}><Send size={17} /></button>
+            </div>
+          </div>
+
+          <div className="deal-payout-section">
+            <div className="deal-action-section-title">
+              <h3>Payout Summary</h3>
+            </div>
+            <div className="deal-payout-tab">
+              <p><span>Escrow Held</span><strong>{formatMoney(escrow.held_amount || 0)}</strong></p>
+              <p><span>Net Payable</span><strong>{formatMoney(escrow.net_payable || 0)}</strong></p>
+              <p><span>Deductions</span><strong>{deductions.length ? deductions.map((item) => `${item.label}: ${formatMoney(item.amount)}`).join(', ') : 'No deductions'}</strong></p>
+              <p><span>Estimated Payout</span><strong>{formatDateTime(escrow.estimated_payout_at)}</strong></p>
+              <em>Disputed deals remain on hold until resolved.</em>
+            </div>
+          </div>
+
+          <div className="deal-deadline-section">
+            <div className="deal-action-section-title">
+              <h3>{damaged ? 'Resolution Status' : 'Deadline Alert'}</h3>
+            </div>
+            <div className="deal-deadline">
+              <div><span><AlertTriangle size={21} /></span><div><strong>{damaged ? 'Resolution pending' : getCountdownLabel(deal)}</strong><h2>{damaged ? 'Work paused' : deal?.primary_next_action || 'Next action pending'}</h2><p>{damaged ? 'Work is paused until resolution' : `Due: ${formatDateTime(getDealDeadline(deal))}`}</p><p>{damaged ? 'Waiting on: Admin + Brand' : `Active party: ${deal?.active_party || 'Not assigned'}`}</p><p>{damaged ? 'No late penalty will apply while this issue is under review' : `Required action: ${deal?.primary_next_action || 'No action pending'}`}</p></div></div>
+            </div>
+          </div>
+
+          <div className="deal-support-actions">
+            <div className="deal-action-section-title">
+              <h3>Support Actions</h3>
+            </div>
+            <div className="deal-action-menu">
+              {creatorActions.map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
             </div>
           </div>
 
@@ -890,9 +921,6 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
                 ))}
               </div>
             ) : null}
-            <div className="deal-action-menu">
-              {creatorActions.map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
-            </div>
           </div>
         </>
       )}
@@ -912,18 +940,6 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
           })}
         </div>
       )}
-      {tab === 'payout' && (
-        <div className="deal-payout-tab">
-          <p><span>Escrow Held</span><strong>{formatMoney(escrow.held_amount || 0)}</strong></p>
-          <p><span>Net Payable</span><strong>{formatMoney(escrow.net_payable || 0)}</strong></p>
-          <p><span>Deductions</span><strong>{deductions.length ? deductions.map((item) => `${item.label}: ${formatMoney(item.amount)}`).join(', ') : 'No deductions'}</strong></p>
-          <p><span>Estimated Payout</span><strong>{formatDateTime(escrow.estimated_payout_at)}</strong></p>
-          <em>Disputed deals remain on hold until resolved.</em>
-        </div>
-      )}
-      <div className="deal-deadline">
-        <div><span><AlertTriangle size={21} /></span><div><strong>{damaged ? 'Resolution Status' : 'Deadline Alert'}</strong><h2>{damaged ? 'Resolution pending' : getCountdownLabel(deal)}</h2><p>{damaged ? 'Work is paused until resolution' : `Due: ${formatDateTime(getDealDeadline(deal))}`}</p><p>{damaged ? 'Waiting on: Admin + Brand' : `Active party: ${deal?.active_party || 'Not assigned'}`}</p><p>{damaged ? 'No late penalty will apply while this issue is under review' : `Required action: ${deal?.primary_next_action || 'No action pending'}`}</p></div></div>
-      </div>
       <div className="deal-help-list">
         {[
           [Headphones, 'Escalate to Admin'],

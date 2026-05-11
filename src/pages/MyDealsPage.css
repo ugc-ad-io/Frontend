@@ -911,7 +911,6 @@
 .deal-payout-section,
 .deal-deadline-section,
 .deal-support-actions,
-.deal-action-section,
 .deal-progress-tab,
 .deal-payout-tab {
   display: grid;
@@ -919,11 +918,9 @@
 }
 
 .deal-pinned,
-.deal-action-card,
 .deal-payout-section,
 .deal-deadline-section,
 .deal-support-actions,
-.deal-action-section,
 .deal-message-list,
 .deal-chat-input,
 .deal-deadline {
@@ -942,10 +939,6 @@
 }
 
 .deal-support-actions {
-  background: #fff;
-}
-
-.deal-action-section {
   background: #fff;
 }
 
@@ -991,85 +984,6 @@
   overflow-wrap: anywhere;
 }
 
-.deal-action-card h3,
-.deal-action-card p {
-  margin: 0;
-}
-
-.deal-action-card h3 {
-  color: #07074e;
-  font-size: 16px;
-}
-
-.deal-action-card p {
-  margin-top: 6px;
-  color: #667085;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.deal-action-card button {
-  margin-top: 12px;
-  max-width: 100%;
-  border: 0;
-  border-radius: 12px;
-  background: #7387ff;
-  color: #fff;
-  padding: 10px 12px;
-  font-weight: 900;
-  line-height: 1.25;
-  white-space: normal;
-  cursor: pointer;
-}
-
-.deal-action-card-list {
-  display: grid;
-  gap: 10px;
-}
-
-.deal-action-card-list article {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  border: 1px solid rgba(226, 232, 240, 0.74);
-  border-radius: 15px;
-  background: #fff;
-  padding: 12px;
-}
-
-.deal-action-card-list strong {
-  color: #07074e;
-  min-width: 0;
-}
-
-.deal-action-card-list span {
-  width: fit-content;
-  border-radius: 999px;
-  background: rgba(115, 135, 255, 0.1);
-  color: #7387ff;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 950;
-  text-transform: uppercase;
-}
-
-.deal-action-card-list p {
-  margin: 0;
-  color: #667085;
-  font-weight: 700;
-  min-width: 0;
-}
-
-.deal-expand-action-cards {
-  width: 100%;
-  border: 1px solid rgba(115, 135, 255, 0.2);
-  border-radius: 12px;
-  background: rgba(115, 135, 255, 0.08);
-  color: #4f63d8;
-  padding: 10px 12px;
-  font-weight: 900;
-  cursor: pointer;
-}
 
 .deal-message-list {
   max-height: 320px;

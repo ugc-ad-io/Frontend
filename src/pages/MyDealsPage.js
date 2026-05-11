@@ -836,16 +836,12 @@ function RevisionTracker({ deal, onRevisionResponse }) {
 }
 
 function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSendMessage, onActionCard }) {
-  const [showAllActionCards, setShowAllActionCards] = useState(false);
   const chat = deal?.chat_summary || {};
   const messages = chat.messages || [];
   const escrow = deal?.escrow || {};
   const deductions = escrow.deductions || [];
   const damaged = isDamageState(currentState);
   const creatorActions = damaged ? ['Add Evidence', 'Escalate to Admin', 'Raise Dispute', 'Message Support'] : ['Milestone Update', 'Escalate to Admin', 'Raise Dispute', 'Damage Report'];
-  const actionCards = deal?.action_cards || [];
-  const visibleActionCards = showAllActionCards ? actionCards : actionCards.slice(0, 3);
-  const hiddenActionCardCount = Math.max(0, actionCards.length - visibleActionCards.length);
   return (
     <aside className="deal-right-column">
       <div className="deal-right-panel">
@@ -920,34 +916,6 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
             <div className="deal-deadline">
               <div><span><AlertTriangle size={21} /></span><div><strong>{damaged ? 'Resolution pending' : getCountdownLabel(deal)}</strong><h2>{damaged ? 'Work paused' : deal?.primary_next_action || 'Next action pending'}</h2><p>{damaged ? 'Work is paused until resolution' : `Due: ${formatDateTime(getDealDeadline(deal))}`}</p><p>{damaged ? 'Waiting on: Admin + Brand' : `Active party: ${deal?.active_party || 'Not assigned'}`}</p><p>{damaged ? 'No late penalty will apply while this issue is under review' : `Required action: ${deal?.primary_next_action || 'No action pending'}`}</p></div></div>
             </div>
-          </div>
-
-          <div className="deal-action-section">
-            <div className="deal-action-section-title">
-              <h3>Action Cards</h3>
-              <span>{actionCards.length}</span>
-            </div>
-            <div className="deal-action-card">
-              <h3>{damaged ? 'Pending with Admin + Brand' : 'Pending Action'}</h3>
-              <p>{damaged ? 'Damage report under review. Damage report submitted, creator work paused, and admin/brand are reviewing the evidence.' : deal?.primary_next_action || 'No action pending'}</p>
-              <button type="button" onClick={() => onActionCard(damaged ? 'Add Evidence' : 'Milestone Update')}>{damaged ? 'Add Evidence' : '+ Action Card'}</button>
-            </div>
-            {actionCards.length ? (
-              <div className="deal-action-card-list">
-                {visibleActionCards.map((card) => (
-                  <article key={card.id}>
-                    <strong>{card.title}</strong>
-                    <span>{card.status}</span>
-                    <p>{card.message || card.type}</p>
-                  </article>
-                ))}
-              </div>
-            ) : null}
-            {actionCards.length > 3 && (
-              <button type="button" className="deal-expand-action-cards" onClick={() => setShowAllActionCards((value) => !value)}>
-                {showAllActionCards ? 'Show fewer cards' : `Show ${hiddenActionCardCount} more card${hiddenActionCardCount > 1 ? 's' : ''}`}
-              </button>
-            )}
           </div>
 
           <div className="deal-help-list">

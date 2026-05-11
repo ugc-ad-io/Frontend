@@ -18,6 +18,31 @@
   font: inherit;
 }
 
+.pcd-shell svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.pcd-brand-mark,
+.pcd-avatar,
+.pcd-icon-btn,
+.pcd-hamburger,
+.pcd-bell,
+.pcd-stat-top span,
+.pcd-level-badge,
+.pcd-level-icon,
+.pcd-brief-match-icon,
+.pcd-status-card span,
+.pcd-portfolio-item button svg,
+.pcd-section-header button svg,
+.pcd-card-actions button svg,
+.pcd-nav-item svg {
+  display: inline-grid;
+  place-items: center;
+  align-items: center;
+  justify-content: center;
+}
+
 .pcd-sidebar {
   width: 260px;
   min-height: 100vh;

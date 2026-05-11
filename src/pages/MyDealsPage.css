@@ -12,6 +12,28 @@
   box-sizing: border-box;
 }
 
+.deal-page svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.deal-brand-logo,
+.deal-more > button,
+.deal-section-title > span,
+.deal-brief-toggle span,
+.deal-upload span,
+.deal-preview-tile a,
+.deal-timeline-item > span,
+.deal-chat-input button,
+.deal-progress-tab span,
+.deal-deadline span,
+.deal-help-list button > span {
+  display: inline-grid;
+  place-items: center;
+  align-items: center;
+  justify-content: center;
+}
+
 .deal-page button,
 .deal-page input,
 .deal-page a,
@@ -263,7 +285,7 @@
 
 .deal-room-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 0.78fr) minmax(0, 2.15fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.8fr) minmax(360px, 1.15fr);
   gap: 20px;
   align-items: start;
   min-width: 0;
@@ -940,6 +962,7 @@
 
 .deal-support-actions {
   background: #fff;
+  padding: 12px;
 }
 
 .deal-action-section-title {
@@ -1025,9 +1048,17 @@
 }
 
 .deal-action-menu {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
   gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.deal-action-menu button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .deal-chat-input {
@@ -1043,11 +1074,25 @@
   width: 34px;
   height: 34px;
   flex: 0 0 34px;
+  display: inline-grid;
+  place-items: center;
   border: 0;
   border-radius: 10px;
   background: #f3f3ff;
   color: #7387ff;
   cursor: pointer;
+}
+
+.deal-chat-input button svg,
+.deal-action-menu button svg,
+.deal-help-list button svg,
+.deal-primary-action svg,
+.deal-secondary-action svg,
+.deal-submit svg,
+.deal-link-btn svg,
+.deal-revision-actions button svg {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .deal-chat-input input {

@@ -860,12 +860,6 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
                 </p>
               )) : <p className="system">No messages yet.</p>}
             </div>
-            <div className="deal-chat-input">
-              <button type="button"><Smile size={17} /></button>
-              <button type="button"><Paperclip size={17} /></button>
-              <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
-              <button type="button" onClick={onSendMessage}><Send size={17} /></button>
-            </div>
             <div className="deal-support-actions">
               <div className="deal-action-section-title">
                 <h3>Support Actions</h3>
@@ -873,6 +867,12 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
               <div className="deal-action-menu">
                 {creatorActions.map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
               </div>
+            </div>
+            <div className="deal-chat-input">
+              <button type="button"><Smile size={17} /></button>
+              <button type="button"><Paperclip size={17} /></button>
+              <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
+              <button type="button" onClick={onSendMessage}><Send size={17} /></button>
             </div>
           </div>
         )}

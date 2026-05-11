@@ -225,7 +225,7 @@ function App() {
               }
             />
             <Route
-              path="/work/review"
+              path="/work-review/:id"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
                   <WorkReview />

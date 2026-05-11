@@ -21,7 +21,7 @@
   top: 0;
   z-index: 3;
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto minmax(280px, 0.72fr) minmax(0, 1.6fr) auto;
   grid-template-rows: auto auto;
   grid-template-areas:
     "logo copy metrics actions"
@@ -90,8 +90,9 @@
 .deal-header-metrics {
   grid-area: metrics;
   display: grid;
-  grid-template-columns: repeat(5, minmax(95px, 1fr));
+  grid-template-columns: minmax(170px, 1.45fr) repeat(4, minmax(112px, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
 .deal-header-pill {
@@ -113,8 +114,9 @@
 
 .deal-header-pill strong {
   color: #07074e;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .deal-header-pill.is-state {
@@ -152,6 +154,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  min-width: 0;
 }
 
 .deal-primary-action,
@@ -169,6 +172,7 @@
   color: #fff;
   font-weight: 900;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .deal-primary-action:disabled,
@@ -225,9 +229,14 @@
 
 .deal-room-grid {
   display: grid;
-  grid-template-columns: minmax(250px, 282px) minmax(560px, 1fr) minmax(330px, 360px);
+  grid-template-columns: minmax(240px, 0.78fr) minmax(0, 2.15fr) minmax(300px, 1fr);
   gap: 20px;
   align-items: start;
+}
+
+.deal-mobile-tabs,
+.deal-mobile-fab {
+  display: none;
 }
 
 .deal-nav-panel,
@@ -239,6 +248,7 @@
   max-height: calc(100vh - 160px);
   overflow: auto;
   padding: 16px;
+  min-width: 0;
 }
 
 .deal-nav-panel section {
@@ -643,6 +653,55 @@
   padding: 14px;
 }
 
+.deal-preview-tile {
+  position: relative;
+  height: 128px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 13px;
+  background: #eef2ff;
+  color: #7387ff;
+}
+
+.deal-preview-tile img,
+.deal-preview-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.9);
+}
+
+.deal-preview-tile b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background:
+    repeating-linear-gradient(-28deg, transparent 0 28px, rgba(7, 7, 78, 0.18) 28px 56px),
+    rgba(7, 7, 78, 0.16);
+  pointer-events: none;
+}
+
+.deal-preview-tile a {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+  color: #7387ff;
+  box-shadow: 0 8px 18px rgba(7, 7, 78, 0.18);
+}
+
 .deal-version-row strong {
   color: #7387ff;
   font-size: 18px;
@@ -687,6 +746,11 @@
   border-color: rgba(115, 135, 255, 0.44);
   background: rgba(115, 135, 255, 0.08);
   color: #4f63d8;
+}
+
+.deal-revision-actions button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .deal-timeline {
@@ -747,7 +811,7 @@
 .deal-right-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
+  gap: 4px;
   padding: 5px;
   border: 1px solid rgba(226, 232, 240, 0.74);
   border-radius: 16px;
@@ -755,11 +819,13 @@
 }
 
 .deal-right-tabs button {
+  min-width: 0;
   border: 0;
   border-radius: 11px;
   background: transparent;
   color: #9f9fd1;
-  padding: 10px;
+  padding: 10px 6px;
+  font-size: 13px;
   font-weight: 950;
   text-transform: capitalize;
   cursor: pointer;
@@ -802,6 +868,8 @@
   grid-column: 2;
   color: #9f9fd1;
   font-weight: 800;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .deal-action-card h3,
@@ -818,6 +886,7 @@
   margin-top: 6px;
   color: #667085;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .deal-action-card button {
@@ -829,6 +898,41 @@
   padding: 10px 12px;
   font-weight: 900;
   cursor: pointer;
+}
+
+.deal-action-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.deal-action-card-list article {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(226, 232, 240, 0.74);
+  border-radius: 15px;
+  background: #fff;
+  padding: 12px;
+}
+
+.deal-action-card-list strong {
+  color: #07074e;
+}
+
+.deal-action-card-list span {
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(115, 135, 255, 0.1);
+  color: #7387ff;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.deal-action-card-list p {
+  margin: 0;
+  color: #667085;
+  font-weight: 700;
 }
 
 .deal-message-list {
@@ -1083,7 +1187,70 @@
 
 @media (max-width: 760px) {
   .deal-page {
-    padding: 16px;
+    padding: 16px 16px 92px;
+  }
+
+  .deal-mobile-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 6px;
+    border: 1px solid rgba(226, 232, 240, 0.78);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+  }
+
+  .deal-mobile-tabs button {
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: #9f9fd1;
+    padding: 10px;
+    font-weight: 950;
+    text-transform: capitalize;
+  }
+
+  .deal-mobile-tabs button.is-active {
+    background: #7387ff;
+    color: #fff;
+  }
+
+  .deal-room-grid.show-deals .deal-workspace,
+  .deal-room-grid.show-deals .deal-right-panel,
+  .deal-room-grid.show-workspace .deal-nav-panel,
+  .deal-room-grid.show-workspace .deal-right-panel,
+  .deal-room-grid.show-chat .deal-nav-panel,
+  .deal-room-grid.show-chat .deal-workspace {
+    display: none;
+  }
+
+  .deal-mobile-fab {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    border: 0;
+    border-radius: 16px;
+    background: #7387ff;
+    color: #fff;
+    font-weight: 950;
+    box-shadow: 0 16px 34px rgba(7, 7, 78, 0.22);
+  }
+
+  .deal-mobile-fab:disabled {
+    background: #eceefd;
+    color: #aaaed8;
+    box-shadow: none;
   }
 
   .deal-brief-body,
@@ -1112,7 +1279,7 @@
   }
 
   .deal-primary-action {
-    white-space: nowrap;
+    display: none;
   }
 
   .deal-damage-card .deal-revision-box,

@@ -152,9 +152,54 @@ function getDamageReport(deal) {
     submittedOn: damageCard?.created_at || damageEvent?.timestamp || receipt.received_at,
     reason: damageCard?.title || 'Damaged / Wrong Product Reported',
     description: damageCard?.message || receipt.damage_report || 'Damage report submitted by creator.',
+    evidenceUrls: evidence,
     evidenceCount: evidence.length,
     hasUnboxing: Boolean(receipt.unboxing_video_url),
     status: damageCard?.status === 'resolved' ? 'Resolved' : 'Under Admin Review'
+  };
+}
+
+function isState(dealOrState, state) {
+  const value = typeof dealOrState === 'string' ? dealOrState : getState(dealOrState);
+  return stateKey(value) === stateKey(state);
+}
+
+function getAssetUrl(url) {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+}
+
+function canSubmitUploadedAssets(deal, uploads) {
+  const required = getRequiredAssets(deal);
+  if (!uploads.finalVideoUrl) return false;
+  if (required.caption_script && !uploads.captionUrl) return false;
+  if (required.thumbnail && !uploads.thumbnailUrl) return false;
+  if (required.raw_footage && !uploads.rawFootageUrl) return false;
+  return Boolean(deal?.can_submit_content);
+}
+
+function getPrimaryActionConfig(deal, uploads, submitting) {
+  if (!deal) return { label: 'No deal selected', disabled: true, type: 'none' };
+  if (isDamageState(deal)) return { label: 'Add Evidence', disabled: false, type: 'add_evidence' };
+  if (isState(deal, 'Paid - Complete')) return { label: 'Archive Deal', disabled: false, type: 'archive' };
+  if (isState(deal, 'Delivered - Awaiting Receipt Confirmation')) {
+    return {
+      label: 'Mark Received + Upload Unboxing',
+      disabled: !deal.can_mark_received || !uploads.unboxingVideoUrl,
+      type: 'receipt'
+    };
+  }
+  if (isState(deal, 'Received - Content in Progress') || isState(deal, 'Revision Requested')) {
+    return {
+      label: submitting ? 'Submitting...' : isState(deal, 'Revision Requested') ? 'Submit Revision' : 'Submit Content',
+      disabled: submitting || !canSubmitUploadedAssets(deal, uploads),
+      type: 'content'
+    };
+  }
+  return {
+    label: deal.primary_next_action || 'Waiting',
+    disabled: true,
+    type: 'passive'
   };
 }
 
@@ -174,6 +219,7 @@ export default function MyDealsPage() {
   const [unboxingVideoUrl, setUnboxingVideoUrl] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [mobileSection, setMobileSection] = useState('workspace');
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
@@ -224,14 +270,19 @@ export default function MyDealsPage() {
 
   const handleSubmitReceipt = async () => {
     if (!selectedDeal?.deal_id) return;
+    if (!unboxingVideoUrl && !selectedDeal?.receipt?.unboxing_video_url) {
+      toast.error('Upload an unboxing video before marking received');
+      return;
+    }
     try {
       await axios.post(`${API}/deals/${selectedDeal.deal_id}/receipt`, {
         received_at: new Date().toISOString(),
-        unboxing_video_url: unboxingVideoUrl,
+        unboxing_video_url: unboxingVideoUrl || selectedDeal?.receipt?.unboxing_video_url,
         items_damaged: false,
         damage_report: null
       });
       toast.success('Receipt submitted');
+      setUnboxingVideoUrl(null);
       fetchDeals();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Receipt submission failed');
@@ -240,8 +291,14 @@ export default function MyDealsPage() {
 
   const handleSubmitContent = async () => {
     if (!selectedDeal?.deal_id) return;
-    if (!finalVideoUrl) {
-      toast.error('Final video is required');
+    const required = getRequiredAssets(selectedDeal);
+    const missing = [];
+    if (!finalVideoUrl) missing.push('final video');
+    if (required.caption_script && !captionUrl) missing.push('caption/script');
+    if (required.thumbnail && !thumbnailUrl) missing.push('thumbnail');
+    if (required.raw_footage && !rawFootageUrl) missing.push('raw footage');
+    if (missing.length) {
+      toast.error(`Missing required asset: ${missing.join(', ')}`);
       return;
     }
 
@@ -284,11 +341,29 @@ export default function MyDealsPage() {
   const handleCreateActionCard = async (label) => {
     if (!selectedDeal?.deal_id) return;
     try {
-      await axios.post(`${API}/deals/${selectedDeal.deal_id}/action-card`, {
-        type: ACTION_CARD_TYPES[label],
-        message: label,
-        attachment_urls: []
-      });
+      const type = ACTION_CARD_TYPES[label];
+      if (type === 'raise_dispute') {
+        await axios.post(`${API}/deals/${selectedDeal.deal_id}/dispute`, {
+          message: label,
+          attachment_urls: []
+        });
+      } else if (type === 'escalate_to_admin') {
+        await axios.post(`${API}/deals/${selectedDeal.deal_id}/escalate`, {
+          message: label,
+          attachment_urls: []
+        });
+      } else if (label === 'Damage Report') {
+        await axios.post(`${API}/deals/${selectedDeal.deal_id}/damage-report`, {
+          message: 'Damaged or wrong product reported by creator',
+          attachment_urls: [unboxingVideoUrl || selectedDeal?.receipt?.unboxing_video_url].filter(Boolean)
+        });
+      } else {
+        await axios.post(`${API}/deals/${selectedDeal.deal_id}/action-card`, {
+          type,
+          message: label,
+          attachment_urls: [unboxingVideoUrl || selectedDeal?.receipt?.unboxing_video_url].filter(Boolean)
+        });
+      }
       toast.success(`${label} created`);
       fetchDeals();
     } catch (err) {
@@ -296,8 +371,51 @@ export default function MyDealsPage() {
     }
   };
 
+  const handleRevisionResponse = async (response) => {
+    if (!selectedDeal?.deal_id) return;
+    try {
+      await axios.post(`${API}/deals/${selectedDeal.deal_id}/revision-response`, {
+        response,
+        note: response === 'accepted' ? 'Creator accepted the revision request.' : 'Creator flagged the revision request from Deal Room.'
+      });
+      toast.success('Revision response submitted');
+      fetchDeals();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Revision response failed');
+    }
+  };
+
+  const handleArchiveDeal = () => {
+    if (!selectedDeal) return;
+    if (!isState(selectedDeal, 'Paid - Complete')) {
+      toast.error('Only completed deals can be archived');
+      return;
+    }
+    const nextDeals = deals.filter((deal) => getDealId(deal) !== getDealId(selectedDeal));
+    setDeals(nextDeals);
+    setSelectedDeal(nextDeals[0] || null);
+    toast.success('Deal archived from this view');
+  };
+
+  const primaryAction = getPrimaryActionConfig(
+    selectedDeal,
+    { finalVideoUrl, captionUrl, thumbnailUrl, rawFootageUrl, unboxingVideoUrl: unboxingVideoUrl || selectedDeal?.receipt?.unboxing_video_url },
+    submitting
+  );
+
+  const handlePrimaryAction = () => {
+    if (primaryAction.disabled) return;
+    if (primaryAction.type === 'receipt') return handleSubmitReceipt();
+    if (primaryAction.type === 'content') return handleSubmitContent();
+    if (primaryAction.type === 'add_evidence') return handleCreateActionCard('Add Evidence');
+    if (primaryAction.type === 'archive') return handleArchiveDeal();
+    return null;
+  };
+
   const selectedState = getState(selectedDeal);
-  const activeDeals = deals.filter((item) => !['paid - complete', 'disputed'].includes(stateKey(item.current_state)));
+  const activeDeals = deals.filter((item) => (
+    !['paid - complete', 'disputed', 'damaged/wrong product reported'].includes(stateKey(item.current_state))
+  ));
   const awaitingAction = deals.filter((item) => item.active_party === 'creator' && !isDamageState(item));
   const pastDeals = deals.filter((item) => stateKey(item.current_state) === 'paid - complete');
   const disputedDeals = deals.filter((item) => EXCEPTION_STATES.some((state) => stateKey(state) === stateKey(item.current_state)));
@@ -327,13 +445,21 @@ export default function MyDealsPage() {
           deal={selectedDeal}
           currentState={selectedState}
           escrowAmount={escrowAmount}
-          onSubmit={handleSubmitContent}
-          canSubmit={Boolean(finalVideoUrl) && Boolean(selectedDeal?.can_submit_content) && !submitting}
-          submitting={submitting}
+          primaryAction={primaryAction}
+          onPrimaryAction={handlePrimaryAction}
           onActionCard={handleCreateActionCard}
+          onArchive={handleArchiveDeal}
         />
 
-        <div className="deal-room-grid">
+        <div className="deal-mobile-tabs" role="tablist" aria-label="Deal room sections">
+          {['deals', 'workspace', 'chat'].map((section) => (
+            <button key={section} type="button" className={mobileSection === section ? 'is-active' : ''} onClick={() => setMobileSection(section)}>
+              {section}
+            </button>
+          ))}
+        </div>
+
+        <div className={`deal-room-grid show-${mobileSection}`}>
           <DealNavigation
             groups={[
               ['Active Deals', activeDeals],
@@ -403,7 +529,7 @@ export default function MyDealsPage() {
               />
             )}
 
-            <RevisionTracker deal={selectedDeal} />
+            <RevisionTracker deal={selectedDeal} onRevisionResponse={handleRevisionResponse} />
 
             <DealCard className="deal-activity">
               <div className="deal-section-title">
@@ -435,18 +561,23 @@ export default function MyDealsPage() {
             onActionCard={handleCreateActionCard}
           />
         </div>
+        <button type="button" className="deal-mobile-fab" disabled={primaryAction.disabled} onClick={handlePrimaryAction}>
+          {primaryAction.label}
+        </button>
       </div>
     </DashboardLayout>
   );
 }
 
-function StatusHeader({ deal, currentState, escrowAmount, onSubmit, canSubmit, submitting, onActionCard }) {
+function StatusHeader({ deal, currentState, escrowAmount, primaryAction, onPrimaryAction, onActionCard, onArchive }) {
   const deadline = getDealDeadline(deal);
   const damaged = isDamageState(currentState);
+  const reviewTimer = isState(currentState, 'Content Submitted - Awaiting Review') ? `Auto-approval ${getCountdownLabel(deal)}` : null;
+  const creatorIsActive = deal?.active_party === 'creator' && !damaged;
   return (
     <section className={`deal-status-header ${damaged ? 'is-passive' : ''}`}>
       <div className="deal-brand-logo">
-        {deal?.brand?.logo_url ? <img src={`${BACKEND_URL}${deal.brand.logo_url}`} alt={deal.brand.name || 'Brand'} /> : getInitial(deal?.brand?.name || 'B')}
+        {deal?.brand?.logo_url ? <img src={getAssetUrl(deal.brand.logo_url)} alt={deal.brand.name || 'Brand'} /> : getInitial(deal?.brand?.name || 'B')}
       </div>
       <div className="deal-status-copy">
         <p>{getBrandHandle(deal)}</p>
@@ -456,26 +587,26 @@ function StatusHeader({ deal, currentState, escrowAmount, onSubmit, canSubmit, s
       <div className="deal-header-metrics">
         <div className="deal-header-pill is-state"><small>Current State</small><strong>{currentState}</strong></div>
         <div className="deal-header-pill"><small>{damaged ? 'Waiting on' : 'Active Party'}</small><strong>{damaged ? 'Admin + Brand' : deal?.active_party || 'Not assigned'}</strong></div>
-        <div className="deal-header-pill"><small>Creator Status</small><strong>{damaged ? 'Work paused' : 'In workflow'}</strong></div>
-        <div className={`deal-header-pill ${damaged ? 'is-paused' : 'is-urgent'}`}><small>{damaged ? 'Timeline' : 'Deadline'}</small><strong>{damaged ? 'Creator timeline paused' : getCountdownLabel(deal)}</strong></div>
+        <div className="deal-header-pill"><small>Creator Status</small><strong>{damaged ? 'Work paused' : creatorIsActive ? 'Action needed' : 'Waiting'}</strong></div>
+        <div className={`deal-header-pill ${damaged ? 'is-paused' : creatorIsActive ? 'is-urgent' : ''}`}><small>{damaged ? 'Timeline' : 'Deadline'}</small><strong>{damaged ? 'Creator timeline paused' : getCountdownLabel(deal)}</strong></div>
         <div className="deal-header-pill"><small>Escrow</small><strong>{formatMoney(escrowAmount)} held</strong></div>
       </div>
       <div className="deal-header-actions">
-        <button type="button" className="deal-primary-action" disabled={damaged ? false : !canSubmit} onClick={damaged ? () => onActionCard('Add Evidence') : onSubmit}>
-          <Upload size={17} /> {submitting ? 'Submitting...' : damaged ? 'Add Evidence' : deal?.primary_next_action || 'Submit Content'}
+        <button type="button" className="deal-primary-action" disabled={primaryAction.disabled} onClick={onPrimaryAction}>
+          <Upload size={17} /> {primaryAction.label}
         </button>
         <div className="deal-more">
           <button type="button" aria-label="More deal actions"><MoreHorizontal size={18} /></button>
           <div>
-            <button type="button">Raise Dispute</button>
-            <button type="button">Get Help</button>
-            <button type="button"><Archive size={14} /> Archive if completed</button>
+            <button type="button" onClick={() => onActionCard('Raise Dispute')}>Raise Dispute</button>
+            <button type="button" onClick={() => onActionCard('Message Support')}>Get Help</button>
+            <button type="button" onClick={onArchive}><Archive size={14} /> Archive if completed</button>
           </div>
         </div>
       </div>
       <div className="deal-header-pill is-next-step">
         <small>{damaged ? 'Next Step' : 'Due'}</small>
-        <strong>{damaged ? 'Admin and brand will review your uploaded evidence. You may add more evidence or contact support if needed.' : formatDateTime(deadline)}</strong>
+        <strong>{damaged ? 'Admin and brand will review your uploaded evidence. You may add more evidence or contact support if needed.' : reviewTimer || formatDateTime(deadline)}</strong>
       </div>
     </section>
   );
@@ -526,6 +657,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
   const receipt = deal?.receipt || {};
   const damaged = isDamageState(deal);
   const hasCourierDetails = shipment.tracking_id || shipment.courier_status || shipment.expected_delivery_at || receipt.received_at;
+  const canSubmitReceipt = Boolean(deal?.can_mark_received && (unboxingVideoUrl || receipt.unboxing_video_url));
   return (
     <DealCard className="deal-shipping-card">
       <div className="deal-section-title">
@@ -540,7 +672,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
           <p><small>Date Received</small><strong>{formatDate(receipt.received_at)}</strong></p>
         </div>
       ) : (
-        <div className="deal-pause-note">Product issue has been reported. Shipping/content workflow is paused until admin resolution.</div>
+        <div className="deal-pause-note">{damaged ? 'Product issue has been reported. Shipping/content workflow is paused until admin resolution.' : 'Waiting for brand shipment details.'}</div>
       )}
       {damaged ? (
         <div className="deal-revision-actions">
@@ -549,7 +681,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
         </div>
       ) : (
         <>
-          <button type="button" className="deal-secondary-action" disabled={!deal?.can_mark_received} onClick={onSubmitReceipt}>Mark Received</button>
+          <button type="button" className="deal-secondary-action" disabled={!canSubmitReceipt} onClick={onSubmitReceipt}>Mark Received + Upload Unboxing</button>
           <label>Upload Unboxing Video</label>
           <p className="deal-helper-text">Upload a short unboxing video showing package condition, opening, and product received.</p>
           <input type="file" id="unboxing-upload" accept="video/mp4,video/quicktime" onChange={(event) => onUpload(event.target.files?.[0])} />
@@ -581,6 +713,7 @@ function ContentSubmission({
   const needsCaption = Boolean(required.caption_script);
   const needsThumbnail = Boolean(required.thumbnail);
   const needsRaw = Boolean(required.raw_footage);
+  const canSubmit = canSubmitUploadedAssets(deal, { finalVideoUrl, captionUrl, thumbnailUrl, rawFootageUrl });
 
   return (
     <DealCard className="deal-delivery-card">
@@ -617,13 +750,28 @@ function ContentSubmission({
       <div className="deal-version-row">
         {versions.length ? versions.map((version) => (
           <article key={version.version}>
+            <div className="deal-preview-tile">
+              {version.thumbnail_url ? (
+                <img src={getAssetUrl(version.thumbnail_url)} alt={`v${version.version} thumbnail`} />
+              ) : version.video_url ? (
+                <video src={getAssetUrl(version.video_url)} />
+              ) : (
+                <Play size={24} />
+              )}
+              {content.watermark_required_until_approval && version.status !== 'approved' && <b>UGCAD.IO Preview</b>}
+              {version.video_url && (
+                <a href={getAssetUrl(version.video_url)} target="_blank" rel="noreferrer" aria-label={`Open v${version.version} preview`}>
+                  <Play size={16} />
+                </a>
+              )}
+            </div>
             <strong>v{version.version}</strong>
             <small>{formatDateTime(version.submitted_at)}</small>
             <span>{version.status}</span>
           </article>
         )) : <article><strong>v1</strong><small>No upload yet</small><span>Awaiting submission</span></article>}
       </div>
-      <button type="button" className="deal-submit" disabled={!finalVideoUrl || !deal?.can_submit_content || submitting} onClick={onSubmit}>
+      <button type="button" className="deal-submit" disabled={!canSubmit || submitting} onClick={onSubmit}>
         <Upload size={17} /> {submitting ? 'Submitting...' : 'Submit Final Delivery'}
       </button>
     </DealCard>
@@ -655,15 +803,16 @@ function DamageReportCard({ deal, onActionCard }) {
       </div>
       <div className="deal-revision-actions">
         <button type="button" onClick={() => onActionCard('Add Evidence')}>Add More Evidence</button>
-        <button type="button">View Uploaded Evidence</button>
+        <button type="button" disabled={!report.evidenceUrls.length} onClick={() => window.open(getAssetUrl(report.evidenceUrls[0]), '_blank', 'noopener,noreferrer')}>View Uploaded Evidence</button>
         <button type="button" onClick={() => onActionCard('Message Support')}>Message Support</button>
       </div>
     </DealCard>
   );
 }
 
-function RevisionTracker({ deal }) {
+function RevisionTracker({ deal, onRevisionResponse }) {
   const revision = deal?.revision_tracker || {};
+  const hasRevision = Boolean(revision.latest_feedback || revision.requested_changes?.length);
   return (
     <DealCard className="deal-revisions">
       <div className="deal-section-title">
@@ -676,9 +825,9 @@ function RevisionTracker({ deal }) {
         <p><small>New Deadline</small><strong>{formatDateTime(revision.new_deadline_at)}</strong></p>
       </div>
       <div className="deal-revision-actions">
-        <button type="button">Accept and revise</button>
-        <button type="button">Flag scope creep</button>
-        <button type="button">Partially accept and dispute remaining items</button>
+        <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('accepted')}>Accept and revise</button>
+        <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep')}>Flag scope creep</button>
+        <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('partial_dispute')}>Partially accept and dispute remaining items</button>
       </div>
     </DealCard>
   );
@@ -690,7 +839,8 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
   const escrow = deal?.escrow || {};
   const deductions = escrow.deductions || [];
   const damaged = isDamageState(currentState);
-  const creatorActions = damaged ? ['Add Evidence', 'Escalate to Admin', 'Raise Dispute', 'Message Support'] : Object.keys(ACTION_CARD_TYPES);
+  const creatorActions = damaged ? ['Add Evidence', 'Escalate to Admin', 'Raise Dispute', 'Message Support'] : ['Milestone Update', 'Escalate to Admin', 'Raise Dispute', 'Damage Report'];
+  const actionCards = deal?.action_cards || [];
   return (
     <aside className="deal-right-panel">
       <div className="deal-right-tabs">
@@ -706,6 +856,17 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
             <p>{damaged ? 'Damage report under review. Damage report submitted, creator work paused, and admin/brand are reviewing the evidence.' : deal?.primary_next_action || 'No action pending'}</p>
             <button type="button" onClick={() => onActionCard(damaged ? 'Add Evidence' : 'Milestone Update')}>{damaged ? 'Add Evidence' : '+ Action Card'}</button>
           </div>
+          {actionCards.length ? (
+            <div className="deal-action-card-list">
+              {actionCards.map((card) => (
+                <article key={card.id}>
+                  <strong>{card.title}</strong>
+                  <span>{card.status}</span>
+                  <p>{card.message || card.type}</p>
+                </article>
+              ))}
+            </div>
+          ) : null}
           <div className="deal-message-list">
             {messages.length ? messages.map((item) => (
               <p key={item.id} className={item.sender_type === 'creator' ? 'creator' : item.sender_type === 'system' ? 'system' : 'brand'}>

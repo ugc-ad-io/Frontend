@@ -70,12 +70,24 @@ export default function ReviewsPage() {
       if (campaignIds.length > 0) {
         try {
           const campaignRes = await axios.get(`${API}/campaigns`);
+          console.log('🔍 All campaigns from API:', campaignRes.data.length);
+          console.log('📌 Campaign IDs we need:', campaignIds);
+
           campaignRes.data.forEach(campaign => {
             campaignsData[campaign.id] = campaign;
           });
+
+          console.log('✅ Campaigns Data object:', campaignsData);
           console.log('📋 Campaigns loaded:', Object.keys(campaignsData).length);
+
+          // Check which campaigns are missing
+          campaignIds.forEach(id => {
+            if (!campaignsData[id]) {
+              console.warn(`❌ Campaign ${id} not found!`);
+            }
+          });
         } catch (err) {
-          console.warn('Could not fetch campaigns');
+          console.error('❌ Error fetching campaigns:', err);
         }
       }
 

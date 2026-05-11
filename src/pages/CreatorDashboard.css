@@ -1147,6 +1147,10 @@
   align-items: start;
 }
 
+.pcd-review-grid {
+  align-items: stretch;
+}
+
 .pcd-review-card {
   padding: 20px;
 }
@@ -1175,6 +1179,10 @@
 }
 
 .pcd-review-card-enhanced {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 260px;
   background: white;
   padding: 20px;
   border-radius: 16px;
@@ -1230,6 +1238,7 @@
   color: #4a5568;
   font-size: 0.95rem;
   line-height: 1.6;
+  min-height: 62px;
   margin: 12px 0;
   padding: 12px;
   background: #f8f9ff;
@@ -1244,7 +1253,7 @@
   color: #9f9fd1;
   font-size: 0.85rem;
   font-weight: 600;
-  margin-top: 8px;
+  margin-top: auto;
 }
 
 .pcd-portfolio-head {

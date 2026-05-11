@@ -107,7 +107,6 @@ export default function DashboardLayout({
             </button>
             <div className="pcd-role-switch">
               <button type="button" className="is-active">Creator</button>
-              <button type="button" onClick={() => navigate('/dashboard/business')}>Brand</button>
             </div>
             <button type="button" className="pcd-icon-btn pcd-bell" aria-label="Notifications">
               <Bell size={18} />

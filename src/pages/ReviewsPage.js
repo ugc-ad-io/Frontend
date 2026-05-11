@@ -65,31 +65,21 @@ export default function ReviewsPage() {
       const campaignIds = [...new Set(reviewsList.map(r => r.campaign_id))];
       const reviewerIds = [...new Set(reviewsList.map(r => r.reviewer_id))];
 
-      // Fetch campaign details
+      // Fetch campaign details individually
       const campaignsData = {};
       if (campaignIds.length > 0) {
-        try {
-          const campaignRes = await axios.get(`${API}/campaigns`);
-          console.log('🔍 All campaigns from API:', campaignRes.data.length);
-          console.log('📌 Campaign IDs we need:', campaignIds);
-
-          campaignRes.data.forEach(campaign => {
-            campaignsData[campaign.id] = campaign;
-          });
-
-          console.log('✅ Campaigns Data object:', campaignsData);
-          console.log('📋 Campaigns loaded:', Object.keys(campaignsData).length);
-
-          // Check which campaigns are missing
-          campaignIds.forEach(id => {
-            if (!campaignsData[id]) {
-              console.warn(`❌ Campaign ${id} not found!`);
-            }
-          });
-        } catch (err) {
-          console.error('❌ Error fetching campaigns:', err);
+        for (const campaignId of campaignIds) {
+          try {
+            const campaignRes = await axios.get(`${API}/campaigns/${campaignId}`);
+            campaignsData[campaignId] = campaignRes.data;
+            console.log(`✅ Campaign ${campaignId} loaded:`, campaignRes.data.title);
+          } catch (err) {
+            console.warn(`⚠️ Could not fetch campaign ${campaignId}:`, err.message);
+          }
         }
       }
+
+      console.log('🏆 Final Campaigns Data:', campaignsData);
 
       // Fetch reviewer (brand) details
       const reviewersData = {};

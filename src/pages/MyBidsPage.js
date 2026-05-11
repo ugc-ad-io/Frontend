@@ -7,7 +7,6 @@ import {
   Bookmark,
   Briefcase,
   Calendar,
-  Clock,
   Eye,
   FileCheck,
   IndianRupee,
@@ -24,6 +23,20 @@ import './CreatorDashboard.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+const VISIBLE_BID_STATUSES = new Set(['pending', 'submitted', 'bid_submitted']);
+
+const getBidStatus = (item) => (
+  item?.bid_status ||
+  item?.my_bid?.status ||
+  item?.bid?.status ||
+  'pending'
+).toLowerCase();
+
+const isVisiblePendingBid = (item) => {
+  const campaign = item?.campaign || {};
+  const isCampaignAssigned = Boolean(campaign.selected_creator || item?.selected_creator);
+  return !isCampaignAssigned && VISIBLE_BID_STATUSES.has(getBidStatus(item));
+};
 
 export default function MyBidsPage() {
   const { user } = useAuth();
@@ -54,7 +67,7 @@ export default function MyBidsPage() {
   const fetchData = async () => {
     try {
       const res = await axios.get(`${API}/bids/my?t=${Date.now()}`);
-      setMyBids(res.data || []);
+      setMyBids((res.data || []).filter(isVisiblePendingBid));
     } catch (error) {
       toast.error('Failed to load bids');
     } finally {
@@ -110,11 +123,6 @@ function MyBidsGrid({ items, onView }) {
             </dl>
             {bid.proposal && <p className="pcd-bid-proposal">{bid.proposal}</p>}
             <div className="pcd-card-actions">
-              {bidStatus === 'approved' && (
-                <button type="button" className="pcd-primary" onClick={() => onView(campaign.id)}>
-                  <Clock size={16} /> View Bid
-                </button>
-              )}
               <button type="button" onClick={() => onView(campaign.id)}>
                 <Eye size={16} /> View Campaign
               </button>

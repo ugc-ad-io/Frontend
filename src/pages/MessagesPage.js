@@ -32,6 +32,7 @@ export default function MessagesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -39,6 +40,8 @@ export default function MessagesPage() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [newMessage, setNewMessage] = useState('');
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [mobileView, setMobileView] = useState('list');
@@ -135,12 +138,28 @@ export default function MessagesPage() {
       }
 
       setNewMessage('');
+      setSelectedFiles([]);
+      setEmojiPickerOpen(false);
       await fetchMessages(selectedId);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to send message');
     } finally {
       setSending(false);
     }
+  };
+
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files || []);
+    setSelectedFiles(files.map((file) => file.name));
+    if (files.length) {
+      toast.success(`${files.length} file${files.length > 1 ? 's' : ''} selected`);
+    }
+    event.target.value = '';
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setNewMessage((current) => `${current}${emoji}`);
+    setEmojiPickerOpen(false);
   };
 
   // Filter conversations
@@ -304,9 +323,48 @@ export default function MessagesPage() {
             </div>
 
             {/* Input */}
+            {selectedFiles.length > 0 && (
+              <div className="msg-attachment-preview">
+                {selectedFiles.map((fileName) => (
+                  <span key={fileName}>{fileName}</span>
+                ))}
+              </div>
+            )}
             <form className="msg-input-row" onSubmit={handleSendMessage}>
-              <button type="button" className="msg-input-icon"><Smile size={18} /></button>
-              <button type="button" className="msg-input-icon"><Paperclip size={18} /></button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                multiple
+                onChange={handleFileSelect}
+              />
+              <div className="msg-emoji-wrap">
+                <button
+                  type="button"
+                  className="msg-input-icon"
+                  aria-label="Choose emoji"
+                  onClick={() => setEmojiPickerOpen((open) => !open)}
+                >
+                  <Smile size={18} />
+                </button>
+                {emojiPickerOpen && (
+                  <div className="msg-emoji-picker">
+                    {['😊', '👍', '🙏', '🔥', '✨', '✅', '👀', '💬', '📦', '🎥', '⚠️', '❤️'].map((emoji) => (
+                      <button key={emoji} type="button" onClick={() => handleEmojiSelect(emoji)}>
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="msg-input-icon"
+                aria-label="Attach file"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip size={18} />
+              </button>
               <input
                 type="text"
                 value={newMessage}

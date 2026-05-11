@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   AlertTriangle,
   Archive,
+  Bookmark,
   Briefcase,
   CheckCheck,
   ChevronDown,
@@ -24,8 +25,10 @@ import {
   Play,
   RotateCcw,
   Send,
+  Settings,
   ShieldAlert,
   Smile,
+  Star,
   Upload,
   User,
   Zap
@@ -213,6 +216,7 @@ export default function MyDealsPage() {
   const [briefOpen, setBriefOpen] = useState(false);
   const [rightTab, setRightTab] = useState('chat');
   const [message, setMessage] = useState('');
+  const [messageAttachments, setMessageAttachments] = useState([]);
   const [finalVideoUrl, setFinalVideoUrl] = useState(null);
   const [captionUrl, setCaptionUrl] = useState(null);
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
@@ -228,12 +232,14 @@ export default function MyDealsPage() {
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-    { name: 'Brief Inbox', icon: Briefcase, action: () => navigate('/browse-briefs') },
+    { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
+    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
+    { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
+    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
     { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals'), active: true },
     { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
-    { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
     { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Settings', icon: ShieldAlert, action: () => navigate('/settings') }
+    { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
   ];
 
   useEffect(() => {
@@ -329,13 +335,14 @@ export default function MyDealsPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!selectedDeal?.deal_id || !message.trim()) return;
+    if (!selectedDeal?.deal_id || (!message.trim() && !messageAttachments.length)) return;
     try {
       await axios.post(`${API}/deals/${selectedDeal.deal_id}/chat`, {
-        message: message.trim(),
-        attachment_urls: []
+        message: message.trim() || 'Attachment sent',
+        attachment_urls: messageAttachments
       });
       setMessage('');
+      setMessageAttachments([]);
       fetchDeals();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Message failed');
@@ -611,6 +618,8 @@ export default function MyDealsPage() {
             currentState={selectedState}
             message={message}
             setMessage={setMessage}
+            messageAttachments={messageAttachments}
+            setMessageAttachments={setMessageAttachments}
             onSendMessage={handleSendMessage}
             onActionCard={handleActionCardRequest}
           />
@@ -900,14 +909,39 @@ function RevisionTracker({ deal, onRevisionResponse }) {
   );
 }
 
-function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSendMessage, onActionCard }) {
+function RightPanel({ tab, setTab, deal, currentState, message, setMessage, messageAttachments, setMessageAttachments, onSendMessage, onActionCard }) {
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [uploadingMessageFile, setUploadingMessageFile] = useState(false);
+  const messageFileInputRef = useRef(null);
   const chat = deal?.chat_summary || {};
   const messages = chat.messages || [];
   const escrow = deal?.escrow || {};
   const deductions = escrow.deductions || [];
   const damaged = isDamageState(currentState);
   const creatorActions = damaged ? ['Add Evidence', 'Escalate to Admin', 'Raise Dispute', 'Message Support'] : ['Milestone Update', 'Escalate to Admin', 'Raise Dispute', 'Damage Report'];
+
+  const handleMessageFileUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    setUploadingMessageFile(true);
+    try {
+      const uploadedUrls = await Promise.all(files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        return res.data.file_url;
+      }));
+      setMessageAttachments((current) => [...current, ...uploadedUrls]);
+      toast.success(`${uploadedUrls.length} file${uploadedUrls.length > 1 ? 's' : ''} attached`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'File attachment failed');
+    } finally {
+      setUploadingMessageFile(false);
+      event.target.value = '';
+    }
+  };
+
   return (
     <aside className="deal-right-column">
       <div className="deal-right-panel">
@@ -935,6 +969,14 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
               </div>
             </div>
             <div className="deal-chat-input">
+              <input
+                ref={messageFileInputRef}
+                type="file"
+                hidden
+                multiple
+                accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+                onChange={handleMessageFileUpload}
+              />
               <div className="deal-emoji-wrap">
                 <button type="button" aria-label="Choose emoji" onClick={() => setEmojiPickerOpen((value) => !value)}><Smile size={17} /></button>
                 {emojiPickerOpen && (
@@ -954,10 +996,17 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
                   </div>
                 )}
               </div>
-              <button type="button"><Paperclip size={17} /></button>
+              <button type="button" aria-label="Attach file" disabled={uploadingMessageFile} onClick={() => messageFileInputRef.current?.click()}><Paperclip size={17} /></button>
               <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
               <button type="button" onClick={onSendMessage}><Send size={17} /></button>
             </div>
+            {messageAttachments.length ? (
+              <div className="deal-message-attachments">
+                {messageAttachments.map((url, index) => (
+                  <span key={`${url}-${index}`}>Attachment {index + 1}</span>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
         {tab === 'progress' && (

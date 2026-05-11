@@ -1139,6 +1139,21 @@
   background: #f3f3ff;
 }
 
+.deal-message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deal-message-attachments span {
+  border-radius: 999px;
+  background: rgba(115, 135, 255, 0.1);
+  color: #4f63d8;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .deal-chat-input button svg,
 .deal-action-menu button svg,
 .deal-help-list button svg,

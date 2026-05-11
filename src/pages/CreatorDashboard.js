@@ -134,7 +134,6 @@ export default function CreatorDashboard() {
   const [bidAmount, setBidAmount] = useState('');
   const [proposal, setProposal] = useState('');
   const [deliveryDays, setDeliveryDays] = useState('');
-  const [activeTab, setActiveTab] = useState('overview');
   const [portfolio, setPortfolio] = useState([]);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
 
@@ -371,7 +370,7 @@ export default function CreatorDashboard() {
           <section className="pcd-card pcd-table-card">
             <div className="pcd-section-header">
               <h2>Active Campaigns</h2>
-              <button type="button" onClick={() => setActiveTab('active')}>
+              <button type="button" onClick={() => navigate('/my-active-work')}>
                 View all deals <ArrowRight size={14} />
               </button>
             </div>
@@ -497,133 +496,6 @@ export default function CreatorDashboard() {
             </article>
           </section>
 
-          <section className="pcd-card pcd-workspace">
-            <div className="pcd-tabs" role="tablist" aria-label="Creator workspace">
-              {[
-                ['overview', 'Overview'],
-                ['active', `My Active Work (${activeCampaigns.length})`],
-                ['bids', `My Bids (${myBids.length})`],
-                ['browse', `Browse Campaigns (${availableCampaigns.length})`],
-                ['reviews', `Reviews (${reviews.length})`],
-                ['portfolio', 'Portfolio']
-              ].map(([key, label]) => (
-                <button key={key} type="button" className={activeTab === key ? 'is-active' : ''} onClick={() => setActiveTab(key)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === 'overview' && (
-              <div className="pcd-panel-grid">
-                <CompactList
-                  title="Active Work"
-                  empty="No active campaigns"
-                  items={activeCampaigns.slice(0, 3)}
-                  render={(campaign) => (
-                    <CampaignMiniCard campaign={campaign} actionLabel="Submit Work" onAction={() => navigate(`/work/submit?campaign=${campaign.id}`)} />
-                  )}
-                />
-                <CompactList
-                  title="Recent Bids"
-                  empty="No bids yet"
-                  items={myBids.slice(0, 3)}
-                  render={(campaign) => (
-                    <CampaignMiniCard campaign={campaign} actionLabel="View Campaign" onAction={() => navigate(`/campaign/${campaign.id}`)} />
-                  )}
-                />
-              </div>
-            )}
-
-            {activeTab === 'active' && (
-              <CampaignGrid
-                items={activeCampaigns}
-                empty="No active campaigns. Browse and bid on campaigns to get started."
-                renderActions={(campaign) => (
-                  <>
-                    <button type="button" className="pcd-primary" onClick={() => navigate(`/work/submit?campaign=${campaign.id}`)}>
-                      <Upload size={16} /> Submit Work
-                    </button>
-                    <button type="button" onClick={() => navigate(`/chat/${campaign.business_id}`)}>
-                      <MessageSquare size={16} /> Message
-                    </button>
-                    {campaign.requires_shipment ? (
-                      <button type="button" onClick={() => navigate(`/shipment?campaign=${campaign.id}`)}>
-                        <Package size={16} /> Track Shipment
-                      </button>
-                    ) : (
-                      <span style={{ padding: '8px 14px', color: '#9f9fd1', fontSize: '13px', fontWeight: '700' }}>
-                        No Shipment
-                      </span>
-                    )}
-                  </>
-                )}
-              />
-            )}
-
-            {activeTab === 'bids' && (
-              <CampaignGrid
-                items={myBids}
-                empty="No bids submitted yet."
-                renderActions={(campaign) => (
-                  <button type="button" onClick={() => navigate(`/campaign/${campaign.id}`)}>
-                    <Eye size={16} /> View Campaign
-                  </button>
-                )}
-              />
-            )}
-
-            {activeTab === 'browse' && (
-              <BrowseBriefsPanel
-                campaigns={availableCampaigns}
-                myBids={myBids}
-                loading={loading}
-                onView={(campaign) => navigate(`/campaign/${campaign.id}`)}
-                onPitch={(campaign) => setSelectedCampaign(campaign)}
-              />
-            )}
-
-            {activeTab === 'reviews' && (
-              <div className="pcd-review-grid">
-                {reviews.length ? reviews.map((review) => (
-                  <article key={review.id} className="pcd-review-card">
-                    <div>
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <Star key={index} size={16} className={index < review.rating ? 'filled' : ''} />
-                      ))}
-                    </div>
-                    <p>{review.review || review.review_text || review.comment}</p>
-                    <small>{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recent review'}</small>
-                  </article>
-                )) : <EmptyPanel text="No reviews yet. Complete campaigns to receive reviews." />}
-              </div>
-            )}
-
-            {activeTab === 'portfolio' && (
-              <div>
-                <div className="pcd-portfolio-head">
-                  <h2>Portfolio</h2>
-                  <input id="portfolio-upload-dashboard" type="file" multiple accept="image/*,video/*" onChange={handlePortfolioUpload} />
-                  <label htmlFor="portfolio-upload-dashboard">
-                    <Upload size={16} /> {uploadingPortfolio ? 'Uploading...' : 'Add Work'}
-                  </label>
-                </div>
-                <div className="pcd-portfolio-grid">
-                  {portfolio.length ? portfolio.map((url, index) => (
-                    <article key={url} className="pcd-portfolio-item">
-                      <div>
-                        {url.match(/\.(mp4|webm|mov)$/i) ? (
-                          <video src={url} controls />
-                        ) : (
-                          <img src={url} alt={`Portfolio item ${index + 1}`} />
-                        )}
-                      </div>
-                      <button type="button" onClick={() => handleRemovePortfolioItem(url)}>Remove</button>
-                    </article>
-                  )) : <EmptyPanel text="No portfolio items yet. Upload images or videos to showcase your work." />}
-                </div>
-              </div>
-            )}
-          </section>
       {selectedCampaign && (
         <div className="pcd-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bid-modal-title">
           <form className="pcd-modal" onSubmit={handleBidSubmit}>

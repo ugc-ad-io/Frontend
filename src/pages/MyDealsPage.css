@@ -20,8 +20,12 @@
   position: sticky;
   top: 0;
   z-index: 3;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "logo copy metrics actions"
+    "next next next next";
   align-items: center;
   gap: 16px;
   padding: 20px;
@@ -35,7 +39,7 @@
 }
 
 .deal-brand-logo {
-  flex: 0 0 auto;
+  grid-area: logo;
   width: 54px;
   height: 54px;
   display: grid;
@@ -61,9 +65,9 @@
 }
 
 .deal-status-copy {
-  flex: 0 0 auto;
+  grid-area: copy;
+  align-self: center;
   min-width: 0;
-  max-width: 300px;
 }
 
 .deal-status-copy p {
@@ -84,11 +88,10 @@
 }
 
 .deal-header-metrics {
-  flex: 1 1 auto;
+  grid-area: metrics;
   display: grid;
-  grid-template-columns: repeat(5, minmax(90px, 1fr));
+  grid-template-columns: repeat(5, minmax(95px, 1fr));
   gap: 8px;
-  min-width: 300px;
 }
 
 .deal-header-pill {
@@ -138,16 +141,16 @@
 }
 
 .deal-header-pill.is-next-step {
-  flex: 0 0 100%;
+  grid-area: next;
   min-height: 52px;
   background: #fbfcff;
-  width: 100%;
 }
 
 .deal-header-actions {
-  flex: 0 0 auto;
+  grid-area: actions;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
 }
 
@@ -1050,27 +1053,19 @@
   }
 
   .deal-status-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .deal-brand-logo {
-    flex: 0 0 auto;
-  }
-
-  .deal-status-copy {
-    flex: 0 0 auto;
-    max-width: 100%;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "logo copy actions"
+      "metrics metrics metrics"
+      "next next next";
   }
 
   .deal-header-metrics {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    flex: 0 0 100%;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   }
 
   .deal-header-actions {
-    flex: 0 0 100%;
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
   .deal-nav-panel,
@@ -1101,20 +1096,23 @@
   .deal-status-header {
     gap: 12px;
     padding: 16px;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "logo copy actions"
+      "metrics metrics metrics"
+      "next next next";
   }
 
   .deal-header-metrics {
     grid-template-columns: repeat(3, 1fr);
-    flex: 0 0 100%;
   }
 
   .deal-header-actions {
-    flex: 0 0 100%;
     gap: 8px;
   }
 
   .deal-primary-action {
-    flex: 1;
+    white-space: nowrap;
   }
 
   .deal-damage-card .deal-revision-box,

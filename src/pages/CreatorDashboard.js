@@ -591,7 +591,7 @@ export default function CreatorDashboard() {
                         <Star key={index} size={16} className={index < review.rating ? 'filled' : ''} />
                       ))}
                     </div>
-                    <p>{review.review_text || review.comment}</p>
+                    <p>{review.review || review.review_text || review.comment}</p>
                     <small>{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recent review'}</small>
                   </article>
                 )) : <EmptyPanel text="No reviews yet. Complete campaigns to receive reviews." />}

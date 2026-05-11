@@ -53,6 +53,7 @@ export default function ReviewsPage() {
   const fetchData = async () => {
     try {
       const res = await axios.get(`${API}/reviews/creator/${user.id}`);
+      console.log('Reviews API response:', res.data);
       setReviews(res.data);
     } catch (error) {
       toast.error('Failed to load reviews');
@@ -73,17 +74,24 @@ export default function ReviewsPage() {
         <div className="pcd-empty-panel">Loading...</div>
       ) : (
         <div className="pcd-review-grid">
-          {reviews.length ? reviews.map((review) => (
+          {reviews.length ? reviews.map((review) => {
+            // Try to find review text in any possible field
+            let reviewText = '';
+            if (typeof review === 'object' && review !== null) {
+              reviewText = review.review || review.review_text || review.comment || review.feedback || review.text || review.body || Object.values(review).find(val => typeof val === 'string' && val.length > 20) || '';
+            }
+            return (
             <article key={review.id} className="pcd-review-card">
               <div>
                 {Array.from({ length: 5 }).map((_, index) => (
                   <Star key={index} size={16} className={index < review.rating ? 'filled' : ''} />
                 ))}
               </div>
-              <p>{review.review_text || review.comment}</p>
+              {reviewText && <p className="review-text">{reviewText}</p>}
               <small>{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recent review'}</small>
             </article>
-          )) : <EmptyPanel text="No reviews yet. Complete campaigns to receive reviews." />}
+            );
+          }) : <EmptyPanel text="No reviews yet. Complete campaigns to receive reviews." />}
         </div>
       )}
     </DashboardLayout>

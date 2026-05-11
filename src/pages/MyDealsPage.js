@@ -1,10 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowRight, Bell, Bookmark, Calendar, CheckCheck, ChevronDown, FileCheck, FileText, FileVideo, Flag, Headphones, Image, IndianRupee, Info, LayoutDashboard, LogOut, MessageSquare, Package, Paperclip, Play, RotateCcw, Search, Settings, ShieldAlert, Star, Upload, User, Zap, Briefcase } from 'lucide-react';
-import { getInitial, EmptyPanel } from '../components/CreatorComponents';
+import {
+  AlertTriangle,
+  Archive,
+  Bell,
+  Bookmark,
+  Briefcase,
+  CheckCheck,
+  ChevronDown,
+  Clock,
+  FileCheck,
+  FileText,
+  Flag,
+  Headphones,
+  Image,
+  IndianRupee,
+  LayoutDashboard,
+  MessageSquare,
+  MoreHorizontal,
+  Package,
+  Paperclip,
+  Play,
+  RotateCcw,
+  Send,
+  ShieldAlert,
+  Smile,
+  Upload,
+  User,
+  Zap
+} from 'lucide-react';
+import { EmptyPanel, formatMoney, getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
 import './MyDealsPage.css';
@@ -12,123 +40,142 @@ import './MyDealsPage.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+const DEAL_STATES = [
+  'Accepted - Awaiting Shipment',
+  'Shipped - In Transit',
+  'Delivered - Awaiting Receipt Confirmation',
+  'Received - Content in Progress',
+  'Content Submitted - Awaiting Review',
+  'Revision Requested',
+  'Approved - Payment Processing',
+  'Paid - Complete'
+];
+
+const EXCEPTION_STATES = ['Disputed', 'Damaged/Wrong Product Reported'];
+
+const ACTION_CARD_TYPES = {
+  'Milestone Update': 'milestone_update',
+  'Damage Report': 'damage_report',
+  'Escalate to Admin': 'escalate_to_admin',
+  'Raise Dispute': 'raise_dispute'
+};
+
 function DealCard({ children, className = '' }) {
   return <section className={`deal-card ${className}`}>{children}</section>;
 }
 
-function UploadZone({ icon: Icon, label, accept, large, uploaded, onClick, disabled }) {
+function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled }) {
   return (
-    <button type="button" className={`deal-upload ${large ? 'is-large' : ''} ${uploaded ? 'is-uploaded' : ''}`} onClick={onClick} disabled={disabled}>
-      <span><Icon size={22} strokeWidth={1.5} /></span>
+    <button type="button" className={`deal-upload ${uploaded ? 'is-uploaded' : ''}`} onClick={onClick} disabled={disabled}>
+      <span><Icon size={22} strokeWidth={1.6} /></span>
       <strong>{uploaded ? 'File uploaded successfully' : label}</strong>
       <small>{uploaded ? 'Ready for submission' : accept}</small>
     </button>
   );
 }
 
-function ProgressCard({ steps }) {
-  return (
-    <DealCard className="deal-side-card">
-      <h2>Deal Progress</h2>
-      <div className="deal-progress">
-        {steps.map(([label, timestamp], index) => {
-          const done = timestamp && new Date(timestamp) <= new Date();
-          const current = !done && !steps.slice(index + 1).some(([, t]) => t);
-          return (
-            <div key={label} className={`deal-step ${done ? 'is-done' : ''} ${current ? 'is-current' : ''}`}>
-              <span>{done ? <CheckCheck size={16} /> : current ? <i /> : <b />}</span>
-              <div>
-                <strong>{label}</strong>
-                <small>{timestamp ? new Date(timestamp).toLocaleDateString('en-IN') : 'Pending'}</small>
-              </div>
-              {current && <em>Now</em>}
-            </div>
-          );
-        })}
-      </div>
-    </DealCard>
-  );
+function normalizeDash(value) {
+  return String(value || '').replace(/\s*(?:\u2014|\u2013|-)\s*/g, ' - ');
 }
 
-function PayoutSummary({ amount }) {
-  const platformFee = Math.round(amount * 0.1);
-  const tax = Math.round(amount * 0.02);
-  const net = amount - platformFee - tax;
-  const formatMoney = (val) => `Rs. ${Math.round(val).toLocaleString('en-IN')}`;
-  return (
-    <DealCard className="deal-side-card">
-      <div className="deal-side-title"><span><IndianRupee size={19} /></span><h2>Payout Summary</h2></div>
-      <div className="deal-payout-box">
-        <p><span>Total Payout</span><strong>{formatMoney(amount)}</strong></p>
-        <p><span>Platform Fee (10%)</span><strong className="danger">- {formatMoney(platformFee)}</strong></p>
-        <p><span>Tax Deduction (2%)</span><strong className="danger">- {formatMoney(tax)}</strong></p>
-        <p className="net"><span>Net Payout to You</span><strong>{formatMoney(net)}</strong></p>
-      </div>
-      <div className="deal-estimate"><Calendar size={16} /><div><strong>Estimated Payout</strong><small>After approval</small></div></div>
-    </DealCard>
-  );
+function stateKey(value) {
+  return normalizeDash(value).toLowerCase();
 }
 
-function HelpCard() {
-  const items = [[Headphones, 'Chat Support', 'Avg. reply in 5 min', true], [Flag, 'Raise an Issue', 'Dispute a deadline or brief'], [ShieldAlert, 'Report Damage', 'Product arrived damaged?']];
-  return (
-    <DealCard className="deal-side-card">
-      <h2>Need Help?</h2>
-      <div className="deal-help-list">
-        {items.map(([Icon, label, sub, primary]) => (
-          <button key={label} type="button" className={primary ? 'is-primary' : ''}>
-            <span><Icon size={18} /></span>
-            <div><strong>{label}</strong><small>{sub}</small></div>
-            <ArrowRight size={16} />
-          </button>
-        ))}
-      </div>
-    </DealCard>
-  );
+function getState(deal) {
+  return normalizeDash(deal?.current_state || deal?.campaign_status || deal?.campaign?.status || 'Status unavailable');
+}
+
+function getBrandHandle(deal) {
+  return deal?.brand?.handle || deal?.campaign?.brand_handle || deal?.campaign?.business_nickname || 'Brand';
+}
+
+function getDealTitle(deal) {
+  return deal?.campaign?.title || 'Untitled campaign';
+}
+
+function getDealDeadline(deal) {
+  return deal?.deadline || deal?.next_deadline_at || deal?.state_started_at || null;
+}
+
+function getCountdownLabel(deal) {
+  const hours = deal?.deadline_countdown_hours;
+  if (typeof hours === 'number') return `${Math.max(0, Math.round(hours))} hrs left`;
+  return 'Deadline pending';
+}
+
+function formatDateTime(dateValue) {
+  if (!dateValue) return 'Not scheduled';
+  return new Date(dateValue).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+function formatDate(dateValue) {
+  if (!dateValue) return 'Not available';
+  return new Date(dateValue).toLocaleDateString('en-IN');
+}
+
+function getEscrowAmount(deal) {
+  return Number(deal?.escrow?.held_amount ?? deal?.escrow?.amount ?? deal?.my_bid?.amount ?? 0);
+}
+
+function getDealId(deal) {
+  return deal?.deal_id || deal?.campaign?.deal_id || deal?.campaign?.id || 'Deal ID unavailable';
+}
+
+function getRequiredAssets(deal) {
+  return deal?.content_submission?.required_assets || {};
 }
 
 export default function MyDealsPage() {
-  const { user, logout, setUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [deals, setDeals] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [briefOpen, setBriefOpen] = useState(false);
-  const [deliveryReceived, setDeliveryReceived] = useState(false);
+  const [rightTab, setRightTab] = useState('chat');
+  const [message, setMessage] = useState('');
   const [finalVideoUrl, setFinalVideoUrl] = useState(null);
   const [captionUrl, setCaptionUrl] = useState(null);
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [rawFootageUrl, setRawFootageUrl] = useState(null);
+  const [unboxingVideoUrl, setUnboxingVideoUrl] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(null);
-
-  const displayName = user?.nickname || user?.full_name || user?.email || 'Creator';
+  const [submitting, setSubmitting] = useState(false);
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
-    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
+    { name: 'Reviews', icon: Bell, action: () => navigate('/reviews') },
     { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
-    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
+    { name: 'Brief Inbox', icon: Briefcase, action: () => navigate('/browse-briefs') },
     { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals'), active: true },
     { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
     { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
+    { name: 'Settings', icon: ShieldAlert, action: () => navigate('/settings') }
   ];
 
   useEffect(() => {
     if (user?.id) fetchDeals();
   }, [user?.id]);
 
-  useEffect(() => {
-    if (selectedDeal?.shipment?.received_at) setDeliveryReceived(true);
-  }, [selectedDeal]);
-
   const fetchDeals = async () => {
     try {
       const res = await axios.get(`${API}/deals/my`);
-      setDeals(res.data);
-      if (res.data.length > 0) setSelectedDeal(res.data[0]);
+      const list = res.data || [];
+      setDeals(list);
+      setSelectedDeal((current) => {
+        if (!list.length) return null;
+        return list.find((item) => getDealId(item) === getDealId(current)) || list[0];
+      });
     } catch (error) {
       toast.error('Failed to load deals');
     } finally {
@@ -146,26 +193,50 @@ export default function MyDealsPage() {
       setUrlFn(res.data.file_url);
       toast.success('File uploaded');
     } catch (err) {
-      toast.error(err.message || 'Upload failed');
+      toast.error(err.response?.data?.detail || 'Upload failed');
     } finally {
       setUploadingFile(null);
     }
   };
 
-  const handleSubmitWork = async () => {
-    if (!finalVideoUrl) { toast.error('Final video is required'); return; }
+  const handleSubmitReceipt = async () => {
+    if (!selectedDeal?.deal_id) return;
+    try {
+      await axios.post(`${API}/deals/${selectedDeal.deal_id}/receipt`, {
+        received_at: new Date().toISOString(),
+        unboxing_video_url: unboxingVideoUrl,
+        items_damaged: false,
+        damage_report: null
+      });
+      toast.success('Receipt submitted');
+      fetchDeals();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Receipt submission failed');
+    }
+  };
+
+  const handleSubmitContent = async () => {
+    if (!selectedDeal?.deal_id) return;
+    if (!finalVideoUrl) {
+      toast.error('Final video is required');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await axios.post(`${API}/work/submit`, {
-        campaign_id: selectedDeal.campaign.id,
-        work_files: [finalVideoUrl, captionUrl, thumbnailUrl].filter(Boolean),
-        description: 'Final work delivery'
+      await axios.post(`${API}/deals/${selectedDeal.deal_id}/content`, {
+        video_url: finalVideoUrl,
+        caption_url: captionUrl,
+        thumbnail_url: thumbnailUrl,
+        raw_footage_url: rawFootageUrl,
+        creator_note: 'Submitted from creator deal room'
       });
-      toast.success('Work submitted successfully!');
-      fetchDeals();
+      toast.success('Content submitted for brand review');
       setFinalVideoUrl(null);
       setCaptionUrl(null);
       setThumbnailUrl(null);
+      setRawFootageUrl(null);
+      fetchDeals();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Submission failed');
     } finally {
@@ -173,195 +244,416 @@ export default function MyDealsPage() {
     }
   };
 
-  const buildProgressSteps = (campaign, my_bid, shipment, work) => {
-    const steps = [['Applied', my_bid?.submitted_at], ['Accepted', campaign?.work_started_at]];
-    if (campaign?.requires_shipment) {
-      steps.push(['Product Shipped', shipment?.updated_at]);
-      steps.push(['Product Received', shipment?.received_at]);
+  const handleSendMessage = async () => {
+    if (!selectedDeal?.deal_id || !message.trim()) return;
+    try {
+      await axios.post(`${API}/deals/${selectedDeal.deal_id}/chat`, {
+        message: message.trim(),
+        attachment_urls: []
+      });
+      setMessage('');
+      fetchDeals();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Message failed');
     }
-    steps.push(['In Production', work ? null : campaign?.work_started_at]);
-    steps.push(['Submitted', work?.submitted_at]);
-    steps.push(['Approved', work?.approved_at]);
-    return steps.filter(Boolean);
   };
 
-  const getDueDate = (campaign, my_bid) => {
-    if (!campaign?.work_started_at || !my_bid?.estimated_delivery_days) return 'TBD';
-    const start = new Date(campaign.work_started_at);
-    start.setDate(start.getDate() + my_bid.estimated_delivery_days);
-    return start.toLocaleDateString('en-IN');
+  const handleCreateActionCard = async (label) => {
+    if (!selectedDeal?.deal_id) return;
+    try {
+      await axios.post(`${API}/deals/${selectedDeal.deal_id}/action-card`, {
+        type: ACTION_CARD_TYPES[label],
+        message: label,
+        attachment_urls: []
+      });
+      toast.success(`${label} created`);
+      fetchDeals();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Action failed');
+    }
   };
 
-  const getDeadlineInfo = (dueDate, workStartedAt) => {
-    if (dueDate === 'TBD') return { hrsLeft: '?', pct: 0 };
-    const now = new Date();
-    const due = new Date(dueDate);
-    const start = new Date(workStartedAt || now);
-    const totalMs = due - start;
-    const elapsedMs = now - start;
-    const remainingMs = due - now;
-    const hrsLeft = Math.max(0, Math.floor(remainingMs / 3600000));
-    const pct = Math.min(100, Math.round((elapsedMs / totalMs) * 100));
-    return { hrsLeft, pct };
-  };
+  const selectedState = getState(selectedDeal);
+  const activeDeals = deals.filter((item) => !['paid - complete', 'disputed'].includes(stateKey(item.current_state)));
+  const awaitingAction = deals.filter((item) => item.active_party === 'creator');
+  const pastDeals = deals.filter((item) => stateKey(item.current_state) === 'paid - complete');
+  const disputedDeals = deals.filter((item) => EXCEPTION_STATES.some((state) => stateKey(state) === stateKey(item.current_state)));
+  const escrowAmount = getEscrowAmount(selectedDeal);
+  const activity = useMemo(() => selectedDeal?.activity_feed || [], [selectedDeal]);
 
   if (loading) {
     return (
-      <DashboardLayout navItems={navItems} title="Deal Room" description="Manage your campaign delivery" topbarExtra={null} sidebarExtra={null}>
-        <div className="deal-content"><EmptyPanel text="Loading..." /></div>
+      <DashboardLayout navItems={navItems} title="Deal Room" description="Creator-side delivery workspace" topbarExtra={null} sidebarExtra={null}>
+        <div className="deal-page"><EmptyPanel text="Loading..." /></div>
       </DashboardLayout>
     );
   }
 
-  if (deals.length === 0) {
+  if (!deals.length) {
     return (
-      <DashboardLayout navItems={navItems} title="Deal Room" description="Manage your campaign delivery" topbarExtra={null} sidebarExtra={null}>
-        <div className="deal-content"><EmptyPanel text="No active deals yet. Browse campaigns and submit bids to get started." /></div>
+      <DashboardLayout navItems={navItems} title="Deal Room" description="Creator-side delivery workspace" topbarExtra={null} sidebarExtra={null}>
+        <div className="deal-page"><EmptyPanel text="No active deals yet. Browse briefs and submit bids to get started." /></div>
       </DashboardLayout>
     );
   }
-
-  const deal = selectedDeal;
-  const campaign = deal?.campaign || {};
-  const my_bid = deal?.my_bid;
-  const shipment = deal?.shipment;
-  const work = deal?.work_submission;
-  const dueDate = getDueDate(campaign, my_bid);
-  const { hrsLeft, pct } = getDeadlineInfo(dueDate, campaign.work_started_at);
-  const steps = buildProgressSteps(campaign, my_bid, shipment, work);
-
-  const dealsTabBar = deals.length > 1 && (
-    <div style={{ padding: '16px', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '8px' }}>
-      {deals.map((d) => (
-        <button
-          key={d.campaign.id}
-          onClick={() => setSelectedDeal(d)}
-          style={{
-            padding: '8px 16px',
-            border: selectedDeal?.campaign.id === d.campaign.id ? '2px solid #7387ff' : '1px solid #ddd',
-            borderRadius: '6px',
-            background: selectedDeal?.campaign.id === d.campaign.id ? '#f0f4ff' : '#fff',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: selectedDeal?.campaign.id === d.campaign.id ? '600' : '400'
-          }}
-        >
-          {d.campaign.title}
-        </button>
-      ))}
-    </div>
-  );
 
   return (
-    <DashboardLayout
-      navItems={navItems}
-      title="Deal Room"
-      description="Manage your campaign delivery"
-      topbarExtra={null}
-      sidebarExtra={null}
-    >
-      {dealsTabBar}
-      <div className="deal-content">
-          <div className="deal-main-column">
-            <DealCard className="deal-overview">
-              <div className="deal-campaign-head">
-                <div style={{ width: '80px', height: '80px', borderRadius: '8px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 'bold', color: '#7387ff' }}>{getInitial(campaign.business_nickname || 'B')}</div>
-                <div>
-                  <p><span>Brand</span><i /> @{campaign.business_nickname?.toLowerCase().replace(/\s+/g, '')}</p>
-                  <h2>{campaign.title}</h2>
-                  <small>{campaign.objectives?.slice(0, 2).join(', ') || 'Campaign'}</small>
-                </div>
-                <div className="deal-badges"><span className="deal-status"><i /> {campaign.status?.replace('_', ' ')}</span></div>
-              </div>
-              <div className="deal-info-grid">
-                {[[Calendar, 'Due Date', dueDate], [IndianRupee, 'Net Payout', my_bid ? `Rs.${Math.round(my_bid.amount * 0.88).toLocaleString('en-IN')}` : 'N/A'], [Star, 'Quality Tier', 'UGC']].map(([Icon, label, value]) => (<div key={label}><span><Icon size={18} /></span><p><small>{label}</small><strong>{value}</strong></p></div>))}
-              </div>
-            </DealCard>
+    <DashboardLayout navItems={navItems} title="Deal Room" description="Creator-side delivery workspace" topbarExtra={null} sidebarExtra={null}>
+      <div className="deal-page">
+        <StatusHeader
+          deal={selectedDeal}
+          currentState={selectedState}
+          escrowAmount={escrowAmount}
+          onSubmit={handleSubmitContent}
+          canSubmit={Boolean(finalVideoUrl) && Boolean(selectedDeal?.can_submit_content) && !submitting}
+          submitting={submitting}
+        />
 
-            <DealCard className="deal-brief">
-              <button type="button" onClick={() => setBriefOpen((v) => !v)}><span><FileText size={18} /></span><strong>Full Campaign Brief</strong><ChevronDown size={20} className={briefOpen ? 'is-open' : ''} /></button>
-              {briefOpen && <div className="deal-brief-body"><p>{campaign.brief_text || 'No brief text provided'}</p></div>}
-            </DealCard>
+        <div className="deal-room-grid">
+          <DealNavigation
+            groups={[
+              ['Active Deals', activeDeals],
+              ['Awaiting My Action', awaitingAction],
+              ['Past Deals', pastDeals],
+              ['Disputed Deals', disputedDeals]
+            ]}
+            selectedDeal={selectedDeal}
+            onSelect={setSelectedDeal}
+          />
 
-            {campaign.requires_shipment && (
-              <DealCard className="deal-work-card">
-                <div className="deal-tabs"><button type="button" className="is-active"><Package size={15} /> Receipt Confirmed</button></div>
-                <div className="deal-receipt">
-                  <div className="deal-toggle-row">
-                    <Package size={22} />
-                    <div><strong>Delivery Received</strong><small>Confirm you have received the product</small></div>
-                    <button type="button" className={deliveryReceived ? 'is-on' : ''} onClick={() => setDeliveryReceived((v) => !v)}><span /> {deliveryReceived ? 'Yes' : 'No'}</button>
-                  </div>
-                  <div className="deal-date-row">
-                    <Calendar size={18} />
-                    <span>Date Received</span>
-                    <strong>{shipment?.received_at ? new Date(shipment.received_at).toLocaleDateString('en-IN') : 'Pending'}</strong>
-                  </div>
-                  <label>Upload Invoice / Proof</label>
-                  <input type="file" id="invoice-upload" onChange={(e) => handleFileUpload(e.target.files?.[0], () => {}, 'invoice')} style={{ display: 'none' }} />
-                  <UploadZone icon={Paperclip} label="Drag & drop or click" accept="PDF - JPG - PNG" large onClick={() => document.getElementById('invoice-upload').click()} disabled={uploadingFile === 'invoice'} />
-                </div>
-              </DealCard>
-            )}
-
-            <DealCard className="deal-delivery-card">
-              <div className="deal-section-title">
-                <span><Upload size={18} /></span>
-                <div><h2>Final Delivery</h2><p>Submit your final campaign assets</p></div>
-              </div>
-              <label>Final Video</label>
-              <input type="file" id="video-upload" accept="video/*" onChange={(e) => handleFileUpload(e.target.files?.[0], setFinalVideoUrl, 'video')} style={{ display: 'none' }} />
-              <UploadZone icon={Play} label="Final Video Upload" accept="MP4 - MOV - Max 2GB" large uploaded={!!finalVideoUrl} onClick={() => document.getElementById('video-upload').click()} disabled={uploadingFile === 'video'} />
-              <div className="deal-asset-grid">
-                <div>
-                  <label>Caption File</label>
-                  <input type="file" id="caption-upload" onChange={(e) => handleFileUpload(e.target.files?.[0], setCaptionUrl, 'caption')} style={{ display: 'none' }} />
-                  <UploadZone icon={FileText} label="Caption / Script" accept=".txt - .docx" uploaded={!!captionUrl} onClick={() => document.getElementById('caption-upload').click()} disabled={uploadingFile === 'caption'} />
-                </div>
-                <div>
-                  <label>Thumbnail</label>
-                  <input type="file" id="thumb-upload" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], setThumbnailUrl, 'thumb')} style={{ display: 'none' }} />
-                  <UploadZone icon={Image} label="Thumbnail Image" accept="JPG - PNG" uploaded={!!thumbnailUrl} onClick={() => document.getElementById('thumb-upload').click()} disabled={uploadingFile === 'thumb'} />
-                </div>
-              </div>
-              <button type="button" className="deal-submit" disabled={!finalVideoUrl || submitting} onClick={handleSubmitWork}>
-                <Upload size={17} /> {submitting ? 'Submitting...' : 'Submit Final Delivery'}
+          <main className="deal-workspace">
+            <DealCard className="deal-brief-card">
+              <button type="button" className="deal-brief-toggle" onClick={() => setBriefOpen((value) => !value)}>
+                <span><FileText size={18} /></span>
+                <strong>Full Campaign Brief</strong>
+                <em>Usage rights highlighted</em>
+                <ChevronDown size={18} className={briefOpen ? 'is-open' : ''} />
               </button>
-              {!finalVideoUrl && <p className="deal-submit-note"><Info size={14} /> Upload final video to enable submission</p>}
+              {briefOpen && (
+                <div className="deal-brief-body">
+                  {(selectedDeal?.brief_sections || []).map((section) => (
+                    <article key={section.title} className={section.title === 'Usage Rights' ? 'is-rights' : ''}>
+                      <h3>{section.title}</h3>
+                      <p>{section.content || 'Not specified'}</p>
+                    </article>
+                  ))}
+                  <button type="button" className="deal-link-btn" onClick={() => navigate(`/campaign/${selectedDeal?.campaign?.id}`)}>View full brief in new tab</button>
+                </div>
+              )}
             </DealCard>
 
-            {work?.revisions && work.revisions.length > 0 && (
-              <DealCard className="deal-revisions">
-                <div className="deal-section-title">
-                  <span className="warn"><RotateCcw size={18} /></span>
-                  <div><h2>Revision Timeline</h2><p>Feedback from brand</p></div>
-                </div>
-                <div className="deal-timeline">
-                  {work.revisions.map((rev, idx) => (
-                    <div key={idx} className="deal-timeline-item">
-                      <span className="orange">!</span>
-                      <article>
-                        <header><strong>Revision Requested</strong><small>{new Date(rev.requested_at).toLocaleDateString('en-IN')}</small></header>
-                        <p>{rev.feedback}</p>
-                      </article>
-                    </div>
-                  ))}
-                </div>
-              </DealCard>
-            )}
-          </div>
+            <ShippingBlock
+              deal={selectedDeal}
+              unboxingVideoUrl={unboxingVideoUrl}
+              onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')}
+              onSubmitReceipt={handleSubmitReceipt}
+              uploading={uploadingFile === 'unboxing'}
+            />
 
-          <aside className="deal-side-column">
-            <ProgressCard steps={steps} />
-            <PayoutSummary amount={my_bid?.amount || 0} />
-            <div className="deal-deadline">
-              <div><span><AlertTriangle size={21} /></span><div><strong>Deadline {hrsLeft < 24 ? 'Approaching' : ''}</strong><h2>{hrsLeft} hrs left</h2><p>Due: {dueDate}</p></div></div>
-              <i><b style={{ width: `${pct}%` }} /></i>
-              <small>{pct}% of time elapsed</small>
-            </div>
-            <HelpCard />
-          </aside>
+            <ContentSubmission
+              deal={selectedDeal}
+              finalVideoUrl={finalVideoUrl}
+              captionUrl={captionUrl}
+              thumbnailUrl={thumbnailUrl}
+              rawFootageUrl={rawFootageUrl}
+              onUpload={handleFileUpload}
+              setFinalVideoUrl={setFinalVideoUrl}
+              setCaptionUrl={setCaptionUrl}
+              setThumbnailUrl={setThumbnailUrl}
+              setRawFootageUrl={setRawFootageUrl}
+              uploadingFile={uploadingFile}
+              onSubmit={handleSubmitContent}
+              submitting={submitting}
+            />
+
+            <RevisionTracker deal={selectedDeal} />
+
+            <DealCard className="deal-activity">
+              <div className="deal-section-title">
+                <span><Clock size={18} /></span>
+                <div><h2>Activity Feed</h2><p>Chronological deal state transitions</p></div>
+              </div>
+              <div className="deal-timeline">
+                {activity.length ? activity.map((event) => (
+                  <div key={event.id} className="deal-timeline-item">
+                    <span className="blue"><CheckCheck size={16} /></span>
+                    <article>
+                      <header><strong>{event.actor_name || event.actor_type}</strong><small>{formatDateTime(event.timestamp)}</small></header>
+                      <p>{event.message}</p>
+                    </article>
+                  </div>
+                )) : <EmptyPanel text="No activity yet." />}
+              </div>
+            </DealCard>
+          </main>
+
+          <RightPanel
+            tab={rightTab}
+            setTab={setRightTab}
+            deal={selectedDeal}
+            currentState={selectedState}
+            message={message}
+            setMessage={setMessage}
+            onSendMessage={handleSendMessage}
+            onActionCard={handleCreateActionCard}
+          />
+        </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function StatusHeader({ deal, currentState, escrowAmount, onSubmit, canSubmit, submitting }) {
+  const deadline = getDealDeadline(deal);
+  return (
+    <section className="deal-status-header">
+      <div className="deal-brand-logo">
+        {deal?.brand?.logo_url ? <img src={`${BACKEND_URL}${deal.brand.logo_url}`} alt={deal.brand.name || 'Brand'} /> : getInitial(deal?.brand?.name || 'B')}
+      </div>
+      <div className="deal-status-copy">
+        <p>{getBrandHandle(deal)}</p>
+        <h2>{getDealTitle(deal)}</h2>
+        <span>{getDealId(deal)}</span>
+      </div>
+      <div className="deal-header-pill is-state"><small>Current State</small><strong>{currentState}</strong></div>
+      <div className="deal-header-pill"><small>Active Party</small><strong>{deal?.active_party || 'Not assigned'}</strong></div>
+      <div className="deal-header-pill is-urgent"><small>Deadline</small><strong>{getCountdownLabel(deal)}</strong></div>
+      <div className="deal-header-pill"><small>Escrow</small><strong>{formatMoney(escrowAmount)} held</strong></div>
+      <button type="button" className="deal-primary-action" disabled={!canSubmit} onClick={onSubmit}>
+        <Upload size={17} /> {submitting ? 'Submitting...' : deal?.primary_next_action || 'Submit Content'}
+      </button>
+      <div className="deal-more">
+        <button type="button" aria-label="More deal actions"><MoreHorizontal size={18} /></button>
+        <div>
+          <button type="button">Raise Dispute</button>
+          <button type="button">Get Help</button>
+          <button type="button"><Archive size={14} /> Archive if completed</button>
+        </div>
+      </div>
+      <div className="deal-header-pill"><small>Due</small><strong>{formatDateTime(deadline)}</strong></div>
+    </section>
+  );
+}
+
+function DealNavigation({ groups, selectedDeal, onSelect }) {
+  return (
+    <aside className="deal-nav-panel">
+      {groups.map(([label, groupDeals]) => (
+        <section key={label}>
+          <h3>{label} <span>{groupDeals.length}</span></h3>
+          {groupDeals.length ? groupDeals.map((deal) => (
+            <button
+              key={`${label}-${getDealId(deal)}`}
+              type="button"
+              className={getDealId(selectedDeal) === getDealId(deal) ? 'is-active' : ''}
+              onClick={() => onSelect(deal)}
+            >
+              <strong>{getDealTitle(deal)}</strong>
+              <small>{getBrandHandle(deal)} - {getState(deal)}</small>
+              <em>{deal.primary_next_action || 'No action pending'} - {getCountdownLabel(deal)}</em>
+              {deal.unread_count ? <b>{deal.unread_count}</b> : null}
+            </button>
+          )) : <p>No deals</p>}
+        </section>
+      ))}
+    </aside>
+  );
+}
+
+function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uploading }) {
+  const shipment = deal?.shipment || {};
+  const receipt = deal?.receipt || {};
+  return (
+    <DealCard className="deal-shipping-card">
+      <div className="deal-section-title">
+        <span><Package size={18} /></span>
+        <div><h2>Shipping / Receipt</h2><p>Confirm package condition before producing content</p></div>
+      </div>
+      <div className="deal-receipt-grid">
+        <p><small>Tracking ID</small>{shipment.courier_tracking_url ? <a href={shipment.courier_tracking_url} target="_blank" rel="noreferrer">{shipment.tracking_id || 'Tracking link'}</a> : <strong>{shipment.tracking_id || 'Not available'}</strong>}</p>
+        <p><small>Courier Status</small><strong>{shipment.courier_status || 'Not available'}</strong></p>
+        <p><small>Expected Delivery</small><strong>{formatDate(shipment.expected_delivery_at)}</strong></p>
+        <p><small>Date Received</small><strong>{formatDate(receipt.received_at)}</strong></p>
+      </div>
+      <button type="button" className="deal-secondary-action" disabled={!deal?.can_mark_received} onClick={onSubmitReceipt}>Mark Received</button>
+      <label>Upload Unboxing Video</label>
+      <p className="deal-helper-text">Upload a short unboxing video showing package condition, opening, and product received.</p>
+      <input type="file" id="unboxing-upload" accept="video/mp4,video/quicktime" onChange={(event) => onUpload(event.target.files?.[0])} />
+      <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 150MB - Max 2 minutes" uploaded={Boolean(unboxingVideoUrl || receipt.unboxing_video_url)} onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
+    </DealCard>
+  );
+}
+
+function ContentSubmission({
+  deal,
+  finalVideoUrl,
+  captionUrl,
+  thumbnailUrl,
+  rawFootageUrl,
+  onUpload,
+  setFinalVideoUrl,
+  setCaptionUrl,
+  setThumbnailUrl,
+  setRawFootageUrl,
+  uploadingFile,
+  onSubmit,
+  submitting
+}) {
+  const content = deal?.content_submission || {};
+  const required = getRequiredAssets(deal);
+  const versions = content.versions || [];
+  const needsCaption = Boolean(required.caption_script);
+  const needsThumbnail = Boolean(required.thumbnail);
+  const needsRaw = Boolean(required.raw_footage);
+
+  return (
+    <DealCard className="deal-delivery-card">
+      <div className="deal-section-title">
+        <span><Upload size={18} /></span>
+        <div><h2>Content Submission</h2><p>{content.watermark_required_until_approval ? 'Watermarked preview until brand approval' : 'Brand approval rules loaded'}</p></div>
+      </div>
+      {content.watermark_required_until_approval && <div className="deal-watermark">Watermarked preview until brand approval</div>}
+      <UploadZone icon={Play} label="Final Video Upload" accept="MP4 - MOV" uploaded={Boolean(finalVideoUrl)} onClick={() => document.getElementById('video-file-real').click()} disabled={uploadingFile === 'video'} />
+      <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
+      <div className="deal-asset-grid">
+        {needsCaption && (
+          <div>
+            <label>Caption / Script Upload</label>
+            <UploadZone icon={FileText} label="Caption / Script" accept=".txt - .docx" uploaded={Boolean(captionUrl)} onClick={() => document.getElementById('caption-file-real').click()} disabled={uploadingFile === 'caption'} />
+            <input type="file" id="caption-file-real" onChange={(event) => onUpload(event.target.files?.[0], setCaptionUrl, 'caption')} hidden />
+          </div>
+        )}
+        {needsThumbnail && (
+          <div>
+            <label>Thumbnail Upload</label>
+            <UploadZone icon={Image} label="Thumbnail" accept="JPG - PNG" uploaded={Boolean(thumbnailUrl)} onClick={() => document.getElementById('thumb-file-real').click()} disabled={uploadingFile === 'thumb'} />
+            <input type="file" id="thumb-file-real" accept="image/*" onChange={(event) => onUpload(event.target.files?.[0], setThumbnailUrl, 'thumb')} hidden />
+          </div>
+        )}
+        {needsRaw && (
+          <div>
+            <label>Raw Footage Upload</label>
+            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4 - MOV" uploaded={Boolean(rawFootageUrl)} onClick={() => document.getElementById('raw-file-real').click()} disabled={uploadingFile === 'raw'} />
+            <input type="file" id="raw-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setRawFootageUrl, 'raw')} hidden />
+          </div>
+        )}
+      </div>
+      <div className="deal-version-row">
+        {versions.length ? versions.map((version) => (
+          <article key={version.version}>
+            <strong>v{version.version}</strong>
+            <small>{formatDateTime(version.submitted_at)}</small>
+            <span>{version.status}</span>
+          </article>
+        )) : <article><strong>v1</strong><small>No upload yet</small><span>Awaiting submission</span></article>}
+      </div>
+      <button type="button" className="deal-submit" disabled={!finalVideoUrl || !deal?.can_submit_content || submitting} onClick={onSubmit}>
+        <Upload size={17} /> {submitting ? 'Submitting...' : 'Submit Final Delivery'}
+      </button>
+    </DealCard>
+  );
+}
+
+function RevisionTracker({ deal }) {
+  const revision = deal?.revision_tracker || {};
+  return (
+    <DealCard className="deal-revisions">
+      <div className="deal-section-title">
+        <span className="warn"><RotateCcw size={18} /></span>
+        <div><h2>Revision Tracker</h2><p>Revision {revision.revision_count_used || 0} of {revision.revision_limit || 0} used</p></div>
+      </div>
+      <div className="deal-revision-box">
+        <p><small>Brand Feedback</small><strong>{revision.latest_feedback || 'No revision requested yet.'}</strong></p>
+        <p><small>Requested Changes</small><strong>{revision.requested_changes?.length ? revision.requested_changes.join(', ') : 'No requested changes.'}</strong></p>
+        <p><small>New Deadline</small><strong>{formatDateTime(revision.new_deadline_at)}</strong></p>
+      </div>
+      <div className="deal-revision-actions">
+        <button type="button">Accept and revise</button>
+        <button type="button">Flag scope creep</button>
+        <button type="button">Partially accept and dispute remaining items</button>
+      </div>
+    </DealCard>
+  );
+}
+
+function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSendMessage, onActionCard }) {
+  const chat = deal?.chat_summary || {};
+  const messages = chat.messages || [];
+  const escrow = deal?.escrow || {};
+  const deductions = escrow.deductions || [];
+  return (
+    <aside className="deal-right-panel">
+      <div className="deal-right-tabs">
+        {['chat', 'progress', 'payout'].map((name) => (
+          <button key={name} type="button" className={tab === name ? 'is-active' : ''} onClick={() => setTab(name)}>{name}</button>
+        ))}
+      </div>
+      {tab === 'chat' && (
+        <div className="deal-chat">
+          <div className="deal-pinned"><AlertTriangle size={16} /><strong>{currentState}</strong><span>{deal?.primary_next_action || 'No action pending'} - {getCountdownLabel(deal)}</span></div>
+          <div className="deal-action-card">
+            <h3>Pending Action</h3>
+            <p>{deal?.primary_next_action || 'No action pending'}</p>
+            <button type="button" onClick={() => onActionCard('Milestone Update')}>+ Action Card</button>
+          </div>
+          <div className="deal-message-list">
+            {messages.length ? messages.map((item) => (
+              <p key={item.id} className={item.sender_type === 'creator' ? 'creator' : item.sender_type === 'system' ? 'system' : 'brand'}>
+                {item.sender_name}: {item.message}
+              </p>
+            )) : <p className="system">No messages yet.</p>}
+          </div>
+          <div className="deal-action-menu">
+            {Object.keys(ACTION_CARD_TYPES).map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
+          </div>
+          <div className="deal-chat-input">
+            <button type="button"><Smile size={17} /></button>
+            <button type="button"><Paperclip size={17} /></button>
+            <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
+            <button type="button" onClick={onSendMessage}><Send size={17} /></button>
+          </div>
+        </div>
+      )}
+      {tab === 'progress' && (
+        <div className="deal-progress-tab">
+          {[...DEAL_STATES, ...EXCEPTION_STATES].map((state) => {
+            const currentIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(currentState));
+            const itemIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(state));
+            const isCurrent = stateKey(state) === stateKey(currentState);
+            const isDone = itemIndex !== -1 && currentIndex !== -1 && itemIndex < currentIndex;
+            return (
+              <div key={state} className={isCurrent ? 'is-current' : isDone ? 'is-done' : ''}>
+                <span>{isCurrent ? <Clock size={15} /> : <CheckCheck size={15} />}</span>
+                <strong>{state}</strong>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {tab === 'payout' && (
+        <div className="deal-payout-tab">
+          <p><span>Escrow Held</span><strong>{formatMoney(escrow.held_amount || 0)}</strong></p>
+          <p><span>Net Payable</span><strong>{formatMoney(escrow.net_payable || 0)}</strong></p>
+          <p><span>Deductions</span><strong>{deductions.length ? deductions.map((item) => `${item.label}: ${formatMoney(item.amount)}`).join(', ') : 'No deductions'}</strong></p>
+          <p><span>Estimated Payout</span><strong>{formatDateTime(escrow.estimated_payout_at)}</strong></p>
+          <em>Disputed deals remain on hold until resolved.</em>
+        </div>
+      )}
+      <div className="deal-deadline">
+        <div><span><AlertTriangle size={21} /></span><div><strong>Deadline Alert</strong><h2>{getCountdownLabel(deal)}</h2><p>Due: {formatDateTime(getDealDeadline(deal))}</p><p>Active party: {deal?.active_party || 'Not assigned'}</p><p>Required action: {deal?.primary_next_action || 'No action pending'}</p></div></div>
+      </div>
+      <div className="deal-help-list">
+        {[
+          [Headphones, 'Escalate to Admin'],
+          [Flag, 'Raise Dispute'],
+          [ShieldAlert, 'Report Damaged / Wrong Product']
+        ].map(([Icon, label]) => (
+          <button key={label} type="button" onClick={() => onActionCard(label === 'Report Damaged / Wrong Product' ? 'Damage Report' : label)}>
+            <span><Icon size={18} /></span>
+            <div><strong>{label}</strong><small>Deal support action</small></div>
+          </button>
+        ))}
+      </div>
+    </aside>
   );
 }

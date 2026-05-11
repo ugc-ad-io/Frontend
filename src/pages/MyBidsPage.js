@@ -112,7 +112,7 @@ function MyBidsGrid({ items, onView }) {
             <div className="pcd-card-actions">
               {bidStatus === 'approved' && (
                 <button type="button" className="pcd-primary" onClick={() => onView(campaign.id)}>
-                  <Clock size={16} /> Continue Deal
+                  <Clock size={16} /> View Bid
                 </button>
               )}
               <button type="button" onClick={() => onView(campaign.id)}>

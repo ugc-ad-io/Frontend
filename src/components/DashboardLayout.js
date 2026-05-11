@@ -81,7 +81,7 @@ export default function DashboardLayout({
           </div>
           <div>
             <strong>{displayName}</strong>
-            <span>Top Creator</span>
+            <span>Approved Creator</span>
           </div>
         </div>
         {sidebarExtra}
@@ -105,9 +105,6 @@ export default function DashboardLayout({
             <button type="button" className="pcd-icon-btn" aria-label="Search">
               <Search size={18} />
             </button>
-            <div className="pcd-role-switch">
-              <button type="button" className="is-active">Creator</button>
-            </div>
             <button type="button" className="pcd-icon-btn pcd-bell" aria-label="Notifications">
               <Bell size={18} />
               <span />

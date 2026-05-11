@@ -24,6 +24,13 @@ import './CreatorDashboard.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+function getPortfolioAssetUrl(url) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  const baseUrl = BACKEND_URL || window.location.origin;
+  return `${baseUrl.replace(/\/$/, '')}/${String(url).replace(/^\//, '')}`;
+}
+
 export default function PortfolioPage() {
   const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
@@ -128,9 +135,9 @@ export default function PortfolioPage() {
               <article key={url} className="pcd-portfolio-item">
                 <div>
                   {url.match(/\.(mp4|webm|mov)$/i) ? (
-                    <video src={url.startsWith('http') ? url : `${BACKEND_URL}${url}`} controls />
+                    <video src={getPortfolioAssetUrl(url)} controls />
                   ) : (
-                    <img src={url.startsWith('http') ? url : `${BACKEND_URL}${url}`} alt={`Portfolio item ${index + 1}`} />
+                    <img src={getPortfolioAssetUrl(url)} alt={`Portfolio item ${index + 1}`} loading="lazy" />
                   )}
                 </div>
                 <button type="button" className="pcd-remove-btn" onClick={() => handleRemovePortfolioItem(url)}>

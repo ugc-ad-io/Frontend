@@ -275,7 +275,7 @@
 }
 
 .deal-nav-panel,
-.deal-right-panel {
+.deal-right-column {
   position: sticky;
   top: 140px;
   display: grid;
@@ -284,6 +284,13 @@
   overflow: auto;
   padding: 16px;
   min-width: 0;
+}
+
+.deal-right-panel {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding: 16px;
 }
 
 .deal-nav-panel section {
@@ -1299,13 +1306,13 @@
   }
 
   .deal-nav-panel,
-  .deal-right-panel,
+  .deal-right-column,
   .deal-status-header {
     position: static;
   }
 
   .deal-nav-panel,
-  .deal-right-panel {
+  .deal-right-column {
     top: auto;
     max-height: none;
   }
@@ -1347,9 +1354,9 @@
   }
 
   .deal-room-grid.show-deals .deal-workspace,
-  .deal-room-grid.show-deals .deal-right-panel,
+  .deal-room-grid.show-deals .deal-right-column,
   .deal-room-grid.show-workspace .deal-nav-panel,
-  .deal-room-grid.show-workspace .deal-right-panel,
+  .deal-room-grid.show-workspace .deal-right-column,
   .deal-room-grid.show-chat .deal-nav-panel,
   .deal-room-grid.show-chat .deal-workspace {
     display: none;

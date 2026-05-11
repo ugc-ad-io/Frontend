@@ -844,14 +844,14 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
   const creatorActions = damaged ? ['Add Evidence', 'Escalate to Admin', 'Raise Dispute', 'Message Support'] : ['Milestone Update', 'Escalate to Admin', 'Raise Dispute', 'Damage Report'];
   const actionCards = deal?.action_cards || [];
   return (
-    <aside className="deal-right-panel">
-      <div className="deal-right-tabs">
-        {['chat', 'progress'].map((name) => (
-          <button key={name} type="button" className={tab === name ? 'is-active' : ''} onClick={() => setTab(name)}>{name}</button>
-        ))}
-      </div>
-      {tab === 'chat' && (
-        <>
+    <aside className="deal-right-column">
+      <div className="deal-right-panel">
+        <div className="deal-right-tabs">
+          {['chat', 'progress'].map((name) => (
+            <button key={name} type="button" className={tab === name ? 'is-active' : ''} onClick={() => setTab(name)}>{name}</button>
+          ))}
+        </div>
+        {tab === 'chat' && (
           <div className="deal-chat">
             <div className="deal-pinned"><AlertTriangle size={16} /><strong>{currentState}</strong><span>{damaged ? 'Creator work paused. Admin and brand are reviewing the evidence.' : `${deal?.primary_next_action || 'No action pending'} - ${getCountdownLabel(deal)}`}</span></div>
             <div className="deal-message-list">
@@ -868,7 +868,27 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
               <button type="button" onClick={onSendMessage}><Send size={17} /></button>
             </div>
           </div>
+        )}
+        {tab === 'progress' && (
+          <div className="deal-progress-tab">
+            {[...DEAL_STATES, ...EXCEPTION_STATES].map((state) => {
+              const currentIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(currentState));
+              const itemIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(state));
+              const isCurrent = stateKey(state) === stateKey(currentState);
+              const isDone = itemIndex !== -1 && currentIndex !== -1 && itemIndex < currentIndex;
+              return (
+                <div key={state} className={isCurrent ? 'is-current' : isDone ? 'is-done' : ''}>
+                  <span>{isCurrent ? <Clock size={15} /> : <CheckCheck size={15} />}</span>
+                  <strong>{state}</strong>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
+      {tab === 'chat' && (
+        <>
           <div className="deal-payout-section">
             <div className="deal-action-section-title">
               <h3>Payout Summary</h3>
@@ -922,36 +942,21 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
               </div>
             ) : null}
           </div>
+
+          <div className="deal-help-list">
+            {[
+              [Headphones, 'Escalate to Admin'],
+              [Flag, 'Raise Dispute'],
+              [ShieldAlert, 'Report Damaged / Wrong Product']
+            ].map(([Icon, label]) => (
+              <button key={label} type="button" onClick={() => onActionCard(label === 'Report Damaged / Wrong Product' ? 'Damage Report' : label)}>
+                <span><Icon size={18} /></span>
+                <div><strong>{label}</strong><small>Deal support action</small></div>
+              </button>
+            ))}
+          </div>
         </>
       )}
-      {tab === 'progress' && (
-        <div className="deal-progress-tab">
-          {[...DEAL_STATES, ...EXCEPTION_STATES].map((state) => {
-            const currentIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(currentState));
-            const itemIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(state));
-            const isCurrent = stateKey(state) === stateKey(currentState);
-            const isDone = itemIndex !== -1 && currentIndex !== -1 && itemIndex < currentIndex;
-            return (
-              <div key={state} className={isCurrent ? 'is-current' : isDone ? 'is-done' : ''}>
-                <span>{isCurrent ? <Clock size={15} /> : <CheckCheck size={15} />}</span>
-                <strong>{state}</strong>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      <div className="deal-help-list">
-        {[
-          [Headphones, 'Escalate to Admin'],
-          [Flag, 'Raise Dispute'],
-          [ShieldAlert, 'Report Damaged / Wrong Product']
-        ].map(([Icon, label]) => (
-          <button key={label} type="button" onClick={() => onActionCard(label === 'Report Damaged / Wrong Product' ? 'Damage Report' : label)}>
-            <span><Icon size={18} /></span>
-            <div><strong>{label}</strong><small>Deal support action</small></div>
-          </button>
-        ))}
-      </div>
     </aside>
   );
 }

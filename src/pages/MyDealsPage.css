@@ -1,17 +1,19 @@
 .deal-page {
   min-height: 100%;
-  padding: 24px 32px 40px;
-  background: #eef2f7;
+  padding: 26px 30px 42px;
+  background:
+    radial-gradient(circle at top right, rgba(115, 135, 255, 0.12), transparent 34%),
+    linear-gradient(135deg, #f7f8fc 0%, #eef2f7 100%);
 }
 
 .deal-card,
 .deal-status-header,
 .deal-nav-panel,
 .deal-right-panel {
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 12px 28px rgba(7, 7, 78, 0.06);
+  border: 1px solid rgba(218, 224, 239, 0.9);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px rgba(7, 7, 78, 0.07);
 }
 
 .deal-status-header {
@@ -19,19 +21,25 @@
   top: 0;
   z-index: 3;
   display: grid;
-  grid-template-columns: auto minmax(210px, 1.1fr) repeat(5, minmax(130px, auto)) auto auto;
-  align-items: center;
-  gap: 14px;
-  padding: 18px;
-  margin-bottom: 22px;
+  grid-template-columns: auto minmax(230px, 0.8fr) minmax(420px, 1.6fr) auto;
+  grid-template-areas:
+    "logo copy metrics actions"
+    "logo copy next actions";
+  align-items: stretch;
+  gap: 14px 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(14px);
 }
 
 .deal-status-header.is-passive {
   border-color: rgba(115, 135, 255, 0.22);
-  box-shadow: 0 10px 24px rgba(7, 7, 78, 0.05);
+  box-shadow: 0 16px 38px rgba(7, 7, 78, 0.055);
 }
 
 .deal-brand-logo {
+  grid-area: logo;
+  align-self: center;
   width: 54px;
   height: 54px;
   display: grid;
@@ -56,6 +64,12 @@
   margin: 0;
 }
 
+.deal-status-copy {
+  grid-area: copy;
+  align-self: center;
+  min-width: 0;
+}
+
 .deal-status-copy p {
   color: #7387ff;
   font-weight: 850;
@@ -65,6 +79,7 @@
   color: #07074e;
   font-size: 22px;
   line-height: 1.15;
+  word-break: break-word;
 }
 
 .deal-status-copy span {
@@ -72,12 +87,20 @@
   font-weight: 800;
 }
 
+.deal-header-metrics {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(112px, 1fr));
+  gap: 10px;
+}
+
 .deal-header-pill {
   display: grid;
   gap: 4px;
-  min-height: 58px;
-  padding: 10px 12px;
-  border-radius: 14px;
+  min-height: 62px;
+  padding: 11px 12px;
+  border: 1px solid rgba(226, 232, 240, 0.72);
+  border-radius: 16px;
   background: #f7f8ff;
 }
 
@@ -95,10 +118,12 @@
 }
 
 .deal-header-pill.is-state {
+  border-color: rgba(115, 135, 255, 0.26);
   background: rgba(115, 135, 255, 0.11);
 }
 
 .deal-header-pill.is-urgent {
+  border-color: rgba(245, 158, 11, 0.22);
   background: #fff7ed;
 }
 
@@ -107,6 +132,7 @@
 }
 
 .deal-header-pill.is-paused {
+  border-color: rgba(115, 135, 255, 0.2);
   background: rgba(115, 135, 255, 0.1);
 }
 
@@ -115,7 +141,17 @@
 }
 
 .deal-header-pill.is-next-step {
-  grid-column: span 2;
+  grid-area: next;
+  min-height: 52px;
+  background: #fbfcff;
+}
+
+.deal-header-actions {
+  grid-area: actions;
+  display: grid;
+  grid-template-columns: minmax(170px, auto) auto;
+  align-items: center;
+  gap: 10px;
 }
 
 .deal-primary-action,
@@ -144,6 +180,7 @@
 
 .deal-more {
   position: relative;
+  align-self: center;
 }
 
 .deal-more > button {
@@ -188,8 +225,8 @@
 
 .deal-room-grid {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 390px;
-  gap: 22px;
+  grid-template-columns: minmax(250px, 282px) minmax(560px, 1fr) minmax(330px, 360px);
+  gap: 20px;
   align-items: start;
 }
 
@@ -199,7 +236,9 @@
   top: 110px;
   display: grid;
   gap: 18px;
-  padding: 18px;
+  max-height: calc(100vh - 128px);
+  overflow: auto;
+  padding: 16px;
 }
 
 .deal-nav-panel section {
@@ -212,10 +251,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 0;
-  background: transparent;
+  border: 1px solid rgba(226, 232, 240, 0.78);
+  border-radius: 14px;
+  background: #f8f9ff;
   color: #07074e;
-  padding: 0;
+  padding: 10px 12px;
   font-size: 13px;
   font-weight: 950;
   text-transform: uppercase;
@@ -246,17 +286,25 @@
   display: grid;
   gap: 6px;
   border: 1px solid #edf0f7;
-  border-radius: 14px;
-  background: #fbfcff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
   color: #07074e;
-  padding: 14px;
+  padding: 14px 14px 16px;
   text-align: left;
   cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.deal-nav-panel section > button:not(.deal-nav-heading):hover {
+  border-color: rgba(115, 135, 255, 0.35);
+  box-shadow: 0 10px 22px rgba(7, 7, 78, 0.06);
+  transform: translateY(-1px);
 }
 
 .deal-nav-panel section > button:not(.deal-nav-heading).is-active {
   border-color: rgba(115, 135, 255, 0.45);
-  background: rgba(115, 135, 255, 0.1);
+  background: linear-gradient(135deg, rgba(115, 135, 255, 0.16), rgba(255, 255, 255, 0.92));
+  box-shadow: inset 4px 0 0 #7387ff, 0 12px 24px rgba(7, 7, 78, 0.07);
 }
 
 .deal-nav-panel section > button:not(.deal-nav-heading) strong {
@@ -291,7 +339,7 @@
 
 .deal-workspace {
   display: grid;
-  gap: 20px;
+  gap: 18px;
 }
 
 .deal-card {
@@ -302,7 +350,7 @@
   display: flex;
   align-items: center;
   gap: 13px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .deal-section-title > span {
@@ -311,7 +359,7 @@
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 13px;
+  border-radius: 14px;
   background: #f3f3ff;
   color: #7387ff;
 }
@@ -328,12 +376,14 @@
 
 .deal-section-title h2 {
   color: #07074e;
-  font-size: 18px;
+  font-size: 19px;
+  letter-spacing: 0;
 }
 
 .deal-section-title p {
   color: #9f9fd1;
-  font-weight: 750;
+  font-weight: 780;
+  line-height: 1.35;
 }
 
 .deal-brief-toggle {
@@ -344,7 +394,7 @@
   border: 0;
   background: transparent;
   color: #07074e;
-  padding: 22px 26px;
+  padding: 22px 24px;
   cursor: pointer;
 }
 
@@ -377,12 +427,13 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  padding: 0 26px 26px;
+  padding: 0 24px 24px;
 }
 
 .deal-brief-body article {
-  border-radius: 14px;
-  background: #f8f9ff;
+  border: 1px solid rgba(226, 232, 240, 0.74);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fbfcff, #f8f9ff);
   padding: 16px;
 }
 
@@ -421,11 +472,14 @@
 .deal-activity,
 .deal-damage-card,
 .deal-paused-card {
-  padding: 26px;
+  padding: 24px;
 }
 
 .deal-damage-card {
   border-color: rgba(115, 135, 255, 0.28);
+  background:
+    linear-gradient(135deg, rgba(115, 135, 255, 0.06), transparent 46%),
+    #fff;
 }
 
 .deal-paused-card {
@@ -462,9 +516,20 @@
   display: grid;
   gap: 5px;
   margin: 0;
-  border-radius: 14px;
-  background: #f8f9ff;
+  border: 1px solid rgba(226, 232, 240, 0.74);
+  border-radius: 15px;
+  background: #fbfcff;
   padding: 14px;
+}
+
+.deal-damage-card .deal-revision-box,
+.deal-revisions .deal-revision-box {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deal-damage-card .deal-revision-box p:nth-child(5),
+.deal-damage-card .deal-revision-box p:nth-child(6) {
+  grid-column: 1 / -1;
 }
 
 .deal-receipt-grid small,
@@ -513,7 +578,7 @@
   align-content: center;
   gap: 9px;
   border: 2px dashed #e2e8f0;
-  border-radius: 16px;
+  border-radius: 18px;
   background: #fbfcff;
   color: #07074e;
   cursor: pointer;
@@ -572,8 +637,9 @@
 .deal-version-row article {
   display: grid;
   gap: 6px;
-  border-radius: 14px;
-  background: #f8f9ff;
+  border: 1px solid rgba(226, 232, 240, 0.74);
+  border-radius: 16px;
+  background: #fbfcff;
   padding: 14px;
 }
 
@@ -613,6 +679,14 @@
   padding: 10px 12px;
   font-weight: 850;
   cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.deal-revision-actions button:hover,
+.deal-action-menu button:hover {
+  border-color: rgba(115, 135, 255, 0.44);
+  background: rgba(115, 135, 255, 0.08);
+  color: #4f63d8;
 }
 
 .deal-timeline {
@@ -644,8 +718,9 @@
 
 .deal-timeline-item article {
   flex: 1;
-  border-radius: 14px;
-  background: #f8f9ff;
+  border: 1px solid rgba(226, 232, 240, 0.72);
+  border-radius: 16px;
+  background: #fbfcff;
   padding: 14px;
 }
 
@@ -674,7 +749,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 5px;
   padding: 5px;
-  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.74);
+  border-radius: 16px;
   background: #f3f3ff;
 }
 
@@ -699,7 +775,7 @@
 .deal-progress-tab,
 .deal-payout-tab {
   display: grid;
-  gap: 14px;
+  gap: 13px;
 }
 
 .deal-pinned,
@@ -707,8 +783,9 @@
 .deal-message-list,
 .deal-chat-input,
 .deal-deadline {
-  border-radius: 16px;
-  background: #f8f9ff;
+  border: 1px solid rgba(226, 232, 240, 0.74);
+  border-radius: 18px;
+  background: #fbfcff;
   padding: 14px;
 }
 
@@ -716,6 +793,8 @@
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 5px 10px;
+  border-color: rgba(115, 135, 255, 0.22);
+  background: rgba(115, 135, 255, 0.08);
   color: #7387ff;
 }
 
@@ -732,6 +811,7 @@
 
 .deal-action-card h3 {
   color: #07074e;
+  font-size: 16px;
 }
 
 .deal-action-card p {
@@ -748,32 +828,43 @@
   color: #fff;
   padding: 10px 12px;
   font-weight: 900;
+  cursor: pointer;
 }
 
 .deal-message-list {
-  max-height: 280px;
+  max-height: 320px;
   overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 10px;
 }
 
 .deal-message-list p {
-  margin: 0 0 10px;
-  border-radius: 13px;
+  width: fit-content;
+  max-width: 86%;
+  margin: 0;
+  border-radius: 15px;
   padding: 10px 12px;
   color: #07074e;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .deal-message-list .system {
+  width: 100%;
+  max-width: 100%;
   background: #eef2ff;
   color: #667085;
+  text-align: center;
 }
 
 .deal-message-list .brand {
   background: #fff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .deal-message-list .creator {
-  margin-left: 28px;
+  justify-self: end;
   background: #7387ff;
   color: #fff;
 }
@@ -788,6 +879,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  background: #fff;
 }
 
 .deal-chat-input button {
@@ -795,8 +887,9 @@
   height: 34px;
   border: 0;
   border-radius: 10px;
-  background: #fff;
+  background: #f3f3ff;
   color: #7387ff;
+  cursor: pointer;
 }
 
 .deal-chat-input input {
@@ -810,9 +903,13 @@
 }
 
 .deal-progress-tab div {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 8px;
   color: #9f9fd1;
 }
 
@@ -833,6 +930,11 @@
 .deal-progress-tab .is-current span {
   background: #7387ff;
   color: #fff;
+}
+
+.deal-progress-tab .is-current {
+  border-color: rgba(115, 135, 255, 0.24);
+  background: rgba(115, 135, 255, 0.08);
 }
 
 .deal-payout-tab p {
@@ -910,12 +1012,19 @@
   align-items: center;
   gap: 12px;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 15px;
+  border-radius: 16px;
   background: #fff;
   color: #07074e;
   padding: 13px;
   text-align: left;
   cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.deal-help-list button:hover {
+  border-color: rgba(115, 135, 255, 0.35);
+  background: #fbfcff;
+  transform: translateY(-1px);
 }
 
 .deal-help-list button > span {
@@ -939,9 +1048,25 @@
 }
 
 @media (max-width: 1500px) {
-  .deal-status-header,
   .deal-room-grid {
     grid-template-columns: 1fr;
+  }
+
+  .deal-status-header {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "logo copy"
+      "metrics metrics"
+      "next next"
+      "actions actions";
+  }
+
+  .deal-header-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .deal-header-actions {
+    justify-self: start;
   }
 
   .deal-nav-panel,
@@ -965,5 +1090,24 @@
 
   .deal-status-header {
     gap: 10px;
+  }
+
+  .deal-header-actions {
+    grid-template-columns: 1fr auto;
+    width: 100%;
+  }
+
+  .deal-primary-action {
+    width: 100%;
+  }
+
+  .deal-damage-card .deal-revision-box,
+  .deal-revisions .deal-revision-box {
+    grid-template-columns: 1fr;
+  }
+
+  .deal-damage-card .deal-revision-box p:nth-child(5),
+  .deal-damage-card .deal-revision-box p:nth-child(6) {
+    grid-column: auto;
   }
 }

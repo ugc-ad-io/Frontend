@@ -453,20 +453,24 @@ function StatusHeader({ deal, currentState, escrowAmount, onSubmit, canSubmit, s
         <h2>{getDealTitle(deal)}</h2>
         <span>{getDealId(deal)}</span>
       </div>
-      <div className="deal-header-pill is-state"><small>Current State</small><strong>{currentState}</strong></div>
-      <div className="deal-header-pill"><small>{damaged ? 'Waiting on' : 'Active Party'}</small><strong>{damaged ? 'Admin + Brand' : deal?.active_party || 'Not assigned'}</strong></div>
-      <div className="deal-header-pill"><small>Creator Status</small><strong>{damaged ? 'Work paused' : 'In workflow'}</strong></div>
-      <div className={`deal-header-pill ${damaged ? 'is-paused' : 'is-urgent'}`}><small>{damaged ? 'Timeline' : 'Deadline'}</small><strong>{damaged ? 'Creator timeline paused' : getCountdownLabel(deal)}</strong></div>
-      <div className="deal-header-pill"><small>Escrow</small><strong>{formatMoney(escrowAmount)} held</strong></div>
-      <button type="button" className="deal-primary-action" disabled={damaged ? false : !canSubmit} onClick={damaged ? () => onActionCard('Add Evidence') : onSubmit}>
-        <Upload size={17} /> {submitting ? 'Submitting...' : damaged ? 'Add Evidence' : deal?.primary_next_action || 'Submit Content'}
-      </button>
-      <div className="deal-more">
-        <button type="button" aria-label="More deal actions"><MoreHorizontal size={18} /></button>
-        <div>
-          <button type="button">Raise Dispute</button>
-          <button type="button">Get Help</button>
-          <button type="button"><Archive size={14} /> Archive if completed</button>
+      <div className="deal-header-metrics">
+        <div className="deal-header-pill is-state"><small>Current State</small><strong>{currentState}</strong></div>
+        <div className="deal-header-pill"><small>{damaged ? 'Waiting on' : 'Active Party'}</small><strong>{damaged ? 'Admin + Brand' : deal?.active_party || 'Not assigned'}</strong></div>
+        <div className="deal-header-pill"><small>Creator Status</small><strong>{damaged ? 'Work paused' : 'In workflow'}</strong></div>
+        <div className={`deal-header-pill ${damaged ? 'is-paused' : 'is-urgent'}`}><small>{damaged ? 'Timeline' : 'Deadline'}</small><strong>{damaged ? 'Creator timeline paused' : getCountdownLabel(deal)}</strong></div>
+        <div className="deal-header-pill"><small>Escrow</small><strong>{formatMoney(escrowAmount)} held</strong></div>
+      </div>
+      <div className="deal-header-actions">
+        <button type="button" className="deal-primary-action" disabled={damaged ? false : !canSubmit} onClick={damaged ? () => onActionCard('Add Evidence') : onSubmit}>
+          <Upload size={17} /> {submitting ? 'Submitting...' : damaged ? 'Add Evidence' : deal?.primary_next_action || 'Submit Content'}
+        </button>
+        <div className="deal-more">
+          <button type="button" aria-label="More deal actions"><MoreHorizontal size={18} /></button>
+          <div>
+            <button type="button">Raise Dispute</button>
+            <button type="button">Get Help</button>
+            <button type="button"><Archive size={14} /> Archive if completed</button>
+          </div>
         </div>
       </div>
       <div className="deal-header-pill is-next-step">

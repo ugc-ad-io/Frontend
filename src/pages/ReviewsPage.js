@@ -14,6 +14,8 @@ import {
   Star,
   User,
   Zap,
+  Award,
+  Calendar,
 } from 'lucide-react';
 import { getInitial, EmptyPanel } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
@@ -26,6 +28,8 @@ export default function ReviewsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
+  const [campaigns, setCampaigns] = useState({});
+  const [reviewers, setReviewers] = useState({});
   const [loading, setLoading] = useState(true);
 
   const displayName = user?.nickname || user?.full_name || user?.email || 'Creator';
@@ -52,10 +56,47 @@ export default function ReviewsPage() {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${API}/reviews/creator/${user.id}`);
-      console.log('Reviews API response:', res.data);
-      setReviews(res.data);
+      const reviewsRes = await axios.get(`${API}/reviews/creator/${user.id}`);
+      const reviewsList = reviewsRes.data || [];
+
+      console.log('📊 Reviews loaded:', reviewsList.length);
+
+      // Get unique campaign IDs
+      const campaignIds = [...new Set(reviewsList.map(r => r.campaign_id))];
+      const reviewerIds = [...new Set(reviewsList.map(r => r.reviewer_id))];
+
+      // Fetch campaign details
+      const campaignsData = {};
+      if (campaignIds.length > 0) {
+        try {
+          const campaignRes = await axios.get(`${API}/campaigns`);
+          campaignRes.data.forEach(campaign => {
+            campaignsData[campaign.id] = campaign;
+          });
+          console.log('📋 Campaigns loaded:', Object.keys(campaignsData).length);
+        } catch (err) {
+          console.warn('Could not fetch campaigns');
+        }
+      }
+
+      // Fetch reviewer (brand) details
+      const reviewersData = {};
+      for (const reviewerId of reviewerIds) {
+        try {
+          const profileRes = await axios.get(`${API}/profile/${reviewerId}`);
+          reviewersData[reviewerId] = profileRes.data;
+          console.log(`👤 Reviewer ${reviewerId} loaded`);
+        } catch (err) {
+          console.warn(`Could not fetch reviewer ${reviewerId}`);
+        }
+      }
+
+      setCampaigns(campaignsData);
+      setReviewers(reviewersData);
+      setReviews(reviewsList);
+
     } catch (error) {
+      console.error('❌ Error fetching reviews:', error);
       toast.error('Failed to load reviews');
     } finally {
       setLoading(false);
@@ -75,20 +116,29 @@ export default function ReviewsPage() {
       ) : (
         <div className="pcd-review-grid">
           {reviews.length ? reviews.map((review) => {
-            // Try to find review text in any possible field
-            let reviewText = '';
-            if (typeof review === 'object' && review !== null) {
-              reviewText = review.review || review.review_text || review.comment || review.feedback || review.text || review.body || Object.values(review).find(val => typeof val === 'string' && val.length > 20) || '';
-            }
+            const reviewText = review.review || review.review_text || review.comment || '';
+            const campaign = campaigns[review.campaign_id];
+            const reviewer = reviewers[review.reviewer_id];
+            const campaignTitle = campaign?.title || 'Campaign';
+            const businessName = reviewer?.nickname || reviewer?.full_name || 'Brand';
+
             return (
-            <article key={review.id} className="pcd-review-card">
-              <div>
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star key={index} size={16} className={index < review.rating ? 'filled' : ''} />
-                ))}
+            <article key={review.id} className="pcd-review-card-enhanced">
+              <div className="review-header-info">
+                <div className="campaign-info">
+                  <h4 className="campaign-title">{campaignTitle}</h4>
+                  <p className="brand-name">By {businessName}</p>
+                </div>
+                <div className="review-stars">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star key={index} size={16} className={index < review.rating ? 'filled' : ''} />
+                  ))}
+                </div>
               </div>
               {reviewText && <p className="review-text">{reviewText}</p>}
-              <small>{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recent review'}</small>
+              <small className="review-date">
+                <Calendar size={12} /> {review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recent review'}
+              </small>
             </article>
             );
           }) : <EmptyPanel text="No reviews yet. Complete campaigns to receive reviews." />}

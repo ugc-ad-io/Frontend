@@ -1174,6 +1174,79 @@
   font-weight: 700;
 }
 
+.pcd-review-card-enhanced {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(7, 7, 78, 0.08);
+  transition: all 0.3s ease;
+}
+
+.pcd-review-card-enhanced:hover {
+  box-shadow: 0 4px 16px rgba(7, 7, 78, 0.12);
+  transform: translateY(-2px);
+}
+
+.review-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.campaign-info {
+  flex: 1;
+}
+
+.campaign-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.brand-name {
+  font-size: 0.9rem;
+  color: #7387ff;
+  font-weight: 600;
+  margin: 0;
+}
+
+.review-stars {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.review-stars .filled {
+  fill: #f59e0b;
+  color: #f59e0b;
+}
+
+.review-text {
+  color: #4a5568;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 12px 0;
+  padding: 12px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  border-left: 3px solid #7387ff;
+}
+
+.review-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9f9fd1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
 .pcd-portfolio-head {
   justify-content: space-between;
   gap: 16px;

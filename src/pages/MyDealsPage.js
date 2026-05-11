@@ -901,6 +901,7 @@ function RevisionTracker({ deal, onRevisionResponse }) {
 }
 
 function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSendMessage, onActionCard }) {
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const chat = deal?.chat_summary || {};
   const messages = chat.messages || [];
   const escrow = deal?.escrow || {};
@@ -934,7 +935,25 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
               </div>
             </div>
             <div className="deal-chat-input">
-              <button type="button"><Smile size={17} /></button>
+              <div className="deal-emoji-wrap">
+                <button type="button" aria-label="Choose emoji" onClick={() => setEmojiPickerOpen((value) => !value)}><Smile size={17} /></button>
+                {emojiPickerOpen && (
+                  <div className="deal-emoji-picker">
+                    {['😊', '👍', '🙏', '🔥', '✨', '✅', '👀', '💬', '📦', '🎥', '⚠️', '❤️'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => {
+                          setMessage(`${message}${emoji}`);
+                          setEmojiPickerOpen(false);
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button type="button"><Paperclip size={17} /></button>
               <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
               <button type="button" onClick={onSendMessage}><Send size={17} /></button>

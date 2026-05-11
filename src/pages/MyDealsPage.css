@@ -1091,6 +1091,11 @@
   min-width: 0;
 }
 
+.deal-emoji-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .deal-chat-input button {
   width: 34px;
   height: 34px;
@@ -1102,6 +1107,36 @@
   background: #f3f3ff;
   color: #7387ff;
   cursor: pointer;
+}
+
+.deal-emoji-picker {
+  position: absolute;
+  left: 0;
+  bottom: 42px;
+  z-index: 5;
+  width: 188px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(7, 7, 78, 0.16);
+}
+
+.deal-emoji-picker button {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 8px;
+  background: transparent;
+  color: #07074e;
+  font-size: 16px;
+}
+
+.deal-emoji-picker button:hover {
+  background: #f3f3ff;
 }
 
 .deal-chat-input button svg,

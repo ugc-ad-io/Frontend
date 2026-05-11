@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import {
   Bookmark,
   Briefcase,
+  Calendar,
+  Clock,
   Eye,
   FileCheck,
   IndianRupee,
@@ -16,7 +18,7 @@ import {
   User,
   Zap,
 } from 'lucide-react';
-import { getInitial, CampaignGrid } from '../components/CreatorComponents';
+import { EmptyPanel, formatMoney, getCampaignBudget } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
 
@@ -24,12 +26,10 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export default function MyBidsPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [myBids, setMyBids] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const displayName = user?.nickname || user?.full_name || user?.email || 'Creator';
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
@@ -53,16 +53,8 @@ export default function MyBidsPage() {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
-      const allCampaigns = res.data;
-      setMyBids(
-        allCampaigns
-          .filter((campaign) => campaign.bids?.some((bid) => bid.creator_id === user.id))
-          .map((campaign) => ({
-            ...campaign,
-            myBid: campaign.bids.find((bid) => bid.creator_id === user.id)
-          }))
-      );
+      const res = await axios.get(`${API}/bids/my?t=${Date.now()}`);
+      setMyBids(res.data || []);
     } catch (error) {
       toast.error('Failed to load bids');
     } finally {
@@ -81,16 +73,55 @@ export default function MyBidsPage() {
       {loading ? (
         <div className="pcd-empty-panel">Loading...</div>
       ) : (
-        <CampaignGrid
-          items={myBids}
-          empty="No bids submitted yet."
-          renderActions={(campaign) => (
-            <button type="button" onClick={() => navigate(`/campaign/${campaign.id}`)}>
-              <Eye size={16} /> View Campaign
-            </button>
-          )}
-        />
+        <MyBidsGrid items={myBids} onView={(campaignId) => navigate(`/campaign/${campaignId}`)} />
       )}
     </DashboardLayout>
+  );
+}
+
+function MyBidsGrid({ items, onView }) {
+  if (!items.length) return <EmptyPanel text="No bids submitted yet." />;
+
+  return (
+    <div className="pcd-campaign-grid">
+      {items.map((item) => {
+        const campaign = item.campaign || {};
+        const bid = item.my_bid || {};
+        const bidStatus = item.bid_status || 'pending';
+        const submittedAt = item.submitted_at || bid.submitted_at;
+
+        return (
+          <article key={bid.id || campaign.id} className="pcd-campaign-card pcd-bid-card">
+            <div>
+              <h3>{campaign.title || 'Campaign'}</h3>
+              <span className={`pcd-status ${bidStatus}`}>{bidStatus}</span>
+            </div>
+            <p>{campaign.brief_text ? `${campaign.brief_text.substring(0, 150)}${campaign.brief_text.length > 150 ? '...' : ''}` : 'Creator campaign brief'}</p>
+            <dl>
+              <div><dt>Your Bid</dt><dd>{formatMoney(bid.amount)}</dd></div>
+              <div><dt>Campaign Budget</dt><dd>{getCampaignBudget(campaign)}</dd></div>
+              <div><dt>Brand</dt><dd>{campaign.business_nickname || campaign.brand_handle || 'Brand'}</dd></div>
+              <div><dt>Delivery</dt><dd>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} days` : 'N/A'}</dd></div>
+              <div><dt>Campaign Status</dt><dd>{(item.campaign_status || campaign.status || 'active').replace('_', ' ')}</dd></div>
+              <div>
+                <dt><Calendar size={13} /> Submitted</dt>
+                <dd>{submittedAt ? new Date(submittedAt).toLocaleDateString() : 'Recent'}</dd>
+              </div>
+            </dl>
+            {bid.proposal && <p className="pcd-bid-proposal">{bid.proposal}</p>}
+            <div className="pcd-card-actions">
+              {bidStatus === 'approved' && (
+                <button type="button" className="pcd-primary" onClick={() => onView(campaign.id)}>
+                  <Clock size={16} /> Continue Deal
+                </button>
+              )}
+              <button type="button" onClick={() => onView(campaign.id)}>
+                <Eye size={16} /> View Campaign
+              </button>
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
 }

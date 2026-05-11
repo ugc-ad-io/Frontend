@@ -31,6 +31,40 @@ function getPortfolioAssetUrl(url) {
   return `${baseUrl.replace(/\/$/, '')}/${String(url).replace(/^\//, '')}`;
 }
 
+function PortfolioMedia({ url, index }) {
+  const [fallbackUrl, setFallbackUrl] = useState('');
+  const [failed, setFailed] = useState(false);
+  const assetUrl = getPortfolioAssetUrl(url);
+  const isVideo = /\.(mp4|webm|mov)$/i.test(String(url).split('?')[0]);
+
+  useEffect(() => {
+    return () => {
+      if (fallbackUrl) URL.revokeObjectURL(fallbackUrl);
+    };
+  }, [fallbackUrl]);
+
+  const loadWithAuth = async () => {
+    if (fallbackUrl || failed) return;
+    try {
+      const response = await axios.get(assetUrl, { responseType: 'blob' });
+      const objectUrl = URL.createObjectURL(response.data);
+      setFallbackUrl(objectUrl);
+    } catch (error) {
+      setFailed(true);
+    }
+  };
+
+  if (failed) {
+    return <div className="pcd-portfolio-fallback">Preview unavailable</div>;
+  }
+
+  if (isVideo) {
+    return <video src={fallbackUrl || assetUrl} controls onError={loadWithAuth} />;
+  }
+
+  return <img src={fallbackUrl || assetUrl} alt={`Portfolio item ${index + 1}`} loading="lazy" onError={loadWithAuth} />;
+}
+
 export default function PortfolioPage() {
   const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
@@ -134,11 +168,7 @@ export default function PortfolioPage() {
             {portfolio.length ? portfolio.map((url, index) => (
               <article key={url} className="pcd-portfolio-item">
                 <div>
-                  {url.match(/\.(mp4|webm|mov)$/i) ? (
-                    <video src={getPortfolioAssetUrl(url)} controls />
-                  ) : (
-                    <img src={getPortfolioAssetUrl(url)} alt={`Portfolio item ${index + 1}`} loading="lazy" />
-                  )}
+                  <PortfolioMedia url={url} index={index} />
                 </div>
                 <button type="button" className="pcd-remove-btn" onClick={() => handleRemovePortfolioItem(url)}>
                   <X size={16} /> Remove Portfolio

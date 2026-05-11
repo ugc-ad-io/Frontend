@@ -112,7 +112,7 @@ export default function WorkReview() {
                   {file.includes('video') ? '🎥' : '🖼️'}
                 </div>
                 <p className="file-name">{file.split('/').pop()}</p>
-                <a href={file} target="_blank" rel="noopener noreferrer" className="view-link">
+                <a href={file.startsWith('http') ? file : `${BACKEND_URL}${file}`} target="_blank" rel="noopener noreferrer" className="view-link">
                   View File
                 </a>
               </div>

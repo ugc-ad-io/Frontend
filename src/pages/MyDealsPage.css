@@ -1060,6 +1060,17 @@
   min-width: 0;
 }
 
+.deal-expand-action-cards {
+  width: 100%;
+  border: 1px solid rgba(115, 135, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(115, 135, 255, 0.08);
+  color: #4f63d8;
+  padding: 10px 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .deal-message-list {
   max-height: 320px;
   overflow: auto;

@@ -836,6 +836,7 @@ function RevisionTracker({ deal, onRevisionResponse }) {
 }
 
 function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSendMessage, onActionCard }) {
+  const [showAllActionCards, setShowAllActionCards] = useState(false);
   const chat = deal?.chat_summary || {};
   const messages = chat.messages || [];
   const escrow = deal?.escrow || {};
@@ -843,6 +844,8 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
   const damaged = isDamageState(currentState);
   const creatorActions = damaged ? ['Add Evidence', 'Escalate to Admin', 'Raise Dispute', 'Message Support'] : ['Milestone Update', 'Escalate to Admin', 'Raise Dispute', 'Damage Report'];
   const actionCards = deal?.action_cards || [];
+  const visibleActionCards = showAllActionCards ? actionCards : actionCards.slice(0, 3);
+  const hiddenActionCardCount = Math.max(0, actionCards.length - visibleActionCards.length);
   return (
     <aside className="deal-right-column">
       <div className="deal-right-panel">
@@ -866,6 +869,14 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
               <button type="button"><Paperclip size={17} /></button>
               <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message this deal thread" />
               <button type="button" onClick={onSendMessage}><Send size={17} /></button>
+            </div>
+            <div className="deal-support-actions">
+              <div className="deal-action-section-title">
+                <h3>Support Actions</h3>
+              </div>
+              <div className="deal-action-menu">
+                {creatorActions.map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
+              </div>
             </div>
           </div>
         )}
@@ -911,15 +922,6 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
             </div>
           </div>
 
-          <div className="deal-support-actions">
-            <div className="deal-action-section-title">
-              <h3>Support Actions</h3>
-            </div>
-            <div className="deal-action-menu">
-              {creatorActions.map((item) => <button key={item} type="button" onClick={() => onActionCard(item)}>{item}</button>)}
-            </div>
-          </div>
-
           <div className="deal-action-section">
             <div className="deal-action-section-title">
               <h3>Action Cards</h3>
@@ -932,7 +934,7 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
             </div>
             {actionCards.length ? (
               <div className="deal-action-card-list">
-                {actionCards.map((card) => (
+                {visibleActionCards.map((card) => (
                   <article key={card.id}>
                     <strong>{card.title}</strong>
                     <span>{card.status}</span>
@@ -941,6 +943,11 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, onSe
                 ))}
               </div>
             ) : null}
+            {actionCards.length > 3 && (
+              <button type="button" className="deal-expand-action-cards" onClick={() => setShowAllActionCards((value) => !value)}>
+                {showAllActionCards ? 'Show fewer cards' : `Show ${hiddenActionCardCount} more card${hiddenActionCardCount > 1 ? 's' : ''}`}
+              </button>
+            )}
           </div>
 
           <div className="deal-help-list">

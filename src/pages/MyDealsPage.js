@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -218,8 +218,11 @@ export default function MyDealsPage() {
   const [rawFootageUrl, setRawFootageUrl] = useState(null);
   const [unboxingVideoUrl, setUnboxingVideoUrl] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(null);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mobileSection, setMobileSection] = useState('workspace');
+  const [showAllActivity, setShowAllActivity] = useState(false);
+  const evidenceInputRef = useRef(null);
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
@@ -338,30 +341,33 @@ export default function MyDealsPage() {
     }
   };
 
-  const handleCreateActionCard = async (label) => {
+  const handleCreateActionCard = async (label, attachmentUrls = []) => {
     if (!selectedDeal?.deal_id) return;
     try {
       const type = ACTION_CARD_TYPES[label];
+      const attachments = attachmentUrls.length
+        ? attachmentUrls
+        : [unboxingVideoUrl || selectedDeal?.receipt?.unboxing_video_url].filter(Boolean);
       if (type === 'raise_dispute') {
         await axios.post(`${API}/deals/${selectedDeal.deal_id}/dispute`, {
           message: label,
-          attachment_urls: []
+          attachment_urls: attachments
         });
       } else if (type === 'escalate_to_admin') {
         await axios.post(`${API}/deals/${selectedDeal.deal_id}/escalate`, {
           message: label,
-          attachment_urls: []
+          attachment_urls: attachments
         });
       } else if (label === 'Damage Report') {
         await axios.post(`${API}/deals/${selectedDeal.deal_id}/damage-report`, {
           message: 'Damaged or wrong product reported by creator',
-          attachment_urls: [unboxingVideoUrl || selectedDeal?.receipt?.unboxing_video_url].filter(Boolean)
+          attachment_urls: attachments
         });
       } else {
         await axios.post(`${API}/deals/${selectedDeal.deal_id}/action-card`, {
           type,
           message: label,
-          attachment_urls: [unboxingVideoUrl || selectedDeal?.receipt?.unboxing_video_url].filter(Boolean)
+          attachment_urls: attachments
         });
       }
       toast.success(`${label} created`);
@@ -369,6 +375,38 @@ export default function MyDealsPage() {
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Action failed');
     }
+  };
+
+  const handleAddEvidenceClick = () => {
+    if (uploadingEvidence) return;
+    evidenceInputRef.current?.click();
+  };
+
+  const handleEvidenceUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length || !selectedDeal?.deal_id) return;
+
+    setUploadingEvidence(true);
+    try {
+      const uploadedUrls = await Promise.all(files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        return res.data.file_url;
+      }));
+      await handleCreateActionCard('Add Evidence', uploadedUrls);
+      toast.success(`${uploadedUrls.length} evidence file${uploadedUrls.length > 1 ? 's' : ''} uploaded`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Evidence upload failed');
+    } finally {
+      setUploadingEvidence(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleActionCardRequest = (label) => {
+    if (label === 'Add Evidence') return handleAddEvidenceClick();
+    return handleCreateActionCard(label);
   };
 
   const handleRevisionResponse = async (response) => {
@@ -407,7 +445,7 @@ export default function MyDealsPage() {
     if (primaryAction.disabled) return;
     if (primaryAction.type === 'receipt') return handleSubmitReceipt();
     if (primaryAction.type === 'content') return handleSubmitContent();
-    if (primaryAction.type === 'add_evidence') return handleCreateActionCard('Add Evidence');
+    if (primaryAction.type === 'add_evidence') return handleAddEvidenceClick();
     if (primaryAction.type === 'archive') return handleArchiveDeal();
     return null;
   };
@@ -421,6 +459,8 @@ export default function MyDealsPage() {
   const disputedDeals = deals.filter((item) => EXCEPTION_STATES.some((state) => stateKey(state) === stateKey(item.current_state)));
   const escrowAmount = getEscrowAmount(selectedDeal);
   const activity = useMemo(() => selectedDeal?.activity_feed || [], [selectedDeal]);
+  const visibleActivity = showAllActivity ? activity : activity.slice(0, 5);
+  const hiddenActivityCount = Math.max(0, activity.length - visibleActivity.length);
 
   if (loading) {
     return (
@@ -441,13 +481,21 @@ export default function MyDealsPage() {
   return (
     <DashboardLayout navItems={navItems} title="Deal Room" description="Creator-side delivery workspace" topbarExtra={null} sidebarExtra={null}>
       <div className="deal-page">
+        <input
+          ref={evidenceInputRef}
+          type="file"
+          hidden
+          multiple
+          accept="image/*,video/*,.pdf"
+          onChange={handleEvidenceUpload}
+        />
         <StatusHeader
           deal={selectedDeal}
           currentState={selectedState}
           escrowAmount={escrowAmount}
-          primaryAction={primaryAction}
+          primaryAction={uploadingEvidence && primaryAction.type === 'add_evidence' ? { ...primaryAction, label: 'Uploading...', disabled: true } : primaryAction}
           onPrimaryAction={handlePrimaryAction}
-          onActionCard={handleCreateActionCard}
+          onActionCard={handleActionCardRequest}
           onArchive={handleArchiveDeal}
         />
 
@@ -498,7 +546,7 @@ export default function MyDealsPage() {
                 <div><h2>Activity Feed</h2><p>Chronological deal state transitions</p></div>
               </div>
               <div className="deal-timeline">
-                {activity.length ? activity.map((event) => (
+                {activity.length ? visibleActivity.map((event) => (
                   <div key={event.id} className="deal-timeline-item">
                     <span className="blue"><CheckCheck size={16} /></span>
                     <article>
@@ -508,6 +556,11 @@ export default function MyDealsPage() {
                   </div>
                 )) : <EmptyPanel text="No activity yet." />}
               </div>
+              {activity.length > 5 && (
+                <button type="button" className="deal-expand-timeline" onClick={() => setShowAllActivity((value) => !value)}>
+                  {showAllActivity ? 'Show fewer activities' : `Show ${hiddenActivityCount} more activit${hiddenActivityCount > 1 ? 'ies' : 'y'}`}
+                </button>
+              )}
             </DealCard>
 
             <ShippingBlock
@@ -516,10 +569,10 @@ export default function MyDealsPage() {
               onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')}
               onSubmitReceipt={handleSubmitReceipt}
               uploading={uploadingFile === 'unboxing'}
-              onActionCard={handleCreateActionCard}
+              onActionCard={handleActionCardRequest}
             />
 
-            {isDamageState(selectedDeal) && <DamageReportCard deal={selectedDeal} onActionCard={handleCreateActionCard} />}
+            {isDamageState(selectedDeal) && <DamageReportCard deal={selectedDeal} onActionCard={handleActionCardRequest} />}
 
             {isDamageState(selectedDeal) ? (
               <DealCard className="deal-paused-card">
@@ -558,7 +611,7 @@ export default function MyDealsPage() {
             message={message}
             setMessage={setMessage}
             onSendMessage={handleSendMessage}
-            onActionCard={handleCreateActionCard}
+            onActionCard={handleActionCardRequest}
           />
         </div>
         <button type="button" className="deal-mobile-fab" disabled={primaryAction.disabled} onClick={handlePrimaryAction}>
@@ -797,16 +850,14 @@ function DamageReportCard({ deal, onActionCard }) {
         <p><small>Submitted By</small><strong>Creator</strong></p>
         <p><small>Submitted On</small><strong>{formatDateTime(report.submittedOn)}</strong></p>
         <p><small>Reason</small><strong>{report.reason}</strong></p>
-        <p><small>Description</small><strong>{report.description}</strong></p>
-        <p><small>Evidence Uploaded</small><strong>{evidenceParts.length ? evidenceParts.join(' + ') : 'No evidence count available'}</strong></p>
+        <p className="is-wide"><small>Description</small><strong>{report.description}</strong></p>
+        <p className="is-wide"><small>Evidence Uploaded</small><strong>{evidenceParts.length ? evidenceParts.join(' + ') : 'No evidence count available'}</strong></p>
         <p><small>Status</small><strong>{report.status}</strong></p>
         <p><small>Creator Timeline</small><strong>Paused</strong></p>
         <p><small>Escrow Status</small><strong>Held until resolution</strong></p>
       </div>
       <div className="deal-revision-actions">
-        <button type="button" onClick={() => onActionCard('Add Evidence')}>Add More Evidence</button>
         <button type="button" disabled={!report.evidenceUrls.length} onClick={() => window.open(getAssetUrl(report.evidenceUrls[0]), '_blank', 'noopener,noreferrer')}>View Uploaded Evidence</button>
-        <button type="button" onClick={() => onActionCard('Message Support')}>Message Support</button>
       </div>
     </DealCard>
   );

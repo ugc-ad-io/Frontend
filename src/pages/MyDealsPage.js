@@ -141,10 +141,11 @@ function getRequiredAssets(deal) {
 
 function getDamageReport(deal) {
   const receipt = deal?.receipt || {};
-  const damageCard = (deal?.action_cards || []).find((card) => card.type === 'damage_report');
+  const damageCards = (deal?.action_cards || []).filter((card) => card.type === 'damage_report');
+  const damageCard = damageCards[damageCards.length - 1];
   const damageEvent = (deal?.activity_feed || []).find((event) => event.event_type === 'dispute_raised' || event.event_type === 'damage_report');
   const evidence = [
-    ...(damageCard?.attachment_urls || []),
+    ...damageCards.flatMap((card) => card.attachment_urls || []),
     receipt.unboxing_video_url
   ].filter(Boolean);
 
@@ -698,7 +699,6 @@ function DealNavigation({ groups, selectedDeal, onSelect }) {
               <strong>{getDealTitle(deal)}</strong>
               <small>{getBrandHandle(deal)} - {getState(deal)}</small>
               <em>{isDamageState(deal) ? 'Work paused - resolution pending' : `${deal.primary_next_action || 'No action pending'} - ${getCountdownLabel(deal)}`}</em>
-              {deal.unread_count ? <b className="deal-unread-badge">{deal.unread_count} unread</b> : null}
             </button>
           )) : <p>No deals</p>)}
         </section>
@@ -859,6 +859,20 @@ function DamageReportCard({ deal, onActionCard }) {
       <div className="deal-revision-actions">
         <button type="button" disabled={!report.evidenceUrls.length} onClick={() => window.open(getAssetUrl(report.evidenceUrls[0]), '_blank', 'noopener,noreferrer')}>View Uploaded Evidence</button>
       </div>
+      {report.evidenceUrls.length ? (
+        <div className="deal-evidence-list">
+          {report.evidenceUrls.map((url, index) => {
+            const assetUrl = getAssetUrl(url);
+            const isVideo = /\.(mp4|webm|mov)$/i.test(String(url).split('?')[0]);
+            return (
+              <a key={`${url}-${index}`} href={assetUrl} target="_blank" rel="noreferrer">
+                {isVideo ? <Play size={18} /> : <FileText size={18} />}
+                <span>Evidence {index + 1}</span>
+              </a>
+            );
+          })}
+        </div>
+      ) : null}
     </DealCard>
   );
 }

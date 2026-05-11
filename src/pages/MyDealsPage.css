@@ -402,23 +402,6 @@
   font-weight: 760;
 }
 
-.deal-nav-panel section > button:not(.deal-nav-heading) b {
-  position: static;
-  justify-self: end;
-  margin-top: 2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  min-height: 20px;
-  border-radius: 999px;
-  background: rgba(115, 135, 255, 0.12);
-  color: #7387ff;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 900;
-}
-
 .deal-workspace {
   display: grid;
   gap: 18px;
@@ -618,6 +601,10 @@
 .deal-damage-card .deal-revision-box,
 .deal-revisions .deal-revision-box {
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.deal-damage-card .deal-revision-box {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .deal-damage-card .deal-revision-box p.is-wide {
@@ -839,6 +826,32 @@
 .deal-revision-actions button:disabled {
   opacity: 0.48;
   cursor: not-allowed;
+}
+
+.deal-evidence-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.deal-evidence-list a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(115, 135, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(115, 135, 255, 0.08);
+  color: #4f63d8;
+  padding: 10px 12px;
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.deal-evidence-list a span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .deal-timeline {

@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { AlertTriangle, BellOff, CheckCheck, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, User, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, User, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
@@ -30,6 +30,51 @@ const ACTION_CARD_LABELS = {
   raise_dispute: 'Raise Dispute'
 };
 const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
+const ACTION_CARD_FORM_FIELDS = {
+  custom_offer: [
+    ['deliverable_type', 'Deliverable type', 'text', 'Video'],
+    ['quantity', 'Quantity', 'number', '1'],
+    ['duration', 'Duration', 'text', '30 seconds'],
+    ['price', 'Price', 'number', '5000'],
+    ['timeline', 'Timeline', 'text', '7 days'],
+    ['usage_rights', 'Usage rights', 'text', 'Organic social']
+  ],
+  private_invitation: [
+    ['campaign_name', 'Campaign name', 'text', 'Private campaign'],
+    ['deliverable_summary', 'Deliverable summary', 'text', 'UGC video'],
+    ['budget', 'Budget', 'number', '5000'],
+    ['timeline', 'Timeline', 'text', '7 days'],
+    ['usage_rights', 'Usage rights', 'text', 'Organic social'],
+    ['full_brief_link', 'Full brief link', 'url', 'https://ugcads.io']
+  ],
+  counter_offer: [
+    ['modified_price', 'Modified price', 'number', '5000'],
+    ['revisions', 'Revisions', 'text', '1'],
+    ['timeline', 'Timeline', 'text', '7 days'],
+    ['usage_rights', 'Usage rights', 'text', 'Organic social'],
+    ['diff_vs_original', 'Diff vs original', 'textarea', 'Updated terms']
+  ],
+  revision_request: [
+    ['revision_text', 'Revision item', 'textarea', 'Please revise the submitted content.']
+  ],
+  milestone_update: [
+    ['status', 'Current status', 'select', 'editing', ['In planning', 'Filming', 'Editing', 'Ready to submit']],
+    ['notes', 'Notes', 'textarea', '']
+  ],
+  damage_report: [
+    ['reason', 'Reason', 'text', 'Damaged product'],
+    ['description', 'Description', 'textarea', 'Damage reported by creator.'],
+    ['severity', 'Severity', 'select', 'medium', ['low', 'medium', 'high']]
+  ],
+  escalate_to_admin: [
+    ['summary', 'Summary', 'textarea', 'Please review this chat thread and help resolve the communication issue between both parties.'],
+    ['category', 'Category', 'select', 'communication', ['communication', 'timeline', 'clarity', 'other']]
+  ],
+  raise_dispute: [
+    ['summary', 'Dispute summary', 'textarea', 'I want to raise a dispute for this chat/deal.'],
+    ['category', 'Category', 'select', 'communication', ['communication', 'timeline', 'clarity', 'other']]
+  ]
+};
 
 const avatarColors = ['#7387ff', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
 const avatarColor = (name) => avatarColors[name?.charCodeAt ? (name.charCodeAt(0) % avatarColors.length) : 0];
@@ -65,6 +110,8 @@ export default function MessagesPage() {
   const [warnings, setWarnings] = useState(null);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [creatingCard, setCreatingCard] = useState(false);
+  const [actionComposerType, setActionComposerType] = useState(null);
+  const [actionForm, setActionForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const typingSentAtRef = useRef(0);
@@ -363,23 +410,43 @@ export default function MessagesPage() {
     );
   };
 
-  const buildActionCardFields = (type) => {
-    if (type === 'milestone_update') return { status: window.prompt('Current status', 'editing') || 'editing', notes: window.prompt('Optional notes', '') || '' };
-    if (type === 'damage_report') return { reason: window.prompt('Reason', 'Damaged product') || 'Damaged product', description: window.prompt('Description', '') || 'Damage reported by creator.', severity: window.prompt('Severity', 'medium') || 'medium' };
-    if (type === 'escalate_to_admin') return { summary: window.prompt('Summary for admin, 100-500 chars', 'Please review this chat thread and help resolve the communication issue between both parties.') || '', category: window.prompt('Category', 'communication') || 'communication' };
-    if (type === 'raise_dispute') return { summary: window.prompt('Dispute summary', 'I want to raise a dispute for this chat/deal.') || 'I want to raise a dispute for this chat/deal.', category: window.prompt('Category', 'communication') || 'communication' };
-    if (type === 'revision_request') return { revision_items: [{ description: window.prompt('Revision item', 'Please revise the submitted content.') || 'Please revise the submitted content.', severity: 'medium' }] };
-    if (type === 'custom_offer') return { deliverable_type: window.prompt('Deliverable type', 'Video') || 'Video', quantity: Number(window.prompt('Quantity', '1') || 1), duration: window.prompt('Duration', '30 seconds') || '30 seconds', price: Number(window.prompt('Price', '5000') || 5000), timeline: window.prompt('Timeline', '7 days') || '7 days', usage_rights: window.prompt('Usage rights', 'Organic social') || 'Organic social' };
-    if (type === 'private_invitation') return { campaign_name: window.prompt('Campaign name', 'Private campaign') || 'Private campaign', deliverable_summary: window.prompt('Deliverable summary', 'UGC video') || 'UGC video', budget: Number(window.prompt('Budget', '5000') || 5000), timeline: window.prompt('Timeline', '7 days') || '7 days', usage_rights: window.prompt('Usage rights', 'Organic social') || 'Organic social', full_brief_link: window.prompt('Full brief link', 'https://ugcads.io') || 'https://ugcads.io' };
-    return { modified_price: Number(window.prompt('Modified price', '5000') || 5000), revisions: window.prompt('Revisions', '1') || '1', timeline: window.prompt('Timeline', '7 days') || '7 days', usage_rights: window.prompt('Usage rights', 'Organic social') || 'Organic social', diff_vs_original: window.prompt('Diff vs original', 'Updated terms') || 'Updated terms' };
+  const getDefaultActionForm = (type) => Object.fromEntries(
+    (ACTION_CARD_FORM_FIELDS[type] || []).map(([key, , , fallback]) => [key, fallback])
+  );
+
+  const openActionComposer = (type) => {
+    setActionComposerType(type);
+    setActionForm(getDefaultActionForm(type));
   };
 
-  const createActionCard = async (type) => {
-    if (!selectedId || creatingCard) return;
+  const closeActionComposer = () => {
+    setActionComposerType(null);
+    setActionForm({});
+  };
+
+  const getActionCardPayloadFields = () => {
+    const fields = { ...actionForm };
+    if (actionComposerType === 'revision_request') {
+      return { revision_items: [{ description: fields.revision_text, severity: 'medium' }] };
+    }
+    ['quantity', 'price', 'budget', 'modified_price'].forEach((key) => {
+      if (fields[key] !== undefined) fields[key] = Number(fields[key]);
+    });
+    return fields;
+  };
+
+  const submitActionCard = async (event) => {
+    event?.preventDefault();
+    if (!selectedId || creatingCard || !actionComposerType) return;
     setCreatingCard(true);
     try {
-      await axios.post(`${API}/chat/action-cards`, { recipient_id: selectedId, type, fields: buildActionCardFields(type) });
-      toast.success(`${ACTION_CARD_LABELS[type]} sent`);
+      await axios.post(`${API}/chat/action-cards`, {
+        recipient_id: selectedId,
+        type: actionComposerType,
+        fields: getActionCardPayloadFields()
+      });
+      toast.success(`${ACTION_CARD_LABELS[actionComposerType]} sent`);
+      closeActionComposer();
       fetchMessages(selectedId);
       fetchConversations();
     } catch (err) {
@@ -387,6 +454,34 @@ export default function MessagesPage() {
     } finally {
       setCreatingCard(false);
     }
+  };
+
+  const renderActionComposerField = ([key, label, type, , options]) => {
+    const value = actionForm[key] ?? '';
+    if (type === 'textarea') {
+      return (
+        <label key={key}>
+          <span>{label}</span>
+          <textarea value={value} onChange={(event) => setActionForm((current) => ({ ...current, [key]: event.target.value }))} />
+        </label>
+      );
+    }
+    if (type === 'select') {
+      return (
+        <label key={key}>
+          <span>{label}</span>
+          <select value={value} onChange={(event) => setActionForm((current) => ({ ...current, [key]: event.target.value }))}>
+            {(options || []).map((option) => <option key={option} value={String(option).toLowerCase().replaceAll(' ', '_')}>{option}</option>)}
+          </select>
+        </label>
+      );
+    }
+    return (
+      <label key={key}>
+        <span>{label}</span>
+        <input type={type} value={value} onChange={(event) => setActionForm((current) => ({ ...current, [key]: event.target.value }))} />
+      </label>
+    );
   };
 
   const handleEmojiSelect = (emoji) => {
@@ -558,7 +653,7 @@ export default function MessagesPage() {
                 <button
                   key={action}
                   disabled={creatingCard}
-                  onClick={() => createActionCard(action)}
+                  onClick={() => openActionComposer(action)}
                 >
                   {ACTION_CARD_LABELS[action]}
                 </button>
@@ -570,6 +665,25 @@ export default function MessagesPage() {
                 <AlertTriangle size={16} />
                 <span>Free-form chat is temporarily disabled. Action Cards are still available.</span>
               </div>
+            ) : null}
+
+            {actionComposerType ? (
+              <form className="msg-action-composer" onSubmit={submitActionCard}>
+                <div className="msg-action-composer-head">
+                  <div>
+                    <strong>{ACTION_CARD_LABELS[actionComposerType]}</strong>
+                    <small>Fill the details and send a structured action card.</small>
+                  </div>
+                  <button type="button" aria-label="Close action card form" onClick={closeActionComposer}><X size={16} /></button>
+                </div>
+                <div className="msg-action-composer-grid">
+                  {(ACTION_CARD_FORM_FIELDS[actionComposerType] || []).map(renderActionComposerField)}
+                </div>
+                <div className="msg-action-composer-actions">
+                  <button type="button" onClick={closeActionComposer}>Cancel</button>
+                  <button type="submit" disabled={creatingCard}>{creatingCard ? 'Sending...' : 'Send Card'}</button>
+                </div>
+              </form>
             ) : null}
 
             {/* Input */}

@@ -131,6 +131,13 @@ export default function BusinessDashboard() {
   // Calculate stats
   const totalSpent = completedCampaigns.reduce((sum, c) => sum + (c.budget_max || 0), 0);
   const totalBidsReceived = campaigns.reduce((sum, c) => sum + (c.bids?.length || 0), 0);
+  const businessTabs = [
+    { id: 'overview', label: 'Overview', icon: TrendingUp },
+    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: Briefcase },
+    { id: 'pending-bids', label: `Pending Bids (${totalBidsReceived})`, icon: Users },
+    { id: 'work-review', label: 'Work Review', icon: FileCheck },
+    { id: 'shipments', label: 'Shipments', icon: Package }
+  ];
 
   if (user?.approval_status === 'pending') {
     return (
@@ -473,30 +480,64 @@ export default function BusinessDashboard() {
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-header">
-        <div className="header-content">
-          <div>
-            <h1>Business Dashboard</h1>
-            <p>Welcome back, {user?.nickname}!</p>
+      <aside className="business-sidebar">
+        <div>
+          <div className="business-sidebar-brand">
+            <div className="business-sidebar-mark">U</div>
+            <span>UGCad.io</span>
           </div>
-          <div className="header-actions">
-            <button className="btn-primary" onClick={() => setShowCreateModal(true)} data-testid="create-campaign-btn">
-              <Plus size={20} /> Create Campaign
-            </button>
-            <button className="btn-secondary" onClick={() => navigate('/messages')} data-testid="messages-btn">
-              <MessageSquare size={20} /> Messages
-            </button>
-            <button className="btn-secondary" onClick={() => navigate('/settings')} data-testid="settings-btn">
-              <Users size={20} /> Settings
-            </button>
-            <button className="btn-secondary" onClick={handleLogout} data-testid="logout-btn">
-              <LogOut size={20} /> Logout
-            </button>
+          <nav className="business-sidebar-nav" aria-label="Business dashboard">
+            <span className="business-nav-label">Business</span>
+            {businessTabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                className={`business-nav-item ${activeTab === id ? 'active' : ''}`}
+                onClick={() => setActiveTab(id)}
+                data-testid={`tab-${id}`}
+              >
+                <Icon size={20} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div className="business-sidebar-profile">
+          <div className="business-avatar">
+            {(user?.nickname || user?.full_name || 'B').trim().charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <strong>{user?.nickname || user?.full_name || 'Business'}</strong>
+            <span>Approved Business</span>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <div className="dashboard-content">
+      <main className="business-main">
+        <div className="dashboard-header">
+          <div className="header-content">
+            <div>
+              <h1>Business Dashboard</h1>
+              <p>Welcome back, {user?.nickname}!</p>
+            </div>
+            <div className="header-actions">
+              <button className="btn-primary" onClick={() => setShowCreateModal(true)} data-testid="create-campaign-btn">
+                <Plus size={20} /> Create Campaign
+              </button>
+              <button className="btn-secondary" onClick={() => navigate('/messages')} data-testid="messages-btn">
+                <MessageSquare size={20} /> Messages
+              </button>
+              <button className="btn-secondary" onClick={() => navigate('/settings')} data-testid="settings-btn">
+                <Users size={20} /> Settings
+              </button>
+              <button className="btn-secondary" onClick={handleLogout} data-testid="logout-btn">
+                <LogOut size={20} /> Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-content">
         {/* Stats Cards */}
         <div className="stats-grid">
           <div className="stat-card" data-testid="total-campaigns-card">
@@ -556,47 +597,6 @@ export default function BusinessDashboard() {
             <button className="action-btn" onClick={() => setActiveTab('shipments')} data-testid="manage-shipments-btn">
               <Package size={24} />
               <span>Manage Shipments</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs Navigation */}
-        <div className="tabs-container">
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-              data-testid="tab-overview"
-            >
-              Overview
-            </button>
-            <button
-              className={`tab ${activeTab === 'all-campaigns' ? 'active' : ''}`}
-              onClick={() => setActiveTab('all-campaigns')}
-              data-testid="tab-all-campaigns"
-            >
-              All Campaigns ({campaigns.length})
-            </button>
-            <button
-              className={`tab ${activeTab === 'pending-bids' ? 'active' : ''}`}
-              onClick={() => setActiveTab('pending-bids')}
-              data-testid="tab-pending-bids"
-            >
-              Pending Bids ({totalBidsReceived})
-            </button>
-            <button
-              className={`tab ${activeTab === 'work-review' ? 'active' : ''}`}
-              onClick={() => setActiveTab('work-review')}
-              data-testid="tab-work-review"
-            >
-              Work Review
-            </button>
-            <button
-              className={`tab ${activeTab === 'shipments' ? 'active' : ''}`}
-              onClick={() => setActiveTab('shipments')}
-              data-testid="tab-shipments"
-            >
-              Shipments
             </button>
           </div>
         </div>
@@ -983,10 +983,133 @@ export default function BusinessDashboard() {
         </div>
       )}
 
+      </main>
+
       <style jsx>{`
         .dashboard-page {
           min-height: 100vh;
+          display: flex;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+        }
+
+        .business-sidebar {
+          width: 260px;
+          min-height: 100vh;
+          position: sticky;
+          top: 0;
+          align-self: flex-start;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 32px;
+          background: #07074E;
+          color: white;
+          border-top-right-radius: 32px;
+          border-bottom-right-radius: 32px;
+        }
+
+        .business-sidebar-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 40px;
+          font-size: 20px;
+          font-weight: 700;
+        }
+
+        .business-sidebar-mark,
+        .business-avatar {
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+          background: #667eea;
+          color: white;
+          font-weight: 800;
+        }
+
+        .business-sidebar-mark {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+        }
+
+        .business-sidebar-nav {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .business-nav-label {
+          padding: 0 16px 6px;
+          color: #b7b7e6;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .business-nav-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 12px 16px;
+          border: 0;
+          border-radius: 999px;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.74);
+          cursor: pointer;
+          text-align: left;
+          transition: 180ms ease;
+        }
+
+        .business-nav-item:hover {
+          color: white;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .business-nav-item.active {
+          color: #07074E;
+          background: white;
+          font-weight: 700;
+        }
+
+        .business-nav-item span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .business-sidebar-profile {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding-top: 24px;
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .business-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+        }
+
+        .business-sidebar-profile strong,
+        .business-sidebar-profile span {
+          display: block;
+        }
+
+        .business-sidebar-profile span {
+          margin-top: 2px;
+          color: #b7b7e6;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .business-main {
+          flex: 1;
+          min-width: 0;
         }
 
         .dashboard-container {
@@ -1744,6 +1867,39 @@ export default function BusinessDashboard() {
         }
 
         @media (max-width: 768px) {
+          .dashboard-page {
+            flex-direction: column;
+          }
+
+          .business-sidebar {
+            width: 100%;
+            min-height: auto;
+            position: static;
+            border-radius: 0;
+            padding: 20px;
+            gap: 20px;
+          }
+
+          .business-sidebar-brand {
+            margin-bottom: 20px;
+          }
+
+          .business-sidebar-nav {
+            flex-direction: row;
+            overflow-x: auto;
+            padding-bottom: 4px;
+          }
+
+          .business-nav-label,
+          .business-sidebar-profile {
+            display: none;
+          }
+
+          .business-nav-item {
+            width: auto;
+            flex: 0 0 auto;
+          }
+
           .header-content {
             flex-direction: column;
             gap: 20px;

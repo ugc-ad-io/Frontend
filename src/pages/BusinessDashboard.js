@@ -8,6 +8,13 @@ import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, File
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 const budgetColors = ['#7387FF', '#9F9FD1', '#07074E', '#27AE60', '#F59E0B'];
+const campaignPerformanceSample = [
+  { month: 'Jan', deals_closed: 15, approved_deliveries: 12, applications_received: 40, spend_k: 30 },
+  { month: 'Feb', deals_closed: 25, approved_deliveries: 20, applications_received: 60, spend_k: 45 },
+  { month: 'Mar', deals_closed: 40, approved_deliveries: 35, applications_received: 85, spend_k: 65 },
+  { month: 'Apr', deals_closed: 35, approved_deliveries: 30, applications_received: 75, spend_k: 55 },
+  { month: 'May', deals_closed: 50, approved_deliveries: 45, applications_received: 110, spend_k: 80 }
+];
 
 const formatMoney = (value) => {
   const amount = Number(value || 0);
@@ -35,18 +42,7 @@ const actionTarget = (url) => {
 };
 
 const emptyPerformanceMonths = () => {
-  const formatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
-  const now = new Date();
-  return Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    return {
-      month: formatter.format(date),
-      deals_closed: 0,
-      approved_deliveries: 0,
-      applications_received: 0,
-      spend_k: 0
-    };
-  });
+  return campaignPerformanceSample;
 };
 
 export default function BusinessDashboard({ page = 'overview' }) {
@@ -186,9 +182,24 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
   const dashboardMetrics = dashboardData?.metrics || {};
-  const dashboardPerformance = (dashboardData?.campaign_performance || []).length
+  const dashboardPerformanceRaw = (dashboardData?.campaign_performance || []).length
     ? dashboardData.campaign_performance
     : emptyPerformanceMonths();
+  const dashboardPerformance = dashboardPerformanceRaw.map((item) => ({
+    month: item.month || item.name,
+    deals_closed: Number(item.deals_closed ?? item.deals ?? 0),
+    approved_deliveries: Number(item.approved_deliveries ?? item.approved ?? 0),
+    applications_received: Number(item.applications_received ?? item.apps ?? 0),
+    spend_k: Number(item.spend_k ?? item.spend ?? 0)
+  })).some(item => item.deals_closed || item.approved_deliveries || item.applications_received || item.spend_k)
+    ? dashboardPerformanceRaw.map((item) => ({
+      month: item.month || item.name,
+      deals_closed: Number(item.deals_closed ?? item.deals ?? 0),
+      approved_deliveries: Number(item.approved_deliveries ?? item.approved ?? 0),
+      applications_received: Number(item.applications_received ?? item.apps ?? 0),
+      spend_k: Number(item.spend_k ?? item.spend ?? 0)
+    })).slice(-5)
+    : campaignPerformanceSample;
   const dashboardFunnel = dashboardData?.creator_funnel || {};
   const funnelStages = [
     { key: 'viewed_brief', label: 'Viewed', className: 'applied' },
@@ -200,17 +211,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const dashboardActiveDeals = dashboardData?.active_deals || [];
   const dashboardPendingActions = dashboardData?.pending_actions || [];
   const dashboardBudget = dashboardData?.budget_usage || { used: 0, total: 0, categories: [] };
-  const maxPerformanceValue = Math.max(
-    1,
-    ...dashboardPerformance.flatMap(item => [
-      Number(item.deals_closed || 0),
-      Number(item.approved_deliveries || 0),
-      Number(item.applications_received || 0),
-      Number(item.spend_k || 0)
-    ])
-  );
-  const chartXs = dashboardPerformance.map((_, index) => 46 + (index * 514) / Math.max(1, dashboardPerformance.length - 1));
-  const chartY = (value) => 248 - (Number(value || 0) / maxPerformanceValue) * 184;
+  const performanceLeftMax = 120;
+  const performanceRightMax = 80;
+  const chartTop = 28;
+  const chartBottom = 252;
+  const chartHeight = chartBottom - chartTop;
+  const chartXs = dashboardPerformance.map((_, index) => 70 + (index * 500) / Math.max(1, dashboardPerformance.length - 1));
+  const chartYLeft = (value) => chartBottom - (Math.min(Number(value || 0), performanceLeftMax) / performanceLeftMax) * chartHeight;
+  const chartYRight = (value) => chartBottom - (Math.min(Number(value || 0), performanceRightMax) / performanceRightMax) * chartHeight;
   const maxFunnelValue = Math.max(
     1,
     Number(dashboardFunnel.viewed_brief || 0),
@@ -691,33 +699,60 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </div>
                 <div className="performance-chart" aria-label="Campaign performance chart">
                   <div className="chart-grid-lines">
-                    <span>{Math.ceil(maxPerformanceValue)}</span>
-                    <span>{Math.ceil(maxPerformanceValue * 0.75)}</span>
-                    <span>{Math.ceil(maxPerformanceValue * 0.5)}</span>
-                    <span>{Math.ceil(maxPerformanceValue * 0.25)}</span>
+                    <span>120</span>
+                    <span>90</span>
+                    <span>60</span>
+                    <span>30</span>
                     <span>0</span>
                   </div>
-                  <svg viewBox="0 0 640 300" preserveAspectRatio="none">
-                    <polyline points={dashboardPerformance.map((item, index) => `${chartXs[index]},${chartY(item.spend_k)}`).join(' ')} className="line spend" />
-                    <polyline points={dashboardPerformance.map((item, index) => `${chartXs[index]},${chartY(item.applications_received)}`).join(' ')} className="line applications" />
+                  <div className="chart-axis-right">
+                    <span>80</span>
+                    <span>60</span>
+                    <span>40</span>
+                    <span>20</span>
+                    <span>0</span>
+                  </div>
+                  <svg viewBox="0 0 640 280" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline points={dashboardPerformance.map((item, index) => `${chartXs[index]},${chartYRight(item.spend_k)}`).join(' ')} className="line spend" />
+                    <polyline points={dashboardPerformance.map((item, index) => `${chartXs[index]},${chartYLeft(item.applications_received)}`).join(' ')} className="line applications" />
                     {dashboardPerformance.map((item, index) => {
                       const x = chartXs[index];
-                      const dealsHeight = Math.max(4, (Number(item.deals_closed || 0) / maxPerformanceValue) * 120);
-                      const deliveriesHeight = Math.max(4, (Number(item.approved_deliveries || 0) / maxPerformanceValue) * 120);
+                      const dealsHeight = Math.max(4, (Number(item.deals_closed || 0) / performanceLeftMax) * chartHeight);
+                      const deliveriesHeight = Math.max(4, (Number(item.approved_deliveries || 0) / performanceLeftMax) * chartHeight);
                       return (
                       <g key={x}>
-                        <rect x={x - 22} y={250 - dealsHeight} width="36" height={dealsHeight} rx="6" className="bar deals" />
-                        <rect x={x + 20} y={250 - deliveriesHeight} width="36" height={deliveriesHeight} rx="6" className="bar deliveries" />
+                        <rect x={x - 28} y={chartBottom - dealsHeight} width="38" height={dealsHeight} rx="6" className="bar deals" />
+                        <rect x={x + 16} y={chartBottom - deliveriesHeight} width="38" height={deliveriesHeight} rx="6" className="bar deliveries" />
                       </g>
                       );
                     })}
                     {dashboardPerformance.map((item, index) => (
-                      <circle key={`s-${item.month}`} cx={chartXs[index]} cy={chartY(item.spend_k)} r="6" className="dot spend" />
+                      <circle key={`s-${item.month}`} cx={chartXs[index]} cy={chartYRight(item.spend_k)} r="6" className="dot spend" />
                     ))}
                     {dashboardPerformance.map((item, index) => (
-                      <circle key={`a-${item.month}`} cx={chartXs[index]} cy={chartY(item.applications_received)} r="6" className="dot applications" />
+                      <circle key={`a-${item.month}`} cx={chartXs[index]} cy={chartYLeft(item.applications_received)} r="6" className="dot applications" />
                     ))}
                   </svg>
+                  <div className="chart-hit-zones">
+                    {dashboardPerformance.map((item, index) => (
+                      <button
+                        key={`hover-${item.month}`}
+                        type="button"
+                        className="chart-hit-zone"
+                        style={{ '--month-x': `${(chartXs[index] / 640) * 100}%` }}
+                        aria-label={`${item.month} campaign details`}
+                      >
+                        <span className="chart-hover-guide" />
+                        <span className="campaign-tooltip">
+                          <strong>{item.month}</strong>
+                          <span><i className="legend-deals" /> Deals Closed <b>{item.deals_closed}</b></span>
+                          <span><i className="legend-deliveries" /> Approved Deliveries <b>{item.approved_deliveries}</b></span>
+                          <span><i className="legend-applications" /> Applications Received <b>{item.applications_received}</b></span>
+                          <span><i className="legend-spend" /> Spend (K) <b>Rs. {item.spend_k}K</b></span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                   <div className="chart-months">
                     {dashboardPerformance.map(item => <span key={item.month}>{item.month}</span>)}
                   </div>
@@ -732,18 +767,27 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
               <section className="brand-panel funnel-panel">
                 <h2>Creator Funnel</h2>
-                <div className="funnel-bars">
-                  {funnelStages.map(stage => (
-                    <div
-                      key={stage.key}
-                      className={`funnel-bar ${stage.className}`}
-                      style={{ height: `${funnelHeight(dashboardFunnel[stage.key])}px` }}
-                      tabIndex={0}
-                      aria-label={`${stage.label}: ${dashboardFunnel[stage.key] || 0}`}
-                    >
-                      <span className="funnel-tooltip">{stage.label}<br /><strong>{dashboardFunnel[stage.key] || 0}</strong></span>
-                    </div>
-                  ))}
+                <div className="funnel-chart">
+                  <div className="funnel-axis">
+                    <span>1000</span>
+                    <span>750</span>
+                    <span>500</span>
+                    <span>250</span>
+                    <span>0</span>
+                  </div>
+                  <div className="funnel-bars">
+                    {funnelStages.map(stage => (
+                      <div
+                        key={stage.key}
+                        className={`funnel-bar ${stage.className}`}
+                        style={{ height: `${funnelHeight(dashboardFunnel[stage.key])}px` }}
+                        tabIndex={0}
+                        aria-label={`${stage.label}: ${dashboardFunnel[stage.key] || 0}`}
+                      >
+                        <span className="funnel-tooltip">{stage.label}<br /><strong>{dashboardFunnel[stage.key] || 0}</strong></span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="funnel-labels">
                   {funnelStages.map(stage => <span key={stage.key}>{stage.label}</span>)}
@@ -1596,21 +1640,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .performance-chart {
           position: relative;
-          height: 290px;
-          padding-left: 48px;
+          height: 292px;
+          padding: 0 44px 0 48px;
         }
 
         .performance-chart svg {
           position: absolute;
-          inset: 0 0 28px 48px;
-          width: calc(100% - 48px);
+          inset: 0 44px 28px 48px;
+          width: calc(100% - 92px);
           height: calc(100% - 28px);
           overflow: visible;
         }
 
         .chart-grid-lines {
           position: absolute;
-          inset: 0 0 28px 0;
+          inset: 0 44px 28px 0;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -1627,6 +1671,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
           height: 1px;
           margin-top: 8px;
           border-top: 1px dashed #E5E7FF;
+        }
+
+        .chart-axis-right {
+          position: absolute;
+          inset: 0 0 28px auto;
+          width: 34px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          color: #9F9FD1;
+          font-size: 13px;
+          font-weight: 700;
+          text-align: right;
         }
 
         .bar.deals {
@@ -1660,6 +1717,115 @@ export default function BusinessDashboard({ page = 'overview' }) {
           stroke-width: 4;
         }
 
+        .chart-hit-zones {
+          position: absolute;
+          inset: 0 44px 28px 48px;
+          pointer-events: none;
+        }
+
+        .chart-hit-zone {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: var(--month-x);
+          width: 78px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          transform: translateX(-50%);
+          pointer-events: auto;
+        }
+
+        .chart-hover-guide {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          border-left: 1px solid #E1E3F8;
+          opacity: 0;
+          transform: translateX(-50%);
+          transition: opacity 160ms ease;
+        }
+
+        .campaign-tooltip {
+          position: absolute;
+          left: 50%;
+          top: 18px;
+          width: 224px;
+          padding: 15px 14px;
+          border: 1px solid #F0F0F8;
+          border-radius: 14px;
+          background: white;
+          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.14);
+          color: #07074E;
+          opacity: 0;
+          pointer-events: none;
+          transform: translate(-50%, 8px);
+          transition: opacity 160ms ease, transform 160ms ease;
+          z-index: 3;
+        }
+
+        .chart-hit-zone:first-child .campaign-tooltip {
+          left: 0;
+          transform: translate(0, 8px);
+        }
+
+        .chart-hit-zone:last-child .campaign-tooltip {
+          left: auto;
+          right: 0;
+          transform: translate(0, 8px);
+        }
+
+        .campaign-tooltip strong {
+          display: block;
+          margin-bottom: 10px;
+          font-size: 16px;
+          text-align: left;
+        }
+
+        .campaign-tooltip span {
+          display: grid;
+          grid-template-columns: 12px 1fr auto;
+          align-items: center;
+          gap: 6px;
+          margin-top: 8px;
+          color: #9F9FD1;
+          font-size: 13px;
+          font-weight: 700;
+          text-align: left;
+        }
+
+        .campaign-tooltip i {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+        }
+
+        .campaign-tooltip b {
+          color: #07074E;
+          font-size: 14px;
+        }
+
+        .chart-hit-zone:hover .chart-hover-guide,
+        .chart-hit-zone:focus-visible .chart-hover-guide,
+        .chart-hit-zone:hover .campaign-tooltip,
+        .chart-hit-zone:focus-visible .campaign-tooltip {
+          opacity: 1;
+        }
+
+        .chart-hit-zone:hover .campaign-tooltip,
+        .chart-hit-zone:focus-visible .campaign-tooltip {
+          transform: translate(-50%, 0);
+        }
+
+        .chart-hit-zone:first-child:hover .campaign-tooltip,
+        .chart-hit-zone:first-child:focus-visible .campaign-tooltip,
+        .chart-hit-zone:last-child:hover .campaign-tooltip,
+        .chart-hit-zone:last-child:focus-visible .campaign-tooltip {
+          transform: translate(0, 0);
+        }
+
         .chart-months,
         .chart-legend {
           display: flex;
@@ -1671,7 +1837,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .chart-months {
           position: absolute;
           left: 78px;
-          right: 20px;
+          right: 62px;
           bottom: 0;
           justify-content: space-between;
         }
@@ -1702,6 +1868,39 @@ export default function BusinessDashboard({ page = 'overview' }) {
           min-height: 440px;
           display: flex;
           flex-direction: column;
+        }
+
+        .funnel-chart {
+          position: relative;
+          flex: 1;
+          display: flex;
+          padding-left: 42px;
+        }
+
+        .funnel-axis {
+          position: absolute;
+          left: 0;
+          top: 72px;
+          bottom: 0;
+          width: 36px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          color: #9F9FD1;
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1;
+          text-align: right;
+        }
+
+        .funnel-axis span::after {
+          content: "";
+          position: absolute;
+          left: 46px;
+          right: 0;
+          height: 1px;
+          margin-top: 6px;
+          border-top: 1px dashed #EEF0FF;
         }
 
         .funnel-bars {

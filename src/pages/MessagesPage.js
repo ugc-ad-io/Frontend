@@ -42,6 +42,7 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [mobileView, setMobileView] = useState('list');
@@ -124,13 +125,14 @@ export default function MessagesPage() {
 
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if (!newMessage.trim() || !selectedId) return;
+    if ((!newMessage.trim() && !selectedFiles.length) || !selectedId) return;
 
     setSending(true);
     try {
       const res = await axios.post(`${API}/chat/send`, {
         recipient_id: selectedId,
-        message: newMessage
+        message: newMessage.trim() || 'Attachment sent',
+        attachment_urls: selectedFiles.map((file) => file.url)
       });
 
       if (res.data.filtered) {
@@ -150,11 +152,58 @@ export default function MessagesPage() {
 
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files || []);
-    setSelectedFiles(files.map((file) => file.name));
-    if (files.length) {
-      toast.success(`${files.length} file${files.length > 1 ? 's' : ''} selected`);
+    if (!files.length) {
+      event.target.value = '';
+      return;
     }
+
+    setUploadingFiles(true);
+    Promise.all(files.map(async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      return { name: file.name, url: res.data.file_url };
+    }))
+      .then((uploadedFiles) => {
+        setSelectedFiles((current) => [...current, ...uploadedFiles]);
+        toast.success(`${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} attached`);
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.detail || 'File attachment failed');
+      })
+      .finally(() => {
+        setUploadingFiles(false);
+      });
+
     event.target.value = '';
+  };
+
+  const removeSelectedFile = (url) => {
+    setSelectedFiles((current) => current.filter((file) => file.url !== url));
+  };
+
+  const getAttachmentUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+  };
+
+  const getAttachmentName = (url, index) => {
+    if (!url) return `Attachment ${index + 1}`;
+    return decodeURIComponent(String(url).split('/').pop() || `Attachment ${index + 1}`);
+  };
+
+  const renderAttachments = (attachmentUrls = []) => {
+    if (!attachmentUrls.length) return null;
+    return (
+      <div className="msg-bubble-attachments">
+        {attachmentUrls.map((url, index) => (
+          <a key={`${url}-${index}`} href={getAttachmentUrl(url)} target="_blank" rel="noreferrer">
+            <FileText size={14} />
+            <span>{getAttachmentName(url, index)}</span>
+          </a>
+        ))}
+      </div>
+    );
   };
 
   const handleEmojiSelect = (emoji) => {
@@ -299,6 +348,7 @@ export default function MessagesPage() {
                       )}
                       <div className="msg-bubble">
                         <p>{msg.message}</p>
+                        {renderAttachments(msg.attachment_urls)}
                         <span className="msg-time">
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
@@ -325,8 +375,11 @@ export default function MessagesPage() {
             {/* Input */}
             {selectedFiles.length > 0 && (
               <div className="msg-attachment-preview">
-                {selectedFiles.map((fileName) => (
-                  <span key={fileName}>{fileName}</span>
+                {selectedFiles.map((file) => (
+                  <span key={file.url}>
+                    {file.name}
+                    <button type="button" aria-label={`Remove ${file.name}`} onClick={() => removeSelectedFile(file.url)}>x</button>
+                  </span>
                 ))}
               </div>
             )}
@@ -361,6 +414,7 @@ export default function MessagesPage() {
                 type="button"
                 className="msg-input-icon"
                 aria-label="Attach file"
+                disabled={uploadingFiles || sending}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip size={18} />
@@ -372,7 +426,7 @@ export default function MessagesPage() {
                 placeholder="Type a message..."
                 className="msg-input"
               />
-              <button type="submit" className="msg-send" disabled={sending || !newMessage.trim()}>
+              <button type="submit" className="msg-send" disabled={sending || uploadingFiles || (!newMessage.trim() && !selectedFiles.length)}>
                 <Send size={18} />
               </button>
             </form>

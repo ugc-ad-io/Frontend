@@ -416,6 +416,38 @@
   margin-bottom: 0;
 }
 
+.msg-bubble-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.msg-bubble-attachments a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.24);
+  color: inherit;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.msg-bubble-row:not(.is-own) .msg-bubble-attachments a {
+  background: #f5f4ff;
+  color: #07074E;
+}
+
+.msg-bubble-attachments span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .msg-time {
   font-size: 0.75rem;
   opacity: 0.7;
@@ -527,6 +559,9 @@
 }
 
 .msg-attachment-preview span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -539,6 +574,19 @@
   font-size: 12px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
+}
+
+.msg-attachment-preview span button {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #eef0ff;
+  color: #07074E;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .msg-input-icon {

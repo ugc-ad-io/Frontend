@@ -131,7 +131,7 @@ export default function MessagesPage() {
     try {
       const res = await axios.post(`${API}/chat/send`, {
         recipient_id: selectedId,
-        message: newMessage.trim() || 'Attachment sent',
+        message: newMessage.trim(),
         attachment_urls: selectedFiles.map((file) => file.url)
       });
 
@@ -285,7 +285,13 @@ export default function MessagesPage() {
                       <strong>{conv.nickname}</strong>
                       <span className="msg-time-ago">{timeAgo(conv.last_message?.timestamp)}</span>
                     </div>
-                    <p className="msg-preview">{conv.last_message?.message?.slice(0, 50)}...</p>
+                    <p className="msg-preview">
+                      {conv.last_message?.message
+                        ? `${conv.last_message.message.slice(0, 50)}...`
+                        : conv.last_message?.attachment_urls?.length
+                          ? 'File attachment'
+                          : ''}
+                    </p>
                   </div>
                   {conv.unread_count > 0 && <span className="msg-badge">{conv.unread_count}</span>}
                 </div>
@@ -347,7 +353,7 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <div className="msg-bubble">
-                        <p>{msg.message}</p>
+                        {msg.message ? <p>{msg.message}</p> : null}
                         {renderAttachments(msg.attachment_urls)}
                         <span className="msg-time">
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

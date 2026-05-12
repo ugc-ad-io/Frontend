@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ const API = `${BACKEND_URL}/api`;
 export default function BusinessDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [campaigns, setCampaigns] = useState([]);
   const [activeCampaigns, setActiveCampaigns] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
@@ -18,7 +19,6 @@ export default function BusinessDashboard() {
   const [workSubmissions, setWorkSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
   const [formData, setFormData] = useState({
     title: '',
     objectives: [],
@@ -132,12 +132,13 @@ export default function BusinessDashboard() {
   const totalSpent = completedCampaigns.reduce((sum, c) => sum + (c.budget_max || 0), 0);
   const totalBidsReceived = campaigns.reduce((sum, c) => sum + (c.bids?.length || 0), 0);
   const businessTabs = [
-    { id: 'overview', label: 'Overview', icon: TrendingUp },
-    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: Briefcase },
-    { id: 'pending-bids', label: `Pending Bids (${totalBidsReceived})`, icon: Users },
-    { id: 'work-review', label: 'Work Review', icon: FileCheck },
-    { id: 'shipments', label: 'Shipments', icon: Package }
+    { id: 'overview', label: 'Overview', icon: TrendingUp, path: '/dashboard/business' },
+    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: Briefcase, path: '/dashboard/business/all-campaigns' },
+    { id: 'pending-bids', label: `Pending Bids (${totalBidsReceived})`, icon: Users, path: '/dashboard/business/pending-bids' },
+    { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
+    { id: 'shipments', label: 'Shipments', icon: Package, path: '/dashboard/business/shipments' }
   ];
+  const activeTab = businessTabs.find(tab => tab.path === location.pathname)?.id || 'overview';
 
   if (user?.approval_status === 'pending') {
     return (
@@ -488,12 +489,12 @@ export default function BusinessDashboard() {
           </div>
           <nav className="business-sidebar-nav" aria-label="Business dashboard">
             <span className="business-nav-label">Business</span>
-            {businessTabs.map(({ id, label, icon: Icon }) => (
+            {businessTabs.map(({ id, label, icon: Icon, path }) => (
               <button
                 key={id}
                 type="button"
                 className={`business-nav-item ${activeTab === id ? 'active' : ''}`}
-                onClick={() => setActiveTab(id)}
+                onClick={() => navigate(path)}
                 data-testid={`tab-${id}`}
               >
                 <Icon size={20} />
@@ -586,15 +587,15 @@ export default function BusinessDashboard() {
               <Plus size={24} />
               <span>New Campaign</span>
             </button>
-            <button className="action-btn" onClick={() => setActiveTab('pending-bids')} data-testid="view-bids-btn">
+            <button className="action-btn" onClick={() => navigate('/dashboard/business/pending-bids')} data-testid="view-bids-btn">
               <Users size={24} />
               <span>View Bids</span>
             </button>
-            <button className="action-btn" onClick={() => setActiveTab('work-review')} data-testid="review-work-btn">
+            <button className="action-btn" onClick={() => navigate('/dashboard/business/work-review')} data-testid="review-work-btn">
               <FileCheck size={24} />
               <span>Review Work</span>
             </button>
-            <button className="action-btn" onClick={() => setActiveTab('shipments')} data-testid="manage-shipments-btn">
+            <button className="action-btn" onClick={() => navigate('/dashboard/business/shipments')} data-testid="manage-shipments-btn">
               <Package size={24} />
               <span>Manage Shipments</span>
             </button>

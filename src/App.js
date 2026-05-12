@@ -185,6 +185,38 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/all-campaigns"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/pending-bids"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/work-review"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/shipments"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/admin"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>

@@ -258,6 +258,15 @@
   font-family: 'Inter', sans-serif;
 }
 
+.msg-deal-status {
+  display: inline-block;
+  margin-top: 6px;
+  color: #7387FF;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
 .msg-badge {
   background: #7387FF;
   color: #fff;
@@ -454,6 +463,146 @@
   display: block;
   margin-top: 4px;
   font-family: 'Inter', sans-serif;
+}
+
+.msg-time em {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  font-style: normal;
+}
+
+.msg-typing {
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: #7387FF;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(115, 135, 255, 0.2);
+}
+
+.msg-action-card {
+  width: min(520px, 78%);
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid rgba(115, 135, 255, 0.22);
+  border-left: 4px solid #7387FF;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 8px 18px rgba(7, 7, 78, 0.06);
+}
+
+.msg-action-card.is-own {
+  align-self: flex-end;
+  border-left-color: #48bb78;
+}
+
+.msg-action-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.msg-action-card-head > span {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #eef0ff;
+  color: #7387FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.msg-action-card-head div {
+  flex: 1;
+  min-width: 0;
+}
+
+.msg-action-card-head strong,
+.msg-action-card-head small {
+  display: block;
+}
+
+.msg-action-card-head small {
+  color: #9F9FD1;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.msg-action-card-head em {
+  font-style: normal;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #f5f4ff;
+  color: #7387FF;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.msg-action-card-fields {
+  display: grid;
+  gap: 8px;
+}
+
+.msg-action-card-fields p {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.msg-action-card-fields span {
+  color: #9F9FD1;
+  text-transform: capitalize;
+}
+
+.msg-action-card-fields strong {
+  color: #07074E;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.msg-action-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.msg-action-card-actions button {
+  border: none;
+  border-radius: 10px;
+  background: #7387FF;
+  color: #fff;
+  padding: 8px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.msg-action-card-time {
+  display: block;
+  margin-top: 10px;
+  color: #9F9FD1;
+  font-size: 11px;
+}
+
+.msg-policy-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 32px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 13px;
+  font-weight: 700;
+  border-top: 1px solid #fed7aa;
 }
 
 .msg-system-pill {

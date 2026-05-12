@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, Send, Phone, FileText, MoreHorizontal, Smile, Paperclip, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, User, Briefcase } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, User, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
@@ -11,6 +11,25 @@ import './MessagesPage.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+const ATTACHMENT_MESSAGE_PREFIX = '__UGCAD_ATTACHMENT__:';
+const MAX_ATTACHMENTS = 5;
+const CHAT_FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Active Deals', value: 'active_deal' },
+  { label: 'No Deal', value: 'no_deal' },
+  { label: 'Archived', value: 'archived' }
+];
+const ACTION_CARD_LABELS = {
+  custom_offer: 'Custom Offer',
+  private_invitation: 'Private Invitation',
+  counter_offer: 'Counter Offer',
+  revision_request: 'Revision Request',
+  milestone_update: 'Milestone Update',
+  damage_report: 'Damage Report',
+  escalate_to_admin: 'Escalate to Admin',
+  raise_dispute: 'Raise Dispute'
+};
+const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
 
 const avatarColors = ['#7387ff', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
 const avatarColor = (name) => avatarColors[name?.charCodeAt ? (name.charCodeAt(0) % avatarColors.length) : 0];
@@ -28,7 +47,7 @@ const timeAgo = (timestamp) => {
 };
 
 export default function MessagesPage() {
-  const { user, logout, setUser } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
@@ -43,11 +62,12 @@ export default function MessagesPage() {
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [warnings, setWarnings] = useState(null);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [creatingCard, setCreatingCard] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [mobileView, setMobileView] = useState('list');
-
-  const displayName = user?.nickname || user?.full_name || user?.email || 'Creator';
+  const typingSentAtRef = useRef(0);
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
@@ -79,6 +99,7 @@ export default function MessagesPage() {
   useEffect(() => {
     if (user?.id) {
       fetchConversations();
+      fetchWarnings();
       const interval = setInterval(fetchConversations, 5000);
       return () => clearInterval(interval);
     }
@@ -94,8 +115,13 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!selectedId) return;
     fetchMessages(selectedId);
+    fetchTyping(selectedId);
     const interval = setInterval(() => fetchMessages(selectedId), 3000);
-    return () => clearInterval(interval);
+    const typingInterval = setInterval(() => fetchTyping(selectedId), 3000);
+    return () => {
+      clearInterval(interval);
+      clearInterval(typingInterval);
+    };
   }, [selectedId]);
 
   // Auto-scroll to bottom
@@ -123,16 +149,52 @@ export default function MessagesPage() {
     }
   };
 
+  const fetchWarnings = async () => {
+    try {
+      const res = await axios.get(`${API}/chat/warnings`);
+      setWarnings(res.data);
+    } catch (err) {
+      console.error('Failed to load chat warnings');
+    }
+  };
+
+  const fetchTyping = async (otherId) => {
+    try {
+      const res = await axios.get(`${API}/chat/${otherId}/typing`);
+      setIsOtherTyping(Boolean(res.data.typing));
+    } catch (err) {
+      setIsOtherTyping(false);
+    }
+  };
+
+  const sendTypingSignal = async () => {
+    if (!selectedId) return;
+    const now = Date.now();
+    if (now - typingSentAtRef.current < 2500) return;
+    typingSentAtRef.current = now;
+    try {
+      await axios.post(`${API}/chat/${selectedId}/typing`);
+    } catch (err) {
+      // Typing indicators are best-effort.
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if ((!newMessage.trim() && !selectedFiles.length) || !selectedId) return;
+    const attachmentUrls = selectedFiles.map((file) => file.url).filter(Boolean);
+    if ((!newMessage.trim() && !attachmentUrls.length) || !selectedId) return;
+
+    if (selectedFiles.length && !attachmentUrls.length) {
+      toast.error('File upload did not complete. Please attach the file again.');
+      return;
+    }
 
     setSending(true);
     try {
       const res = await axios.post(`${API}/chat/send`, {
         recipient_id: selectedId,
-        message: newMessage.trim(),
-        attachment_urls: selectedFiles.map((file) => file.url)
+        message: newMessage.trim() || `${ATTACHMENT_MESSAGE_PREFIX}${attachmentUrls.join('|')}`,
+        attachment_urls: attachmentUrls
       });
 
       if (res.data.filtered) {
@@ -144,6 +206,11 @@ export default function MessagesPage() {
       setEmojiPickerOpen(false);
       await fetchMessages(selectedId);
     } catch (err) {
+      if (err.response?.status === 400 && err.response?.data?.detail?.includes('contact information')) {
+        toast.error(err.response.data.detail);
+        fetchWarnings();
+        return;
+      }
       toast.error(err.response?.data?.detail || 'Failed to send message');
     } finally {
       setSending(false);
@@ -157,12 +224,21 @@ export default function MessagesPage() {
       return;
     }
 
+    const validationError = validateSelectedFiles(files);
+    if (validationError) {
+      toast.error(validationError);
+      event.target.value = '';
+      return;
+    }
+
     setUploadingFiles(true);
     Promise.all(files.map(async (file) => {
       const formData = new FormData();
       formData.append('file', file);
       const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      return { name: file.name, url: res.data.file_url };
+      const fileUrl = res.data.file_url || res.data.url || res.data.path;
+      if (!fileUrl) throw new Error(`${file.name} uploaded but no file URL was returned`);
+      return { name: file.name, url: fileUrl };
     }))
       .then((uploadedFiles) => {
         setSelectedFiles((current) => [...current, ...uploadedFiles]);
@@ -182,6 +258,20 @@ export default function MessagesPage() {
     setSelectedFiles((current) => current.filter((file) => file.url !== url));
   };
 
+  const validateSelectedFiles = (files) => {
+    if (selectedFiles.length + files.length > MAX_ATTACHMENTS) return 'A message can include at most 5 attachments.';
+    for (const file of files) {
+      const isImage = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'].includes(file.type);
+      const isPdf = file.type === 'application/pdf';
+      const isVideo = file.type?.startsWith('video/');
+      if (!isImage && !isPdf && !isVideo) return 'Upload jpg, png, gif, pdf, or video files only.';
+      if (isImage && file.size > 10 * 1024 * 1024) return 'Images must be 10 MB or smaller.';
+      if (isPdf && file.size > 25 * 1024 * 1024) return 'PDFs must be 25 MB or smaller.';
+      if (isVideo && file.size > 50 * 1024 * 1024) return 'Videos must be 50 MB or smaller.';
+    }
+    return '';
+  };
+
   const getAttachmentUrl = (url) => {
     if (!url) return '';
     return url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
@@ -190,6 +280,19 @@ export default function MessagesPage() {
   const getAttachmentName = (url, index) => {
     if (!url) return `Attachment ${index + 1}`;
     return decodeURIComponent(String(url).split('/').pop() || `Attachment ${index + 1}`);
+  };
+
+  const getMessageAttachments = (msg) => {
+    if (msg.attachment_urls?.length) return msg.attachment_urls;
+    if (typeof msg.message === 'string' && msg.message.startsWith(ATTACHMENT_MESSAGE_PREFIX)) {
+      return msg.message.slice(ATTACHMENT_MESSAGE_PREFIX.length).split('|').filter(Boolean);
+    }
+    return [];
+  };
+
+  const getDisplayMessage = (msg) => {
+    if (typeof msg.message === 'string' && msg.message.startsWith(ATTACHMENT_MESSAGE_PREFIX)) return '';
+    return msg.message;
   };
 
   const renderAttachments = (attachmentUrls = []) => {
@@ -206,6 +309,86 @@ export default function MessagesPage() {
     );
   };
 
+  const getItemTime = (item) => item.created_at || item.timestamp;
+
+  const formatActionValue = (value) => {
+    if (Array.isArray(value)) return value.map((item) => typeof item === 'object' ? Object.values(item).filter(Boolean).join(' - ') : item).join(', ');
+    if (typeof value === 'object' && value !== null) return Object.values(value).filter(Boolean).join(' - ');
+    return String(value ?? '');
+  };
+
+  const getReadLabel = (item) => {
+    if (item.sender_id !== user.id) return '';
+    if (item.status === 'read' || item.read_at || (item.read_by || []).includes(selectedId)) return 'Read';
+    return 'Delivered';
+  };
+
+  const respondToActionCard = async (cardId, action) => {
+    try {
+      await axios.post(`${API}/chat/action-cards/${cardId}/respond`, { action });
+      toast.success('Action card updated');
+      fetchMessages(selectedId);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Action failed');
+    }
+  };
+
+  const renderActionCard = (item) => {
+    const fields = item.fields || {};
+    const isOwn = item.sender_id === user.id;
+    return (
+      <div key={item.id} className={`msg-action-card ${isOwn ? 'is-own' : ''}`}>
+        <div className="msg-action-card-head">
+          <span><ShieldAlert size={16} /></span>
+          <div>
+            <strong>{ACTION_CARD_LABELS[item.type] || item.type}</strong>
+            {item.deal_id ? <small>{item.deal_id}</small> : null}
+          </div>
+          <em>{item.status || 'open'}</em>
+        </div>
+        <div className="msg-action-card-fields">
+          {Object.entries(fields).slice(0, 6).map(([key, value]) => (
+            <p key={key}><span>{key.replaceAll('_', ' ')}</span><strong>{formatActionValue(value)}</strong></p>
+          ))}
+        </div>
+        {!isOwn && item.status === 'open' && item.available_actions?.length ? (
+          <div className="msg-action-card-actions">
+            {item.available_actions.map((action) => (
+              <button key={action} type="button" onClick={() => respondToActionCard(item.id, action)}>{action}</button>
+            ))}
+          </div>
+        ) : null}
+        <small className="msg-action-card-time">{new Date(getItemTime(item)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+      </div>
+    );
+  };
+
+  const buildActionCardFields = (type) => {
+    if (type === 'milestone_update') return { status: window.prompt('Current status', 'editing') || 'editing', notes: window.prompt('Optional notes', '') || '' };
+    if (type === 'damage_report') return { reason: window.prompt('Reason', 'Damaged product') || 'Damaged product', description: window.prompt('Description', '') || 'Damage reported by creator.', severity: window.prompt('Severity', 'medium') || 'medium' };
+    if (type === 'escalate_to_admin') return { summary: window.prompt('Summary for admin, 100-500 chars', 'Please review this chat thread and help resolve the communication issue between both parties.') || '', category: window.prompt('Category', 'communication') || 'communication' };
+    if (type === 'raise_dispute') return { summary: window.prompt('Dispute summary', 'I want to raise a dispute for this chat/deal.') || 'I want to raise a dispute for this chat/deal.', category: window.prompt('Category', 'communication') || 'communication' };
+    if (type === 'revision_request') return { revision_items: [{ description: window.prompt('Revision item', 'Please revise the submitted content.') || 'Please revise the submitted content.', severity: 'medium' }] };
+    if (type === 'custom_offer') return { deliverable_type: window.prompt('Deliverable type', 'Video') || 'Video', quantity: Number(window.prompt('Quantity', '1') || 1), duration: window.prompt('Duration', '30 seconds') || '30 seconds', price: Number(window.prompt('Price', '5000') || 5000), timeline: window.prompt('Timeline', '7 days') || '7 days', usage_rights: window.prompt('Usage rights', 'Organic social') || 'Organic social' };
+    if (type === 'private_invitation') return { campaign_name: window.prompt('Campaign name', 'Private campaign') || 'Private campaign', deliverable_summary: window.prompt('Deliverable summary', 'UGC video') || 'UGC video', budget: Number(window.prompt('Budget', '5000') || 5000), timeline: window.prompt('Timeline', '7 days') || '7 days', usage_rights: window.prompt('Usage rights', 'Organic social') || 'Organic social', full_brief_link: window.prompt('Full brief link', 'https://ugcads.io') || 'https://ugcads.io' };
+    return { modified_price: Number(window.prompt('Modified price', '5000') || 5000), revisions: window.prompt('Revisions', '1') || '1', timeline: window.prompt('Timeline', '7 days') || '7 days', usage_rights: window.prompt('Usage rights', 'Organic social') || 'Organic social', diff_vs_original: window.prompt('Diff vs original', 'Updated terms') || 'Updated terms' };
+  };
+
+  const createActionCard = async (type) => {
+    if (!selectedId || creatingCard) return;
+    setCreatingCard(true);
+    try {
+      await axios.post(`${API}/chat/action-cards`, { recipient_id: selectedId, type, fields: buildActionCardFields(type) });
+      toast.success(`${ACTION_CARD_LABELS[type]} sent`);
+      fetchMessages(selectedId);
+      fetchConversations();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Action card failed');
+    } finally {
+      setCreatingCard(false);
+    }
+  };
+
   const handleEmojiSelect = (emoji) => {
     setNewMessage((current) => `${current}${emoji}`);
     setEmojiPickerOpen(false);
@@ -216,13 +399,12 @@ export default function MessagesPage() {
     const matchesSearch = conv.nickname.toLowerCase().includes(search.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
-      (filter === 'unread' && conv.unread_count > 0) ||
-      (filter === 'deals' && conv.role === 'business') ||
-      (filter === 'support' && conv.user_id === 'support');
+      conv.thread_classification === filter;
     return matchesSearch && matchesFilter;
   });
 
   const selectedConv = conversations.find((c) => c.user_id === selectedId);
+  const actionCardsOnly = warnings?.action_cards_only_until && new Date(warnings.action_cards_only_until) > new Date();
 
   return (
     <DashboardLayout
@@ -251,13 +433,13 @@ export default function MessagesPage() {
           </div>
 
           <div className="msg-filters">
-            {['All', 'Unread', 'Deals', 'Support'].map((f) => (
+            {CHAT_FILTERS.map((f) => (
               <button
-                key={f}
-                className={filter === f.toLowerCase() ? 'is-active' : ''}
-                onClick={() => setFilter(f.toLowerCase())}
+                key={f.value}
+                className={filter === f.value ? 'is-active' : ''}
+                onClick={() => setFilter(f.value)}
               >
-                {f}
+                {f.label}
               </button>
             ))}
           </div>
@@ -283,15 +465,16 @@ export default function MessagesPage() {
                   <div className="msg-conv-body">
                     <div className="msg-conv-top">
                       <strong>{conv.nickname}</strong>
-                      <span className="msg-time-ago">{timeAgo(conv.last_message?.timestamp)}</span>
+                      <span className="msg-time-ago">{timeAgo(conv.timestamp || conv.last_message?.timestamp)}</span>
                     </div>
                     <p className="msg-preview">
-                      {conv.last_message?.message
-                        ? `${conv.last_message.message.slice(0, 50)}...`
-                        : conv.last_message?.attachment_urls?.length
+                      {getDisplayMessage(conv.last_message || {})
+                        ? `${getDisplayMessage(conv.last_message).slice(0, 50)}...`
+                        : getMessageAttachments(conv.last_message || {}).length
                           ? 'File attachment'
                           : ''}
                     </p>
+                    {conv.associated_deal_status ? <small className="msg-deal-status">{conv.associated_deal_status}</small> : null}
                   </div>
                   {conv.unread_count > 0 && <span className="msg-badge">{conv.unread_count}</span>}
                 </div>
@@ -321,10 +504,10 @@ export default function MessagesPage() {
                 </div>
               </div>
               <div className="msg-chat-actions">
-                <button><Phone size={18} /></button>
-                <button><Search size={18} /></button>
-                <button><FileText size={18} /></button>
-                <button><MoreHorizontal size={18} /></button>
+                <button type="button" title="View profile" onClick={() => navigate(`/profile/${selectedId}`)}><User size={18} /></button>
+                <button type="button" title="Report user" onClick={() => toast.info('Report flow coming soon')}><Flag size={18} /></button>
+                <button type="button" title="Mute notifications" onClick={() => toast.success('Notifications muted for this thread')}><BellOff size={18} /></button>
+                <button type="button" title="More actions"><MoreHorizontal size={18} /></button>
               </div>
             </div>
 
@@ -334,6 +517,7 @@ export default function MessagesPage() {
                 <div style={{ textAlign: 'center', color: '#999', marginTop: '40px' }}>No messages yet</div>
               ) : (
                 messages.map((msg, idx) => {
+                  if (msg.item_type === 'action_card') return renderActionCard(msg);
                   const isOwn = msg.sender_id === user.id;
                   const isSystem = msg.system_message || msg.sender_id === 'system';
 
@@ -353,30 +537,40 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <div className="msg-bubble">
-                        {msg.message ? <p>{msg.message}</p> : null}
-                        {renderAttachments(msg.attachment_urls)}
+                        {getDisplayMessage(msg) ? <p>{getDisplayMessage(msg)}</p> : null}
+                        {renderAttachments(getMessageAttachments(msg))}
                         <span className="msg-time">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(getItemTime(msg)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {getReadLabel(msg) ? <em><CheckCheck size={13} /> {getReadLabel(msg)}</em> : null}
                         </span>
                       </div>
                     </div>
                   );
                 })
               )}
+              {isOtherTyping ? <div className="msg-typing">{selectedConv?.nickname || 'User'} is typing...</div> : null}
               <div ref={messagesEndRef} />
             </div>
 
             {/* Quick Actions */}
             <div className="msg-quick-chips">
-              {['Custom Offer', 'Revision Request', 'Milestone Update', 'Damage Report', 'Escalate', 'Dispute'].map((action) => (
+              {ACTION_CARD_TYPES.map((action) => (
                 <button
                   key={action}
-                  onClick={() => toast.info(`${action} — coming soon`)}
+                  disabled={creatingCard}
+                  onClick={() => createActionCard(action)}
                 >
-                  {action}
+                  {ACTION_CARD_LABELS[action]}
                 </button>
               ))}
             </div>
+
+            {actionCardsOnly ? (
+              <div className="msg-policy-banner">
+                <AlertTriangle size={16} />
+                <span>Free-form chat is temporarily disabled. Action Cards are still available.</span>
+              </div>
+            ) : null}
 
             {/* Input */}
             {selectedFiles.length > 0 && (
@@ -395,6 +589,7 @@ export default function MessagesPage() {
                 type="file"
                 hidden
                 multiple
+                accept="image/jpeg,image/png,image/gif,application/pdf,video/*"
                 onChange={handleFileSelect}
               />
               <div className="msg-emoji-wrap">
@@ -428,11 +623,15 @@ export default function MessagesPage() {
               <input
                 type="text"
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  sendTypingSignal();
+                }}
+                placeholder={actionCardsOnly ? 'Use an Action Card to continue this thread' : 'Type a message...'}
                 className="msg-input"
+                disabled={actionCardsOnly}
               />
-              <button type="submit" className="msg-send" disabled={sending || uploadingFiles || (!newMessage.trim() && !selectedFiles.length)}>
+              <button type="submit" className="msg-send" disabled={actionCardsOnly || sending || uploadingFiles || (!newMessage.trim() && !selectedFiles.length)}>
                 <Send size={18} />
               </button>
             </form>

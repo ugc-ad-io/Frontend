@@ -738,8 +738,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       key={stage.key}
                       className={`funnel-bar ${stage.className}`}
                       style={{ height: `${funnelHeight(dashboardFunnel[stage.key])}px` }}
+                      tabIndex={0}
+                      aria-label={`${stage.label}: ${dashboardFunnel[stage.key] || 0}`}
                     >
-                      <span>{stage.label}<br /><strong>{dashboardFunnel[stage.key] || 0}</strong></span>
+                      <span className="funnel-tooltip">{stage.label}<br /><strong>{dashboardFunnel[stage.key] || 0}</strong></span>
                     </div>
                   ))}
                 </div>
@@ -1736,7 +1738,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           height: 42px;
         }
 
-        .funnel-bar span {
+        .funnel-tooltip {
           position: absolute;
           left: 50%;
           bottom: calc(100% + 12px);
@@ -1751,9 +1753,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 800;
           line-height: 1.35;
           text-align: center;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 160ms ease, transform 160ms ease;
         }
 
-        .funnel-bar span strong {
+        .funnel-bar:hover .funnel-tooltip,
+        .funnel-bar:focus-visible .funnel-tooltip {
+          opacity: 1;
+          transform: translateX(-50%) translateY(-4px);
+        }
+
+        .funnel-tooltip strong {
           color: #7387FF;
         }
 

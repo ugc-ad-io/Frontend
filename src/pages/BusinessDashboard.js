@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -8,10 +8,9 @@ import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, File
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-export default function BusinessDashboard() {
+export default function BusinessDashboard({ page = 'overview' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [campaigns, setCampaigns] = useState([]);
   const [activeCampaigns, setActiveCampaigns] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
@@ -138,7 +137,8 @@ export default function BusinessDashboard() {
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'shipments', label: 'Shipments', icon: Package, path: '/dashboard/business/shipments' }
   ];
-  const activeTab = businessTabs.find(tab => tab.path === location.pathname)?.id || 'overview';
+  const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
+  const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
 
   if (user?.approval_status === 'pending') {
     return (
@@ -518,7 +518,7 @@ export default function BusinessDashboard() {
         <div className="dashboard-header">
           <div className="header-content">
             <div>
-              <h1>Business Dashboard</h1>
+              <h1>{activeTab === 'overview' ? 'Business Dashboard' : pageTitle}</h1>
               <p>Welcome back, {user?.nickname}!</p>
             </div>
             <div className="header-actions">
@@ -538,69 +538,73 @@ export default function BusinessDashboard() {
           </div>
         </div>
 
-        <div className="dashboard-content">
-        {/* Stats Cards */}
-        <div className="stats-grid">
-          <div className="stat-card" data-testid="total-campaigns-card">
-            <div className="stat-icon">
-              <Briefcase size={32} />
+        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''}`}>
+        {activeTab === 'overview' && (
+          <>
+            {/* Stats Cards */}
+            <div className="stats-grid">
+              <div className="stat-card" data-testid="total-campaigns-card">
+                <div className="stat-icon">
+                  <Briefcase size={32} />
+                </div>
+                <div>
+                  <p className="stat-label">Total Campaigns</p>
+                  <p className="stat-value">{campaigns.length}</p>
+                </div>
+              </div>
+              <div className="stat-card" data-testid="active-campaigns-card">
+                <div className="stat-icon active">
+                  <TrendingUp size={32} />
+                </div>
+                <div>
+                  <p className="stat-label">Active Campaigns</p>
+                  <p className="stat-value">{activeCampaigns.length}</p>
+                </div>
+              </div>
+              <div className="stat-card" data-testid="bids-received-card">
+                <div className="stat-icon bids">
+                  <Users size={32} />
+                </div>
+                <div>
+                  <p className="stat-label">Bids Received</p>
+                  <p className="stat-value">{totalBidsReceived}</p>
+                </div>
+              </div>
+              <div className="stat-card" data-testid="total-spent-card">
+                <div className="stat-icon spent">
+                  <DollarSign size={32} />
+                </div>
+                <div>
+                  <p className="stat-label">Total Spent</p>
+                  <p className="stat-value">${totalSpent.toFixed(0)}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="stat-label">Total Campaigns</p>
-              <p className="stat-value">{campaigns.length}</p>
-            </div>
-          </div>
-          <div className="stat-card" data-testid="active-campaigns-card">
-            <div className="stat-icon active">
-              <TrendingUp size={32} />
-            </div>
-            <div>
-              <p className="stat-label">Active Campaigns</p>
-              <p className="stat-value">{activeCampaigns.length}</p>
-            </div>
-          </div>
-          <div className="stat-card" data-testid="bids-received-card">
-            <div className="stat-icon bids">
-              <Users size={32} />
-            </div>
-            <div>
-              <p className="stat-label">Bids Received</p>
-              <p className="stat-value">{totalBidsReceived}</p>
-            </div>
-          </div>
-          <div className="stat-card" data-testid="total-spent-card">
-            <div className="stat-icon spent">
-              <DollarSign size={32} />
-            </div>
-            <div>
-              <p className="stat-label">Total Spent</p>
-              <p className="stat-value">${totalSpent.toFixed(0)}</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Quick Actions */}
-        <div className="quick-actions">
-          <h3>Quick Actions</h3>
-          <div className="actions-grid">
-            <button className="action-btn" onClick={() => setShowCreateModal(true)} data-testid="new-campaign-btn">
-              <Plus size={24} />
-              <span>New Campaign</span>
-            </button>
-            <button className="action-btn" onClick={() => navigate('/dashboard/business/pending-bids')} data-testid="view-bids-btn">
-              <Users size={24} />
-              <span>View Bids</span>
-            </button>
-            <button className="action-btn" onClick={() => navigate('/dashboard/business/work-review')} data-testid="review-work-btn">
-              <FileCheck size={24} />
-              <span>Review Work</span>
-            </button>
-            <button className="action-btn" onClick={() => navigate('/dashboard/business/shipments')} data-testid="manage-shipments-btn">
-              <Package size={24} />
-              <span>Manage Shipments</span>
-            </button>
-          </div>
-        </div>
+            {/* Quick Actions */}
+            <div className="quick-actions">
+              <h3>Quick Actions</h3>
+              <div className="actions-grid">
+                <button className="action-btn" onClick={() => setShowCreateModal(true)} data-testid="new-campaign-btn">
+                  <Plus size={24} />
+                  <span>New Campaign</span>
+                </button>
+                <button className="action-btn" onClick={() => navigate('/dashboard/business/pending-bids')} data-testid="view-bids-btn">
+                  <Users size={24} />
+                  <span>View Bids</span>
+                </button>
+                <button className="action-btn" onClick={() => navigate('/dashboard/business/work-review')} data-testid="review-work-btn">
+                  <FileCheck size={24} />
+                  <span>Review Work</span>
+                </button>
+                <button className="action-btn" onClick={() => navigate('/dashboard/business/shipments')} data-testid="manage-shipments-btn">
+                  <Package size={24} />
+                  <span>Manage Shipments</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Tab Content */}
         <div className="tab-content">

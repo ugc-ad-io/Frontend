@@ -180,7 +180,7 @@ function App() {
               path="/dashboard/business"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard />
+                  <BusinessDashboard page="overview" />
                 </ProtectedRoute>
               }
             />
@@ -188,7 +188,7 @@ function App() {
               path="/dashboard/business/all-campaigns"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard />
+                  <BusinessDashboard page="all-campaigns" />
                 </ProtectedRoute>
               }
             />
@@ -196,7 +196,7 @@ function App() {
               path="/dashboard/business/pending-bids"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard />
+                  <BusinessDashboard page="pending-bids" />
                 </ProtectedRoute>
               }
             />
@@ -204,7 +204,7 @@ function App() {
               path="/dashboard/business/work-review"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard />
+                  <BusinessDashboard page="work-review" />
                 </ProtectedRoute>
               }
             />
@@ -212,7 +212,7 @@ function App() {
               path="/dashboard/business/shipments"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard />
+                  <BusinessDashboard page="shipments" />
                 </ProtectedRoute>
               }
             />

@@ -34,6 +34,21 @@ const actionTarget = (url) => {
   return url;
 };
 
+const emptyPerformanceMonths = () => {
+  const formatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
+  const now = new Date();
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    return {
+      month: formatter.format(date),
+      deals_closed: 0,
+      approved_deliveries: 0,
+      applications_received: 0,
+      spend_k: 0
+    };
+  });
+};
+
 export default function BusinessDashboard({ page = 'overview' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -171,8 +186,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
   const dashboardMetrics = dashboardData?.metrics || {};
-  const dashboardPerformance = dashboardData?.campaign_performance || [];
+  const dashboardPerformance = (dashboardData?.campaign_performance || []).length
+    ? dashboardData.campaign_performance
+    : emptyPerformanceMonths();
   const dashboardFunnel = dashboardData?.creator_funnel || {};
+  const funnelStages = [
+    { key: 'viewed_brief', label: 'Viewed', className: 'applied' },
+    { key: 'applied', label: 'Applied', className: 'shortlisted' },
+    { key: 'accepted', label: 'Accepted', className: 'accepted' },
+    { key: 'live', label: 'Live', className: 'live' }
+  ];
   const dashboardTopCampaigns = dashboardData?.top_campaigns || [];
   const dashboardActiveDeals = dashboardData?.active_deals || [];
   const dashboardPendingActions = dashboardData?.pending_actions || [];
@@ -710,14 +733,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
               <section className="brand-panel funnel-panel">
                 <h2>Creator Funnel</h2>
                 <div className="funnel-bars">
-                  <div className="funnel-bar applied" style={{ height: `${funnelHeight(dashboardFunnel.viewed_brief)}px` }}>
-                    <span>Viewed Brief<br /><strong>value : {dashboardFunnel.viewed_brief || 0}</strong></span>
-                  </div>
-                  <div className="funnel-bar shortlisted" style={{ height: `${funnelHeight(dashboardFunnel.applied)}px` }}></div>
-                  <div className="funnel-bar accepted" style={{ height: `${funnelHeight(dashboardFunnel.accepted)}px` }}></div>
-                  <div className="funnel-bar live" style={{ height: `${funnelHeight(dashboardFunnel.live)}px` }}></div>
+                  {funnelStages.map(stage => (
+                    <div
+                      key={stage.key}
+                      className={`funnel-bar ${stage.className}`}
+                      style={{ height: `${funnelHeight(dashboardFunnel[stage.key])}px` }}
+                    >
+                      <span>{stage.label}<br /><strong>{dashboardFunnel[stage.key] || 0}</strong></span>
+                    </div>
+                  ))}
                 </div>
-                <div className="funnel-labels"><span>Viewed</span><span>Applied</span><span>Accepted</span><span>Live</span></div>
+                <div className="funnel-labels">
+                  {funnelStages.map(stage => <span key={stage.key}>{stage.label}</span>)}
+                </div>
               </section>
 
               <aside className="brand-side-stack">
@@ -1680,7 +1708,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           grid-template-columns: 1.1fr 0.8fr 0.65fr 0.65fr;
           gap: 20px;
           align-items: end;
-          padding-top: 42px;
+          padding-top: 72px;
         }
 
         .funnel-bar {
@@ -1711,16 +1739,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .funnel-bar span {
           position: absolute;
           left: 50%;
-          top: 46%;
-          transform: translate(-10%, -50%);
-          width: 120px;
-          padding: 16px;
+          bottom: calc(100% + 12px);
+          transform: translateX(-50%);
+          width: max-content;
+          min-width: 82px;
+          padding: 10px 12px;
           border-radius: 14px;
           background: white;
           color: #07074E;
           box-shadow: 0 14px 28px rgba(7, 7, 78, 0.12);
           font-weight: 800;
-          line-height: 1.55;
+          line-height: 1.35;
+          text-align: center;
         }
 
         .funnel-bar span strong {

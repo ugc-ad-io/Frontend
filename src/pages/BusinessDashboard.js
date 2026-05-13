@@ -1445,6 +1445,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin: 0 auto;
         }
 
+        .dashboard-content .pab-page {
+          margin: -24px -8% -40px;
+          padding: 0;
+        }
+
         .brand-search {
           flex: 1;
           max-width: 520px;

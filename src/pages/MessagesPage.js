@@ -133,6 +133,8 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const typingSentAtRef = useRef(0);
+  const messageContainerRef = useRef(null);
+  const userScrolledUpRef = useRef(false);
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
@@ -189,10 +191,23 @@ export default function MessagesPage() {
     };
   }, [selectedId]);
 
-  // Auto-scroll to bottom
+  // Smart auto-scroll: only scroll if user is at bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!messageContainerRef.current) return;
+    const container = messageContainerRef.current;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    if (isAtBottom && !userScrolledUpRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
+
+  const handleMessagesScroll = () => {
+    if (!messageContainerRef.current) return;
+    const container = messageContainerRef.current;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    userScrolledUpRef.current = !isAtBottom;
+  };
 
   const fetchConversations = async () => {
     try {
@@ -625,7 +640,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Messages */}
-            <div className="msg-messages">
+            <div className="msg-messages" ref={messageContainerRef} onScroll={handleMessagesScroll}>
               {messages.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#999', marginTop: '40px' }}>No messages yet</div>
               ) : (

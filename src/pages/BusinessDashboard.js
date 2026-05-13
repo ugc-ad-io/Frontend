@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity } from 'lucide-react';
+import PostABrief from './PostABrief';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -174,6 +175,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const totalBidsReceived = campaigns.reduce((sum, c) => sum + (c.bids?.length || 0), 0);
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: TrendingUp, path: '/dashboard/business' },
+    { id: 'post-brief', label: 'Post a Brief', icon: FileCheck, path: '/dashboard/business/post-brief' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: Briefcase, path: '/dashboard/business/all-campaigns' },
     { id: 'pending-bids', label: `Pending Bids (${totalBidsReceived})`, icon: Users, path: '/dashboard/business/pending-bids' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
@@ -622,7 +624,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <strong>Brand</strong>
                 </div>
               )}
-              {activeTab !== 'overview' && (
+              {activeTab !== 'overview' && activeTab !== 'post-brief' && (
                 <>
                   <button className="btn-primary" onClick={() => setShowCreateModal(true)} data-testid="create-campaign-btn">
                     <Plus size={20} /> Create Campaign
@@ -905,6 +907,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
               </aside>
             </div>
           )}
+
+          {activeTab === 'post-brief' && <PostABrief />}
 
           {activeTab === 'all-campaigns' && (
             <div className="all-campaigns-section">
@@ -1584,6 +1588,68 @@ export default function BusinessDashboard({ page = 'overview' }) {
           min-height: 0;
         }
 
+        .post-brief-page {
+          max-width: 980px;
+        }
+
+        .post-brief-card {
+          background: white;
+          border-radius: 22px;
+          padding: 32px;
+          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+        }
+
+        .post-brief-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          padding-bottom: 24px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid #EEF0FF;
+        }
+
+        .post-brief-head h2 {
+          margin: 0 0 8px;
+          color: #07074E;
+          font-size: 28px;
+          font-weight: 800;
+        }
+
+        .post-brief-head p {
+          margin: 0;
+          color: #9F9FD1;
+          font-weight: 700;
+        }
+
+        .post-brief-head span {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-weight: 800;
+          font-size: 14px;
+        }
+
+        .post-brief-form {
+          max-width: 760px;
+        }
+
+        .post-brief-actions {
+          display: flex;
+          gap: 14px;
+          justify-content: flex-end;
+          padding-top: 8px;
+        }
+
+        .post-brief-actions button {
+          min-width: 160px;
+        }
+
         .brand-overview-grid {
           display: grid;
           grid-template-columns: minmax(420px, 2fr) minmax(280px, 1.08fr) minmax(260px, 1fr);
@@ -1603,7 +1669,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .performance-panel {
-          min-height: 440px;
+          min-height: 380px;
         }
 
         .panel-title-row {
@@ -1640,7 +1706,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .performance-chart {
           position: relative;
-          height: 292px;
+          height: 238px;
           padding: 0 44px 0 48px;
         }
 
@@ -1865,7 +1931,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .legend-spend { background: #F59E0B; }
 
         .funnel-panel {
-          min-height: 440px;
+          min-height: 380px;
           display: flex;
           flex-direction: column;
         }
@@ -1880,7 +1946,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .funnel-axis {
           position: absolute;
           left: 0;
-          top: 72px;
+          top: 46px;
           bottom: 0;
           width: 36px;
           display: flex;
@@ -1909,7 +1975,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           grid-template-columns: 1.1fr 0.8fr 0.65fr 0.65fr;
           gap: 20px;
           align-items: end;
-          padding-top: 72px;
+          padding-top: 46px;
         }
 
         .funnel-bar {

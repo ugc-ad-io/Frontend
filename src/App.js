@@ -193,6 +193,14 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/post-brief"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard page="post-brief" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/business/pending-bids"
               element={
                 <ProtectedRoute allowedRoles={['business']}>

@@ -45,6 +45,7 @@ const getCampaignBudget = (campaign) => {
   return min === max ? formatMoney(min) : `${formatMoney(min)} - ${formatMoney(max)}`;
 };
 
+// Mock fallback images (used only if backend images are unavailable)
 const browseCovers = [
   'https://images.unsplash.com/photo-1581182800629-7d90925ad072?auto=format&fit=crop&q=80&w=800&h=520',
   'https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&q=80&w=800&h=520',
@@ -61,34 +62,34 @@ const browseLogos = [
   'https://images.unsplash.com/photo-1559525839-b184a4d698c7?auto=format&fit=crop&q=80&w=128&h=128',
 ];
 
-// Same normalizeBrief as CreatorDashboard
+// Normalize campaign data from backend API
 function normalizeBrief(campaign, index, myBids) {
   const objectives = Array.isArray(campaign.objectives) ? campaign.objectives.filter(Boolean) : [];
   const hasBid = myBids.some((bidCampaign) => bidCampaign.id === campaign.id);
-  const budgetMax = Number(campaign.budget_max ?? campaign.budget ?? campaign.myBid?.amount ?? 0);
+  const budgetMax = Number(campaign.budget_max ?? campaign.budget ?? 0);
   const matchScore = Math.min(98, 76 + (objectives.length * 4) + (campaign.requires_shipment ? 3 : 0) + (index % 3) * 2);
-  const fallbackBrand = ['Glow & Co', 'TechNova', 'FitLife Apparel', 'BeanRoast Coffee', 'Wanderlust Gear', 'PurePlant'][index % 6];
 
   return {
     campaign,
     id: campaign.id,
-    title: campaign.title || 'Creator Campaign Brief',
-    description: campaign.brief_text || 'Review the brand brief, pitch your concept, and manage the collaboration from your creator workspace.',
-    brand: campaign.business_nickname || campaign.brand_handle || fallbackBrand,
-    cover: campaign.cover_image || campaign.image_url || campaign.thumbnail_url || browseCovers[index % browseCovers.length],
-    logo: campaign.brand_logo || campaign.business_logo || browseLogos[index % browseLogos.length],
+    title: campaign.title,
+    description: campaign.brief_text,
+    brand: campaign.business_nickname || campaign.brand_handle,
+    cover: campaign.cover_image,
+    logo: campaign.brand_logo,
     tags: objectives.length ? objectives.slice(0, 3) : ['UGC', campaign.requires_shipment ? 'Product' : 'Remote', 'Creator'],
     budget: getCampaignBudget(campaign),
     budgetMax,
     location: campaign.requires_shipment ? 'Product shipment' : 'Remote',
     deadline: campaign.due_date ? `Closes ${new Date(campaign.due_date).toLocaleDateString()}` : 'Open brief',
     matchScore,
-    verified: Boolean(campaign.business_nickname || index % 2 === 0),
-    fastPayment: budgetMax <= 1000 || index % 2 === 0,
-    repeatHirer: index % 3 !== 1,
+    verified: Boolean(campaign.business_verified),
+    fastPayment: budgetMax <= 1000,
+    repeatHirer: false,
     featured: index === 0 || matchScore >= 94,
     hasBid,
     createdAt: campaign.created_at ? new Date(campaign.created_at).getTime() : 0,
+    industryType: campaign.industry_type || null,
   };
 }
 
@@ -209,14 +210,44 @@ function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState('recommended');
   const [category, setCategory] = useState('all');
-  const [budgetRange, setBudgetRange] = useState('any');
+  const [payoutRangesData, setPayoutRangesData] = useState([]);
+  const [budgetRanges, setBudgetRanges] = useState({});
   const [minMatch, setMinMatch] = useState(0);
-  const [brandFlags, setBrandFlags] = useState({
-    verified: true,
-    repeatHirer: false,
-    fastPayment: false,
-    shipment: false,
+  const [industryTypes, setIndustryTypes] = useState({
+    skincare: false,
+    fashion: false,
+    servicesBased: false,
+    healthcare: false,
+    electronics: false,
+    foodBeverage: false,
   });
+
+  useEffect(() => {
+    fetchPayoutRanges();
+  }, []);
+
+  const fetchPayoutRanges = async () => {
+    try {
+      const res = await axios.get(`${API}/payout-ranges`);
+      setPayoutRangesData(res.data.ranges || []);
+      const initialState = {};
+      (res.data.ranges || []).forEach(range => {
+        initialState[range.key] = false;
+      });
+      setBudgetRanges(initialState);
+    } catch {
+      toast.error('Failed to load payout ranges');
+    }
+  };
+
+  const industryTypeLabels = {
+    skincare: 'Skincare & Haircare',
+    fashion: 'Fashion',
+    servicesBased: 'Service-based Industry',
+    healthcare: 'Healthcare',
+    electronics: 'Electronics',
+    foodBeverage: 'Food & Beverage',
+  };
 
   const briefs = useMemo(() => campaigns.map((campaign, index) => normalizeBrief(campaign, index, myBids)), [campaigns, myBids]);
 
@@ -230,6 +261,18 @@ function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
 
   const filteredBriefs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
+    const selectedIndustries = Object.keys(industryTypes).filter(key => industryTypes[key]);
+    const selectedRanges = Object.keys(budgetRanges).filter(key => budgetRanges[key]);
+
+    const isInBudgetRange = (budgetMax) => {
+      if (selectedRanges.length === 0) return true;
+      return selectedRanges.some(rangeKey => {
+        const range = payoutRangesData.find(r => r.key === rangeKey);
+        if (!range) return false;
+        return budgetMax >= range.min && budgetMax <= range.max;
+      });
+    };
+
     return briefs
       .filter((brief) => {
         if (normalizedQuery) {
@@ -237,13 +280,9 @@ function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
           if (!haystack.includes(normalizedQuery)) return false;
         }
         if (category !== 'all' && !brief.tags.includes(category)) return false;
-        if (budgetRange === 'under1000' && brief.budgetMax > 1000) return false;
-        if (budgetRange === '1000plus' && brief.budgetMax < 1000) return false;
+        if (!isInBudgetRange(brief.budgetMax)) return false;
         if (minMatch && brief.matchScore < minMatch) return false;
-        if (brandFlags.verified && !brief.verified) return false;
-        if (brandFlags.repeatHirer && !brief.repeatHirer) return false;
-        if (brandFlags.fastPayment && !brief.fastPayment) return false;
-        if (brandFlags.shipment && !brief.campaign.requires_shipment) return false;
+        if (selectedIndustries.length > 0 && !selectedIndustries.includes(brief.industryType)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -252,13 +291,18 @@ function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
         if (sortBy === 'closing') return Number(Boolean(b.campaign.due_date)) - Number(Boolean(a.campaign.due_date));
         return b.matchScore - a.matchScore;
       });
-  }, [briefs, query, category, budgetRange, minMatch, brandFlags, sortBy]);
+  }, [briefs, query, category, budgetRanges, minMatch, industryTypes, sortBy, payoutRangesData]);
 
-  const toggleFlag = (key) => setBrandFlags((cur) => ({ ...cur, [key]: !cur[key] }));
+  const toggleIndustry = (key) => setIndustryTypes((cur) => ({ ...cur, [key]: !cur[key] }));
 
   const clearFilters = () => {
-    setQuery(''); setCategory('all'); setBudgetRange('any'); setMinMatch(0);
-    setBrandFlags({ verified: false, repeatHirer: false, fastPayment: false, shipment: false });
+    setQuery(''); setCategory('all'); setMinMatch(0);
+    const resetRanges = {};
+    payoutRangesData.forEach(range => {
+      resetRanges[range.key] = false;
+    });
+    setBudgetRanges(resetRanges);
+    setIndustryTypes({ skincare: false, fashion: false, servicesBased: false, healthcare: false, electronics: false, foodBeverage: false });
   };
 
   return (
@@ -282,22 +326,29 @@ function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
           </BrowseFilterSection>
 
           <BrowseFilterSection title="Payout Range" defaultOpen>
-            <BrowseRadio label="Any Budget" checked={budgetRange === 'any'} onChange={() => setBudgetRange('any')} />
-            <BrowseRadio label="Under Rs. 1,000" checked={budgetRange === 'under1000'} onChange={() => setBudgetRange('under1000')} />
-            <BrowseRadio label="Rs. 1,000+" checked={budgetRange === '1000plus'} onChange={() => setBudgetRange('1000plus')} />
+            {payoutRangesData.map(range => (
+              <BrowseCheck
+                key={range.key}
+                label={range.label}
+                checked={budgetRanges[range.key] || false}
+                onChange={() => setBudgetRanges(cur => ({ ...cur, [range.key]: !cur[range.key] }))}
+              />
+            ))}
           </BrowseFilterSection>
 
-          <BrowseFilterSection title="Match Score">
+          {/* <BrowseFilterSection title="Match Score">
             <BrowseRadio label="Any match score" checked={minMatch === 0} onChange={() => setMinMatch(0)} />
             <BrowseRadio label="80% and above" checked={minMatch === 80} onChange={() => setMinMatch(80)} />
             <BrowseRadio label="90% and above" checked={minMatch === 90} onChange={() => setMinMatch(90)} />
-          </BrowseFilterSection>
+          </BrowseFilterSection> */}
 
-          <BrowseFilterSection title="Brand Type" defaultOpen>
-            <BrowseCheck label="Verified Brands" checked={brandFlags.verified} onChange={() => toggleFlag('verified')} />
-            <BrowseCheck label="Repeat Hirer" checked={brandFlags.repeatHirer} onChange={() => toggleFlag('repeatHirer')} />
-            <BrowseCheck label="Fast Payment" checked={brandFlags.fastPayment} onChange={() => toggleFlag('fastPayment')} />
-            <BrowseCheck label="Product Shipment" checked={brandFlags.shipment} onChange={() => toggleFlag('shipment')} />
+          <BrowseFilterSection title="Industry Type" defaultOpen>
+            <BrowseCheck label={industryTypeLabels.skincare} checked={industryTypes.skincare} onChange={() => toggleIndustry('skincare')} />
+            <BrowseCheck label={industryTypeLabels.fashion} checked={industryTypes.fashion} onChange={() => toggleIndustry('fashion')} />
+            <BrowseCheck label={industryTypeLabels.servicesBased} checked={industryTypes.servicesBased} onChange={() => toggleIndustry('servicesBased')} />
+            <BrowseCheck label={industryTypeLabels.healthcare} checked={industryTypes.healthcare} onChange={() => toggleIndustry('healthcare')} />
+            <BrowseCheck label={industryTypeLabels.electronics} checked={industryTypes.electronics} onChange={() => toggleIndustry('electronics')} />
+            <BrowseCheck label={industryTypeLabels.foodBeverage} checked={industryTypes.foodBeverage} onChange={() => toggleIndustry('foodBeverage')} />
           </BrowseFilterSection>
         </div>
       </aside>

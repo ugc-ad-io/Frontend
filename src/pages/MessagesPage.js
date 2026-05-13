@@ -16,7 +16,7 @@ const MAX_ATTACHMENTS = 5;
 const CHAT_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Active Deals', value: 'active_deal' },
-  { label: 'No Deal', value: 'no_deal' },
+  { label: 'New Chat', value: 'no_deal' },
   { label: 'Archived', value: 'archived' }
 ];
 const ACTION_CARD_LABELS = {
@@ -30,6 +30,24 @@ const ACTION_CARD_LABELS = {
   raise_dispute: 'Raise Dispute'
 };
 const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
+
+// Define which action cards are available for each role
+const ACTION_CARDS_BY_ROLE = {
+  creator: ['custom_offer', 'counter_offer', 'revision_request', 'milestone_update', 'damage_report', 'escalate_to_admin', 'raise_dispute'],
+  business: ['private_invitation', 'custom_offer', 'counter_offer', 'revision_request', 'milestone_update', 'escalate_to_admin', 'raise_dispute']
+};
+
+const getAvailableActionCards = (userRole, selectedConversation) => {
+  const cards = ACTION_CARDS_BY_ROLE[userRole] || ACTION_CARD_TYPES;
+
+  // For creators, only show Milestone Update if there's an active deal
+  if (userRole === 'creator' && selectedConversation?.status !== 'active_deal') {
+    return cards.filter(card => card !== 'milestone_update');
+  }
+
+  return cards;
+};
+
 const ACTION_CARD_FORM_FIELDS = {
   custom_offer: [
     ['deliverable_type', 'Deliverable type', 'text', 'Video'],
@@ -649,7 +667,7 @@ export default function MessagesPage() {
 
             {/* Quick Actions */}
             <div className="msg-quick-chips">
-              {ACTION_CARD_TYPES.map((action) => (
+              {getAvailableActionCards(user?.role, selectedConv).map((action) => (
                 <button
                   key={action}
                   disabled={creatingCard}

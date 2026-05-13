@@ -107,11 +107,6 @@ export default function PostABrief() {
 
   return (
     <div className="pab-page">
-      <div className="pab-intro">
-        <h1 className="pab-title">Post a Brief</h1>
-        <p className="pab-subtitle">Create a new campaign and attract top creators</p>
-      </div>
-
       <div className="pab-stepper">
         <div className="stepper-track">
           {[1, 2, 3, 4, 5].map((s, idx) => {
@@ -744,24 +739,6 @@ export default function PostABrief() {
         .pab-page {
           background: #F3F3FF;
           padding: 0;
-        }
-
-        .pab-intro {
-          padding: 24px 8%;
-          background: #F3F3FF;
-        }
-
-        .pab-title {
-          font-size: 28px;
-          font-weight: 700;
-          color: #07074E;
-          margin: 0 0 8px;
-        }
-
-        .pab-subtitle {
-          font-size: 14px;
-          color: #9F9FD1;
-          margin: 0;
         }
 
         .pab-stepper {

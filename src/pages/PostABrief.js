@@ -742,6 +742,12 @@ export default function PostABrief() {
           margin: 0 !important;
           border-radius: 0 !important;
           box-shadow: none !important;
+          width: 100vw !important;
+          position: relative !important;
+          left: 50% !important;
+          right: 50% !important;
+          margin-left: -50vw !important;
+          margin-right: -50vw !important;
         }
 
         .pab-stepper {

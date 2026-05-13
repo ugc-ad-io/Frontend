@@ -737,8 +737,11 @@ export default function PostABrief() {
 
       <style jsx>{`
         .pab-page {
-          background: #F3F3FF;
-          padding: 0;
+          background: #F3F3FF !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
         }
 
         .pab-stepper {
@@ -838,7 +841,9 @@ export default function PostABrief() {
           gap: 32px;
           padding: 32px 8%;
           margin: 0 auto;
-          background: transparent;
+          background: transparent !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
         }
 
         .pab-form-panel {

@@ -743,8 +743,8 @@ export default function PostABrief() {
 
         .pab-stepper {
           padding: 32px 24px;
-          background: white;
-          box-shadow: 0 2px 8px rgba(7, 7, 78, 0.06);
+          background: transparent;
+          box-shadow: none;
           display: flex;
           justify-content: center;
         }

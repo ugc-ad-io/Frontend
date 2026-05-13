@@ -1507,10 +1507,10 @@ export default function PostABrief() {
         }
 
         .rail-card {
-          background: white;
+          background: transparent;
           border-radius: 22px;
           padding: 24px;
-          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+          box-shadow: none;
         }
 
         .rail-card h3 {
@@ -1561,8 +1561,8 @@ export default function PostABrief() {
         }
 
         .tip-card {
-          background: linear-gradient(135deg, #F8F9FF 0%, #EEF0FF 100%);
-          border: 1px solid #E0E7FF;
+          background: transparent;
+          border: none;
         }
 
         .tip-card p {

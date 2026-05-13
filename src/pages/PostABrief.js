@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Check, ChevronRight, ChevronLeft, Camera, Video, Image as ImageIcon, Lightbulb, X, Bell, Search } from 'lucide-react';
+import { Plus, Check, ChevronRight, ChevronLeft, Camera, Video, Image as ImageIcon, Lightbulb, X } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -24,7 +23,6 @@ const STEP_LABELS = ['Product Info', 'Content Requirements', 'Deliverables', 'Cr
 
 export default function PostABrief() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -109,38 +107,9 @@ export default function PostABrief() {
 
   return (
     <div className="pab-page">
-      <div className="pab-header">
-        <div className="pab-header-left">
-          <div className="breadcrumb">
-            <span className="breadcrumb-item">Brand</span>
-            <span className="breadcrumb-sep">›</span>
-            <span className="breadcrumb-item active">Post</span>
-          </div>
-          <h1 className="pab-title">Post a Brief</h1>
-          <p className="pab-subtitle">Create a new campaign and attract top creators</p>
-        </div>
-        <div className="pab-header-right">
-          <div className="search-bar">
-            <Search size={18} />
-            <input type="text" placeholder="Search deals, creators, briefs..." />
-          </div>
-          <div className="header-controls">
-            <button className="role-toggle">
-              <span className="toggle-label">Creator</span>
-              <span className="toggle-active">Brand</span>
-            </button>
-            <button className="header-icon-btn">
-              <Bell size={20} />
-            </button>
-            <div className="avatar">
-              {user?.profile_pic ? (
-                <img src={user.profile_pic} alt={user.nickname} />
-              ) : (
-                <div className="avatar-placeholder">{user?.nickname?.charAt(0) || 'U'}</div>
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="pab-intro">
+        <h1 className="pab-title">Post a Brief</h1>
+        <p className="pab-subtitle">Create a new campaign and attract top creators</p>
       </div>
 
       <div className="pab-stepper">
@@ -777,44 +746,13 @@ export default function PostABrief() {
           padding: 0;
         }
 
-        .pab-header {
-          background: white;
+        .pab-intro {
           padding: 24px 8%;
-          border-bottom: 1px solid #E2E8F0;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 32px;
-        }
-
-        .pab-header-left {
-          flex: 1;
-        }
-
-        .breadcrumb {
-          font-size: 13px;
-          color: #9F9FD1;
-          margin-bottom: 12px;
-          display: flex;
-          gap: 6px;
-          align-items: center;
-        }
-
-        .breadcrumb-item {
-          color: #9F9FD1;
-        }
-
-        .breadcrumb-item.active {
-          color: #7387FF;
-          font-weight: 600;
-        }
-
-        .breadcrumb-sep {
-          color: #E2E8F0;
+          background: #F3F3FF;
         }
 
         .pab-title {
-          font-size: 32px;
+          font-size: 28px;
           font-weight: 700;
           color: #07074E;
           margin: 0 0 8px;
@@ -824,116 +762,6 @@ export default function PostABrief() {
           font-size: 14px;
           color: #9F9FD1;
           margin: 0;
-        }
-
-        .pab-header-right {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .search-bar {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 16px;
-          background: #F8F9FF;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
-          width: 260px;
-        }
-
-        .search-bar input {
-          border: none;
-          background: transparent;
-          outline: none;
-          flex: 1;
-          font-size: 13px;
-          color: #07074E;
-        }
-
-        .search-bar input::placeholder {
-          color: #9F9FD1;
-        }
-
-        .header-controls {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .role-toggle {
-          background: white;
-          border: 1px solid #E2E8F0;
-          border-radius: 999px;
-          padding: 8px 16px;
-          display: flex;
-          gap: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          color: #9F9FD1;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .toggle-label {
-          color: #9F9FD1;
-        }
-
-        .toggle-active {
-          color: #07074E;
-          background: #07074E;
-          color: white;
-          padding: 4px 12px;
-          border-radius: 999px;
-        }
-
-        .header-icon-btn {
-          width: 40px;
-          height: 40px;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
-          background: white;
-          color: #9F9FD1;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-        }
-
-        .header-icon-btn:hover {
-          border-color: #7387FF;
-          color: #7387FF;
-        }
-
-        .avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 2px solid #E2E8F0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .avatar-placeholder {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(135deg, #7387FF, #764ba2);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 18px;
         }
 
         .pab-stepper {

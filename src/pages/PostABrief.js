@@ -838,6 +838,7 @@ export default function PostABrief() {
           gap: 32px;
           padding: 32px 8%;
           margin: 0 auto;
+          background: transparent;
         }
 
         .pab-form-panel {

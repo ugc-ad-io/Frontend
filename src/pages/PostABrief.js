@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Check, ChevronRight, ChevronLeft, Camera, Video, Image as ImageIcon, Lightbulb, X } from 'lucide-react';
+import { Plus, Check, ChevronRight, ChevronLeft, Camera, Video, Image as ImageIcon, Lightbulb, X, Bell, Search } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -19,8 +20,11 @@ const VIDEO_FORMATS = [
   { id: 'shorts', label: 'Shorts', icon: '⚡', desc: 'YouTube vertical short' }
 ];
 
+const STEP_LABELS = ['Product Info', 'Content Requirements', 'Deliverables', 'Creator Requirements', 'Budget & Review'];
+
 export default function PostABrief() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -105,25 +109,65 @@ export default function PostABrief() {
 
   return (
     <div className="pab-page">
-      <div className="pab-stepper">
-        {[1, 2, 3, 4, 5].map((s, idx) => {
-          const isCompleted = (s === 1 && step1Valid && s < step) || (s === 2 && step2Valid && s < step) || (s === 3 && step3Valid && s < step) || (s === 4 && step4Valid && s < step);
-          const isActive = s === step;
-          return (
-            <div key={s} className="stepper-item">
-              <div className={`stepper-circle ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
-                {isCompleted ? <Check size={18} /> : s}
-              </div>
-              {idx < 4 && <div className={`stepper-line ${isCompleted ? 'completed' : ''}`} />}
+      <div className="pab-header">
+        <div className="pab-header-left">
+          <div className="breadcrumb">
+            <span className="breadcrumb-item">Brand</span>
+            <span className="breadcrumb-sep">›</span>
+            <span className="breadcrumb-item active">Post</span>
+          </div>
+          <h1 className="pab-title">Post a Brief</h1>
+          <p className="pab-subtitle">Create a new campaign and attract top creators</p>
+        </div>
+        <div className="pab-header-right">
+          <div className="search-bar">
+            <Search size={18} />
+            <input type="text" placeholder="Search deals, creators, briefs..." />
+          </div>
+          <div className="header-controls">
+            <button className="role-toggle">
+              <span className="toggle-label">Creator</span>
+              <span className="toggle-active">Brand</span>
+            </button>
+            <button className="header-icon-btn">
+              <Bell size={20} />
+            </button>
+            <div className="avatar">
+              {user?.profile_pic ? (
+                <img src={user.profile_pic} alt={user.nickname} />
+              ) : (
+                <div className="avatar-placeholder">{user?.nickname?.charAt(0) || 'U'}</div>
+              )}
             </div>
-          );
-        })}
+          </div>
+        </div>
+      </div>
+
+      <div className="pab-stepper">
+        <div className="stepper-track">
+          {[1, 2, 3, 4, 5].map((s, idx) => {
+            const isCompleted = (s === 1 && step1Valid && s < step) || (s === 2 && step2Valid && s < step) || (s === 3 && step3Valid && s < step) || (s === 4 && step4Valid && s < step);
+            const isActive = s === step;
+            return (
+              <div key={s} className="stepper-item">
+                <div className={`stepper-circle ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
+                  {isCompleted ? <Check size={18} /> : s}
+                </div>
+                <div className={`stepper-label ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
+                  {STEP_LABELS[s - 1]}
+                </div>
+                {idx < 4 && <div className={`stepper-line ${isCompleted ? 'completed' : ''}`} />}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="pab-body">
         <div className="pab-form-panel">
           {step === 1 && (
             <div className="step-content">
+              <div className="step-badge">STEP 1 OF 5</div>
               <div className="step-header">
                 <h2>Tell us about your product</h2>
                 <p>Creators will use this to understand what they're promoting.</p>
@@ -221,6 +265,7 @@ export default function PostABrief() {
 
           {step === 2 && (
             <div className="step-content">
+              <div className="step-badge">STEP 2 OF 5</div>
               <div className="step-header">
                 <h2>Content direction & tone</h2>
                 <p>Guide the creator on how you want the content to feel.</p>
@@ -285,6 +330,7 @@ export default function PostABrief() {
 
           {step === 3 && (
             <div className="step-content">
+              <div className="step-badge">STEP 3 OF 5</div>
               <div className="step-header">
                 <h2>What do you need delivered?</h2>
                 <p>Specify the exact format and specs for the content.</p>
@@ -382,6 +428,7 @@ export default function PostABrief() {
 
           {step === 4 && (
             <div className="step-content">
+              <div className="step-badge">STEP 4 OF 5</div>
               <div className="step-header">
                 <h2>Creator requirements</h2>
                 <p>Specify who you're looking for.</p>
@@ -470,6 +517,7 @@ export default function PostABrief() {
 
           {step === 5 && (
             <div className="step-content">
+              <div className="step-badge">STEP 5 OF 5</div>
               <div className="step-header">
                 <h2>Set your budget</h2>
                 <p>Enter what you want to pay per video. We handle the rest.</p>
@@ -729,20 +777,194 @@ export default function PostABrief() {
           padding: 0;
         }
 
-        .pab-stepper {
+        .pab-header {
+          background: white;
+          padding: 24px 8%;
+          border-bottom: 1px solid #E2E8F0;
           display: flex;
-          justify-content: center;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 32px;
+        }
+
+        .pab-header-left {
+          flex: 1;
+        }
+
+        .breadcrumb {
+          font-size: 13px;
+          color: #9F9FD1;
+          margin-bottom: 12px;
+          display: flex;
+          gap: 6px;
           align-items: center;
+        }
+
+        .breadcrumb-item {
+          color: #9F9FD1;
+        }
+
+        .breadcrumb-item.active {
+          color: #7387FF;
+          font-weight: 600;
+        }
+
+        .breadcrumb-sep {
+          color: #E2E8F0;
+        }
+
+        .pab-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: #07074E;
+          margin: 0 0 8px;
+        }
+
+        .pab-subtitle {
+          font-size: 14px;
+          color: #9F9FD1;
+          margin: 0;
+        }
+
+        .pab-header-right {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .search-bar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 16px;
+          background: #F8F9FF;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          width: 260px;
+        }
+
+        .search-bar input {
+          border: none;
+          background: transparent;
+          outline: none;
+          flex: 1;
+          font-size: 13px;
+          color: #07074E;
+        }
+
+        .search-bar input::placeholder {
+          color: #9F9FD1;
+        }
+
+        .header-controls {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .role-toggle {
+          background: white;
+          border: 1px solid #E2E8F0;
+          border-radius: 999px;
+          padding: 8px 16px;
+          display: flex;
           gap: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #9F9FD1;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .toggle-label {
+          color: #9F9FD1;
+        }
+
+        .toggle-active {
+          color: #07074E;
+          background: #07074E;
+          color: white;
+          padding: 4px 12px;
+          border-radius: 999px;
+        }
+
+        .header-icon-btn {
+          width: 40px;
+          height: 40px;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          background: white;
+          color: #9F9FD1;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .header-icon-btn:hover {
+          border-color: #7387FF;
+          color: #7387FF;
+        }
+
+        .avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 2px solid #E2E8F0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .avatar-placeholder {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, #7387FF, #764ba2);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 18px;
+        }
+
+        .pab-stepper {
           padding: 32px 24px;
           background: white;
           box-shadow: 0 2px 8px rgba(7, 7, 78, 0.06);
+          display: flex;
+          justify-content: center;
+        }
+
+        .stepper-track {
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          gap: 24px;
         }
 
         .stepper-item {
           display: flex;
+          flex-direction: column;
           align-items: center;
           gap: 12px;
+          position: relative;
+        }
+
+        .stepper-item .stepper-line {
+          position: absolute;
+          top: 24px;
+          left: calc(100% + 12px);
+          width: 48px;
+          height: 2px;
         }
 
         .stepper-circle {
@@ -758,6 +980,7 @@ export default function PostABrief() {
           font-size: 18px;
           border: 2px solid transparent;
           transition: all 0.3s ease;
+          flex-shrink: 0;
         }
 
         .stepper-circle.active {
@@ -772,8 +995,29 @@ export default function PostABrief() {
           border-color: #27AE60;
         }
 
+        .stepper-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #9F9FD1;
+          text-align: center;
+          min-width: 80px;
+          transition: all 0.3s ease;
+        }
+
+        .stepper-label.active {
+          color: #7387FF;
+          font-weight: 700;
+        }
+
+        .stepper-label.completed {
+          color: #27AE60;
+        }
+
         .stepper-line {
-          width: 48px;
+          position: absolute;
+          top: 24px;
+          left: 100%;
+          width: 32px;
           height: 2px;
           background: #E2E8F0;
           transition: all 0.3s ease;
@@ -788,7 +1032,6 @@ export default function PostABrief() {
           grid-template-columns: 1.8fr 1fr;
           gap: 32px;
           padding: 32px 8%;
-          max-width: 1400px;
           margin: 0 auto;
         }
 
@@ -803,6 +1046,19 @@ export default function PostABrief() {
           display: flex;
           flex-direction: column;
           gap: 24px;
+        }
+
+        .step-badge {
+          display: inline-block;
+          padding: 6px 12px;
+          background: #E0E7FF;
+          color: #7387FF;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          width: fit-content;
         }
 
         .step-header {

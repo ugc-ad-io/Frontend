@@ -28,6 +28,11 @@ const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'You
 const ASPECTS = ['9:16', '1:1', '16:9', '4:5'];
 const CTAS = ['Visit website', 'Use code', 'Swipe up', 'Follow brand', 'None'];
 const TONES = ['Casual', 'Energetic', 'Informative', 'Humorous', 'Aspirational', 'Authentic', 'Educational', 'Trustworthy'];
+const CREATOR_LEVELS = ['New', 'Verified', 'L1', 'L2', 'Elite'];
+const QUALITY_TIERS = ['A', 'A+', 'A++'];
+const GENDER_OPTIONS = ['No Preference', 'Female', 'Male', 'Non-binary'];
+const CITIES = ['Any City', 'Mumbai', 'Delhi NCR', 'Bengaluru', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur'];
+const NICHE_TAGS = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food', 'Lifestyle', 'Tech', 'Travel', 'Home Decor', 'Wellness', 'Parenting', 'Gaming'];
 const VIDEO_DELIVERABLES = ['Reel', 'Short-form', 'YouTube Short', 'Long-form video'];
 const PLATFORMS = [
   "Brand's own Instagram",
@@ -56,6 +61,10 @@ const initialForm = {
   campaignName: '',
   brandName: '',
   category: '',
+  productName: '',
+  productDescription: '',
+  campaignHook: '',
+  keyMessage: '',
   objectives: [],
   targetAudience: '',
   budgetVisible: true,
@@ -95,7 +104,12 @@ const initialForm = {
   budgetMode: 'fixed',
   fixedBudget: '',
   budgetMin: '',
-  budgetMax: ''
+  budgetMax: '',
+  creatorLevel: '',
+  qualityTier: '',
+  genderPreference: 'No Preference',
+  cityFilter: 'Any City',
+  nicheTags: []
 };
 
 const ToggleChip = ({ active, children, onClick }) => (
@@ -105,6 +119,11 @@ const ToggleChip = ({ active, children, onClick }) => (
 );
 
 const isVideoDeliverable = (type = '') => VIDEO_DELIVERABLES.some(label => type.startsWith(label));
+
+const parseDurationSeconds = (value = '') => {
+  const match = String(value).match(/\d+/);
+  return match ? Number(match[0]) : 30;
+};
 
 const addDays = (dateString, days) => {
   if (!dateString) return '';
@@ -121,6 +140,7 @@ export default function PostABrief() {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [publishMode, setPublishMode] = useState('matches');
   const [draftSavedAt, setDraftSavedAt] = useState('');
 
   useEffect(() => {
@@ -217,13 +237,13 @@ export default function PostABrief() {
   };
 
   const isStepValid = (target = step) => {
-    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
+    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.productName.trim().length >= 2 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
     if (target === 2) return form.deliverables.length > 0 && form.deliverables.every(item => item.type && item.quantity >= 1 && item.quantity <= 5 && item.aspectRatios.length > 0 && (!isVideoDeliverable(item.type) || item.duration));
     if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode);
     if (target === 4) return form.avoidText.length <= 200;
     if (target === 5) return form.tones.length > 0 && form.pacing;
     if (target === 6) return form.platforms.length > 0 && form.rightsDuration && form.exclusivity && form.modificationRights;
-    if (target === 7) return form.productShippingBy && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0;
+    if (target === 7) return form.productShippingBy && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0 && form.creatorLevel && form.qualityTier;
     return true;
   };
 
@@ -250,6 +270,10 @@ export default function PostABrief() {
       `Campaign: ${form.campaignName}`,
       `Brand: ${form.brandName}`,
       `Category: ${form.category}`,
+      `Product: ${form.productName}`,
+      `Product description: ${form.productDescription}`,
+      `Hook: ${form.campaignHook}`,
+      `Key message: ${form.keyMessage}`,
       `Objectives: ${form.objectives.join(', ')}`,
       `Target audience: ${form.targetAudience}`,
       `Budget visibility: ${form.budgetVisible ? 'Visible to creators' : 'Hidden from creators - admin flag'}`,
@@ -263,6 +287,7 @@ export default function PostABrief() {
       `Must avoid: competitors ${form.noCompetitors ? form.competitors || 'listed competitors' : 'not specified'}; other products ${form.noOtherProducts ? 'no' : 'allowed'}; profanity ${form.noProfanity ? 'no' : 'allowed'}; political/religious ${form.noPolitical ? 'no' : 'allowed'}; filters ${form.avoidFilters ? form.filterTypes || 'avoid' : 'allowed'}; specific avoid ${form.avoidText || 'none'}`,
       `Style guidance: tones ${form.tones.join(', ')}; pacing ${form.pacing}; music ${form.musicPreference}; references ${form.referenceVideos.filter(Boolean).join(', ') || 'none'}`,
       `Usage rights: platforms ${form.platforms.join(', ')}; duration ${form.rightsDuration}; exclusivity ${form.exclusivity}; whitelisting ${form.whitelisting ? 'yes' : 'no'}; modification ${form.modificationRights}`,
+      `Creator targeting: level ${form.creatorLevel}; quality ${form.qualityTier}; gender ${form.genderPreference}; city ${form.cityFilter}; niches ${form.nicheTags.join(', ') || 'none'}`,
       `Timeline: ship by ${form.productShippingBy}; draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
       `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
       `Commission: platform 25%, total wallet debit Rs. ${totalDebit}, creator receives Rs. ${budget} pre-tax`
@@ -272,18 +297,48 @@ export default function PostABrief() {
   const publish = async () => {
     try {
       setSubmitting(true);
+      const primaryDeliverable = form.deliverables[0] || {};
       const payload = {
+        status: 'pending_approval',
         title: form.campaignName,
         brief_text: briefText(),
         budget_min: form.budgetMode === 'fixed' ? budget : Number(form.budgetMin || 0),
         budget_max: budget,
         objectives: form.objectives,
-        requires_shipment: true
+        requires_shipment: true,
+        shipment_required: true,
+        shipment_option: 'yes',
+        due_date: form.finalDeliveryBy,
+        deadline: form.finalDeliveryBy,
+        revision_limit: Number(form.revisions || 0),
+        product_name: form.productName,
+        product_category: form.category,
+        product_description: form.productDescription,
+        brief_type: primaryDeliverable.type,
+        campaign_hook: form.campaignHook,
+        key_message: form.keyMessage,
+        what_not_to_do: avoidRules,
+        tone_reference: form.pacing,
+        tone_tags: form.tones,
+        video_format: primaryDeliverable.type,
+        aspect_ratio: primaryDeliverable.aspectRatios[0],
+        duration_seconds: parseDurationSeconds(primaryDeliverable.duration),
+        additional_deliverables: form.deliverables.slice(1).map(item => `${item.quantity} x ${item.type}`),
+        free_revisions: Number(form.revisions || 0),
+        creator_level: form.creatorLevel,
+        content_quality_tier: form.qualityTier,
+        gender_preference: form.genderPreference,
+        city_filter: form.cityFilter,
+        creator_niche_tags: form.nicheTags,
+        per_video_budget: budget,
+        total_budget: budget,
+        currency: 'INR'
       };
-      await axios.post(`${API}/campaigns`, payload);
+      const response = await axios.post(`${API}/campaigns`, payload);
       localStorage.removeItem(DRAFT_KEY);
-      toast.success('Brief published successfully');
-      navigate('/dashboard/business');
+      const submitted = response.data?.status === 'pending_approval';
+      toast.success(submitted ? 'Brief submitted for admin approval' : 'Brief saved as draft');
+      navigate(publishMode === 'invite' ? '/dashboard/business/pending-bids' : '/dashboard/business');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to publish brief');
     } finally {
@@ -347,6 +402,12 @@ export default function PostABrief() {
                   <div className="form-group"><label>Brand name</label><input className="input-field" value={form.brandName} disabled /></div>
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Product name *</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /></div>
+                  <div className="form-group"><label>Campaign hook *</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /></div>
+                </div>
+                <div className="form-group"><label>Product description * (20+ characters)</label><textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={3} /></div>
+                <div className="form-group"><label>Key message *</label><input className="input-field" value={form.keyMessage} onChange={e => set('keyMessage', e.target.value)} placeholder="The one message every video should communicate" /></div>
                 <div className="form-group"><label>Campaign objective *</label><div className="brief-chip-grid">{OBJECTIVES.map(item => <ToggleChip key={item} active={form.objectives.includes(item)} onClick={() => toggleArray('objectives', item)}>{item}</ToggleChip>)}</div></div>
                 <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><small>{form.targetAudience.length}/200 characters</small></div>
                 <div className="brief-switch-row"><div><strong>Budget visibility</strong><p>Show or hide budget from creators. Hidden budgets are flagged to admin.</p></div><button type="button" className={form.budgetVisible ? 'is-on' : ''} onClick={() => set('budgetVisible', !form.budgetVisible)}>{form.budgetVisible ? 'Show' : 'Hide'}</button></div>
@@ -421,6 +482,18 @@ export default function PostABrief() {
 
             {step === 7 && (
               <>
+                <div className="deliverable-card">
+                  <div className="deliverable-head"><strong>Creator targeting</strong></div>
+                  <div className="form-row">
+                    <div className="form-group"><label>Minimum creator level *</label><select className="input-field" value={form.creatorLevel} onChange={e => set('creatorLevel', e.target.value)}><option value="">Select level</option>{CREATOR_LEVELS.map(item => <option key={item}>{item}</option>)}</select></div>
+                    <div className="form-group"><label>Content quality tier *</label><select className="input-field" value={form.qualityTier} onChange={e => set('qualityTier', e.target.value)}><option value="">Select tier</option>{QUALITY_TIERS.map(item => <option key={item}>{item}</option>)}</select></div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group"><label>Gender preference</label><select className="input-field" value={form.genderPreference} onChange={e => set('genderPreference', e.target.value)}>{GENDER_OPTIONS.map(item => <option key={item}>{item}</option>)}</select></div>
+                    <div className="form-group"><label>City filter</label><select className="input-field" value={form.cityFilter} onChange={e => set('cityFilter', e.target.value)}>{CITIES.map(item => <option key={item}>{item}</option>)}</select></div>
+                  </div>
+                  <div className="form-group"><label>Creator niche tags</label><div className="brief-chip-grid">{NICHE_TAGS.map(item => <ToggleChip key={item} active={form.nicheTags.includes(item)} onClick={() => toggleArray('nicheTags', item)}>{item}</ToggleChip>)}</div></div>
+                </div>
                 <div className="form-row"><div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /></div><div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.'}</small></div></div>
                 <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 creator, Rs. 200 platform)</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
@@ -432,12 +505,13 @@ export default function PostABrief() {
 
             {step === 8 && (
               <div className="review-summary">
-                <Summary title="Campaign Basics" rows={[['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']]} />
+                <Summary title="Campaign Basics" rows={[['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']]} />
                 <Summary title="Deliverables" rows={form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`])} />
                 <Summary title="Must-Include Checklist" rows={[['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']]} />
                 <Summary title="Must-Avoid Checklist" rows={[['Restrictions', avoidRules]]} />
                 <Summary title="Style Guidance" rows={[['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']]} />
                 <Summary title="Usage Rights" rows={[['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]]} />
+                <Summary title="Creator Targeting" rows={[['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']]} />
                 <Summary title="Timeline & Budget" rows={[['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${LISTING_FEE.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]]} />
               </div>
             )}
@@ -451,8 +525,8 @@ export default function PostABrief() {
                 <button type="button" className="btn-primary" onClick={goNext}>Next Section <ChevronRight size={18} /></button>
               ) : (
                 <>
-                  <button type="button" className="btn-secondary" onClick={() => setShowConfirm(true)}><Send size={16} /> Publish & Invite Creator</button>
-                  <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}>Publish & Request Matches</button>
+                  <button type="button" className="btn-secondary" onClick={() => { setPublishMode('invite'); setShowConfirm(true); }} disabled={submitting}><Send size={16} /> Publish & Invite Creator</button>
+                  <button type="button" className="btn-primary" onClick={() => { setPublishMode('matches'); setShowConfirm(true); }} disabled={submitting}>Publish & Request Matches</button>
                 </>
               )}
             </div>

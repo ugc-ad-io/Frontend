@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck } from 'lucide-react';
 import PostABrief from './PostABrief';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -1042,43 +1042,102 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           {activeTab === 'work-review' && (
             <div className="work-review-section">
-              <h2>Work Submissions to Review</h2>
+              <div className="work-review-hero">
+                <div>
+                  <span className="work-review-kicker"><FileCheck size={16} /> Creator Deliverables</span>
+                  <h2>Work Review Queue</h2>
+                  <p>Review submitted content, open files, and release approvals from one focused workspace.</p>
+                </div>
+                <button type="button" className="work-review-refresh" onClick={fetchCampaigns}>
+                  <Activity size={18} /> Refresh Queue
+                </button>
+              </div>
+
+              <div className="work-review-stats">
+                <div>
+                  <span><Clock3 size={20} /></span>
+                  <p>Pending Review</p>
+                  <strong>{workSubmissions.length}</strong>
+                </div>
+                <div>
+                  <span><FileText size={20} /></span>
+                  <p>Submitted Files</p>
+                  <strong>{workSubmissions.reduce((sum, work) => sum + (work.work_files?.length || 0), 0)}</strong>
+                </div>
+                <div>
+                  <span><UserCheck size={20} /></span>
+                  <p>Creators Waiting</p>
+                  <strong>{new Set(workSubmissions.map(work => work.creator_id)).size}</strong>
+                </div>
+              </div>
+
               {workSubmissions.length === 0 ? (
-                <div className="empty-state">
-                  <FileCheck size={64} />
-                  <p>No work submissions pending review</p>
-                  <p className="hint">Work submissions from creators will appear here</p>
+                <div className="work-review-empty">
+                  <span><CheckCircle size={44} /></span>
+                  <h3>All caught up</h3>
+                  <p>No creator work is pending review right now. New submissions will appear here automatically.</p>
                 </div>
               ) : (
-                <div className="work-submissions-grid">
+                <div className="work-review-list">
                   {workSubmissions.map(work => {
                     const campaign = campaigns.find(c => c.id === work.campaign_id);
+                    const files = work.work_files || [];
+                    const submittedAt = work.submitted_at || work.created_at;
                     return (
-                      <div key={work.id} className="work-card" data-testid={`work-${work.id}`}>
-                        <div className="work-header">
-                          <h3>{campaign?.title || 'Campaign'}</h3>
-                          <span className="badge badge-pending">Pending Review</span>
-                        </div>
-                        <p className="creator-name">Creator: {work.creator_id}</p>
-                        <p className="work-description">{work.description}</p>
-                        <div className="work-files">
-                          <strong>Files:</strong>
-                          <ul>
-                            {work.work_files?.map((file, idx) => (
-                              <li key={idx}>
-                                <a href={file} target="_blank" rel="noopener noreferrer">
-                                  File {idx + 1}
+                      <article key={work.id} className="work-review-card" data-testid={`work-${work.id}`}>
+                        <div className="work-review-card-main">
+                          <div className="work-review-card-top">
+                            <div className="work-campaign-mark">
+                              {(campaign?.title || 'C').trim().charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3>{campaign?.title || work.campaign_title || 'Untitled Campaign'}</h3>
+                              <p>
+                                <span>Creator</span>
+                                <strong>{work.creator_nickname || work.creator_name || work.creator_id}</strong>
+                                <span>Submitted</span>
+                                <strong>{formatDate(submittedAt)}</strong>
+                              </p>
+                            </div>
+                            <span className="work-review-status"><AlertCircle size={15} /> Pending Review</span>
+                          </div>
+
+                          <p className="work-review-description">
+                            {work.description || 'Creator submitted deliverables for review. Open the files and approve or request revisions.'}
+                          </p>
+
+                          <div className="work-review-files">
+                            {files.length ? files.slice(0, 4).map((file, idx) => {
+                              const fileUrl = file.startsWith('http') ? file : `${BACKEND_URL}${file}`;
+                              const fileName = decodeURIComponent(String(file).split('/').pop() || `File ${idx + 1}`);
+                              return (
+                                <a key={`${file}-${idx}`} href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                  <FileText size={16} />
+                                  <span>{fileName}</span>
+                                  <Download size={15} />
                                 </a>
-                              </li>
-                            ))}
-                          </ul>
+                              );
+                            }) : (
+                              <span className="work-review-no-files">No files attached</span>
+                            )}
+                            {files.length > 4 && <span className="work-review-more">+{files.length - 4} more</span>}
+                          </div>
                         </div>
-                        <div className="work-actions">
-                          <button className="btn-primary" onClick={() => navigate(`/work-review/${work.id}`)}>
-                            <CheckCircle size={18} /> Review & Approve
+
+                        <div className="work-review-card-side">
+                          <div>
+                            <small>Campaign Budget</small>
+                            <strong>{formatMoney(campaign?.budget_max || campaign?.budget_min || 0)}</strong>
+                          </div>
+                          <div>
+                            <small>Files</small>
+                            <strong>{files.length}</strong>
+                          </div>
+                          <button className="work-review-primary" onClick={() => navigate(`/work-review/${work.id}`)}>
+                            Review Work <ExternalLink size={17} />
                           </button>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -2847,6 +2906,311 @@ export default function BusinessDashboard({ page = 'overview' }) {
           justify-content: space-between;
           align-items: center;
           padding: 8px 0;
+        }
+
+        .work-review-section {
+          display: flex;
+          flex-direction: column;
+          gap: 22px;
+        }
+
+        .work-review-hero {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px;
+          border: 1px solid #E9EBFF;
+          border-radius: 24px;
+          background:
+            radial-gradient(circle at 92% 18%, rgba(115, 135, 255, 0.15), transparent 28%),
+            white;
+          box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
+        }
+
+        .work-review-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .work-review-hero h2 {
+          margin: 0;
+          color: #07074E;
+          font-size: 32px;
+          line-height: 1;
+        }
+
+        .work-review-hero p {
+          margin: 10px 0 0;
+          color: #9F9FD1;
+          font-weight: 700;
+          max-width: 560px;
+        }
+
+        .work-review-refresh {
+          min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          padding: 0 18px;
+          border: 1px solid #E2E4F0;
+          border-radius: 13px;
+          background: white;
+          color: #07074E;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 10px 22px rgba(7, 7, 78, 0.06);
+        }
+
+        .work-review-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .work-review-stats > div {
+          display: grid;
+          grid-template-columns: 46px 1fr auto;
+          align-items: center;
+          gap: 14px;
+          padding: 18px;
+          border: 1px solid #E9EBFF;
+          border-radius: 18px;
+          background: white;
+          box-shadow: 0 14px 30px rgba(7, 7, 78, 0.04);
+        }
+
+        .work-review-stats span {
+          display: grid;
+          place-items: center;
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
+          background: #F3F3FF;
+          color: #7387FF;
+        }
+
+        .work-review-stats p {
+          margin: 0;
+          color: #9F9FD1;
+          font-weight: 800;
+        }
+
+        .work-review-stats strong {
+          color: #07074E;
+          font-size: 28px;
+        }
+
+        .work-review-empty {
+          min-height: 300px;
+          display: grid;
+          place-items: center;
+          align-content: center;
+          gap: 12px;
+          padding: 40px;
+          border: 1px solid #E9EBFF;
+          border-radius: 24px;
+          background: white;
+          text-align: center;
+          box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
+        }
+
+        .work-review-empty > span {
+          display: grid;
+          place-items: center;
+          width: 86px;
+          height: 86px;
+          border-radius: 24px;
+          background: #E8F8EE;
+          color: #27AE60;
+        }
+
+        .work-review-empty h3 {
+          margin: 8px 0 0;
+          color: #07074E;
+          font-size: 24px;
+        }
+
+        .work-review-empty p {
+          max-width: 430px;
+          color: #9F9FD1;
+          font-weight: 700;
+          line-height: 1.55;
+        }
+
+        .work-review-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .work-review-card {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 210px;
+          gap: 22px;
+          padding: 22px;
+          border: 1px solid #E9EBFF;
+          border-radius: 22px;
+          background: white;
+          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.05);
+        }
+
+        .work-review-card-top {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+        }
+
+        .work-campaign-mark {
+          display: grid;
+          place-items: center;
+          width: 52px;
+          height: 52px;
+          flex: 0 0 auto;
+          border-radius: 16px;
+          background: #07074E;
+          color: white;
+          font-weight: 900;
+          font-size: 20px;
+        }
+
+        .work-review-card h3 {
+          margin: 0;
+          color: #07074E;
+          font-size: 20px;
+        }
+
+        .work-review-card-top p {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px 12px;
+          margin: 8px 0 0;
+          color: #9F9FD1;
+          font-weight: 700;
+        }
+
+        .work-review-card-top p strong {
+          color: #07074E;
+        }
+
+        .work-review-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          margin-left: auto;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #FFF8E8;
+          color: #F59E0B;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .work-review-description {
+          margin: 18px 0;
+          padding: 16px;
+          border-radius: 16px;
+          background: #F8F9FF;
+          color: #4B4B87;
+          line-height: 1.6;
+          font-weight: 650;
+        }
+
+        .work-review-files {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .work-review-files a,
+        .work-review-more,
+        .work-review-no-files {
+          min-height: 38px;
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          max-width: 260px;
+          padding: 0 12px;
+          border: 1px solid #E2E4F0;
+          border-radius: 12px;
+          background: white;
+          color: #07074E;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .work-review-files a span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .work-review-more,
+        .work-review-no-files {
+          color: #9F9FD1;
+          background: #F8F9FF;
+        }
+
+        .work-review-card-side {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding-left: 20px;
+          border-left: 1px solid #EEF0FF;
+        }
+
+        .work-review-card-side div {
+          padding: 12px;
+          border-radius: 14px;
+          background: #F8F9FF;
+        }
+
+        .work-review-card-side small,
+        .work-review-card-side strong {
+          display: block;
+        }
+
+        .work-review-card-side small {
+          color: #9F9FD1;
+          font-weight: 800;
+          text-transform: uppercase;
+          font-size: 11px;
+        }
+
+        .work-review-card-side strong {
+          margin-top: 4px;
+          color: #07074E;
+          font-size: 18px;
+        }
+
+        .work-review-primary {
+          min-height: 46px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          margin-top: auto;
+          border: 0;
+          border-radius: 13px;
+          background: #7387FF;
+          color: white;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 12px 24px rgba(115, 135, 255, 0.25);
         }
 
         .creator-name {

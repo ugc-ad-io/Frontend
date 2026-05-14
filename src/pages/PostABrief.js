@@ -1,869 +1,571 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Check, ChevronRight, ChevronLeft, Image as ImageIcon, Lightbulb, X, Upload, Save, Sparkles, Info } from 'lucide-react';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
+import { useAuth } from '../App';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
+const COMMISSION_RATE = 0.25;
+const LISTING_FEE = 500;
 
-const CATEGORIES = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Food', 'Gaming', 'Lifestyle'];
-const BRIEF_TYPES = ['Awareness', 'Review', 'Tutorial', 'Unboxing', 'Testimonial'];
-const TONE_TAGS = ['Fun', 'Luxury', 'Minimal', 'Bold', 'Emotional', 'Trustworthy', 'Playful', 'Premium'];
-const NICHE_TAGS = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Lifestyle', 'Food', 'Gaming', 'Parenting', 'Finance', 'Education', 'Wellness'];
-const CITIES = ['All India', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata'];
-const VIDEO_FORMATS = [
-  { id: 'reel', label: 'Reel', icon: '▶️', desc: 'Instagram / TikTok vertical' },
-  { id: 'story', label: 'Story', icon: '📱', desc: '24-hr story format' },
-  { id: 'feed', label: 'Feed Post', icon: '📸', desc: 'Square or portrait' },
-  { id: 'shorts', label: 'Shorts', icon: '⚡', desc: 'YouTube vertical short' }
+const STEPS = [
+  'Campaign Basics',
+  'Deliverables',
+  'Must-Include',
+  'Must-Avoid',
+  'Style Guidance',
+  'Usage Rights',
+  'Timeline & Budget',
+  'Review & Publish'
 ];
 
-const STEP_LABELS = ['Product Info', 'Content Requirements', 'Deliverables', 'Creator Requirements', 'Budget & Review'];
+const CATEGORIES = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Food', 'Gaming', 'Lifestyle', 'Home Decor', 'Wellness'];
+const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial', 'Tutorial', 'Unboxing', 'Comparison', 'Sale promotion', 'Customer education', 'Other'];
+const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)'];
+const ASPECTS = ['9:16', '1:1', '16:9', '4:5'];
+const CTAS = ['Visit website', 'Use code', 'Swipe up', 'Follow brand', 'None'];
+const TONES = ['Casual', 'Energetic', 'Informative', 'Humorous', 'Aspirational', 'Authentic', 'Educational', 'Trustworthy'];
+const VIDEO_DELIVERABLES = ['Reel', 'Short-form', 'YouTube Short', 'Long-form video'];
+const PLATFORMS = [
+  "Brand's own Instagram",
+  "Brand's own TikTok / Reels",
+  "Brand's own YouTube",
+  "Brand's own website",
+  "Brand's email marketing",
+  'Paid ads on Meta platforms',
+  'Paid ads on Google / YouTube',
+  'Paid ads on other platforms',
+  'Out-of-home (billboards, print)',
+  'B2B sales materials (pitch decks, demos)',
+  'Third-party aggregators / marketplaces'
+];
+
+const createDeliverable = () => ({
+  id: crypto.randomUUID?.() || String(Date.now()),
+  type: '',
+  quantity: 1,
+  duration: '',
+  aspectRatios: ['9:16'],
+  rawRequired: false
+});
+
+const initialForm = {
+  campaignName: '',
+  brandName: '',
+  category: '',
+  objectives: [],
+  targetAudience: '',
+  budgetVisible: true,
+  deliverables: [createDeliverable()],
+  productVisible: true,
+  visibilitySeconds: '',
+  verbalMention: true,
+  productNames: '',
+  requiredPhrases: [''],
+  requiredShots: [''],
+  callToAction: 'Visit website',
+  promoCode: '',
+  hashtags: '',
+  brandHandleTag: true,
+  noCompetitors: true,
+  competitors: '',
+  noOtherProducts: true,
+  noProfanity: true,
+  noPolitical: true,
+  avoidFilters: false,
+  filterTypes: '',
+  avoidText: '',
+  tones: [],
+  pacing: 'No preference',
+  moodImages: [],
+  referenceVideos: [''],
+  musicPreference: 'No preference',
+  platforms: [],
+  rightsDuration: '',
+  exclusivity: 'None',
+  whitelisting: false,
+  modificationRights: '',
+  productShippingBy: '',
+  draftDeliveryBy: '',
+  revisions: 2,
+  finalDeliveryBy: '',
+  budgetMode: 'fixed',
+  fixedBudget: '',
+  budgetMin: '',
+  budgetMax: ''
+};
+
+const ToggleChip = ({ active, children, onClick }) => (
+  <button type="button" className={`brief-chip ${active ? 'active' : ''}`} onClick={onClick}>
+    {children}
+  </button>
+);
+
+const isVideoDeliverable = (type = '') => VIDEO_DELIVERABLES.some(label => type.startsWith(label));
+
+const addDays = (dateString, days) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
 
 export default function PostABrief() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
+  const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    productName: '', variant: '', retailPrice: '', category: '', briefType: '', productImage: null,
-    campaignHook: '', keyMessage: '', whatNotToDo: '', toneReference: '', toneTags: [],
-    videoFormat: '', aspectRatio: '', duration: '', additionalDeliverables: [], revisions: 2,
-    creatorLevel: '', qualityTier: '', genderPreference: 'No Preference', cityFilter: 'All India', nicheTags: [],
-    perVideoBudget: ''
-  });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState('');
 
-  const handleFieldChange = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-  };
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        setForm({ ...initialForm, ...JSON.parse(saved) });
+      } catch {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    }
 
-  const toggleTag = (field, tag) => {
-    setForm(prev => {
-      const arr = prev[field] || [];
-      return { ...prev, [field]: arr.includes(tag) ? arr.filter(t => t !== tag) : [...arr, tag] };
+    axios.get(`${API}/business/settings/profile`)
+      .then(res => {
+        const profile = res.data || {};
+        setForm(current => ({
+          ...current,
+          brandName: current.brandName || profile.brand_name || user?.nickname || user?.full_name || '',
+          category: current.category || profile.primary_category || profile.business_category || ''
+        }));
+      })
+      .catch(() => {
+        setForm(current => ({ ...current, brandName: current.brandName || user?.nickname || user?.full_name || '' }));
+      });
+  }, [user?.id]);
+
+  useEffect(() => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    setDraftSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  }, [form]);
+
+  const set = (field, value) => setForm(current => ({ ...current, [field]: value }));
+  const toggleArray = (field, value) => {
+    setForm(current => {
+      const values = current[field] || [];
+      return { ...current, [field]: values.includes(value) ? values.filter(item => item !== value) : [...values, value] };
     });
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('Image must be under 10MB');
-        return;
-      }
-      setForm(prev => ({ ...prev, productImage: file }));
+  const budget = Number(form.budgetMode === 'fixed' ? form.fixedBudget : form.budgetMax) || 0;
+  const commission = Math.round(budget * COMMISSION_RATE);
+  const totalDebit = budget + commission + LISTING_FEE;
+  const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
+  const draftDeliverySuggestion = useMemo(() => addDays(form.productShippingBy, 7), [form.productShippingBy]);
+  const pricingLifts = [
+    form.rightsDuration === 'Perpetual' ? 'Perpetual rights: +40% suggested' : '',
+    form.whitelisting ? 'Whitelisting enabled: +30% suggested' : '',
+    form.exclusivity === '90 days' ? '90-day exclusivity: +25% suggested' : '',
+    paidAdsSelected ? 'Paid ads allowed: +20% suggested' : ''
+  ].filter(Boolean);
+
+  const finalDeliverySuggestion = useMemo(() => {
+    return addDays(form.draftDeliveryBy, Math.max(1, Number(form.revisions || 0) * 2));
+  }, [form.draftDeliveryBy, form.revisions]);
+
+  useEffect(() => {
+    if (!form.draftDeliveryBy && draftDeliverySuggestion) {
+      set('draftDeliveryBy', draftDeliverySuggestion);
+    }
+  }, [draftDeliverySuggestion]);
+
+  useEffect(() => {
+    if (!form.finalDeliveryBy && finalDeliverySuggestion) {
+      set('finalDeliveryBy', finalDeliverySuggestion);
+    }
+  }, [finalDeliverySuggestion]);
+
+  const updateDeliverable = (id, patch) => {
+    set('deliverables', form.deliverables.map(item => item.id === id ? { ...item, ...patch } : item));
+  };
+
+  const addDeliverable = () => {
+    if (form.deliverables.length >= 5) {
+      toast.error('You can add up to 5 deliverables');
+      return;
+    }
+    set('deliverables', [...form.deliverables, createDeliverable()]);
+  };
+
+  const removeDeliverable = (id) => {
+    if (form.deliverables.length === 1) return;
+    if (window.confirm('Remove this deliverable from the brief?')) {
+      set('deliverables', form.deliverables.filter(item => item.id !== id));
     }
   };
 
-  const goToStep = (newStep) => {
-    if (newStep < step || (newStep === step + 1 && isStepValid(step))) {
-      setStep(newStep);
-    }
+  const addTextItem = (field, max) => {
+    if ((form[field] || []).length >= max) return;
+    set(field, [...(form[field] || []), '']);
   };
 
-  const isStepValid = (s) => {
-    switch (s) {
-      case 1:
-        return form.productName && form.category && form.briefType && form.productImage;
-      case 2:
-        return form.campaignHook;
-      case 3:
-        return form.videoFormat && form.aspectRatio && form.duration;
-      case 4:
-        return form.creatorLevel && form.qualityTier;
-      case 5:
-        return form.perVideoBudget;
-      default:
-        return true;
-    }
+  const updateTextItem = (field, index, value) => {
+    set(field, form[field].map((item, idx) => idx === index ? value : item));
   };
 
-  const handleSubmit = async () => {
+  const isStepValid = (target = step) => {
+    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
+    if (target === 2) return form.deliverables.length > 0 && form.deliverables.every(item => item.type && item.quantity >= 1 && item.quantity <= 5 && item.aspectRatios.length > 0 && (!isVideoDeliverable(item.type) || item.duration));
+    if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode);
+    if (target === 4) return form.avoidText.length <= 200;
+    if (target === 5) return form.tones.length > 0 && form.pacing;
+    if (target === 6) return form.platforms.length > 0 && form.rightsDuration && form.exclusivity && form.modificationRights;
+    if (target === 7) return form.productShippingBy && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0;
+    return true;
+  };
+
+  const goNext = () => {
+    if (!isStepValid()) {
+      toast.error('Please complete the required fields for this section');
+      return;
+    }
+    setStep(Math.min(8, step + 1));
+  };
+
+  const saveDraft = () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    toast.success('Draft saved');
+  };
+
+  const handleHashtagsChange = (value) => {
+    const tags = value.split(/\s+/).filter(Boolean).slice(0, 10);
+    set('hashtags', tags.join(' '));
+  };
+
+  const briefText = () => {
+    return [
+      `Campaign: ${form.campaignName}`,
+      `Brand: ${form.brandName}`,
+      `Category: ${form.category}`,
+      `Objectives: ${form.objectives.join(', ')}`,
+      `Target audience: ${form.targetAudience}`,
+      `Budget visibility: ${form.budgetVisible ? 'Visible to creators' : 'Hidden from creators - admin flag'}`,
+      '',
+      'Deliverables:',
+      ...form.deliverables.map((item, index) => `${index + 1}. ${item.quantity} x ${item.type}; duration ${item.duration || 'n/a'}; ratios ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`),
+      '',
+      `Must include: product visible ${form.productVisible ? `${form.visibilitySeconds}s minimum` : 'no'}; verbal mention ${form.verbalMention ? form.productNames : 'no'}; CTA ${form.callToAction}; promo ${form.promoCode || 'n/a'}; hashtags ${form.hashtags || 'n/a'}; brand tag ${form.brandHandleTag ? 'yes' : 'no'}`,
+      `Required phrases: ${form.requiredPhrases.filter(Boolean).join(', ') || 'none'}`,
+      `Required shots: ${form.requiredShots.filter(Boolean).join(', ') || 'none'}`,
+      `Must avoid: competitors ${form.noCompetitors ? form.competitors || 'listed competitors' : 'not specified'}; other products ${form.noOtherProducts ? 'no' : 'allowed'}; profanity ${form.noProfanity ? 'no' : 'allowed'}; political/religious ${form.noPolitical ? 'no' : 'allowed'}; filters ${form.avoidFilters ? form.filterTypes || 'avoid' : 'allowed'}; specific avoid ${form.avoidText || 'none'}`,
+      `Style guidance: tones ${form.tones.join(', ')}; pacing ${form.pacing}; music ${form.musicPreference}; references ${form.referenceVideos.filter(Boolean).join(', ') || 'none'}`,
+      `Usage rights: platforms ${form.platforms.join(', ')}; duration ${form.rightsDuration}; exclusivity ${form.exclusivity}; whitelisting ${form.whitelisting ? 'yes' : 'no'}; modification ${form.modificationRights}`,
+      `Timeline: ship by ${form.productShippingBy}; draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
+      `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
+      `Commission: platform 25%, total wallet debit Rs. ${totalDebit}, creator receives Rs. ${budget} pre-tax`
+    ].join('\n');
+  };
+
+  const publish = async () => {
     try {
       setSubmitting(true);
       const payload = {
-        title: form.productName,
-        brief_text: form.campaignHook,
-        budget_min: Math.floor(Number(form.perVideoBudget) * 0.8),
-        budget_max: Number(form.perVideoBudget),
-        objectives: [form.briefType],
-        requires_shipment: false
+        title: form.campaignName,
+        brief_text: briefText(),
+        budget_min: form.budgetMode === 'fixed' ? budget : Number(form.budgetMin || 0),
+        budget_max: budget,
+        objectives: form.objectives,
+        requires_shipment: true
       };
       await axios.post(`${API}/campaigns`, payload);
-      toast.success('Brief posted successfully!');
+      localStorage.removeItem(DRAFT_KEY);
+      toast.success('Brief published successfully');
       navigate('/dashboard/business');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to post brief');
+      toast.error(error.response?.data?.detail || 'Failed to publish brief');
     } finally {
       setSubmitting(false);
+      setShowConfirm(false);
     }
   };
 
-  const step1Valid = form.productName && form.category && form.briefType && form.productImage;
-  const step2Valid = form.campaignHook;
-  const step3Valid = form.videoFormat && form.aspectRatio && form.duration;
-  const step4Valid = form.creatorLevel && form.qualityTier;
-  const step5Valid = form.perVideoBudget;
+  const renderTextList = (field, max, placeholder) => (
+    <div className="brief-list-inputs">
+      {form[field].map((item, index) => (
+        <input key={index} value={item} onChange={(event) => updateTextItem(field, index, event.target.value)} placeholder={placeholder} />
+      ))}
+      {form[field].length < max && <button type="button" onClick={() => addTextItem(field, max)}><Plus size={15} /> Add item</button>}
+    </div>
+  );
+
+  const requiredPhrases = form.requiredPhrases.filter(Boolean).join(', ') || 'None';
+  const requiredShots = form.requiredShots.filter(Boolean).join(', ') || 'None';
+  const referenceVideos = form.referenceVideos.filter(Boolean).join(', ') || 'None';
+  const avoidRules = [
+    form.noCompetitors ? `No competitor brands visible${form.competitors ? `: ${form.competitors}` : ''}` : '',
+    form.noOtherProducts ? 'No other products in frame' : '',
+    form.noProfanity ? 'No profanity or adult language' : '',
+    form.noPolitical ? 'No political or religious content' : '',
+    form.avoidFilters ? `Avoid filters / effects${form.filterTypes ? `: ${form.filterTypes}` : ''}` : '',
+    form.avoidText ? `Specific avoid: ${form.avoidText}` : ''
+  ].filter(Boolean).join('; ') || 'None';
 
   return (
-    <div className="pab-page">
-      <div className="pab-stepper">
+    <div className="pab-page brief-builder-page">
+      <div className="pab-stepper brief-stepper">
         <div className="stepper-track">
-          {[1, 2, 3, 4, 5].map((s, idx) => {
-            const isCompleted = (s === 1 && step1Valid && s < step) || (s === 2 && step2Valid && s < step) || (s === 3 && step3Valid && s < step) || (s === 4 && step4Valid && s < step);
-            const isActive = s === step;
+          {STEPS.map((label, index) => {
+            const number = index + 1;
+            const active = step === number;
+            const done = step > number;
             return (
-              <div key={s} className="stepper-item">
-                <div className={`stepper-circle ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
-                  {isCompleted ? <Check size={18} /> : s}
-                </div>
-                <div className={`stepper-label ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
-                  {STEP_LABELS[s - 1]}
-                </div>
-                {idx < 4 && <div className={`stepper-line ${isCompleted ? 'completed' : ''}`} />}
-              </div>
+              <button key={label} type="button" className={`brief-step ${active ? 'active' : ''} ${done ? 'done' : ''}`} onClick={() => done && setStep(number)}>
+                <span>{done ? <Check size={15} /> : number}</span>
+                <small>{label}</small>
+              </button>
             );
           })}
         </div>
       </div>
 
-      <div className="pab-body">
-        <div className="pab-form-panel">
-          {step === 1 && (
-            <div className="step-content">
-              <div className="step-badge">STEP 1 OF 5</div>
-              <div className="step-header">
-                <h2>Tell us about your product</h2>
-                <p>Creators will use this to understand what they're promoting.</p>
-              </div>
-              <div className="form-group">
-                <label>PRODUCT NAME *</label>
-                <input
-                  type="text"
-                  value={form.productName}
-                  onChange={(e) => handleFieldChange('productName', e.target.value)}
-                  placeholder="e.g. Glow Serum Ultra"
-                  className="input-field"
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>VARIANT</label>
-                  <input
-                    type="text"
-                    value={form.variant}
-                    onChange={(e) => handleFieldChange('variant', e.target.value)}
-                    placeholder="e.g. 30ml, Rosehip"
-                    className="input-field"
-                  />
+      <div className="pab-body brief-body">
+        <div className="pab-form-panel brief-panel">
+          <div className="step-content">
+            <div className="step-badge">Section {String.fromCharCode(64 + step)} of H</div>
+            <div className="step-header">
+              <h2>{STEPS[step - 1]}</h2>
+              <p>{draftSavedAt ? `Draft autosaved at ${draftSavedAt}` : 'Partial briefs are saved as drafts automatically.'}</p>
+            </div>
+
+            {step === 1 && (
+              <>
+                <div className="form-group"><label>Campaign name *</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><small>{form.campaignName.length}/80 characters</small></div>
+                <div className="form-row">
+                  <div className="form-group"><label>Brand name</label><input className="input-field" value={form.brandName} disabled /></div>
+                  <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
-                <div className="form-group">
-                  <label>RETAIL PRICE</label>
-                  <div className="input-with-prefix">
-                    <span>₹</span>
-                    <input
-                      type="number"
-                      value={form.retailPrice}
-                      onChange={(e) => handleFieldChange('retailPrice', e.target.value)}
-                      placeholder="1,499"
-                      className="input-field"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>PRODUCT CATEGORY *</label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => handleFieldChange('category', e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">Select category</option>
-                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>BRIEF TYPE *</label>
-                  <select
-                    value={form.briefType}
-                    onChange={(e) => handleFieldChange('briefType', e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">Select type</option>
-                    {BRIEF_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="form-group">
-                <label>PRODUCT IMAGE</label>
-                <div className="image-upload">
-                  {form.productImage ? (
-                    <div className="image-preview">
-                      <img src={URL.createObjectURL(form.productImage)} alt="Product" />
-                      <button
-                        type="button"
-                        className="remove-image"
-                        onClick={() => handleFieldChange('productImage', null)}
-                      >
-                        <X size={20} />
-                      </button>
+                <div className="form-group"><label>Campaign objective *</label><div className="brief-chip-grid">{OBJECTIVES.map(item => <ToggleChip key={item} active={form.objectives.includes(item)} onClick={() => toggleArray('objectives', item)}>{item}</ToggleChip>)}</div></div>
+                <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><small>{form.targetAudience.length}/200 characters</small></div>
+                <div className="brief-switch-row"><div><strong>Budget visibility</strong><p>Show or hide budget from creators. Hidden budgets are flagged to admin.</p></div><button type="button" className={form.budgetVisible ? 'is-on' : ''} onClick={() => set('budgetVisible', !form.budgetVisible)}>{form.budgetVisible ? 'Show' : 'Hide'}</button></div>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                {form.deliverables.map((item, index) => (
+                  <div className="deliverable-card" key={item.id}>
+                    <div className="deliverable-head"><strong>Deliverable {index + 1}</strong>{form.deliverables.length > 1 && <button type="button" onClick={() => removeDeliverable(item.id)}><Trash2 size={16} /> Remove</button>}</div>
+                    <div className="form-row">
+                      <div className="form-group"><label>Deliverable type *</label><select className="input-field" value={item.type} onChange={e => updateDeliverable(item.id, { type: e.target.value })}><option value="">Select type</option>{DELIVERABLE_TYPES.map(type => <option key={type}>{type}</option>)}</select></div>
+                      <div className="form-group"><label>Quantity *</label><input className="input-field" type="number" min="1" max="5" value={item.quantity} onChange={e => updateDeliverable(item.id, { quantity: Number(e.target.value) })} /></div>
                     </div>
-                  ) : (
-                    <label className="upload-box">
-                      <span className="upload-icon"><Upload size={26} /></span>
-                      <p>Drop your product image here</p>
-                      <small>PNG, JPG up to 10MB · Recommended 1:1 ratio</small>
-                      <span className="browse-files">Browse Files</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="step-content">
-              <div className="step-badge">STEP 2 OF 5</div>
-              <div className="step-header">
-                <h2>Content direction & tone</h2>
-                <p>Guide the creator on how you want the content to feel.</p>
-              </div>
-              <div className="form-group">
-                <label>CAMPAIGN HOOK / OPENING LINE *</label>
-                <textarea
-                  value={form.campaignHook}
-                  onChange={(e) => handleFieldChange('campaignHook', e.target.value)}
-                  placeholder="e.g. 'This serum completely changed my skincare routine — here's why I can't stop talking about it...'"
-                  className="textarea-field"
-                  rows={4}
-                />
-              </div>
-              <div className="form-group">
-                <label>KEY MESSAGE (0/{form.keyMessage.length})</label>
-                <textarea
-                  value={form.keyMessage}
-                  onChange={(e) => handleFieldChange('keyMessage', e.target.value.slice(0, 120))}
-                  placeholder="One core thing you want the audience to remember"
-                  className="textarea-field"
-                  rows={2}
-                />
-              </div>
-              <div className="form-group">
-                <label>WHAT NOT TO DO</label>
-                <textarea
-                  value={form.whatNotToDo}
-                  onChange={(e) => handleFieldChange('whatNotToDo', e.target.value)}
-                  placeholder="e.g. No filter effects, avoid comparing with competitor products, don't show price in video..."
-                  className="textarea-field"
-                  rows={3}
-                />
-              </div>
-              <div className="form-group">
-                <label>TONE REFERENCE</label>
-                <textarea
-                  value={form.toneReference}
-                  onChange={(e) => handleFieldChange('toneReference', e.target.value)}
-                  placeholder="Paste a video link or describe the vibe: e.g. 'Like a trusted friend recommending something, not an ad...'"
-                  className="textarea-field"
-                  rows={2}
-                />
-              </div>
-              <div className="form-group">
-                <label>TONE TAGS</label>
-                <div className="tag-grid">
-                  {TONE_TAGS.map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      className={`tag-btn ${form.toneTags.includes(tag) ? 'active' : ''}`}
-                      onClick={() => toggleTag('toneTags', tag)}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="step-content">
-              <div className="step-badge">STEP 3 OF 5</div>
-              <div className="step-header">
-                <h2>What do you need delivered?</h2>
-                <p>Specify the exact format and specs for the content.</p>
-              </div>
-              <div className="form-group">
-                <label>PRIMARY VIDEO FORMAT</label>
-                <div className="format-grid">
-                  {VIDEO_FORMATS.map(fmt => (
-                    <button
-                      key={fmt.id}
-                      type="button"
-                      className={`format-card ${form.videoFormat === fmt.id ? 'active' : ''}`}
-                      onClick={() => handleFieldChange('videoFormat', fmt.id)}
-                    >
-                      <span className="format-icon">{fmt.icon}</span>
-                      <strong>{fmt.label}</strong>
-                      <small>{fmt.desc}</small>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>ASPECT RATIO</label>
-                  <div className="button-group">
-                    {['9:16', '1:1', '16:9'].map(ratio => (
-                      <button
-                        key={ratio}
-                        type="button"
-                        className={`ratio-btn ${form.aspectRatio === ratio ? 'active' : ''}`}
-                        onClick={() => handleFieldChange('aspectRatio', ratio)}
-                      >
-                        {ratio}
-                      </button>
-                    ))}
+                    <div className="form-row">
+                      <div className="form-group"><label>Duration {isVideoDeliverable(item.type) ? '*' : ''}</label><input className="input-field" value={item.duration} onChange={e => updateDeliverable(item.id, { duration: e.target.value })} placeholder="15-20 seconds" /></div>
+                      <div className="form-group"><label>Raw file delivery required *</label><div className="brief-segment"><button type="button" className={item.rawRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { rawRequired: true })}>Yes</button><button type="button" className={!item.rawRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { rawRequired: false })}>No</button></div></div>
+                    </div>
+                    <div className="form-group"><label>Aspect ratio *</label><div className="brief-chip-grid compact">{ASPECTS.map(ratio => <ToggleChip key={ratio} active={item.aspectRatios.includes(ratio)} onClick={() => updateDeliverable(item.id, { aspectRatios: item.aspectRatios.includes(ratio) ? item.aspectRatios.filter(r => r !== ratio) : [...item.aspectRatios, ratio] })}>{ratio}</ToggleChip>)}</div></div>
                   </div>
-                </div>
-                <div className="form-group">
-                  <label>DURATION</label>
-                  <div className="button-group">
-                    {['15 sec', '30 sec', '60 sec'].map(dur => (
-                      <button
-                        key={dur}
-                        type="button"
-                        className={`ratio-btn ${form.duration === dur ? 'active' : ''}`}
-                        onClick={() => handleFieldChange('duration', dur)}
-                      >
-                        {dur}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="form-group">
-                <label>ADDITIONAL DELIVERABLES</label>
-                <div className="checkbox-group">
-                  {['B-Roll Footage', 'Product Photos', 'Raw Footage'].map(item => (
-                    <label key={item} className="checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={form.additionalDeliverables.includes(item)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setForm(prev => ({ ...prev, additionalDeliverables: [...prev.additionalDeliverables, item] }));
-                          } else {
-                            setForm(prev => ({ ...prev, additionalDeliverables: prev.additionalDeliverables.filter(d => d !== item) }));
-                          }
-                        }}
-                      />
-                      <span>{item}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="form-group">
-                <label>FREE REVISIONS INCLUDED (default: 2)</label>
-                <div className="revisions-stepper">
-                  <button
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, revisions: Math.max(0, prev.revisions - 1) }))}
-                  >
-                    −
-                  </button>
-                  <span>{form.revisions} revisions included</span>
-                  <button
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, revisions: prev.revisions + 1 }))}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+                ))}
+                <button type="button" className="brief-add-btn" onClick={addDeliverable}><Plus size={17} /> Add deliverable ({form.deliverables.length}/5)</button>
+              </>
+            )}
 
-          {step === 4 && (
-            <div className="step-content">
-              <div className="step-badge">STEP 4 OF 5</div>
-              <div className="step-header">
-                <h2>Creator requirements</h2>
-                <p>Specify who you're looking for.</p>
-              </div>
-              <div className="form-group">
-                <label>CREATOR LEVEL</label>
-                <div className="level-grid">
-                  {[
-                    { id: 'rising', label: 'Rising', range: 'Up to ₹5K', desc: 'Emerging creators' },
-                    { id: 'standard', label: 'Standard', range: 'Up to ₹10K', desc: 'Established creators' },
-                    { id: 'elite', label: 'Elite', range: 'Min ₹15K', desc: 'Top 5% of creators' }
-                  ].map(level => (
-                    <button
-                      key={level.id}
-                      type="button"
-                      className={`level-card ${form.creatorLevel === level.id ? 'active' : ''}`}
-                      onClick={() => handleFieldChange('creatorLevel', level.id)}
-                    >
-                      <strong>{level.label}</strong>
-                      <p>{level.range}</p>
-                      <small>{level.desc}</small>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="form-group">
-                <label>CONTENT QUALITY TIER</label>
-                <div className="tier-grid">
-                  {[
-                    { id: 'a', label: 'A', mult: '×1.0', desc: 'Standard quality' },
-                    { id: 'aplus', label: 'A+', mult: '×1.25', desc: 'Premium quality' },
-                    { id: 'aplus2', label: 'A++', mult: '×1.6', desc: 'Top-tier quality' }
-                  ].map(tier => (
-                    <button
-                      key={tier.id}
-                      type="button"
-                      className={`tier-card ${form.qualityTier === tier.id ? 'active' : ''}`}
-                      onClick={() => handleFieldChange('qualityTier', tier.id)}
-                    >
-                      <strong>{tier.label}</strong>
-                      <p>{tier.mult}</p>
-                      <small>{tier.desc}</small>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>GENDER PREFERENCE</label>
-                  <select
-                    value={form.genderPreference}
-                    onChange={(e) => handleFieldChange('genderPreference', e.target.value)}
-                    className="input-field"
-                  >
-                    {['No Preference', 'Female', 'Male', 'Non-binary'].map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>CITY FILTER</label>
-                  <select
-                    value={form.cityFilter}
-                    onChange={(e) => handleFieldChange('cityFilter', e.target.value)}
-                    className="input-field"
-                  >
-                    {CITIES.map(city => <option key={city} value={city}>{city}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="form-group">
-                <label>CREATOR NICHE TAGS</label>
-                <div className="tag-grid">
-                  {NICHE_TAGS.map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      className={`tag-btn ${form.nicheTags.includes(tag) ? 'active' : ''}`}
-                      onClick={() => toggleTag('nicheTags', tag)}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+            {step === 3 && (
+              <>
+                <div className="brief-switch-row"><div><strong>Product visible on camera *</strong><p>If yes, specify minimum visibility duration.</p></div><button type="button" className={form.productVisible ? 'is-on' : ''} onClick={() => set('productVisible', !form.productVisible)}>{form.productVisible ? 'Yes' : 'No'}</button></div>
+                {form.productVisible && <div className="form-group"><label>Minimum visibility duration (seconds)</label><input className="input-field" value={form.visibilitySeconds} onChange={e => set('visibilitySeconds', e.target.value)} placeholder="5" /></div>}
+                <div className="brief-switch-row"><div><strong>Verbal product mention *</strong><p>List exact product names to be spoken.</p></div><button type="button" className={form.verbalMention ? 'is-on' : ''} onClick={() => set('verbalMention', !form.verbalMention)}>{form.verbalMention ? 'Yes' : 'No'}</button></div>
+                {form.verbalMention && <div className="form-group"><label>Exact product name(s)</label><input className="input-field" value={form.productNames} onChange={e => set('productNames', e.target.value)} /></div>}
+                <div className="form-row"><div className="form-group"><label>Required phrases (up to 5)</label>{renderTextList('requiredPhrases', 5, 'Perfect for oily skin')}</div><div className="form-group"><label>Required visual shots (up to 5)</label>{renderTextList('requiredShots', 5, 'Close-up of label')}</div></div>
+                <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}</div>
+                <div className="form-row"><div className="form-group"><label>Required hashtags</label><input className="input-field" value={form.hashtags} onChange={e => handleHashtagsChange(e.target.value)} placeholder="#brand #launch" /><small>Up to 10 hashtags.</small></div><div className="form-group"><label>Brand handle tag *</label><div className="brief-segment"><button className={form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', true)}>Yes</button><button className={!form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', false)}>No</button></div></div></div>
+              </>
+            )}
 
-          {step === 5 && (
-            <div className="step-content">
-              <div className="step-badge">STEP 5 OF 5</div>
-              <div className="step-header">
-                <h2>Set your budget</h2>
-                <p>Enter what you want to pay per video. We handle the rest.</p>
+            {step === 4 && (
+              <>
+                {[
+                  ['noCompetitors', 'No competitor brands visible'],
+                  ['noOtherProducts', 'No other products in frame'],
+                  ['noProfanity', 'No profanity or adult language'],
+                  ['noPolitical', 'No political or religious content'],
+                  ['avoidFilters', 'Avoid filters / effects']
+                ].map(([field, label]) => <label key={field} className="brief-check"><input type="checkbox" checked={form[field]} onChange={e => set(field, e.target.checked)} /> {label}</label>)}
+                {form.noCompetitors && <div className="form-group"><label>Competitor list</label><input className="input-field" value={form.competitors} onChange={e => set('competitors', e.target.value)} /></div>}
+                {form.avoidFilters && <div className="form-group"><label>Which filters/effects?</label><input className="input-field" value={form.filterTypes} onChange={e => set('filterTypes', e.target.value)} /></div>}
+                <div className="form-group"><label>Specific things to avoid (200 max)</label><textarea className="textarea-field" rows={3} value={form.avoidText} onChange={e => set('avoidText', e.target.value.slice(0, 200))} /><small>{form.avoidText.length}/200</small></div>
+              </>
+            )}
+
+            {step === 5 && (
+              <>
+                <div className="brief-note"><Info size={18} /> This section is guidance, not grounds for dispute. Creators are expected to interpret style flexibly.</div>
+                <div className="form-group"><label>Tone *</label><div className="brief-chip-grid">{TONES.map(item => <ToggleChip key={item} active={form.tones.includes(item)} onClick={() => toggleArray('tones', item)}>{item}</ToggleChip>)}</div></div>
+                <div className="form-row"><div className="form-group"><label>Pacing preference *</label><select className="input-field" value={form.pacing} onChange={e => set('pacing', e.target.value)}>{['Fast-cut', 'Medium', 'Slow & reflective', 'No preference'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Music preference</label><select className="input-field" value={form.musicPreference} onChange={e => set('musicPreference', e.target.value)}>{['Original creator audio', 'Trending sound', 'Brand-provided audio file', 'No preference'].map(item => <option key={item}>{item}</option>)}</select></div></div>
+                <div className="form-group"><label>Mood board images (up to 5)</label><label className="mini-upload"><Upload size={18} /> Upload references<input type="file" multiple accept="image/*" onChange={e => set('moodImages', Array.from(e.target.files || []).slice(0, 5).map(file => file.name))} /></label>{form.moodImages.length > 0 && <small>{form.moodImages.join(', ')}</small>}</div>
+                <div className="form-group"><label>Reference videos (up to 3)</label>{renderTextList('referenceVideos', 3, 'Paste reference video link')}</div>
+              </>
+            )}
+
+            {step === 6 && (
+              <>
+                <div className="form-group"><label>Platforms where content can be posted *</label><div className="brief-chip-grid">{PLATFORMS.map(item => <ToggleChip key={item} active={form.platforms.includes(item)} onClick={() => toggleArray('platforms', item)}>{item}</ToggleChip>)}</div></div>
+                <div className="form-row"><div className="form-group"><label>Duration of rights *</label><select className="input-field" value={form.rightsDuration} onChange={e => set('rightsDuration', e.target.value)}><option value="">Select duration</option>{['3 months', '6 months', '1 year', '2 years', 'Perpetual'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Exclusivity period *</label><select className="input-field" value={form.exclusivity} onChange={e => set('exclusivity', e.target.value)}>{['None', '15 days', '30 days', '60 days', '90 days'].map(item => <option key={item}>{item}</option>)}</select></div></div>
+                <div className="form-row"><div className="form-group"><label>Whitelisting / allowlisting *</label><div className="brief-segment"><button className={form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', true)}>Yes (+30%)</button><button className={!form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', false)}>No</button></div></div><div className="form-group"><label>Modification rights *</label><select className="input-field" value={form.modificationRights} onChange={e => set('modificationRights', e.target.value)}><option value="">Select rights</option>{['Yes (full rights)', 'Limited (minor edits only)', 'No (use as-is)'].map(item => <option key={item}>{item}</option>)}</select></div></div>
+                {pricingLifts.length > 0 && <div className="brief-note warning"><AlertTriangle size={18} /> Suggested pricing lifts: {pricingLifts.join('; ')}</div>}
+              </>
+            )}
+
+            {step === 7 && (
+              <>
+                <div className="form-row"><div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /></div><div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.'}</small></div></div>
+                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 creator, Rs. 200 platform)</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
+                <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
+                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="number" value={form.fixedBudget} onChange={e => set('fixedBudget', e.target.value)} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMin} onChange={e => set('budgetMin', e.target.value)} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMax} onChange={e => set('budgetMax', e.target.value)} /></div></div>}
+                <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>
+                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (25%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p><p>Creator receives on approval <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><small>Creator amount is pre-tax. TDS may apply.</small></div>
+              </>
+            )}
+
+            {step === 8 && (
+              <div className="review-summary">
+                <Summary title="Campaign Basics" rows={[['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']]} />
+                <Summary title="Deliverables" rows={form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`])} />
+                <Summary title="Must-Include Checklist" rows={[['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']]} />
+                <Summary title="Must-Avoid Checklist" rows={[['Restrictions', avoidRules]]} />
+                <Summary title="Style Guidance" rows={[['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']]} />
+                <Summary title="Usage Rights" rows={[['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]]} />
+                <Summary title="Timeline & Budget" rows={[['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${LISTING_FEE.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]]} />
               </div>
-              <div className="form-group">
-                <label>PER VIDEO BUDGET</label>
-                <div className="input-with-prefix large">
-                  <span>₹</span>
-                  <input
-                    type="number"
-                    value={form.perVideoBudget}
-                    onChange={(e) => handleFieldChange('perVideoBudget', e.target.value)}
-                    placeholder="18,750"
-                    className="input-field"
-                  />
-                </div>
-              </div>
-              <div className="info-box">
-                <div className="info-icon">ℹ️</div>
-                <div>
-                  <strong>Escrow-protected</strong>
-                  <p>Payment is locked on deal acceptance and only released when you approve the delivered content — or after 5 calendar days automatically.</p>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="pab-footer">
-            <button type="button" className="btn-secondary">
-              <Save size={16} /> Save Draft
-            </button>
+            <button type="button" className="btn-secondary" onClick={saveDraft}><Save size={16} /> Save as Draft</button>
             <div className="pab-footer-actions">
-              {step > 1 && (
-                <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}>
-                  <ChevronLeft size={18} /> Back
-                </button>
-              )}
-              {step < 5 && (
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => goToStep(step + 1)}
-                  disabled={!isStepValid(step)}
-                >
-                  Next Step <ChevronRight size={18} />
-                </button>
-              )}
-              {step === 5 && (
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={handleSubmit}
-                  disabled={!step5Valid || submitting}
-                >
-                  {submitting ? 'Posting...' : 'Post Brief'}
-                </button>
+              {step > 1 && <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}><ChevronLeft size={18} /> Back</button>}
+              {step < 8 ? (
+                <button type="button" className="btn-primary" onClick={goNext}>Next Section <ChevronRight size={18} /></button>
+              ) : (
+                <>
+                  <button type="button" className="btn-secondary" onClick={() => setShowConfirm(true)}><Send size={16} /> Publish & Invite Creator</button>
+                  <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}>Publish & Request Matches</button>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        <aside className="pab-right-rail">
-          {step === 1 && (
-            <>
-              <div className="rail-card preview-card">
-                <h3><Sparkles size={16} /> LIVE PREVIEW</h3>
-                <div className="product-preview">
-                  {form.productImage ? (
-                    <img src={URL.createObjectURL(form.productImage)} alt="Product" />
-                  ) : (
-                    <div className="placeholder"><ImageIcon size={34} /> <span>Product image</span></div>
-                  )}
-                  <div className="preview-copy">
-                    <p className="preview-name">{form.productName || 'Product name'}</p>
-                    <div className="preview-bottom">
-                      <p className="preview-type">{form.briefType || 'Brief type'}</p>
-                      <strong>{form.retailPrice ? `₹${form.retailPrice}` : '—'}</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="rail-card tip-card">
-                <div className="tip-head"><span><Info size={16} /></span><h3>Why this matters</h3></div>
-                <p>Clear product info helps creators understand exactly what they'll be promoting. Briefs with images get <strong>2.3x more applications</strong> on average.</p>
-              </div>
-              <div className="rail-card">
-                <h3>STEP COMPLETENESS</h3>
-                <div className="checklist">
-                  <label className={form.productName ? 'checked' : ''}>
-                    <input type="checkbox" checked={!!form.productName} readOnly />
-                    Product Name
-                  </label>
-                  <label className={form.category ? 'checked' : ''}>
-                    <input type="checkbox" checked={!!form.category} readOnly />
-                    Category
-                  </label>
-                  <label className={form.briefType ? 'checked' : ''}>
-                    <input type="checkbox" checked={!!form.briefType} readOnly />
-                    Brief Type
-                  </label>
-                  <label className={form.productImage ? 'checked' : ''}>
-                    <input type="checkbox" checked={!!form.productImage} readOnly />
-                    Product Image
-                  </label>
-                </div>
-              </div>
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <div className="rail-card tip-card">
-                <h3>BETTER BRIEFS = BETTER RESULTS</h3>
-                <div className="tips">
-                  <div className="tip-item">
-                    <Lightbulb size={16} />
-                    <p><strong>Specific hooks</strong> perform 3x better than generic ones</p>
-                  </div>
-                  <div className="tip-item">
-                    <Lightbulb size={16} />
-                    <p><strong>Clear 'what NOT to do'</strong> reduces revisions by 60%</p>
-                  </div>
-                  <div className="tip-item">
-                    <Lightbulb size={16} />
-                    <p><strong>Share 1-2 reference videos</strong> for best tone alignment</p>
-                  </div>
-                  <div className="tip-item">
-                    <Lightbulb size={16} />
-                    <p><strong>Use tone tags</strong> so creators can self-filter</p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {step === 3 && (
-            <>
-              <div className="rail-card">
-                <h3>YOUR DELIVERABLE</h3>
-                <div className="summary-items">
-                  <div className="summary-item">
-                    <span>Format</span>
-                    <strong>{form.videoFormat || '—'}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>Ratio</span>
-                    <strong>{form.aspectRatio || '—'}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>Duration</span>
-                    <strong>{form.duration || '—'}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>Revisions</span>
-                    <strong>{form.revisions} free</strong>
-                  </div>
-                  {form.additionalDeliverables.length > 0 && (
-                    <div className="summary-item">
-                      <span>Extras</span>
-                      <strong>{form.additionalDeliverables.join(', ')}</strong>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="rail-card tip-card">
-                <h3>PRO TIP ON REVISIONS</h3>
-                <p>2 free revisions is the platform default. More revisions may increase your creator payout expectations.</p>
-              </div>
-            </>
-          )}
-
-          {step === 4 && (
-            <>
-              <div className="rail-card">
-                <h3>CREATOR MATCH</h3>
-                <div className="summary-items">
-                  <div className="summary-item">
-                    <span>Level</span>
-                    <strong>{form.creatorLevel || '—'}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>Quality</span>
-                    <strong>{form.qualityTier || '—'}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>Gender</span>
-                    <strong>{form.genderPreference}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>City</span>
-                    <strong>{form.cityFilter}</strong>
-                  </div>
-                  {form.nicheTags.length > 0 && (
-                    <div className="summary-item">
-                      <span>Niches</span>
-                      <strong>{form.nicheTags.join(', ')}</strong>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {step === 5 && (
-            <>
-              <div className="rail-card">
-                <h3>BRIEF SUMMARY</h3>
-                <div className="summary-items">
-                  <div className="summary-section">
-                    <p className="section-title">PRODUCT</p>
-                    <div className="summary-item">
-                      <span>Name</span>
-                      <strong>{form.productName}</strong>
-                    </div>
-                    {form.variant && (
-                      <div className="summary-item">
-                        <span>Variant</span>
-                        <strong>{form.variant}</strong>
-                      </div>
-                    )}
-                    <div className="summary-item">
-                      <span>Category</span>
-                      <strong>{form.category}</strong>
-                    </div>
-                    <div className="summary-item">
-                      <span>Brief Type</span>
-                      <strong>{form.briefType}</strong>
-                    </div>
-                  </div>
-                  <div className="summary-section">
-                    <p className="section-title">DELIVERABLE</p>
-                    <div className="summary-item">
-                      <span>Format</span>
-                      <strong>{form.videoFormat}</strong>
-                    </div>
-                    <div className="summary-item">
-                      <span>Duration</span>
-                      <strong>{form.duration}</strong>
-                    </div>
-                  </div>
-                  <div className="summary-section">
-                    <p className="section-title">CREATOR</p>
-                    <div className="summary-item">
-                      <span>Level</span>
-                      <strong>{form.creatorLevel}</strong>
-                    </div>
-                    <div className="summary-item">
-                      <span>Quality Tier</span>
-                      <strong>{form.qualityTier}</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+        <aside className="pab-right-rail brief-rail">
+          <div className="rail-card preview-card">
+            <h3><FileText size={16} /> Brief Status</h3>
+            <div className="brief-progress-ring"><strong>{step}/8</strong><span>{STEPS[step - 1]}</span></div>
+            <p className="preview-type">{isStepValid() ? 'Section complete' : 'Required fields pending'}</p>
+          </div>
+          <div className="rail-card tip-card">
+            <div className="tip-head"><span><Info size={16} /></span><h3>Why this matters</h3></div>
+            <p>Must-include and usage-right fields become clear approval criteria, reducing disputes after delivery.</p>
+          </div>
+          <div className="rail-card">
+            <h3>Cost Preview</h3>
+            <div className="summary-items">
+              <div className="summary-item"><span>Budget</span><strong>Rs. {budget.toLocaleString('en-IN')}</strong></div>
+              <div className="summary-item"><span>Commission</span><strong>Rs. {commission.toLocaleString('en-IN')}</strong></div>
+              <div className="summary-item"><span>Listing fee</span><strong>Rs. {LISTING_FEE.toLocaleString('en-IN')}</strong></div>
+              <div className="summary-item"><span>Total debit</span><strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></div>
+            </div>
+          </div>
         </aside>
       </div>
 
+      {showConfirm && (
+        <div className="brief-modal-backdrop">
+          <div className="brief-modal">
+            <h3>Confirm publishing</h3>
+            <p>This will debit Rs. {totalDebit.toLocaleString('en-IN')} from your wallet: Rs. {budget.toLocaleString('en-IN')} budget + Rs. {commission.toLocaleString('en-IN')} platform commission + Rs. {LISTING_FEE.toLocaleString('en-IN')} listing fee. It cannot be modified after a creator accepts. Continue?</p>
+            <div>
+              <button type="button" className="btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
+              <button type="button" className="btn-primary" onClick={publish} disabled={submitting}>{submitting ? 'Publishing...' : 'Continue'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
-        .pab-page {
-          background: #F3F3FF !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          border-radius: 0 !important;
-          box-shadow: none !important;
-          min-height: auto;
+        .brief-builder-page {
           color: #07074E;
         }
 
-        .pab-stepper {
-          padding: 0 0 28px;
-          background: transparent;
-          box-shadow: none;
-          display: flex;
-          justify-content: center;
+        .brief-stepper {
+          padding: 0 0 24px;
         }
 
-        .stepper-track {
+        .brief-stepper .stepper-track {
           width: 100%;
-          display: flex;
-          justify-content: center;
-          align-items: flex-start;
-          gap: 0;
-          padding: 22px 36px 20px;
+          display: grid;
+          grid-template-columns: repeat(8, minmax(94px, 1fr));
+          gap: 8px;
+          padding: 14px;
           background: white;
           border: 1px solid #E9EBFF;
           border-radius: 22px;
           box-shadow: 0 18px 40px rgba(7, 7, 78, 0.05);
+          overflow-x: auto;
         }
 
-        .stepper-item {
-          flex: 1;
+        .brief-step {
+          min-height: 78px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
-          position: relative;
-        }
-
-        .stepper-item .stepper-line {
-          position: absolute;
-          top: 24px;
-          left: calc(50% + 56px);
-          width: calc(100% - 112px);
-          height: 3px;
-          border-radius: 99px;
-          background: #E8E8F0;
-        }
-
-        .stepper-circle {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background: white;
-          color: #C0C0D8;
-          display: flex;
-          align-items: center;
           justify-content: center;
-          font-weight: 700;
-          font-size: 15px;
-          border: 2px dashed #D8D8E8;
-          transition: all 0.3s ease;
-          flex-shrink: 0;
+          gap: 8px;
+          border: 0;
+          border-radius: 16px;
+          background: transparent;
+          color: #9F9FD1;
+          font-weight: 800;
+          cursor: pointer;
         }
 
-        .stepper-circle.active {
+        .brief-step span {
+          display: grid;
+          place-items: center;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          border: 2px dashed #D8D8E8;
+        }
+
+        .brief-step small {
+          font-size: 11px;
+          line-height: 1.25;
+          text-align: center;
+        }
+
+        .brief-step.active {
+          background: #EEF0FF;
+          color: #7387FF;
+        }
+
+        .brief-step.active span,
+        .brief-step.done span {
+          border-color: #7387FF;
           background: #7387FF;
           color: white;
-          border-color: #7387FF;
         }
 
-        .stepper-circle.completed {
-          background: #27AE60;
-          color: white;
-          border-color: #27AE60;
-        }
-
-        .stepper-label {
-          font-size: 13px;
-          font-weight: 700;
-          color: #B0B0CC;
-          text-align: center;
-          min-width: 80px;
-          transition: all 0.3s ease;
-        }
-
-        .stepper-label.active {
-          color: #7387FF;
-          font-weight: 700;
-        }
-
-        .stepper-label.completed {
-          color: #27AE60;
-        }
-
-        .stepper-line {
-          position: absolute;
-          top: 24px;
-          left: 100%;
-          width: 32px;
-          height: 2px;
-          background: #E2E8F0;
-          transition: all 0.3s ease;
-        }
-
-        .stepper-line.completed {
-          background: #27AE60;
-        }
-
-        .pab-body {
+        .brief-body {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) 424px;
+          grid-template-columns: minmax(0, 1fr) 360px;
           gap: 26px;
           padding: 0;
-          margin: 0 auto;
-          background: transparent !important;
-          border-radius: 0 !important;
-          box-shadow: none !important;
         }
 
-        .pab-form-panel {
+        .brief-panel {
           background: white;
           border: 1px solid #E9EBFF;
           border-radius: 22px;
@@ -874,40 +576,36 @@ export default function PostABrief() {
         .step-content {
           display: flex;
           flex-direction: column;
-          gap: 24px;
+          gap: 22px;
         }
 
         .step-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
+          width: fit-content;
           padding: 8px 14px;
+          border-radius: 999px;
           background: #F3F3FF;
           color: #7387FF;
-          border-radius: 999px;
           font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.04em;
+          font-weight: 800;
           text-transform: uppercase;
-          width: fit-content;
-        }
-
-        .step-header {
-          margin-bottom: 8px;
         }
 
         .step-header h2 {
-          font-size: 30px;
-          font-weight: 800;
+          margin: 0 0 8px;
           color: #07074E;
-          margin-bottom: 8px;
-          letter-spacing: 0;
+          font-size: 30px;
         }
 
         .step-header p {
+          margin: 0;
           color: #9F9FD1;
-          font-size: 18px;
-          font-weight: 600;
+          font-weight: 700;
+        }
+
+        .form-row {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 20px;
         }
 
         .form-group {
@@ -917,408 +615,247 @@ export default function PostABrief() {
         }
 
         .form-group label {
-          font-size: 14px;
-          font-weight: 800;
           color: #07074E;
-          letter-spacing: 0.04em;
+          font-size: 13px;
+          font-weight: 900;
           text-transform: uppercase;
         }
 
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 22px;
+        .form-group small {
+          color: #9F9FD1;
+          font-weight: 700;
         }
 
         .input-field,
-        .textarea-field {
-          min-height: 52px;
-          padding: 14px 18px;
+        .textarea-field,
+        .brief-list-inputs input {
+          width: 100%;
           border: 1px solid #E2E4F0;
           border-radius: 13px;
-          font-family: inherit;
-          font-size: 16px;
+          background: #FAFAFE;
           color: #07074E;
-          background: #FAFAFE;
-          transition: all 0.2s ease;
+          font: inherit;
+          font-size: 15px;
           font-weight: 700;
+          padding: 14px 16px;
+          outline: 0;
         }
 
-        .input-field::placeholder,
-        .textarea-field::placeholder {
-          color: #C0C0D8;
+        .textarea-field {
+          resize: vertical;
         }
 
-        .input-field:focus,
-        .textarea-field:focus {
-          outline: none;
-          border-color: #7387FF;
-          box-shadow: 0 0 0 3px rgba(115, 135, 255, 0.1);
-        }
-
-        .input-with-prefix {
+        .brief-chip-grid {
           display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 0;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .brief-chip {
+          min-height: 38px;
+          padding: 0 14px;
           border: 1px solid #E2E4F0;
-          border-radius: 13px;
-          background: #FAFAFE;
-          overflow: hidden;
-        }
-
-        .input-with-prefix.large {
-          padding: 8px;
-        }
-
-        .input-with-prefix span {
-          padding: 0 16px;
-          color: #9F9FD1;
-          font-weight: 700;
-        }
-
-        .input-with-prefix .input-field {
-          border: 0;
-          padding: 12px 0;
-          flex: 1;
-        }
-
-        .image-upload {
-          margin-top: 8px;
-        }
-
-        .upload-box {
-          border: 2px dashed #E2E8F0;
-          border-radius: 14px;
-          padding: 36px;
-          min-height: 252px;
-          text-align: center;
+          border-radius: 999px;
+          background: white;
+          color: #7777B7;
+          font-weight: 800;
           cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
+        }
+
+        .brief-chip.active {
+          border-color: #7387FF;
+          background: #7387FF;
+          color: white;
+        }
+
+        .brief-chip-grid.compact .brief-chip {
+          min-width: 72px;
+        }
+
+        .brief-switch-row,
+        .brief-note,
+        .commission-card,
+        .deliverable-card {
+          padding: 18px;
+          border: 1px solid #E9EBFF;
+          border-radius: 18px;
           background: #F9F9FF;
         }
 
-        .upload-box:hover {
-          border-color: #7387FF;
-          background: #F8F9FF;
-        }
-
-        .upload-box p {
-          color: #07074E;
-          font-weight: 600;
-          margin: 0;
-          font-size: 18px;
-        }
-
-        .upload-box small {
-          color: #9F9FD1;
-          display: block;
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .upload-icon {
-          display: grid;
-          place-items: center;
-          width: 60px;
-          height: 60px;
-          border-radius: 14px;
-          background: #EEF0FF;
-          color: #7387FF;
-        }
-
-        .browse-files {
-          display: inline-flex;
+        .brief-switch-row {
+          display: flex;
           align-items: center;
-          justify-content: center;
-          min-width: 144px;
-          min-height: 46px;
-          margin-top: 4px;
-          border-radius: 11px;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .brief-switch-row p {
+          margin: 5px 0 0;
+          color: #9F9FD1;
+          font-weight: 700;
+        }
+
+        .brief-switch-row > button {
+          min-width: 82px;
+          height: 38px;
+          border: 0;
+          border-radius: 999px;
+          background: #DCDDFA;
+          color: #07074E;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .brief-switch-row > button.is-on {
           background: #7387FF;
           color: white;
-          font-size: 16px;
-          font-weight: 800;
-          box-shadow: 0 12px 20px rgba(115, 135, 255, 0.25);
         }
 
-        .image-preview {
-          position: relative;
-          width: 100%;
-          max-width: 280px;
-          margin: 0 auto;
-          border-radius: 12px;
+        .brief-segment {
+          display: flex;
+          padding: 5px;
+          border-radius: 13px;
+          background: #EEF0FF;
+        }
+
+        .brief-segment button {
+          flex: 1;
+          min-height: 38px;
+          border: 0;
+          border-radius: 10px;
+          background: transparent;
+          color: #7777B7;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .brief-segment button.active {
+          background: white;
+          color: #07074E;
+          box-shadow: 0 6px 14px rgba(7, 7, 78, 0.06);
+        }
+
+        .deliverable-card {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          background: white;
+        }
+
+        .deliverable-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .deliverable-head button,
+        .brief-list-inputs button,
+        .brief-add-btn,
+        .mini-upload {
+          width: fit-content;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: 0;
+          border-radius: 11px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-weight: 900;
+          padding: 10px 13px;
+          cursor: pointer;
+        }
+
+        .mini-upload input {
+          display: none;
+        }
+
+        .brief-list-inputs {
+          display: flex;
+          flex-direction: column;
+          gap: 9px;
+        }
+
+        .brief-check {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 16px;
+          border: 1px solid #E9EBFF;
+          border-radius: 14px;
+          background: white;
+          color: #07074E;
+          font-weight: 800;
+        }
+
+        .brief-check input {
+          width: 18px;
+          height: 18px;
+        }
+
+        .brief-note {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          color: #7387FF;
+          font-weight: 800;
+        }
+
+        .brief-note.warning {
+          background: #FFF8E8;
+          color: #C47A00;
+        }
+
+        .commission-card {
+          display: grid;
+          gap: 12px;
+        }
+
+        .commission-card p {
+          display: flex;
+          justify-content: space-between;
+          margin: 0;
+          color: #7777B7;
+          font-weight: 800;
+        }
+
+        .commission-card strong {
+          color: #07074E;
+        }
+
+        .review-summary {
+          display: grid;
+          gap: 16px;
+        }
+
+        .summary-box {
+          border: 1px solid #E9EBFF;
+          border-radius: 16px;
           overflow: hidden;
         }
 
-        .image-preview img {
-          width: 100%;
-          height: auto;
-          display: block;
-        }
-
-        .remove-image {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: rgba(0, 0, 0, 0.6);
-          color: white;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-        }
-
-        .remove-image:hover {
-          background: rgba(0, 0, 0, 0.8);
-        }
-
-        .tag-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
-        }
-
-        .tag-btn {
-          padding: 10px 16px;
-          border: 1px solid #E2E8F0;
-          border-radius: 999px;
-          background: white;
-          color: #9F9FD1;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .tag-btn:hover {
-          border-color: #7387FF;
-          color: #7387FF;
-        }
-
-        .tag-btn.active {
-          background: #7387FF;
-          color: white;
-          border-color: #7387FF;
-        }
-
-        .format-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-
-        .format-card {
-          padding: 20px;
-          border: 2px solid #E2E8F0;
-          border-radius: 12px;
-          background: white;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .format-card:hover {
-          border-color: #7387FF;
-        }
-
-        .format-card.active {
-          background: #F8F9FF;
-          border-color: #7387FF;
-        }
-
-        .format-icon {
-          font-size: 32px;
-        }
-
-        .format-card strong {
-          color: #07074E;
-          font-size: 14px;
-        }
-
-        .format-card small {
-          color: #9F9FD1;
-          font-size: 12px;
-        }
-
-        .button-group {
-          display: flex;
-          gap: 8px;
-        }
-
-        .ratio-btn {
-          flex: 1;
-          padding: 12px 16px;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
-          background: white;
-          color: #9F9FD1;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .ratio-btn:hover {
-          border-color: #7387FF;
-        }
-
-        .ratio-btn.active {
-          background: #7387FF;
-          color: white;
-          border-color: #7387FF;
-        }
-
-        .checkbox-group {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .checkbox-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          cursor: pointer;
-          padding: 12px;
-          border-radius: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .checkbox-item:hover {
-          background: #F8F9FF;
-        }
-
-        .checkbox-item input {
-          width: 18px;
-          height: 18px;
-          cursor: pointer;
-        }
-
-        .checkbox-item span {
-          color: #07074E;
-          font-weight: 500;
-        }
-
-        .revisions-stepper {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .revisions-stepper button {
-          width: 40px;
-          height: 40px;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
-          background: white;
-          color: #07074E;
-          font-size: 18px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .revisions-stepper button:hover {
-          border-color: #7387FF;
-          background: #F8F9FF;
-        }
-
-        .revisions-stepper span {
-          color: #07074E;
-          font-weight: 600;
-          min-width: 120px;
-        }
-
-        .level-grid,
-        .tier-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-        }
-
-        .level-card,
-        .tier-card {
-          padding: 20px;
-          border: 2px solid #E2E8F0;
-          border-radius: 12px;
-          background: white;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .level-card:hover,
-        .tier-card:hover {
-          border-color: #7387FF;
-        }
-
-        .level-card.active,
-        .tier-card.active {
-          background: #F8F9FF;
-          border-color: #7387FF;
-        }
-
-        .level-card strong,
-        .tier-card strong {
-          display: block;
-          color: #07074E;
-          font-size: 16px;
-          margin-bottom: 4px;
-        }
-
-        .level-card p,
-        .tier-card p {
-          color: #7387FF;
-          font-weight: 700;
-          font-size: 14px;
-          margin: 0 0 8px;
-        }
-
-        .level-card small,
-        .tier-card small {
-          color: #9F9FD1;
-          font-size: 12px;
-          display: block;
-        }
-
-        .info-box {
-          display: flex;
-          gap: 12px;
-          padding: 16px;
-          background: #E0E7FF;
-          border-radius: 8px;
-          border-left: 4px solid #7387FF;
-        }
-
-        .info-icon {
-          font-size: 20px;
-          flex-shrink: 0;
-        }
-
-        .info-box strong {
-          color: #07074E;
-          display: block;
-          margin-bottom: 4px;
-        }
-
-        .info-box p {
-          color: #3730a3;
-          font-size: 13px;
+        .summary-box h3 {
           margin: 0;
-          line-height: 1.5;
+          padding: 14px 16px;
+          background: #F8F9FF;
+          color: #07074E;
+        }
+
+        .summary-box div {
+          display: grid;
+          grid-template-columns: 190px 1fr;
+          gap: 16px;
+          padding: 12px 16px;
+          border-top: 1px solid #EEF0FF;
+        }
+
+        .summary-box span {
+          color: #9F9FD1;
+          font-weight: 800;
+        }
+
+        .summary-box strong {
+          color: #07074E;
+          font-weight: 800;
         }
 
         .pab-footer {
@@ -1337,50 +874,36 @@ export default function PostABrief() {
           display: flex;
           align-items: center;
           gap: 12px;
+          flex-wrap: wrap;
         }
 
         .btn-primary,
         .btn-secondary {
-          display: flex;
+          display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
-          padding: 13px 28px;
-          border: none;
+          min-height: 44px;
+          padding: 0 22px;
+          border: 0;
           border-radius: 11px;
-          font-weight: 800;
-          font-size: 16px;
+          font-weight: 900;
           cursor: pointer;
-          transition: all 0.2s ease;
         }
 
         .btn-primary {
           background: #7387FF;
           color: white;
-          box-shadow: 0 4px 15px rgba(115, 135, 255, 0.4);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(115, 135, 255, 0.6);
-        }
-
-        .btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
+          box-shadow: 0 12px 22px rgba(115, 135, 255, 0.24);
         }
 
         .btn-secondary {
-          background: white;
-          color: #9F9FD1;
           border: 1px solid #E2E4F0;
+          background: white;
+          color: #7777B7;
         }
 
-        .btn-secondary:hover {
-          border-color: #7387FF;
-          color: #7387FF;
-        }
-
-        .pab-right-rail {
+        .brief-rail {
           display: flex;
           flex-direction: column;
           gap: 18px;
@@ -1390,7 +913,7 @@ export default function PostABrief() {
           background: white;
           border: 1px solid #E9EBFF;
           border-radius: 22px;
-          padding: 26px;
+          padding: 24px;
           box-shadow: 0 18px 40px rgba(7, 7, 78, 0.05);
         }
 
@@ -1398,83 +921,40 @@ export default function PostABrief() {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 13px;
-          font-weight: 700;
+          margin: 0 0 16px;
           color: #7387FF;
-          letter-spacing: 0.04em;
+          font-size: 13px;
           text-transform: uppercase;
-          margin-bottom: 18px;
         }
 
-        .preview-card .product-preview {
-          display: flex;
-          flex-direction: column;
-          gap: 0;
-          border: 1px solid #E2E4F0;
-          border-radius: 16px;
-          overflow: hidden;
+        .brief-progress-ring {
+          display: grid;
+          place-items: center;
+          gap: 4px;
+          min-height: 130px;
+          border-radius: 20px;
+          background: #F3F3FF;
+          text-align: center;
         }
 
-        .placeholder {
-          width: 100%;
-          height: 140px;
-          background: #EEF0FF;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-          color: #9F9FD1;
-          font-weight: 600;
-        }
-
-        .product-preview img {
-          width: 100%;
-          height: 140px;
-          object-fit: cover;
-        }
-
-        .preview-copy {
-          padding: 20px 18px;
-          background: white;
-        }
-
-        .preview-name {
+        .brief-progress-ring strong {
+          font-size: 30px;
           color: #07074E;
-          font-weight: 800;
-          font-size: 19px;
-          margin: 0;
         }
 
-        .preview-bottom {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
+        .brief-progress-ring span,
         .preview-type {
           color: #9F9FD1;
-          font-size: 15px;
-          font-weight: 700;
-          margin: 0;
-        }
-
-        .preview-bottom strong {
-          color: #27AE60;
+          font-weight: 800;
         }
 
         .tip-card {
           background: linear-gradient(135deg, rgba(115, 135, 255, 0.12), rgba(159, 159, 209, 0.11));
-          border-color: rgba(115, 135, 255, 0.16);
         }
 
         .tip-head {
           display: flex;
-          align-items: flex-start;
-          gap: 13px;
-          margin-bottom: 6px;
+          gap: 12px;
         }
 
         .tip-head span {
@@ -1482,143 +962,99 @@ export default function PostABrief() {
           place-items: center;
           width: 36px;
           height: 36px;
-          flex: 0 0 auto;
-          border-radius: 9px;
+          border-radius: 10px;
           background: rgba(115, 135, 255, 0.16);
           color: #7387FF;
         }
 
         .tip-head h3 {
-          margin: 3px 0 0;
           color: #07074E;
           text-transform: none;
-          letter-spacing: 0;
-          font-size: 17px;
+          margin: 4px 0 0;
         }
 
         .tip-card p {
-          padding-left: 49px;
-          color: #9F9FD1;
-          font-size: 15px;
-          line-height: 1.6;
-          margin: 0;
-          font-weight: 700;
-        }
-
-        .tip-card p strong {
-          color: #7387FF;
-        }
-
-        .tips {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .tip-item {
-          display: flex;
-          gap: 8px;
-          align-items: flex-start;
-        }
-
-        .tip-item svg {
-          color: #F59E0B;
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-
-        .tip-item p {
-          color: #3730a3;
-          font-size: 13px;
-          margin: 0;
-          line-height: 1.5;
-        }
-
-        .checklist {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .checklist label {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          cursor: pointer;
-          color: #9F9FD1;
-          font-size: 13px;
-          font-weight: 500;
-        }
-
-        .checklist label.checked {
-          color: #27AE60;
-        }
-
-        .checklist input {
-          width: 16px;
-          height: 16px;
-          cursor: pointer;
+          color: #7777B7;
+          font-weight: 800;
+          line-height: 1.55;
         }
 
         .summary-items {
-          display: flex;
-          flex-direction: column;
+          display: grid;
           gap: 12px;
-        }
-
-        .summary-section {
-          padding-bottom: 12px;
-          border-bottom: 1px solid #E2E8F0;
-        }
-
-        .summary-section:last-child {
-          border-bottom: none;
-        }
-
-        .section-title {
-          font-size: 11px;
-          font-weight: 700;
-          color: #9F9FD1;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          margin-bottom: 8px;
         }
 
         .summary-item {
           display: flex;
           justify-content: space-between;
           gap: 12px;
-          font-size: 13px;
-        }
-
-        .summary-item span {
           color: #9F9FD1;
+          font-weight: 800;
         }
 
         .summary-item strong {
           color: #07074E;
-          text-align: right;
         }
 
-        @media (max-width: 1024px) {
-          .pab-body {
-            grid-template-columns: 1fr;
-          }
+        .brief-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          display: grid;
+          place-items: center;
+          padding: 20px;
+          background: rgba(7, 7, 78, 0.45);
+        }
 
-          .pab-right-rail {
-            display: none;
-          }
+        .brief-modal {
+          max-width: 520px;
+          width: 100%;
+          padding: 28px;
+          border-radius: 22px;
+          background: white;
+          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.18);
+        }
 
-          .format-grid {
-            grid-template-columns: 1fr;
-          }
+        .brief-modal h3 {
+          margin: 0 0 10px;
+          color: #07074E;
+          font-size: 24px;
+        }
 
-          .level-grid,
-          .tier-grid {
+        .brief-modal p {
+          color: #7777B7;
+          font-weight: 700;
+          line-height: 1.55;
+        }
+
+        .brief-modal div {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 22px;
+        }
+
+        @media (max-width: 1100px) {
+          .brief-body,
+          .form-row {
             grid-template-columns: 1fr;
           }
         }
       `}</style>
     </div>
+  );
+}
+
+function Summary({ title, rows }) {
+  return (
+    <section className="summary-box">
+      <h3>{title}</h3>
+      {rows.map(([label, value]) => (
+        <div key={`${title}-${label}`}>
+          <span>{label}</span>
+          <strong>{value || '-'}</strong>
+        </div>
+      ))}
+    </section>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle } from 'lucide-react';
 import PostABrief from './PostABrief';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -174,12 +174,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const totalSpent = completedCampaigns.reduce((sum, c) => sum + (c.budget_max || 0), 0);
   const totalBidsReceived = campaigns.reduce((sum, c) => sum + (c.bids?.length || 0), 0);
   const businessTabs = [
-    { id: 'overview', label: 'Brand Dashboard', icon: TrendingUp, path: '/dashboard/business' },
-    { id: 'post-brief', label: 'Post a Brief', icon: FileCheck, path: '/dashboard/business/post-brief' },
-    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: Briefcase, path: '/dashboard/business/all-campaigns' },
-    { id: 'pending-bids', label: `Pending Bids (${totalBidsReceived})`, icon: Users, path: '/dashboard/business/pending-bids' },
-    { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
-    { id: 'shipments', label: 'Shipments', icon: Package, path: '/dashboard/business/shipments' }
+    { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
+    { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
+    { id: 'pending-bids', label: 'Browse Creators', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
+    { id: 'all-campaigns', label: 'Deal Room', icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
+    { id: 'work-review', label: 'Messages', icon: MessageSquare, path: '/dashboard/business/work-review', badge: 2, badgeTone: 'green' },
+    { id: 'shipments', label: 'Wallet', icon: Wallet, path: '/dashboard/business/shipments' },
+    { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
@@ -589,6 +590,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
               >
                 <Icon size={20} />
                 <span>{label}</span>
+                {badge ? <b className={`business-nav-badge ${badgeTone || ''}`}>{badge}</b> : null}
               </button>
             ))}
           </nav>
@@ -607,22 +609,43 @@ export default function BusinessDashboard({ page = 'overview' }) {
       <main className="business-main">
         <div className="dashboard-header">
           <div className="header-content">
-            <div>
+            <div className="brand-page-title">
+              {activeTab === 'post-brief' && (
+                <div className="brand-breadcrumb">
+                  <span>Brand</span>
+                  <span>›</span>
+                  <strong>Post</strong>
+                </div>
+              )}
               <h1>{activeTab === 'overview' ? 'Business Dashboard' : pageTitle}</h1>
-              <p>Welcome back, {user?.nickname}!</p>
+              <p>{activeTab === 'post-brief' ? 'Create a new campaign and attract top creators' : `Welcome back, ${user?.nickname}!`}</p>
             </div>
-            {activeTab === 'overview' && (
+            {(activeTab === 'overview' || activeTab === 'post-brief') && (
               <div className="brand-search">
                 <Search size={20} />
                 <input type="search" placeholder="Search deals, creators, briefs..." aria-label="Search dashboard" />
               </div>
             )}
             <div className="header-actions">
-              {activeTab === 'overview' && (
+              {(activeTab === 'overview' || activeTab === 'post-brief') && (
                 <div className="role-switch" aria-label="Role switch">
                   <span>Creator</span>
                   <strong>Brand</strong>
                 </div>
+              )}
+              {activeTab === 'post-brief' && (
+                <>
+                  <button className="brand-round-action" type="button" aria-label="Notifications">
+                    <Bell size={18} />
+                    <i />
+                  </button>
+                  <button className="brand-round-action" type="button" aria-label="Help">
+                    <HelpCircle size={18} />
+                  </button>
+                  <button className="brand-profile-photo" type="button" onClick={() => navigate('/settings')} aria-label="Profile">
+                    {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
+                  </button>
+                </>
               )}
               {activeTab !== 'overview' && activeTab !== 'post-brief' && (
                 <>
@@ -644,7 +667,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           </div>
         </div>
 
-        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''}`}>
+        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''}`}>
         {activeTab === 'overview' && (
           <>
             <div className="brand-metrics-grid">
@@ -1316,6 +1339,27 @@ export default function BusinessDashboard({ page = 'overview' }) {
           transition: 180ms ease;
         }
 
+        .business-nav-badge {
+          display: grid;
+          place-items: center;
+          min-width: 22px;
+          height: 22px;
+          margin-left: auto;
+          border-radius: 999px;
+          background: #7387FF;
+          color: white;
+          font-size: 12px;
+          line-height: 1;
+        }
+
+        .business-nav-badge.orange {
+          background: #F59E0B;
+        }
+
+        .business-nav-badge.green {
+          background: #27AE60;
+        }
+
         .business-nav-item:hover {
           color: white;
           background: rgba(255, 255, 255, 0.1);
@@ -1427,6 +1471,24 @@ export default function BusinessDashboard({ page = 'overview' }) {
           max-width: 440px;
         }
 
+        .brand-page-title {
+          min-width: 320px;
+        }
+
+        .brand-breadcrumb {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-bottom: 8px;
+          color: #B7B7E6;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .brand-breadcrumb strong {
+          color: #7387FF;
+        }
+
         .header-actions {
           display: flex;
           align-items: center;
@@ -1439,10 +1501,46 @@ export default function BusinessDashboard({ page = 'overview' }) {
           gap: 8px;
         }
 
+        .brand-round-action,
+        .brand-profile-photo {
+          position: relative;
+          width: 48px;
+          height: 48px;
+          display: grid !important;
+          place-items: center;
+          border: 1px solid #E5E7FF;
+          border-radius: 50%;
+          background: white;
+          color: #07074E;
+          box-shadow: 0 10px 25px rgba(7, 7, 78, 0.06);
+          cursor: pointer;
+        }
+
+        .brand-round-action i {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #F59E0B;
+          border: 2px solid white;
+        }
+
+        .brand-profile-photo {
+          background: linear-gradient(135deg, #f4d0b6, #735747);
+          color: white;
+          font-weight: 800;
+        }
+
         .dashboard-content {
           padding: 24px 8% 40px;
           max-width: 1400px;
           margin: 0 auto;
+        }
+
+        .post-brief-shell {
+          padding-top: 8px;
         }
 
         .brand-search {
@@ -1581,6 +1679,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .dashboard-content:not(.dashboard-content-page) .tab-content {
+          background: transparent;
+          padding: 0;
+          border-radius: 0;
+          box-shadow: none;
+          min-height: 0;
+        }
+
+        .post-brief-shell .tab-content {
           background: transparent;
           padding: 0;
           border-radius: 0;

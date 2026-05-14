@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Check, ChevronRight, ChevronLeft, Camera, Video, Image as ImageIcon, Lightbulb, X } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Image as ImageIcon, Lightbulb, X, Upload, Save, Sparkles, Info } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -211,9 +211,10 @@ export default function PostABrief() {
                     </div>
                   ) : (
                     <label className="upload-box">
-                      <ImageIcon size={40} />
+                      <span className="upload-icon"><Upload size={26} /></span>
                       <p>Drop your product image here</p>
-                      <small>PNG, JPG up to 10MB - Recommended 1:1 ratio</small>
+                      <small>PNG, JPG up to 10MB · Recommended 1:1 ratio</small>
+                      <span className="browse-files">Browse Files</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -510,36 +511,36 @@ export default function PostABrief() {
           )}
 
           <div className="pab-footer">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => {
-                if (step === 1) navigate('/dashboard/business');
-                else setStep(step - 1);
-              }}
-            >
-              {step === 1 ? 'Cancel' : <><ChevronLeft size={18} /> Back</>}
+            <button type="button" className="btn-secondary">
+              <Save size={16} /> Save Draft
             </button>
-            {step < 5 && (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => goToStep(step + 1)}
-                disabled={!isStepValid(step)}
-              >
-                Next Step <ChevronRight size={18} />
-              </button>
-            )}
-            {step === 5 && (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleSubmit}
-                disabled={!step5Valid || submitting}
-              >
-                {submitting ? 'Posting...' : 'Post Brief'}
-              </button>
-            )}
+            <div className="pab-footer-actions">
+              {step > 1 && (
+                <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}>
+                  <ChevronLeft size={18} /> Back
+                </button>
+              )}
+              {step < 5 && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => goToStep(step + 1)}
+                  disabled={!isStepValid(step)}
+                >
+                  Next Step <ChevronRight size={18} />
+                </button>
+              )}
+              {step === 5 && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleSubmit}
+                  disabled={!step5Valid || submitting}
+                >
+                  {submitting ? 'Posting...' : 'Post Brief'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -547,20 +548,25 @@ export default function PostABrief() {
           {step === 1 && (
             <>
               <div className="rail-card preview-card">
-                <h3>LIVE PREVIEW</h3>
+                <h3><Sparkles size={16} /> LIVE PREVIEW</h3>
                 <div className="product-preview">
                   {form.productImage ? (
                     <img src={URL.createObjectURL(form.productImage)} alt="Product" />
                   ) : (
-                    <div className="placeholder">Product image</div>
+                    <div className="placeholder"><ImageIcon size={34} /> <span>Product image</span></div>
                   )}
-                  <p className="preview-name">{form.productName || 'Product name'}</p>
-                  <p className="preview-type">{form.briefType || 'Brief type'}</p>
+                  <div className="preview-copy">
+                    <p className="preview-name">{form.productName || 'Product name'}</p>
+                    <div className="preview-bottom">
+                      <p className="preview-type">{form.briefType || 'Brief type'}</p>
+                      <strong>{form.retailPrice ? `₹${form.retailPrice}` : '—'}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="rail-card tip-card">
-                <h3>WHY THIS MATTERS</h3>
-                <p>Clear product info helps creators understand exactly what they're promoting. Briefs with images get 2.3x more applications on average.</p>
+                <div className="tip-head"><span><Info size={16} /></span><h3>Why this matters</h3></div>
+                <p>Clear product info helps creators understand exactly what they'll be promoting. Briefs with images get <strong>2.3x more applications</strong> on average.</p>
               </div>
               <div className="rail-card">
                 <h3>STEP COMPLETENESS</h3>
@@ -742,11 +748,12 @@ export default function PostABrief() {
           margin: 0 !important;
           border-radius: 0 !important;
           box-shadow: none !important;
-          min-height: 100vh;
+          min-height: auto;
+          color: #07074E;
         }
 
         .pab-stepper {
-          padding: 32px 24px;
+          padding: 0 0 28px;
           background: transparent;
           box-shadow: none;
           display: flex;
@@ -754,13 +761,20 @@ export default function PostABrief() {
         }
 
         .stepper-track {
+          width: 100%;
           display: flex;
           justify-content: center;
           align-items: flex-start;
-          gap: 24px;
+          gap: 0;
+          padding: 22px 36px 20px;
+          background: white;
+          border: 1px solid #E9EBFF;
+          border-radius: 22px;
+          box-shadow: 0 18px 40px rgba(7, 7, 78, 0.05);
         }
 
         .stepper-item {
+          flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -771,23 +785,25 @@ export default function PostABrief() {
         .stepper-item .stepper-line {
           position: absolute;
           top: 24px;
-          left: calc(100% + 12px);
-          width: 48px;
-          height: 2px;
+          left: calc(50% + 56px);
+          width: calc(100% - 112px);
+          height: 3px;
+          border-radius: 99px;
+          background: #E8E8F0;
         }
 
         .stepper-circle {
-          width: 48px;
-          height: 48px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
-          background: #EEF0FF;
-          color: #9F9FD1;
+          background: white;
+          color: #C0C0D8;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          font-size: 18px;
-          border: 2px solid transparent;
+          font-size: 15px;
+          border: 2px dashed #D8D8E8;
           transition: all 0.3s ease;
           flex-shrink: 0;
         }
@@ -805,9 +821,9 @@ export default function PostABrief() {
         }
 
         .stepper-label {
-          font-size: 12px;
-          font-weight: 600;
-          color: #9F9FD1;
+          font-size: 13px;
+          font-weight: 700;
+          color: #B0B0CC;
           text-align: center;
           min-width: 80px;
           transition: all 0.3s ease;
@@ -838,9 +854,9 @@ export default function PostABrief() {
 
         .pab-body {
           display: grid;
-          grid-template-columns: 1.8fr 1fr;
-          gap: 32px;
-          padding: 32px 8%;
+          grid-template-columns: minmax(0, 1fr) 424px;
+          gap: 26px;
+          padding: 0;
           margin: 0 auto;
           background: transparent !important;
           border-radius: 0 !important;
@@ -849,9 +865,10 @@ export default function PostABrief() {
 
         .pab-form-panel {
           background: white;
+          border: 1px solid #E9EBFF;
           border-radius: 22px;
-          padding: 40px;
-          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+          padding: 34px 36px;
+          box-shadow: 0 18px 40px rgba(7, 7, 78, 0.05);
         }
 
         .step-content {
@@ -861,12 +878,14 @@ export default function PostABrief() {
         }
 
         .step-badge {
-          display: inline-block;
-          padding: 6px 12px;
-          background: #E0E7FF;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          background: #F3F3FF;
           color: #7387FF;
-          border-radius: 6px;
-          font-size: 11px;
+          border-radius: 999px;
+          font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.04em;
           text-transform: uppercase;
@@ -878,15 +897,17 @@ export default function PostABrief() {
         }
 
         .step-header h2 {
-          font-size: 24px;
-          font-weight: 700;
+          font-size: 30px;
+          font-weight: 800;
           color: #07074E;
           margin-bottom: 8px;
+          letter-spacing: 0;
         }
 
         .step-header p {
           color: #9F9FD1;
-          font-size: 14px;
+          font-size: 18px;
+          font-weight: 600;
         }
 
         .form-group {
@@ -896,8 +917,8 @@ export default function PostABrief() {
         }
 
         .form-group label {
-          font-size: 12px;
-          font-weight: 700;
+          font-size: 14px;
+          font-weight: 800;
           color: #07074E;
           letter-spacing: 0.04em;
           text-transform: uppercase;
@@ -906,18 +927,26 @@ export default function PostABrief() {
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 22px;
         }
 
         .input-field,
         .textarea-field {
-          padding: 12px 16px;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
+          min-height: 52px;
+          padding: 14px 18px;
+          border: 1px solid #E2E4F0;
+          border-radius: 13px;
           font-family: inherit;
-          font-size: 14px;
+          font-size: 16px;
           color: #07074E;
+          background: #FAFAFE;
           transition: all 0.2s ease;
+          font-weight: 700;
+        }
+
+        .input-field::placeholder,
+        .textarea-field::placeholder {
+          color: #C0C0D8;
         }
 
         .input-field:focus,
@@ -932,9 +961,9 @@ export default function PostABrief() {
           align-items: center;
           gap: 8px;
           padding: 0;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
-          background: white;
+          border: 1px solid #E2E4F0;
+          border-radius: 13px;
+          background: #FAFAFE;
           overflow: hidden;
         }
 
@@ -944,7 +973,7 @@ export default function PostABrief() {
 
         .input-with-prefix span {
           padding: 0 16px;
-          color: #07074E;
+          color: #9F9FD1;
           font-weight: 700;
         }
 
@@ -960,8 +989,9 @@ export default function PostABrief() {
 
         .upload-box {
           border: 2px dashed #E2E8F0;
-          border-radius: 12px;
-          padding: 40px;
+          border-radius: 14px;
+          padding: 36px;
+          min-height: 252px;
           text-align: center;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -969,6 +999,7 @@ export default function PostABrief() {
           flex-direction: column;
           align-items: center;
           gap: 12px;
+          background: #F9F9FF;
         }
 
         .upload-box:hover {
@@ -980,11 +1011,39 @@ export default function PostABrief() {
           color: #07074E;
           font-weight: 600;
           margin: 0;
+          font-size: 18px;
         }
 
         .upload-box small {
           color: #9F9FD1;
           display: block;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .upload-icon {
+          display: grid;
+          place-items: center;
+          width: 60px;
+          height: 60px;
+          border-radius: 14px;
+          background: #EEF0FF;
+          color: #7387FF;
+        }
+
+        .browse-files {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 144px;
+          min-height: 46px;
+          margin-top: 4px;
+          border-radius: 11px;
+          background: #7387FF;
+          color: white;
+          font-size: 16px;
+          font-weight: 800;
+          box-shadow: 0 12px 20px rgba(115, 135, 255, 0.25);
         }
 
         .image-preview {
@@ -1264,11 +1323,20 @@ export default function PostABrief() {
 
         .pab-footer {
           display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin: 30px -36px -34px;
+          padding: 22px 36px;
+          border-top: 1px solid #EEF0FF;
+          background: white;
+          border-radius: 0 0 22px 22px;
+        }
+
+        .pab-footer-actions {
+          display: flex;
+          align-items: center;
           gap: 12px;
-          margin-top: 32px;
-          padding-top: 24px;
-          border-top: 1px solid #E2E8F0;
-          justify-content: flex-end;
         }
 
         .btn-primary,
@@ -1276,11 +1344,11 @@ export default function PostABrief() {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 12px 32px;
+          padding: 13px 28px;
           border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 14px;
+          border-radius: 11px;
+          font-weight: 800;
+          font-size: 16px;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -1304,7 +1372,7 @@ export default function PostABrief() {
         .btn-secondary {
           background: white;
           color: #9F9FD1;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #E2E4F0;
         }
 
         .btn-secondary:hover {
@@ -1315,37 +1383,45 @@ export default function PostABrief() {
         .pab-right-rail {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 18px;
         }
 
         .rail-card {
-          background: transparent;
+          background: white;
+          border: 1px solid #E9EBFF;
           border-radius: 22px;
-          padding: 24px;
-          box-shadow: none;
+          padding: 26px;
+          box-shadow: 0 18px 40px rgba(7, 7, 78, 0.05);
         }
 
         .rail-card h3 {
-          font-size: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
           font-weight: 700;
-          color: #07074E;
+          color: #7387FF;
           letter-spacing: 0.04em;
           text-transform: uppercase;
-          margin-bottom: 16px;
+          margin-bottom: 18px;
         }
 
         .preview-card .product-preview {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 0;
+          border: 1px solid #E2E4F0;
+          border-radius: 16px;
+          overflow: hidden;
         }
 
         .placeholder {
           width: 100%;
-          aspect-ratio: 1;
+          height: 140px;
           background: #EEF0FF;
-          border-radius: 12px;
           display: flex;
+          flex-direction: column;
+          gap: 8px;
           align-items: center;
           justify-content: center;
           color: #9F9FD1;
@@ -1354,34 +1430,83 @@ export default function PostABrief() {
 
         .product-preview img {
           width: 100%;
-          aspect-ratio: 1;
+          height: 140px;
           object-fit: cover;
-          border-radius: 12px;
+        }
+
+        .preview-copy {
+          padding: 20px 18px;
+          background: white;
         }
 
         .preview-name {
           color: #07074E;
-          font-weight: 600;
-          font-size: 14px;
+          font-weight: 800;
+          font-size: 19px;
           margin: 0;
+        }
+
+        .preview-bottom {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-top: 10px;
         }
 
         .preview-type {
           color: #9F9FD1;
-          font-size: 12px;
+          font-size: 15px;
+          font-weight: 700;
           margin: 0;
+        }
+
+        .preview-bottom strong {
+          color: #27AE60;
         }
 
         .tip-card {
-          background: transparent;
-          border: none;
+          background: linear-gradient(135deg, rgba(115, 135, 255, 0.12), rgba(159, 159, 209, 0.11));
+          border-color: rgba(115, 135, 255, 0.16);
+        }
+
+        .tip-head {
+          display: flex;
+          align-items: flex-start;
+          gap: 13px;
+          margin-bottom: 6px;
+        }
+
+        .tip-head span {
+          display: grid;
+          place-items: center;
+          width: 36px;
+          height: 36px;
+          flex: 0 0 auto;
+          border-radius: 9px;
+          background: rgba(115, 135, 255, 0.16);
+          color: #7387FF;
+        }
+
+        .tip-head h3 {
+          margin: 3px 0 0;
+          color: #07074E;
+          text-transform: none;
+          letter-spacing: 0;
+          font-size: 17px;
         }
 
         .tip-card p {
-          color: #3730a3;
-          font-size: 13px;
+          padding-left: 49px;
+          color: #9F9FD1;
+          font-size: 15px;
           line-height: 1.6;
           margin: 0;
+          font-weight: 700;
+        }
+
+        .tip-card p strong {
+          color: #7387FF;
         }
 
         .tips {

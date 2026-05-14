@@ -177,8 +177,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
     { id: 'pending-bids', label: 'Browse Creators', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
-    { id: 'all-campaigns', label: 'Deal Room', icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
-    { id: 'work-review', label: 'Messages', icon: MessageSquare, path: '/dashboard/business/work-review', badge: 2, badgeTone: 'green' },
+    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
+    { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'shipments', label: 'Wallet', icon: Wallet, path: '/dashboard/business/shipments' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];

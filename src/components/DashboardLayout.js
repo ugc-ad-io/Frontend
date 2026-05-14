@@ -30,6 +30,7 @@ export default function DashboardLayout({
   }, []);
 
   const displayName = user?.nickname || user?.full_name || user?.email || 'Creator';
+  const roleLabel = user?.role === 'business' ? 'Approved Business' : 'Approved Creator';
 
   const handleLogout = () => {
     logout();
@@ -81,7 +82,7 @@ export default function DashboardLayout({
           </div>
           <div>
             <strong>{displayName}</strong>
-            <span>Approved Creator</span>
+            <span>{roleLabel}</span>
           </div>
         </div>
         {sidebarExtra}

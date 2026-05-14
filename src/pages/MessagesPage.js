@@ -136,18 +136,29 @@ export default function MessagesPage() {
   const messageContainerRef = useRef(null);
   const userScrolledUpRef = useRef(false);
 
-  const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-    { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
-    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
-    { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
-    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
-    { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
-    { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
-    { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
-  ];
+  const navItems = user?.role === 'business'
+    ? [
+      { name: 'Brand Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/business') },
+      { name: 'Post a Brief', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
+      { name: 'All Campaigns', icon: Briefcase, action: () => navigate('/dashboard/business/all-campaigns') },
+      { name: 'Browse Creators', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
+      { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
+      { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
+      { name: 'Wallet', icon: IndianRupee, action: () => navigate('/dashboard/business/shipments') },
+      { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
+    ]
+    : [
+      { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
+      { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
+      { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
+      { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
+      { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
+      { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
+      { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
+      { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
+      { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
+      { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
+    ];
 
   // Refresh user data on mount
   useEffect(() => {
@@ -538,7 +549,7 @@ export default function MessagesPage() {
     <DashboardLayout
       navItems={navItems}
       title="Messages"
-      description="Connect with brands and manage conversations"
+      description={user?.role === 'business' ? 'Connect with creators and manage campaign conversations' : 'Connect with brands and manage conversations'}
       topbarExtra={null}
       sidebarExtra={null}
     >

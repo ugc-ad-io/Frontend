@@ -580,7 +580,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           </div>
           <nav className="business-sidebar-nav" aria-label="Business dashboard">
             <span className="business-nav-label">Business</span>
-            {businessTabs.map(({ id, label, icon: Icon, path }) => (
+            {businessTabs.map(({ id, label, icon: Icon, path, badge, badgeTone }) => (
               <button
                 key={id}
                 type="button"

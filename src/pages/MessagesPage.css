@@ -623,6 +623,9 @@
   border: 1px solid rgba(115, 135, 255, 0.16);
   box-shadow: 0 14px 32px rgba(7, 7, 78, 0.1);
   flex-shrink: 0;
+  max-height: min(430px, 48vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .msg-action-composer-head {
@@ -714,10 +717,14 @@
 }
 
 .msg-action-composer-actions {
+  position: sticky;
+  bottom: -16px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 14px;
+  padding: 12px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), #fff 35%);
 }
 
 .msg-action-composer-actions button {

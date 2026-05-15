@@ -1137,7 +1137,13 @@
 
 .bs-dashboard-page .bs-tabs button.active {
   background: #07074e;
+  color: #fff;
   box-shadow: 0 10px 22px rgba(7, 7, 78, 0.18);
+}
+
+.bs-dashboard-page .bs-tabs button.active svg,
+.bs-tabs button.active svg {
+  color: #fff;
 }
 
 .bs-dashboard-page .bs-card,

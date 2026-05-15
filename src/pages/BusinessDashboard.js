@@ -1165,13 +1165,46 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           {activeTab === 'all-campaigns' && (
             <div className="all-campaigns-section">
-              <h2>All Your Campaigns</h2>
+              <div className="all-campaigns-hero">
+                <div>
+                  <span className="all-campaigns-kicker"><ClipboardList size={16} /> Campaign Workspace</span>
+                  <h2>All Campaigns</h2>
+                  <p>Track every brief from draft to delivery, review bids, and jump into active campaign workflows.</p>
+                </div>
+                <button type="button" className="all-campaigns-create" onClick={() => setShowCreateModal(true)}>
+                  <Plus size={18} /> Create Campaign
+                </button>
+              </div>
+
+              <div className="all-campaigns-stats">
+                <div>
+                  <span><Briefcase size={20} /></span>
+                  <p>Total Campaigns</p>
+                  <strong>{campaigns.length}</strong>
+                </div>
+                <div>
+                  <span><Activity size={20} /></span>
+                  <p>Active</p>
+                  <strong>{campaigns.filter(c => c.status === 'active' || c.status === 'in_progress').length}</strong>
+                </div>
+                <div>
+                  <span><Users size={20} /></span>
+                  <p>Total Bids</p>
+                  <strong>{totalBidsReceived}</strong>
+                </div>
+                <div>
+                  <span><CheckCircle size={20} /></span>
+                  <p>Completed</p>
+                  <strong>{completedCampaigns.length}</strong>
+                </div>
+              </div>
               {loading ? (
-                <div className="loading">Loading campaigns...</div>
+                <div className="all-campaigns-loading">Loading campaigns...</div>
               ) : campaigns.length === 0 ? (
-                <div className="empty-state">
-                  <Briefcase size={64} />
-                  <p>No campaigns yet. Create your first campaign to get started!</p>
+                <div className="all-campaigns-empty">
+                  <span><Briefcase size={48} /></span>
+                  <h3>No campaigns yet</h3>
+                  <p>Create your first campaign to start receiving creator bids.</p>
                   <button className="btn-primary" onClick={() => setShowCreateModal(true)}>Create Campaign</button>
                 </div>
               ) : (
@@ -1179,27 +1212,30 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   {campaigns.map(campaign => (
                     <div key={campaign.id} className="campaign-card-detailed" data-testid={`campaign-${campaign.id}`}>
                       <div className="campaign-header">
-                        <h3>{campaign.title}</h3>
-                        <span className={`badge badge-${campaign.status.replace('_', '-')}`}>{campaign.status.replace('_', ' ')}</span>
+                        <div>
+                          <span className="campaign-type-label">{campaign.category || 'Campaign'}</span>
+                          <h3>{campaign.title}</h3>
+                        </div>
+                        <span className={`badge badge-${(campaign.status || 'draft').replace('_', '-')}`}>{(campaign.status || 'draft').replace('_', ' ')}</span>
                       </div>
-                      <p className="campaign-description">{campaign.brief_text.substring(0, 120)}...</p>
+                      <p className="campaign-description">{(campaign.brief_text || 'No brief description added yet.').substring(0, 140)}{(campaign.brief_text || '').length > 140 ? '...' : ''}</p>
                       <div className="campaign-stats">
                         <div className="stat">
                           <span className="stat-label">Budget</span>
-                          <span className="stat-value">${campaign.budget_min} - ${campaign.budget_max}</span>
+                          <span className="stat-value">{formatMoney(campaign.budget_min)} - {formatMoney(campaign.budget_max)}</span>
                         </div>
                         <div className="stat">
                           <span className="stat-label">Bids</span>
                           <span className="stat-value">{campaign.bids?.length || 0}</span>
                         </div>
                         <div className="stat">
-                          <span className="stat-label">Status</span>
-                          <span className="stat-value">{campaign.status.replace('_', ' ')}</span>
+                          <span className="stat-label">Posted</span>
+                          <span className="stat-value">{formatDate(campaign.created_at)}</span>
                         </div>
                       </div>
                       <div className="campaign-actions-row">
                         <button
-                          className="btn-secondary"
+                          className="campaign-primary-action"
                           onClick={() => handleViewCampaign(campaign.id)}
                           data-testid={`view-campaign-${campaign.id}`}
                         >
@@ -3143,6 +3179,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
+          .all-campaigns-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
           .creator-directory-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -3165,6 +3205,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
         @media (max-width: 980px) {
           .header-content {
             flex-wrap: wrap;
+          }
+
+          .all-campaigns-hero {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .all-campaigns-create {
+            width: 100%;
+          }
+
+          .all-campaigns-section .campaigns-grid {
+            grid-template-columns: 1fr;
           }
 
           .brand-search {
@@ -3213,6 +3266,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .wallet-side-column {
             display: grid;
             grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .all-campaigns-stats,
+          .all-campaigns-section .campaign-stats {
+            grid-template-columns: 1fr;
+          }
+
+          .all-campaigns-hero,
+          .all-campaigns-section .campaign-card-detailed {
+            padding: 18px;
           }
         }
 
@@ -3481,6 +3546,262 @@ export default function BusinessDashboard({ page = 'overview' }) {
           align-items: center;
           justify-content: center;
           gap: 8px;
+        }
+
+        .all-campaigns-section {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .all-campaigns-hero {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px;
+          border: 1px solid #E5E7FF;
+          border-radius: 22px;
+          background: linear-gradient(135deg, #FFFFFF 0%, #F7F8FF 100%);
+          box-shadow: 0 18px 44px rgba(7, 7, 78, 0.06);
+        }
+
+        .all-campaigns-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          color: #7387FF;
+          font-size: 13px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .all-campaigns-hero h2 {
+          margin: 0 0 8px;
+          color: #07074E;
+          font-size: 30px;
+          letter-spacing: 0;
+        }
+
+        .all-campaigns-hero p {
+          max-width: 680px;
+          margin: 0;
+          color: #6F72A8;
+          font-weight: 700;
+          line-height: 1.6;
+        }
+
+        .all-campaigns-create {
+          min-height: 46px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 0 20px;
+          border: 0;
+          border-radius: 12px;
+          background: #07074E;
+          color: #FFFFFF;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 12px 26px rgba(7, 7, 78, 0.18);
+          white-space: nowrap;
+        }
+
+        .all-campaigns-stats {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
+        }
+
+        .all-campaigns-stats > div {
+          display: grid;
+          grid-template-columns: 44px 1fr;
+          align-items: center;
+          gap: 14px;
+          padding: 18px;
+          border: 1px solid #E5E7FF;
+          border-radius: 18px;
+          background: #FFFFFF;
+          box-shadow: 0 14px 34px rgba(7, 7, 78, 0.05);
+        }
+
+        .all-campaigns-stats span {
+          grid-row: span 2;
+          width: 44px;
+          height: 44px;
+          display: grid;
+          place-items: center;
+          border-radius: 13px;
+          background: #EEF0FF;
+          color: #7387FF;
+        }
+
+        .all-campaigns-stats p {
+          margin: 0;
+          color: #8A8DBD;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .all-campaigns-stats strong {
+          color: #07074E;
+          font-size: 24px;
+          line-height: 1;
+        }
+
+        .all-campaigns-loading,
+        .all-campaigns-empty {
+          display: grid;
+          place-items: center;
+          min-height: 300px;
+          padding: 48px 20px;
+          border: 1px dashed #C8CEFF;
+          border-radius: 22px;
+          background: #FFFFFF;
+          color: #6F72A8;
+          text-align: center;
+          font-weight: 800;
+        }
+
+        .all-campaigns-empty {
+          gap: 12px;
+        }
+
+        .all-campaigns-empty span {
+          width: 78px;
+          height: 78px;
+          display: grid;
+          place-items: center;
+          border-radius: 22px;
+          background: #EEF0FF;
+          color: #7387FF;
+        }
+
+        .all-campaigns-empty h3 {
+          margin: 8px 0 0;
+          color: #07074E;
+          font-size: 24px;
+        }
+
+        .all-campaigns-empty p {
+          margin: 0 0 8px;
+          color: #8A8DBD;
+        }
+
+        .all-campaigns-section .campaigns-grid {
+          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+          gap: 20px;
+        }
+
+        .all-campaigns-section .campaign-card-detailed {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          min-height: 300px;
+          padding: 22px;
+          border: 1px solid #E5E7FF;
+          border-radius: 20px;
+          background: #FFFFFF;
+          box-shadow: 0 16px 38px rgba(7, 7, 78, 0.055);
+        }
+
+        .all-campaigns-section .campaign-card-detailed:hover {
+          border-color: #BCC5FF;
+          transform: translateY(-3px);
+          box-shadow: 0 22px 46px rgba(7, 7, 78, 0.09);
+        }
+
+        .all-campaigns-section .campaign-header {
+          gap: 18px;
+          margin: 0;
+        }
+
+        .campaign-type-label {
+          display: inline-block;
+          margin-bottom: 8px;
+          color: #7387FF;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .all-campaigns-section .campaign-header h3 {
+          margin: 0;
+          color: #07074E;
+          font-size: 20px;
+          font-weight: 900;
+          line-height: 1.3;
+        }
+
+        .all-campaigns-section .badge {
+          flex: 0 0 auto;
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: capitalize;
+          white-space: nowrap;
+        }
+
+        .all-campaigns-section .campaign-description {
+          min-height: 48px;
+          margin: 0;
+          color: #65699B;
+          font-weight: 650;
+          line-height: 1.55;
+        }
+
+        .all-campaigns-section .campaign-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin: auto 0 0;
+        }
+
+        .all-campaigns-section .stat {
+          padding: 12px;
+          border-radius: 14px;
+          background: #F7F8FF;
+          border: 1px solid #ECEEFF;
+        }
+
+        .all-campaigns-section .stat-label {
+          color: #8A8DBD;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .all-campaigns-section .stat-value {
+          min-width: 0;
+          overflow: hidden;
+          color: #07074E;
+          font-size: 14px;
+          font-weight: 900;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .all-campaigns-section .campaign-actions-row {
+          padding-top: 2px;
+        }
+
+        .campaign-primary-action {
+          border: 0;
+          border-radius: 12px;
+          background: #07074E;
+          color: #FFFFFF;
+          cursor: pointer;
+          font-weight: 900;
+          box-shadow: 0 10px 22px rgba(7, 7, 78, 0.14);
+        }
+
+        .all-campaigns-section .btn-secondary {
+          border-color: #E5E7FF;
+          background: #F7F8FF;
         }
 
         .pending-list {

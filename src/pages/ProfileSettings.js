@@ -690,18 +690,35 @@ export default function ProfileSettings() {
           </div>
         </aside>
         <main className="business-main">
-          <header className="bs-top bs-dashboard-top">
-            <div>
-              <div className="bs-crumb"><span>Brand</span><span>›</span><strong>Settings</strong></div>
-              <h1>Settings</h1>
-              <p>Manage preferences, profile, billing, and notifications</p>
+          <div className="dashboard-header settings-main-header">
+            <div className="header-content">
+              <div className="brand-page-title">
+                <div className="brand-breadcrumb">
+                  <span>Brand</span>
+                  <span>›</span>
+                  <strong>Settings</strong>
+                </div>
+                <h1>Settings</h1>
+                <p>Manage preferences, profile, billing, and notifications</p>
+              </div>
+              <div className="brand-search">
+                <Search size={20} />
+                <input type="search" placeholder="Search deals, creators, briefs..." aria-label="Search dashboard" />
+              </div>
+              <div className="header-actions">
+                <button className="brand-round-action" type="button" aria-label="Notifications">
+                  <Bell size={18} />
+                  <i />
+                </button>
+                <button className="brand-round-action" type="button" aria-label="Help">
+                  <HelpCircle size={18} />
+                </button>
+                <button className="brand-profile-photo" type="button" aria-label="Profile">
+                  {getInitial(displayName)}
+                </button>
+              </div>
             </div>
-            <div className="bs-search"><Search size={20} /><input placeholder="Search deals, creators, briefs..." /></div>
-            <div className="bs-top-actions">
-              <button type="button" className="bs-round"><Bell size={18} /><i /></button>
-              <button type="button" className="bs-avatar">{getInitial(displayName)}</button>
-            </div>
-          </header>
+          </div>
           <div className="bs-page bs-dashboard-page">
             <section className="bs-left">
               <div className="bs-tabs">

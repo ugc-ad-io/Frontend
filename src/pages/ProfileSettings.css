@@ -275,6 +275,112 @@
   background: #f3f3ff;
 }
 
+.settings-main-header {
+  padding: 28px 40px 18px;
+}
+
+.settings-main-header .header-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.settings-main-header .brand-page-title {
+  min-width: 260px;
+  flex: 1;
+}
+
+.settings-main-header .brand-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b7b7e6;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-main-header .brand-breadcrumb strong {
+  color: #7387ff;
+}
+
+.settings-main-header h1 {
+  margin: 12px 0 4px;
+  color: #07074e;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.settings-main-header p {
+  margin: 0;
+  color: #9f9fd1;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.settings-main-header .brand-search {
+  height: 48px;
+  max-width: 485px;
+  flex: 0 1 485px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  border: 1px solid #e5e7ff;
+  border-radius: 999px;
+  background: #fff;
+  color: #9f9fd1;
+  box-shadow: 0 8px 24px rgba(7, 7, 78, 0.06);
+}
+
+.settings-main-header .brand-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #07074e;
+  font-weight: 700;
+}
+
+.settings-main-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-main-header .brand-round-action,
+.settings-main-header .brand-profile-photo {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e5e7ff;
+  border-radius: 50%;
+  background: #fff;
+  color: #07074e;
+  cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 8px 24px rgba(7, 7, 78, 0.06);
+}
+
+.settings-main-header .brand-round-action i {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.settings-main-header .brand-profile-photo {
+  background: #7387ff;
+  color: #fff;
+}
+
 .bs-top {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) minmax(300px, 485px) auto;

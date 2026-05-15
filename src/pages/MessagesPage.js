@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { AlertTriangle, BellOff, CheckCheck, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, User, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, User, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
@@ -145,7 +145,7 @@ export default function MessagesPage() {
       { name: 'Browse Creator', icon: Search, action: () => navigate('/dashboard/business/browse-creator') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
-      { name: 'Wallet', icon: IndianRupee, action: () => navigate('/dashboard/business/shipments') },
+      { name: 'Manage Shipment', icon: Package, action: () => navigate('/dashboard/business/shipments') },
       { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
     ]
     : [

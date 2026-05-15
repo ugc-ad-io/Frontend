@@ -36,7 +36,8 @@ import {
   BarChart3,
   LifeBuoy,
   Bolt,
-  FileText
+  FileText,
+  Package
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
@@ -400,7 +401,7 @@ export default function ProfileSettings() {
       { name: 'Browse Creator', icon: Search, action: () => navigate('/dashboard/business/browse-creator') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
-      { name: 'Wallet', icon: IndianRupee, action: () => navigate('/dashboard/business/shipments') },
+      { name: 'Manage Shipment', icon: Package, action: () => navigate('/dashboard/business/shipments') },
       { name: 'Settings', icon: Settings, action: () => navigate('/settings'), active: true }
     ]
     : [
@@ -423,7 +424,7 @@ export default function ProfileSettings() {
     { label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { label: 'All Campaigns', icon: Briefcase, path: '/dashboard/business/all-campaigns' },
     { label: 'Messages', icon: MessageSquare, path: '/messages', badge: 2, tone: 'green' },
-    { label: 'Wallet', icon: Wallet, path: '/dashboard/business/shipments' },
+    { label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
     { label: 'Settings', icon: Settings, path: '/settings', active: true }
   ];
 

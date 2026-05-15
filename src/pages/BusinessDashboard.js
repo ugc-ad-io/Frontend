@@ -342,7 +342,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
-    { id: 'shipments', label: 'Wallet', icon: Wallet, path: '/dashboard/business/shipments' },
+    { id: 'shipments', label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send } from 'lucide-react';
 import PostABrief from './PostABrief';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -46,6 +46,66 @@ const emptyPerformanceMonths = () => {
   return campaignPerformanceSample;
 };
 
+const creatorDirectoryDefaults = {
+  category: '',
+  language: '',
+  region: '',
+  style: '',
+  budget: '',
+};
+
+const creatorDirectoryOptions = {
+  categories: ['Beauty', 'Fashion', 'Lifestyle', 'Tech', 'Food', 'Fitness', 'Home Decor'],
+  languages: ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Marathi'],
+  regions: ['Metro', 'Tier-2'],
+  styles: ['Product demo', 'Unboxing', 'Testimonial', 'Storytelling', 'Lifestyle reel'],
+  budgets: ['Under Rs. 5,000', 'Rs. 5,000 - Rs. 10,000', 'Rs. 10,000 - Rs. 25,000', 'Rs. 25,000+'],
+};
+
+const creatorDirectorySorts = [
+  { value: 'recent', label: 'Recently joined' },
+  { value: 'active', label: 'Most active' },
+  { value: 'best_match', label: 'Best match for your brand' },
+];
+
+const emptyInviteForm = {
+  campaign_id: '',
+  campaign_name: '',
+  deliverable_summary: '',
+  budget: '',
+  timeline: '',
+  usage_rights: '30 days paid social usage',
+  message: '',
+};
+
+function normalizeCreatorDirectoryItem(item = {}) {
+  const profile = item.profile || {};
+  const tags = item.tags || profile.tags || [];
+  const portfolio = item.portfolio || profile.portfolio || [];
+  const languages = item.languages || profile.languages || item.content_languages || [];
+  const cityTier = item.city_tier || profile.city_tier || item.location_region || 'Curated';
+
+  return {
+    id: item.id || item.creator_id,
+    handle: item.handle || (item.nickname ? `@${String(item.nickname).replace(/^@/, '')}` : '@creator'),
+    avatar: item.profile_photo || item.profile_picture || profile.profile_picture || profile.avatar_url || '',
+    category: item.primary_category || profile.primary_category || tags[0] || 'Creator',
+    languages: Array.isArray(languages) ? languages : [languages].filter(Boolean),
+    cityTier,
+    deliverablesCompleted: Number(item.deliverables_completed || item.completed_deliverables || item.completed_campaigns || 0),
+    portfolioPreview: item.portfolio_preview || item.top_portfolio_sample || portfolio[0] || '',
+    style: item.content_style || profile.content_style || '',
+    budgetRange: item.budget_range || profile.budget_range || '',
+  };
+}
+
+function getAssetUrl(url) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  const baseUrl = BACKEND_URL || window.location.origin;
+  return `${baseUrl.replace(/\/$/, '')}/${String(url).replace(/^\//, '')}`;
+}
+
 export default function BusinessDashboard({ page = 'overview' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -57,6 +117,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creatorDirectory, setCreatorDirectory] = useState([]);
+  const [creatorDirectoryLoading, setCreatorDirectoryLoading] = useState(false);
+  const [creatorDirectoryError, setCreatorDirectoryError] = useState('');
+  const [creatorFilters, setCreatorFilters] = useState(creatorDirectoryDefaults);
+  const [creatorSort, setCreatorSort] = useState('best_match');
+  const [selectedCreatorProfile, setSelectedCreatorProfile] = useState(null);
+  const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
+  const [inviteForm, setInviteForm] = useState(emptyInviteForm);
+  const [sendingInvite, setSendingInvite] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     objectives: [],
@@ -73,6 +142,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
       fetchCampaigns();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.approval_status === 'approved' && page === 'browse-creator') {
+      fetchCreatorDirectory();
+    }
+  }, [user?.id, page, creatorFilters, creatorSort]);
 
   const fetchCampaigns = async () => {
     try {
@@ -161,6 +236,93 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   };
 
+  const fetchCreatorDirectory = async () => {
+    setCreatorDirectoryLoading(true);
+    setCreatorDirectoryError('');
+    try {
+      const params = {
+        sort: creatorSort,
+        ...Object.fromEntries(
+          Object.entries(creatorFilters).filter(([, value]) => Boolean(value))
+        )
+      };
+      const response = await axios.get(`${API}/business/creator-directory`, { params });
+      const items = Array.isArray(response.data) ? response.data : response.data?.creators || [];
+      setCreatorDirectory(items.map(normalizeCreatorDirectoryItem));
+    } catch (error) {
+      setCreatorDirectory([]);
+      setCreatorDirectoryError(
+        error.response?.status === 404
+          ? 'Creator directory API is not available yet.'
+          : error.response?.data?.detail || 'Failed to load creator directory.'
+      );
+    } finally {
+      setCreatorDirectoryLoading(false);
+    }
+  };
+
+  const handleCreatorFilterChange = (field, value) => {
+    setCreatorFilters(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleInviteCreator = (creator) => {
+    setSelectedCreatorInvite(creator);
+    setInviteForm({
+      ...emptyInviteForm,
+      campaign_name: campaigns[0]?.title || '',
+      budget: campaigns[0] ? formatMoney(campaigns[0].budget_max || campaigns[0].budget_min || 0) : creator.budgetRange || '',
+      message: `Hi ${creator.handle}, we think your content style could be a strong fit for our brand.`,
+    });
+  };
+
+  const handleInviteCampaignChange = (campaignId) => {
+    const campaign = campaigns.find(item => item.id === campaignId);
+    setInviteForm(prev => ({
+      ...prev,
+      campaign_id: campaignId,
+      campaign_name: campaign?.title || prev.campaign_name,
+      budget: campaign ? formatMoney(campaign.budget_max || campaign.budget_min || 0) : prev.budget,
+      deliverable_summary: campaign?.deliverables || campaign?.brief_text?.slice(0, 120) || prev.deliverable_summary,
+    }));
+  };
+
+  const handleInviteFieldChange = (field, value) => {
+    setInviteForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const closeInviteModal = () => {
+    setSelectedCreatorInvite(null);
+    setInviteForm(emptyInviteForm);
+    setSendingInvite(false);
+  };
+
+  const handleSubmitCreatorInvite = async (event) => {
+    event.preventDefault();
+    if (!selectedCreatorInvite?.id) return;
+
+    const payload = {
+      campaign_id: inviteForm.campaign_id || null,
+      campaign_name: inviteForm.campaign_name.trim(),
+      deliverable_summary: inviteForm.deliverable_summary.trim(),
+      budget: inviteForm.budget.trim(),
+      timeline: inviteForm.timeline.trim(),
+      usage_rights: inviteForm.usage_rights.trim(),
+      message: inviteForm.message.trim(),
+    };
+
+    setSendingInvite(true);
+    try {
+      await axios.post(`${API}/business/creator-directory/${selectedCreatorInvite.id}/invite`, payload);
+      toast.success(`Invitation sent to ${selectedCreatorInvite.handle}`);
+      closeInviteModal();
+      setSelectedCreatorProfile(null);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to send invitation');
+    } finally {
+      setSendingInvite(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -177,6 +339,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
     { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
+    { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'shipments', label: 'Wallet', icon: Wallet, path: '/dashboard/business/shipments' },
@@ -1040,6 +1203,105 @@ export default function BusinessDashboard({ page = 'overview' }) {
             </div>
           )}
 
+          {activeTab === 'browse-creator' && (
+            <div className="creator-directory-section">
+              <div className="creator-directory-head">
+                <div>
+                  <span className="creator-directory-kicker"><UserRoundSearch size={16} /> Curated creator pool</span>
+                  <h2>Creator Browse / Directory</h2>
+                  <p>Browse creators admitted by ops for private invitations. This view is scoped to the curated pool, not the full platform roster.</p>
+                </div>
+                <div className="creator-directory-sort">
+                  <label htmlFor="creator-sort">Sort</label>
+                  <select id="creator-sort" value={creatorSort} onChange={(event) => setCreatorSort(event.target.value)}>
+                    {creatorDirectorySorts.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="creator-filter-bar" aria-label="Creator directory filters">
+                <span><Filter size={17} /> Filters</span>
+                <select value={creatorFilters.category} onChange={(event) => handleCreatorFilterChange('category', event.target.value)} aria-label="Category">
+                  <option value="">Category</option>
+                  {creatorDirectoryOptions.categories.map(option => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <select value={creatorFilters.language} onChange={(event) => handleCreatorFilterChange('language', event.target.value)} aria-label="Language">
+                  <option value="">Language</option>
+                  {creatorDirectoryOptions.languages.map(option => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <select value={creatorFilters.region} onChange={(event) => handleCreatorFilterChange('region', event.target.value)} aria-label="Location region">
+                  <option value="">Location region</option>
+                  {creatorDirectoryOptions.regions.map(option => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <select value={creatorFilters.style} onChange={(event) => handleCreatorFilterChange('style', event.target.value)} aria-label="Content style">
+                  <option value="">Content style</option>
+                  {creatorDirectoryOptions.styles.map(option => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <select value={creatorFilters.budget} onChange={(event) => handleCreatorFilterChange('budget', event.target.value)} aria-label="Budget range">
+                  <option value="">Budget range</option>
+                  {creatorDirectoryOptions.budgets.map(option => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <button type="button" onClick={() => setCreatorFilters(creatorDirectoryDefaults)}>Clear</button>
+              </div>
+
+              {creatorDirectoryLoading ? (
+                <div className="loading">Loading creator directory...</div>
+              ) : creatorDirectory.length === 0 ? (
+                <div className="creator-directory-empty">
+                  <Users size={54} />
+                  <h3>No creators to show yet</h3>
+                  <p>{creatorDirectoryError || 'Creators admitted to your curated view will appear here.'}</p>
+                  {creatorDirectoryError && (
+                    <small>Backend needed: GET /api/business/creator-directory with filters, sorting, creator card fields, and private invite support.</small>
+                  )}
+                </div>
+              ) : (
+                <div className="creator-directory-grid">
+                  {creatorDirectory.map(creator => (
+                    <article key={creator.id || creator.handle} className="creator-directory-card">
+                      <div className="creator-card-top">
+                        <div className="creator-card-avatar">
+                          {creator.avatar ? (
+                            <img src={getAssetUrl(creator.avatar)} alt={creator.handle} />
+                          ) : (
+                            <span>{creator.handle.replace('@', '').charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div>
+                          <h3>{creator.handle}</h3>
+                          <span>{creator.category}</span>
+                        </div>
+                      </div>
+
+                      <div className="creator-portfolio-preview">
+                        {creator.portfolioPreview ? (
+                          <img src={getAssetUrl(creator.portfolioPreview)} alt={`${creator.handle} portfolio preview`} />
+                        ) : (
+                          <div><ImageIcon size={26} /> Portfolio preview</div>
+                        )}
+                      </div>
+
+                      <div className="creator-quick-stats">
+                        <span><Languages size={15} /> {creator.languages.length ? creator.languages.join(', ') : 'Languages pending'}</span>
+                        <span><MapPin size={15} /> {creator.cityTier}</span>
+                        <span><CheckCircle size={15} /> {creator.deliverablesCompleted} delivered</span>
+                      </div>
+
+                      <div className="creator-card-actions">
+                        <button type="button" className="btn-secondary" onClick={() => setSelectedCreatorProfile(creator)}>
+                          <Eye size={16} /> View Profile
+                        </button>
+                        <button type="button" className="btn-primary" onClick={() => handleInviteCreator(creator)}>
+                          <Send size={16} /> Invite
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'work-review' && (
             <div className="work-review-section">
               <div className="work-review-hero">
@@ -1311,6 +1573,159 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </button>
                 <button type="submit" className="btn-primary" data-testid="submit-campaign-btn">
                   Create Campaign
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selectedCreatorProfile && (
+        <div className="modal-overlay" onClick={() => setSelectedCreatorProfile(null)}>
+          <div className="modal-content creator-profile-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="creator-profile-modal-head">
+              <div className="creator-card-avatar large">
+                {selectedCreatorProfile.avatar ? (
+                  <img src={getAssetUrl(selectedCreatorProfile.avatar)} alt={selectedCreatorProfile.handle} />
+                ) : (
+                  <span>{selectedCreatorProfile.handle.replace('@', '').charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div>
+                <h2>{selectedCreatorProfile.handle}</h2>
+                <p>{selectedCreatorProfile.category}</p>
+              </div>
+            </div>
+            <div className="creator-profile-modal-grid">
+              <div><small>Languages</small><strong>{selectedCreatorProfile.languages.length ? selectedCreatorProfile.languages.join(', ') : 'Pending'}</strong></div>
+              <div><small>City Tier</small><strong>{selectedCreatorProfile.cityTier}</strong></div>
+              <div><small>Delivered</small><strong>{selectedCreatorProfile.deliverablesCompleted}</strong></div>
+              <div><small>Budget</small><strong>{selectedCreatorProfile.budgetRange || 'Not set'}</strong></div>
+            </div>
+            <div className="creator-profile-modal-preview">
+              {selectedCreatorProfile.portfolioPreview ? (
+                <img src={getAssetUrl(selectedCreatorProfile.portfolioPreview)} alt={`${selectedCreatorProfile.handle} portfolio preview`} />
+              ) : (
+                <span><ImageIcon size={24} /> Portfolio preview pending</span>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn-secondary" onClick={() => setSelectedCreatorProfile(null)}>Close</button>
+              <button type="button" className="btn-primary" onClick={() => handleInviteCreator(selectedCreatorProfile)}>
+                <Send size={16} /> Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedCreatorInvite && (
+        <div className="modal-overlay" onClick={closeInviteModal}>
+          <div className="modal-content creator-invite-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="creator-invite-head">
+              <div>
+                <span className="creator-directory-kicker"><Send size={16} /> Private invitation</span>
+                <h2>Invite {selectedCreatorInvite.handle}</h2>
+                <p>Send a structured invitation card. The creator can accept, reject, or counter from chat.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitCreatorInvite} className="creator-invite-form">
+              <div className="form-group">
+                <label htmlFor="invite-campaign">Existing campaign (optional)</label>
+                <select
+                  id="invite-campaign"
+                  className="input-field"
+                  value={inviteForm.campaign_id}
+                  onChange={(event) => handleInviteCampaignChange(event.target.value)}
+                >
+                  <option value="">No linked campaign</option>
+                  {campaigns.map(campaign => (
+                    <option key={campaign.id} value={campaign.id}>{campaign.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="invite-campaign-name">Campaign name</label>
+                <input
+                  id="invite-campaign-name"
+                  className="input-field"
+                  value={inviteForm.campaign_name}
+                  onChange={(event) => handleInviteFieldChange('campaign_name', event.target.value)}
+                  placeholder="Summer Skincare Reel"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="invite-deliverables">Deliverable summary</label>
+                <textarea
+                  id="invite-deliverables"
+                  className="textarea-field"
+                  value={inviteForm.deliverable_summary}
+                  onChange={(event) => handleInviteFieldChange('deliverable_summary', event.target.value)}
+                  placeholder="1 Instagram reel + 3 raw clips"
+                  required
+                  rows={3}
+                />
+              </div>
+
+              <div className="budget-row">
+                <div className="form-group">
+                  <label htmlFor="invite-budget">Budget</label>
+                  <input
+                    id="invite-budget"
+                    className="input-field"
+                    value={inviteForm.budget}
+                    onChange={(event) => handleInviteFieldChange('budget', event.target.value)}
+                    placeholder="Rs. 10,000"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="invite-timeline">Timeline</label>
+                  <input
+                    id="invite-timeline"
+                    className="input-field"
+                    value={inviteForm.timeline}
+                    onChange={(event) => handleInviteFieldChange('timeline', event.target.value)}
+                    placeholder="7 days"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="invite-rights">Usage rights</label>
+                <input
+                  id="invite-rights"
+                  className="input-field"
+                  value={inviteForm.usage_rights}
+                  onChange={(event) => handleInviteFieldChange('usage_rights', event.target.value)}
+                  placeholder="30 days paid social usage"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="invite-message">Message</label>
+                <textarea
+                  id="invite-message"
+                  className="textarea-field"
+                  value={inviteForm.message}
+                  onChange={(event) => handleInviteFieldChange('message', event.target.value)}
+                  placeholder="Add a short note for the creator"
+                  rows={3}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={closeInviteModal} disabled={sendingInvite}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={sendingInvite}>
+                  <Send size={16} /> {sendingInvite ? 'Sending...' : 'Send Invite'}
                 </button>
               </div>
             </form>
@@ -2513,6 +2928,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
+          .creator-directory-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
           .performance-panel {
             grid-column: 1 / -1;
           }
@@ -2552,6 +2971,24 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           .quick-action-grid {
             grid-template-columns: 1fr;
+          }
+
+          .creator-directory-head {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .creator-directory-sort {
+            min-width: 0;
+          }
+
+          .creator-filter-bar {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .creator-filter-bar > span,
+          .creator-filter-bar button {
+            grid-column: 1 / -1;
           }
         }
 
@@ -2906,6 +3343,352 @@ export default function BusinessDashboard({ page = 'overview' }) {
           justify-content: space-between;
           align-items: center;
           padding: 8px 0;
+        }
+
+        .creator-directory-section {
+          display: flex;
+          flex-direction: column;
+          gap: 22px;
+        }
+
+        .creator-directory-head {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px;
+          border: 1px solid #E9EBFF;
+          border-radius: 24px;
+          background: white;
+          box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
+        }
+
+        .creator-directory-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .creator-directory-head h2 {
+          margin: 0;
+          color: #07074E;
+          font-size: 32px;
+          line-height: 1;
+        }
+
+        .creator-directory-head p {
+          max-width: 680px;
+          margin: 10px 0 0;
+          color: #6B6B9E;
+          font-weight: 650;
+          line-height: 1.55;
+        }
+
+        .creator-directory-sort {
+          min-width: 260px;
+        }
+
+        .creator-directory-sort label {
+          display: block;
+          margin-bottom: 8px;
+          color: #6B6B9E;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .creator-directory-sort select,
+        .creator-filter-bar select {
+          width: 100%;
+          height: 44px;
+          border: 1px solid #DDE2FF;
+          border-radius: 10px;
+          background: white;
+          color: #07074E;
+          font-weight: 750;
+          outline: 0;
+        }
+
+        .creator-directory-sort select {
+          padding: 0 12px;
+        }
+
+        .creator-filter-bar {
+          display: grid;
+          grid-template-columns: auto repeat(5, minmax(150px, 1fr)) auto;
+          gap: 12px;
+          align-items: center;
+          padding: 16px;
+          border: 1px solid #E9EBFF;
+          border-radius: 18px;
+          background: white;
+          box-shadow: 0 12px 30px rgba(7, 7, 78, 0.04);
+        }
+
+        .creator-filter-bar > span {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          color: #07074E;
+          font-weight: 900;
+        }
+
+        .creator-filter-bar select {
+          padding: 0 10px;
+        }
+
+        .creator-filter-bar button {
+          height: 44px;
+          padding: 0 16px;
+          border: 1px solid #DDE2FF;
+          border-radius: 10px;
+          background: #F8F9FF;
+          color: #07074E;
+          font-weight: 850;
+          cursor: pointer;
+        }
+
+        .creator-directory-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 22px;
+        }
+
+        .creator-directory-card {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          padding: 18px;
+          border: 1px solid #E9EBFF;
+          border-radius: 18px;
+          background: white;
+          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+        }
+
+        .creator-card-top {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .creator-card-avatar {
+          width: 54px;
+          height: 54px;
+          overflow: hidden;
+          border-radius: 16px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-weight: 900;
+          display: grid;
+          place-items: center;
+        }
+
+        .creator-card-avatar.large {
+          width: 72px;
+          height: 72px;
+          border-radius: 20px;
+          font-size: 24px;
+        }
+
+        .creator-card-avatar img,
+        .creator-portfolio-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .creator-card-top h3 {
+          margin: 0 0 6px;
+          color: #07074E;
+          font-size: 18px;
+        }
+
+        .creator-card-top span {
+          display: inline-flex;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .creator-portfolio-preview {
+          height: 164px;
+          overflow: hidden;
+          border-radius: 14px;
+          background: #F8F9FF;
+        }
+
+        .creator-portfolio-preview > div {
+          height: 100%;
+          display: grid;
+          place-items: center;
+          gap: 8px;
+          color: #9F9FD1;
+          font-weight: 850;
+        }
+
+        .creator-quick-stats {
+          display: grid;
+          gap: 9px;
+          color: #4A4A77;
+          font-size: 13px;
+          font-weight: 750;
+        }
+
+        .creator-quick-stats span {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .creator-card-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-top: auto;
+        }
+
+        .creator-card-actions button {
+          min-width: 0;
+          justify-content: center;
+        }
+
+        .creator-directory-empty {
+          display: grid;
+          justify-items: center;
+          gap: 10px;
+          padding: 58px 24px;
+          border: 1px dashed #B7B7E6;
+          border-radius: 22px;
+          background: white;
+          color: #6B6B9E;
+          text-align: center;
+        }
+
+        .creator-directory-empty h3 {
+          margin: 0;
+          color: #07074E;
+        }
+
+        .creator-directory-empty p {
+          max-width: 520px;
+          margin: 0;
+          font-weight: 700;
+        }
+
+        .creator-directory-empty small {
+          max-width: 640px;
+          color: #9F9FD1;
+          font-weight: 750;
+        }
+
+        .creator-profile-modal {
+          max-width: 640px;
+        }
+
+        .creator-invite-modal {
+          max-width: 680px;
+        }
+
+        .creator-invite-head {
+          margin-bottom: 20px;
+        }
+
+        .creator-invite-head h2 {
+          margin: 0 0 8px;
+          color: #07074E;
+        }
+
+        .creator-invite-head p {
+          margin: 0;
+          color: #6B6B9E;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .creator-invite-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .creator-profile-modal-head {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .creator-profile-modal-head h2 {
+          margin: 0 0 6px;
+          color: #07074E;
+        }
+
+        .creator-profile-modal-head p {
+          margin: 0;
+          color: #7387FF;
+          font-weight: 850;
+        }
+
+        .creator-profile-modal-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .creator-profile-modal-grid div {
+          padding: 14px;
+          border-radius: 14px;
+          background: #F8F9FF;
+          border: 1px solid #E9EBFF;
+        }
+
+        .creator-profile-modal-grid small,
+        .creator-profile-modal-grid strong {
+          display: block;
+        }
+
+        .creator-profile-modal-grid small {
+          margin-bottom: 6px;
+          color: #9F9FD1;
+          font-weight: 850;
+        }
+
+        .creator-profile-modal-grid strong {
+          color: #07074E;
+        }
+
+        .creator-profile-modal-preview {
+          height: 220px;
+          overflow: hidden;
+          display: grid;
+          place-items: center;
+          margin-bottom: 18px;
+          border-radius: 16px;
+          background: #F8F9FF;
+          color: #9F9FD1;
+          font-weight: 850;
+        }
+
+        .creator-profile-modal-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
         .work-review-section {
@@ -3594,6 +4377,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           .campaigns-grid {
             grid-template-columns: 1fr;
+          }
+
+          .creator-directory-grid,
+          .creator-filter-bar,
+          .creator-card-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .creator-directory-head h2 {
+            font-size: 26px;
           }
 
           .actions-grid {

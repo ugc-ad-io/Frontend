@@ -209,6 +209,14 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/browse-creator"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard page="browse-creator" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/business/work-review"
               element={
                 <ProtectedRoute allowedRoles={['business']}>

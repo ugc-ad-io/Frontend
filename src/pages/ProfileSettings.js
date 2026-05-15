@@ -396,7 +396,7 @@ export default function ProfileSettings() {
       { name: 'Brand Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/business') },
       { name: 'Post a Brief', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
       { name: 'All Campaigns', icon: Briefcase, action: () => navigate('/dashboard/business/all-campaigns') },
-      { name: 'Browse Creators', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
+      { name: 'Creator Bids', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
       { name: 'Wallet', icon: IndianRupee, action: () => navigate('/dashboard/business/shipments') },
@@ -418,7 +418,7 @@ export default function ProfileSettings() {
   const brandNav = [
     { label: 'Brand Dashboard', icon: LayoutDashboard, path: '/dashboard/business' },
     { label: 'Post a Brief', icon: FileCheck, path: '/dashboard/business/post-brief' },
-    { label: 'Browse Creators', icon: Users, path: '/dashboard/business/pending-bids', badge: 3, tone: 'orange' },
+    { label: 'Creator Bids', icon: Users, path: '/dashboard/business/pending-bids', badge: 3, tone: 'orange' },
     { label: 'All Campaigns', icon: Briefcase, path: '/dashboard/business/all-campaigns' },
     { label: 'Messages', icon: MessageSquare, path: '/messages', badge: 2, tone: 'green' },
     { label: 'Wallet', icon: Wallet, path: '/dashboard/business/shipments' },

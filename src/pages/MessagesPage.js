@@ -141,7 +141,7 @@ export default function MessagesPage() {
       { name: 'Brand Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/business') },
       { name: 'Post a Brief', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
       { name: 'All Campaigns', icon: Briefcase, action: () => navigate('/dashboard/business/all-campaigns') },
-      { name: 'Browse Creators', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
+      { name: 'Creator Bids', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
       { name: 'Wallet', icon: IndianRupee, action: () => navigate('/dashboard/business/shipments') },

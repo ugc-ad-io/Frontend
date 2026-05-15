@@ -69,7 +69,7 @@ const SORT_OPTS  = ["Best Match","Highest Rated","Most Deals","Newest"];
 const NAV = [
   { label:"Brand Dashboard", path:"/brand",              icon:LayoutDashboard },
   { label:"Post a Brief",    path:"/brand/post-brief",   icon:PenSquare       },
-  { label:"Browse Creators", path:"/brand/applications", icon:Users,  badge:"3" },
+  { label:"Creator Bids",    path:"/brand/applications", icon:Users,  badge:"3" },
   { label:"Deal Room",       path:"/brand/deals",        icon:ClipboardList   },
   { label:"Messages",        path:"/brand/messages",     icon:MessageSquare, badge:"2" },
   { label:"Wallet",          path:"/brand/wallet",       icon:Wallet          },
@@ -597,7 +597,7 @@ export function BrowseCreatorsPage() {
           {/* Title */}
           <div className="shrink-0">
             <div className="text-[15px] font-semibold" style={{color:"#07074E",fontFamily:"'Readex Pro',sans-serif"}}>
-              Browse Creators
+              Creator Bids
             </div>
             <div className="text-[11px] font-medium" style={{color:"#9F9FD1"}}>
               Discover verified creators for your campaign

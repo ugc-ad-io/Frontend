@@ -16,7 +16,7 @@ import {
 const BRAND_NAV = [
   { name: "Brand Dashboard", path: "/brand",              icon: LayoutDashboard },
   { name: "Post a Brief",    path: "/brand/post-brief",   icon: PenSquare       },
-  { name: "Browse Creators", path: "/brand/applications", icon: Users           },
+  { name: "Creator Bids",    path: "/brand/applications", icon: Users           },
   { name: "Deal Room",       path: "/brand/deals",        icon: ClipboardList   },
   { name: "Messages",        path: "/brand/messages",     icon: MessageSquare   },
   { name: "Wallet",          path: "/brand/wallet",       icon: Wallet          },
@@ -26,7 +26,7 @@ const BRAND_NAV = [
 function getPageMeta(pathname: string) {
   if (pathname === "/brand")                 return { title: "Brand Dashboard",  subtitle: "Manage campaigns, creators, approvals, and spending in one place" };
   if (pathname === "/brand/post-brief")      return { title: "Post a Brief",     subtitle: "Create a new campaign and attract top creators"              };
-  if (pathname === "/brand/applications")    return { title: "Browse Creators",  subtitle: "Discover verified creators that match your campaign brief"            };
+  if (pathname === "/brand/applications")    return { title: "Creator Bids",     subtitle: "Review creator bids that match your campaign brief"                  };
   if (pathname === "/brand/deals")           return { title: "Active Deal Workspace", subtitle: "Review progress, approve deliverables, release payout"              };
   if (pathname === "/brand/messages")        return { title: "Messages",         subtitle: "Connect with creators and manage conversations"              };
   if (pathname === "/brand/wallet")          return { title: "Wallet",           subtitle: "Manage balance, recharges, and transaction history"          };
@@ -78,7 +78,7 @@ export function BrandLayout() {
                   />
                   {item.name}
                   {/* Notification badges for demo */}
-                  {item.name === "Browse Creators" && (
+                  {item.name === "Creator Bids" && (
                     <span className="ml-auto w-5 h-5 rounded-full bg-[#F39C12] text-white text-[10px] font-bold flex items-center justify-center">
                       3
                     </span>

@@ -176,7 +176,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
-    { id: 'pending-bids', label: 'Browse Creators', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
+    { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'shipments', label: 'Wallet', icon: Wallet, path: '/dashboard/business/shipments' },
@@ -922,7 +922,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <h2>Quick Actions</h2>
                   <div className="quick-action-grid">
                     <button type="button" onClick={() => setShowCreateModal(true)}><FileCheck size={20} />Post a Brief</button>
-                    <button type="button" onClick={() => navigate('/dashboard/business/pending-bids')}><Users size={20} />Browse Creators</button>
+                    <button type="button" onClick={() => navigate('/dashboard/business/pending-bids')}><Users size={20} />Creator Bids</button>
                     <button type="button"><Wallet size={20} />Top Up Wallet</button>
                     <button type="button"><DollarSign size={20} />Download Report</button>
                   </div>

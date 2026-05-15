@@ -1365,10 +1365,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <div className="creator-card-top">
                         <div className="creator-card-avatar">
                           {creator.avatar ? (
-                            <img src={getAssetUrl(creator.avatar)} alt={creator.handle} />
+                            <img src={getAssetUrl(creator.avatar)} alt={creator.handle} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
                           ) : (
                             <span>{creator.handle.replace('@', '').charAt(0).toUpperCase()}</span>
                           )}
+                          <b>{creator.handle.replace('@', '').charAt(0).toUpperCase()}</b>
                         </div>
                         <div>
                           <h3>{creator.handle}</h3>
@@ -1378,10 +1379,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
                       <div className="creator-portfolio-preview">
                         {creator.portfolioPreview ? (
-                          <img src={getAssetUrl(creator.portfolioPreview)} alt={`${creator.handle} portfolio preview`} />
+                          <img src={getAssetUrl(creator.portfolioPreview)} alt={`${creator.handle} portfolio preview`} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
                         ) : (
                           <div><ImageIcon size={26} /> Portfolio preview</div>
                         )}
+                        <div><ImageIcon size={24} /> Portfolio preview</div>
                       </div>
 
                       <div className="creator-quick-stats">
@@ -3893,17 +3895,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .creator-directory-section {
           display: flex;
           flex-direction: column;
-          gap: 22px;
+          gap: 20px;
+          max-width: 1240px;
+          margin: 0 auto;
         }
 
         .creator-directory-head {
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: space-between;
           gap: 24px;
-          padding: 28px;
+          padding: 24px 26px;
           border: 1px solid #E9EBFF;
-          border-radius: 24px;
+          border-radius: 20px;
           background: white;
           box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
         }
@@ -3926,8 +3930,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .creator-directory-head h2 {
           margin: 0;
           color: #07074E;
-          font-size: 32px;
-          line-height: 1;
+          font-size: 28px;
+          line-height: 1.1;
         }
 
         .creator-directory-head p {
@@ -3939,7 +3943,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .creator-directory-sort {
-          min-width: 260px;
+          min-width: 280px;
         }
 
         .creator-directory-sort label {
@@ -3970,12 +3974,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .creator-filter-bar {
           display: grid;
-          grid-template-columns: auto repeat(5, minmax(150px, 1fr)) auto;
-          gap: 12px;
+          grid-template-columns: auto repeat(5, minmax(132px, 1fr)) auto;
+          gap: 10px;
           align-items: center;
-          padding: 16px;
+          padding: 14px;
           border: 1px solid #E9EBFF;
-          border-radius: 18px;
+          border-radius: 16px;
           background: white;
           box-shadow: 0 12px 30px rgba(7, 7, 78, 0.04);
         }
@@ -4005,28 +4009,37 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .creator-directory-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 22px;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 20px;
         }
 
         .creator-directory-card {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
+          min-height: 420px;
           padding: 18px;
           border: 1px solid #E9EBFF;
-          border-radius: 18px;
+          border-radius: 20px;
           background: white;
           box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+          transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+        }
+
+        .creator-directory-card:hover {
+          border-color: #C8CEFF;
+          transform: translateY(-3px);
+          box-shadow: 0 22px 44px rgba(7, 7, 78, 0.09);
         }
 
         .creator-card-top {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 12px;
         }
 
         .creator-card-avatar {
+          position: relative;
           width: 54px;
           height: 54px;
           overflow: hidden;
@@ -4038,6 +4051,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
           place-items: center;
         }
 
+        .creator-card-avatar b {
+          position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          z-index: 0;
+        }
+
         .creator-card-avatar.large {
           width: 72px;
           height: 72px;
@@ -4047,6 +4068,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .creator-card-avatar img,
         .creator-portfolio-preview img {
+          position: relative;
+          z-index: 1;
           width: 100%;
           height: 100%;
           object-fit: cover;
@@ -4054,9 +4077,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .creator-card-top h3 {
-          margin: 0 0 6px;
+          margin: 0 0 8px;
           color: #07074E;
           font-size: 18px;
+          line-height: 1.25;
+          word-break: break-word;
         }
 
         .creator-card-top span {
@@ -4070,24 +4095,31 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .creator-portfolio-preview {
-          height: 164px;
+          position: relative;
+          height: 150px;
           overflow: hidden;
           border-radius: 14px;
           background: #F8F9FF;
+          border: 1px solid #EEF0FF;
         }
 
         .creator-portfolio-preview > div {
+          position: absolute;
+          inset: 0;
           height: 100%;
-          display: grid;
-          place-items: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
           gap: 8px;
           color: #9F9FD1;
           font-weight: 850;
+          text-align: center;
         }
 
         .creator-quick-stats {
           display: grid;
-          gap: 9px;
+          gap: 8px;
           color: #4A4A77;
           font-size: 13px;
           font-weight: 750;
@@ -4098,6 +4130,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
           align-items: center;
           gap: 8px;
           min-width: 0;
+          line-height: 1.35;
+        }
+
+        .creator-quick-stats svg {
+          flex: 0 0 auto;
+          color: #7387FF;
         }
 
         .creator-card-actions {
@@ -4109,7 +4147,25 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .creator-card-actions button {
           min-width: 0;
+          min-height: 46px;
           justify-content: center;
+          border-radius: 14px;
+          font-size: 14px;
+          font-weight: 900;
+          box-shadow: none;
+        }
+
+        .creator-card-actions .btn-secondary {
+          border: 1px solid #7387FF;
+          background: white;
+          color: #7387FF;
+        }
+
+        .creator-card-actions .btn-primary {
+          border: 1px solid #7387FF;
+          background: #7387FF;
+          color: white;
+          box-shadow: 0 12px 22px rgba(115, 135, 255, 0.22);
         }
 
         .creator-directory-empty {

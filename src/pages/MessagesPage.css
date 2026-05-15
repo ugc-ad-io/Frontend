@@ -634,6 +634,12 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  padding: 16px 0 12px;
+  margin-top: -16px;
+  background: linear-gradient(180deg, #fff 72%, rgba(255, 255, 255, 0.88));
 }
 
 .msg-action-composer-head strong {
@@ -651,17 +657,43 @@
   font-weight: 700;
 }
 
+.msg-action-composer-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .msg-action-composer-head button {
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.msg-action-send-top {
+  min-height: 34px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #7387FF;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(115, 135, 255, 0.24);
+  white-space: nowrap;
+}
+
+.msg-action-send-top:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.msg-action-close {
   width: 30px;
   height: 30px;
-  border: none;
   border-radius: 50%;
   background: #f5f4ff;
   color: #07074E;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
 }
 
 .msg-action-composer-grid {

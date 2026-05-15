@@ -658,41 +658,14 @@ export default function ProfileSettings() {
 
   if (user?.role === 'business') {
     return (
-      <div className="bs-shell">
-        <aside className="bs-sidebar">
-          <div>
-            <div className="bs-brand"><div>U</div><strong>UGCad.io</strong></div>
-            <span className="bs-menu-label">Menu</span>
-            <nav>
-              {brandNav.map(item => (
-                <button key={item.label} type="button" className={item.active ? 'active' : ''} onClick={() => navigate(item.path)}>
-                  <item.icon size={21} />
-                  <span>{item.label}</span>
-                  {item.badge ? <b className={item.tone}>{item.badge}</b> : null}
-                </button>
-              ))}
-            </nav>
-          </div>
-          <div className="bs-sidebar-user">
-            <i>{getInitial(displayName)}</i>
-            <strong>{displayName}</strong>
-          </div>
-        </aside>
-        <main className="bs-main">
-          <header className="bs-top">
-            <div>
-              <div className="bs-crumb"><span>Brand</span><span>›</span><strong>Settings</strong></div>
-              <h1>Settings</h1>
-              <p>Manage preferences and notifications</p>
-            </div>
-            <div className="bs-search"><Search size={20} /><input placeholder="Search deals, creators, briefs..." /></div>
-            <div className="bs-top-actions">
-              <div className="bs-role-switch"><span>Creator</span><strong>Brand</strong></div>
-              <button type="button" className="bs-round"><Bell size={18} /><i /></button>
-              <button type="button" className="bs-avatar">{getInitial(displayName)}</button>
-            </div>
-          </header>
-          <div className="bs-page">
+      <DashboardLayout
+        navItems={navItems}
+        title="Settings"
+        description="Manage preferences, profile, billing, and notifications"
+        topbarExtra={null}
+        sidebarExtra={null}
+      >
+          <div className="bs-page bs-dashboard-page">
             <section className="bs-left">
               <div className="bs-tabs">
                 {BRAND_TABS.map(tab => (
@@ -728,8 +701,7 @@ export default function ProfileSettings() {
               </section>
             </aside>
           </div>
-        </main>
-      </div>
+      </DashboardLayout>
     );
   }
 

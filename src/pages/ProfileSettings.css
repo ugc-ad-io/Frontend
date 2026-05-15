@@ -249,6 +249,12 @@
   padding: 0 56px 56px 44px;
 }
 
+.bs-dashboard-page {
+  padding: 32px;
+  background: #f5f4ff;
+  min-height: 100%;
+}
+
 .bs-tabs {
   display: flex;
   align-items: center;

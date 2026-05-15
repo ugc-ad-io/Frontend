@@ -720,7 +720,12 @@ export default function MessagesPage() {
                     <strong>{ACTION_CARD_LABELS[actionComposerType]}</strong>
                     <small>Fill the details and send a structured action card.</small>
                   </div>
-                  <button type="button" aria-label="Close action card form" onClick={closeActionComposer}><X size={16} /></button>
+                  <div className="msg-action-composer-head-actions">
+                    <button type="submit" className="msg-action-send-top" disabled={creatingCard}>
+                      {creatingCard ? 'Sending...' : 'Send Card'}
+                    </button>
+                    <button type="button" className="msg-action-close" aria-label="Close action card form" onClick={closeActionComposer}><X size={16} /></button>
+                  </div>
                 </div>
                 <div className="msg-action-composer-grid">
                   {(ACTION_CARD_FORM_FIELDS[actionComposerType] || []).map(renderActionComposerField)}

@@ -698,7 +698,6 @@ export default function ProfileSettings() {
             </div>
             <div className="bs-search"><Search size={20} /><input placeholder="Search deals, creators, briefs..." /></div>
             <div className="bs-top-actions">
-              <div className="bs-role-switch"><span>Creator</span><strong>Brand</strong></div>
               <button type="button" className="bs-round"><Bell size={18} /><i /></button>
               <button type="button" className="bs-avatar">{getInitial(displayName)}</button>
             </div>

@@ -863,12 +863,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
               </div>
             )}
             <div className="header-actions">
-              {(activeTab === 'overview' || activeTab === 'post-brief') && (
-                <div className="role-switch" aria-label="Role switch">
-                  <span>Creator</span>
-                  <strong>Brand</strong>
-                </div>
-              )}
               {activeTab === 'post-brief' && (
                 <>
                   <button className="brand-round-action" type="button" aria-label="Notifications">

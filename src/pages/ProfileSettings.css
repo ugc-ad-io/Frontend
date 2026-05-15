@@ -1071,6 +1071,205 @@
   font-weight: 900;
 }
 
+.bs-dashboard-top {
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 420px) auto;
+  padding: 32px 40px 20px;
+}
+
+.bs-dashboard-top h1 {
+  margin-top: 10px;
+  font-size: 34px;
+  letter-spacing: 0;
+}
+
+.bs-dashboard-top p {
+  margin: 0;
+  color: #6f72a8;
+  font-size: 15px;
+}
+
+.bs-dashboard-top .bs-search {
+  height: 48px;
+  border: 1px solid #e6e8ff;
+  box-shadow: 0 10px 28px rgba(7, 7, 78, 0.06);
+}
+
+.bs-dashboard-page {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 24px;
+  padding: 20px 40px 40px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0)),
+    #f5f4ff;
+}
+
+.bs-dashboard-page .bs-left {
+  min-width: 0;
+}
+
+.bs-dashboard-page .bs-tabs {
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 7px;
+  border: 1px solid #eaecff;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(7, 7, 78, 0.05);
+}
+
+.bs-dashboard-page .bs-tabs button {
+  flex: 1 0 auto;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 11px;
+  color: #666a9c;
+  font-size: 14px;
+}
+
+.bs-dashboard-page .bs-tabs button:hover {
+  background: #f4f6ff;
+  color: #07074e;
+}
+
+.bs-dashboard-page .bs-tabs button.active {
+  background: #07074e;
+  box-shadow: 0 10px 22px rgba(7, 7, 78, 0.18);
+}
+
+.bs-dashboard-page .bs-card,
+.bs-dashboard-page .bs-status-card,
+.bs-dashboard-page .bs-quick-card,
+.bs-dashboard-page .bs-help-card {
+  border: 1px solid #e8eaff;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(7, 7, 78, 0.06);
+}
+
+.bs-dashboard-page .bs-card-head {
+  padding: 24px 28px 20px;
+  background: linear-gradient(180deg, #ffffff, #fbfbff);
+}
+
+.bs-dashboard-page .bs-card-head > span {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eef1ff;
+}
+
+.bs-dashboard-page .bs-card-head h2 {
+  font-size: 22px;
+}
+
+.bs-dashboard-page .bs-card-head p {
+  color: #7477a8;
+  font-size: 14px;
+}
+
+.bs-dashboard-page .bs-card-body {
+  padding: 28px;
+}
+
+.bs-dashboard-page .bs-profile-grid {
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: start;
+}
+
+.bs-dashboard-page .bs-logo-box {
+  width: 118px;
+  height: 118px;
+  border-radius: 18px;
+  background: #fbfbff;
+}
+
+.bs-dashboard-page .bs-form-grid {
+  gap: 18px;
+}
+
+.bs-dashboard-page .bs-field {
+  gap: 8px;
+}
+
+.bs-dashboard-page .bs-field span {
+  color: #565b8d;
+  font-size: 13px;
+}
+
+.bs-dashboard-page .bs-field input,
+.bs-dashboard-page .bs-field textarea,
+.bs-dashboard-page .bs-security-box input {
+  min-height: 48px;
+  border-color: #dfe3f6;
+  border-radius: 12px;
+  background: #fbfbff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.bs-dashboard-page .bs-field input:focus,
+.bs-dashboard-page .bs-field textarea:focus,
+.bs-dashboard-page .bs-security-box input:focus {
+  border-color: #7387ff;
+  box-shadow: 0 0 0 4px rgba(115, 135, 255, 0.12);
+}
+
+.bs-dashboard-page .bs-card-actions {
+  padding: 20px 28px 28px;
+}
+
+.bs-dashboard-page .bs-primary,
+.bs-dashboard-page .bs-ghost {
+  min-height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.bs-dashboard-page .bs-rail {
+  gap: 18px;
+}
+
+.bs-dashboard-page .bs-status-card {
+  background: linear-gradient(145deg, #07074e, #20208a);
+}
+
+.bs-dashboard-page .bs-status-card,
+.bs-dashboard-page .bs-quick-card,
+.bs-dashboard-page .bs-help-card {
+  padding: 24px;
+}
+
+.bs-dashboard-page .bs-status-card h3,
+.bs-dashboard-page .bs-quick-card h3 {
+  font-size: 19px;
+}
+
+.bs-dashboard-page .bs-quick-card button {
+  min-height: 58px;
+  border-radius: 12px;
+}
+
+.bs-dashboard-page .bs-quick-card button:hover {
+  background: #f7f8ff;
+}
+
+.bs-dashboard-page .bs-help-card {
+  background: #ffffff;
+}
+
+.bs-dashboard-page .bs-toggle-list,
+.bs-dashboard-page .bs-security-grid {
+  padding: 24px 28px;
+}
+
+.bs-dashboard-page .bs-toggle-row {
+  padding: 18px 0;
+}
+
+.bs-dashboard-page .bs-security-box {
+  border-radius: 14px;
+  background: #fbfbff;
+}
+
 @media (max-width: 1200px) {
   .bs-page,
   .bs-top {
@@ -1095,6 +1294,17 @@
     border-radius: 0;
   }
 
+  .dashboard-page {
+    flex-direction: column;
+  }
+
+  .business-sidebar {
+    width: 100%;
+    min-height: auto;
+    position: static;
+    border-radius: 0;
+  }
+
   .bs-form-grid,
   .bs-profile-grid,
   .bs-security-grid,
@@ -1106,6 +1316,12 @@
   .bs-top {
     padding-left: 20px;
     padding-right: 20px;
+  }
+
+  .bs-dashboard-top,
+  .bs-dashboard-page {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 

@@ -402,6 +402,7 @@ export default function ProfileSettings() {
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
       { name: 'Manage Shipment', icon: Package, action: () => navigate('/dashboard/business/shipments') },
+      { name: 'Wallet', icon: Wallet, action: () => navigate('/dashboard/business/wallet') },
       { name: 'Settings', icon: Settings, action: () => navigate('/settings'), active: true }
     ]
     : [
@@ -425,6 +426,7 @@ export default function ProfileSettings() {
     { label: 'All Campaigns', icon: Briefcase, path: '/dashboard/business/all-campaigns' },
     { label: 'Messages', icon: MessageSquare, path: '/messages', badge: 2, tone: 'green' },
     { label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
+    { label: 'Wallet', icon: Wallet, path: '/dashboard/business/wallet' },
     { label: 'Settings', icon: Settings, path: '/settings', active: true }
   ];
 

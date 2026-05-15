@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
 import PostABrief from './PostABrief';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -78,6 +78,8 @@ const emptyInviteForm = {
   message: '',
 };
 
+const walletPresetAmounts = [10000, 25000, 50000];
+
 function normalizeCreatorDirectoryItem(item = {}) {
   const profile = item.profile || {};
   const tags = item.tags || profile.tags || [];
@@ -106,6 +108,25 @@ function getAssetUrl(url) {
   return `${baseUrl.replace(/\/$/, '')}/${String(url).replace(/^\//, '')}`;
 }
 
+function formatWalletDate(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function normalizeWalletData(data = {}) {
+  return {
+    available_balance: Number(data.available_balance || 0),
+    minimum_chat_balance: Number(data.minimum_chat_balance || 5000),
+    chat_unlocked: Boolean(data.chat_unlocked),
+    plan_name: data.plan_name || 'Brand Starter',
+    recharge_bonus: data.recharge_bonus || {},
+    bonus_tiers: data.bonus_tiers || [],
+    transactions: data.transactions || [],
+  };
+}
+
 export default function BusinessDashboard({ page = 'overview' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -126,6 +147,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
   const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [walletData, setWalletData] = useState(normalizeWalletData());
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletError, setWalletError] = useState('');
+  const [walletAmount, setWalletAmount] = useState('');
+  const [walletFilter, setWalletFilter] = useState('all');
+  const [rechargingWallet, setRechargingWallet] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     objectives: [],
@@ -148,6 +175,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
       fetchCreatorDirectory();
     }
   }, [user?.id, page, creatorFilters, creatorSort]);
+
+  useEffect(() => {
+    if (user?.approval_status === 'approved' && page === 'wallet') {
+      fetchWallet();
+    }
+  }, [user?.id, page]);
 
   const fetchCampaigns = async () => {
     try {
@@ -323,6 +356,38 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   };
 
+  const fetchWallet = async () => {
+    setWalletLoading(true);
+    setWalletError('');
+    try {
+      const response = await axios.get(`${API}/business/wallet`);
+      setWalletData(normalizeWalletData(response.data));
+    } catch (error) {
+      setWalletError(error.response?.data?.detail || 'Failed to load wallet');
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const handleWalletRecharge = async (amountOverride) => {
+    const amount = Number(amountOverride || walletAmount);
+    if (!amount || amount < 5000) {
+      toast.error('Minimum recharge amount is Rs. 5,000');
+      return;
+    }
+    setRechargingWallet(true);
+    try {
+      const response = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
+      toast.success(`Payment order created for ${formatMoney(response.data.amount)}. Complete payment to credit your wallet.`);
+      setWalletAmount(String(amount));
+      await fetchWallet();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to start wallet recharge');
+    } finally {
+      setRechargingWallet(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -343,6 +408,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'shipments', label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
+    { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/dashboard/business/wallet' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
@@ -377,6 +443,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const dashboardActiveDeals = dashboardData?.active_deals || [];
   const dashboardPendingActions = dashboardData?.pending_actions || [];
   const dashboardBudget = dashboardData?.budget_usage || { used: 0, total: 0, categories: [] };
+  const walletTransactions = walletData.transactions.filter((transaction) => {
+    if (walletFilter === 'credits') return transaction.direction === 'credit';
+    if (walletFilter === 'debits') return transaction.direction === 'debit';
+    return true;
+  });
+  const walletBonus = walletData.recharge_bonus || {};
+  const walletProgress = Math.min(Math.max(Number(walletBonus.progress_percent || 0), 0), 100);
   const performanceLeftMax = 120;
   const performanceRightMax = 80;
   const chartTop = 28;
@@ -1086,7 +1159,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <div className="quick-action-grid">
                     <button type="button" onClick={() => setShowCreateModal(true)}><FileCheck size={20} />Post a Brief</button>
                     <button type="button" onClick={() => navigate('/dashboard/business/pending-bids')}><Users size={20} />Creator Bids</button>
-                    <button type="button"><Wallet size={20} />Top Up Wallet</button>
+                    <button type="button" onClick={() => navigate('/dashboard/business/wallet')}><Wallet size={20} />Top Up Wallet</button>
                     <button type="button"><DollarSign size={20} />Download Report</button>
                   </div>
                 </section>
@@ -1404,6 +1477,154 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   })}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'wallet' && (
+            <div className="wallet-section">
+              <div className="wallet-main-column">
+                <section className="wallet-hero-card">
+                  <div>
+                    <span className="wallet-kicker"><Wallet size={18} /> Brand Wallet • UGCad</span>
+                    <p>Available Balance</p>
+                    <h2>{walletLoading ? 'Loading...' : formatMoney(walletData.available_balance)}</h2>
+                    <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
+                  </div>
+                  <div className="wallet-hero-badges">
+                    <span><Zap size={16} /> +{walletBonus.next_tier_percent || 0}% Recharge Bonus Live</span>
+                    <strong><CheckCircle size={16} /> {walletData.plan_name} Active</strong>
+                  </div>
+                </section>
+
+                {!walletData.chat_unlocked && (
+                  <section className="wallet-warning">
+                    <AlertCircle size={18} />
+                    <div>
+                      <strong>{formatMoney(walletData.minimum_chat_balance)} minimum recharge required to unlock platform chat.</strong>
+                      <p>Wallet credits are non-refundable. Add funds to activate messaging with creators.</p>
+                    </div>
+                    <button type="button" onClick={() => setWalletAmount(String(walletData.minimum_chat_balance))}>Add Funds</button>
+                  </section>
+                )}
+
+                <section className="wallet-panel wallet-bonus-tiers">
+                  <div>
+                    <h2>Recharge Bonus Tiers</h2>
+                    <p>Get more with bigger recharges. Bonus credited instantly after payment confirmation.</p>
+                  </div>
+                  <span>Active: +{walletBonus.current_tier_percent || 0}%</span>
+                  <div className="wallet-tier-grid">
+                    {walletData.bonus_tiers.map((tier) => (
+                      <button key={tier.amount} type="button" onClick={() => setWalletAmount(String(tier.amount))}>
+                        <strong>{tier.label || formatMoney(tier.amount)}</strong>
+                        <small>+{tier.bonus_percent}% bonus</small>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="wallet-panel wallet-history">
+                  <div className="wallet-history-head">
+                    <div>
+                      <h2>Transaction History</h2>
+                      <p>All wallet activity across recharges, escrow, and fees.</p>
+                    </div>
+                    <div className="wallet-filter-tabs">
+                      {['all', 'credits', 'debits'].map((filter) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          className={walletFilter === filter ? 'active' : ''}
+                          onClick={() => setWalletFilter(filter)}
+                        >
+                          {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {walletError ? (
+                    <div className="wallet-empty">{walletError}</div>
+                  ) : walletLoading ? (
+                    <div className="wallet-empty">Loading wallet activity...</div>
+                  ) : walletTransactions.length === 0 ? (
+                    <div className="wallet-empty">No wallet transactions yet.</div>
+                  ) : (
+                    <div className="wallet-table">
+                      <div className="wallet-row wallet-head">
+                        <span>Date</span>
+                        <span>Type</span>
+                        <span>Reference</span>
+                        <span>Amount</span>
+                        <span>Status</span>
+                      </div>
+                      {walletTransactions.slice(0, 8).map((transaction) => (
+                        <div className="wallet-row" key={transaction.id}>
+                          <span>{formatWalletDate(transaction.date)}</span>
+                          <strong>{transaction.type}</strong>
+                          <span>{transaction.reference || '-'}</span>
+                          <strong className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
+                            {transaction.direction === 'debit' ? '-' : '+'}{formatMoney(transaction.amount)}
+                          </strong>
+                          <span className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              <aside className="wallet-side-column">
+                <section className="wallet-panel wallet-recharge-card">
+                  <div className="wallet-side-title">
+                    <h2>Quick Recharge</h2>
+                    <button type="button" onClick={() => setWalletAmount('')} aria-label="Clear amount"><Plus size={18} /></button>
+                  </div>
+                  <label htmlFor="wallet-amount">Enter Amount</label>
+                  <div className="wallet-amount-input">
+                    <IndianRupee size={18} />
+                    <input
+                      id="wallet-amount"
+                      type="number"
+                      min="5000"
+                      value={walletAmount}
+                      onChange={(event) => setWalletAmount(event.target.value)}
+                      placeholder="Enter amount"
+                    />
+                  </div>
+                  <div className="wallet-presets">
+                    {walletPresetAmounts.map((amount) => (
+                      <button key={amount} type="button" onClick={() => setWalletAmount(String(amount))}>{formatMoney(amount).replace(',000', 'K')}</button>
+                    ))}
+                  </div>
+                  <button type="button" className="wallet-add-funds" onClick={() => handleWalletRecharge()} disabled={rechargingWallet}>
+                    <Zap size={18} /> {rechargingWallet ? 'Creating Order...' : 'Add Funds'}
+                  </button>
+                  <small>Minimum {formatMoney(5000)} • Instant credit after payment verification</small>
+                </section>
+
+                <section className="wallet-panel wallet-progress-card">
+                  <div className="wallet-side-title">
+                    <h2>Bonus Progress</h2>
+                    <span><Zap size={18} /></span>
+                  </div>
+                  <div className="wallet-progress-body">
+                    <div className="wallet-progress-ring" style={{ '--wallet-progress': `${walletProgress}%` }}>
+                      <strong>+{walletBonus.current_tier_percent || 0}%</strong>
+                    </div>
+                    <div>
+                      <p>Current Bonus Tier</p>
+                      <h3>+{walletBonus.current_tier_percent || 0}% Live</h3>
+                      <span>Recharge {formatMoney(walletBonus.next_tier_amount || 0)} to unlock +{walletBonus.next_tier_percent || 0}% tier</span>
+                    </div>
+                  </div>
+                  <div className="wallet-progress-track">
+                    <div><span>{formatMoney(walletBonus.current_tier_amount || 0)} tier</span><span>{formatMoney(walletBonus.next_tier_amount || 0)} tier</span></div>
+                    <i><b style={{ width: `${walletProgress}%` }} /></i>
+                    <small>{formatMoney(walletBonus.amount_to_next_tier || 0)} more to unlock best value tier</small>
+                  </div>
+                </section>
+              </aside>
             </div>
           )}
 
@@ -2990,6 +3211,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .creator-filter-bar button {
             grid-column: 1 / -1;
           }
+
+          .wallet-section {
+            grid-template-columns: 1fr;
+          }
+
+          .wallet-side-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
         }
 
         .stats-grid {
@@ -3691,6 +3921,427 @@ export default function BusinessDashboard({ page = 'overview' }) {
           object-fit: cover;
         }
 
+        .wallet-section {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 400px;
+          gap: 28px;
+          align-items: start;
+        }
+
+        .wallet-main-column,
+        .wallet-side-column {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .wallet-hero-card {
+          min-height: 194px;
+          display: flex;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 36px;
+          border-radius: 28px;
+          color: white;
+          background: linear-gradient(135deg, #080866 0%, #171184 48%, #3938b8 100%);
+          box-shadow: 0 22px 50px rgba(7, 7, 78, 0.18);
+        }
+
+        .wallet-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          color: rgba(255, 255, 255, 0.7);
+          font-weight: 900;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+
+        .wallet-hero-card p {
+          margin: 24px 0 8px;
+          color: rgba(255, 255, 255, 0.66);
+          font-weight: 800;
+        }
+
+        .wallet-hero-card h2 {
+          margin: 0;
+          font-size: 60px;
+          line-height: 0.95;
+          color: white;
+        }
+
+        .wallet-hero-card small {
+          display: block;
+          margin-top: 14px;
+          color: rgba(255, 255, 255, 0.72);
+          font-weight: 700;
+        }
+
+        .wallet-hero-badges {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 12px;
+        }
+
+        .wallet-hero-badges span,
+        .wallet-hero-badges strong {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 11px 18px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.09);
+          color: #B7B7E6;
+          font-weight: 900;
+        }
+
+        .wallet-hero-badges strong {
+          color: #27AE60;
+        }
+
+        .wallet-warning {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 18px 24px;
+          border: 1px solid #F59E0B;
+          border-radius: 18px;
+          background: #FFF8E8;
+          color: #B86B00;
+        }
+
+        .wallet-warning div {
+          flex: 1;
+        }
+
+        .wallet-warning p {
+          margin: 4px 0 0;
+          font-weight: 700;
+        }
+
+        .wallet-warning button {
+          border: 0;
+          border-radius: 14px;
+          padding: 12px 18px;
+          background: #F59E0B;
+          color: white;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .wallet-panel {
+          padding: 28px 32px;
+          border-radius: 24px;
+          background: white;
+          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+        }
+
+        .wallet-panel h2 {
+          margin: 0;
+          color: #07074E;
+          font-size: 22px;
+        }
+
+        .wallet-panel p {
+          color: #9F9FD1;
+          font-weight: 700;
+        }
+
+        .wallet-bonus-tiers {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 22px;
+          align-items: start;
+        }
+
+        .wallet-bonus-tiers > span {
+          padding: 9px 14px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-weight: 900;
+        }
+
+        .wallet-tier-grid {
+          grid-column: 1 / -1;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+        }
+
+        .wallet-tier-grid button,
+        .wallet-presets button {
+          border: 0;
+          border-radius: 14px;
+          background: #F3F3FF;
+          color: #7387FF;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .wallet-tier-grid button {
+          padding: 16px;
+          text-align: left;
+        }
+
+        .wallet-tier-grid strong,
+        .wallet-tier-grid small {
+          display: block;
+        }
+
+        .wallet-tier-grid small {
+          margin-top: 6px;
+          color: #9F9FD1;
+        }
+
+        .wallet-history {
+          padding: 0;
+          overflow: hidden;
+        }
+
+        .wallet-history-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          padding: 28px 32px;
+          border-bottom: 1px solid #EEF0FF;
+        }
+
+        .wallet-filter-tabs {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .wallet-filter-tabs button {
+          border: 0;
+          border-radius: 999px;
+          padding: 10px 18px;
+          background: #F3F3FF;
+          color: #9F9FD1;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .wallet-filter-tabs button.active {
+          background: #07074E;
+          color: white;
+        }
+
+        .wallet-table {
+          padding: 0 32px 24px;
+        }
+
+        .wallet-row {
+          display: grid;
+          grid-template-columns: 1fr 1.2fr 1.5fr 1fr 0.9fr;
+          gap: 18px;
+          align-items: center;
+          padding: 16px 0;
+          border-bottom: 1px solid #EEF0FF;
+          color: #6B6B9E;
+          font-weight: 700;
+        }
+
+        .wallet-head {
+          color: #9F9FD1;
+          text-transform: uppercase;
+          font-size: 12px;
+          letter-spacing: 0.04em;
+        }
+
+        .wallet-credit {
+          color: #27AE60;
+        }
+
+        .wallet-debit {
+          color: #F59E0B;
+        }
+
+        .wallet-status {
+          justify-self: start;
+          padding: 7px 11px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: capitalize;
+        }
+
+        .wallet-status.success {
+          background: #E8F8EE;
+          color: #27AE60;
+        }
+
+        .wallet-status.failed {
+          background: #FEE2E2;
+          color: #DC2626;
+        }
+
+        .wallet-empty {
+          padding: 36px;
+          color: #9F9FD1;
+          font-weight: 800;
+          text-align: center;
+        }
+
+        .wallet-side-title {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 28px;
+        }
+
+        .wallet-side-title button,
+        .wallet-side-title span {
+          width: 36px;
+          height: 36px;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 50%;
+          background: #EEF0FF;
+          color: #7387FF;
+        }
+
+        .wallet-recharge-card label {
+          display: block;
+          margin-bottom: 12px;
+          color: #9F9FD1;
+          font-weight: 900;
+          text-transform: uppercase;
+          font-size: 12px;
+          letter-spacing: 0.05em;
+        }
+
+        .wallet-amount-input {
+          height: 54px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 18px;
+          border: 1px solid #DDE2FF;
+          border-radius: 16px;
+          background: #F8F9FF;
+          color: #07074E;
+        }
+
+        .wallet-amount-input input {
+          width: 100%;
+          border: 0;
+          outline: 0;
+          background: transparent;
+          color: #07074E;
+          font-weight: 900;
+        }
+
+        .wallet-presets {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin: 18px 0 22px;
+        }
+
+        .wallet-presets button {
+          height: 42px;
+        }
+
+        .wallet-add-funds {
+          width: 100%;
+          height: 50px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          border: 0;
+          border-radius: 15px;
+          background: #6677FF;
+          color: white;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 16px 30px rgba(102, 119, 255, 0.25);
+        }
+
+        .wallet-add-funds:disabled {
+          opacity: 0.65;
+          cursor: wait;
+        }
+
+        .wallet-recharge-card > small {
+          display: block;
+          margin-top: 14px;
+          color: #B7B7E6;
+          text-align: center;
+          font-weight: 800;
+        }
+
+        .wallet-progress-body {
+          display: grid;
+          grid-template-columns: 112px 1fr;
+          gap: 20px;
+          align-items: center;
+        }
+
+        .wallet-progress-ring {
+          width: 110px;
+          height: 110px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background:
+            radial-gradient(circle at center, white 58%, transparent 60%),
+            conic-gradient(#6677FF var(--wallet-progress), #EEF0FF 0);
+          color: #07074E;
+        }
+
+        .wallet-progress-ring strong {
+          font-size: 20px;
+        }
+
+        .wallet-progress-body h3 {
+          margin: 6px 0;
+          color: #7387FF;
+          font-size: 28px;
+        }
+
+        .wallet-progress-body span,
+        .wallet-progress-track small {
+          color: #9F9FD1;
+          font-weight: 800;
+        }
+
+        .wallet-progress-track {
+          margin-top: 22px;
+        }
+
+        .wallet-progress-track div {
+          display: flex;
+          justify-content: space-between;
+          color: #B7B7E6;
+          font-weight: 800;
+          font-size: 12px;
+        }
+
+        .wallet-progress-track i {
+          display: block;
+          height: 10px;
+          margin: 12px 0;
+          overflow: hidden;
+          border-radius: 999px;
+          background: #EEF0FF;
+        }
+
+        .wallet-progress-track b {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: #9F9FD1;
+        }
+
         .work-review-section {
           display: flex;
           flex-direction: column;
@@ -4387,6 +5038,33 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           .creator-directory-head h2 {
             font-size: 26px;
+          }
+
+          .wallet-hero-card,
+          .wallet-history-head,
+          .wallet-warning {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .wallet-hero-card h2 {
+            font-size: 42px;
+          }
+
+          .wallet-hero-badges {
+            align-items: flex-start;
+          }
+
+          .wallet-side-column,
+          .wallet-tier-grid,
+          .wallet-presets,
+          .wallet-progress-body {
+            grid-template-columns: 1fr;
+          }
+
+          .wallet-row {
+            grid-template-columns: 1fr;
+            gap: 6px;
           }
 
           .actions-grid {

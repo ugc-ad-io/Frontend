@@ -233,6 +233,14 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/wallet"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard page="wallet" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/admin"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>

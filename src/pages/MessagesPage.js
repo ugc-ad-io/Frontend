@@ -146,6 +146,7 @@ export default function MessagesPage() {
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
       { name: 'Manage Shipment', icon: Package, action: () => navigate('/dashboard/business/shipments') },
+      { name: 'Wallet', icon: IndianRupee, action: () => navigate('/dashboard/business/wallet') },
       { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
     ]
     : [

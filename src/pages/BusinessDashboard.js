@@ -1394,10 +1394,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
                       <div className="creator-card-actions">
                         <button type="button" className="btn-secondary" onClick={() => setSelectedCreatorProfile(creator)}>
-                          <Eye size={16} /> View Profile
+                          <Eye size={15} /> <span>View Profile</span>
                         </button>
                         <button type="button" className="btn-primary" onClick={() => handleInviteCreator(creator)}>
-                          <Send size={16} /> Invite
+                          <Send size={15} /> <span>Invite</span>
                         </button>
                       </div>
                     </article>
@@ -4141,18 +4141,33 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .creator-card-actions {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 10px;
+          gap: 8px;
           margin-top: auto;
         }
 
         .creator-card-actions button {
           min-width: 0;
-          min-height: 46px;
+          height: 40px;
+          padding: 0 12px;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
           justify-content: center;
-          border-radius: 14px;
-          font-size: 14px;
+          border-radius: 11px;
+          font-size: 13px;
           font-weight: 900;
           box-shadow: none;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .creator-card-actions button svg {
+          flex: 0 0 auto;
+        }
+
+        .creator-card-actions button span {
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .creator-card-actions .btn-secondary {
@@ -4165,7 +4180,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border: 1px solid #7387FF;
           background: #7387FF;
           color: white;
-          box-shadow: 0 12px 22px rgba(115, 135, 255, 0.22);
+          box-shadow: 0 8px 18px rgba(115, 135, 255, 0.2);
         }
 
         .creator-directory-empty {

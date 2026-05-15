@@ -658,13 +658,51 @@ export default function ProfileSettings() {
 
   if (user?.role === 'business') {
     return (
-      <DashboardLayout
-        navItems={navItems}
-        title="Settings"
-        description="Manage preferences, profile, billing, and notifications"
-        topbarExtra={null}
-        sidebarExtra={null}
-      >
+      <div className="dashboard-page">
+        <aside className="business-sidebar">
+          <div>
+            <div className="business-sidebar-brand">
+              <div className="business-sidebar-mark">U</div>
+              <span>UGCad.io</span>
+            </div>
+            <nav className="business-sidebar-nav" aria-label="Business dashboard">
+              <span className="business-nav-label">Business</span>
+              {brandNav.map(({ label, icon: Icon, path, badge, tone, active }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`business-nav-item ${active ? 'active' : ''}`}
+                  onClick={() => navigate(path)}
+                >
+                  <Icon size={20} />
+                  <span>{label}</span>
+                  {badge ? <b className={`business-nav-badge ${tone || ''}`}>{badge}</b> : null}
+                </button>
+              ))}
+            </nav>
+          </div>
+          <div className="business-sidebar-profile">
+            <div className="business-avatar">{getInitial(displayName)}</div>
+            <div>
+              <strong>{displayName}</strong>
+              <span>Approved Business</span>
+            </div>
+          </div>
+        </aside>
+        <main className="business-main">
+          <header className="bs-top bs-dashboard-top">
+            <div>
+              <div className="bs-crumb"><span>Brand</span><span>›</span><strong>Settings</strong></div>
+              <h1>Settings</h1>
+              <p>Manage preferences, profile, billing, and notifications</p>
+            </div>
+            <div className="bs-search"><Search size={20} /><input placeholder="Search deals, creators, briefs..." /></div>
+            <div className="bs-top-actions">
+              <div className="bs-role-switch"><span>Creator</span><strong>Brand</strong></div>
+              <button type="button" className="bs-round"><Bell size={18} /><i /></button>
+              <button type="button" className="bs-avatar">{getInitial(displayName)}</button>
+            </div>
+          </header>
           <div className="bs-page bs-dashboard-page">
             <section className="bs-left">
               <div className="bs-tabs">
@@ -701,7 +739,8 @@ export default function ProfileSettings() {
               </section>
             </aside>
           </div>
-      </DashboardLayout>
+        </main>
+      </div>
     );
   }
 

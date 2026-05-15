@@ -127,6 +127,154 @@
   min-width: 0;
 }
 
+.dashboard-page {
+  min-height: 100vh;
+  display: flex;
+  background: #f3f3ff;
+}
+
+.business-sidebar {
+  width: 300px;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px;
+  background: #07074e;
+  color: white;
+  border-top-right-radius: 32px;
+  border-bottom-right-radius: 32px;
+}
+
+.business-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.business-sidebar-mark,
+.business-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: #667eea;
+  color: white;
+  font-weight: 800;
+}
+
+.business-sidebar-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.business-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.business-nav-label {
+  padding: 0 16px 6px;
+  color: #b7b7e6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.business-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.74);
+  cursor: pointer;
+  text-align: left;
+  transition: 180ms ease;
+}
+
+.business-nav-item:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.business-nav-item.active {
+  color: #07074e;
+  background: white;
+  font-weight: 700;
+}
+
+.business-nav-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.business-nav-badge {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #7387ff;
+  color: white;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.business-nav-badge.orange {
+  background: #f59e0b;
+}
+
+.business-nav-badge.green {
+  background: #27ae60;
+}
+
+.business-sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.business-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+.business-sidebar-profile strong,
+.business-sidebar-profile span {
+  display: block;
+}
+
+.business-sidebar-profile span {
+  margin-top: 2px;
+  color: #b7b7e6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.business-main {
+  flex: 1;
+  min-width: 0;
+  background: #f3f3ff;
+}
+
 .bs-top {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) minmax(300px, 485px) auto;

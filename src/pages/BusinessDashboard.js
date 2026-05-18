@@ -451,6 +451,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
     { id: 'shipments', label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
     { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/dashboard/business/wallet' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
@@ -468,6 +469,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     : campaignPerformanceSample;
   const dashboardPerformance = compactPerformanceByPeriod(dashboardPerformanceBase, performancePeriod);
   const dashboardFunnel = dashboardData?.creator_funnel || {};
+  const liveCampaignsCount = Number(dashboardMetrics.live_campaigns ?? dashboardData?.live_campaigns ?? dashboardFunnel.live ?? activeCampaigns.length ?? 0);
   const funnelStages = [
     { key: 'viewed_brief', label: 'Viewed', className: 'applied' },
     { key: 'applied', label: 'Applied', className: 'shortlisted' },
@@ -945,13 +947,22 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 <strong>{dashboardMetrics.active_deals || 0}</strong>
                 <small>{Number(dashboardMetrics.active_deals_change_this_week || 0) >= 0 ? '+' : ''}{dashboardMetrics.active_deals_change_this_week || 0} this week</small>
               </div>
+              <div className="brand-metric-card" data-testid="live-campaigns-card">
+                <div className="metric-head">
+                  <span className="metric-icon live"><Briefcase size={20} /></span>
+                  <span className="metric-trend">LIVE</span>
+                </div>
+                <p>Live Campaigns</p>
+                <strong>{liveCampaignsCount}</strong>
+                <small>Running right now</small>
+              </div>
               <div className="brand-metric-card" data-testid="escrow-card">
                 <div className="metric-head">
                   <span className="metric-icon lock"><Lock size={20} /></span>
                 </div>
-                <p>In Escrow</p>
+                <p>Funds On Hold</p>
                 <strong>{formatMoney(dashboardMetrics.in_escrow)}</strong>
-                <small>Funds locked in live deals</small>
+                <small>Held for live deals</small>
               </div>
               <div className="brand-metric-card" data-testid="delivered-card">
                 <div className="metric-head">
@@ -1095,11 +1106,31 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
               <aside className="brand-side-stack">
                 <section className="brand-panel top-campaigns-panel">
-                  <h2>Top Campaigns</h2>
+                  <div className="top-campaigns-head">
+                    <div>
+                      <h2>Top Campaigns</h2>
+                      <p>Ranked by creator interest</p>
+                    </div>
+                    <span>{dashboardTopCampaigns.length}</span>
+                  </div>
                   {dashboardTopCampaigns.length ? dashboardTopCampaigns.map((campaign, index) => (
-                    <button key={campaign.id || campaign.title} type="button" onClick={() => campaign.id && handleViewCampaign(campaign.id)}>
-                      <span>{index + 1}</span>
-                      {campaign.title || 'Untitled Campaign'}
+                    <button
+                      key={campaign.id || campaign.title}
+                      type="button"
+                      className="top-campaign-row"
+                      onClick={() => campaign.id && handleViewCampaign(campaign.id)}
+                    >
+                      <span className={`top-rank ${index < 3 ? 'featured' : ''}`}>{index + 1}</span>
+                      <span className="top-campaign-copy">
+                        <strong>{campaign.title || 'Untitled Campaign'}</strong>
+                        <small>
+                          {campaign.applications || 0} bids
+                          <i />
+                          {campaign.spend ? formatMoney(campaign.spend) : 'No spend yet'}
+                        </small>
+                      </span>
+                      <span className="top-campaign-status">{String(campaign.status || 'draft').replace(/_/g, ' ')}</span>
+                      <ExternalLink size={15} />
                     </button>
                   )) : <p className="empty-inline">No campaigns yet</p>}
                 </section>
@@ -2367,7 +2398,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .brand-metrics-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(180px, 1fr));
+          grid-template-columns: repeat(5, minmax(170px, 1fr));
           gap: 28px;
           margin-bottom: 28px;
         }
@@ -2416,6 +2447,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .metric-icon.lock {
           color: #7387FF;
+        }
+
+        .metric-icon.live {
+          color: #07074E;
+          background: #EDEEFF;
         }
 
         .metric-trend {
@@ -2938,29 +2974,130 @@ export default function BusinessDashboard({ page = 'overview' }) {
           min-height: 194px;
         }
 
-        .top-campaigns-panel button {
+        .top-campaigns-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .top-campaigns-head p {
+          margin: 6px 0 0;
+          color: #9F9FD1;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .top-campaigns-head > span {
+          min-width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-weight: 900;
+        }
+
+        .top-campaigns-panel .top-campaign-row {
           width: 100%;
           display: flex;
           align-items: center;
-          gap: 14px;
-          padding: 12px 0;
-          border: 0;
-          background: transparent;
+          gap: 12px;
+          padding: 12px;
+          border: 1px solid transparent;
+          border-radius: 14px;
+          background: #FBFBFF;
           color: #07074E;
           cursor: pointer;
-          font-weight: 700;
           text-align: left;
+          transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
         }
 
-        .top-campaigns-panel button span {
-          width: 26px;
-          height: 26px;
+        .top-campaigns-panel .top-campaign-row + .top-campaign-row {
+          margin-top: 10px;
+        }
+
+        .top-campaigns-panel .top-campaign-row:hover {
+          background: white;
+          border-color: #E5E7FF;
+          box-shadow: 0 12px 24px rgba(7, 7, 78, 0.08);
+          transform: translateY(-1px);
+        }
+
+        .top-campaigns-panel .top-campaign-row:focus-visible {
+          outline: 2px solid #7387FF;
+          outline-offset: 2px;
+        }
+
+        .top-rank {
+          width: 32px;
+          height: 32px;
+          flex: 0 0 32px;
           display: grid;
           place-items: center;
           border-radius: 50%;
           background: #EEF0FF;
           color: #7387FF;
           font-size: 12px;
+          font-weight: 900;
+        }
+
+        .top-rank.featured {
+          background: #07074E;
+          color: white;
+        }
+
+        .top-campaign-copy {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .top-campaign-copy strong {
+          display: block;
+          overflow: hidden;
+          color: #07074E;
+          font-size: 15px;
+          font-weight: 900;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .top-campaign-copy small {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-top: 5px;
+          color: #9F9FD1;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .top-campaign-copy small i {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #DADCF8;
+        }
+
+        .top-campaign-status {
+          max-width: 86px;
+          overflow: hidden;
+          padding: 6px 9px;
+          border-radius: 999px;
+          background: #F0F1FF;
+          color: #7387FF;
+          font-size: 11px;
+          font-weight: 900;
+          text-overflow: ellipsis;
+          text-transform: capitalize;
+          white-space: nowrap;
+        }
+
+        .top-campaign-row svg {
+          flex: 0 0 auto;
+          color: #9F9FD1;
         }
 
         .empty-inline,

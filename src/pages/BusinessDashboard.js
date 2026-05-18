@@ -60,6 +60,46 @@ const compactPerformanceByPeriod = (data, period) => {
   return points.slice(-5);
 };
 
+const monthKey = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('en-US', { month: 'short' });
+};
+
+const campaignFundsAmount = (campaign = {}) => {
+  const selectedBid = (campaign.bids || []).find((bid) => bid.creator_id === campaign.selected_creator);
+  return Number(campaign.escrow_amount || campaign.held_amount || selectedBid?.amount || campaign.budget_max || campaign.budget_min || 0);
+};
+
+const campaignActivityDate = (campaign = {}) => (
+  campaign.completed_at ||
+  campaign.updated_at ||
+  campaign.created_at
+);
+
+const buildCampaignPerformance = (campaign, baseData) => {
+  if (!campaign) return baseData;
+
+  const points = baseData.map(normalizePerformancePoint);
+  const bids = campaign.bids || [];
+  const activityMonth = monthKey(campaignActivityDate(campaign));
+  const amountK = Number((campaignFundsAmount(campaign) / 1000).toFixed(2));
+  const isCompleted = campaign.status === 'completed';
+  const hasDelivery = ['completed', 'work_submitted', 'delivered'].includes(campaign.status);
+
+  return points.map((point) => {
+    const label = point.month;
+    return {
+      month: label,
+      deals_closed: isCompleted && activityMonth === label ? 1 : 0,
+      approved_deliveries: hasDelivery && activityMonth === label ? 1 : 0,
+      applications_received: bids.filter((bid) => monthKey(bid.submitted_at || bid.created_at) === label).length,
+      spend_k: amountK && activityMonth === label ? amountK : 0
+    };
+  });
+};
+
 const formatMoney = (value) => {
   const amount = Number(value || 0);
   return `Rs. ${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
@@ -197,6 +237,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [walletFilter, setWalletFilter] = useState('all');
   const [rechargingWallet, setRechargingWallet] = useState(false);
   const [performancePeriod, setPerformancePeriod] = useState('Monthly');
+  const [performanceCampaignId, setPerformanceCampaignId] = useState('all');
   const [formData, setFormData] = useState({
     title: '',
     objectives: [],
@@ -467,7 +508,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
     .some(item => item.deals_closed || item.approved_deliveries || item.applications_received || item.spend_k)
     ? dashboardPerformanceRaw
     : campaignPerformanceSample;
-  const dashboardPerformance = compactPerformanceByPeriod(dashboardPerformanceBase, performancePeriod);
+  const selectedPerformanceCampaign = campaigns.find(campaign => campaign.id === performanceCampaignId);
+  const campaignPerformanceFromApi = performanceCampaignId !== 'all'
+    ? dashboardData?.campaign_performance_by_campaign?.[performanceCampaignId]
+    : null;
+  const performanceBase = performanceCampaignId === 'all'
+    ? dashboardPerformanceBase
+    : (campaignPerformanceFromApi?.length ? campaignPerformanceFromApi : buildCampaignPerformance(selectedPerformanceCampaign, dashboardPerformanceBase));
+  const dashboardPerformance = compactPerformanceByPeriod(performanceBase, performancePeriod);
   const dashboardFunnel = dashboardData?.creator_funnel || {};
   const liveCampaignsCount = Number(dashboardMetrics.live_campaigns ?? dashboardData?.live_campaigns ?? dashboardFunnel.live ?? activeCampaigns.length ?? 0);
   const funnelStages = [
@@ -992,19 +1040,30 @@ export default function BusinessDashboard({ page = 'overview' }) {
               <section className="brand-panel performance-panel">
                 <div className="panel-title-row">
                   <h2>Campaign Performance</h2>
-                  <div className="period-switch" role="tablist" aria-label="Campaign performance period">
-                    {performancePeriods.map(period => (
-                      <button
-                        key={period}
-                        type="button"
-                        className={period === performancePeriod ? 'active' : ''}
-                        onClick={() => setPerformancePeriod(period)}
-                        role="tab"
-                        aria-selected={period === performancePeriod}
-                      >
-                        {period}
-                      </button>
-                    ))}
+                  <div className="performance-controls">
+                    <label className="campaign-filter">
+                      <span>Campaign</span>
+                      <select value={performanceCampaignId} onChange={(event) => setPerformanceCampaignId(event.target.value)}>
+                        <option value="all">All campaigns</option>
+                        {campaigns.map(campaign => (
+                          <option key={campaign.id} value={campaign.id}>{campaign.title || 'Untitled Campaign'}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="period-switch" role="tablist" aria-label="Campaign performance period">
+                      {performancePeriods.map(period => (
+                        <button
+                          key={period}
+                          type="button"
+                          className={period === performancePeriod ? 'active' : ''}
+                          onClick={() => setPerformancePeriod(period)}
+                          role="tab"
+                          aria-selected={period === performancePeriod}
+                        >
+                          {period}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="performance-chart" aria-label="Campaign performance chart">
@@ -1161,25 +1220,26 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <span>Creator</span>
                     <span>Stage</span>
                     <span>Due Date</span>
-                    <span>Escrow</span>
+                    <span>Funds Hold</span>
                     <span>Action</span>
                   </div>
                   {dashboardActiveDeals.length ? dashboardActiveDeals.map((deal) => {
                     const tone = stageTone(deal.stage);
                     return (
                     <div className="deals-row" key={deal.campaign_id}>
-                      <strong>{deal.campaign_title || 'Untitled Campaign'}</strong>
-                      <span className="creator-handle">{deal.creator_nickname ? `@${deal.creator_nickname.replace(/^@/, '')}` : '-'}</span>
-                      <span className={`deal-stage ${tone}`}>{deal.stage_label || deal.stage || '-'}</span>
-                      <span>{formatDate(deal.due_date)}</span>
-                      <strong>{formatMoney(deal.escrow_amount)}</strong>
+                      <strong className="deal-title" data-label="Campaign">{deal.campaign_title || 'Untitled Campaign'}</strong>
+                      <span className="creator-handle" data-label="Creator">{deal.creator_nickname ? `@${deal.creator_nickname.replace(/^@/, '')}` : '-'}</span>
+                      <span className={`deal-stage ${tone}`} data-label="Stage">{deal.stage_label || deal.stage || '-'}</span>
+                      <span className="deal-date" data-label="Due Date">{formatDate(deal.due_date)}</span>
+                      <strong className="deal-funds" data-label="Funds Hold">{formatMoney(deal.escrow_amount)}</strong>
                       {tone === 'success' ? (
-                        <span className="approved-action"><CheckCircle size={16} /> Approved</span>
+                        <span className="approved-action" data-label="Action"><CheckCircle size={16} /> Approved</span>
                       ) : (
                         <button
                           type="button"
                           className={tone === 'warning' ? 'review-btn' : 'view-btn'}
                           onClick={() => deal.next_action === 'review' ? navigate(`/campaign/${deal.campaign_id}`) : handleViewCampaign(deal.campaign_id)}
+                          data-label="Action"
                         >
                           {deal.next_action_label || 'View'}
                         </button>
@@ -2605,6 +2665,48 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 800;
         }
 
+        .performance-controls {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .campaign-filter {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          min-width: 0;
+          padding: 5px 5px 5px 12px;
+          border: 1px solid #E5E7FF;
+          border-radius: 12px;
+          background: #FBFBFF;
+          color: #9F9FD1;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .campaign-filter select {
+          width: 190px;
+          min-width: 0;
+          border: 0;
+          border-radius: 9px;
+          background: white;
+          color: #07074E;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 800;
+          outline: 0;
+          padding: 9px 30px 9px 11px;
+        }
+
+        .campaign-filter select:focus-visible {
+          outline: 2px solid #7387FF;
+          outline-offset: 2px;
+        }
+
         .period-switch button {
           padding: 9px 14px;
           border: 0;
@@ -3145,7 +3247,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .brand-lower-grid {
           display: grid;
-          grid-template-columns: minmax(560px, 2.35fr) minmax(300px, 0.95fr);
+          grid-template-columns: minmax(0, 2.25fr) minmax(320px, 0.95fr);
           gap: 28px;
           margin-top: 28px;
           align-items: start;
@@ -3171,19 +3273,22 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .deals-table {
           width: 100%;
-          overflow-x: auto;
+          overflow: hidden;
         }
 
         .deals-row {
-          min-width: 860px;
           display: grid;
-          grid-template-columns: 1.55fr 0.95fr 1.35fr 0.8fr 0.8fr 0.8fr;
+          grid-template-columns: minmax(150px, 1.45fr) minmax(120px, 1fr) minmax(132px, 1fr) minmax(86px, 0.7fr) minmax(96px, 0.82fr) minmax(96px, 0.72fr);
           align-items: center;
-          gap: 20px;
-          padding: 22px 28px;
+          gap: 14px;
+          padding: 20px 28px;
           border-top: 1px solid #EEF0FF;
           color: #07074E;
           font-weight: 700;
+        }
+
+        .deals-row > * {
+          min-width: 0;
         }
 
         .deals-head {
@@ -3196,17 +3301,32 @@ export default function BusinessDashboard({ page = 'overview' }) {
           text-transform: uppercase;
         }
 
+        .deal-title,
+        .creator-handle,
+        .deal-date,
+        .deal-funds {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
         .creator-handle {
           color: #7387FF;
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 14px;
         }
 
         .deal-stage {
           width: max-content;
+          max-width: 100%;
+          overflow: hidden;
           padding: 8px 14px;
           border-radius: 999px;
           font-size: 12px;
+          font-weight: 900;
+          text-overflow: ellipsis;
           text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .deal-stage.warning {
@@ -3226,12 +3346,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .review-btn,
         .view-btn {
-          width: max-content;
+          width: 100%;
+          max-width: 112px;
           border: 0;
           border-radius: 10px;
           cursor: pointer;
           font-weight: 800;
-          padding: 10px 18px;
+          padding: 10px 12px;
         }
 
         .review-btn {
@@ -3257,6 +3378,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           flex-direction: column;
           gap: 28px;
+          min-width: 0;
         }
 
         .pending-actions-panel,
@@ -3276,18 +3398,41 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           align-items: center;
           gap: 16px;
-          padding: 10px 0;
-          border: 0;
-          background: transparent;
+          padding: 12px;
+          border: 1px solid transparent;
+          border-radius: 14px;
+          background: #FBFBFF;
           color: #07074E;
           cursor: pointer;
           font-weight: 800;
           text-align: left;
+          transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+        }
+
+        .pending-action + .pending-action {
+          margin-top: 10px;
+        }
+
+        .pending-action:hover:not(:disabled) {
+          background: white;
+          border-color: #E5E7FF;
+          transform: translateY(-1px);
+        }
+
+        .pending-action:focus-visible {
+          outline: 2px solid #7387FF;
+          outline-offset: 2px;
+        }
+
+        .pending-action:disabled {
+          cursor: default;
+          opacity: 0.72;
         }
 
         .pending-action span {
           width: 36px;
           height: 36px;
+          flex: 0 0 36px;
           display: grid;
           place-items: center;
           border-radius: 10px;
@@ -3426,12 +3571,69 @@ export default function BusinessDashboard({ page = 'overview' }) {
             grid-template-columns: 1fr;
           }
 
+          .performance-controls {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .campaign-filter,
+          .campaign-filter select {
+            width: 100%;
+          }
+
           .brand-side-stack {
             display: flex;
           }
 
           .quick-action-grid {
             grid-template-columns: 1fr;
+          }
+
+          .active-deals-panel {
+            padding: 24px;
+          }
+
+          .active-deals-panel .panel-title-row {
+            padding: 0 0 18px;
+          }
+
+          .deals-table {
+            display: grid;
+            gap: 14px;
+          }
+
+          .deals-head {
+            display: none;
+          }
+
+          .deals-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 18px;
+            padding: 18px;
+            border: 1px solid #EEF0FF;
+            border-radius: 16px;
+            background: #FBFBFF;
+          }
+
+          .deals-row > *::before {
+            content: attr(data-label);
+            display: block;
+            margin-bottom: 5px;
+            color: #9F9FD1;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+          }
+
+          .deal-title {
+            grid-column: 1 / -1;
+            white-space: normal;
+          }
+
+          .review-btn,
+          .view-btn {
+            max-width: none;
           }
 
           .creator-directory-head {
@@ -3471,6 +3673,33 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .all-campaigns-hero,
           .all-campaigns-section .campaign-card-detailed {
             padding: 18px;
+          }
+
+          .active-deals-panel,
+          .pending-actions-panel,
+          .budget-panel,
+          .quick-actions-panel {
+            padding: 18px;
+          }
+
+          .active-deals-panel .panel-title-row {
+            align-items: flex-start;
+          }
+
+          .deals-row {
+            grid-template-columns: 1fr;
+          }
+
+          .period-switch {
+            width: 100%;
+          }
+
+          .period-switch button {
+            flex: 1;
+          }
+
+          .top-campaign-status {
+            display: none;
           }
         }
 

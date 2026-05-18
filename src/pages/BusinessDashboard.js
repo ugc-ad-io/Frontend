@@ -16,6 +16,49 @@ const campaignPerformanceSample = [
   { month: 'Apr', deals_closed: 35, approved_deliveries: 30, applications_received: 75, spend_k: 55 },
   { month: 'May', deals_closed: 50, approved_deliveries: 45, applications_received: 110, spend_k: 80 }
 ];
+const performancePeriods = ['Weekly', 'Monthly', 'Quarterly'];
+
+const normalizePerformancePoint = (item = {}) => ({
+  month: item.month || item.name || item.label,
+  deals_closed: Number(item.deals_closed ?? item.deals ?? 0),
+  approved_deliveries: Number(item.approved_deliveries ?? item.approved ?? 0),
+  applications_received: Number(item.applications_received ?? item.apps ?? 0),
+  spend_k: Number(item.spend_k ?? item.spend ?? 0)
+});
+
+const compactPerformanceByPeriod = (data, period) => {
+  const points = data.map(normalizePerformancePoint);
+  if (period === 'Weekly') {
+    return points.slice(-5).map((item, index) => ({
+      ...item,
+      month: item.week || `Week ${index + 1}`
+    }));
+  }
+
+  if (period === 'Quarterly') {
+    const quarters = points.reduce((acc, item, index) => {
+      const quarterIndex = Math.floor(index / 3);
+      const key = `Q${quarterIndex + 1}`;
+      const existing = acc[quarterIndex] || {
+        month: key,
+        deals_closed: 0,
+        approved_deliveries: 0,
+        applications_received: 0,
+        spend_k: 0
+      };
+      existing.deals_closed += item.deals_closed;
+      existing.approved_deliveries += item.approved_deliveries;
+      existing.applications_received += item.applications_received;
+      existing.spend_k = Number((existing.spend_k + item.spend_k).toFixed(2));
+      acc[quarterIndex] = existing;
+      return acc;
+    }, []);
+
+    return quarters.slice(-5);
+  }
+
+  return points.slice(-5);
+};
 
 const formatMoney = (value) => {
   const amount = Number(value || 0);
@@ -153,6 +196,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [walletAmount, setWalletAmount] = useState('');
   const [walletFilter, setWalletFilter] = useState('all');
   const [rechargingWallet, setRechargingWallet] = useState(false);
+  const [performancePeriod, setPerformancePeriod] = useState('Monthly');
   const [formData, setFormData] = useState({
     title: '',
     objectives: [],
@@ -417,21 +461,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const dashboardPerformanceRaw = (dashboardData?.campaign_performance || []).length
     ? dashboardData.campaign_performance
     : emptyPerformanceMonths();
-  const dashboardPerformance = dashboardPerformanceRaw.map((item) => ({
-    month: item.month || item.name,
-    deals_closed: Number(item.deals_closed ?? item.deals ?? 0),
-    approved_deliveries: Number(item.approved_deliveries ?? item.approved ?? 0),
-    applications_received: Number(item.applications_received ?? item.apps ?? 0),
-    spend_k: Number(item.spend_k ?? item.spend ?? 0)
-  })).some(item => item.deals_closed || item.approved_deliveries || item.applications_received || item.spend_k)
-    ? dashboardPerformanceRaw.map((item) => ({
-      month: item.month || item.name,
-      deals_closed: Number(item.deals_closed ?? item.deals ?? 0),
-      approved_deliveries: Number(item.approved_deliveries ?? item.approved ?? 0),
-      applications_received: Number(item.applications_received ?? item.apps ?? 0),
-      spend_k: Number(item.spend_k ?? item.spend ?? 0)
-    })).slice(-5)
+  const dashboardPerformanceBase = dashboardPerformanceRaw
+    .map(normalizePerformancePoint)
+    .some(item => item.deals_closed || item.approved_deliveries || item.applications_received || item.spend_k)
+    ? dashboardPerformanceRaw
     : campaignPerformanceSample;
+  const dashboardPerformance = compactPerformanceByPeriod(dashboardPerformanceBase, performancePeriod);
   const dashboardFunnel = dashboardData?.creator_funnel || {};
   const funnelStages = [
     { key: 'viewed_brief', label: 'Viewed', className: 'applied' },
@@ -946,10 +981,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
               <section className="brand-panel performance-panel">
                 <div className="panel-title-row">
                   <h2>Campaign Performance</h2>
-                  <div className="period-switch">
-                    <span>Weekly</span>
-                    <strong>Monthly</strong>
-                    <span>Quarterly</span>
+                  <div className="period-switch" role="tablist" aria-label="Campaign performance period">
+                    {performancePeriods.map(period => (
+                      <button
+                        key={period}
+                        type="button"
+                        className={period === performancePeriod ? 'active' : ''}
+                        onClick={() => setPerformancePeriod(period)}
+                        role="tab"
+                        aria-selected={period === performancePeriod}
+                      >
+                        {period}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="performance-chart" aria-label="Campaign performance chart">
@@ -2509,6 +2553,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          flex-wrap: wrap;
           gap: 16px;
           margin-bottom: 22px;
         }
@@ -2524,17 +2569,26 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 800;
         }
 
-        .period-switch span,
-        .period-switch strong {
+        .period-switch button {
           padding: 9px 14px;
+          border: 0;
           border-radius: 10px;
+          background: transparent;
+          color: inherit;
+          cursor: pointer;
           font-size: 14px;
+          font-weight: 800;
         }
 
-        .period-switch strong {
+        .period-switch button.active {
           color: #07074E;
           background: white;
           box-shadow: 0 4px 10px rgba(7, 7, 78, 0.12);
+        }
+
+        .period-switch button:focus-visible {
+          outline: 2px solid #7387FF;
+          outline-offset: 2px;
         }
 
         .performance-chart {

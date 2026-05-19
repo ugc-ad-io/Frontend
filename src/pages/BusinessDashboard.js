@@ -559,14 +559,61 @@ export default function BusinessDashboard({ page = 'overview' }) {
     });
 
     campaignEntries.forEach(campaign => {
-      const bidCreators = (campaign.bids || []).map(bid => bid.creator_nickname || bid.creator_name || bid.creator_id).join(' ');
-      if (matches(campaign.title, campaign.brief_text, campaign.status, campaign.deliverables, bidCreators)) {
+      if (matches(campaign.title, campaign.brief_text, campaign.status, campaign.deliverables, campaign.category)) {
         results.push({
           key: `campaign-${campaign.id || campaign.title}`,
           type: 'Campaign',
           title: campaign.title || 'Untitled Campaign',
           meta: `${String(campaign.status || 'draft').replace(/_/g, ' ')} • ${(campaign.bids || []).length || campaign.applications || 0} bids`,
           target: campaign.id ? `/campaign/${campaign.id}` : '/dashboard/business/all-campaigns'
+        });
+      }
+    });
+
+    const creatorEntries = new Map();
+    campaigns.forEach(campaign => {
+      (campaign.bids || []).forEach(bid => {
+        const creatorName = bid.creator_nickname || bid.creator_name || bid.creator_id;
+        if (creatorName) {
+          creatorEntries.set(bid.creator_id || creatorName, {
+            id: bid.creator_id,
+            name: creatorName,
+            meta: `Bid on ${campaign.title || 'campaign'}`,
+            target: bid.creator_id ? `/chat/${bid.creator_id}` : '/dashboard/business/pending-bids'
+          });
+        }
+      });
+    });
+    dashboardActiveDeals.forEach(deal => {
+      const creatorName = deal.creator_nickname || deal.creator_name || deal.creator_id;
+      if (creatorName) {
+        creatorEntries.set(deal.creator_id || creatorName, {
+          id: deal.creator_id,
+          name: creatorName,
+          meta: `Active deal: ${deal.campaign_title || 'campaign'}`,
+          target: deal.creator_id ? `/chat/${deal.creator_id}` : '/dashboard/business'
+        });
+      }
+    });
+    workSubmissions.forEach(work => {
+      const creatorName = work.creator_nickname || work.creator_name || work.creator_id;
+      if (creatorName) {
+        creatorEntries.set(work.creator_id || creatorName, {
+          id: work.creator_id,
+          name: creatorName,
+          meta: `Work review: ${work.campaign_title || 'campaign'}`,
+          target: '/dashboard/business/work-review'
+        });
+      }
+    });
+    creatorEntries.forEach(creator => {
+      if (matches(creator.name, creator.id, creator.meta)) {
+        results.push({
+          key: `creator-local-${creator.id || creator.name}`,
+          type: 'Creator',
+          title: String(creator.name).replace(/^@/, '@'),
+          meta: creator.meta,
+          target: creator.target
         });
       }
     });
@@ -632,8 +679,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     dashboardItemMatches(action.label, action.type, action.count)
   ));
   const filteredCampaigns = campaigns.filter(campaign => {
-    const bidCreators = (campaign.bids || []).map(bid => bid.creator_nickname || bid.creator_name || bid.creator_id).join(' ');
-    return dashboardItemMatches(campaign.title, campaign.brief_text, campaign.category, campaign.status, campaign.deliverables, bidCreators);
+    return dashboardItemMatches(campaign.title, campaign.brief_text, campaign.category, campaign.status, campaign.deliverables);
   });
   const walletTransactions = walletData.transactions.filter((transaction) => {
     if (walletFilter === 'credits') return transaction.direction === 'credit';

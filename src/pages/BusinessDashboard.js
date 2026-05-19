@@ -3276,16 +3276,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
           align-items: start;
         }
 
-        @media (min-width: 1281px) {
-          .brand-lower-grid {
-            margin-top: -180px;
-          }
-
-          .brand-right-rail {
-            padding-top: 180px;
-          }
-        }
-
         .active-deals-panel {
           padding: 0;
           overflow: hidden;

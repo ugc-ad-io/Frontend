@@ -490,13 +490,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
+    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: Briefcase, path: '/dashboard/business/all-campaigns' },
     { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
-    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
     { id: 'shipments', label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
-    { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/dashboard/business/wallet' },
+    { id: 'wallet', label: 'Wallet', icon: IndianRupee, path: '/dashboard/business/wallet' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
@@ -1068,7 +1068,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
             <span>UGCad.io</span>
           </div>
           <nav className="business-sidebar-nav" aria-label="Business dashboard">
-            <span className="business-nav-label">Business</span>
+            <span className="business-nav-label">Menu</span>
             {businessTabs.map(({ id, label, icon: Icon, path, badge, badgeTone }) => (
               <button
                 key={id}
@@ -1161,7 +1161,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           </div>
         </div>
 
-        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${activeTab === 'work-review' ? 'work-review-shell' : ''}`}>
+        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
         {activeTab === 'overview' && (
           <>
             <div className="brand-metrics-grid">
@@ -1594,7 +1594,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           {activeTab === 'pending-bids' && (
             <div className="bids-section">
-              <h2>Campaigns with Pending Bids</h2>
+              <div className="bids-section-head">
+                <div>
+                  <span className="bids-section-kicker"><UserRoundSearch size={16} /> Creator Pipeline</span>
+                  <h2>Campaigns with Pending Bids</h2>
+                  <p>Review creator proposals, compare bid amounts, and open the campaign workspace.</p>
+                </div>
+                <span>{campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).length} campaigns</span>
+              </div>
               {campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).length === 0 ? (
                 <div className="empty-state">
                   <Users size={64} />
@@ -1608,12 +1615,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         <h3>{campaign.title}</h3>
                         <span className="bid-count">{campaign.bids.length} Bids</span>
                       </div>
-                      <p className="campaign-budget">Budget: ${campaign.budget_min} - ${campaign.budget_max}</p>
+                      <p className="campaign-budget">{formatMoney(campaign.budget_min)} - {formatMoney(campaign.budget_max)}</p>
                       <div className="bids-preview">
                         {campaign.bids.slice(0, 2).map((bid, idx) => (
                           <div key={idx} className="bid-preview-item">
-                            <span className="creator-name">{bid.creator_nickname}</span>
-                            <span className="bid-amount">${bid.amount}</span>
+                            <span className="creator-name">{bid.creator_nickname || bid.creator_name || 'Creator'}</span>
+                            <span className="bid-amount">{formatMoney(bid.amount)}</span>
                           </div>
                         ))}
                       </div>
@@ -1987,7 +1994,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           {activeTab === 'shipments' && (
             <div className="shipments-section">
-              <h2>Campaign Shipments</h2>
+              <div className="shipments-section-head">
+                <div>
+                  <span className="shipments-section-kicker"><Package size={16} /> Logistics</span>
+                  <h2>Campaign Shipments</h2>
+                  <p>Track product dispatch readiness and jump into shipment workflows for selected creators.</p>
+                </div>
+                <span>{campaigns.filter(c => c.requires_shipment || c.shipment_option === 'yes').length} campaigns</span>
+              </div>
               {campaigns.filter(c => c.requires_shipment || c.shipment_option === 'yes').length === 0 ? (
                 <div className="empty-state">
                   <Package size={64} />
@@ -2012,7 +2026,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                           <strong>Creator:</strong> {campaign.selected_creator ? campaign.selected_creator : 'Not yet selected'}
                         </p>
                         <p className="shipment-info">
-                          <strong>Budget:</strong> ${campaign.budget_min} - ${campaign.budget_max}
+                          <strong>Budget:</strong> {formatMoney(campaign.budget_min)} - {formatMoney(campaign.budget_max)}
                         </p>
                       </div>
                       {campaign.selected_creator ? (
@@ -2321,9 +2335,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .business-sidebar {
-          width: 260px;
+          width: 300px;
           min-height: 100vh;
-          max-height: 100vh;
           position: sticky;
           top: 0;
           align-self: flex-start;
@@ -2335,7 +2348,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: white;
           border-top-right-radius: 32px;
           border-bottom-right-radius: 32px;
-          overflow-y: auto;
         }
 
         .business-sidebar-brand {
@@ -2352,7 +2364,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: grid;
           place-items: center;
           flex: 0 0 auto;
-          background: #667eea;
+          background: #7387FF;
           color: white;
           font-weight: 800;
         }
@@ -2371,7 +2383,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .business-nav-label {
           padding: 0 16px 6px;
-          color: #b7b7e6;
+          color: #9F9FD1;
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.08em;
@@ -2427,8 +2439,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .business-nav-item span {
           min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
           white-space: nowrap;
         }
 
@@ -2453,7 +2463,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .business-sidebar-profile span {
           margin-top: 2px;
-          color: #b7b7e6;
+          color: #9F9FD1;
           font-size: 12px;
           font-weight: 600;
         }
@@ -2582,7 +2592,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .brand-profile-photo {
-          background: #667eea;
+          background: #7387FF;
           color: white;
           font-weight: 800;
         }
@@ -2821,7 +2831,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           min-height: 0;
         }
 
-        .work-review-shell .tab-content {
+        .transparent-tab-shell .tab-content {
           background: transparent;
           padding: 0;
           border-radius: 0;
@@ -4539,35 +4549,171 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin-bottom: 8px;
         }
 
+        .bids-section {
+          display: flex;
+          flex-direction: column;
+          gap: 22px;
+        }
+
+        .shipments-section {
+          display: flex;
+          flex-direction: column;
+          gap: 22px;
+        }
+
+        .bids-section-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px;
+          border: 1px solid #E9EBFF;
+          border-radius: 24px;
+          background: white;
+          box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
+        }
+
+        .shipments-section-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px;
+          border: 1px solid #E9EBFF;
+          border-radius: 24px;
+          background: white;
+          box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
+        }
+
+        .bids-section-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .shipments-section-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .bids-section-head h2 {
+          margin: 0;
+          color: #07074E;
+          font-size: 30px;
+          line-height: 1.1;
+        }
+
+        .shipments-section-head h2 {
+          margin: 0;
+          color: #07074E;
+          font-size: 30px;
+          line-height: 1.1;
+        }
+
+        .bids-section-head p {
+          max-width: 560px;
+          margin: 10px 0 0;
+          color: #9F9FD1;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .shipments-section-head p {
+          max-width: 560px;
+          margin: 10px 0 0;
+          color: #9F9FD1;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .bids-section-head > span {
+          flex: 0 0 auto;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .shipments-section-head > span {
+          flex: 0 0 auto;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: #EEF0FF;
+          color: #7387FF;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
         .bids-grid,
         .shipments-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(320px, 420px));
           gap: 24px;
+          align-items: start;
         }
 
-        .bid-campaign-card,
+        .bid-campaign-card {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          padding: 26px;
+          border: 1px solid #E5E7FF;
+          border-radius: 24px;
+          background: white;
+          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+        }
+
         .shipment-card {
-          background: #f8f9ff;
-          padding: 24px;
-          border-radius: 16px;
-          border: 2px solid #e2e8f0;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          min-height: 360px;
+          padding: 28px;
+          border: 1px solid #E5E7FF;
+          border-radius: 24px;
+          background: white;
+          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
         }
 
         .bid-campaign-header,
         .shipment-header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
+          align-items: flex-start;
+          gap: 16px;
+          margin-bottom: 0;
         }
 
         .bid-campaign-header h3,
         .shipment-header h3 {
-          font-size: 1.1rem;
+          margin: 0;
+          font-size: 20px;
+          line-height: 1.25;
           font-weight: 600;
           color: #1a202c;
           flex: 1;
+          overflow-wrap: anywhere;
         }
 
         .bid-count {
@@ -4582,24 +4728,85 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .campaign-budget,
         .shipment-info {
           color: #4a5568;
-          margin-bottom: 16px;
+          margin: 0;
+        }
+
+        .shipment-details {
+          display: grid;
+          gap: 14px;
+          padding: 16px;
+          border: 1px solid #EEF0FF;
+          border-radius: 16px;
+          background: #FBFBFF;
+        }
+
+        .shipment-info {
+          display: flex;
+          gap: 8px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+        }
+
+        .shipment-info strong {
+          flex: 0 0 auto;
+          color: #07074E;
+        }
+
+        .campaign-budget {
+          color: #9F9FD1;
+          font-size: 16px;
+          font-weight: 800;
         }
 
         .bids-preview {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          margin-bottom: 20px;
-          padding: 12px;
-          background: white;
-          border-radius: 8px;
+          margin: 0;
+          padding: 14px;
+          border: 1px solid #EEF0FF;
+          border-radius: 16px;
+          background: #f8f9ff;
         }
 
         .bid-preview-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 0;
+          gap: 16px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: white;
+        }
+
+        .bid-preview-item .creator-name {
+          min-width: 0;
+          overflow: hidden;
+          color: #7387FF;
+          font-weight: 900;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .bid-preview-item .bid-amount {
+          color: #07074E;
+          font-weight: 900;
+        }
+
+        .bid-campaign-card .btn-primary {
+          align-self: flex-start;
+          min-width: 190px;
+          justify-content: center;
+        }
+
+        .shipment-card .btn-primary,
+        .shipment-card .btn-secondary {
+          width: 100%;
+          min-height: 54px;
+          justify-content: center;
+          margin-top: auto;
+          border-radius: 999px;
+          text-align: center;
         }
 
         .creator-directory-section {
@@ -6077,12 +6284,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .business-sidebar {
             width: 100%;
             min-height: auto;
-            max-height: none;
             position: static;
             border-radius: 0;
             padding: 20px;
             gap: 20px;
-            overflow-y: visible;
           }
 
           .business-sidebar-brand {

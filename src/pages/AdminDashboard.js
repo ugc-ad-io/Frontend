@@ -93,6 +93,30 @@ export default function AdminDashboard() {
     invite_mode: 'direct',
     permissions: []
   });
+  const [creatorApplications, setCreatorApplications] = useState([]);
+  const [brandApplications, setBrandApplications] = useState([]);
+  const [applicationViewType, setApplicationViewType] = useState('creator');
+  const [applicationFilters, setApplicationFilters] = useState({
+    state: '',
+    category: '',
+    startDate: '',
+    endDate: ''
+  });
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [showApplicationDetail, setShowApplicationDetail] = useState(false);
+  const [applicationDetailLoading, setApplicationDetailLoading] = useState(false);
+  const [showMoreInfoModal, setShowMoreInfoModal] = useState(false);
+  const [moreInfoFormData, setMoreInfoFormData] = useState({
+    request_type: 'clarification',
+    message: '',
+    required_fields: [],
+    deadline_days: 3,
+    priority: 'medium'
+  });
+  const [rejectFormData, setRejectFormData] = useState({
+    reason_code: '',
+    reason_details: ''
+  });
 
   useEffect(() => {
     fetchStats();
@@ -101,6 +125,7 @@ export default function AdminDashboard() {
     fetchPendingWithdrawals();
     fetchAllCampaigns();
     fetchCampaignAssignments();
+    fetchApplications();
     if (user?.role === 'admin') {
       fetchAllUsers();
       fetchAnalytics();
@@ -148,6 +173,94 @@ export default function AdminDashboard() {
       setCampaignAssignments(response.data);
     } catch (error) {
       console.error('Failed to load campaign assignments');
+    }
+  };
+
+  const fetchApplications = async () => {
+    try {
+      const creatorRes = await axios.get(`${API}/admin/applications/creators`);
+      const brandRes = await axios.get(`${API}/admin/applications/brands`);
+      setCreatorApplications(creatorRes.data.data || creatorRes.data);
+      setBrandApplications(brandRes.data.data || brandRes.data);
+    } catch (error) {
+      console.error('Failed to load applications:', error);
+      toast.error('Failed to load applications');
+    }
+  };
+
+  const fetchApplicationDetail = async (applicationId, type) => {
+    try {
+      setApplicationDetailLoading(true);
+      const endpoint = type === 'creator'
+        ? `/admin/applications/creators/${applicationId}`
+        : `/admin/applications/brands/${applicationId}`;
+      const response = await axios.get(`${API}${endpoint}`);
+      setSelectedApplication({...response.data, type});
+    } catch (error) {
+      console.error('Failed to load application detail:', error);
+      toast.error('Failed to load application details');
+    } finally {
+      setApplicationDetailLoading(false);
+    }
+  };
+
+  const handleApproveApplication = async (applicationId, type) => {
+    try {
+      const endpoint = type === 'creator'
+        ? `/admin/applications/creators/${applicationId}/approve`
+        : `/admin/applications/brands/${applicationId}/approve`;
+      await axios.post(`${API}${endpoint}`, {
+        notes: 'Approved by admin'
+      });
+      toast.success('Application approved successfully');
+      setShowApplicationDetail(false);
+      fetchApplications();
+    } catch (error) {
+      console.error('Failed to approve application:', error);
+      toast.error(error.response?.data?.detail || 'Failed to approve application');
+    }
+  };
+
+  const handleRejectApplication = async (applicationId, type) => {
+    try {
+      if (!rejectFormData.reason_code) {
+        toast.error('Please select a rejection reason');
+        return;
+      }
+      const endpoint = type === 'creator'
+        ? `/admin/applications/creators/${applicationId}/reject`
+        : `/admin/applications/brands/${applicationId}/reject`;
+      await axios.post(`${API}${endpoint}`, {
+        reason_code: rejectFormData.reason_code,
+        reason_details: rejectFormData.reason_details
+      });
+      toast.success('Application rejected successfully');
+      setShowApplicationDetail(false);
+      setRejectFormData({reason_code: '', reason_details: ''});
+      fetchApplications();
+    } catch (error) {
+      console.error('Failed to reject application:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reject application');
+    }
+  };
+
+  const handleRequestMoreInfo = async (applicationId, type) => {
+    try {
+      if (!moreInfoFormData.message) {
+        toast.error('Please enter a message');
+        return;
+      }
+      const endpoint = type === 'creator'
+        ? `/admin/applications/creators/${applicationId}/request-more-info`
+        : `/admin/applications/brands/${applicationId}/request-more-info`;
+      await axios.post(`${API}${endpoint}`, moreInfoFormData);
+      toast.success('More info request sent to applicant');
+      setShowMoreInfoModal(false);
+      setMoreInfoFormData({request_type: 'clarification', message: '', required_fields: [], deadline_days: 3, priority: 'medium'});
+      fetchApplicationDetail(applicationId, type);
+    } catch (error) {
+      console.error('Failed to send more info request:', error);
+      toast.error(error.response?.data?.detail || 'Failed to send request');
     }
   };
 
@@ -817,62 +930,593 @@ export default function AdminDashboard() {
 
           {activeTab === 'applications' && (
             <div className="applications-section fade-in">
-              <div className="applications-header">
-                <h2>Applications</h2>
-                <div className="application-tabs">
-                  <button className="app-tab-btn active">Creator Applications</button>
-                  <button className="app-tab-btn">Brand Applications</button>
-                </div>
-              </div>
+              {!showApplicationDetail ? (
+                <>
+                  <div className="applications-header">
+                    <h2>Applications</h2>
+                    <div className="application-tabs">
+                      <button
+                        className={`app-tab-btn ${applicationViewType === 'creator' ? 'active' : ''}`}
+                        onClick={() => setApplicationViewType('creator')}
+                      >
+                        Creator Applications ({creatorApplications.length})
+                      </button>
+                      <button
+                        className={`app-tab-btn ${applicationViewType === 'brand' ? 'active' : ''}`}
+                        onClick={() => setApplicationViewType('brand')}
+                      >
+                        Brand Applications ({brandApplications.length})
+                      </button>
+                    </div>
+                  </div>
 
-              <div className="applications-filters">
-                <div className="filter-group">
-                  <label>State</label>
-                  <select>
-                    <option value="">All States</option>
-                    <option value="pending">Pending</option>
-                    <option value="more-info">More Info Requested</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                </div>
-                <div className="filter-group">
-                  <label>Category</label>
-                  <select>
-                    <option value="">All Categories</option>
-                    <option value="tech">Technology</option>
-                    <option value="fashion">Fashion</option>
-                    <option value="lifestyle">Lifestyle</option>
-                  </select>
-                </div>
-                <div className="filter-group">
-                  <label>Submitted Date Range</label>
-                  <input type="date" />
-                  <span>to</span>
-                  <input type="date" />
-                </div>
-              </div>
+                  <div className="applications-filters">
+                    <div className="filter-group">
+                      <label>State</label>
+                      <select value={applicationFilters.state} onChange={(e) => setApplicationFilters({...applicationFilters, state: e.target.value})}>
+                        <option value="">All States</option>
+                        <option value="pending">Pending</option>
+                        <option value="more_info">More Info Requested</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                    <div className="filter-group">
+                      <label>Category</label>
+                      <select value={applicationFilters.category} onChange={(e) => setApplicationFilters({...applicationFilters, category: e.target.value})}>
+                        <option value="">All Categories</option>
+                        <option value="tech">Technology</option>
+                        <option value="fashion">Fashion</option>
+                        <option value="lifestyle">Lifestyle</option>
+                        <option value="food">Food & Beverage</option>
+                        <option value="beauty">Beauty</option>
+                      </select>
+                    </div>
+                    <div className="filter-group">
+                      <label>Submitted Date Range</label>
+                      <div className="date-range">
+                        <input
+                          type="date"
+                          value={applicationFilters.startDate}
+                          onChange={(e) => setApplicationFilters({...applicationFilters, startDate: e.target.value})}
+                        />
+                        <span>to</span>
+                        <input
+                          type="date"
+                          value={applicationFilters.endDate}
+                          onChange={(e) => setApplicationFilters({...applicationFilters, endDate: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="applications-list">
-                <table className="applications-table">
-                  <thead>
-                    <tr>
-                      <th>Handle</th>
-                      <th>Submitted Date</th>
-                      <th>Category</th>
-                      <th>Languages</th>
-                      <th>Location</th>
-                      <th>SLA Remaining</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Loading applications...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                  <div className="applications-list">
+                    <table className="applications-table">
+                      <thead>
+                        <tr>
+                          <th>{applicationViewType === 'creator' ? 'Handle' : 'Brand Name'}</th>
+                          <th>Submitted Date</th>
+                          <th>Category</th>
+                          <th>{applicationViewType === 'creator' ? 'Languages' : 'Email'}</th>
+                          <th>{applicationViewType === 'creator' ? 'Location' : 'GST Status'}</th>
+                          <th>SLA Remaining</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(applicationViewType === 'creator' ? creatorApplications : brandApplications)
+                          .filter(app => !applicationFilters.state || app.status === applicationFilters.state)
+                          .filter(app => !applicationFilters.category || app.category === applicationFilters.category)
+                          .sort((a, b) => new Date(a.submitted_date) - new Date(b.submitted_date))
+                          .map(app => (
+                            <tr key={app.id}>
+                              <td className="app-handle">{applicationViewType === 'creator' ? app.nickname : app.business_name}</td>
+                              <td>{new Date(app.submitted_date).toLocaleDateString()}</td>
+                              <td>{app.category}</td>
+                              <td>{applicationViewType === 'creator' ? (app.languages?.join(', ') || 'N/A') : app.email}</td>
+                              <td>{applicationViewType === 'creator' ? app.location : app.gst_status || 'Pending'}</td>
+                              <td className="sla-remaining">{Math.max(0, 7 - Math.floor((Date.now() - new Date(app.submitted_date)) / (1000 * 60 * 60 * 24)))} days</td>
+                              <td>
+                                <span className={`status-badge status-${app.status}`}>
+                                  {app.status?.replace(/_/g, ' ').toUpperCase()}
+                                </span>
+                              </td>
+                              <td>
+                                <button
+                                  className="btn-view-detail"
+                                  onClick={() => {
+                                    setShowApplicationDetail(true);
+                                    fetchApplicationDetail(app.id, applicationViewType);
+                                  }}
+                                >
+                                  View
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    {((applicationViewType === 'creator' ? creatorApplications : brandApplications).length === 0) && (
+                      <div className="empty-table">
+                        <p>No applications found</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="application-detail-view">
+                  <button className="btn-back" onClick={() => setShowApplicationDetail(false)}>← Back to List</button>
+
+                  {applicationDetailLoading ? (
+                    <div className="loading">Loading application details...</div>
+                  ) : selectedApplication?.type === 'creator' ? (
+                    // Creator Application Detail View
+                    <div className="detail-content">
+                      <div className="detail-header">
+                        <div className="detail-title">
+                          <h2>{selectedApplication?.nickname}</h2>
+                          <p>{selectedApplication?.email}</p>
+                          <span className={`status-badge status-${selectedApplication?.status}`}>
+                            {selectedApplication?.status?.replace(/_/g, ' ').toUpperCase()}
+                          </span>
+                          {selectedApplication?.handle_flagged_as_real_name && (
+                            <span className="flag-badge">⚠️ Handle flagged as real name</span>
+                          )}
+                        </div>
+                        <div className="detail-meta">
+                          <div className="meta-item">
+                            <span className="label">Submitted</span>
+                            <span className="value">{new Date(selectedApplication?.submitted_date).toLocaleDateString()}</span>
+                          </div>
+                          <div className="meta-item">
+                            <span className="label">SLA Remaining</span>
+                            <span className="value">{selectedApplication?.sla_remaining_days} days</span>
+                          </div>
+                          <div className="meta-item">
+                            <span className="label">Category</span>
+                            <span className="value">{selectedApplication?.category}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="detail-grid">
+                        {/* Basic Info */}
+                        <section className="detail-section">
+                          <h3>Profile Information</h3>
+                          <div className="info-grid">
+                            <div className="info-item">
+                              <label>Handle</label>
+                              <p>{selectedApplication?.nickname}</p>
+                            </div>
+                            <div className="info-item">
+                              <label>Location</label>
+                              <p>{selectedApplication?.location}</p>
+                            </div>
+                            <div className="info-item">
+                              <label>Languages</label>
+                              <p>{selectedApplication?.languages?.join(', ')}</p>
+                            </div>
+                            <div className="info-item">
+                              <label>Category</label>
+                              <p>{selectedApplication?.category}</p>
+                            </div>
+                            <div className="info-item full-width">
+                              <label>Bio</label>
+                              <p>{selectedApplication?.bio}</p>
+                            </div>
+                          </div>
+                        </section>
+
+                        {/* Rate Card */}
+                        <section className="detail-section">
+                          <h3>Rate Card</h3>
+                          <div className="rate-card-grid">
+                            {Object.entries(selectedApplication?.rate_card || {}).map(([key, value]) => (
+                              <div key={key} className="rate-item">
+                                <span className="rate-label">{key.replace(/_/g, ' ').toUpperCase()}</span>
+                                <span className="rate-value">₹{Number(value).toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+
+                        {/* Portfolio Videos */}
+                        <section className="detail-section full-width">
+                          <h3>Portfolio Videos</h3>
+                          {selectedApplication?.portfolio_videos?.length > 0 ? (
+                            <div className="portfolio-grid">
+                              {selectedApplication.portfolio_videos.map(video => (
+                                <div key={video.id} className="video-card">
+                                  <div className="video-thumbnail">
+                                    <img src={video.thumbnail} alt={video.title} />
+                                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="play-button">▶</a>
+                                  </div>
+                                  <p className="video-title">{video.title}</p>
+                                  {video.duration && <p className="video-duration">{Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="empty-message">No portfolio videos provided</p>
+                          )}
+                        </section>
+
+                        {/* KYC Documents */}
+                        <section className="detail-section full-width">
+                          <h3>KYC Documents</h3>
+                          <div className="kyc-grid">
+                            {selectedApplication?.kyc_documents ? Object.entries(selectedApplication.kyc_documents).map(([docType, doc]) => (
+                              <div key={docType} className="kyc-card">
+                                <div className="kyc-header">
+                                  <h4>{docType.replace(/_/g, ' ').toUpperCase()}</h4>
+                                  <span className={`verify-badge ${doc.verified ? 'verified' : 'pending'}`}>
+                                    {doc.verified ? '✓ Verified' : '⏳ Pending'}
+                                  </span>
+                                </div>
+                                {doc.url && (
+                                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="doc-link">
+                                    View Document
+                                  </a>
+                                )}
+                                {doc.number && <p className="doc-info"><strong>ID:</strong> {doc.number}</p>}
+                                {doc.verified_at && <p className="doc-info"><strong>Verified:</strong> {new Date(doc.verified_at).toLocaleDateString()}</p>}
+                              </div>
+                            )) : null}
+                          </div>
+                        </section>
+
+                        {/* Social Handles */}
+                        <section className="detail-section full-width">
+                          <h3>Social Media Handles</h3>
+                          {selectedApplication?.social_handles ? (
+                            <div className="social-grid">
+                              {Object.entries(selectedApplication.social_handles).map(([platform, data]) => (
+                                data.handle || data.profile_url ? (
+                                  <div key={platform} className="social-card">
+                                    <h4>{platform.toUpperCase()}</h4>
+                                    {data.profile_url ? (
+                                      <a href={data.profile_url} target="_blank" rel="noopener noreferrer">{data.handle || data.profile_url}</a>
+                                    ) : (
+                                      <p>{data.handle}</p>
+                                    )}
+                                    {data.followers && <p className="followers">{Number(data.followers).toLocaleString()} followers</p>}
+                                    {data.verified && <span className="verified-badge">✓ Verified</span>}
+                                  </div>
+                                ) : null
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="empty-message">No social handles provided</p>
+                          )}
+                        </section>
+                      </div>
+
+                      {/* Decision Section */}
+                      <div className="decision-section">
+                        <h3>Application Decision</h3>
+                        <div className="decision-buttons">
+                          <button
+                            className="btn-decision btn-approve"
+                            onClick={() => handleApproveApplication(selectedApplication?.id, 'creator')}
+                            disabled={selectedApplication?.status === 'approved'}
+                          >
+                            ✓ Approve
+                          </button>
+                          <button
+                            className="btn-decision btn-more-info"
+                            onClick={() => setShowMoreInfoModal(true)}
+                            disabled={selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected'}
+                          >
+                            ✎ Request More Info
+                          </button>
+                          <button
+                            className="btn-decision btn-reject"
+                            onClick={() => document.querySelector('.reject-form')?.classList.toggle('show')}
+                            disabled={selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected'}
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
+
+                        {/* Reject Form */}
+                        <div className="reject-form">
+                          <div className="form-group">
+                            <label>Rejection Reason</label>
+                            <select
+                              value={rejectFormData.reason_code}
+                              onChange={(e) => setRejectFormData({...rejectFormData, reason_code: e.target.value})}
+                            >
+                              <option value="">Select a reason...</option>
+                              <option value="invalid_documents">Invalid Documents</option>
+                              <option value="incomplete_kyc">Incomplete KYC</option>
+                              <option value="restricted_category">Restricted Category</option>
+                              <option value="fraud_detected">Fraud Detected</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Details</label>
+                            <textarea
+                              value={rejectFormData.reason_details}
+                              onChange={(e) => setRejectFormData({...rejectFormData, reason_details: e.target.value})}
+                              placeholder="Provide details for rejection..."
+                            />
+                          </div>
+                          <div className="form-actions">
+                            <button
+                              className="btn-confirm btn-reject"
+                              onClick={() => handleRejectApplication(selectedApplication?.id, 'creator')}
+                            >
+                              Confirm Rejection
+                            </button>
+                            <button
+                              className="btn-cancel"
+                              onClick={() => document.querySelector('.reject-form')?.classList.remove('show')}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Brand Application Detail View
+                    <div className="detail-content">
+                      <div className="detail-header">
+                        <div className="detail-title">
+                          <h2>{selectedApplication?.business_name}</h2>
+                          <p>{selectedApplication?.business_email}</p>
+                          <span className={`status-badge status-${selectedApplication?.status}`}>
+                            {selectedApplication?.status?.replace(/_/g, ' ').toUpperCase()}
+                          </span>
+                          {selectedApplication?.flags?.free_email_domain && (
+                            <span className="flag-badge">⚠️ Free email domain</span>
+                          )}
+                          {selectedApplication?.flags?.restricted_category && (
+                            <span className="flag-badge">⚠️ Restricted category</span>
+                          )}
+                        </div>
+                        <div className="detail-meta">
+                          <div className="meta-item">
+                            <span className="label">Submitted</span>
+                            <span className="value">{new Date(selectedApplication?.submitted_date).toLocaleDateString()}</span>
+                          </div>
+                          <div className="meta-item">
+                            <span className="label">SLA Remaining</span>
+                            <span className="value">{selectedApplication?.sla_remaining_days} days</span>
+                          </div>
+                          <div className="meta-item">
+                            <span className="label">GST Status</span>
+                            <span className={`gst-badge ${selectedApplication?.gst_details?.verification_status}`}>
+                              {selectedApplication?.gst_details?.verification_status?.toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="detail-grid">
+                        {/* Business Info */}
+                        <section className="detail-section">
+                          <h3>Business Information</h3>
+                          <div className="info-grid">
+                            <div className="info-item">
+                              <label>Business Name</label>
+                              <p>{selectedApplication?.business_name}</p>
+                            </div>
+                            <div className="info-item">
+                              <label>Business Email</label>
+                              <p>{selectedApplication?.business_email}</p>
+                            </div>
+                            <div className="info-item">
+                              <label>Industry</label>
+                              <p>{selectedApplication?.business_profile?.industry}</p>
+                            </div>
+                            <div className="info-item">
+                              <label>Product Type</label>
+                              <p>{selectedApplication?.business_profile?.product_type}</p>
+                            </div>
+                            <div className="info-item full-width">
+                              <label>Description</label>
+                              <p>{selectedApplication?.business_profile?.description}</p>
+                            </div>
+                          </div>
+                        </section>
+
+                        {/* GST Verification */}
+                        <section className="detail-section">
+                          <h3>GST Verification</h3>
+                          <div className="gst-info">
+                            <div className="gst-item">
+                              <label>GST Number</label>
+                              <p>{selectedApplication?.gst_details?.gst_number}</p>
+                            </div>
+                            <div className="gst-item">
+                              <label>Status</label>
+                              <span className={`gst-badge ${selectedApplication?.gst_details?.verification_status}`}>
+                                {selectedApplication?.gst_details?.verification_status?.toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="gst-item">
+                              <label>Business Type</label>
+                              <p>{selectedApplication?.gst_details?.business_type}</p>
+                            </div>
+                            {selectedApplication?.gst_details?.verified_at && (
+                              <div className="gst-item">
+                                <label>Verified Date</label>
+                                <p>{new Date(selectedApplication.gst_details.verified_at).toLocaleDateString()}</p>
+                              </div>
+                            )}
+                          </div>
+                        </section>
+
+                        {/* Website */}
+                        {selectedApplication?.business_profile?.website && (
+                          <section className="detail-section full-width">
+                            <h3>Website</h3>
+                            <div className="website-preview">
+                              <a href={selectedApplication.business_profile.website} target="_blank" rel="noopener noreferrer">
+                                {selectedApplication.business_profile.website}
+                              </a>
+                            </div>
+                          </section>
+                        )}
+
+                        {/* Social Media */}
+                        <section className="detail-section full-width">
+                          <h3>Social Media Links</h3>
+                          {selectedApplication?.social_media ? (
+                            <div className="social-grid">
+                              {Object.entries(selectedApplication.social_media).map(([platform, url]) => (
+                                url ? (
+                                  <div key={platform} className="social-card">
+                                    <h4>{platform.toUpperCase()}</h4>
+                                    <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+                                  </div>
+                                ) : null
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="empty-message">No social media links provided</p>
+                          )}
+                        </section>
+                      </div>
+
+                      {/* Decision Section */}
+                      <div className="decision-section">
+                        <h3>Application Decision</h3>
+                        <div className="decision-buttons">
+                          <button
+                            className="btn-decision btn-approve"
+                            onClick={() => handleApproveApplication(selectedApplication?.id, 'brand')}
+                            disabled={selectedApplication?.status === 'approved'}
+                          >
+                            ✓ Approve
+                          </button>
+                          <button
+                            className="btn-decision btn-more-info"
+                            onClick={() => setShowMoreInfoModal(true)}
+                            disabled={selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected'}
+                          >
+                            ✎ Request More Info
+                          </button>
+                          <button
+                            className="btn-decision btn-reject"
+                            onClick={() => document.querySelector('.reject-form')?.classList.toggle('show')}
+                            disabled={selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected'}
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
+
+                        {/* Reject Form */}
+                        <div className="reject-form">
+                          <div className="form-group">
+                            <label>Rejection Reason</label>
+                            <select
+                              value={rejectFormData.reason_code}
+                              onChange={(e) => setRejectFormData({...rejectFormData, reason_code: e.target.value})}
+                            >
+                              <option value="">Select a reason...</option>
+                              <option value="invalid_gst">Invalid GST</option>
+                              <option value="restricted_category">Restricted Category</option>
+                              <option value="fraud_detected">Fraud Detected</option>
+                              <option value="low_trust">Low Trust Indicators</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Details</label>
+                            <textarea
+                              value={rejectFormData.reason_details}
+                              onChange={(e) => setRejectFormData({...rejectFormData, reason_details: e.target.value})}
+                              placeholder="Provide details for rejection..."
+                            />
+                          </div>
+                          <div className="form-actions">
+                            <button
+                              className="btn-confirm btn-reject"
+                              onClick={() => handleRejectApplication(selectedApplication?.id, 'brand')}
+                            >
+                              Confirm Rejection
+                            </button>
+                            <button
+                              className="btn-cancel"
+                              onClick={() => document.querySelector('.reject-form')?.classList.remove('show')}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* More Info Modal */}
+              {showMoreInfoModal && (
+                <div className="modal-overlay" onClick={() => setShowMoreInfoModal(false)}>
+                  <div className="modal-content more-info-modal" onClick={(e) => e.stopPropagation()}>
+                    <h3>Request More Information</h3>
+                    <div className="form-group">
+                      <label>Request Type</label>
+                      <select
+                        value={moreInfoFormData.request_type}
+                        onChange={(e) => setMoreInfoFormData({...moreInfoFormData, request_type: e.target.value})}
+                      >
+                        <option value="clarification">Clarification</option>
+                        <option value="document">Document</option>
+                        <option value="verification">Verification</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Message</label>
+                      <textarea
+                        value={moreInfoFormData.message}
+                        onChange={(e) => setMoreInfoFormData({...moreInfoFormData, message: e.target.value})}
+                        placeholder="Enter your request message..."
+                        rows="4"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Priority</label>
+                      <select
+                        value={moreInfoFormData.priority}
+                        onChange={(e) => setMoreInfoFormData({...moreInfoFormData, priority: e.target.value})}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Response Deadline (Days)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={moreInfoFormData.deadline_days}
+                        onChange={(e) => setMoreInfoFormData({...moreInfoFormData, deadline_days: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="modal-actions">
+                      <button
+                        className="btn-confirm"
+                        onClick={() => handleRequestMoreInfo(selectedApplication?.id, selectedApplication?.type)}
+                      >
+                        Send Request
+                      </button>
+                      <button
+                        className="btn-cancel"
+                        onClick={() => setShowMoreInfoModal(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -4584,6 +5228,799 @@ export default function AdminDashboard() {
           border-bottom: none;
         }
 
+        .date-range {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .date-range input {
+          flex: 1;
+        }
+
+        .date-range span {
+          color: #4a5568;
+          font-weight: 600;
+          font-size: 13px;
+        }
+
+        .app-handle {
+          font-weight: 700;
+          color: #0f0f2e;
+        }
+
+        .sla-remaining {
+          font-weight: 700;
+          color: #667eea;
+        }
+
+        .status-badge {
+          display: inline-block;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: capitalize;
+        }
+
+        .status-pending {
+          background: #fef3c7;
+          color: #b45309;
+        }
+
+        .status-more_info {
+          background: #fce7f3;
+          color: #9f1239;
+        }
+
+        .status-approved {
+          background: #d1f5e8;
+          color: #065f46;
+        }
+
+        .status-rejected {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+
+        .btn-view-detail {
+          padding: 8px 14px;
+          border: 1.5px solid #d1daf0;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #f5f7ff 0%, #eff2f8 100%);
+          color: #667eea;
+          cursor: pointer;
+          font-weight: 700;
+          font-size: 12px;
+          transition: all 0.3s ease;
+        }
+
+        .btn-view-detail:hover {
+          border-color: #667eea;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+          transform: translateY(-2px);
+        }
+
+        .empty-table {
+          padding: 60px 20px;
+          text-align: center;
+          color: #9ca3af;
+          font-size: 16px;
+        }
+
+        .application-detail-view {
+          padding: 32px;
+        }
+
+        .btn-back {
+          padding: 10px 16px;
+          border: 1.5px solid #dde4f0;
+          border-radius: 8px;
+          background: white;
+          color: #667eea;
+          cursor: pointer;
+          font-weight: 700;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          margin-bottom: 24px;
+        }
+
+        .btn-back:hover {
+          border-color: #667eea;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+          background: #f5f7ff;
+        }
+
+        .detail-content {
+          background: white;
+          border: 1px solid #dde4f0;
+          border-radius: 14px;
+          padding: 32px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .detail-content h2 {
+          margin: 0 0 8px 0;
+          color: #0f0f2e;
+          font-size: 28px;
+          font-weight: 800;
+        }
+
+        .detail-subtitle {
+          margin: 0 0 24px 0;
+          color: #9ca3af;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .detail-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 32px;
+          padding-bottom: 24px;
+          border-bottom: 2px solid #ede9f6;
+        }
+
+        .detail-title {
+          flex: 1;
+        }
+
+        .detail-title h2 {
+          margin: 0 0 8px 0;
+          color: #0f0f2e;
+          font-size: 28px;
+          font-weight: 800;
+        }
+
+        .detail-title p {
+          margin: 0 0 12px 0;
+          color: #4a5568;
+          font-size: 14px;
+        }
+
+        .flag-badge {
+          display: inline-block;
+          margin-right: 8px;
+          padding: 6px 12px;
+          background: #fef3c7;
+          color: #b45309;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .detail-meta {
+          display: flex;
+          gap: 32px;
+          margin-top: 16px;
+        }
+
+        .meta-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .meta-item .label {
+          font-size: 12px;
+          color: #9ca3af;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .meta-item .value {
+          font-size: 15px;
+          color: #0f0f2e;
+          font-weight: 700;
+        }
+
+        .detail-grid {
+          display: grid;
+          gap: 32px;
+          margin-bottom: 32px;
+        }
+
+        .detail-section {
+          background: linear-gradient(135deg, #fafbfc 0%, #f5f7fb 100%);
+          border: 1px solid #dde4f0;
+          border-radius: 12px;
+          padding: 24px;
+        }
+
+        .detail-section h3 {
+          margin: 0 0 20px 0;
+          color: #0f0f2e;
+          font-size: 18px;
+          font-weight: 800;
+          border-bottom: 2px solid #ede9f6;
+          padding-bottom: 12px;
+        }
+
+        .detail-section.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+        }
+
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .info-item.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .info-item label {
+          font-size: 12px;
+          color: #9ca3af;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .info-item p {
+          margin: 0;
+          color: #4a5568;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .rate-card-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 16px;
+        }
+
+        .rate-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          padding: 16px;
+          background: white;
+          border: 1.5px solid #dde4f0;
+          border-radius: 10px;
+        }
+
+        .rate-label {
+          font-size: 12px;
+          color: #9ca3af;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .rate-value {
+          font-size: 18px;
+          color: #667eea;
+          font-weight: 800;
+        }
+
+        .portfolio-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 20px;
+        }
+
+        .video-card {
+          border-radius: 10px;
+          overflow: hidden;
+          border: 1.5px solid #dde4f0;
+          transition: all 0.3s ease;
+        }
+
+        .video-card:hover {
+          border-color: #667eea;
+          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+          transform: translateY(-4px);
+        }
+
+        .video-thumbnail {
+          position: relative;
+          width: 100%;
+          padding-bottom: 56.25%;
+          background: #000;
+          overflow: hidden;
+        }
+
+        .video-thumbnail img {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .play-button {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 48px;
+          height: 48px;
+          background: rgba(102, 126, 234, 0.9);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          color: white;
+          text-decoration: none;
+          transition: all 0.3s ease;
+        }
+
+        .play-button:hover {
+          background: #667eea;
+          transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .video-title {
+          padding: 12px;
+          margin: 0;
+          color: #0f0f2e;
+          font-size: 13px;
+          font-weight: 700;
+          background: white;
+        }
+
+        .video-duration {
+          padding: 0 12px 12px;
+          margin: 0;
+          color: #9ca3af;
+          font-size: 12px;
+          background: white;
+        }
+
+        .kyc-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .kyc-card {
+          background: white;
+          border: 1.5px solid #dde4f0;
+          border-radius: 10px;
+          padding: 16px;
+        }
+
+        .kyc-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          padding-bottom: 12px;
+          border-bottom: 2px solid #ede9f6;
+        }
+
+        .kyc-header h4 {
+          margin: 0;
+          font-size: 13px;
+          color: #0f0f2e;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .verify-badge {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 4px 10px;
+          border-radius: 12px;
+        }
+
+        .verify-badge.verified {
+          background: #d1f5e8;
+          color: #065f46;
+        }
+
+        .verify-badge.pending {
+          background: #fef3c7;
+          color: #b45309;
+        }
+
+        .doc-link {
+          display: block;
+          color: #667eea;
+          font-weight: 700;
+          font-size: 13px;
+          text-decoration: none;
+          margin-bottom: 8px;
+          transition: color 0.3s ease;
+        }
+
+        .doc-link:hover {
+          color: #764ba2;
+        }
+
+        .doc-info {
+          margin: 8px 0;
+          font-size: 12px;
+          color: #4a5568;
+        }
+
+        .doc-info strong {
+          color: #0f0f2e;
+        }
+
+        .social-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .social-card {
+          background: white;
+          border: 1.5px solid #dde4f0;
+          border-radius: 10px;
+          padding: 16px;
+          transition: all 0.3s ease;
+        }
+
+        .social-card:hover {
+          border-color: #667eea;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .social-card h4 {
+          margin: 0 0 8px 0;
+          font-size: 13px;
+          color: #0f0f2e;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .social-card a,
+        .social-card p {
+          margin: 0 0 8px 0;
+          font-size: 13px;
+          color: #667eea;
+          text-decoration: none;
+          font-weight: 600;
+          word-break: break-all;
+        }
+
+        .social-card a:hover {
+          text-decoration: underline;
+        }
+
+        .social-card p {
+          color: #4a5568;
+        }
+
+        .followers {
+          font-size: 12px;
+          color: #9ca3af;
+          font-weight: 600;
+        }
+
+        .verified-badge {
+          display: inline-block;
+          background: #d1f5e8;
+          color: #065f46;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 8px;
+        }
+
+        .gst-info {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .gst-item {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .gst-item label {
+          font-size: 12px;
+          color: #9ca3af;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .gst-item p {
+          margin: 0;
+          color: #4a5568;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .gst-badge {
+          display: inline-block;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .gst-badge.verified {
+          background: #d1f5e8;
+          color: #065f46;
+        }
+
+        .gst-badge.pending {
+          background: #fef3c7;
+          color: #b45309;
+        }
+
+        .gst-badge.failed {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+
+        .website-preview {
+          padding: 16px;
+          background: white;
+          border: 1.5px solid #dde4f0;
+          border-radius: 10px;
+        }
+
+        .website-preview a {
+          color: #667eea;
+          font-weight: 700;
+          text-decoration: none;
+          transition: color 0.3s ease;
+        }
+
+        .website-preview a:hover {
+          color: #764ba2;
+        }
+
+        .decision-section {
+          background: linear-gradient(135deg, #f5f7ff 0%, #eff2f8 100%);
+          border: 2px solid #d1daf0;
+          border-radius: 12px;
+          padding: 24px;
+          margin-top: 32px;
+        }
+
+        .decision-section h3 {
+          margin: 0 0 20px 0;
+          color: #0f0f2e;
+          font-size: 18px;
+          font-weight: 800;
+        }
+
+        .decision-buttons {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .btn-decision {
+          flex: 1;
+          padding: 14px 20px;
+          border: 2px solid;
+          border-radius: 10px;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .btn-decision:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .btn-approve {
+          background: linear-gradient(135deg, #d1f5e8 0%, #c1f0de 100%);
+          color: #065f46;
+          border-color: #a7e8d4;
+        }
+
+        .btn-approve:hover:not(:disabled) {
+          border-color: #6ee7b7;
+          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .btn-more-info {
+          background: linear-gradient(135deg, #dbeafe 0%, #cde8ff 100%);
+          color: #0369a1;
+          border-color: #a3e0ff;
+        }
+
+        .btn-more-info:hover:not(:disabled) {
+          border-color: #7dd3fc;
+          box-shadow: 0 6px 16px rgba(2, 132, 199, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .btn-reject {
+          background: linear-gradient(135deg, #fee2e2 0%, #fed7d7 100%);
+          color: #991b1b;
+          border-color: #fecaca;
+        }
+
+        .btn-reject:hover:not(:disabled) {
+          border-color: #f87171;
+          box-shadow: 0 6px 16px rgba(239, 68, 68, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .reject-form {
+          display: none;
+          background: white;
+          border: 1.5px solid #dde4f0;
+          border-radius: 10px;
+          padding: 20px;
+          margin-top: 16px;
+        }
+
+        .reject-form.show {
+          display: block;
+          animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .form-group {
+          margin-bottom: 16px;
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 700;
+          color: #0f0f2e;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .form-group select,
+        .form-group textarea,
+        .form-group input {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1.5px solid #dde4f0;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #4a5568;
+          font-family: inherit;
+          transition: all 0.3s ease;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus,
+        .form-group input:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+          resize: vertical;
+          min-height: 100px;
+        }
+
+        .form-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .btn-confirm,
+        .btn-cancel {
+          flex: 1;
+          padding: 12px 16px;
+          border: 2px solid;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-confirm {
+          background: #667eea;
+          color: white;
+          border-color: #667eea;
+        }
+
+        .btn-confirm:hover {
+          background: #764ba2;
+          border-color: #764ba2;
+        }
+
+        .btn-confirm.btn-reject {
+          background: #dc2626;
+          border-color: #dc2626;
+        }
+
+        .btn-cancel {
+          background: white;
+          color: #667eea;
+          border-color: #dde4f0;
+        }
+
+        .btn-cancel:hover {
+          border-color: #667eea;
+          background: #f5f7ff;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 12px;
+          padding: 28px;
+          max-width: 500px;
+          width: 90%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .more-info-modal h3 {
+          margin: 0 0 24px 0;
+          color: #0f0f2e;
+          font-size: 20px;
+          font-weight: 800;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .modal-actions button {
+          flex: 1;
+        }
+
+        .empty-message {
+          color: #9ca3af;
+          font-size: 14px;
+          text-align: center;
+          padding: 20px;
+        }
+
         @media (max-width: 1024px) {
           .operator-risk-list,
           .operator-metric-grid {
@@ -4605,6 +6042,57 @@ export default function AdminDashboard() {
           .applications-table th,
           .applications-table td {
             padding: 12px 10px;
+          }
+
+          .date-range {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .application-detail-view {
+            padding: 20px;
+          }
+
+          .detail-content {
+            padding: 20px;
+          }
+
+          .detail-content h2 {
+            font-size: 24px;
+          }
+
+          .detail-header {
+            flex-direction: column;
+            gap: 16px;
+          }
+
+          .detail-meta {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .info-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .portfolio-grid {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          }
+
+          .kyc-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .social-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .decision-buttons {
+            flex-direction: column;
+          }
+
+          .rate-card-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 

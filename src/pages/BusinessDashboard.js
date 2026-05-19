@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -238,6 +238,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [rechargingWallet, setRechargingWallet] = useState(false);
   const [performancePeriod, setPerformancePeriod] = useState('Monthly');
   const [performanceCampaignId, setPerformanceCampaignId] = useState('all');
+  const [dashboardSearchQuery, setDashboardSearchQuery] = useState('');
+  const [dashboardSearchOpen, setDashboardSearchOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     objectives: [],
@@ -528,6 +530,90 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const dashboardActiveDeals = dashboardData?.active_deals || [];
   const dashboardPendingActions = dashboardData?.pending_actions || [];
   const dashboardBudget = dashboardData?.budget_usage || { used: 0, total: 0, categories: [] };
+  const dashboardSearchResults = useMemo(() => {
+    const query = dashboardSearchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    const matches = (...values) => values
+      .filter(value => value !== null && value !== undefined)
+      .join(' ')
+      .toLowerCase()
+      .includes(query);
+    const results = [];
+    const campaignEntries = new Map();
+
+    campaigns.forEach(campaign => {
+      campaignEntries.set(campaign.id || campaign.title, campaign);
+    });
+    dashboardTopCampaigns.forEach(campaign => {
+      const key = campaign.id || campaign.title;
+      if (!campaignEntries.has(key)) campaignEntries.set(key, campaign);
+    });
+
+    campaignEntries.forEach(campaign => {
+      const bidCreators = (campaign.bids || []).map(bid => bid.creator_nickname || bid.creator_name || bid.creator_id).join(' ');
+      if (matches(campaign.title, campaign.brief_text, campaign.status, campaign.deliverables, bidCreators)) {
+        results.push({
+          key: `campaign-${campaign.id || campaign.title}`,
+          type: 'Campaign',
+          title: campaign.title || 'Untitled Campaign',
+          meta: `${String(campaign.status || 'draft').replace(/_/g, ' ')} • ${(campaign.bids || []).length || campaign.applications || 0} bids`,
+          target: campaign.id ? `/campaign/${campaign.id}` : '/dashboard/business/all-campaigns'
+        });
+      }
+    });
+
+    dashboardActiveDeals.forEach(deal => {
+      if (matches(deal.campaign_title, deal.creator_nickname, deal.creator_name, deal.stage, deal.stage_label, deal.next_action_label)) {
+        results.push({
+          key: `deal-${deal.campaign_id || deal.campaign_title}`,
+          type: 'Deal',
+          title: deal.campaign_title || 'Untitled deal',
+          meta: `${deal.creator_nickname ? `@${String(deal.creator_nickname).replace(/^@/, '')}` : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
+          target: deal.campaign_id ? `/campaign/${deal.campaign_id}` : '/dashboard/business'
+        });
+      }
+    });
+
+    dashboardPendingActions.forEach(action => {
+      const target = actionTarget(action.target_url) || '/dashboard/business';
+      if (matches(action.label, action.type, action.count)) {
+        results.push({
+          key: `action-${action.type || action.label}`,
+          type: 'Action',
+          title: action.label || 'Pending action',
+          meta: Number(action.count || 0) > 0 ? `${action.count} waiting` : 'Open action',
+          target
+        });
+      }
+    });
+
+    workSubmissions.forEach(work => {
+      if (matches(work.campaign_title, work.creator_nickname, work.creator_name, work.creator_id, work.status)) {
+        results.push({
+          key: `work-${work.id || work.campaign_id || work.creator_id}`,
+          type: 'Work Review',
+          title: work.campaign_title || 'Submitted work',
+          meta: work.creator_nickname || work.creator_name || work.creator_id || 'Creator',
+          target: '/dashboard/business/work-review'
+        });
+      }
+    });
+
+    creatorDirectory.forEach(creator => {
+      if (matches(creator.handle, creator.category, creator.style, creator.budgetRange, creator.cityTier, ...(creator.languages || []))) {
+        results.push({
+          key: `creator-${creator.id || creator.handle}`,
+          type: 'Creator',
+          title: creator.handle || 'Creator',
+          meta: [creator.category, creator.cityTier].filter(Boolean).join(' • '),
+          target: '/dashboard/business/browse-creator'
+        });
+      }
+    });
+
+    return results.slice(0, 8);
+  }, [dashboardSearchQuery, campaigns, dashboardTopCampaigns, dashboardActiveDeals, dashboardPendingActions, workSubmissions, creatorDirectory]);
   const walletTransactions = walletData.transactions.filter((transaction) => {
     if (walletFilter === 'credits') return transaction.direction === 'credit';
     if (walletFilter === 'debits') return transaction.direction === 'debit';
@@ -551,6 +637,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
     Number(dashboardFunnel.live || 0)
   );
   const funnelHeight = (value) => Math.max(14, (Number(value || 0) / maxFunnelValue) * 205);
+  const hasDashboardSearchQuery = dashboardSearchQuery.trim().length > 0;
+
+  const handleDashboardSearchSelect = (target) => {
+    if (!target) return;
+    setDashboardSearchOpen(false);
+    setDashboardSearchQuery('');
+    navigate(target);
+  };
+
+  const handleDashboardSearchSubmit = (event) => {
+    event.preventDefault();
+    if (dashboardSearchResults[0]) {
+      handleDashboardSearchSelect(dashboardSearchResults[0].target);
+    }
+  };
 
   if (user?.approval_status === 'pending') {
     return (
@@ -942,10 +1043,43 @@ export default function BusinessDashboard({ page = 'overview' }) {
               <p>{activeTab === 'post-brief' ? 'Create a new campaign and attract top creators' : `Welcome back, ${user?.nickname}!`}</p>
             </div>
             {(activeTab === 'overview' || activeTab === 'post-brief') && (
-              <div className="brand-search">
+              <form className="brand-search" role="search" onSubmit={handleDashboardSearchSubmit}>
                 <Search size={20} />
-                <input type="search" placeholder="Search deals, creators, briefs..." aria-label="Search dashboard" />
-              </div>
+                <input
+                  type="search"
+                  placeholder="Search deals, creators, briefs..."
+                  aria-label="Search dashboard"
+                  value={dashboardSearchQuery}
+                  onChange={(event) => {
+                    setDashboardSearchQuery(event.target.value);
+                    setDashboardSearchOpen(true);
+                  }}
+                  onFocus={() => setDashboardSearchOpen(true)}
+                  onBlur={() => window.setTimeout(() => setDashboardSearchOpen(false), 120)}
+                />
+                {dashboardSearchOpen && hasDashboardSearchQuery && (
+                  <div className="brand-search-results">
+                    {dashboardSearchResults.length ? dashboardSearchResults.map(result => (
+                      <button
+                        key={result.key}
+                        type="button"
+                        className="brand-search-result"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleDashboardSearchSelect(result.target)}
+                      >
+                        <span>{result.type}</span>
+                        <strong>{result.title}</strong>
+                        <small>{result.meta}</small>
+                      </button>
+                    )) : (
+                      <div className="brand-search-empty">
+                        <strong>No results found</strong>
+                        <small>Try a campaign, creator, deal, or brief keyword.</small>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </form>
             )}
             <div className="header-actions">
               {activeTab === 'overview' && (
@@ -2421,6 +2555,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .brand-search {
+          position: relative;
           flex: 1;
           max-width: 520px;
           min-width: 240px;
@@ -2434,6 +2569,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: white;
           color: #9F9FD1;
           box-shadow: 0 8px 24px rgba(115, 135, 255, 0.14);
+          z-index: 20;
         }
 
         .brand-search input {
@@ -2446,6 +2582,71 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .brand-search input::placeholder {
           color: #B7B7E6;
+        }
+
+        .brand-search-results {
+          position: absolute;
+          top: calc(100% + 10px);
+          left: 0;
+          right: 0;
+          display: grid;
+          gap: 8px;
+          max-height: 380px;
+          overflow-y: auto;
+          padding: 10px;
+          border: 1px solid #E5E7FF;
+          border-radius: 18px;
+          background: white;
+          box-shadow: 0 18px 42px rgba(7, 7, 78, 0.14);
+        }
+
+        .brand-search-result {
+          display: grid;
+          gap: 3px;
+          width: 100%;
+          padding: 11px 12px;
+          border: 1px solid transparent;
+          border-radius: 12px;
+          background: #FBFBFF;
+          color: #07074E;
+          cursor: pointer;
+          text-align: left;
+        }
+
+        .brand-search-result:hover,
+        .brand-search-result:focus-visible {
+          border-color: #E5E7FF;
+          background: #F7F7FF;
+          outline: 0;
+        }
+
+        .brand-search-result span {
+          color: #7387FF;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .brand-search-result strong {
+          color: #07074E;
+          font-size: 14px;
+          line-height: 1.3;
+          overflow-wrap: anywhere;
+        }
+
+        .brand-search-result small,
+        .brand-search-empty small {
+          color: #9F9FD1;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .brand-search-empty {
+          display: grid;
+          gap: 4px;
+          padding: 14px;
+          color: #07074E;
         }
 
         .role-switch {

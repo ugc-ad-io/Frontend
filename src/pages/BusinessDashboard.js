@@ -3124,7 +3124,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .top-campaigns-panel .top-campaign-row {
           width: 100%;
           display: grid;
-          grid-template-columns: 32px minmax(0, 1fr) auto;
+          grid-template-columns: 26px minmax(0, 1fr) auto;
           align-items: start;
           gap: 10px;
           padding: 10px 11px;
@@ -3154,15 +3154,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .top-rank {
-          width: 32px;
-          height: 32px;
+          width: 26px;
+          height: 26px;
           grid-row: 1 / span 2;
+          margin-top: 2px;
           display: grid;
           place-items: center;
           border-radius: 50%;
           background: #EEF0FF;
           color: #7387FF;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 900;
         }
 

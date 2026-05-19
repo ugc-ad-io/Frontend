@@ -550,7 +550,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     Number(dashboardFunnel.accepted || 0),
     Number(dashboardFunnel.live || 0)
   );
-  const funnelHeight = (value) => Math.max(16, (Number(value || 0) / maxFunnelValue) * 235);
+  const funnelHeight = (value) => Math.max(14, (Number(value || 0) / maxFunnelValue) * 205);
 
   if (user?.approval_status === 'pending') {
     return (
@@ -2131,7 +2131,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .business-sidebar {
-          width: 300px;
+          width: 260px;
           min-height: 100vh;
           position: sticky;
           top: 0;
@@ -2139,7 +2139,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          padding: 32px;
+          padding: 28px 24px;
           background: #07074E;
           color: white;
           border-top-right-radius: 32px;
@@ -2308,7 +2308,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .dashboard-header {
           background: transparent;
           border-bottom: 0;
-          padding: 28px 8% 8px;
+          padding: 24px 40px 8px;
         }
 
         .header-content {
@@ -2316,7 +2316,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           justify-content: space-between;
           align-items: center;
           gap: 24px;
-          max-width: 1400px;
+          max-width: 1480px;
           margin: 0 auto;
         }
 
@@ -2396,8 +2396,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .dashboard-content {
-          padding: 24px 8% 40px;
-          max-width: 1400px;
+          padding: 20px 40px 40px;
+          max-width: 1480px;
           margin: 0 auto;
         }
 
@@ -2459,20 +2459,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .brand-metrics-grid {
           display: grid;
           grid-template-columns: repeat(5, minmax(170px, 1fr));
-          gap: 28px;
-          margin-bottom: 28px;
+          gap: 20px;
+          margin-bottom: 24px;
         }
 
         .brand-metric-card,
         .brand-panel {
           background: white;
-          border-radius: 22px;
-          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+          border: 1px solid #F0F1FF;
+          border-radius: 18px;
+          box-shadow: 0 12px 28px rgba(7, 7, 78, 0.045);
         }
 
         .brand-metric-card {
-          min-height: 210px;
-          padding: 26px;
+          min-height: 168px;
+          padding: 22px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -2526,13 +2527,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .brand-metric-card p {
           margin: 8px 0 0;
           color: #9F9FD1;
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 800;
         }
 
         .brand-metric-card strong {
           color: #07074E;
-          font-size: 34px;
+          font-size: 28px;
           line-height: 1;
           letter-spacing: 0;
         }
@@ -2625,24 +2626,24 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .brand-overview-grid {
           display: grid;
-          grid-template-columns: minmax(420px, 2fr) minmax(280px, 1.08fr) minmax(260px, 1fr);
-          gap: 28px;
-          align-items: stretch;
+          grid-template-columns: minmax(460px, 2fr) minmax(270px, 0.95fr) minmax(320px, 0.95fr);
+          gap: 24px;
+          align-items: start;
         }
 
         .brand-panel {
-          padding: 28px;
+          padding: 24px;
         }
 
         .brand-panel h2 {
           margin: 0;
           color: #07074E;
-          font-size: 21px;
+          font-size: 20px;
           font-weight: 800;
         }
 
         .performance-panel {
-          min-height: 380px;
+          min-height: 408px;
         }
 
         .panel-title-row {
@@ -2651,7 +2652,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 16px;
-          margin-bottom: 22px;
+          margin-bottom: 18px;
         }
 
         .period-switch {
@@ -2731,7 +2732,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .performance-chart {
           position: relative;
-          height: 238px;
+          height: 246px;
           padding: 0 44px 0 48px;
         }
 
@@ -2935,9 +2936,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .chart-legend {
           justify-content: center;
-          gap: 16px;
+          gap: 14px 18px;
           flex-wrap: wrap;
-          margin-top: 18px;
+          margin-top: 16px;
           font-size: 13px;
           color: #07074E;
         }
@@ -2956,16 +2957,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .legend-spend { background: #F59E0B; }
 
         .funnel-panel {
-          min-height: 380px;
+          height: 408px;
           display: flex;
           flex-direction: column;
         }
 
         .funnel-chart {
           position: relative;
-          flex: 1;
+          height: 268px;
+          flex: 0 0 auto;
           display: flex;
           padding-left: 42px;
+          margin-top: 18px;
         }
 
         .funnel-axis {
@@ -2998,7 +3001,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex: 1;
           display: grid;
           grid-template-columns: 1.1fr 0.8fr 0.65fr 0.65fr;
-          gap: 20px;
+          gap: 16px;
           align-items: end;
           padding-top: 46px;
         }
@@ -3063,13 +3066,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
           justify-content: space-around;
           color: #9F9FD1;
           font-weight: 800;
-          font-size: 13px;
+          font-size: 12px;
+          margin-top: 12px;
         }
 
         .brand-side-stack {
           display: flex;
           flex-direction: column;
-          gap: 28px;
+          gap: 18px;
         }
 
         .top-campaigns-panel {
@@ -3106,8 +3110,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           width: 100%;
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px;
+          gap: 10px;
+          padding: 12px 11px;
           border: 1px solid transparent;
           border-radius: 14px;
           background: #FBFBFF;
@@ -3217,12 +3221,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .mini-kpi-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 18px;
+          gap: 16px;
           flex: 1;
         }
 
         .mini-kpi {
-          min-height: 220px;
+          min-height: 142px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -3248,8 +3252,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .brand-lower-grid {
           display: grid;
           grid-template-columns: minmax(0, 2.25fr) minmax(320px, 0.95fr);
-          gap: 28px;
-          margin-top: 28px;
+          gap: 24px;
+          margin-top: 24px;
           align-items: start;
         }
 

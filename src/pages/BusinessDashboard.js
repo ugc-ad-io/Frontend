@@ -1490,25 +1490,29 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 <section className="brand-panel budget-panel">
                   <h2>Budget Usage</h2>
                   <p>{formatMoney(dashboardBudget.used)} / {formatMoney(dashboardBudget.total)} used</p>
-                  {(dashboardBudget.categories || []).length ? dashboardBudget.categories.map((category, index) => {
-                    const value = `${Math.round(Number(category.percent || 0))}%`;
-                    const color = budgetColors[index % budgetColors.length];
-                    return (
-                    <div className="budget-line" key={category.label || index}>
-                      <div><strong>{category.label || 'Other'}</strong><span>{value}</span></div>
-                      <i><b style={{ width: value, background: color }} /></i>
+                  {(dashboardBudget.categories || []).length ? (
+                    <div className="budget-lines-list">
+                      {dashboardBudget.categories.map((category, index) => {
+                        const value = `${Math.round(Number(category.percent || 0))}%`;
+                        const color = budgetColors[index % budgetColors.length];
+                        return (
+                        <div className="budget-line" key={category.label || index}>
+                          <div><strong>{category.label || 'Other'}</strong><span>{value}</span></div>
+                          <i><b style={{ width: value, background: color }} /></i>
+                        </div>
+                        );
+                      })}
                     </div>
-                    );
-                  }) : <p className="empty-inline">No budget usage yet</p>}
+                  ) : <p className="empty-inline">No budget usage yet</p>}
                 </section>
 
                 <section className="brand-panel quick-actions-panel">
                   <h2>Quick Actions</h2>
                   <div className="quick-action-grid">
-                    <button type="button" onClick={() => setShowCreateModal(true)}><FileCheck size={20} />Post a Brief</button>
+                    <button type="button" onClick={() => navigate('/dashboard/business/post-brief')}><FileCheck size={20} />Post a Brief</button>
                     <button type="button" onClick={() => navigate('/dashboard/business/pending-bids')}><Users size={20} />Creator Bids</button>
                     <button type="button" onClick={() => navigate('/dashboard/business/wallet')}><Wallet size={20} />Top Up Wallet</button>
-                    <button type="button"><DollarSign size={20} />Download Report</button>
+                    <button type="button"><IndianRupee size={20} />Download Report</button>
                   </div>
                 </section>
               </aside>
@@ -3764,8 +3768,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 700;
         }
 
+        .budget-lines-list {
+          display: grid;
+          gap: 16px;
+          max-height: 132px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
+
         .budget-line {
-          margin-top: 16px;
+          min-height: 21px;
         }
 
         .budget-line div {

@@ -34,7 +34,8 @@ function ApplicationsPage() {
         : `${API}/admin/applications/brands`;
 
       const response = await axios.get(endpoint);
-      setApplications(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setApplications(data);
       setSelectedApplication(null);
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -96,11 +97,12 @@ function ApplicationsPage() {
 
   const filteredApplications = applications.filter(app => {
     if (filterState !== 'all' && app.status !== filterState) return false;
-    if (filterCategory !== 'all' && app.category !== filterCategory) return false;
+    const appCategory = app.category || app.business_profile?.industry;
+    if (filterCategory !== 'all' && appCategory !== filterCategory) return false;
     return true;
   });
 
-  const categories = [...new Set(applications.map(app => app.category || app.industry_category))].filter(Boolean);
+  const categories = [...new Set(applications.map(app => app.category || app.business_profile?.industry))].filter(Boolean);
 
   if (selectedApplication) {
     return (

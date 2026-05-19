@@ -759,46 +759,63 @@ export default function AdminDashboard() {
         )}
         <div className="tab-content">
           {activeTab === 'stats' && stats && (
-            <div className="stats-section fade-in">
-              <h2>Platform Statistics</h2>
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <Users size={32} />
-                  </div>
-                  <div>
-                    <p className="stat-label">Total Users</p>
-                    <p className="stat-value">{stats.total_users}</p>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <Users size={32} />
-                  </div>
-                  <div>
-                    <p className="stat-label">Pending Profiles</p>
-                    <p className="stat-value">{stats.pending_profiles}</p>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <Briefcase size={32} />
-                  </div>
-                  <div>
-                    <p className="stat-label">Pending Campaigns</p>
-                    <p className="stat-value">{stats.pending_campaigns}</p>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <Briefcase size={32} />
-                  </div>
-                  <div>
-                    <p className="stat-label">Active Campaigns</p>
-                    <p className="stat-value">{stats.active_campaigns}</p>
-                  </div>
-                </div>
+            <div className="operator-dashboard fade-in">
+              <div className="operator-hero">
+                <span>Dashboard</span>
+                <h2>Dashboard - The Operator's Home</h2>
+                <p>Single-screen morning overview. Ops team member opens this and knows exactly what to do first.</p>
               </div>
+
+              <section className="operator-section priority">
+                <div className="operator-section-head">
+                  <h3>SLA-at-risk items</h3>
+                  <span>Top priority</span>
+                </div>
+                <div className="operator-risk-list">
+                  <div><strong>{pendingWithdrawals.length}</strong><span>Disputes with &lt;4 hours to SLA breach</span></div>
+                  <div><strong>0</strong><span>Shipping label requests older than 4 hours</span></div>
+                  <div><strong>{pendingProfiles.length}</strong><span>Applications in review &gt;2 business days</span></div>
+                  <div><strong>{pendingCampaigns.length}</strong><span>Deals auto-transitioning within 24 hours</span></div>
+                </div>
+              </section>
+
+              <section className="operator-section">
+                <div className="operator-section-head">
+                  <h3>Activity today</h3>
+                  <span>Live queue</span>
+                </div>
+                <div className="operator-metric-grid">
+                  <div><span>New applications</span><strong>{stats.pending_profiles}</strong><small>Creators + brands</small></div>
+                  <div><span>New deals accepted</span><strong>{analytics?.active_campaigns || stats.active_campaigns}</strong><small>Today</small></div>
+                  <div><span>Deals completed</span><strong>{analytics?.completed_campaigns || 0}</strong><small>Today</small></div>
+                  <div><span>Active disputes</span><strong>{pendingWithdrawals.length}</strong><small>Needs review</small></div>
+                </div>
+              </section>
+
+              <section className="operator-section">
+                <div className="operator-section-head">
+                  <h3>Key metrics</h3>
+                  <span>Platform health</span>
+                </div>
+                <div className="operator-metric-grid">
+                  <div><span>Deals in progress</span><strong>{stats.active_campaigns}</strong><small>State distribution pending backend</small></div>
+                  <div><span>Total escrow held</span><strong>${Number(analytics?.total_escrow || 0).toLocaleString()}</strong><small>Across live deals</small></div>
+                  <div><span>Total wallet balance</span><strong>${allUsers.reduce((sum, item) => sum + Number(item.balance || 0), 0).toLocaleString()}</strong><small>Across brands</small></div>
+                  <div><span>Scheduled payouts</span><strong>{pendingWithdrawals.length}</strong><small>Next 7 days</small></div>
+                </div>
+              </section>
+
+              <section className="operator-section">
+                <div className="operator-section-head">
+                  <h3>Quick actions</h3>
+                  <span>Ops tools</span>
+                </div>
+                <div className="operator-actions">
+                  <button type="button" onClick={() => setActiveTab('allcampaigns')}><Briefcase size={18} /> Create manual shipping label</button>
+                  <button type="button" onClick={() => setActiveTab('users')}><DollarSign size={18} /> Adjust wallet balance</button>
+                  <button type="button" onClick={() => setActiveTab('broadcast')}><MessageSquare size={18} /> Send platform announcement</button>
+                </div>
+              </section>
             </div>
           )}
 
@@ -2677,6 +2694,132 @@ export default function AdminDashboard() {
           color: #1a202c;
         }
 
+        .operator-dashboard {
+          display: grid;
+          gap: 24px;
+        }
+
+        .operator-hero,
+        .operator-section {
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          background: white;
+          box-shadow: 0 12px 28px rgba(7, 7, 78, 0.05);
+        }
+
+        .operator-hero {
+          padding: 30px;
+        }
+
+        .operator-hero span,
+        .operator-section-head span {
+          display: inline-flex;
+          width: max-content;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #eef0ff;
+          color: #667eea;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .operator-hero h2 {
+          margin: 16px 0 10px;
+          color: #07074E;
+          font-size: 32px;
+          line-height: 1.1;
+        }
+
+        .operator-hero p {
+          max-width: 720px;
+          color: #718096;
+          font-size: 16px;
+          line-height: 1.6;
+        }
+
+        .operator-section {
+          padding: 24px;
+        }
+
+        .operator-section.priority {
+          border-color: #fed7aa;
+          background: linear-gradient(180deg, #fff7ed 0%, #ffffff 72%);
+        }
+
+        .operator-section-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 18px;
+        }
+
+        .operator-section-head h3 {
+          margin: 0;
+          color: #07074E;
+          font-size: 22px;
+        }
+
+        .operator-risk-list,
+        .operator-metric-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .operator-risk-list > div,
+        .operator-metric-grid > div {
+          padding: 18px;
+          border: 1px solid #eef0ff;
+          border-radius: 16px;
+          background: #fbfbff;
+        }
+
+        .operator-risk-list strong,
+        .operator-metric-grid strong {
+          display: block;
+          color: #07074E;
+          font-size: 28px;
+          line-height: 1;
+          margin-bottom: 10px;
+        }
+
+        .operator-risk-list span,
+        .operator-metric-grid span {
+          color: #4a5568;
+          font-weight: 700;
+          line-height: 1.35;
+        }
+
+        .operator-metric-grid small {
+          display: block;
+          margin-top: 8px;
+          color: #9f9fd1;
+          font-weight: 700;
+        }
+
+        .operator-actions {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .operator-actions button {
+          min-height: 56px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          border: 1px solid #dbe0ff;
+          border-radius: 14px;
+          background: #f8f9ff;
+          color: #07074E;
+          cursor: pointer;
+          font-weight: 800;
+        }
+
         .loading,
         .empty-state {
           text-align: center;
@@ -4160,6 +4303,17 @@ export default function AdminDashboard() {
 
           .campaign-count-badge {
             align-self: flex-start;
+          }
+
+          .operator-risk-list,
+          .operator-metric-grid,
+          .operator-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .operator-section-head {
+            align-items: flex-start;
+            flex-direction: column;
           }
         }
       `}</style>

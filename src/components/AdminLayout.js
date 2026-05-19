@@ -26,7 +26,7 @@ function AdminLayout({ children }) {
 
   const isTabActive = (tab) => {
     if (tab.id === 'applications') {
-      return currentPath === '/dashboard/applications';
+      return currentPath === '/dashboard/admin/applications';
     } else if (tab.id === 'stats') {
       return currentPath === '/dashboard/admin';
     } else if (tab.id === 'allcampaigns') {
@@ -38,7 +38,7 @@ function AdminLayout({ children }) {
 
   const handleTabClick = (tab) => {
     if (tab.id === 'applications') {
-      navigate('/dashboard/applications');
+      navigate('/dashboard/admin/applications');
     } else if (tab.id === 'stats') {
       navigate('/dashboard/admin');
     } else if (tab.id === 'allcampaigns') {
@@ -48,7 +48,7 @@ function AdminLayout({ children }) {
     }
   };
 
-  const isApplicationsPage = currentPath === '/dashboard/applications';
+  const isApplicationsPage = currentPath === '/dashboard/admin/applications';
 
   return (
     <div className="admin-dashboard">

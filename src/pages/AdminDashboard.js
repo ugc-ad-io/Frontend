@@ -4,7 +4,6 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText } from 'lucide-react';
-import ApplicationsPage from './ApplicationsPage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -772,9 +771,13 @@ export default function AdminDashboard() {
   ];
 
   const handleAdminTabClick = (tab) => {
-    setActiveTab(tab.id);
-    tab.onOpen?.();
-    navigate(`/dashboard/admin/${tab.slug || tabIdToSlug[tab.id] || 'overview'}`);
+    if (tab.id === 'applications') {
+      navigate('/dashboard/admin/applications');
+    } else {
+      setActiveTab(tab.id);
+      tab.onOpen?.();
+      navigate(`/dashboard/admin/${tab.slug || tabIdToSlug[tab.id] || 'overview'}`);
+    }
   };
 
   return (
@@ -998,10 +1001,6 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
-          )}
-
-          {activeTab === 'applications' && (
-            <ApplicationsPage />
           )}
 
           {activeTab === 'campaigns' && (

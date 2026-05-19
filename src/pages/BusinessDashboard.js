@@ -530,15 +530,23 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const dashboardActiveDeals = dashboardData?.active_deals || [];
   const dashboardPendingActions = dashboardData?.pending_actions || [];
   const dashboardBudget = dashboardData?.budget_usage || { used: 0, total: 0, categories: [] };
+  const dashboardSearchTerm = dashboardSearchQuery.trim().toLowerCase();
+  const dashboardItemMatches = (...values) => {
+    if (!dashboardSearchTerm) return true;
+    return values
+      .filter(value => value !== null && value !== undefined)
+      .join(' ')
+      .toLowerCase()
+      .includes(dashboardSearchTerm);
+  };
   const dashboardSearchResults = useMemo(() => {
-    const query = dashboardSearchQuery.trim().toLowerCase();
-    if (!query) return [];
+    if (!dashboardSearchTerm) return [];
 
     const matches = (...values) => values
       .filter(value => value !== null && value !== undefined)
       .join(' ')
       .toLowerCase()
-      .includes(query);
+      .includes(dashboardSearchTerm);
     const results = [];
     const campaignEntries = new Map();
 
@@ -613,7 +621,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
     });
 
     return results.slice(0, 8);
-  }, [dashboardSearchQuery, campaigns, dashboardTopCampaigns, dashboardActiveDeals, dashboardPendingActions, workSubmissions, creatorDirectory]);
+  }, [dashboardSearchTerm, campaigns, dashboardTopCampaigns, dashboardActiveDeals, dashboardPendingActions, workSubmissions, creatorDirectory]);
+  const filteredDashboardTopCampaigns = dashboardTopCampaigns.filter(campaign => (
+    dashboardItemMatches(campaign.title, campaign.status, campaign.applications, campaign.spend)
+  ));
+  const filteredDashboardActiveDeals = dashboardActiveDeals.filter(deal => (
+    dashboardItemMatches(deal.campaign_title, deal.creator_nickname, deal.creator_name, deal.stage, deal.stage_label, deal.next_action_label)
+  ));
+  const filteredDashboardPendingActions = dashboardPendingActions.filter(action => (
+    dashboardItemMatches(action.label, action.type, action.count)
+  ));
+  const filteredCampaigns = campaigns.filter(campaign => {
+    const bidCreators = (campaign.bids || []).map(bid => bid.creator_nickname || bid.creator_name || bid.creator_id).join(' ');
+    return dashboardItemMatches(campaign.title, campaign.brief_text, campaign.category, campaign.status, campaign.deliverables, bidCreators);
+  });
   const walletTransactions = walletData.transactions.filter((transaction) => {
     if (walletFilter === 'credits') return transaction.direction === 'credit';
     if (walletFilter === 'debits') return transaction.direction === 'debit';
@@ -1047,7 +1068,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 <Search size={20} />
                 <input
                   type="search"
-                  placeholder="Search deals, creators, briefs..."
+                  placeholder="Search campaigns, deals, creators, status, briefs..."
                   aria-label="Search dashboard"
                   value={dashboardSearchQuery}
                   onChange={(event) => {
@@ -1318,11 +1339,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <h2>Top Campaigns</h2>
                       <p>Ranked by creator interest</p>
                     </div>
-                    <span>{dashboardTopCampaigns.length}</span>
+                    <span>{dashboardSearchTerm ? filteredDashboardTopCampaigns.length : dashboardTopCampaigns.length}</span>
                   </div>
-                  {dashboardTopCampaigns.length ? (
+                  {filteredDashboardTopCampaigns.length ? (
                     <div className="top-campaigns-list">
-                      {dashboardTopCampaigns.map((campaign, index) => (
+                      {filteredDashboardTopCampaigns.map((campaign, index) => (
                         <button
                           key={campaign.id || campaign.title}
                           type="button"
@@ -1343,7 +1364,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         </button>
                       ))}
                     </div>
-                  ) : <p className="empty-inline">No campaigns yet</p>}
+                  ) : <p className="empty-inline">{dashboardSearchTerm ? 'No matching campaigns' : 'No campaigns yet'}</p>}
                 </section>
                 <div className="mini-kpi-grid">
                   <section className="brand-panel mini-kpi">
@@ -1375,7 +1396,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <span>Funds Hold</span>
                     <span>Action</span>
                   </div>
-                  {dashboardActiveDeals.length ? dashboardActiveDeals.map((deal) => {
+                  {filteredDashboardActiveDeals.length ? filteredDashboardActiveDeals.map((deal) => {
                     const tone = stageTone(deal.stage);
                     return (
                     <div className="deals-row" key={deal.campaign_id}>
@@ -1399,7 +1420,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     </div>
                     );
                   }) : (
-                    <div className="deals-empty">No active deals yet</div>
+                    <div className="deals-empty">{dashboardSearchTerm ? 'No matching active deals' : 'No active deals yet'}</div>
                   )}
                 </div>
               </section>
@@ -1407,7 +1428,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
               <aside className="brand-right-rail">
                 <section className="brand-panel pending-actions-panel">
                   <h2>Pending Actions</h2>
-                  {dashboardPendingActions.length ? dashboardPendingActions.map((action) => {
+                  {filteredDashboardPendingActions.length ? filteredDashboardPendingActions.map((action) => {
                     const Icon = action.type?.includes('shipment') ? Package : action.type?.includes('message') ? MessageSquare : action.type?.includes('delivery') ? CheckCircle : Eye;
                     const tone = action.type?.includes('shipment') ? 'info' : action.type?.includes('message') ? 'chat' : action.type?.includes('delivery') ? 'success' : 'warning';
                     const target = actionTarget(action.target_url);
@@ -1417,7 +1438,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       {action.label} {Number(action.count || 0) > 0 ? `(${action.count})` : ''}
                     </button>
                     );
-                  }) : <p className="empty-inline">No pending actions</p>}
+                  }) : <p className="empty-inline">{dashboardSearchTerm ? 'No matching pending actions' : 'No pending actions'}</p>}
                 </section>
 
                 <section className="brand-panel budget-panel">
@@ -1491,9 +1512,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <p>Create your first campaign to start receiving creator bids.</p>
                   <button className="btn-primary" onClick={() => setShowCreateModal(true)}>Create Campaign</button>
                 </div>
+              ) : filteredCampaigns.length === 0 ? (
+                <div className="all-campaigns-empty">
+                  <span><Search size={48} /></span>
+                  <h3>No matching campaigns</h3>
+                  <p>Try another campaign, creator, status, or brief keyword.</p>
+                </div>
               ) : (
                 <div className="campaigns-grid">
-                  {campaigns.map(campaign => (
+                  {filteredCampaigns.map(campaign => (
                     <div key={campaign.id} className="campaign-card-detailed" data-testid={`campaign-${campaign.id}`}>
                       <div className="campaign-header">
                         <div>

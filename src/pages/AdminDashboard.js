@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -11,7 +11,24 @@ const API = `${BACKEND_URL}/api`;
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('stats');
+  const { adminPage } = useParams();
+  const tabSlugToId = {
+    overview: 'stats',
+    profiles: 'profiles',
+    campaigns: 'campaigns',
+    withdrawals: 'withdrawals',
+    'all-campaigns': 'allcampaigns',
+    users: 'users',
+    assignments: 'assignments',
+    chats: 'chats',
+    payments: 'payments',
+    notifications: 'notifications',
+    broadcast: 'broadcast',
+    staff: 'staff',
+    analytics: 'analytics'
+  };
+  const tabIdToSlug = Object.fromEntries(Object.entries(tabSlugToId).map(([slug, id]) => [id, slug]));
+  const [activeTab, setActiveTab] = useState(tabSlugToId[adminPage] || 'stats');
   const [stats, setStats] = useState(null);
   const [pendingProfiles, setPendingProfiles] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
@@ -88,6 +105,23 @@ export default function AdminDashboard() {
       fetchAnalytics();
     }
   }, []);
+
+  useEffect(() => {
+    const nextTab = tabSlugToId[adminPage] || 'stats';
+    setActiveTab(nextTab);
+
+    if (nextTab === 'chats') fetchAllChats();
+    if (nextTab === 'payments') {
+      fetchPaymentGateways();
+      fetchPaymentTransactions();
+    }
+    if (nextTab === 'notifications') {
+      fetchNotificationGateways();
+      fetchNotificationLogs();
+    }
+    if (nextTab === 'staff') fetchStaff();
+    if (nextTab === 'analytics') fetchAnalytics();
+  }, [adminPage]);
 
   const fetchPendingWithdrawals = async () => {
     try {
@@ -604,26 +638,27 @@ export default function AdminDashboard() {
   };
 
   const adminTabs = [
-    { id: 'stats', label: 'Overview', icon: TrendingUp, testId: 'tab-stats' },
-    { id: 'profiles', label: `Profiles (${pendingProfiles.length})`, icon: Users, testId: 'tab-profiles' },
-    { id: 'campaigns', label: `Campaigns (${pendingCampaigns.length})`, icon: Briefcase, testId: 'tab-campaigns' },
-    { id: 'withdrawals', label: `Withdrawals (${pendingWithdrawals.length})`, icon: Briefcase, testId: 'tab-withdrawals' },
-    { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns' },
+    { id: 'stats', label: 'Overview', icon: TrendingUp, testId: 'tab-stats', slug: 'overview' },
+    { id: 'profiles', label: `Profiles (${pendingProfiles.length})`, icon: Users, testId: 'tab-profiles', slug: 'profiles' },
+    { id: 'campaigns', label: `Campaigns (${pendingCampaigns.length})`, icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
+    { id: 'withdrawals', label: `Withdrawals (${pendingWithdrawals.length})`, icon: Briefcase, testId: 'tab-withdrawals', slug: 'withdrawals' },
+    { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns', slug: 'all-campaigns' },
     ...(user?.role === 'admin' ? [
-      { id: 'users', label: 'All Users', icon: Users, testId: 'tab-users' },
-      { id: 'assignments', label: 'Campaign Assignments', icon: Briefcase, testId: 'tab-assignments' },
-      { id: 'chats', label: 'Chat Monitoring', icon: MessageSquare, testId: 'tab-chats', onOpen: fetchAllChats },
-      { id: 'payments', label: 'Payment Gateways', icon: CreditCard, testId: 'tab-payments', onOpen: () => { fetchPaymentGateways(); fetchPaymentTransactions(); } },
-      { id: 'notifications', label: 'Notifications', icon: Bell, testId: 'tab-notifications', onOpen: () => { fetchNotificationGateways(); fetchNotificationLogs(); } },
-      { id: 'broadcast', label: 'Broadcast', icon: MessageSquare, testId: 'tab-broadcast' },
-      { id: 'staff', label: 'Staff Management', icon: UserPlus, testId: 'tab-staff', onOpen: fetchStaff },
-      { id: 'analytics', label: 'Analytics', icon: BarChart, testId: 'tab-analytics', onOpen: fetchAnalytics }
+      { id: 'users', label: 'All Users', icon: Users, testId: 'tab-users', slug: 'users' },
+      { id: 'assignments', label: 'Campaign Assignments', icon: Briefcase, testId: 'tab-assignments', slug: 'assignments' },
+      { id: 'chats', label: 'Chat Monitoring', icon: MessageSquare, testId: 'tab-chats', slug: 'chats', onOpen: fetchAllChats },
+      { id: 'payments', label: 'Payment Gateways', icon: CreditCard, testId: 'tab-payments', slug: 'payments', onOpen: () => { fetchPaymentGateways(); fetchPaymentTransactions(); } },
+      { id: 'notifications', label: 'Notifications', icon: Bell, testId: 'tab-notifications', slug: 'notifications', onOpen: () => { fetchNotificationGateways(); fetchNotificationLogs(); } },
+      { id: 'broadcast', label: 'Broadcast', icon: MessageSquare, testId: 'tab-broadcast', slug: 'broadcast' },
+      { id: 'staff', label: 'Staff Management', icon: UserPlus, testId: 'tab-staff', slug: 'staff', onOpen: fetchStaff },
+      { id: 'analytics', label: 'Analytics', icon: BarChart, testId: 'tab-analytics', slug: 'analytics', onOpen: fetchAnalytics }
     ] : [])
   ];
 
   const handleAdminTabClick = (tab) => {
     setActiveTab(tab.id);
     tab.onOpen?.();
+    navigate(`/dashboard/admin/${tab.slug || tabIdToSlug[tab.id] || 'overview'}`);
   };
 
   return (

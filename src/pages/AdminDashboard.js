@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText } from 'lucide-react';
+import AdminSidebar from '../components/AdminSidebar';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -782,41 +783,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-dashboard">
-      <aside className="admin-sidebar">
-        <div>
-          <div className="admin-sidebar-brand">
-            <div className="admin-sidebar-mark">A</div>
-            <span>UGCad.io</span>
-          </div>
-          <nav className="admin-sidebar-nav" aria-label="Admin dashboard">
-            <span className="admin-nav-label">Admin</span>
-            {adminTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`admin-nav-item ${activeTab === tab.id ? 'active' : ''}`}
-                  onClick={() => handleAdminTabClick(tab)}
-                  data-testid={tab.testId}
-                >
-                  <Icon size={20} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-        <div className="admin-sidebar-profile">
-          <div className="admin-avatar">
-            {(user?.nickname || user?.full_name || 'A').trim().charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <strong>{user?.nickname || 'Admin'}</strong>
-            <span>{user?.role}</span>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar activeTab={activeTab} onTabClick={handleAdminTabClick} user={user} />
 
       <main className="admin-main">
       <div className="dashboard-header">

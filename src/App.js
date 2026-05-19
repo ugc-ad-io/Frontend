@@ -259,12 +259,10 @@ function App() {
               }
             />
             <Route
-              path="/dashboard/applications"
+              path="/dashboard/admin/applications"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
-                  <AdminLayout>
-                    <ApplicationsPage />
-                  </AdminLayout>
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />

@@ -16,20 +16,39 @@ function AdminLayout({ children }) {
     { id: 'applications', label: 'Applications', icon: FileText, slug: 'applications' },
     { id: 'profiles', label: 'Profiles', icon: Users, slug: 'profiles' },
     { id: 'campaigns', label: 'Campaigns', icon: Briefcase, slug: 'campaigns' },
+    { id: 'withdrawals', label: 'Withdrawals', icon: TrendingUp, slug: 'withdrawals' },
+    { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, slug: 'all-campaigns' },
+    { id: 'users', label: 'Users', icon: Users, slug: 'users' },
+    { id: 'assignments', label: 'Assignments', icon: Users, slug: 'assignments' },
   ];
 
   const currentPath = window.location.pathname;
-  const isApplicationsPage = currentPath === '/dashboard/applications';
+
+  const isTabActive = (tab) => {
+    if (tab.id === 'applications') {
+      return currentPath === '/dashboard/applications';
+    } else if (tab.id === 'stats') {
+      return currentPath === '/dashboard/admin';
+    } else if (tab.id === 'allcampaigns') {
+      return currentPath === '/dashboard/admin/all-campaigns';
+    } else {
+      return currentPath === `/dashboard/admin/${tab.slug}`;
+    }
+  };
 
   const handleTabClick = (tab) => {
     if (tab.id === 'applications') {
       navigate('/dashboard/applications');
     } else if (tab.id === 'stats') {
       navigate('/dashboard/admin');
+    } else if (tab.id === 'allcampaigns') {
+      navigate('/dashboard/admin/all-campaigns');
     } else {
       navigate(`/dashboard/admin/${tab.slug}`);
     }
   };
+
+  const isApplicationsPage = currentPath === '/dashboard/applications';
 
   return (
     <div className="admin-dashboard">
@@ -43,15 +62,12 @@ function AdminLayout({ children }) {
             <span className="admin-nav-label">Admin</span>
             {adminTabs.map((tab) => {
               const Icon = tab.icon;
-              const isActive =
-                (tab.id === 'applications' && isApplicationsPage) ||
-                (tab.id !== 'applications' && !isApplicationsPage && tab.id === 'stats' && currentPath === '/dashboard/admin');
 
               return (
                 <button
                   key={tab.id}
                   type="button"
-                  className={`admin-nav-item ${isActive ? 'active' : ''}`}
+                  className={`admin-nav-item ${isTabActive(tab) ? 'active' : ''}`}
                   onClick={() => handleTabClick(tab)}
                 >
                   <Icon size={20} />

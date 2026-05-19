@@ -2612,7 +2612,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .brand-profile-photo {
-          background: linear-gradient(135deg, #f4d0b6, #735747);
+          background: #667eea;
           color: white;
           font-weight: 800;
         }

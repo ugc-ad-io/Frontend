@@ -115,38 +115,40 @@
 
 .application-card {
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   border: 1px solid #e2e8f0;
   display: flex;
   align-items: stretch;
   height: auto;
+  min-height: 75px;
 }
 
 .application-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+  transform: translateY(-2px);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
+  padding: 16px 24px;
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: white;
-  gap: 15px;
+  gap: 12px;
   flex: 0 0 auto;
-  min-width: 350px;
+  min-width: 320px;
+  max-width: 380px;
 }
 
 .card-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.95rem;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -190,12 +192,13 @@
 }
 
 .card-body {
-  padding: 18px 24px;
-  border-left: 1px solid #f1f5f9;
+  padding: 18px 32px;
+  border-left: 1px solid #e2e8f0;
   flex: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 40px;
+  gap: 48px;
 }
 
 .card-body p {
@@ -203,8 +206,7 @@
   color: #64748b;
   font-size: 0.85rem;
   line-height: 1.4;
-  white-space: nowrap;
-  min-width: 150px;
+  flex: 0 1 auto;
 }
 
 .card-body strong {
@@ -219,23 +221,25 @@
 }
 
 .card-action {
-  padding: 18px 24px;
+  padding: 16px 24px;
   background: transparent;
   color: #3b82f6;
   font-weight: 700;
-  text-align: right;
+  text-align: center;
   transition: all 0.3s ease;
   font-size: 0.85rem;
   border-left: 1px solid #e2e8f0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
+  min-width: 120px;
 }
 
 .application-card:hover .card-action {
   color: #1e40af;
   background: #f0f9ff;
+  border-left-color: #3b82f6;
 }
 
 .loading,

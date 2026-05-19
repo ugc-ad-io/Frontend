@@ -3177,12 +3177,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .top-campaign-copy strong {
           display: block;
-          overflow: hidden;
           color: #07074E;
           font-size: 15px;
           font-weight: 900;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          line-height: 1.25;
+          overflow-wrap: anywhere;
         }
 
         .top-campaign-copy small {

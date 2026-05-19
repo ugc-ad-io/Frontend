@@ -19,11 +19,11 @@ function AdminLayout({ children }) {
   ];
 
   const currentPath = window.location.pathname;
-  const isApplicationsPage = currentPath.includes('/applications');
+  const isApplicationsPage = currentPath === '/dashboard/applications';
 
   const handleTabClick = (tab) => {
     if (tab.id === 'applications') {
-      navigate('/applications');
+      navigate('/dashboard/applications');
     } else if (tab.id === 'stats') {
       navigate('/dashboard/admin');
     } else {

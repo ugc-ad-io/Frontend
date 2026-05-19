@@ -772,7 +772,7 @@ export default function AdminDashboard() {
 
   const handleAdminTabClick = (tab) => {
     if (tab.id === 'applications') {
-      navigate('/applications');
+      navigate('/dashboard/applications');
     } else {
       setActiveTab(tab.id);
       tab.onOpen?.();

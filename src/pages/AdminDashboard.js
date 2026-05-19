@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download } from 'lucide-react';
+import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -18,6 +18,7 @@ export default function AdminDashboard() {
     campaigns: 'campaigns',
     withdrawals: 'withdrawals',
     'all-campaigns': 'allcampaigns',
+    applications: 'applications',
     users: 'users',
     assignments: 'assignments',
     chats: 'chats',
@@ -639,6 +640,7 @@ export default function AdminDashboard() {
 
   const adminTabs = [
     { id: 'stats', label: 'Admin Dashboard', icon: TrendingUp, testId: 'tab-stats', slug: 'overview' },
+    { id: 'applications', label: 'Applications', icon: FileText, testId: 'tab-applications', slug: 'applications' },
     { id: 'profiles', label: `Profiles (${pendingProfiles.length})`, icon: Users, testId: 'tab-profiles', slug: 'profiles' },
     { id: 'campaigns', label: `Campaigns (${pendingCampaigns.length})`, icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
     { id: 'withdrawals', label: `Withdrawals (${pendingWithdrawals.length})`, icon: Briefcase, testId: 'tab-withdrawals', slug: 'withdrawals' },
@@ -810,6 +812,67 @@ export default function AdminDashboard() {
                   <button type="button" onClick={() => setActiveTab('broadcast')}><MessageSquare size={18} /> Send platform announcement</button>
                 </div>
               </section>
+            </div>
+          )}
+
+          {activeTab === 'applications' && (
+            <div className="applications-section fade-in">
+              <div className="applications-header">
+                <h2>Applications</h2>
+                <div className="application-tabs">
+                  <button className="app-tab-btn active">Creator Applications</button>
+                  <button className="app-tab-btn">Brand Applications</button>
+                </div>
+              </div>
+
+              <div className="applications-filters">
+                <div className="filter-group">
+                  <label>State</label>
+                  <select>
+                    <option value="">All States</option>
+                    <option value="pending">Pending</option>
+                    <option value="more-info">More Info Requested</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label>Category</label>
+                  <select>
+                    <option value="">All Categories</option>
+                    <option value="tech">Technology</option>
+                    <option value="fashion">Fashion</option>
+                    <option value="lifestyle">Lifestyle</option>
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label>Submitted Date Range</label>
+                  <input type="date" />
+                  <span>to</span>
+                  <input type="date" />
+                </div>
+              </div>
+
+              <div className="applications-list">
+                <table className="applications-table">
+                  <thead>
+                    <tr>
+                      <th>Handle</th>
+                      <th>Submitted Date</th>
+                      <th>Category</th>
+                      <th>Languages</th>
+                      <th>Location</th>
+                      <th>SLA Remaining</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Loading applications...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -4379,6 +4442,148 @@ export default function AdminDashboard() {
           gap: 16px;
         }
 
+        /* Applications Section Styles */
+        .applications-section {
+          padding: 32px;
+        }
+
+        .applications-header {
+          margin-bottom: 32px;
+        }
+
+        .applications-header h2 {
+          font-size: 28px;
+          font-weight: 800;
+          color: #0f0f2e;
+          margin: 0 0 24px 0;
+        }
+
+        .application-tabs {
+          display: flex;
+          gap: 16px;
+          border-bottom: 2px solid #dde4f0;
+          margin-bottom: 24px;
+        }
+
+        .app-tab-btn {
+          padding: 12px 20px;
+          border: none;
+          background: transparent;
+          color: #4a5568;
+          font-weight: 600;
+          font-size: 15px;
+          cursor: pointer;
+          border-bottom: 3px solid transparent;
+          transition: all 0.3s ease;
+          position: relative;
+          bottom: -2px;
+        }
+
+        .app-tab-btn.active {
+          color: #667eea;
+          border-bottom-color: #667eea;
+        }
+
+        .app-tab-btn:hover {
+          color: #667eea;
+        }
+
+        .applications-filters {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-bottom: 32px;
+          padding: 24px;
+          background: linear-gradient(135deg, #fafbfc 0%, #f5f7fb 100%);
+          border-radius: 12px;
+          border: 1px solid #dde4f0;
+        }
+
+        .filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .filter-group label {
+          font-weight: 700;
+          color: #0f0f2e;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+          padding: 10px 12px;
+          border: 1.5px solid #dde4f0;
+          border-radius: 8px;
+          background: white;
+          color: #4a5568;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .filter-group select:hover,
+        .filter-group input:hover {
+          border-color: #c7d2e8;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .applications-list {
+          background: white;
+          border-radius: 12px;
+          border: 1px solid #dde4f0;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .applications-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .applications-table thead {
+          background: linear-gradient(135deg, #fafbfc 0%, #f5f7fb 100%);
+          border-bottom: 2px solid #dde4f0;
+        }
+
+        .applications-table th {
+          padding: 16px;
+          text-align: left;
+          font-weight: 700;
+          color: #0f0f2e;
+          font-size: 14px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .applications-table td {
+          padding: 18px 16px;
+          border-bottom: 1px solid #ede9f6;
+          color: #4a5568;
+          font-size: 14px;
+        }
+
+        .applications-table tbody tr {
+          transition: all 0.3s ease;
+        }
+
+        .applications-table tbody tr:hover {
+          background-color: #fafbfc;
+        }
+
+        .applications-table tbody tr:last-child td {
+          border-bottom: none;
+        }
+
         @media (max-width: 1024px) {
           .operator-risk-list,
           .operator-metric-grid {
@@ -4387,6 +4592,19 @@ export default function AdminDashboard() {
 
           .operator-actions {
             grid-template-columns: 1fr;
+          }
+
+          .applications-filters {
+            grid-template-columns: 1fr;
+          }
+
+          .applications-table {
+            font-size: 13px;
+          }
+
+          .applications-table th,
+          .applications-table td {
+            padding: 12px 10px;
           }
         }
 

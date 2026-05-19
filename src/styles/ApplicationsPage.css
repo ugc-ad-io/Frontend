@@ -133,9 +133,14 @@
 }
 
 .applications-table tbody tr {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 2px solid #e2e8f0;
   transition: all 0.2s ease;
   cursor: pointer;
+  background: white;
+}
+
+.applications-table tbody tr:nth-child(odd) {
+  background: #fafbfc;
 }
 
 .applications-table tbody tr:last-child {
@@ -143,7 +148,7 @@
 }
 
 .applications-table tbody tr:hover {
-  background: #fafbfc;
+  background: #f0f4f9;
 }
 
 .applications-table td {

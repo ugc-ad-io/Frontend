@@ -771,9 +771,13 @@ export default function AdminDashboard() {
   ];
 
   const handleAdminTabClick = (tab) => {
-    setActiveTab(tab.id);
-    tab.onOpen?.();
-    navigate(`/dashboard/admin/${tab.slug || tabIdToSlug[tab.id] || 'overview'}`);
+    if (tab.id === 'applications') {
+      navigate('/applications');
+    } else {
+      setActiveTab(tab.id);
+      tab.onOpen?.();
+      navigate(`/dashboard/admin/${tab.slug || tabIdToSlug[tab.id] || 'overview'}`);
+    }
   };
 
   return (
@@ -928,133 +932,10 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeTab === 'applications' && (
-            <div className="applications-section fade-in">
-              {!showApplicationDetail ? (
-                <>
-                  <div className="applications-header">
-                    <h2>Applications</h2>
-                    <div className="application-tabs">
-                      <button
-                        className={`app-tab-btn ${applicationViewType === 'creator' ? 'active' : ''}`}
-                        onClick={() => setApplicationViewType('creator')}
-                      >
-                        Creator Applications ({creatorApplications.length})
-                      </button>
-                      <button
-                        className={`app-tab-btn ${applicationViewType === 'brand' ? 'active' : ''}`}
-                        onClick={() => setApplicationViewType('brand')}
-                      >
-                        Brand Applications ({brandApplications.length})
-                      </button>
-                    </div>
-                  </div>
+          {/* Applications tab removed - opens as separate page */}
 
-                  <div className="applications-filters">
-                    <div className="filter-group">
-                      <label>State</label>
-                      <select value={applicationFilters.state} onChange={(e) => setApplicationFilters({...applicationFilters, state: e.target.value})}>
-                        <option value="">All States</option>
-                        <option value="pending">Pending</option>
-                        <option value="more_info">More Info Requested</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                    </div>
-                    <div className="filter-group">
-                      <label>Category</label>
-                      <select value={applicationFilters.category} onChange={(e) => setApplicationFilters({...applicationFilters, category: e.target.value})}>
-                        <option value="">All Categories</option>
-                        <option value="tech">Technology</option>
-                        <option value="fashion">Fashion</option>
-                        <option value="lifestyle">Lifestyle</option>
-                        <option value="food">Food & Beverage</option>
-                        <option value="beauty">Beauty</option>
-                      </select>
-                    </div>
-                    <div className="filter-group">
-                      <label>Submitted Date Range</label>
-                      <div className="date-range">
-                        <input
-                          type="date"
-                          value={applicationFilters.startDate}
-                          onChange={(e) => setApplicationFilters({...applicationFilters, startDate: e.target.value})}
-                        />
-                        <span>to</span>
-                        <input
-                          type="date"
-                          value={applicationFilters.endDate}
-                          onChange={(e) => setApplicationFilters({...applicationFilters, endDate: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="applications-list">
-                    <table className="applications-table">
-                      <thead>
-                        <tr>
-                          <th>{applicationViewType === 'creator' ? 'Handle' : 'Brand Name'}</th>
-                          <th>Submitted Date</th>
-                          <th>Category</th>
-                          <th>{applicationViewType === 'creator' ? 'Languages' : 'Email'}</th>
-                          <th>{applicationViewType === 'creator' ? 'Location' : 'GST Status'}</th>
-                          <th>SLA Remaining</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(applicationViewType === 'creator' ? creatorApplications : brandApplications)
-                          .filter(app => !applicationFilters.state || app.status === applicationFilters.state)
-                          .filter(app => !applicationFilters.category || app.category === applicationFilters.category)
-                          .sort((a, b) => new Date(a.submitted_date) - new Date(b.submitted_date))
-                          .map(app => (
-                            <tr key={app.id}>
-                              <td className="app-handle">{applicationViewType === 'creator' ? app.nickname : app.business_name}</td>
-                              <td>{new Date(app.submitted_date).toLocaleDateString()}</td>
-                              <td>{app.category}</td>
-                              <td>{applicationViewType === 'creator' ? (app.languages?.join(', ') || 'N/A') : app.email}</td>
-                              <td>{applicationViewType === 'creator' ? app.location : app.gst_status || 'Pending'}</td>
-                              <td className="sla-remaining">{Math.max(0, 7 - Math.floor((Date.now() - new Date(app.submitted_date)) / (1000 * 60 * 60 * 24)))} days</td>
-                              <td>
-                                <span className={`status-badge status-${app.status}`}>
-                                  {app.status?.replace(/_/g, ' ').toUpperCase()}
-                                </span>
-                              </td>
-                              <td>
-                                <button
-                                  className="btn-view-detail"
-                                  onClick={() => {
-                                    setShowApplicationDetail(true);
-                                    fetchApplicationDetail(app.id, applicationViewType);
-                                  }}
-                                >
-                                  View
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                    {((applicationViewType === 'creator' ? creatorApplications : brandApplications).length === 0) && (
-                      <div className="empty-table">
-                        <p>No applications found</p>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="application-detail-view">
-                  <button className="btn-back" onClick={() => setShowApplicationDetail(false)}>← Back to List</button>
-
-                  {applicationDetailLoading ? (
-                    <div className="loading">Loading application details...</div>
-                  ) : selectedApplication?.type === 'creator' ? (
-                    // Creator Application Detail View
-                    <div className="detail-content">
-                      <div className="detail-header">
-                        <div className="detail-title">
+          {activeTab === 'profiles' && (
+            <div className="profiles-section fade-in">
                           <h2>{selectedApplication?.nickname}</h2>
                           <p>{selectedApplication?.email}</p>
                           <span className={`status-badge status-${selectedApplication?.status}`}>
@@ -6019,6 +5900,33 @@ export default function AdminDashboard() {
           font-size: 14px;
           text-align: center;
           padding: 20px;
+        }
+
+        /* Applications Page Styles */
+        .applications-page {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #f5f7ff 0%, #eff2f8 100%);
+          padding: 32px;
+        }
+
+        .page-header {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+          margin: 0;
+          font-size: 36px;
+          font-weight: 800;
+          color: #0f0f2e;
+        }
+
+        .page-header .btn-back {
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         @media (max-width: 1024px) {

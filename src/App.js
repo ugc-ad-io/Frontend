@@ -23,6 +23,7 @@ import MyBidsPage from './pages/MyBidsPage';
 import MyActiveWorkPage from './pages/MyActiveWorkPage';
 import ReviewsPage from './pages/ReviewsPage';
 import PortfolioPage from './pages/PortfolioPage';
+import ApplicationsPage from './pages/ApplicationsPage';
 import { Toaster } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -253,6 +254,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/applications"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <ApplicationsPage />
                 </ProtectedRoute>
               }
             />

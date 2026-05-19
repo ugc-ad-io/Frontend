@@ -760,13 +760,6 @@ export default function AdminDashboard() {
         <div className="tab-content">
           {activeTab === 'stats' && stats && (
             <div className="operator-dashboard fade-in">
-              <div className="dashboard-header-section">
-                <div>
-                  <h1>Admin Dashboard</h1>
-                  <p>Monitor platform operations, track SLA metrics, and manage critical tasks</p>
-                </div>
-              </div>
-
               <section className="operator-section priority">
                 <div className="operator-section-head">
                   <h3>SLA-at-risk items</h3>
@@ -2695,25 +2688,6 @@ export default function AdminDashboard() {
           color: #1a202c;
         }
 
-        .dashboard-header-section {
-          padding: 0;
-          margin-bottom: 8px;
-        }
-
-        .dashboard-header-section h1 {
-          margin: 0 0 8px 0;
-          color: #07074E;
-          font-size: 36px;
-          font-weight: 800;
-        }
-
-        .dashboard-header-section p {
-          margin: 0;
-          color: #718096;
-          font-size: 16px;
-          font-weight: 500;
-        }
-
         .operator-dashboard {
           display: grid;
           gap: 28px;
@@ -2722,70 +2696,74 @@ export default function AdminDashboard() {
 
         .operator-hero,
         .operator-section {
-          border: 1px solid #e2e8f0;
-          border-radius: 20px;
+          border: 1px solid #dde4f0;
+          border-radius: 16px;
           background: white;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-          transition: all 0.3s ease;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .operator-section:hover {
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-          border-color: #cfd9e8;
+          box-shadow: 0 12px 28px rgba(102, 126, 234, 0.12);
+          border-color: #c7d2e8;
+          transform: translateY(-4px);
         }
 
         .operator-hero {
-          padding: 30px;
+          padding: 32px;
         }
 
         .operator-hero span,
         .operator-section-head span {
           display: inline-flex;
+          align-items: center;
+          gap: 6px;
           width: max-content;
-          padding: 6px 14px;
-          border-radius: 20px;
-          background: linear-gradient(135deg, #eef0ff 0%, #e8eaff 100%);
+          padding: 8px 16px;
+          border-radius: 24px;
+          background: linear-gradient(135deg, #e8ecff 0%, #dfe4ff 100%);
           color: #667eea;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 700;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.04em;
           text-transform: uppercase;
         }
 
         .operator-hero h2 {
-          margin: 16px 0 10px;
-          color: #07074E;
+          margin: 18px 0 12px;
+          color: #0f0f2e;
           font-size: 32px;
-          line-height: 1.1;
+          font-weight: 800;
+          line-height: 1.2;
         }
 
         .operator-hero p {
           max-width: 720px;
-          color: #718096;
+          color: #6b7280;
           font-size: 16px;
           line-height: 1.6;
+          font-weight: 500;
         }
 
         .operator-section {
-          padding: 28px;
+          padding: 32px;
         }
 
         .operator-section.priority {
-          border: 2px solid #fbbf24;
-          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #ffffff 100%);
+          border: 2px solid #f59e0b;
+          background: linear-gradient(135deg, rgba(255, 247, 237, 0.8) 0%, rgba(254, 243, 199, 0.4) 50%, #ffffff 100%);
           position: relative;
+          overflow: hidden;
         }
 
         .operator-section.priority::before {
           content: '';
           position: absolute;
-          top: -12px;
-          left: 24px;
-          width: 24px;
-          height: 24px;
-          background: #f59e0b;
-          border-radius: 50%;
-          box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+          top: -1px;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
         }
 
         .operator-section-head {
@@ -2793,100 +2771,142 @@ export default function AdminDashboard() {
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 24px;
-          padding-bottom: 12px;
-          border-bottom: 2px solid #f0f1f3;
+          margin-bottom: 28px;
+          padding-bottom: 16px;
+          border-bottom: 2px solid #ede9f6;
         }
 
         .operator-section-head h3 {
           margin: 0;
-          color: #07074E;
-          font-size: 20px;
-          font-weight: 700;
+          color: #0f0f2e;
+          font-size: 22px;
+          font-weight: 800;
+          letter-spacing: -0.5px;
         }
 
         .operator-risk-list,
         .operator-metric-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 16px;
+          gap: 18px;
         }
 
         .operator-risk-list > div,
         .operator-metric-grid > div {
-          padding: 20px;
-          border: 1.5px solid #e8ecf1;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #fbfcfd 0%, #f8f9fc 100%);
-          transition: all 0.3s ease;
-          cursor: default;
+          padding: 24px;
+          border: 2px solid #f0f0f8;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #fafbfc 0%, #f5f7fb 100%);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .operator-risk-list > div::before,
+        .operator-metric-grid > div::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
 
         .operator-risk-list > div:hover,
         .operator-metric-grid > div:hover {
-          border-color: #d0d8e0;
-          background: linear-gradient(135deg, #f0f4f9 0%, #eef1f7 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+          border-color: #d1daf0;
+          background: linear-gradient(135deg, #f0f4fb 0%, #eff2f8 100%);
+          transform: translateY(-4px);
+          box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+        }
+
+        .operator-risk-list > div:hover::before,
+        .operator-metric-grid > div:hover::before {
+          opacity: 1;
         }
 
         .operator-risk-list strong,
         .operator-metric-grid strong {
           display: block;
-          color: #07074E;
-          font-size: 32px;
+          color: #0f0f2e;
+          font-size: 36px;
           line-height: 1;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
           font-weight: 800;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .operator-risk-list span,
         .operator-metric-grid span {
           color: #4a5568;
           font-weight: 600;
-          line-height: 1.4;
+          line-height: 1.5;
           font-size: 14px;
+          display: block;
         }
 
         .operator-metric-grid small {
           display: block;
-          margin-top: 10px;
-          color: #9096a8;
-          font-weight: 500;
+          margin-top: 12px;
+          color: #9ca3af;
+          font-weight: 600;
           font-size: 12px;
         }
 
         .operator-actions {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 16px;
+          gap: 20px;
         }
 
         .operator-actions button {
-          min-height: 60px;
+          min-height: 64px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 12px;
-          border: 2px solid #dbe0ff;
+          border: 2px solid #d1daf0;
           border-radius: 12px;
-          background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
-          color: #07074E;
+          background: linear-gradient(135deg, #f5f7ff 0%, #eff2f8 100%);
+          color: #0f0f2e;
           cursor: pointer;
           font-weight: 700;
-          font-size: 14px;
-          transition: all 0.3s ease;
+          font-size: 15px;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .operator-actions button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+          transition: left 0.5s ease;
         }
 
         .operator-actions button:hover {
           border-color: #667eea;
-          background: linear-gradient(135deg, #e8ecff 0%, #dfe4ff 100%);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
-          transform: translateY(-2px);
+          background: linear-gradient(135deg, #eff2f8 0%, #e8ecff 100%);
+          box-shadow: 0 8px 24px rgba(102, 126, 234, 0.18);
+          transform: translateY(-3px);
+        }
+
+        .operator-actions button:hover::before {
+          left: 100%;
         }
 
         .operator-actions button:active {
-          transform: translateY(0);
+          transform: translateY(-1px);
         }
 
         .loading,
@@ -2905,17 +2925,51 @@ export default function AdminDashboard() {
 
         .items-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-          gap: 24px;
+          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+          gap: 28px;
         }
 
         .profile-card,
         .campaign-card,
         .withdrawal-card {
-          background: #f8f9ff;
-          padding: 24px;
-          border-radius: 16px;
-          border: 2px solid #e2e8f0;
+          background: linear-gradient(135deg, #fafbfc 0%, #f5f7fb 100%);
+          padding: 28px;
+          border-radius: 14px;
+          border: 1.5px solid #dde4f0;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .profile-card::before,
+        .campaign-card::before,
+        .withdrawal-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.4s ease;
+        }
+
+        .profile-card:hover,
+        .campaign-card:hover,
+        .withdrawal-card:hover {
+          border-color: #c7d2e8;
+          background: linear-gradient(135deg, #f0f4fb 0%, #eef2f8 100%);
+          box-shadow: 0 12px 32px rgba(102, 126, 234, 0.12);
+          transform: translateY(-6px);
+        }
+
+        .profile-card:hover::before,
+        .campaign-card:hover::before,
+        .withdrawal-card:hover::before {
+          transform: scaleX(1);
         }
 
         .profile-header,
@@ -2924,44 +2978,62 @@ export default function AdminDashboard() {
           display: flex;
           justify-content: space-between;
           align-items: start;
-          margin-bottom: 16px;
+          margin-bottom: 18px;
+          padding-bottom: 12px;
+          border-bottom: 2px solid #ede9f6;
         }
 
         .profile-header h3,
         .campaign-header h3,
         .withdrawal-header h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #1a202c;
-          margin-bottom: 8px;
+          font-size: 18px;
+          font-weight: 700;
+          color: #0f0f2e;
+          margin-bottom: 0;
+          letter-spacing: -0.3px;
         }
 
         .profile-details,
         .campaign-details,
         .withdrawal-details {
-          margin-bottom: 20px;
+          margin-bottom: 24px;
           color: #4a5568;
           line-height: 1.8;
+          font-size: 14px;
         }
 
         .profile-details p,
         .campaign-details p,
         .withdrawal-details p {
-          margin-bottom: 8px;
+          margin-bottom: 10px;
+          color: #4a5568;
+        }
+
+        .profile-details strong,
+        .campaign-details strong,
+        .withdrawal-details strong {
+          color: #0f0f2e;
+          font-weight: 700;
         }
 
         .rate-list,
         .objectives-list {
-          margin: 8px 0;
-          padding-left: 20px;
+          margin: 12px 0;
+          padding-left: 24px;
           color: #4a5568;
+        }
+
+        .rate-list li,
+        .objectives-list li {
+          margin-bottom: 6px;
         }
 
         .profile-actions,
         .campaign-actions,
         .withdrawal-actions {
           display: flex;
-          gap: 12px;
+          gap: 14px;
+          margin-top: 24px;
         }
 
         .btn-approve,
@@ -2970,33 +3042,42 @@ export default function AdminDashboard() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 12px;
-          border-radius: 12px;
-          border: none;
-          font-weight: 600;
+          gap: 10px;
+          padding: 14px 16px;
+          border-radius: 10px;
+          border: 2px solid;
+          font-weight: 700;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          font-size: 14px;
+          position: relative;
+          overflow: hidden;
         }
 
         .btn-approve {
-          background: #d4edda;
-          color: #155724;
+          background: linear-gradient(135deg, #d1f5e8 0%, #c1f0de 100%);
+          color: #065f46;
+          border-color: #a7e8d4;
         }
 
         .btn-approve:hover {
-          background: #c3e6cb;
-          transform: translateY(-2px);
+          background: linear-gradient(135deg, #bef3e6 0%, #a7e8d4 100%);
+          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
+          transform: translateY(-3px);
+          border-color: #6ee7b7;
         }
 
         .btn-reject {
-          background: #f8d7da;
-          color: #721c24;
+          background: linear-gradient(135deg, #fee2e2 0%, #fed7d7 100%);
+          color: #991b1b;
+          border-color: #fecaca;
         }
 
         .btn-reject:hover {
-          background: #f5c6cb;
-          transform: translateY(-2px);
+          background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+          box-shadow: 0 6px 16px rgba(239, 68, 68, 0.2);
+          transform: translateY(-3px);
+          border-color: #f87171;
         }
 
         .action-buttons {

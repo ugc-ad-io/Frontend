@@ -948,6 +948,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
               </div>
             )}
             <div className="header-actions">
+              {activeTab === 'overview' && (
+                <>
+                  <button className="brand-round-action" type="button" aria-label="Notifications">
+                    <Bell size={18} />
+                    <i />
+                  </button>
+                  <button className="brand-profile-photo" type="button" onClick={() => navigate('/settings')} aria-label="Profile">
+                    {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
+                  </button>
+                  <button className="brand-round-action" type="button" onClick={handleLogout} aria-label="Logout">
+                    <LogOut size={18} />
+                  </button>
+                </>
+              )}
               {activeTab === 'post-brief' && (
                 <>
                   <button className="brand-round-action" type="button" aria-label="Notifications">
@@ -1306,9 +1320,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <h2>All Campaigns</h2>
                   <p>Track every brief from draft to delivery, review bids, and jump into active campaign workflows.</p>
                 </div>
-                <button type="button" className="all-campaigns-create" onClick={() => setShowCreateModal(true)}>
-                  <Plus size={18} /> Create Campaign
-                </button>
               </div>
 
               <div className="all-campaigns-stats">
@@ -3074,6 +3085,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           flex-direction: column;
           gap: 18px;
+          align-self: start;
         }
 
         .top-campaigns-panel {
@@ -3226,7 +3238,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .mini-kpi {
-          min-height: 142px;
+          min-height: 118px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -3253,7 +3265,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: grid;
           grid-template-columns: minmax(0, 2.25fr) minmax(320px, 0.95fr);
           gap: 24px;
-          margin-top: 24px;
+          margin-top: 18px;
           align-items: start;
         }
 

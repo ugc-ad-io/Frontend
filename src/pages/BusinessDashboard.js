@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, DollarSign, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, HelpCircle, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
 import PostABrief from './PostABrief';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -1109,95 +1109,59 @@ export default function BusinessDashboard({ page = 'overview' }) {
               <h1>{activeTab === 'overview' ? 'Business Dashboard' : pageTitle}</h1>
               <p>{activeTab === 'post-brief' ? 'Create a new campaign and attract top creators' : `Welcome back, ${user?.nickname}!`}</p>
             </div>
-            {(activeTab === 'overview' || activeTab === 'post-brief') && (
-              <form className="brand-search" role="search" onSubmit={handleDashboardSearchSubmit}>
-                <Search size={20} />
-                <input
-                  type="search"
-                  placeholder="Search campaigns, deals, creators, status, briefs..."
-                  aria-label="Search dashboard"
-                  value={dashboardSearchQuery}
-                  onChange={(event) => {
-                    setDashboardSearchQuery(event.target.value);
-                    setDashboardSearchOpen(true);
-                  }}
-                  onFocus={() => setDashboardSearchOpen(true)}
-                  onBlur={() => window.setTimeout(() => setDashboardSearchOpen(false), 120)}
-                />
-                {dashboardSearchOpen && hasDashboardSearchQuery && (
-                  <div className="brand-search-results">
-                    {dashboardSearchResults.length ? dashboardSearchResults.map(result => (
-                      <button
-                        key={result.key}
-                        type="button"
-                        className="brand-search-result"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => handleDashboardSearchSelect(result.target)}
-                      >
-                        <span>{result.type}</span>
-                        <strong>{result.title}</strong>
-                        <small>{result.meta}</small>
-                      </button>
-                    )) : (
-                      <div className="brand-search-empty">
-                        <strong>No results found</strong>
-                        <small>Try a campaign, creator, deal, or brief keyword.</small>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </form>
-            )}
+            <form className="brand-search" role="search" onSubmit={handleDashboardSearchSubmit}>
+              <Search size={20} />
+              <input
+                type="search"
+                placeholder="Search campaigns, deals, creators, status, briefs..."
+                aria-label="Search dashboard"
+                value={dashboardSearchQuery}
+                onChange={(event) => {
+                  setDashboardSearchQuery(event.target.value);
+                  setDashboardSearchOpen(true);
+                }}
+                onFocus={() => setDashboardSearchOpen(true)}
+                onBlur={() => window.setTimeout(() => setDashboardSearchOpen(false), 120)}
+              />
+              {dashboardSearchOpen && hasDashboardSearchQuery && (
+                <div className="brand-search-results">
+                  {dashboardSearchResults.length ? dashboardSearchResults.map(result => (
+                    <button
+                      key={result.key}
+                      type="button"
+                      className="brand-search-result"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => handleDashboardSearchSelect(result.target)}
+                    >
+                      <span>{result.type}</span>
+                      <strong>{result.title}</strong>
+                      <small>{result.meta}</small>
+                    </button>
+                  )) : (
+                    <div className="brand-search-empty">
+                      <strong>No results found</strong>
+                      <small>Try a campaign, creator, deal, or brief keyword.</small>
+                    </div>
+                  )}
+                </div>
+              )}
+            </form>
             <div className="header-actions">
-              {activeTab === 'overview' && (
-                <>
-                  <button className="brand-round-action" type="button" aria-label="Notifications">
-                    <Bell size={18} />
-                    <i />
-                  </button>
-                  <button className="brand-profile-photo" type="button" onClick={() => navigate('/settings')} aria-label="Profile">
-                    {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
-                  </button>
-                  <button className="brand-round-action" type="button" onClick={handleLogout} aria-label="Logout">
-                    <LogOut size={18} />
-                  </button>
-                </>
-              )}
-              {activeTab === 'post-brief' && (
-                <>
-                  <button className="brand-round-action" type="button" aria-label="Notifications">
-                    <Bell size={18} />
-                    <i />
-                  </button>
-                  <button className="brand-round-action" type="button" aria-label="Help">
-                    <HelpCircle size={18} />
-                  </button>
-                  <button className="brand-profile-photo" type="button" onClick={() => navigate('/settings')} aria-label="Profile">
-                    {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
-                  </button>
-                </>
-              )}
-              {activeTab !== 'overview' && activeTab !== 'post-brief' && (
-                <>
-                  <button className="btn-primary" onClick={() => setShowCreateModal(true)} data-testid="create-campaign-btn">
-                    <Plus size={20} /> Create Campaign
-                  </button>
-                  <button className="btn-secondary" onClick={() => navigate('/messages')} data-testid="messages-btn">
-                    <MessageSquare size={20} /> Messages
-                  </button>
-                  <button className="btn-secondary" onClick={() => navigate('/settings')} data-testid="settings-btn">
-                    <Users size={20} /> Settings
-                  </button>
-                  <button className="btn-secondary" onClick={handleLogout} data-testid="logout-btn">
-                    <LogOut size={20} /> Logout
-                  </button>
-                </>
-              )}
+              <button className="brand-round-action" type="button" aria-label="Notifications">
+                <Bell size={18} />
+                <i />
+              </button>
+              <button className="brand-profile-photo" type="button" onClick={() => navigate('/settings')} aria-label="Profile">
+                {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
+              </button>
+              <button className="brand-round-action" type="button" onClick={handleLogout} aria-label="Logout">
+                <LogOut size={18} />
+              </button>
             </div>
           </div>
         </div>
 
-        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''}`}>
+        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${activeTab === 'work-review' ? 'work-review-shell' : ''}`}>
         {activeTab === 'overview' && (
           <>
             <div className="brand-metrics-grid">
@@ -2359,6 +2323,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .business-sidebar {
           width: 260px;
           min-height: 100vh;
+          max-height: 100vh;
           position: sticky;
           top: 0;
           align-self: flex-start;
@@ -2370,6 +2335,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: white;
           border-top-right-radius: 32px;
           border-bottom-right-radius: 32px;
+          overflow-y: auto;
         }
 
         .business-sidebar-brand {
@@ -2848,6 +2814,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .post-brief-shell .tab-content {
+          background: transparent;
+          padding: 0;
+          border-radius: 0;
+          box-shadow: none;
+          min-height: 0;
+        }
+
+        .work-review-shell .tab-content {
           background: transparent;
           padding: 0;
           border-radius: 0;
@@ -6103,10 +6077,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .business-sidebar {
             width: 100%;
             min-height: auto;
+            max-height: none;
             position: static;
             border-radius: 0;
             padding: 20px;
             gap: 20px;
+            overflow-y: visible;
           }
 
           .business-sidebar-brand {

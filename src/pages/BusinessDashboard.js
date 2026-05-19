@@ -3086,16 +3086,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex-direction: column;
           gap: 18px;
           align-self: start;
-          height: 408px;
-          max-height: 408px;
-          min-height: 0;
-          overflow: hidden;
+          min-height: 408px;
         }
 
         .top-campaigns-panel {
-          min-height: 0;
-          max-height: 294px;
-          flex: 1;
+          min-height: 390px;
+          flex: 1 1 auto;
           overflow-y: auto;
         }
 

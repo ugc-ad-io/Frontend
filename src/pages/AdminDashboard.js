@@ -760,10 +760,11 @@ export default function AdminDashboard() {
         <div className="tab-content">
           {activeTab === 'stats' && stats && (
             <div className="operator-dashboard fade-in">
-              <div className="operator-hero">
-                <span>Dashboard</span>
-                <h2>Dashboard - The Operator's Home</h2>
-                <p>Single-screen morning overview. Ops team member opens this and knows exactly what to do first. Monitor SLA-at-risk items, track activity, view key metrics, and access quick admin actions—everything you need for effective platform operations.</p>
+              <div className="dashboard-header-section">
+                <div>
+                  <h1>Admin Dashboard</h1>
+                  <p>Monitor platform operations, track SLA metrics, and manage critical tasks</p>
+                </div>
               </div>
 
               <section className="operator-section priority">
@@ -2694,17 +2695,43 @@ export default function AdminDashboard() {
           color: #1a202c;
         }
 
+        .dashboard-header-section {
+          padding: 0;
+          margin-bottom: 8px;
+        }
+
+        .dashboard-header-section h1 {
+          margin: 0 0 8px 0;
+          color: #07074E;
+          font-size: 36px;
+          font-weight: 800;
+        }
+
+        .dashboard-header-section p {
+          margin: 0;
+          color: #718096;
+          font-size: 16px;
+          font-weight: 500;
+        }
+
         .operator-dashboard {
           display: grid;
-          gap: 24px;
+          gap: 28px;
+          padding: 0;
         }
 
         .operator-hero,
         .operator-section {
           border: 1px solid #e2e8f0;
-          border-radius: 22px;
+          border-radius: 20px;
           background: white;
-          box-shadow: 0 12px 28px rgba(7, 7, 78, 0.05);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+          transition: all 0.3s ease;
+        }
+
+        .operator-section:hover {
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+          border-color: #cfd9e8;
         }
 
         .operator-hero {
@@ -2715,13 +2742,13 @@ export default function AdminDashboard() {
         .operator-section-head span {
           display: inline-flex;
           width: max-content;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: #eef0ff;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background: linear-gradient(135deg, #eef0ff 0%, #e8eaff 100%);
           color: #667eea;
-          font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.04em;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
         }
 
@@ -2740,12 +2767,25 @@ export default function AdminDashboard() {
         }
 
         .operator-section {
-          padding: 24px;
+          padding: 28px;
         }
 
         .operator-section.priority {
-          border-color: #fed7aa;
-          background: linear-gradient(180deg, #fff7ed 0%, #ffffff 72%);
+          border: 2px solid #fbbf24;
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #ffffff 100%);
+          position: relative;
+        }
+
+        .operator-section.priority::before {
+          content: '';
+          position: absolute;
+          top: -12px;
+          left: 24px;
+          width: 24px;
+          height: 24px;
+          background: #f59e0b;
+          border-radius: 50%;
+          box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
         }
 
         .operator-section-head {
@@ -2753,13 +2793,16 @@ export default function AdminDashboard() {
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 18px;
+          margin-bottom: 24px;
+          padding-bottom: 12px;
+          border-bottom: 2px solid #f0f1f3;
         }
 
         .operator-section-head h3 {
           margin: 0;
           color: #07074E;
-          font-size: 22px;
+          font-size: 20px;
+          font-weight: 700;
         }
 
         .operator-risk-list,
@@ -2771,53 +2814,79 @@ export default function AdminDashboard() {
 
         .operator-risk-list > div,
         .operator-metric-grid > div {
-          padding: 18px;
-          border: 1px solid #eef0ff;
-          border-radius: 16px;
-          background: #fbfbff;
+          padding: 20px;
+          border: 1.5px solid #e8ecf1;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #fbfcfd 0%, #f8f9fc 100%);
+          transition: all 0.3s ease;
+          cursor: default;
+        }
+
+        .operator-risk-list > div:hover,
+        .operator-metric-grid > div:hover {
+          border-color: #d0d8e0;
+          background: linear-gradient(135deg, #f0f4f9 0%, #eef1f7 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
         }
 
         .operator-risk-list strong,
         .operator-metric-grid strong {
           display: block;
           color: #07074E;
-          font-size: 28px;
+          font-size: 32px;
           line-height: 1;
-          margin-bottom: 10px;
+          margin-bottom: 12px;
+          font-weight: 800;
         }
 
         .operator-risk-list span,
         .operator-metric-grid span {
           color: #4a5568;
-          font-weight: 700;
-          line-height: 1.35;
+          font-weight: 600;
+          line-height: 1.4;
+          font-size: 14px;
         }
 
         .operator-metric-grid small {
           display: block;
-          margin-top: 8px;
-          color: #9f9fd1;
-          font-weight: 700;
+          margin-top: 10px;
+          color: #9096a8;
+          font-weight: 500;
+          font-size: 12px;
         }
 
         .operator-actions {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 14px;
+          gap: 16px;
         }
 
         .operator-actions button {
-          min-height: 56px;
+          min-height: 60px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          border: 1px solid #dbe0ff;
-          border-radius: 14px;
-          background: #f8f9ff;
+          gap: 12px;
+          border: 2px solid #dbe0ff;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
           color: #07074E;
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 700;
+          font-size: 14px;
+          transition: all 0.3s ease;
+        }
+
+        .operator-actions button:hover {
+          border-color: #667eea;
+          background: linear-gradient(135deg, #e8ecff 0%, #dfe4ff 100%);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .operator-actions button:active {
+          transform: translateY(0);
         }
 
         .loading,
@@ -4229,7 +4298,45 @@ export default function AdminDashboard() {
           gap: 16px;
         }
 
+        @media (max-width: 1024px) {
+          .operator-risk-list,
+          .operator-metric-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .operator-actions {
+            grid-template-columns: 1fr;
+          }
+        }
+
         @media (max-width: 768px) {
+          .operator-dashboard {
+            gap: 20px;
+          }
+
+          .operator-section {
+            padding: 20px;
+          }
+
+          .operator-section-head {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .operator-risk-list,
+          .operator-metric-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .operator-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .operator-actions button {
+            min-height: 52px;
+          }
+
           .admin-dashboard {
             flex-direction: column;
           }

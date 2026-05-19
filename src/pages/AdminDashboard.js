@@ -638,7 +638,7 @@ export default function AdminDashboard() {
   };
 
   const adminTabs = [
-    { id: 'stats', label: 'Overview', icon: TrendingUp, testId: 'tab-stats', slug: 'overview' },
+    { id: 'stats', label: 'Admin Dashboard', icon: TrendingUp, testId: 'tab-stats', slug: 'overview' },
     { id: 'profiles', label: `Profiles (${pendingProfiles.length})`, icon: Users, testId: 'tab-profiles', slug: 'profiles' },
     { id: 'campaigns', label: `Campaigns (${pendingCampaigns.length})`, icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
     { id: 'withdrawals', label: `Withdrawals (${pendingWithdrawals.length})`, icon: Briefcase, testId: 'tab-withdrawals', slug: 'withdrawals' },
@@ -763,7 +763,7 @@ export default function AdminDashboard() {
               <div className="operator-hero">
                 <span>Dashboard</span>
                 <h2>Dashboard - The Operator's Home</h2>
-                <p>Single-screen morning overview. Ops team member opens this and knows exactly what to do first.</p>
+                <p>Single-screen morning overview. Ops team member opens this and knows exactly what to do first. Monitor SLA-at-risk items, track activity, view key metrics, and access quick admin actions—everything you need for effective platform operations.</p>
               </div>
 
               <section className="operator-section priority">

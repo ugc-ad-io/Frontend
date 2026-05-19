@@ -3123,8 +3123,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .top-campaigns-panel .top-campaign-row {
           width: 100%;
-          display: flex;
-          align-items: center;
+          display: grid;
+          grid-template-columns: 32px minmax(0, 1fr) auto;
+          align-items: start;
           gap: 10px;
           padding: 10px 11px;
           border: 1px solid transparent;
@@ -3155,7 +3156,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .top-rank {
           width: 32px;
           height: 32px;
-          flex: 0 0 32px;
+          grid-row: 1 / span 2;
           display: grid;
           place-items: center;
           border-radius: 50%;
@@ -3172,7 +3173,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .top-campaign-copy {
           min-width: 0;
-          flex: 1;
+          grid-column: 2 / -1;
         }
 
         .top-campaign-copy strong {
@@ -3202,21 +3203,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .top-campaign-status {
-          max-width: 86px;
-          overflow: hidden;
+          grid-column: 2;
+          width: max-content;
+          max-width: 100%;
           padding: 6px 9px;
           border-radius: 999px;
           background: #F0F1FF;
           color: #7387FF;
           font-size: 11px;
           font-weight: 900;
-          text-overflow: ellipsis;
           text-transform: capitalize;
-          white-space: nowrap;
         }
 
         .top-campaign-row svg {
-          flex: 0 0 auto;
+          grid-column: 3;
+          align-self: center;
           color: #9F9FD1;
         }
 

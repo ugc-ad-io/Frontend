@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { AlertTriangle, BellOff, CheckCheck, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, User, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ClipboardList, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
@@ -139,14 +139,14 @@ export default function MessagesPage() {
   const navItems = user?.role === 'business'
     ? [
       { name: 'Brand Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/business') },
-      { name: 'Post a Brief', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
-      { name: 'All Campaigns', icon: Briefcase, action: () => navigate('/dashboard/business/all-campaigns') },
-      { name: 'Creator Bids', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
+      { name: 'Post a Brief', icon: SquarePen, action: () => navigate('/dashboard/business/post-brief') },
+      { name: 'Creator Bids', icon: UserRoundSearch, action: () => navigate('/dashboard/business/pending-bids') },
       { name: 'Browse Creator', icon: Search, action: () => navigate('/dashboard/business/browse-creator') },
+      { name: 'All Campaigns', icon: ClipboardList, action: () => navigate('/dashboard/business/all-campaigns') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
       { name: 'Manage Shipment', icon: Package, action: () => navigate('/dashboard/business/shipments') },
-      { name: 'Wallet', icon: IndianRupee, action: () => navigate('/dashboard/business/wallet') },
+      { name: 'Wallet', icon: Wallet, action: () => navigate('/dashboard/business/wallet') },
       { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
     ]
     : [
@@ -554,6 +554,8 @@ export default function MessagesPage() {
       description={user?.role === 'business' ? 'Connect with creators and manage campaign conversations' : 'Connect with brands and manage conversations'}
       topbarExtra={null}
       sidebarExtra={null}
+      sidebarVariant={user?.role === 'business' ? 'business-match' : undefined}
+      sidebarLabel={user?.role === 'business' ? 'Business' : 'Menu'}
     >
       <div className="msg-layout">
         {/* Left Panel: Conversations List */}

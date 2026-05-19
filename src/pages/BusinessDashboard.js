@@ -490,13 +490,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
-    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: Briefcase, path: '/dashboard/business/all-campaigns' },
     { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
+    { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
     { id: 'shipments', label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
-    { id: 'wallet', label: 'Wallet', icon: IndianRupee, path: '/dashboard/business/wallet' },
+    { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/dashboard/business/wallet' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
@@ -1068,7 +1068,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
             <span>UGCad.io</span>
           </div>
           <nav className="business-sidebar-nav" aria-label="Business dashboard">
-            <span className="business-nav-label">Menu</span>
+            <span className="business-nav-label">Business</span>
             {businessTabs.map(({ id, label, icon: Icon, path, badge, badgeTone }) => (
               <button
                 key={id}
@@ -2335,7 +2335,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .business-sidebar {
-          width: 300px;
+          width: 260px;
           min-height: 100vh;
           position: sticky;
           top: 0;
@@ -2364,7 +2364,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: grid;
           place-items: center;
           flex: 0 0 auto;
-          background: #7387FF;
+          background: #667eea;
           color: white;
           font-weight: 800;
         }
@@ -2383,7 +2383,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .business-nav-label {
           padding: 0 16px 6px;
-          color: #9F9FD1;
+          color: #b7b7e6;
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.08em;
@@ -2439,6 +2439,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .business-nav-item span {
           min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
           white-space: nowrap;
         }
 
@@ -2463,7 +2465,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .business-sidebar-profile span {
           margin-top: 2px;
-          color: #9F9FD1;
+          color: #b7b7e6;
           font-size: 12px;
           font-weight: 600;
         }
@@ -2592,7 +2594,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .brand-profile-photo {
-          background: #7387FF;
+          background: #667eea;
           color: white;
           font-weight: 800;
         }
@@ -4803,10 +4805,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .shipment-card .btn-secondary {
           width: 100%;
           min-height: 54px;
+          display: inline-flex;
+          align-items: center;
           justify-content: center;
+          gap: 10px;
           margin-top: auto;
+          padding: 12px 20px;
           border-radius: 999px;
           text-align: center;
+          line-height: 1.25;
+        }
+
+        .shipment-card .btn-primary svg,
+        .shipment-card .btn-secondary svg {
+          flex: 0 0 auto;
         }
 
         .creator-directory-section {

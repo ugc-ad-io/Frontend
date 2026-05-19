@@ -424,6 +424,7 @@ export default function ProfileSettings() {
     { label: 'Creator Bids', icon: Users, path: '/dashboard/business/pending-bids', badge: 3, tone: 'orange' },
     { label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { label: 'All Campaigns', icon: Briefcase, path: '/dashboard/business/all-campaigns' },
+    { label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { label: 'Messages', icon: MessageSquare, path: '/messages', badge: 2, tone: 'green' },
     { label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
     { label: 'Wallet', icon: Wallet, path: '/dashboard/business/wallet' },

@@ -15,7 +15,9 @@ export default function DashboardLayout({
   description,
   children,
   topbarExtra,
-  sidebarExtra
+  sidebarExtra,
+  sidebarVariant,
+  sidebarLabel = 'Menu'
 }) {
   const { user, setUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ export default function DashboardLayout({
 
   return (
     <div
-      className={`pcd-shell ${sidebarOpen ? 'has-mobile-sidebar' : ''}`}
+      className={`pcd-shell ${sidebarVariant ? `pcd-${sidebarVariant}-sidebar` : ''} ${sidebarOpen ? 'has-mobile-sidebar' : ''}`}
       onClick={handleShellClick}
     >
       <aside className={`pcd-sidebar ${sidebarOpen ? 'is-mobile-open' : ''}`}>
@@ -55,7 +57,7 @@ export default function DashboardLayout({
             <span>UGCad.io</span>
           </div>
           <nav className="pcd-nav" aria-label="Creator dashboard">
-            <span className="pcd-nav-label">Menu</span>
+            <span className="pcd-nav-label">{sidebarLabel}</span>
             {navItems.map((item) => (
               <button
                 key={item.name}
@@ -67,7 +69,8 @@ export default function DashboardLayout({
                 }}
               >
                 <item.icon size={20} />
-                {item.name}
+                <span>{item.name}</span>
+                {item.badge ? <b className={`pcd-nav-badge ${item.badgeTone || ''}`}>{item.badge}</b> : null}
               </button>
             ))}
           </nav>

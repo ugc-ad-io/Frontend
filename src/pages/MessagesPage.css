@@ -6,6 +6,62 @@
   --font-weight-medium: 500;
 }
 
+.pcd-shell.pcd-business-match-sidebar .pcd-sidebar {
+  width: 260px;
+  padding: 28px 24px;
+  background: #07074E;
+  color: white;
+  border-top-right-radius: 32px;
+  border-bottom-right-radius: 32px;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-brand-mark,
+.pcd-shell.pcd-business-match-sidebar .pcd-avatar {
+  background: #667eea;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-nav-label,
+.pcd-shell.pcd-business-match-sidebar .pcd-sidebar-profile span {
+  color: #b7b7e6;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-nav-item {
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-nav-item.is-active {
+  color: #07074E;
+  background: white;
+  font-weight: 700;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-nav-item > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-nav-badge {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #7387FF;
+  color: white;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-nav-badge.orange {
+  background: #F59E0B;
+}
+
 .msg-layout {
   display: flex;
   gap: 16px;

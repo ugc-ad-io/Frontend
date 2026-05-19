@@ -3087,11 +3087,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
           gap: 18px;
           align-self: start;
           height: 408px;
+          max-height: 408px;
           min-height: 0;
+          overflow: hidden;
         }
 
         .top-campaigns-panel {
           min-height: 0;
+          max-height: 294px;
           flex: 1;
           overflow-y: auto;
         }
@@ -3269,8 +3272,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: grid;
           grid-template-columns: minmax(0, 2.25fr) minmax(320px, 0.95fr);
           gap: 24px;
-          margin-top: 18px;
+          margin-top: 12px;
           align-items: start;
+        }
+
+        @media (min-width: 1281px) {
+          .brand-lower-grid {
+            margin-top: -180px;
+          }
+
+          .brand-right-rail {
+            padding-top: 180px;
+          }
         }
 
         .active-deals-panel {

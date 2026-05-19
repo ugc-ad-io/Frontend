@@ -3086,10 +3086,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex-direction: column;
           gap: 18px;
           align-self: start;
+          height: 408px;
+          min-height: 0;
         }
 
         .top-campaigns-panel {
-          min-height: 194px;
+          min-height: 0;
+          flex: 1;
+          overflow-y: auto;
         }
 
         .top-campaigns-head {
@@ -3123,7 +3127,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 11px;
+          padding: 10px 11px;
           border: 1px solid transparent;
           border-radius: 14px;
           background: #FBFBFF;
@@ -3234,11 +3238,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 16px;
-          flex: 1;
+          flex: 0 0 auto;
         }
 
         .mini-kpi {
-          min-height: 118px;
+          min-height: 96px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -3247,14 +3251,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .mini-kpi p {
-          margin: 0 0 18px;
+          margin: 0 0 12px;
           color: #9F9FD1;
           font-weight: 800;
         }
 
         .mini-kpi strong {
           color: #07074E;
-          font-size: 30px;
+          font-size: 26px;
         }
 
         .mini-kpi:first-child strong {

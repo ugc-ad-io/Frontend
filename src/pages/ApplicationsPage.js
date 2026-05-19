@@ -106,8 +106,8 @@ function ApplicationsPage() {
 
   if (selectedApplication) {
     return (
-      <div className="applications-page">
-        <div className="detail-view">
+      <>
+        <div className="detail-view" style={{ padding: '40px', marginLeft: '-40px', marginRight: '-40px', marginTop: '-40px' }}>
           <button className="btn-back" onClick={() => setSelectedApplication(null)}>
             <ChevronLeft size={20} /> Back
           </button>
@@ -562,52 +562,77 @@ function ApplicationsPage() {
             </div>
           )}
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="applications-page">
-      <div className="applications-header">
-        <h1>Applications Management</h1>
-        <div className="type-tabs">
-          <button
-            className={`tab ${applicationType === 'creators' ? 'active' : ''}`}
-            onClick={() => setApplicationType('creators')}
-          >
-            Creator Applications
-          </button>
-          <button
-            className={`tab ${applicationType === 'brands' ? 'active' : ''}`}
-            onClick={() => setApplicationType('brands')}
-          >
-            Brand Applications
-          </button>
+    <>
+      <div style={{ padding: '0' }}>
+        <div style={{ marginBottom: '40px', backgroundColor: 'white', padding: '30px', borderRadius: '12px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '1.8rem', color: '#0f172a', margin: '0 0 12px 0', fontWeight: '700' }}>Applications List</h2>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', paddingBottom: '0' }}>
+            <button
+              onClick={() => setApplicationType('creators')}
+              style={{
+                padding: '14px 28px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                color: applicationType === 'creators' ? '#3b82f6' : '#64748b',
+                borderBottom: applicationType === 'creators' ? '3px solid #3b82f6' : '3px solid transparent',
+                fontWeight: 600,
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Creator Applications
+            </button>
+            <button
+              onClick={() => setApplicationType('brands')}
+              style={{
+                padding: '14px 28px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                color: applicationType === 'brands' ? '#3b82f6' : '#64748b',
+                borderBottom: applicationType === 'brands' ? '3px solid #3b82f6' : '3px solid transparent',
+                fontWeight: 600,
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Brand Applications
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="filters-section">
-        <div className="filter-group">
-          <label>Status</label>
-          <select value={filterState} onChange={(e) => setFilterState(e.target.value)}>
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </div>
-        {categories.length > 0 && (
-          <div className="filter-group">
-            <label>Category</label>
-            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-              <option value="all">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '40px', backgroundColor: 'white', padding: '25px 30px', borderRadius: '14px', boxShadow: '0 2px 16px rgba(0, 0, 0, 0.06)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '200px' }}>
+            <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#475569' }}>Status</label>
+            <select value={filterState} onChange={(e) => setFilterState(e.target.value)} style={{ padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '0.95rem', backgroundColor: 'white', cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: 500, color: '#0f172a' }}>
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
-        )}
-      </div>
+          {categories.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '200px' }}>
+              <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#475569' }}>Category</label>
+              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} style={{ padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '0.95rem', backgroundColor: 'white', cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: 500, color: '#0f172a' }}>
+                <option value="all">All Categories</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '0 20px' }}>
 
       {loading ? (
         <div className="loading">Loading applications...</div>
@@ -639,7 +664,9 @@ function ApplicationsPage() {
           ))}
         </div>
       )}
-    </div>
+        </div>
+      </div>
+    </>
   );
 }
 

@@ -105,7 +105,33 @@ export default function DashboardLayout({
             <h1>{title}</h1>
             {description && <p>{description}</p>}
           </div>
+          {sidebarVariant === 'business-match' && (
+            <div className="pcd-business-header-search" role="search">
+              <Search size={20} />
+              <input type="search" placeholder="Search campaigns, deals, creators, status, briefs..." aria-label="Search dashboard" />
+            </div>
+          )}
           <div className="pcd-top-actions">
+            {sidebarVariant === 'business-match' ? (
+              <>
+                <button type="button" className="pcd-business-round-action pcd-bell" aria-label="Notifications">
+                  <Bell size={18} />
+                  <span />
+                </button>
+                <button type="button" className="pcd-business-profile-photo" onClick={() => navigate('/settings')} aria-label="Profile">
+                  {user?.profile_photo ? (
+                    <img src={`${BACKEND_URL}${user.profile_photo}`} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                  ) : (
+                    getInitial(displayName)
+                  )}
+                </button>
+                <button type="button" className="pcd-business-round-action" onClick={handleLogout} aria-label="Logout">
+                  <LogOut size={18} />
+                </button>
+                {topbarExtra}
+              </>
+            ) : (
+            <>
             <button type="button" className="pcd-icon-btn" aria-label="Search">
               <Search size={18} />
             </button>
@@ -128,6 +154,8 @@ export default function DashboardLayout({
               Logout
             </button>
             {topbarExtra}
+            </>
+            )}
           </div>
         </header>
 

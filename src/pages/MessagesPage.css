@@ -62,6 +62,86 @@
   background: #F59E0B;
 }
 
+.pcd-shell.pcd-business-match-sidebar .pcd-topbar {
+  padding: 24px 40px 8px;
+  background: transparent;
+  border-bottom: 0;
+  gap: 24px;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-topbar > div:first-of-type {
+  min-width: 260px;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-topbar h1 {
+  color: #07074E;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-topbar p {
+  margin-top: 12px;
+  color: #9F9FD1;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pcd-business-header-search {
+  position: relative;
+  flex: 1;
+  max-width: 650px;
+  min-width: 280px;
+  height: 66px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  border: 2px solid #8EA0FF;
+  border-radius: 999px;
+  background: white;
+  color: #9F9FD1;
+  box-shadow: 0 8px 24px rgba(115, 135, 255, 0.14);
+}
+
+.pcd-business-header-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #07074E;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pcd-business-header-search input::placeholder {
+  color: #B7B7E6;
+}
+
+.pcd-shell.pcd-business-match-sidebar .pcd-top-actions {
+  gap: 16px;
+}
+
+.pcd-business-round-action,
+.pcd-business-profile-photo {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: white;
+  color: #07074E;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(7, 7, 78, 0.08);
+}
+
+.pcd-business-profile-photo {
+  background: #667eea;
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+}
+
 .msg-layout {
   display: flex;
   gap: 16px;

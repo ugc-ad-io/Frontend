@@ -1186,26 +1186,30 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     </div>
                     <span>{dashboardTopCampaigns.length}</span>
                   </div>
-                  {dashboardTopCampaigns.length ? dashboardTopCampaigns.map((campaign, index) => (
-                    <button
-                      key={campaign.id || campaign.title}
-                      type="button"
-                      className="top-campaign-row"
-                      onClick={() => campaign.id && handleViewCampaign(campaign.id)}
-                    >
-                      <span className={`top-rank ${index < 3 ? 'featured' : ''}`}>{index + 1}</span>
-                      <span className="top-campaign-copy">
-                        <strong>{campaign.title || 'Untitled Campaign'}</strong>
-                        <small>
-                          {campaign.applications || 0} bids
-                          <i />
-                          {campaign.spend ? formatMoney(campaign.spend) : 'No spend yet'}
-                        </small>
-                      </span>
-                      <span className="top-campaign-status">{String(campaign.status || 'draft').replace(/_/g, ' ')}</span>
-                      <ExternalLink size={15} />
-                    </button>
-                  )) : <p className="empty-inline">No campaigns yet</p>}
+                  {dashboardTopCampaigns.length ? (
+                    <div className="top-campaigns-list">
+                      {dashboardTopCampaigns.map((campaign, index) => (
+                        <button
+                          key={campaign.id || campaign.title}
+                          type="button"
+                          className="top-campaign-row"
+                          onClick={() => campaign.id && handleViewCampaign(campaign.id)}
+                        >
+                          <span className={`top-rank ${index < 3 ? 'featured' : ''}`}>{index + 1}</span>
+                          <span className="top-campaign-copy">
+                            <strong>{campaign.title || 'Untitled Campaign'}</strong>
+                            <small>
+                              {campaign.applications || 0} bids
+                              <i />
+                              {campaign.spend ? formatMoney(campaign.spend) : 'No spend yet'}
+                            </small>
+                          </span>
+                          <span className="top-campaign-status">{String(campaign.status || 'draft').replace(/_/g, ' ')}</span>
+                          <ExternalLink size={15} />
+                        </button>
+                      ))}
+                    </div>
+                  ) : <p className="empty-inline">No campaigns yet</p>}
                 </section>
                 <div className="mini-kpi-grid">
                   <section className="brand-panel mini-kpi">
@@ -3091,8 +3095,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .top-campaigns-panel {
           min-height: 390px;
+          display: flex;
+          flex-direction: column;
           flex: 1 1 auto;
-          overflow-y: auto;
+          overflow: hidden;
         }
 
         .top-campaigns-head {
@@ -3121,6 +3127,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 900;
         }
 
+        .top-campaigns-list {
+          display: grid;
+          gap: 10px;
+          max-height: 326px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
+
         .top-campaigns-panel .top-campaign-row {
           width: 100%;
           display: grid;
@@ -3135,10 +3149,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
           cursor: pointer;
           text-align: left;
           transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
-        }
-
-        .top-campaigns-panel .top-campaign-row + .top-campaign-row {
-          margin-top: 10px;
         }
 
         .top-campaigns-panel .top-campaign-row:hover {

@@ -501,6 +501,17 @@ export default function BusinessDashboard({ page = 'overview' }) {
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
+  const pageDescription = {
+    overview: `Welcome back, ${user?.nickname}!`,
+    'post-brief': 'Create a new campaign and attract top creators',
+    'pending-bids': 'Review creator proposals and select the best fit for each campaign',
+    'browse-creator': 'Discover vetted creators and send private invitations',
+    'all-campaigns': 'Track every brief from draft to delivery',
+    'work-review': 'Review submitted creator work and approve deliverables',
+    shipments: 'Manage product shipments and creator selection for delivery campaigns',
+    wallet: 'Track balance, add funds, and review wallet activity',
+    settings: 'Manage brand preferences, profile, billing, and notifications'
+  }[activeTab] || `Welcome back, ${user?.nickname}!`;
   const dashboardMetrics = dashboardData?.metrics || {};
   const dashboardPerformanceRaw = (dashboardData?.campaign_performance || []).length
     ? dashboardData.campaign_performance
@@ -1107,7 +1118,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </div>
               )}
               <h1>{activeTab === 'overview' ? 'Business Dashboard' : pageTitle}</h1>
-              <p>{activeTab === 'post-brief' ? 'Create a new campaign and attract top creators' : `Welcome back, ${user?.nickname}!`}</p>
+              <p>{pageDescription}</p>
             </div>
             <form className="brand-search" role="search" onSubmit={handleDashboardSearchSubmit}>
               <Search size={20} />
@@ -2729,7 +2740,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .brand-metrics-grid {
           display: grid;
-          grid-template-columns: repeat(5, minmax(170px, 1fr));
+          grid-template-columns: repeat(5, minmax(180px, 1fr));
           gap: 20px;
           margin-bottom: 24px;
         }
@@ -2743,11 +2754,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .brand-metric-card {
-          min-height: 168px;
-          padding: 22px;
+          min-height: 186px;
+          padding: 22px 24px 20px;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          justify-content: flex-start;
+          gap: 14px;
+          transition: transform 160ms ease, box-shadow 160ms ease;
+        }
+
+        .brand-metric-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 18px 38px rgba(7, 7, 78, 0.07);
         }
 
         .metric-head {
@@ -2757,8 +2775,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .metric-icon {
-          width: 46px;
-          height: 46px;
+          width: 50px;
+          height: 50px;
           display: grid;
           place-items: center;
           border-radius: 14px;
@@ -2793,28 +2811,35 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #27AE60;
           font-size: 12px;
           font-weight: 800;
+          line-height: 1;
         }
 
         .brand-metric-card p {
-          margin: 8px 0 0;
+          min-height: 36px;
+          margin: 2px 0 -6px;
           color: #9F9FD1;
           font-size: 14px;
           font-weight: 800;
+          line-height: 1.28;
         }
 
         .brand-metric-card strong {
           color: #07074E;
-          font-size: 28px;
+          font-size: clamp(27px, 1.9vw, 34px);
           line-height: 1;
           letter-spacing: 0;
+          overflow-wrap: anywhere;
         }
 
         .brand-metric-card small {
           display: block;
-          padding-top: 16px;
+          margin-top: auto;
+          padding-top: 14px;
           border-top: 1px solid #EEF0FF;
           color: #9F9FD1;
+          font-size: 13px;
           font-weight: 700;
+          line-height: 1.35;
         }
 
         .dashboard-content:not(.dashboard-content-page) .tab-content {

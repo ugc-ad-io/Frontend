@@ -603,8 +603,68 @@ export default function AdminDashboard() {
     navigate('/');
   };
 
+  const adminTabs = [
+    { id: 'stats', label: 'Overview', icon: TrendingUp, testId: 'tab-stats' },
+    { id: 'profiles', label: `Profiles (${pendingProfiles.length})`, icon: Users, testId: 'tab-profiles' },
+    { id: 'campaigns', label: `Campaigns (${pendingCampaigns.length})`, icon: Briefcase, testId: 'tab-campaigns' },
+    { id: 'withdrawals', label: `Withdrawals (${pendingWithdrawals.length})`, icon: Briefcase, testId: 'tab-withdrawals' },
+    { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns' },
+    ...(user?.role === 'admin' ? [
+      { id: 'users', label: 'All Users', icon: Users, testId: 'tab-users' },
+      { id: 'assignments', label: 'Campaign Assignments', icon: Briefcase, testId: 'tab-assignments' },
+      { id: 'chats', label: 'Chat Monitoring', icon: MessageSquare, testId: 'tab-chats', onOpen: fetchAllChats },
+      { id: 'payments', label: 'Payment Gateways', icon: CreditCard, testId: 'tab-payments', onOpen: () => { fetchPaymentGateways(); fetchPaymentTransactions(); } },
+      { id: 'notifications', label: 'Notifications', icon: Bell, testId: 'tab-notifications', onOpen: () => { fetchNotificationGateways(); fetchNotificationLogs(); } },
+      { id: 'broadcast', label: 'Broadcast', icon: MessageSquare, testId: 'tab-broadcast' },
+      { id: 'staff', label: 'Staff Management', icon: UserPlus, testId: 'tab-staff', onOpen: fetchStaff },
+      { id: 'analytics', label: 'Analytics', icon: BarChart, testId: 'tab-analytics', onOpen: fetchAnalytics }
+    ] : [])
+  ];
+
+  const handleAdminTabClick = (tab) => {
+    setActiveTab(tab.id);
+    tab.onOpen?.();
+  };
+
   return (
     <div className="admin-dashboard">
+      <aside className="admin-sidebar">
+        <div>
+          <div className="admin-sidebar-brand">
+            <div className="admin-sidebar-mark">A</div>
+            <span>UGCad.io</span>
+          </div>
+          <nav className="admin-sidebar-nav" aria-label="Admin dashboard">
+            <span className="admin-nav-label">Admin</span>
+            {adminTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`admin-nav-item ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => handleAdminTabClick(tab)}
+                  data-testid={tab.testId}
+                >
+                  <Icon size={20} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+        <div className="admin-sidebar-profile">
+          <div className="admin-avatar">
+            {(user?.nickname || user?.full_name || 'A').trim().charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <strong>{user?.nickname || 'Admin'}</strong>
+            <span>{user?.role}</span>
+          </div>
+        </div>
+      </aside>
+
+      <main className="admin-main">
       <div className="dashboard-header">
         <div className="header-content">
           <div>
@@ -662,122 +722,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-        
-        <div className="tabs">
-          <button
-            className={`tab ${activeTab === 'stats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('stats')}
-            data-testid="tab-stats"
-          >
-            <TrendingUp size={20} /> Overview
-          </button>
-          <button
-            className={`tab ${activeTab === 'profiles' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profiles')}
-            data-testid="tab-profiles"
-          >
-            <Users size={20} /> Profiles ({pendingProfiles.length})
-          </button>
-          <button
-            className={`tab ${activeTab === 'campaigns' ? 'active' : ''}`}
-            onClick={() => setActiveTab('campaigns')}
-            data-testid="tab-campaigns"
-          >
-            <Briefcase size={20} /> Campaigns ({pendingCampaigns.length})
-          </button>
-          <button
-            className={`tab ${activeTab === 'withdrawals' ? 'active' : ''}`}
-            onClick={() => setActiveTab('withdrawals')}
-            data-testid="tab-withdrawals"
-          >
-            <Briefcase size={20} /> Withdrawals ({pendingWithdrawals.length})
-          </button>
-          <button
-            className={`tab ${activeTab === 'allcampaigns' ? 'active' : ''}`}
-            onClick={() => setActiveTab('allcampaigns')}
-            data-testid="tab-allcampaigns"
-          >
-            <Briefcase size={20} /> All Campaigns
-          </button>
-          {user?.role === 'admin' && (
-            <>
-              <button
-                className={`tab ${activeTab === 'users' ? 'active' : ''}`}
-                onClick={() => setActiveTab('users')}
-                data-testid="tab-users"
-              >
-                <Users size={20} /> All Users
-              </button>
-              <button
-                className={`tab ${activeTab === 'assignments' ? 'active' : ''}`}
-                onClick={() => setActiveTab('assignments')}
-                data-testid="tab-assignments"
-              >
-                <Briefcase size={20} /> Campaign Assignments
-              </button>
-              <button
-                className={`tab ${activeTab === 'chats' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('chats');
-                  fetchAllChats();
-                }}
-                data-testid="tab-chats"
-              >
-                <MessageSquare size={20} /> Chat Monitoring
-              </button>
-              <button
-                className={`tab ${activeTab === 'payments' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('payments');
-                  fetchPaymentGateways();
-                  fetchPaymentTransactions();
-                }}
-                data-testid="tab-payments"
-              >
-                <CreditCard size={20} /> Payment Gateways
-              </button>
-              <button
-                className={`tab ${activeTab === 'notifications' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('notifications');
-                  fetchNotificationGateways();
-                  fetchNotificationLogs();
-                }}
-                data-testid="tab-notifications"
-              >
-                <Bell size={20} /> Notifications
-              </button>
-              <button
-                className={`tab ${activeTab === 'broadcast' ? 'active' : ''}`}
-                onClick={() => setActiveTab('broadcast')}
-                data-testid="tab-broadcast"
-              >
-                <MessageSquare size={20} /> Broadcast
-              </button>
-              <button
-                className={`tab ${activeTab === 'staff' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('staff');
-                  fetchStaff();
-                }}
-                data-testid="tab-staff"
-              >
-                <UserPlus size={20} /> Staff Management
-              </button>
-              <button
-                className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('analytics');
-                  fetchAnalytics();
-                }}
-                data-testid="tab-analytics"
-              >
-                <BarChart size={20} /> Analytics
-              </button>
-            </>
-          )}
-        </div>
-
         <div className="tab-content">
           {activeTab === 'stats' && stats && (
             <div className="stats-section fade-in">
@@ -1816,6 +1760,7 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+      </main>
 
       {showAssignModal && selectedCampaignForAssign && (
         <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
@@ -2388,20 +2333,146 @@ export default function AdminDashboard() {
       <style jsx>{`
         .admin-dashboard {
           min-height: 100vh;
+          display: flex;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+        }
+
+        .admin-sidebar {
+          width: 285px;
+          min-height: 100vh;
+          position: sticky;
+          top: 0;
+          align-self: flex-start;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px 24px;
+          background: #07074E;
+          color: white;
+          border-top-right-radius: 32px;
+          border-bottom-right-radius: 32px;
+          z-index: 2;
+        }
+
+        .admin-sidebar-brand,
+        .admin-sidebar-profile {
+          display: flex;
+          align-items: center;
+        }
+
+        .admin-sidebar-brand {
+          gap: 12px;
+          margin-bottom: 40px;
+          font-size: 20px;
+          font-weight: 700;
+        }
+
+        .admin-sidebar-mark,
+        .admin-avatar {
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+          background: #667eea;
+          color: white;
+          font-weight: 800;
+        }
+
+        .admin-sidebar-mark {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+        }
+
+        .admin-sidebar-nav {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .admin-nav-label {
+          padding: 0 16px 6px;
+          color: #b7b7e6;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .admin-nav-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 12px 16px;
+          border: 0;
+          border-radius: 999px;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.74);
+          cursor: pointer;
+          text-align: left;
+          transition: 180ms ease;
+        }
+
+        .admin-nav-item:hover {
+          color: white;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .admin-nav-item.active {
+          color: #07074E;
+          background: white;
+          font-weight: 700;
+        }
+
+        .admin-nav-item span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .admin-sidebar-profile {
+          gap: 14px;
+          padding-top: 24px;
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .admin-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+        }
+
+        .admin-sidebar-profile strong,
+        .admin-sidebar-profile span {
+          display: block;
+        }
+
+        .admin-sidebar-profile span {
+          margin-top: 2px;
+          color: #b7b7e6;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+
+        .admin-main {
+          flex: 1;
+          min-width: 0;
         }
 
         .dashboard-header {
           background: white;
           border-bottom: 2px solid #e2e8f0;
-          padding: 24px 8%;
+          padding: 24px 40px;
         }
 
         .header-content {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          max-width: 1400px;
+          max-width: 1480px;
           margin: 0 auto;
         }
 
@@ -2424,8 +2495,8 @@ export default function AdminDashboard() {
         }
 
         .dashboard-content {
-          padding: 40px 8%;
-          max-width: 1400px;
+          padding: 40px;
+          max-width: 1480px;
           margin: 0 auto;
         }
 
@@ -3981,6 +4052,45 @@ export default function AdminDashboard() {
         }
 
         @media (max-width: 768px) {
+          .admin-dashboard {
+            flex-direction: column;
+          }
+
+          .admin-sidebar {
+            width: 100%;
+            min-height: auto;
+            position: static;
+            border-radius: 0;
+            padding: 20px;
+            gap: 18px;
+          }
+
+          .admin-sidebar-brand {
+            margin-bottom: 18px;
+          }
+
+          .admin-sidebar-nav {
+            flex-direction: row;
+            overflow-x: auto;
+            padding-bottom: 4px;
+          }
+
+          .admin-nav-label,
+          .admin-sidebar-profile {
+            display: none;
+          }
+
+          .admin-nav-item {
+            width: max-content;
+            flex: 0 0 auto;
+          }
+
+          .dashboard-header,
+          .dashboard-content {
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+
           .header-content {
             flex-direction: column;
             gap: 20px;

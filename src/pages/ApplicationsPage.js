@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
+import './ApplicationsPage.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

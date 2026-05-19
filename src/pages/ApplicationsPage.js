@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, CheckCircle, XCircle, LogOut, TrendingUp, FileText, Users, Briefcase, UserPlus, BarChart, Download } from 'lucide-react';
+import { ChevronLeft, CheckCircle, XCircle } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { useAuth } from '../App';
 import '../styles/ApplicationsPage.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function ApplicationsPage() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState(null);
@@ -108,82 +104,8 @@ function ApplicationsPage() {
 
   const categories = [...new Set(applications.map(app => app.category || app.business_profile?.industry))].filter(Boolean);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  const adminTabs = [
-    { id: 'stats', label: 'Admin Dashboard', icon: TrendingUp, testId: 'tab-stats' },
-    { id: 'applications', label: 'Applications', icon: FileText, testId: 'tab-applications' },
-    { id: 'profiles', label: 'Profiles', icon: Users, testId: 'tab-profiles' },
-    { id: 'campaigns', label: 'Campaigns', icon: Briefcase, testId: 'tab-campaigns' },
-  ];
-
-  const handleAdminTabClick = (tab) => {
-    if (tab.id === 'applications') {
-      return;
-    } else if (tab.id === 'stats') {
-      navigate('/dashboard/admin');
-    } else {
-      navigate(`/dashboard/admin/${tab.id}`);
-    }
-  };
-
   if (selectedApplication) {
     return (
-      <div className="admin-dashboard">
-        <aside className="admin-sidebar">
-          <div>
-            <div className="admin-sidebar-brand">
-              <div className="admin-sidebar-mark">A</div>
-              <span>UGCad.io</span>
-            </div>
-            <nav className="admin-sidebar-nav">
-              <span className="admin-nav-label">Admin</span>
-              {adminTabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    className={`admin-nav-item ${tab.id === 'applications' ? 'active' : ''}`}
-                    onClick={() => handleAdminTabClick(tab)}
-                    data-testid={tab.testId}
-                  >
-                    <Icon size={20} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-          <div className="admin-sidebar-profile">
-            <div className="admin-avatar">
-              {(user?.nickname || user?.full_name || 'A').trim().charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <strong>{user?.nickname || 'Admin'}</strong>
-              <span>{user?.role}</span>
-            </div>
-          </div>
-        </aside>
-
-        <main className="admin-main">
-          <div className="dashboard-header">
-            <div className="header-content">
-              <div>
-                <h1>Applications Management</h1>
-                <p>Manage creator and brand applications</p>
-              </div>
-              <button className="btn-secondary" onClick={handleLogout} data-testid="logout-btn">
-                <LogOut size={20} /> Logout
-              </button>
-            </div>
-          </div>
-
-          <div className="dashboard-content">
-            <div className="tab-content">
       <div className="applications-page">
         <div className="detail-view">
           <button className="btn-back" onClick={() => setSelectedApplication(null)}>
@@ -641,67 +563,11 @@ function ApplicationsPage() {
           )}
         </div>
       </div>
-            </div>
-          </div>
-        </main>
-      </div>
     );
   }
 
   return (
-    <div className="admin-dashboard">
-      <aside className="admin-sidebar">
-        <div>
-          <div className="admin-sidebar-brand">
-            <div className="admin-sidebar-mark">A</div>
-            <span>UGCad.io</span>
-          </div>
-          <nav className="admin-sidebar-nav">
-            <span className="admin-nav-label">Admin</span>
-            {adminTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`admin-nav-item ${tab.id === 'applications' ? 'active' : ''}`}
-                  onClick={() => handleAdminTabClick(tab)}
-                  data-testid={tab.testId}
-                >
-                  <Icon size={20} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-        <div className="admin-sidebar-profile">
-          <div className="admin-avatar">
-            {(user?.nickname || user?.full_name || 'A').trim().charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <strong>{user?.nickname || 'Admin'}</strong>
-            <span>{user?.role}</span>
-          </div>
-        </div>
-      </aside>
-
-      <main className="admin-main">
-        <div className="dashboard-header">
-          <div className="header-content">
-            <div>
-              <h1>Applications Management</h1>
-              <p>Manage creator and brand applications</p>
-            </div>
-            <button className="btn-secondary" onClick={handleLogout} data-testid="logout-btn">
-              <LogOut size={20} /> Logout
-            </button>
-          </div>
-        </div>
-
-        <div className="dashboard-content">
-          <div className="tab-content">
-      <div className="applications-page">
+    <div className="applications-page">
       <div className="applications-header">
         <h1>Applications Management</h1>
         <div className="type-tabs">
@@ -773,10 +639,6 @@ function ApplicationsPage() {
           ))}
         </div>
       )}
-    </div>
-          </div>
-        </div>
-      </main>
     </div>
   );
 }

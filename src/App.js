@@ -24,6 +24,7 @@ import MyActiveWorkPage from './pages/MyActiveWorkPage';
 import ReviewsPage from './pages/ReviewsPage';
 import PortfolioPage from './pages/PortfolioPage';
 import ApplicationsPage from './pages/ApplicationsPage';
+import AdminLayout from './components/AdminLayout';
 import { Toaster } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -261,7 +262,9 @@ function App() {
               path="/applications"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
-                  <ApplicationsPage />
+                  <AdminLayout>
+                    <ApplicationsPage />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />

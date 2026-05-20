@@ -231,7 +231,7 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Right: video */}
+          {/* Right: video with image overlay */}
           <motion.div
             className="lp-hero__image-wrap"
             initial={{ opacity: 0, x: 40 }}
@@ -241,11 +241,16 @@ export default function Landing() {
             <video
               src="/9384669-uhd_2160_3840_24fps.mp4"
               alt="Content creator filming"
-              className="lp-hero__img"
+              className="lp-hero__video"
               autoPlay
               muted
               loop
               playsInline
+            />
+            <img
+              src="/Instagram.jpg"
+              alt="Instagram content"
+              className="lp-hero__overlay-img"
             />
             <div className="lp-hero__img-glow" aria-hidden="true" />
           </motion.div>
@@ -602,9 +607,10 @@ export default function Landing() {
         /* Image */
         .lp-hero__image-wrap {
           position: relative;
+          display: inline-block;
         }
 
-        .lp-hero__img {
+        .lp-hero__video {
           width: auto;
           height: auto;
           border-radius: 24px;
@@ -612,6 +618,19 @@ export default function Landing() {
           display: block;
           box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
           max-width: 100%;
+          max-height: 500px;
+        }
+
+        .lp-hero__overlay-img {
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 50%;
+          height: auto;
+          border-radius: 24px;
+          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+          object-fit: cover;
         }
 
         .lp-hero__img-glow {

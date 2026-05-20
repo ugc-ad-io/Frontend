@@ -555,7 +555,6 @@ export default function BrandWelcomePage() {
           </div>
 
           <section className="recommended-section">
-            <h2>Recommended For You</h2>
             <div className="recommended-cards">
               {recommendedCards.map((card, idx) => {
                 const Icon = card.icon;
@@ -578,7 +577,7 @@ export default function BrandWelcomePage() {
           </section>
 
           <section className="explore-section">
-            <h2>Explore Your Dashboard</h2>
+            <h2>Explore Popular Categories</h2>
             <div className="dashboard-grid">
               {dashboardCards.map((card, idx) => {
                 const Icon = card.icon;
@@ -969,15 +968,9 @@ export default function BrandWelcomePage() {
           }
 
           .recommended-section {
-            margin-bottom: 64px;
+            margin-bottom: 48px;
           }
 
-          .recommended-section h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin: 0 0 20px 0;
-          }
 
           .recommended-cards {
             display: grid;

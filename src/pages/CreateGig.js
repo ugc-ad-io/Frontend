@@ -96,7 +96,7 @@ export default function CreateGig() {
         console.log('Upload response:', response.data);
 
         // Handle different response formats
-        const fileUrl = response.data?.file_url || response.data?.url || response.data?.data?.url || response.data;
+        let fileUrl = response.data?.file_url || response.data?.url || response.data?.data?.url || response.data;
 
         if (!fileUrl || typeof fileUrl !== 'string') {
           console.error('Invalid file URL in response:', response.data);
@@ -104,6 +104,12 @@ export default function CreateGig() {
           continue;
         }
 
+        // Convert relative URLs to absolute backend URLs
+        if (fileUrl.startsWith('/')) {
+          fileUrl = `${BACKEND_URL}${fileUrl}`;
+        }
+
+        console.log('Final file URL:', fileUrl);
         setMediaItems(prev => [...prev, { id: Date.now() + Math.random(), url: fileUrl }]);
         toast.success(`${file.name} uploaded successfully`);
       } catch (error) {

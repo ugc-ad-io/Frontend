@@ -122,6 +122,43 @@ function MiniAreaChart({ data }) {
   );
 }
 
+const getLevelInfo = (completedWorks) => {
+  if (completedWorks >= 20) {
+    return {
+      badge: 'Elite',
+      level: 'L3 Elite',
+      color: '#f59e0b',
+      subtitle: 'Top Creator',
+      nextLevel: null,
+      currentWorks: completedWorks,
+      nextWorks: null,
+      benefits: 'Exclusive perks and higher rates'
+    };
+  }
+  if (completedWorks >= 10) {
+    return {
+      badge: 'L1 (Rising)',
+      level: 'L1 Rising Star',
+      color: '#27ae60',
+      subtitle: 'Verified',
+      nextLevel: 'L2 Professional',
+      currentWorks: completedWorks,
+      nextWorks: 20,
+      benefits: 'Verified badge & Priority support'
+    };
+  }
+  return {
+    badge: 'New Creator',
+    level: 'New Creator',
+    color: '#999',
+    subtitle: 'Not Verified',
+    nextLevel: 'L1 Rising Star',
+    currentWorks: completedWorks,
+    nextWorks: 10,
+    benefits: 'Complete 10 works to reach L1 Rising Star'
+  };
+};
+
 export default function CreatorDashboard() {
   const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
@@ -136,6 +173,7 @@ export default function CreatorDashboard() {
   const [deliveryDays, setDeliveryDays] = useState('');
   const [portfolio, setPortfolio] = useState([]);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+  const [completedWorks, setCompletedWorks] = useState(0);
 
   useEffect(() => {
     if (user?.approval_status !== 'approved') return undefined;
@@ -159,12 +197,15 @@ export default function CreatorDashboard() {
 
   const fetchAllData = async () => {
     try {
-      const [campaignsRes, reviewsRes] = await Promise.all([
+      const [campaignsRes, reviewsRes, worksRes] = await Promise.all([
         axios.get(`${API}/campaigns?t=${Date.now()}`),
-        axios.get(`${API}/reviews/creator/${user.id}`)
+        axios.get(`${API}/reviews/creator/${user.id}`),
+        axios.get(`${API}/campaigns?status=completed&creator_id=${user.id}`)
       ]);
 
       const allCampaigns = campaignsRes.data;
+      const completedCampaigns = worksRes.data || [];
+
       setActiveCampaigns(allCampaigns.filter((campaign) =>
         campaign.selected_creator === user.id &&
         (campaign.status === 'in_progress' || campaign.status === 'active')
@@ -180,6 +221,7 @@ export default function CreatorDashboard() {
       );
       setReviews(reviewsRes.data);
       setPortfolio(user?.portfolio || []);
+      setCompletedWorks(completedCampaigns.length);
     } catch (error) {
       toast.error('Failed to load data');
     } finally {
@@ -260,6 +302,12 @@ export default function CreatorDashboard() {
     return Math.max(Number(user?.balance || 0), bidsTotal);
   }, [myBids, user?.balance]);
 
+  const levelInfo = getLevelInfo(completedWorks);
+  const progressPercentage = levelInfo.nextWorks
+    ? Math.min(100, Math.max(0, (levelInfo.currentWorks / levelInfo.nextWorks) * 100))
+    : 100;
+  const worksRemaining = levelInfo.nextWorks ? Math.max(0, levelInfo.nextWorks - levelInfo.currentWorks) : 0;
+
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator'), active: true },
     { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
@@ -313,7 +361,21 @@ export default function CreatorDashboard() {
     <DashboardLayout
       navItems={navItems}
       title="Creator Dashboard"
-      description={`Welcome back, ${displayName}`}
+      description={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span>Welcome back, {displayName}</span>
+          <span style={{
+            background: levelInfo.color,
+            color: 'white',
+            padding: '4px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '600'
+          }}>
+            {levelInfo.badge}
+          </span>
+        </div>
+      }
       topbarExtra={null}
       sidebarExtra={null}
     >
@@ -338,32 +400,46 @@ export default function CreatorDashboard() {
           <section className="pcd-level-banner">
             <div className="pcd-level-main">
               <div className="pcd-level-title">
-                <span className="pcd-trophy"><Trophy size={32} /></span>
+                <span className="pcd-trophy" style={{ color: levelInfo.color }}><Trophy size={32} /></span>
                 <div>
-                  <p>Current Level <strong>Promo Eligible</strong></p>
-                  <h2>L1 Rising Star</h2>
+                  <p>Current Level <strong style={{ color: levelInfo.color }}>{levelInfo.subtitle}</strong></p>
+                  <h2>{levelInfo.level}</h2>
                 </div>
               </div>
-              <div className="pcd-progress-block">
-                <div className="pcd-progress-copy">
-                  <span>Progress to L2 Professional</span>
-                  <strong>750 / 1000 XP</strong>
+              {levelInfo.nextLevel && (
+                <div className="pcd-progress-block">
+                  <div className="pcd-progress-copy">
+                    <span>Progress to {levelInfo.nextLevel}</span>
+                    <strong>{levelInfo.currentWorks} / {levelInfo.nextWorks} works</strong>
+                  </div>
+                  <div className="pcd-progress-track">
+                    <span style={{ width: `${progressPercentage}%` }} />
+                  </div>
+                  <p><Zap size={14} /> {worksRemaining > 0 ? `${worksRemaining} more ${worksRemaining === 1 ? 'work' : 'works'} to level up!` : 'You\'ve reached this level!'}</p>
                 </div>
-                <div className="pcd-progress-track">
-                  <span style={{ width: '75%' }} />
+              )}
+              {!levelInfo.nextLevel && (
+                <div className="pcd-progress-block">
+                  <div className="pcd-progress-copy">
+                    <span>You've reached the top level!</span>
+                    <strong>{levelInfo.currentWorks} Completed Works</strong>
+                  </div>
+                  <div className="pcd-progress-track">
+                    <span style={{ width: '100%' }} />
+                  </div>
+                  <p><Zap size={14} /> {levelInfo.benefits}</p>
                 </div>
-                <p><Zap size={14} /> Next level unlocks: <strong>Premium Support</strong> and <strong>10% Higher Base Rates</strong></p>
-              </div>
+              )}
             </div>
             <div className="pcd-level-metrics">
               <div>
                 <span>Rating</span>
-                <strong>{rating ? rating.toFixed(1) : '4.7'} <Star size={16} /></strong>
+                <strong>{rating ? rating.toFixed(1) : 'N/A'} <Star size={16} /></strong>
               </div>
               <i />
               <div>
-                <span>Deals</span>
-                <strong>{activeCampaigns.length || 8}</strong>
+                <span>Completed Works</span>
+                <strong>{completedWorks}</strong>
               </div>
             </div>
           </section>

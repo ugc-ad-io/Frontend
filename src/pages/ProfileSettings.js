@@ -49,6 +49,43 @@ const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
+const getLevelInfo = (completedWorks) => {
+  if (completedWorks >= 20) {
+    return {
+      badge: 'Elite',
+      level: 'L3 Elite',
+      color: '#f59e0b',
+      subtitle: 'Top Creator',
+      nextLevel: null,
+      currentWorks: completedWorks,
+      nextWorks: null,
+      benefits: 'Exclusive perks and higher rates'
+    };
+  }
+  if (completedWorks >= 10) {
+    return {
+      badge: 'L1 (Rising)',
+      level: 'L1 Rising Star',
+      color: '#27ae60',
+      subtitle: 'Verified',
+      nextLevel: 'L2 Professional',
+      currentWorks: completedWorks,
+      nextWorks: 20,
+      benefits: 'Verified badge & Priority support'
+    };
+  }
+  return {
+    badge: 'New Creator',
+    level: 'New Creator',
+    color: '#999',
+    subtitle: 'Not Verified',
+    nextLevel: 'L1 Rising Star',
+    currentWorks: completedWorks,
+    nextWorks: 10,
+    benefits: 'Complete 10 works to reach L1 Rising Star'
+  };
+};
+
 const BRAND_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'company', label: 'Company', icon: Building2 },
@@ -131,16 +168,32 @@ export default function ProfileSettings() {
   const [disablePassword, setDisablePassword] = useState('');
   const [showQR, setShowQR] = useState(false);
 
+  // Creator level states
+  const [completedWorks, setCompletedWorks] = useState(0);
+
   useEffect(() => {
     fetchUserData();
     check2FAStatus();
-  }, []);
+    if (user?.role === 'creator') {
+      fetchCreatorStats();
+    }
+  }, [user?.role]);
 
   useEffect(() => {
     if (user?.role === 'business') {
       fetchBrandSettings();
     }
   }, [user?.role]);
+
+  const fetchCreatorStats = async () => {
+    try {
+      const res = await axios.get(`${API}/campaigns?status=completed&creator_id=${user.id}`);
+      const completedCampaigns = res.data || [];
+      setCompletedWorks(completedCampaigns.length);
+    } catch (error) {
+      console.error('Failed to fetch creator stats:', error);
+    }
+  };
 
   const fetchBrandSettings = async () => {
     setBrandLoading(true);
@@ -795,6 +848,38 @@ export default function ProfileSettings() {
             <div className="ps-panel">
               {activeTab === 'profile' && (
                 <>
+                  {user?.role === 'creator' && (
+                    <div style={{
+                      background: '#f9f9f9',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '8px',
+                      padding: '20px',
+                      marginBottom: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#666' }}>Creator Level</p>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#07074e' }}>
+                          {getLevelInfo(completedWorks).level}
+                        </h3>
+                        <p style={{ margin: '0', fontSize: '13px', color: '#999' }}>
+                          {completedWorks} completed {completedWorks === 1 ? 'work' : 'works'}
+                        </p>
+                      </div>
+                      <span style={{
+                        background: getLevelInfo(completedWorks).color,
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: '24px',
+                        fontSize: '13px',
+                        fontWeight: '600'
+                      }}>
+                        {getLevelInfo(completedWorks).badge}
+                      </span>
+                    </div>
+                  )}
                   <h2>Profile Information</h2>
 
                   <div className="ps-form-group">

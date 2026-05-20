@@ -21,11 +21,27 @@ const iconMap = {
   'camera': Camera,
   'zap': Zap,
   'trending-up-icon': TrendingUpIcon,
+  'all': Star,
+  'ugc-videos': Video,
+  'product-reviews': Star,
+  'unboxing': Gift,
+  'testimonials': MessageSquare,
+  'demo-videos': PlayCircle,
+  'social-content': Share2,
+  'lifestyle': Heart,
+  'comparison': TrendingUp,
+  'tutorials': Book,
+  'behind-scenes': Camera,
 };
 
-const getIconComponent = (iconName) => {
-  if (!iconName) return Star;
-  const icon = iconMap[iconName.toLowerCase()];
+const getIconComponent = (iconName, categoryId) => {
+  if (!iconName && !categoryId) return Star;
+  // First try the icon name
+  let icon = iconMap[iconName?.toLowerCase()];
+  // If not found, try the category ID
+  if (!icon && categoryId) {
+    icon = iconMap[categoryId.toLowerCase()];
+  }
   return icon || Star;
 };
 
@@ -604,7 +620,7 @@ export default function BrandWelcomePage() {
             <div className="explore-container">
               <div className="categories-sidebar">
                 {categories.length > 0 && categories.map((category) => {
-                  const Icon = getIconComponent(category.icon);
+                  const Icon = getIconComponent(category.icon, category.id);
                   return (
                     <button
                       key={category.id}

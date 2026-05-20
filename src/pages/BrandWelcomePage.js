@@ -12,11 +12,12 @@ export default function BrandWelcomePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
-  const categories = [
+  const defaultCategories = [
     { id: 'all', label: 'All' },
     { id: 'trending', label: 'Trending 🔥' },
     { id: 'fashion', label: 'Fashion & Apparel' },
@@ -32,15 +33,34 @@ export default function BrandWelcomePage() {
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
-        const response = await axios.get(`${API}/campaigns`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
+        const response = await axios.get(`${API}/campaigns`);
         setCampaigns(response.data || []);
       } catch (error) {
         console.error('Failed to fetch campaigns:', error);
       }
     };
     fetchCampaigns();
+  }, []);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get(`${API}/categories`);
+        if (response.data && response.data.length > 0) {
+          const formattedCategories = response.data.map(cat => ({
+            id: cat.id || cat.name?.toLowerCase().replace(/\s+/g, '-') || cat,
+            label: cat.label || cat.name || cat
+          }));
+          setCategories([{ id: 'all', label: 'All' }, ...formattedCategories]);
+        } else {
+          setCategories(defaultCategories);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        setCategories(defaultCategories);
+      }
+    };
+    fetchCategories();
   }, []);
 
   const handleLogout = () => {
@@ -511,17 +531,19 @@ export default function BrandWelcomePage() {
         </div>
       </header>
 
-      <nav className="categories-bar">
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            className={`category-btn ${activeCategory === category.id ? 'active' : ''}`}
-            onClick={() => setActiveCategory(category.id)}
-          >
-            {category.label}
-          </button>
-        ))}
-      </nav>
+      {categories.length > 0 && (
+        <nav className="categories-bar">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              className={`category-btn ${activeCategory === category.id ? 'active' : ''}`}
+              onClick={() => setActiveCategory(category.id)}
+            >
+              {category.label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       <main className="welcome-main">
         {showMenuDropdown && <div className="modal-backdrop" onClick={() => setShowMenuDropdown(false)} />}

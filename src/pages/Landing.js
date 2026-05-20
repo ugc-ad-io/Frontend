@@ -605,12 +605,13 @@ export default function Landing() {
         }
 
         .lp-hero__img {
-          width: 100%;
+          width: auto;
+          height: auto;
           border-radius: 24px;
-          object-fit: cover;
-          max-height: 520px;
+          object-fit: contain;
           display: block;
           box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+          max-width: 100%;
         }
 
         .lp-hero__img-glow {

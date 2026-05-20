@@ -517,16 +517,13 @@ export default function BrandWelcomePage() {
           />
         </div>
 
-        <div className="header-icons">
+        <div className="welcome-header-actions">
           <button className="header-icon-btn" type="button" aria-label="Wishlist">
             <Heart size={20} />
           </button>
           <button className="header-icon-btn" type="button" aria-label="Messages">
             <Mail size={20} />
           </button>
-        </div>
-
-        <div className="welcome-header-actions">
           <button className="brand-round-action" type="button" aria-label="Notifications">
             <Bell size={18} />
             <i />
@@ -773,7 +770,7 @@ export default function BrandWelcomePage() {
             align-items: center;
             gap: 12px;
             flex: 1;
-            max-width: 400px;
+            max-width: 600px;
             padding: 10px 16px;
             background: #f7fafc;
             border: 1px solid #e2e8f0;

@@ -613,25 +613,23 @@ export default function Landing() {
         }
 
         .lp-hero__video {
-          width: 100%;
+          width: 48%;
+          height: auto;
+          border-radius: 16px;
+          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+          object-fit: cover;
+          display: block;
+          float: left;
+        }
+
+        .lp-hero__overlay-img {
+          width: 48%;
           height: auto;
           border-radius: 24px;
           box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
           object-fit: cover;
           display: block;
-        }
-
-        .lp-hero__overlay-img {
-          position: absolute;
-          top: 20px;
-          left: 20px;
-          width: 55%;
-          height: auto;
-          border-radius: 16px;
-          object-fit: cover;
-          display: block;
-          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
-          z-index: 10;
+          float: right;
         }
 
         .lp-hero__img-glow {

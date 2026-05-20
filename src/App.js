@@ -8,6 +8,7 @@ import CreatorProfileSetup from './pages/CreatorProfileSetup';
 import BusinessProfileSetup from './pages/BusinessProfileSetup';
 import CreatorDashboard from './pages/CreatorDashboard';
 import BusinessDashboard from './pages/BusinessDashboard';
+import BrandWelcomePage from './pages/BrandWelcomePage';
 import AdminDashboard from './pages/AdminDashboard';
 import ProfileSettings from './pages/ProfileSettings';
 import CampaignDetails from './pages/CampaignDetails';
@@ -175,6 +176,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
                   <PortfolioPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/brand-home"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandWelcomePage />
                 </ProtectedRoute>
               }
             />

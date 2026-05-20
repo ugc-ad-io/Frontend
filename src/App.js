@@ -25,6 +25,7 @@ import MyActiveWorkPage from './pages/MyActiveWorkPage';
 import ReviewsPage from './pages/ReviewsPage';
 import PortfolioPage from './pages/PortfolioPage';
 import CreateGig from './pages/CreateGig';
+import AdminGigManagement from './pages/AdminGigManagement';
 import ApplicationsPage from './pages/ApplicationsPage';
 import AdminLayout from './components/AdminLayout';
 import { Toaster } from 'sonner';
@@ -283,6 +284,14 @@ function App() {
                   <AdminLayout isApplicationsPage={true}>
                     <ApplicationsPage />
                   </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/gig-management"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminGigManagement />
                 </ProtectedRoute>
               }
             />

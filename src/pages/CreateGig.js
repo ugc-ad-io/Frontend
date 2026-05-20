@@ -34,17 +34,11 @@ export default function CreateGig() {
     title: '',
     category: '',
     description: '',
-    price: '',
-    deliveryTime: '',
-    gender: '',
-    nativeLanguage: '',
-    ageRange: '',
-    videoStyles: [],
-    city: '',
-    filmingStyle: [],
-    platforms: [],
-    niche: '',
-    averageResponseTime: ''
+    budget: '',
+    deadline: '',
+    requirements: '',
+    target_audience: '',
+    skills_required: []
   });
 
   const navItems = [
@@ -113,13 +107,19 @@ export default function CreateGig() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.category || !formData.description || !formData.price) {
+    if (!formData.title || !formData.category || !formData.description || !formData.budget || !formData.deadline) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (mediaItems.length === 0) {
-      toast.error('Please add at least 1 image/video');
+    if (parseFloat(formData.budget) <= 0) {
+      toast.error('Budget must be greater than 0');
+      return;
+    }
+
+    const deadlineDate = new Date(formData.deadline);
+    if (deadlineDate <= new Date()) {
+      toast.error('Deadline must be in the future');
       return;
     }
 
@@ -127,12 +127,13 @@ export default function CreateGig() {
     try {
       const gigData = {
         ...formData,
-        media: mediaItems.map(item => item.url),
-        price: parseFloat(formData.price)
+        attachments: mediaItems.map(item => item.url),
+        budget: parseFloat(formData.budget),
+        skills_required: formData.skills_required || []
       };
 
       await axios.post(`${API}/gigs`, gigData);
-      toast.success('Gig created successfully!');
+      toast.success('Gig created successfully and sent for admin approval!');
       navigate('/dashboard/creator');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create gig');
@@ -176,11 +177,11 @@ export default function CreateGig() {
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  placeholder="e.g., I will create professional UGC videos for your brand"
-                  maxLength="80"
+                  placeholder="e.g., Create engaging social media content"
+                  maxLength="100"
                   required
                 />
-                <small>Be specific about what you offer (max 80 characters)</small>
+                <small>Clear, specific title (5-100 characters)</small>
               </fieldset>
 
               <fieldset>
@@ -192,16 +193,16 @@ export default function CreateGig() {
                   required
                 >
                   <option value="">Select a category</option>
-                  <option value="ugc-videos">UGC Videos</option>
-                  <option value="product-reviews">Product Reviews</option>
-                  <option value="unboxing">Unboxing</option>
-                  <option value="testimonials">Testimonials</option>
-                  <option value="demo-videos">Demo Videos</option>
-                  <option value="social-content">Social Content</option>
-                  <option value="lifestyle">Lifestyle Content</option>
-                  <option value="comparison">Product Comparison</option>
-                  <option value="tutorials">Tutorials</option>
-                  <option value="behind-scenes">Behind the Scenes</option>
+                  <option value="social_media">Social Media Content</option>
+                  <option value="product_review">Product Reviews</option>
+                  <option value="unboxing">Unboxing Videos</option>
+                  <option value="tutorial">Tutorials/How-to</option>
+                  <option value="sponsorship">Sponsored Content</option>
+                  <option value="brand_ambassador">Brand Ambassador Work</option>
+                  <option value="content_creation">General Content Creation</option>
+                  <option value="photography">Photography Work</option>
+                  <option value="videography">Video Production</option>
+                  <option value="other">Other</option>
                 </select>
               </fieldset>
 
@@ -211,177 +212,85 @@ export default function CreateGig() {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  placeholder="Describe your gig in detail. Include what's included, your process, and delivery timeline."
+                  placeholder="Describe what the gig is about, what's included, and your process..."
                   rows="6"
-                  maxLength="2000"
+                  maxLength="5000"
                   required
                 />
-                <small>Provide detailed information to help clients understand your offer (max 2000 characters)</small>
+                <small>Detailed description (20-5000 characters)</small>
               </fieldset>
 
               <fieldset>
-                <legend>Starting Price *</legend>
+                <legend>Budget *</legend>
                 <div className="price-input">
-                  <span>₹</span>
+                  <span>$</span>
                   <input
                     type="number"
-                    name="price"
-                    value={formData.price}
+                    name="budget"
+                    value={formData.budget}
                     onChange={handleInputChange}
-                    placeholder="e.g., 5000"
+                    placeholder="e.g., 500"
+                    step="0.01"
                     min="0"
                     required
                   />
                 </div>
-                <small>Set your minimum price for this gig</small>
+                <small>Budget amount in USD (must be greater than 0)</small>
               </fieldset>
 
               <fieldset>
-                <legend>Delivery Time *</legend>
-                <select
-                  name="deliveryTime"
-                  value={formData.deliveryTime}
+                <legend>Deadline *</legend>
+                <input
+                  type="datetime-local"
+                  name="deadline"
+                  value={formData.deadline}
                   onChange={handleInputChange}
                   required
-                >
-                  <option value="">Select delivery time</option>
-                  <option value="1">1 day</option>
-                  <option value="3">3 days</option>
-                  <option value="7">7 days</option>
-                  <option value="14">14 days</option>
-                  <option value="30">30 days</option>
-                </select>
+                />
+                <small>When work needs to be completed (must be in the future)</small>
               </fieldset>
             </div>
 
             <div className="create-gig-section">
-              <h3>Personal Information</h3>
+              <h3>Additional Details</h3>
 
               <fieldset>
-                <legend>Gender</legend>
-                <select
-                  name="gender"
-                  value={formData.gender}
+                <legend>Requirements</legend>
+                <textarea
+                  name="requirements"
+                  value={formData.requirements}
                   onChange={handleInputChange}
-                >
-                  <option value="">Select gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="non-binary">Non-binary</option>
-                  <option value="prefer-not-to-say">Prefer not to say</option>
-                </select>
+                  placeholder="Specify any detailed requirements for the work..."
+                  rows="4"
+                  maxLength="2000"
+                />
+                <small>Optional - Additional requirements (max 2000 characters)</small>
               </fieldset>
 
               <fieldset>
-                <legend>Native Language</legend>
+                <legend>Target Audience</legend>
                 <input
                   type="text"
-                  name="nativeLanguage"
-                  value={formData.nativeLanguage}
+                  name="target_audience"
+                  value={formData.target_audience}
                   onChange={handleInputChange}
-                  placeholder="e.g., English, Hindi"
+                  placeholder="e.g., Women 18-35, Tech enthusiasts, Fashion lovers"
+                  maxLength="500"
                 />
+                <small>Optional - Describe your target audience (max 500 characters)</small>
               </fieldset>
 
               <fieldset>
-                <legend>Age Range</legend>
-                <select
-                  name="ageRange"
-                  value={formData.ageRange}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select age range</option>
-                  <option value="18-25">18-25</option>
-                  <option value="26-35">26-35</option>
-                  <option value="36-45">36-45</option>
-                  <option value="46+">46+</option>
-                </select>
-              </fieldset>
-
-              <fieldset>
-                <legend>City</legend>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Mumbai, Bangalore"
-                />
-              </fieldset>
-
-              <fieldset>
-                <legend>Niche</legend>
-                <input
-                  type="text"
-                  name="niche"
-                  value={formData.niche}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Beauty, Tech, Fashion"
-                />
-              </fieldset>
-
-              <fieldset>
-                <legend>Average Response Time</legend>
-                <select
-                  name="averageResponseTime"
-                  value={formData.averageResponseTime}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select response time</option>
-                  <option value="1-hour">Within 1 hour</option>
-                  <option value="2-hour">Within 2 hours</option>
-                  <option value="4-hour">Within 4 hours</option>
-                  <option value="24-hour">Within 24 hours</option>
-                </select>
-              </fieldset>
-            </div>
-
-            <div className="create-gig-section">
-              <h3>Content Details</h3>
-
-              <fieldset>
-                <legend>Video Styles</legend>
-                <div className="checkbox-group">
-                  {['Professional', 'Casual', 'Energetic', 'Slow Motion', 'Time Lapse', 'Stop Motion'].map(style => (
-                    <label key={style} className="checkbox-label">
+                <legend>Skills Required</legend>
+                <div className="skills-input">
+                  {['Video Editing', 'Content Writing', 'Photography', 'Social Media', 'Design', 'Storytelling', 'Animation', 'Scripting'].map(skill => (
+                    <label key={skill} className="checkbox-label">
                       <input
                         type="checkbox"
-                        checked={formData.videoStyles.includes(style)}
-                        onChange={() => handleMultiSelect('videoStyles', style)}
+                        checked={formData.skills_required.includes(skill)}
+                        onChange={() => handleMultiSelect('skills_required', skill)}
                       />
-                      <span>{style}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset>
-                <legend>Filming Style</legend>
-                <div className="checkbox-group">
-                  {['Smartphone', 'DSLR', 'Professional Camera', 'Animation', 'Screen Recording', 'Live Action'].map(style => (
-                    <label key={style} className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.filmingStyle.includes(style)}
-                        onChange={() => handleMultiSelect('filmingStyle', style)}
-                      />
-                      <span>{style}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset>
-                <legend>Platforms</legend>
-                <div className="checkbox-group">
-                  {['YouTube', 'Instagram', 'TikTok', 'Facebook', 'LinkedIn', 'Twitter', 'Snapchat'].map(platform => (
-                    <label key={platform} className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.platforms.includes(platform)}
-                        onChange={() => handleMultiSelect('platforms', platform)}
-                      />
-                      <span>{platform}</span>
+                      <span>{skill}</span>
                     </label>
                   ))}
                 </div>
@@ -389,19 +298,19 @@ export default function CreateGig() {
             </div>
 
             <div className="create-gig-section">
-              <h3>Portfolio Media (Add up to 5 images/videos)</h3>
+              <h3>Attachments (Add up to 5 files)</h3>
 
               <fieldset>
-                <legend>Upload Images/Videos</legend>
+                <legend>Upload Attachments</legend>
                 <div className="media-upload-area">
                   <label className="media-upload-label">
                     <Plus size={24} />
                     <span>Click to upload or drag and drop</span>
-                    <small>JPG, PNG, MP4 • Max 10MB per file</small>
+                    <small>Any file type • Max 10MB per file</small>
                     <input
                       type="file"
                       multiple
-                      accept="image/*,video/*"
+                      accept="image/*,video/*,.pdf,.doc,.docx"
                       onChange={handleMediaUpload}
                       disabled={mediaItems.length >= 5}
                       style={{ display: 'none' }}
@@ -413,11 +322,15 @@ export default function CreateGig() {
                   <div className="media-preview-grid">
                     {mediaItems.map(item => (
                       <div key={item.id} className="media-preview-item">
-                        {item.url.includes('.mp4') || item.url.includes('.webm') ? (
-                          <video src={item.url} controls />
-                        ) : (
-                          <img src={item.url} alt="Preview" />
-                        )}
+                        <div className="media-preview-content">
+                          {item.url.includes('.mp4') || item.url.includes('.webm') ? (
+                            <video src={item.url} controls style={{ maxWidth: '100%', maxHeight: '150px' }} />
+                          ) : item.url.includes('.pdf') ? (
+                            <div className="pdf-placeholder">📄 PDF File</div>
+                          ) : (
+                            <img src={item.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px' }} />
+                          )}
+                        </div>
                         <button
                           type="button"
                           className="media-remove-btn"
@@ -446,13 +359,14 @@ export default function CreateGig() {
           </form>
 
           <div className="create-gig-tips">
-            <h3>Tips for a Successful Gig</h3>
+            <h3>Tips for Creating Your Gig</h3>
             <ul>
-              <li>Write a clear, specific title that clients can find easily</li>
-              <li>Describe your experience and what makes your service unique</li>
-              <li>Set competitive pricing based on your skill level and market rates</li>
-              <li>Be realistic about delivery times</li>
-              <li>Offer extras or premium options for higher-tier clients</li>
+              <li>Use a clear, descriptive title so creators can find your work easily</li>
+              <li>Provide detailed requirements and expectations in the description</li>
+              <li>Set a realistic budget based on the complexity and timeline</li>
+              <li>Attach reference materials, examples, or mockups to guide the work</li>
+              <li>Define the target audience clearly to get better quality submissions</li>
+              <li>Be specific about required skills to attract the right creators</li>
             </ul>
           </div>
         </div>

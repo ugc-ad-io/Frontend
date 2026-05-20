@@ -231,19 +231,21 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Right: image */}
+          {/* Right: video */}
           <motion.div
             className="lp-hero__image-wrap"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.9, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <motion.img
-              src="https://images.unsplash.com/photo-1624717369095-ebacc7d68a40?crop=entropy&cs=srgb&fm=jpg&q=85"
+            <video
+              src="/9384669-uhd_2160_3840_24fps.mp4"
               alt="Content creator filming"
               className="lp-hero__img"
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              autoPlay
+              muted
+              loop
+              playsInline
             />
             <div className="lp-hero__img-glow" aria-hidden="true" />
           </motion.div>

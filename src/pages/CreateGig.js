@@ -88,13 +88,28 @@ export default function CreateGig() {
       formDataUpload.append('file', file);
 
       try {
+        console.log('Uploading file:', file.name);
         const response = await axios.post(`${API}/upload/file`, formDataUpload, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        setMediaItems(prev => [...prev, { id: Date.now() + Math.random(), url: response.data.file_url }]);
-        toast.success(`${file.name} uploaded`);
+
+        console.log('Upload response:', response.data);
+
+        // Handle different response formats
+        const fileUrl = response.data?.file_url || response.data?.url || response.data?.data?.url || response.data;
+
+        if (!fileUrl || typeof fileUrl !== 'string') {
+          console.error('Invalid file URL in response:', response.data);
+          toast.error(`${file.name} uploaded but URL is invalid`);
+          continue;
+        }
+
+        setMediaItems(prev => [...prev, { id: Date.now() + Math.random(), url: fileUrl }]);
+        toast.success(`${file.name} uploaded successfully`);
       } catch (error) {
-        toast.error(`Failed to upload ${file.name}`);
+        console.error('Upload error:', error);
+        const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message || 'Upload failed';
+        toast.error(`Failed to upload ${file.name}: ${errorMsg}`);
       }
     }
     e.target.value = '';
@@ -107,36 +122,76 @@ export default function CreateGig() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.category || !formData.description || !formData.budget || !formData.deadline) {
-      toast.error('Please fill in all required fields');
+    // Validate required fields
+    if (!formData.title?.trim()) {
+      toast.error('Please enter a gig title');
       return;
     }
 
-    if (parseFloat(formData.budget) <= 0) {
-      toast.error('Budget must be greater than 0');
+    if (!formData.category) {
+      toast.error('Please select a category');
       return;
     }
 
+    if (!formData.description?.trim()) {
+      toast.error('Please enter a description');
+      return;
+    }
+
+    if (!formData.budget || parseFloat(formData.budget) <= 0) {
+      toast.error('Please enter a valid budget (greater than 0)');
+      return;
+    }
+
+    if (!formData.deadline) {
+      toast.error('Please set a deadline');
+      return;
+    }
+
+    // Validate deadline is in future
     const deadlineDate = new Date(formData.deadline);
-    if (deadlineDate <= new Date()) {
+    const now = new Date();
+    if (deadlineDate <= now) {
       toast.error('Deadline must be in the future');
       return;
     }
 
     setLoading(true);
     try {
+      // Convert datetime-local to ISO string
+      const deadlineDate = new Date(formData.deadline);
+      const isoDeadline = deadlineDate.toISOString();
+
       const gigData = {
-        ...formData,
-        attachments: mediaItems.map(item => item.url),
+        title: formData.title,
+        category: formData.category,
+        description: formData.description,
         budget: parseFloat(formData.budget),
+        deadline: isoDeadline,
+        attachments: mediaItems.map(item => item.url),
+        requirements: formData.requirements || '',
+        target_audience: formData.target_audience || '',
         skills_required: formData.skills_required || []
       };
 
-      await axios.post(`${API}/gigs`, gigData);
-      toast.success('Gig created successfully and sent for admin approval!');
-      navigate('/dashboard/creator');
+      console.log('Submitting gig data:', gigData);
+      const response = await axios.post(`${API}/gigs`, gigData);
+      console.log('Gig creation response:', response.data);
+
+      toast.success('Gig created successfully! Sent for admin approval.');
+
+      // Add a small delay before redirect to ensure toast is visible
+      setTimeout(() => {
+        navigate('/dashboard/creator');
+      }, 1500);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create gig');
+      console.error('Gig creation error:', error);
+      const errorMsg = error.response?.data?.detail ||
+                       error.response?.data?.error ||
+                       error.response?.data?.message ||
+                       error.message ||
+                       'Failed to create gig. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -324,11 +379,24 @@ export default function CreateGig() {
                       <div key={item.id} className="media-preview-item">
                         <div className="media-preview-content">
                           {item.url.includes('.mp4') || item.url.includes('.webm') ? (
-                            <video src={item.url} controls style={{ maxWidth: '100%', maxHeight: '150px' }} />
+                            <video
+                              src={item.url}
+                              controls
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={() => console.error('Video load error:', item.url)}
+                            />
                           ) : item.url.includes('.pdf') ? (
                             <div className="pdf-placeholder">📄 PDF File</div>
                           ) : (
-                            <img src={item.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px' }} />
+                            <img
+                              src={item.url}
+                              alt="Preview"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={(e) => {
+                                console.error('Image load error:', item.url);
+                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EImage Load Error%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
                           )}
                         </div>
                         <button

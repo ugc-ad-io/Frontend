@@ -176,11 +176,16 @@ export default function CreatorDashboard() {
   const [completedWorks, setCompletedWorks] = useState(0);
 
   useEffect(() => {
-    if (user?.approval_status !== 'approved') return undefined;
+    // Only skip if approval_status is explicitly set and not 'approved'
+    if (user && user.approval_status && user.approval_status !== 'approved') {
+      return;
+    }
 
-    fetchAllData();
-    const interval = setInterval(fetchAllData, 10000);
-    return () => clearInterval(interval);
+    if (user?.id) {
+      fetchAllData();
+      const interval = setInterval(fetchAllData, 10000);
+      return () => clearInterval(interval);
+    }
   }, [user?.approval_status, user?.id]);
 
   useEffect(() => {
@@ -353,6 +358,32 @@ export default function CreatorDashboard() {
           <p>Please contact support for more information about your creator profile review.</p>
           <button type="button" onClick={handleLogout}>Back to Home</button>
         </section>
+      </div>
+    );
+  }
+
+  // Show pending message if user is not approved (but only if approval_status is explicitly set to something other than 'approved')
+  if (user && user.approval_status && user.approval_status !== 'approved') {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: '#f5f5f5',
+        flexDirection: 'column',
+        gap: '16px',
+        textAlign: 'center',
+        padding: '20px'
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+        <h1 style={{ color: '#07074e', margin: 0, fontSize: '28px' }}>Profile Pending Review</h1>
+        <p style={{ color: '#666', margin: '8px 0 0 0', fontSize: '16px' }}>
+          Your creator profile is being reviewed by our team.
+        </p>
+        <p style={{ color: '#999', margin: '8px 0 0 0', fontSize: '14px' }}>
+          You'll be able to access all features once approved.
+        </p>
       </div>
     );
   }

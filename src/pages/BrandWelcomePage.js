@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -13,6 +13,7 @@ export default function BrandWelcomePage() {
   const { user, logout } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -421,9 +422,23 @@ export default function BrandWelcomePage() {
           </div>
         </div>
 
-        <div className="welcome-title-section">
-          <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}! 👋</h1>
-          <p>Discover how to grow your brand with top-tier creators</p>
+        <div className="header-search-bar">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Search creators, campaigns, deals..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="header-icons">
+          <button className="header-icon-btn" type="button" aria-label="Wishlist">
+            <Heart size={20} />
+          </button>
+          <button className="header-icon-btn" type="button" aria-label="Messages">
+            <Mail size={20} />
+          </button>
         </div>
 
         <div className="welcome-header-actions">
@@ -486,6 +501,11 @@ export default function BrandWelcomePage() {
         {showMenuDropdown && <div className="modal-backdrop" onClick={() => setShowMenuDropdown(false)} />}
 
         <div className="welcome-content">
+          <div className="welcome-banner">
+            <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}! 👋</h1>
+            <p>Discover how to grow your brand with top-tier creators</p>
+          </div>
+
           <section className="recommended-section">
             <h2>Recommended For You</h2>
             <div className="recommended-cards">
@@ -493,11 +513,13 @@ export default function BrandWelcomePage() {
                 const Icon = card.icon;
                 return (
                   <div key={idx} className="recommended-card" onClick={() => navigate(card.path)}>
-                    <div className="card-icon">
-                      <Icon size={28} />
+                    <div className="recommended-card-icon">
+                      <Icon size={24} />
                     </div>
-                    <h3>{card.title}</h3>
-                    <p>{card.description}</p>
+                    <div className="recommended-card-content">
+                      <h3>{card.title}</h3>
+                      <p>{card.description}</p>
+                    </div>
                   </div>
                 );
               })}
@@ -533,7 +555,7 @@ export default function BrandWelcomePage() {
 
           .welcome-header {
             background: white;
-            padding: 20px 48px;
+            padding: 16px 48px;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
@@ -573,19 +595,84 @@ export default function BrandWelcomePage() {
             color: #1a202c;
           }
 
-          .welcome-title-section {
+          .header-search-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             flex: 1;
+            max-width: 400px;
+            padding: 10px 16px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            color: #718096;
+            transition: all 0.3s ease;
           }
 
-          .welcome-title-section h1 {
-            font-size: 1.75rem;
+          .header-search-bar:hover,
+          .header-search-bar:focus-within {
+            background: white;
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+          }
+
+          .header-search-bar input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            color: #1a202c;
+          }
+
+          .header-search-bar input::placeholder {
+            color: #a0aec0;
+          }
+
+          .header-icons {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+          }
+
+          .header-icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #4a5568;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+          }
+
+          .header-icon-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            background: #f7fafc;
+          }
+
+          .welcome-header-spacer {
+            display: none;
+          }
+
+          .welcome-banner {
+            margin-bottom: 48px;
+          }
+
+          .welcome-banner h1 {
+            font-size: 2rem;
             font-weight: 700;
             color: #1a202c;
-            margin: 0 0 4px 0;
+            margin: 0 0 8px 0;
           }
 
-          .welcome-title-section p {
-            font-size: 0.95rem;
+          .welcome-banner p {
+            font-size: 1.05rem;
             color: #718096;
             margin: 0;
           }
@@ -784,55 +871,61 @@ export default function BrandWelcomePage() {
             font-size: 1.5rem;
             font-weight: 700;
             color: #1a202c;
-            margin: 0 0 24px 0;
+            margin: 0 0 20px 0;
           }
 
           .recommended-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
           }
 
           .recommended-card {
             background: white;
-            padding: 32px 24px;
-            border-radius: 16px;
+            padding: 20px 24px;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid #e2e8f0;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 16px;
           }
 
           .recommended-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.15);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
             border-color: #667eea;
+            background: #f8f9ff;
           }
 
-          .card-icon {
-            width: 64px;
-            height: 64px;
+          .recommended-card-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
             background: #f0f4ff;
-            border-radius: 12px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #667eea;
-            margin: 0 auto 16px;
+          }
+
+          .recommended-card-content {
+            flex: 1;
           }
 
           .recommended-card h3 {
-            font-size: 1.125rem;
+            font-size: 1rem;
             font-weight: 600;
             color: #1a202c;
-            margin: 0 0 12px 0;
+            margin: 0 0 4px 0;
           }
 
           .recommended-card p {
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             color: #718096;
             margin: 0;
-            line-height: 1.5;
+            line-height: 1.4;
           }
 
           .explore-section h2 {
@@ -895,16 +988,18 @@ export default function BrandWelcomePage() {
               gap: 16px;
             }
 
-            .welcome-title-section {
+            .header-search-bar {
+              max-width: 100%;
               flex: 1 1 100%;
+              order: 3;
             }
 
-            .welcome-title-section h1 {
-              font-size: 1.5rem;
+            .welcome-banner h1 {
+              font-size: 1.75rem;
             }
 
             .recommended-cards {
-              grid-template-columns: 1fr;
+              grid-template-columns: repeat(2, 1fr);
             }
 
             .dashboard-grid {
@@ -914,16 +1009,56 @@ export default function BrandWelcomePage() {
 
           @media (max-width: 768px) {
             .welcome-header {
-              padding: 16px 24px;
+              padding: 12px 16px;
+              gap: 12px;
               flex-wrap: wrap;
             }
 
-            .welcome-main {
-              padding: 24px;
+            .header-search-bar {
+              max-width: 100%;
+              flex: 1 1 100%;
+              order: 3;
+              padding: 8px 12px;
             }
 
-            .welcome-title-section h1 {
-              font-size: 1.25rem;
+            .header-search-bar input {
+              font-size: 0.9rem;
+            }
+
+            .header-icons {
+              gap: 12px;
+            }
+
+            .header-icon-btn {
+              width: 36px;
+              height: 36px;
+            }
+
+            .welcome-main {
+              padding: 20px 16px;
+            }
+
+            .welcome-banner {
+              margin-bottom: 24px;
+            }
+
+            .welcome-banner h1 {
+              font-size: 1.5rem;
+            }
+
+            .recommended-cards {
+              grid-template-columns: 1fr;
+              gap: 12px;
+            }
+
+            .recommended-card {
+              padding: 16px 20px;
+            }
+
+            .recommended-card-icon {
+              width: 44px;
+              height: 44px;
+              min-width: 44px;
             }
 
             .recommended-section h2,

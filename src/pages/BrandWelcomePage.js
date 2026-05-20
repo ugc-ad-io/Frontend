@@ -3,10 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail, Video, Star, Gift, Zap, PlayCircle, Share2, Smile, TrendingUpIcon, Book, Camera } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+const iconMap = {
+  'video': Video,
+  'star': Star,
+  'gift': Gift,
+  'message-circle': MessageSquare,
+  'play-circle': PlayCircle,
+  'share-2': Share2,
+  'heart': Heart,
+  'trending-up': TrendingUp,
+  'book': Book,
+  'camera': Camera,
+  'zap': Zap,
+  'trending-up-icon': TrendingUpIcon,
+};
+
+const getIconComponent = (iconName) => {
+  if (!iconName) return Star;
+  const icon = iconMap[iconName.toLowerCase()];
+  return icon || Star;
+};
 
 export default function BrandWelcomePage() {
   const navigate = useNavigate();
@@ -18,16 +39,17 @@ export default function BrandWelcomePage() {
   const [activeCategory, setActiveCategory] = useState('all');
 
   const defaultCategories = [
-    { id: 'all', label: 'All' },
-    { id: 'trending', label: 'Trending 🔥' },
-    { id: 'fashion', label: 'Fashion & Apparel' },
-    { id: 'beauty', label: 'Beauty & Cosmetics' },
-    { id: 'tech', label: 'Technology' },
-    { id: 'food', label: 'Food & Beverage' },
-    { id: 'fitness', label: 'Health & Fitness' },
-    { id: 'home', label: 'Home & Lifestyle' },
-    { id: 'travel', label: 'Travel & Tourism' },
-    { id: 'entertainment', label: 'Entertainment' }
+    { id: 'all', label: 'All', icon: 'star' },
+    { id: 'ugc-videos', label: 'UGC Videos', icon: 'video' },
+    { id: 'product-reviews', label: 'Product Reviews', icon: 'star' },
+    { id: 'unboxing', label: 'Unboxing Videos', icon: 'gift' },
+    { id: 'testimonials', label: 'Testimonials', icon: 'message-circle' },
+    { id: 'demo-videos', label: 'Demo Videos', icon: 'play-circle' },
+    { id: 'social-content', label: 'Social Media Content', icon: 'share-2' },
+    { id: 'lifestyle', label: 'Lifestyle Content', icon: 'heart' },
+    { id: 'comparison', label: 'Product Comparison', icon: 'trending-up' },
+    { id: 'tutorials', label: 'Tutorials & Tips', icon: 'book' },
+    { id: 'behind-scenes', label: 'Behind the Scenes', icon: 'camera' }
   ];
 
   useEffect(() => {
@@ -49,9 +71,10 @@ export default function BrandWelcomePage() {
         if (response.data && response.data.length > 0) {
           const formattedCategories = response.data.map(cat => ({
             id: cat.id || cat.name?.toLowerCase().replace(/\s+/g, '-') || cat,
-            label: cat.label || cat.name || cat
+            label: cat.label || cat.name || cat,
+            icon: cat.icon || 'star'
           }));
-          setCategories([{ id: 'all', label: 'All' }, ...formattedCategories]);
+          setCategories([{ id: 'all', label: 'All', icon: 'star' }, ...formattedCategories]);
         } else {
           setCategories(defaultCategories);
         }
@@ -578,19 +601,39 @@ export default function BrandWelcomePage() {
 
           <section className="explore-section">
             <h2>Explore Popular Categories</h2>
-            <div className="dashboard-grid">
-              {dashboardCards.map((card, idx) => {
-                const Icon = card.icon;
-                return (
-                  <div key={idx} className="dashboard-card" onClick={() => navigate(card.path)}>
-                    <div className="card-header">
-                      <Icon size={24} />
+            <div className="explore-container">
+              <div className="categories-sidebar">
+                {categories.length > 0 && categories.map((category) => {
+                  const Icon = getIconComponent(category.icon);
+                  return (
+                    <button
+                      key={category.id}
+                      className={`category-sidebar-item ${activeCategory === category.id ? 'active' : ''}`}
+                      onClick={() => setActiveCategory(category.id)}
+                    >
+                      <div className="category-item-icon">
+                        <Icon size={20} />
+                      </div>
+                      <span>{category.label || category.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="categories-content">
+                {dashboardCards.map((card, idx) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={idx} className="dashboard-card" onClick={() => navigate(card.path)}>
+                      <div className="card-header">
+                        <Icon size={24} />
+                      </div>
+                      <h3>{card.label}</h3>
+                      <p>{card.description}</p>
                     </div>
-                    <h3>{card.label}</h3>
-                    <p>{card.description}</p>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </section>
         </div>
@@ -1049,7 +1092,84 @@ export default function BrandWelcomePage() {
             margin: 0 0 24px 0;
           }
 
-          .dashboard-grid {
+          .explore-container {
+            display: flex;
+            gap: 24px;
+          }
+
+          .categories-sidebar {
+            width: 200px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+          }
+
+          .categories-sidebar::-webkit-scrollbar {
+            width: 6px;
+          }
+
+          .categories-sidebar::-webkit-scrollbar-track {
+            background: #f0f4ff;
+            border-radius: 3px;
+          }
+
+          .categories-sidebar::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+          }
+
+          .categories-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+          }
+
+          .category-sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #4a5568;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-align: left;
+            border-left: 3px solid transparent;
+          }
+
+          .category-sidebar-item:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+          }
+
+          .category-sidebar-item.active {
+            background: #f0f4ff;
+            border-color: #667eea;
+            border-left-color: #667eea;
+            color: #667eea;
+          }
+
+          .category-item-icon {
+            min-width: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: inherit;
+          }
+
+          .category-item-icon svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+          }
+
+          .categories-content {
+            flex: 1;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 20px;
@@ -1122,7 +1242,23 @@ export default function BrandWelcomePage() {
               grid-template-columns: repeat(2, 1fr);
             }
 
-            .dashboard-grid {
+            .explore-container {
+              flex-direction: column;
+            }
+
+            .categories-sidebar {
+              width: 100%;
+              max-height: 120px;
+              flex-direction: row;
+              overflow-x: auto;
+              overflow-y: hidden;
+            }
+
+            .category-sidebar-item {
+              flex-shrink: 0;
+            }
+
+            .categories-content {
               grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
           }

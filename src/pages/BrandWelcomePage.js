@@ -12,6 +12,7 @@ export default function BrandWelcomePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
+  const [showMenuDropdown, setShowMenuDropdown] = useState(false);
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -412,59 +413,77 @@ export default function BrandWelcomePage() {
 
   return (
     <div className="welcome-page">
-      <aside className="business-sidebar">
-        <div>
-          <div className="business-sidebar-brand">
-            <div className="business-sidebar-mark">U</div>
+      <header className="welcome-header">
+        <div className="welcome-header-left">
+          <div className="brand-logo">
+            <div className="logo-icon">U</div>
             <span>UGCad.io</span>
           </div>
-          <nav className="business-sidebar-nav" aria-label="Business dashboard">
-            <span className="business-nav-label">Business</span>
-            {businessTabs.map(({ id, label, icon: Icon, path, badge, badgeTone }) => (
-              <button
-                key={id}
-                type="button"
-                className="business-nav-item"
-                onClick={() => navigate(path)}
-                data-testid={`tab-${id}`}
-              >
-                <Icon size={20} />
-                <span>{label}</span>
-                {badge ? <b className={`business-nav-badge ${badgeTone || ''}`}>{badge}</b> : null}
-              </button>
-            ))}
-          </nav>
         </div>
-        <div className="business-sidebar-profile">
-          <div className="business-avatar">
-            {(user?.nickname || user?.full_name || 'B').trim().charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <strong>{user?.nickname || user?.full_name || 'Business'}</strong>
-            <span>Approved Business</span>
-          </div>
-        </div>
-      </aside>
 
-      <main className="welcome-main">
-        <div className="welcome-header">
-          <div className="welcome-title-section">
-            <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}! 👋</h1>
-            <p>Discover how to grow your brand with top-tier creators</p>
-          </div>
-          <div className="welcome-header-actions">
-            <button className="brand-round-action" type="button" aria-label="Notifications">
-              <Bell size={18} />
-              <i />
-            </button>
-            <button className="brand-profile-photo" type="button" onClick={() => navigate('/settings')} aria-label="Profile">
+        <div className="welcome-title-section">
+          <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}! 👋</h1>
+          <p>Discover how to grow your brand with top-tier creators</p>
+        </div>
+
+        <div className="welcome-header-actions">
+          <button className="brand-round-action" type="button" aria-label="Notifications">
+            <Bell size={18} />
+            <i />
+          </button>
+          <div className="profile-menu-wrapper">
+            <button
+              className="brand-profile-photo"
+              type="button"
+              onClick={() => setShowMenuDropdown(!showMenuDropdown)}
+              aria-label="Menu"
+            >
               {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
             </button>
-            <button className="brand-round-action" type="button" onClick={handleLogout} aria-label="Logout">
-              <LogOut size={18} />
-            </button>
+
+            {showMenuDropdown && (
+              <div className="profile-menu-dropdown" onClick={(e) => e.stopPropagation()}>
+                <div className="dropdown-header">
+                  <div className="dropdown-user-info">
+                    <strong>{user?.nickname || user?.full_name || 'Business'}</strong>
+                    <span>Approved Business</span>
+                  </div>
+                </div>
+
+                <nav className="dropdown-nav">
+                  <span className="dropdown-section-label">Business</span>
+                  {businessTabs.map(({ id, label, icon: Icon, path, badge, badgeTone }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className="dropdown-nav-item"
+                      onClick={() => {
+                        navigate(path);
+                        setShowMenuDropdown(false);
+                      }}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                      {badge ? <b className={`dropdown-badge ${badgeTone || ''}`}>{badge}</b> : null}
+                    </button>
+                  ))}
+                </nav>
+
+                <button
+                  className="dropdown-logout-btn"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      </header>
+
+      <main className="welcome-main">
+        {showMenuDropdown && <div className="modal-backdrop" onClick={() => setShowMenuDropdown(false)} />}
 
         <div className="welcome-content">
           <section className="recommended-section">
@@ -507,36 +526,66 @@ export default function BrandWelcomePage() {
         <style>{`
           .welcome-page {
             display: flex;
+            flex-direction: column;
             min-height: 100vh;
             background: #f8f9ff;
           }
 
-          .welcome-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            margin-left: 280px;
-          }
-
           .welcome-header {
             background: white;
-            padding: 32px 48px;
+            padding: 20px 48px;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 32px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+          }
+
+          .welcome-header-left {
+            flex-shrink: 0;
+          }
+
+          .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+          }
+
+          .brand-logo span {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a202c;
+          }
+
+          .welcome-title-section {
+            flex: 1;
           }
 
           .welcome-title-section h1 {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 700;
             color: #1a202c;
-            margin: 0 0 8px 0;
+            margin: 0 0 4px 0;
           }
 
           .welcome-title-section p {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: #718096;
             margin: 0;
           }
@@ -578,6 +627,10 @@ export default function BrandWelcomePage() {
             border-radius: 50%;
           }
 
+          .profile-menu-wrapper {
+            position: relative;
+          }
+
           .brand-profile-photo {
             width: 40px;
             height: 40px;
@@ -591,13 +644,133 @@ export default function BrandWelcomePage() {
             justify-content: center;
             font-weight: 600;
             transition: all 0.3s ease;
+            flex-shrink: 0;
           }
 
           .brand-profile-photo:hover {
             transform: scale(1.05);
           }
 
-          .welcome-content {
+          .profile-menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            min-width: 280px;
+            margin-top: 12px;
+            z-index: 100;
+            overflow: hidden;
+          }
+
+          .dropdown-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+          }
+
+          .dropdown-user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .dropdown-user-info strong {
+            font-size: 0.95rem;
+            color: #1a202c;
+          }
+
+          .dropdown-user-info span {
+            font-size: 0.8rem;
+            color: #718096;
+          }
+
+          .dropdown-nav {
+            display: flex;
+            flex-direction: column;
+            padding: 12px 0;
+            max-height: 400px;
+            overflow-y: auto;
+          }
+
+          .dropdown-section-label {
+            padding: 8px 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .dropdown-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            width: 100%;
+            text-align: left;
+            position: relative;
+          }
+
+          .dropdown-nav-item:hover {
+            background: #f7fafc;
+            color: #667eea;
+          }
+
+          .dropdown-nav-item svg {
+            flex-shrink: 0;
+          }
+
+          .dropdown-badge {
+            margin-left: auto;
+            background: #ff6b6b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+          }
+
+          .dropdown-badge.orange {
+            background: #f59e0b;
+          }
+
+          .dropdown-logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            color: #dc2626;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            width: 100%;
+            text-align: left;
+          }
+
+          .dropdown-logout-btn:hover {
+            background: #fee2e2;
+          }
+
+          .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+          }
+
+          .welcome-main {
             flex: 1;
             padding: 48px;
             overflow-y: auto;
@@ -717,17 +890,13 @@ export default function BrandWelcomePage() {
           }
 
           @media (max-width: 1024px) {
-            .welcome-main {
-              margin-left: 0;
-            }
-
             .welcome-header {
-              flex-direction: column;
-              align-items: flex-start;
+              flex-wrap: wrap;
+              gap: 16px;
             }
 
-            .welcome-header-actions {
-              align-self: flex-end;
+            .welcome-title-section {
+              flex: 1 1 100%;
             }
 
             .welcome-title-section h1 {
@@ -745,10 +914,11 @@ export default function BrandWelcomePage() {
 
           @media (max-width: 768px) {
             .welcome-header {
-              padding: 24px;
+              padding: 16px 24px;
+              flex-wrap: wrap;
             }
 
-            .welcome-content {
+            .welcome-main {
               padding: 24px;
             }
 
@@ -759,6 +929,15 @@ export default function BrandWelcomePage() {
             .recommended-section h2,
             .explore-section h2 {
               font-size: 1.25rem;
+            }
+
+            .profile-menu-dropdown {
+              position: fixed;
+              left: 0;
+              right: 0;
+              top: 100%;
+              border-radius: 0;
+              min-width: unset;
             }
           }
         `}</style>

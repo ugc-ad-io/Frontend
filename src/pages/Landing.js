@@ -612,7 +612,7 @@ export default function Landing() {
           max-width: 500px;
         }
 
-        .lp-hero__overlay-img {
+        .lp-hero__video {
           width: 100%;
           height: auto;
           border-radius: 24px;
@@ -621,7 +621,7 @@ export default function Landing() {
           display: block;
         }
 
-        .lp-hero__video {
+        .lp-hero__overlay-img {
           position: absolute;
           top: 20px;
           left: 20px;

@@ -257,6 +257,31 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Brands Scroll ───────────────────────────────────────────────────── */}
+      <section className="lp-brands">
+        <div className="lp-brands__scroll">
+          <div className="lp-brands__track">
+            <div className="lp-brand-item">Amazon</div>
+            <div className="lp-brand-item">Apple</div>
+            <div className="lp-brand-item">Google</div>
+            <div className="lp-brand-item">Netflix</div>
+            <div className="lp-brand-item">Spotify</div>
+            <div className="lp-brand-item">Tesla</div>
+            <div className="lp-brand-item">Meta</div>
+            <div className="lp-brand-item">Microsoft</div>
+            {/* Duplicate for continuous scroll */}
+            <div className="lp-brand-item">Amazon</div>
+            <div className="lp-brand-item">Apple</div>
+            <div className="lp-brand-item">Google</div>
+            <div className="lp-brand-item">Netflix</div>
+            <div className="lp-brand-item">Spotify</div>
+            <div className="lp-brand-item">Tesla</div>
+            <div className="lp-brand-item">Meta</div>
+            <div className="lp-brand-item">Microsoft</div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Features ───────────────────────────────────────────────────────── */}
       <section className="lp-features" ref={featuresRef}>
         <div className="lp-features__inner">
@@ -646,6 +671,49 @@ export default function Landing() {
           border-radius: 50%;
           z-index: -1;
           pointer-events: none;
+        }
+
+        /* ── Brands Scroll ────────────────────────────────────────────────── */
+        .lp-brands {
+          background: #0a0a0a;
+          padding: 60px 0;
+          overflow: hidden;
+        }
+
+        .lp-brands__scroll {
+          width: 100%;
+          overflow: hidden;
+        }
+
+        .lp-brands__track {
+          display: flex;
+          gap: 60px;
+          animation: scrollBrands 30s linear infinite;
+          width: max-content;
+          padding: 0 8%;
+        }
+
+        .lp-brand-item {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #F8FAFC;
+          white-space: nowrap;
+          letter-spacing: 0.02em;
+          opacity: 0.6;
+          transition: opacity 0.3s ease;
+        }
+
+        .lp-brand-item:hover {
+          opacity: 1;
+        }
+
+        @keyframes scrollBrands {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
         }
 
         /* ── Features ─────────────────────────────────────────────────────── */

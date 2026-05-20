@@ -34,6 +34,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [pendingProfiles, setPendingProfiles] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
+  const [pendingGigs, setPendingGigs] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
   const [allCampaigns, setAllCampaigns] = useState([]);
@@ -123,6 +124,7 @@ export default function AdminDashboard() {
     fetchStats();
     fetchPendingProfiles();
     fetchPendingCampaigns();
+    fetchPendingGigs();
     fetchPendingWithdrawals();
     fetchAllCampaigns();
     fetchCampaignAssignments();
@@ -291,6 +293,16 @@ export default function AdminDashboard() {
       setPendingCampaigns(response.data);
     } catch (error) {
       toast.error('Failed to load pending campaigns');
+    }
+  };
+
+  const fetchPendingGigs = async () => {
+    try {
+      const response = await axios.get(`${API}/gigs?status=pending_approval`);
+      const gigs = response.data?.data || response.data || [];
+      setPendingGigs(gigs);
+    } catch (error) {
+      console.error('Failed to load pending gigs:', error);
     }
   };
 
@@ -757,6 +769,7 @@ export default function AdminDashboard() {
     { id: 'applications', label: 'Applications', icon: FileText, testId: 'tab-applications', slug: 'applications' },
     { id: 'profiles', label: `Profiles (${pendingProfiles.length})`, icon: Users, testId: 'tab-profiles', slug: 'profiles' },
     { id: 'campaigns', label: `Campaigns (${pendingCampaigns.length})`, icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
+    { id: 'gigs', label: `Gig Management (${pendingGigs.length})`, icon: Briefcase, testId: 'tab-gigs', slug: 'gigs' },
     { id: 'withdrawals', label: `Withdrawals (${pendingWithdrawals.length})`, icon: Briefcase, testId: 'tab-withdrawals', slug: 'withdrawals' },
     { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns', slug: 'all-campaigns' },
     ...(user?.role === 'admin' ? [
@@ -774,6 +787,8 @@ export default function AdminDashboard() {
   const handleAdminTabClick = (tab) => {
     if (tab.id === 'applications') {
       navigate('/dashboard/admin/applications');
+    } else if (tab.id === 'gigs') {
+      navigate('/dashboard/admin/gig-management');
     } else {
       setActiveTab(tab.id);
       tab.onOpen?.();

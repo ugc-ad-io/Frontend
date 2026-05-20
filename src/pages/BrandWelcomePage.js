@@ -49,12 +49,24 @@ export default function BrandWelcomePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [contentCategories, setContentCategories] = useState([]);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
-  const defaultCategories = [
+  const topBarCategories = [
+    { id: 'all', label: 'All' },
+    { id: 'fashion', label: 'Fashion & Apparel' },
+    { id: 'beauty', label: 'Beauty & Cosmetics' },
+    { id: 'tech', label: 'Technology & Gadgets' },
+    { id: 'food', label: 'Food & Beverage' },
+    { id: 'fitness', label: 'Health & Fitness' },
+    { id: 'home', label: 'Home & Lifestyle' },
+    { id: 'travel', label: 'Travel & Tourism' },
+    { id: 'entertainment', label: 'Entertainment' }
+  ];
+
+  const defaultContentCategories = [
     { id: 'all', label: 'All', icon: 'star' },
     { id: 'ugc-videos', label: 'UGC Videos', icon: 'video' },
     { id: 'product-reviews', label: 'Product Reviews', icon: 'star' },
@@ -81,7 +93,7 @@ export default function BrandWelcomePage() {
   }, []);
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchContentCategories = async () => {
       try {
         const response = await axios.get(`${API}/categories`);
         if (response.data && response.data.length > 0) {
@@ -90,16 +102,16 @@ export default function BrandWelcomePage() {
             label: cat.label || cat.name || cat,
             icon: cat.icon || 'star'
           }));
-          setCategories([{ id: 'all', label: 'All', icon: 'star' }, ...formattedCategories]);
+          setContentCategories([{ id: 'all', label: 'All', icon: 'star' }, ...formattedCategories]);
         } else {
-          setCategories(defaultCategories);
+          setContentCategories(defaultContentCategories);
         }
       } catch (error) {
-        console.error('Failed to fetch categories:', error);
-        setCategories(defaultCategories);
+        console.error('Failed to fetch content categories:', error);
+        setContentCategories(defaultContentCategories);
       }
     };
-    fetchCategories();
+    fetchContentCategories();
   }, []);
 
   const handleLogout = () => {
@@ -570,19 +582,17 @@ export default function BrandWelcomePage() {
         </div>
       </header>
 
-      {categories.length > 0 && (
-        <nav className="categories-bar">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              className={`category-btn ${activeCategory === category.id ? 'active' : ''}`}
-              onClick={() => setActiveCategory(category.id)}
-            >
-              {category.label}
-            </button>
-          ))}
-        </nav>
-      )}
+      <nav className="categories-bar">
+        {topBarCategories.map((category) => (
+          <button
+            key={category.id}
+            className={`category-btn ${activeCategory === category.id ? 'active' : ''}`}
+            onClick={() => setActiveCategory(category.id)}
+          >
+            {category.label}
+          </button>
+        ))}
+      </nav>
 
       <main className="welcome-main">
         {showMenuDropdown && <div className="modal-backdrop" onClick={() => setShowMenuDropdown(false)} />}
@@ -619,7 +629,7 @@ export default function BrandWelcomePage() {
             <h2>Explore Popular Categories</h2>
             <div className="explore-container">
               <div className="categories-sidebar">
-                {categories.length > 0 && categories.map((category) => {
+                {contentCategories.length > 0 && contentCategories.map((category) => {
                   const Icon = getIconComponent(category.icon, category.id);
                   return (
                     <button

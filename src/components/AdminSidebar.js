@@ -6,6 +6,7 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
     { id: 'applications', label: 'Applications', icon: FileText, testId: 'tab-applications', slug: 'applications' },
     { id: 'profiles', label: 'Profiles', icon: Users, testId: 'tab-profiles', slug: 'profiles' },
     { id: 'campaigns', label: 'Campaigns', icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
+    { id: 'gigs', label: 'Gig Management', icon: Briefcase, testId: 'tab-gigs', slug: 'gigs' },
     { id: 'withdrawals', label: 'Withdrawals', icon: DollarSign, testId: 'tab-withdrawals', slug: 'withdrawals' },
     { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns', slug: 'all-campaigns' },
     { id: 'users', label: 'Users', icon: Users, testId: 'tab-users', slug: 'users' },

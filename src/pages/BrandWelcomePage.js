@@ -14,6 +14,20 @@ export default function BrandWelcomePage() {
   const [campaigns, setCampaigns] = useState([]);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
+
+  const categories = [
+    { id: 'all', label: 'All' },
+    { id: 'trending', label: 'Trending 🔥' },
+    { id: 'fashion', label: 'Fashion & Apparel' },
+    { id: 'beauty', label: 'Beauty & Cosmetics' },
+    { id: 'tech', label: 'Technology' },
+    { id: 'food', label: 'Food & Beverage' },
+    { id: 'fitness', label: 'Health & Fitness' },
+    { id: 'home', label: 'Home & Lifestyle' },
+    { id: 'travel', label: 'Travel & Tourism' },
+    { id: 'entertainment', label: 'Entertainment' }
+  ];
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -497,6 +511,18 @@ export default function BrandWelcomePage() {
         </div>
       </header>
 
+      <nav className="categories-bar">
+        {categories.map((category) => (
+          <button
+            key={category.id}
+            className={`category-btn ${activeCategory === category.id ? 'active' : ''}`}
+            onClick={() => setActiveCategory(category.id)}
+          >
+            {category.label}
+          </button>
+        ))}
+      </nav>
+
       <main className="welcome-main">
         {showMenuDropdown && <div className="modal-backdrop" onClick={() => setShowMenuDropdown(false)} />}
 
@@ -554,6 +580,60 @@ export default function BrandWelcomePage() {
             flex-direction: column;
             min-height: 100vh;
             background: #f8f9ff;
+          }
+
+          .categories-bar {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 48px;
+            display: flex;
+            gap: 32px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            position: sticky;
+            top: 72px;
+            z-index: 40;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .categories-bar::-webkit-scrollbar {
+            height: 4px;
+          }
+
+          .categories-bar::-webkit-scrollbar-track {
+            background: #f0f4ff;
+          }
+
+          .categories-bar::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 2px;
+          }
+
+          .categories-bar::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+          }
+
+          .category-btn {
+            padding: 16px 0;
+            background: none;
+            border: none;
+            color: #718096;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+          }
+
+          .category-btn:hover {
+            color: #1a202c;
+          }
+
+          .category-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
           }
 
           .welcome-header {
@@ -1002,6 +1082,12 @@ export default function BrandWelcomePage() {
           }
 
           @media (max-width: 1024px) {
+            .categories-bar {
+              padding: 0 32px;
+              gap: 24px;
+              top: 68px;
+            }
+
             .welcome-header {
               flex-wrap: wrap;
               gap: 16px;
@@ -1027,6 +1113,17 @@ export default function BrandWelcomePage() {
           }
 
           @media (max-width: 768px) {
+            .categories-bar {
+              padding: 0 16px;
+              gap: 20px;
+              top: 64px;
+            }
+
+            .category-btn {
+              font-size: 0.9rem;
+              padding: 12px 0;
+            }
+
             .welcome-header {
               padding: 12px 16px;
               gap: 12px;

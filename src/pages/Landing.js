@@ -613,7 +613,7 @@ export default function Landing() {
         }
 
         .lp-hero__video {
-          width: 48%;
+          width: 49%;
           height: auto;
           border-radius: 16px;
           box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
@@ -623,13 +623,15 @@ export default function Landing() {
         }
 
         .lp-hero__overlay-img {
-          width: 48%;
+          width: 49%;
           height: auto;
+          max-height: 350px;
           border-radius: 24px;
           box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
           object-fit: cover;
           display: block;
           float: right;
+          margin: 0;
         }
 
         .lp-hero__img-glow {

@@ -513,12 +513,15 @@ export default function BrandWelcomePage() {
                 const Icon = card.icon;
                 return (
                   <div key={idx} className="recommended-card" onClick={() => navigate(card.path)}>
-                    <div className="recommended-card-icon">
-                      <Icon size={24} />
-                    </div>
-                    <div className="recommended-card-content">
-                      <h3>{card.title}</h3>
-                      <p>{card.description}</p>
+                    <div className="recommended-card-badge">RECOMMENDED FOR YOU</div>
+                    <div className="recommended-card-inner">
+                      <div className="recommended-card-icon">
+                        <Icon size={24} />
+                      </div>
+                      <div className="recommended-card-content">
+                        <h3>{card.title}</h3>
+                        <p>{card.description}</p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -882,14 +885,14 @@ export default function BrandWelcomePage() {
 
           .recommended-card {
             background: white;
-            padding: 20px 24px;
+            padding: 16px 24px;
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid #e2e8f0;
             display: flex;
-            align-items: center;
-            gap: 16px;
+            flex-direction: column;
+            gap: 12px;
           }
 
           .recommended-card:hover {
@@ -898,10 +901,26 @@ export default function BrandWelcomePage() {
             background: #f8f9ff;
           }
 
+          .recommended-card-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            line-height: 1;
+            margin-bottom: 4px;
+          }
+
+          .recommended-card-inner {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+
           .recommended-card-icon {
-            width: 48px;
-            height: 48px;
-            min-width: 48px;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
             background: #f0f4ff;
             border-radius: 10px;
             display: flex;
@@ -1052,13 +1071,17 @@ export default function BrandWelcomePage() {
             }
 
             .recommended-card {
-              padding: 16px 20px;
+              padding: 14px 20px;
+            }
+
+            .recommended-card-badge {
+              font-size: 0.6rem;
             }
 
             .recommended-card-icon {
-              width: 44px;
-              height: 44px;
-              min-width: 44px;
+              width: 40px;
+              height: 40px;
+              min-width: 40px;
             }
 
             .recommended-section h2,

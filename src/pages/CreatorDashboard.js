@@ -125,14 +125,14 @@ function MiniAreaChart({ data }) {
 const getLevelInfo = (completedWorks) => {
   if (completedWorks >= 20) {
     return {
-      badge: 'Elite',
-      level: 'L3 Elite',
-      color: '#f59e0b',
-      subtitle: 'Top Creator',
+      badge: 'L2 (Pro)',
+      level: 'L2 Professional',
+      color: '#7387ff',
+      subtitle: 'Promo Eligible',
       nextLevel: null,
       currentWorks: completedWorks,
       nextWorks: null,
-      benefits: 'Exclusive perks and higher rates'
+      benefits: '10% Higher Base Rates & Premium Support'
     };
   }
   if (completedWorks >= 10) {

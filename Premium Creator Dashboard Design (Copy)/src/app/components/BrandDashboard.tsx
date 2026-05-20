@@ -177,7 +177,7 @@ const TOP_CAMPAIGNS = [
 ];
 
 const QUICK_ACTIONS = [
-  { label: "Post a Brief",   icon: PenSquare, to: "/brand/post-brief" },
+  { label: "Post a Campaign", icon: PenSquare, to: "/brand/post-brief" },
   { label: "Creator Bids",    icon: Users,     to: "/brand/applications" },
   { label: "Top Up Wallet",  icon: Wallet,    to: "/brand/wallet" },
   { label: "Download Report",icon: Download,  to: "/brand/settings" },

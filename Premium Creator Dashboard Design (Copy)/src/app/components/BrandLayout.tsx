@@ -15,7 +15,7 @@ import {
 
 const BRAND_NAV = [
   { name: "Brand Dashboard", path: "/brand",              icon: LayoutDashboard },
-  { name: "Post a Brief",    path: "/brand/post-brief",   icon: PenSquare       },
+  { name: "Post a Campaign", path: "/brand/post-brief",   icon: PenSquare       },
   { name: "Creator Bids",    path: "/brand/applications", icon: Users           },
   { name: "Deal Room",       path: "/brand/deals",        icon: ClipboardList   },
   { name: "Messages",        path: "/brand/messages",     icon: MessageSquare   },
@@ -25,7 +25,7 @@ const BRAND_NAV = [
 
 function getPageMeta(pathname: string) {
   if (pathname === "/brand")                 return { title: "Brand Dashboard",  subtitle: "Manage campaigns, creators, approvals, and spending in one place" };
-  if (pathname === "/brand/post-brief")      return { title: "Post a Brief",     subtitle: "Create a new campaign and attract top creators"              };
+  if (pathname === "/brand/post-brief")      return { title: "Post a Campaign",  subtitle: "Create a new campaign and attract top creators"              };
   if (pathname === "/brand/applications")    return { title: "Creator Bids",     subtitle: "Review creator bids that match your campaign brief"                  };
   if (pathname === "/brand/deals")           return { title: "Active Deal Workspace", subtitle: "Review progress, approve deliverables, release payout"              };
   if (pathname === "/brand/messages")        return { title: "Messages",         subtitle: "Connect with creators and manage conversations"              };

@@ -24,6 +24,7 @@ import MyBidsPage from './pages/MyBidsPage';
 import MyActiveWorkPage from './pages/MyActiveWorkPage';
 import ReviewsPage from './pages/ReviewsPage';
 import PortfolioPage from './pages/PortfolioPage';
+import CreateGig from './pages/CreateGig';
 import ApplicationsPage from './pages/ApplicationsPage';
 import AdminLayout from './components/AdminLayout';
 import { Toaster } from 'sonner';
@@ -176,6 +177,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
                   <PortfolioPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-gig"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <CreateGig />
                 </ProtectedRoute>
               }
             />

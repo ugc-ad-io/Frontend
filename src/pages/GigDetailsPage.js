@@ -35,6 +35,9 @@ export default function GigDetailsPage() {
   const [portfolio, setPortfolio] = useState([]);
   const [activePortfolioIdx, setActivePortfolioIdx] = useState(0);
   const [activePortfolioMediaIdx, setActivePortfolioMediaIdx] = useState(0);
+  const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
+  const [portfolioModalIdx, setPortfolioModalIdx] = useState(0);
+  const [portfolioModalMediaIdx, setPortfolioModalMediaIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('basic');
@@ -453,7 +456,14 @@ export default function GigDetailsPage() {
               <div className="gdp-portfolio-section">
                 <h2 className="gdp-section-title">My Portfolio</h2>
 
-                <div className="gdp-portfolio-card">
+                <div
+                  className="gdp-portfolio-card gdp-portfolio-clickable"
+                  onClick={() => {
+                    setPortfolioModalIdx(activePortfolioIdx);
+                    setPortfolioModalMediaIdx(activePortfolioMediaIdx);
+                    setPortfolioModalOpen(true);
+                  }}
+                >
                   <div className="gdp-portfolio-card-media">
                     {isVid ? (
                       <video
@@ -516,7 +526,13 @@ export default function GigDetailsPage() {
                         <div
                           key={idx}
                           className={`gdp-portfolio-thumb ${idx === activePortfolioIdx ? 'is-active' : ''}`}
-                          onClick={() => { setActivePortfolioIdx(idx); setActivePortfolioMediaIdx(0); }}
+                          onClick={() => {
+                            setActivePortfolioIdx(idx);
+                            setActivePortfolioMediaIdx(0);
+                            setPortfolioModalIdx(idx);
+                            setPortfolioModalMediaIdx(0);
+                            setPortfolioModalOpen(true);
+                          }}
                         >
                           {thumbIsVid ? (
                             <video src={thumbUrl} muted />
@@ -529,13 +545,161 @@ export default function GigDetailsPage() {
                       );
                     })}
                     {portfolio.length > 5 && (
-                      <div className="gdp-portfolio-more">
+                      <div
+                        className="gdp-portfolio-more"
+                        onClick={() => {
+                          setPortfolioModalIdx(5);
+                          setPortfolioModalMediaIdx(0);
+                          setPortfolioModalOpen(true);
+                        }}
+                      >
                         <strong>+{portfolio.length - 5}</strong>
                         <span>Projects</span>
                       </div>
                     )}
                   </div>
                 )}
+              </div>
+            );
+          })()}
+
+          {portfolioModalOpen && portfolio[portfolioModalIdx] && (() => {
+            const modalItem = portfolio[portfolioModalIdx];
+            const modalMedia = modalItem.urls?.[portfolioModalMediaIdx] || modalItem.urls?.[0] || '';
+            const modalIsVid = isVideo(modalMedia);
+            const formatMonthYear = (iso) => {
+              if (!iso) return '';
+              try {
+                const d = new Date(iso);
+                return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+              } catch { return ''; }
+            };
+            const goPrev = () => {
+              setPortfolioModalIdx((prev) => (prev - 1 + portfolio.length) % portfolio.length);
+              setPortfolioModalMediaIdx(0);
+            };
+            const goNext = () => {
+              setPortfolioModalIdx((prev) => (prev + 1) % portfolio.length);
+              setPortfolioModalMediaIdx(0);
+            };
+            return (
+              <div className="gdp-pm-overlay" onClick={() => setPortfolioModalOpen(false)}>
+                <div className="gdp-pm" onClick={(e) => e.stopPropagation()}>
+                  <div className="gdp-pm-header">
+                    <div className="gdp-pm-creator">
+                      <div className="gdp-pm-avatar">
+                        {(gig.public_creator_id || gig.creator_id || 'C').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="gdp-pm-creator-info">
+                        <span className="gdp-pm-made-by">Made by</span>
+                        <span className="gdp-pm-creator-name">{gig.public_creator_id || gig.creator_id || 'Creator'}</span>
+                      </div>
+                    </div>
+
+                    <div className="gdp-pm-pager">
+                      <button
+                        type="button"
+                        className="gdp-pm-arrow"
+                        onClick={goPrev}
+                        disabled={portfolio.length <= 1}
+                        aria-label="Previous portfolio"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <span className="gdp-pm-count">{portfolioModalIdx + 1} of {portfolio.length}</span>
+                      <button
+                        type="button"
+                        className="gdp-pm-arrow"
+                        onClick={goNext}
+                        disabled={portfolio.length <= 1}
+                        aria-label="Next portfolio"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="gdp-pm-close"
+                      onClick={() => setPortfolioModalOpen(false)}
+                      aria-label="Close"
+                    >
+                      <X size={22} />
+                    </button>
+                  </div>
+
+                  <div className="gdp-pm-body">
+                    <div className="gdp-pm-media-side">
+                      {modalIsVid ? (
+                        <video src={modalMedia} controls className="gdp-pm-media" />
+                      ) : (
+                        <img
+                          src={modalMedia}
+                          alt={modalItem.title || 'Portfolio'}
+                          className="gdp-pm-media"
+                          onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22500%22 height=%22500%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22500%22 height=%22500%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 font-size=%2220%22 fill=%22%23999%22%3EImage unavailable%3C/text%3E%3C/svg%3E'; }}
+                        />
+                      )}
+
+                      {modalItem.urls?.length > 1 && (
+                        <div className="gdp-pm-media-thumbs">
+                          {modalItem.urls.map((u, mIdx) => (
+                            <div
+                              key={mIdx}
+                              className={`gdp-pm-media-thumb ${mIdx === portfolioModalMediaIdx ? 'is-active' : ''}`}
+                              onClick={() => setPortfolioModalMediaIdx(mIdx)}
+                            >
+                              {isVideo(u) ? (
+                                <video src={u} muted />
+                              ) : (
+                                <img src={u} alt={`Media ${mIdx + 1}`}
+                                  onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E'; }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="gdp-pm-info-side">
+                      <button
+                        type="button"
+                        className="gdp-pm-contact-btn"
+                        onClick={() => { setPortfolioModalOpen(false); handleContactCreator(); }}
+                      >
+                        Contact
+                      </button>
+
+                      {modalItem.created_at && (
+                        <div className="gdp-pm-from">From: {formatMonthYear(modalItem.created_at)}</div>
+                      )}
+
+                      {modalItem.title && <h2 className="gdp-pm-title">{modalItem.title}</h2>}
+
+                      {modalItem.description && (
+                        <p className="gdp-pm-desc">{modalItem.description}</p>
+                      )}
+
+                      {(modalItem.project_cost || modalItem.project_duration) && (
+                        <div className="gdp-pm-meta">
+                          {modalItem.project_cost && (
+                            <div className="gdp-pm-meta-item">
+                              <span className="gdp-pm-meta-label">Project cost</span>
+                              <span className="gdp-pm-meta-value">{modalItem.project_cost}</span>
+                            </div>
+                          )}
+                          {modalItem.project_duration && (
+                            <div className="gdp-pm-meta-item">
+                              <span className="gdp-pm-meta-label">Project duration</span>
+                              <span className="gdp-pm-meta-value">{modalItem.project_duration}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             );
           })()}

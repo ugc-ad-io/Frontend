@@ -283,17 +283,6 @@ export default function GigDetailsPage() {
             </div>
           </div>
 
-          <div className="gdp-disclosure">
-            <div className="gdp-disclosure-header">
-              <span className="gdp-disclosure-icon">ℹ</span>
-              <span>UGC paid content disclosure</span>
-            </div>
-            <p>
-              I understand that by acquiring UGC services, I must abide by any and all disclaimer rules required
-              by applicable laws and by the platform(s) where this content will be posted.
-            </p>
-          </div>
-
           <div className="gdp-creator-profile">
             <h2 className="gdp-section-title">Get to know {gig.creator_name?.split(' ')[0] || 'creator'}</h2>
 

@@ -38,7 +38,10 @@ export default function CreateGig() {
     deadline: '',
     requirements: '',
     target_audience: '',
-    skills_required: []
+    skills_required: [],
+    gender: '',
+    language: '',
+    country: ''
   });
 
   const navItems = [
@@ -177,7 +180,10 @@ export default function CreateGig() {
         attachments: mediaItems.map(item => item.url),
         requirements: formData.requirements || '',
         target_audience: formData.target_audience || '',
-        skills_required: formData.skills_required || []
+        skills_required: formData.skills_required || [],
+        gender: formData.gender || '',
+        language: formData.language || '',
+        country: formData.country || ''
       };
 
       console.log('Submitting gig data:', gigData);
@@ -309,6 +315,85 @@ export default function CreateGig() {
                   required
                 />
                 <small>When work needs to be completed (must be in the future)</small>
+              </fieldset>
+            </div>
+
+            <div className="create-gig-section">
+              <h3>Creator Details</h3>
+
+              <fieldset>
+                <legend>Gender</legend>
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <small>Optional - Creator's gender</small>
+              </fieldset>
+
+              <fieldset>
+                <legend>Language</legend>
+                <select
+                  name="language"
+                  value={formData.language}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select language</option>
+                  <option value="English">English</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                  <option value="Portuguese">Portuguese</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Arabic">Arabic</option>
+                  <option value="Mandarin">Mandarin</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Korean">Korean</option>
+                  <option value="Bengali">Bengali</option>
+                  <option value="Tamil">Tamil</option>
+                  <option value="Telugu">Telugu</option>
+                  <option value="Marathi">Marathi</option>
+                  <option value="Gujarati">Gujarati</option>
+                  <option value="Punjabi">Punjabi</option>
+                  <option value="Other">Other</option>
+                </select>
+                <small>Optional - Native or working language</small>
+              </fieldset>
+
+              <fieldset>
+                <legend>Country</legend>
+                <select
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select country</option>
+                  <option value="India">India</option>
+                  <option value="United States">United States</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Australia">Australia</option>
+                  <option value="Germany">Germany</option>
+                  <option value="France">France</option>
+                  <option value="Spain">Spain</option>
+                  <option value="Italy">Italy</option>
+                  <option value="Brazil">Brazil</option>
+                  <option value="Mexico">Mexico</option>
+                  <option value="Japan">Japan</option>
+                  <option value="South Korea">South Korea</option>
+                  <option value="China">China</option>
+                  <option value="UAE">UAE</option>
+                  <option value="Singapore">Singapore</option>
+                  <option value="Other">Other</option>
+                </select>
+                <small>Optional - Country of residence</small>
               </fieldset>
             </div>
 

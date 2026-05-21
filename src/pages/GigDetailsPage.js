@@ -40,6 +40,12 @@ export default function GigDetailsPage() {
     video_60s: null, video_60s_included: '',
     photo_post: null, photo_post_included: ''
   });
+  const [creatorDetails, setCreatorDetails] = useState({
+    gender: '',
+    languages: [],
+    country: '',
+    age_range: ''
+  });
   const [activePortfolioIdx, setActivePortfolioIdx] = useState(0);
   const [activePortfolioMediaIdx, setActivePortfolioMediaIdx] = useState(0);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
@@ -111,6 +117,25 @@ export default function GigDetailsPage() {
         photo_post_included: rc.photo_post_included || ''
       });
       console.log('[RateCard] Fetched:', rc);
+
+      // Extract creator details (Gender, Language, Country, Age Range)
+      // These live at user root level (set via ProfileSettings) — fall back to profile sub-object
+      const rawLang = res.data?.language ?? res.data?.profile?.language;
+      const langs = Array.isArray(rawLang)
+        ? rawLang.filter(Boolean)
+        : (typeof rawLang === 'string' && rawLang ? [rawLang] : []);
+      setCreatorDetails({
+        gender: res.data?.gender || res.data?.profile?.gender || '',
+        languages: langs,
+        country: res.data?.country || res.data?.profile?.country || '',
+        age_range: res.data?.age_range || res.data?.profile?.age_range || ''
+      });
+      console.log('[CreatorDetails] Fetched:', {
+        gender: res.data?.gender,
+        language: rawLang,
+        country: res.data?.country,
+        age_range: res.data?.age_range
+      });
 
       // Portfolio can be on user root or inside profile sub-object — check both
       const rawItems = Array.isArray(res.data?.portfolio) && res.data.portfolio.length
@@ -536,15 +561,17 @@ export default function GigDetailsPage() {
 
           <div className="gdp-creator-details">
             <div className="gdp-detail-grid">
-              {gig.creator_name && (
+              {(creatorDetails.gender || gig.gender) && (
                 <div className="gdp-detail-item">
-                  <div className="gdp-detail-label">Creator</div>
-                  <div className="gdp-detail-value">{gig.gender || 'Not specified'}</div>
+                  <div className="gdp-detail-label">Gender</div>
+                  <div className="gdp-detail-value">{creatorDetails.gender || gig.gender}</div>
                 </div>
               )}
               {(() => {
-                const lang = gig.nativeLanguage || gig.language;
-                const langDisplay = Array.isArray(lang) ? lang.join(', ') : lang;
+                const langs = creatorDetails.languages.length
+                  ? creatorDetails.languages
+                  : (gig.nativeLanguage || gig.language);
+                const langDisplay = Array.isArray(langs) ? langs.join(', ') : langs;
                 return langDisplay ? (
                   <div className="gdp-detail-item">
                     <div className="gdp-detail-label">Languages</div>
@@ -552,16 +579,22 @@ export default function GigDetailsPage() {
                   </div>
                 ) : null;
               })()}
+              {(creatorDetails.country || gig.city) && (
+                <div className="gdp-detail-item">
+                  <div className="gdp-detail-label">Country</div>
+                  <div className="gdp-detail-value">{creatorDetails.country || gig.city}</div>
+                </div>
+              )}
               {gig.accent && (
                 <div className="gdp-detail-item">
                   <div className="gdp-detail-label">Accent</div>
                   <div className="gdp-detail-value">{gig.accent}</div>
                 </div>
               )}
-              {gig.ageRange && (
+              {(creatorDetails.age_range || gig.ageRange) && (
                 <div className="gdp-detail-item">
                   <div className="gdp-detail-label">Age range</div>
-                  <div className="gdp-detail-value">{gig.ageRange}</div>
+                  <div className="gdp-detail-value">{creatorDetails.age_range || gig.ageRange}</div>
                 </div>
               )}
               {gig.videoStyles?.length > 0 && (
@@ -630,7 +663,7 @@ export default function GigDetailsPage() {
             <div className="gdp-profile-stats">
               <div className="gdp-profile-stat">
                 <div className="gdp-stat-label">From</div>
-                <div className="gdp-stat-value">{gig.city || 'India'}</div>
+                <div className="gdp-stat-value">{creatorDetails.country || gig.city || 'India'}</div>
               </div>
               <div className="gdp-profile-stat">
                 <div className="gdp-stat-label">Member since</div>
@@ -648,6 +681,7 @@ export default function GigDetailsPage() {
                 <div className="gdp-stat-label">Languages</div>
                 <div className="gdp-stat-value">
                   {(() => {
+                    if (creatorDetails.languages.length) return creatorDetails.languages.join(', ');
                     const lang = gig.nativeLanguage || gig.language;
                     if (Array.isArray(lang) && lang.length) return lang.join(', ');
                     if (typeof lang === 'string' && lang) return lang;

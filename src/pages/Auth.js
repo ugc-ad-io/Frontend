@@ -49,7 +49,7 @@ export default function Auth() {
           if (userData.role === 'creator') {
             navigate('/dashboard/creator');
           } else if (userData.role === 'business') {
-            navigate('/brand-home');
+            navigate('/dashboard/business');
           } else if (userData.role === 'admin') {
             navigate('/dashboard/admin');
           }

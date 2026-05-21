@@ -35,29 +35,10 @@ export default function WorkSubmission() {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    if (!selectedFiles.length) return;
-
-    try {
-      const uploadedUrls = await Promise.all(selectedFiles.map(async (file) => {
-        if (file.size > 100 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large. Maximum 100MB per file.`);
-        }
-        const formData = new FormData();
-        formData.append('file', file);
-        const response = await axios.post(`${API}/upload/file`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        return response.data.file_url;
-      }));
-
-      setFiles([...files, ...uploadedUrls]);
-      toast.success(`${uploadedUrls.length} file(s) uploaded successfully!`);
-    } catch (error) {
-      toast.error(error.message || 'Failed to upload files');
-    }
-    e.target.value = '';
+  const handleFileAdd = () => {
+    const mockUrl = `https://storage.example.com/work/${Date.now()}_video.mp4`;
+    setFiles([...files, mockUrl]);
+    toast.success('File uploaded successfully (mocked)');
   };
 
   const handleRemoveFile = (index) => {
@@ -66,7 +47,7 @@ export default function WorkSubmission() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     if (files.length === 0) {
       toast.error('Please upload at least one file');
       return;
@@ -79,10 +60,7 @@ export default function WorkSubmission() {
         description
       });
       toast.success('Work submitted successfully!');
-      // Wait a moment for backend to update, then navigate
-      setTimeout(() => {
-        navigate('/my-active-work');
-      }, 1000);
+      navigate('/dashboard/creator');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit work');
     }
@@ -109,24 +87,15 @@ export default function WorkSubmission() {
           <div className="upload-section">
             <h3><Upload size={20} /> Upload Files</h3>
             <p className="hint">Videos, images, or any deliverables</p>
-
-            <input
-              id="file-upload"
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              onChange={handleFileUpload}
-              style={{ display: 'none' }}
-              data-testid="file-input"
-            />
+            
             <button
               type="button"
               className="upload-btn"
-              onClick={() => document.getElementById('file-upload').click()}
+              onClick={handleFileAdd}
               data-testid="upload-file-btn"
             >
               <FileVideo size={24} />
-              Click to Upload Files
+              Click to Upload File (Mocked)
             </button>
 
             {files.length > 0 && (

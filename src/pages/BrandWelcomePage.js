@@ -679,10 +679,10 @@ export default function BrandWelcomePage() {
 
                         <div className="gig-creator-header">
                           <div className="creator-avatar">
-                            {gig.creator_id?.charAt(0).toUpperCase() || 'C'}
+                            {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
                           </div>
                           <div className="creator-info">
-                            <h4 className="creator-name">{gig.creator_id || 'Creator'}</h4>
+                            <h4 className="creator-name">{gig.public_creator_id || gig.creator_id || 'Creator'}</h4>
                             <span className="gig-creator-badge" style={{color: '#22c55e'}}>✓ Verified</span>
                           </div>
                           <Heart size={20} className="gig-heart-icon" />

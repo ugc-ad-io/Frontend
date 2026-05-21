@@ -148,10 +148,10 @@ export default function GigDetailsPage() {
 
           <div className="gdp-creator-row">
             <div className="gdp-creator-avatar">
-              {gig.creator_name?.charAt(0).toUpperCase() || 'C'}
+              {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
             </div>
             <div className="gdp-creator-info">
-              <div className="gdp-creator-name">{gig.creator_name || 'Creator'}</div>
+              <div className="gdp-creator-name">{gig.public_creator_id || gig.creator_id || 'Creator'}</div>
               <div className="gdp-creator-meta">
                 <span className="gdp-level">Level 1</span>
                 <span className="gdp-rating">
@@ -284,15 +284,15 @@ export default function GigDetailsPage() {
           </div>
 
           <div className="gdp-creator-profile">
-            <h2 className="gdp-section-title">Get to know {gig.creator_name?.split(' ')[0] || 'creator'}</h2>
+            <h2 className="gdp-section-title">Get to know {gig.public_creator_id || gig.creator_id || 'creator'}</h2>
 
             <div className="gdp-profile-header">
               <div className="gdp-profile-avatar">
-                {gig.creator_name?.charAt(0).toUpperCase() || 'C'}
+                {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
               </div>
               <div className="gdp-profile-info">
                 <div className="gdp-profile-name-row">
-                  <h3>{gig.creator_name || 'Creator'}</h3>
+                  <h3>{gig.public_creator_id || gig.creator_id || 'Creator'}</h3>
                   <span className="gdp-online-status">● Online</span>
                 </div>
                 <p className="gdp-profile-tagline">
@@ -333,7 +333,7 @@ export default function GigDetailsPage() {
 
             <div className="gdp-profile-bio">
               <p>
-                Hey! 👋 {gig.creator_name?.split(' ')[0] || 'Creator'} here, your expert UGC Creator, creative strategist, and Digital
+                Hey! 👋 {gig.public_creator_id || gig.creator_id || 'Creator'} here, your expert UGC Creator, creative strategist, and Digital
                 Marketer. With years of experience in ecommerce, I specialize in setting up a real
                 testing strategy ads and creating high-performing, authentic stories, short-form
                 videos that convert.

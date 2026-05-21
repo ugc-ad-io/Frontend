@@ -178,10 +178,10 @@ export default function BrowseApprovedGigs() {
               {/* Creator Info Header */}
               <div className="gig-creator-header">
                 <div className="creator-avatar">
-                  {gig.creator_name?.charAt(0).toUpperCase() || 'C'}
+                  {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
                 </div>
                 <div className="creator-info">
-                  <h3 className="creator-name">{gig.creator_name || 'Unknown Creator'}</h3>
+                  <h3 className="creator-name">{gig.public_creator_id || gig.creator_id || 'Unknown Creator'}</h3>
                   <CreatorLevelBadge completedWorks={gig.completed_works || 0} />
                 </div>
                 <Heart size={20} className="gig-heart-icon" />

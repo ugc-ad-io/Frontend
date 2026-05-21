@@ -663,6 +663,20 @@ export default function BrandWelcomePage() {
                   <>
                     {approvedGigs.slice(0, 6).map((gig) => (
                       <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/browse-approved-gigs`)}>
+                        {gig.attachments && gig.attachments.length > 0 && (
+                          <div className="gig-media-preview">
+                            <img
+                              src={gig.attachments[0].startsWith('http') ? gig.attachments[0] : `${BACKEND_URL}${gig.attachments[0]}`}
+                              alt="Gig preview"
+                              className="gig-preview-image"
+                              onError={(e) => {e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E';}}
+                            />
+                            {gig.attachments.length > 1 && (
+                              <div className="attachment-more">+{gig.attachments.length - 1}</div>
+                            )}
+                          </div>
+                        )}
+
                         <div className="gig-creator-header">
                           <div className="creator-avatar">
                             {gig.creator_name?.charAt(0).toUpperCase() || 'C'}
@@ -1437,12 +1451,45 @@ export default function BrandWelcomePage() {
             background: white;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 16px;
+            overflow: hidden;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 0;
+          }
+
+          .gig-media-preview {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            background: #f0f0f0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .gig-preview-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .attachment-more {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
           }
 
           .gig-card-welcome:hover {
@@ -1455,7 +1502,7 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding-bottom: 12px;
+            padding: 12px 16px 12px 16px;
             border-bottom: 1px solid #f0f0f0;
           }
 
@@ -1511,6 +1558,7 @@ export default function BrandWelcomePage() {
             font-weight: 600;
             color: #07074e;
             margin: 0;
+            padding: 0 16px;
             line-height: 1.4;
             min-height: 40px;
             display: -webkit-box;
@@ -1523,6 +1571,7 @@ export default function BrandWelcomePage() {
             font-size: 13px;
             color: #666;
             margin: 0;
+            padding: 0 16px;
             line-height: 1.5;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -1534,7 +1583,7 @@ export default function BrandWelcomePage() {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
-            padding: 8px 0;
+            padding: 8px 16px;
           }
 
           .gig-detail-item {
@@ -1553,7 +1602,7 @@ export default function BrandWelcomePage() {
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding-top: 12px;
+            padding: 12px 16px;
             border-top: 1px solid #f0f0f0;
             margin-top: auto;
           }

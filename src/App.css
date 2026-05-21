@@ -151,6 +151,57 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+/* Rate Card Packages */
+.rate-card-hint {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+}
+
+.rate-package {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #fafbff;
+}
+
+.rate-package-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.rate-package-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #07074e;
+}
+
+.rate-price-input {
+  margin: 0;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rate-price-input label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.rate-price-input input {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
 .textarea-field {
   width: 100%;
   padding: 12px 16px;

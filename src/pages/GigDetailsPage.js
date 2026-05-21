@@ -35,7 +35,11 @@ export default function GigDetailsPage() {
   const [gig, setGig] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
-  const [rateCard, setRateCard] = useState({ video_30s: null, video_60s: null, photo_post: null });
+  const [rateCard, setRateCard] = useState({
+    video_30s: null, video_30s_included: '',
+    video_60s: null, video_60s_included: '',
+    photo_post: null, photo_post_included: ''
+  });
   const [activePortfolioIdx, setActivePortfolioIdx] = useState(0);
   const [activePortfolioMediaIdx, setActivePortfolioMediaIdx] = useState(0);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
@@ -100,8 +104,11 @@ export default function GigDetailsPage() {
       };
       setRateCard({
         video_30s: parseRate(rc.video_30s),
+        video_30s_included: rc.video_30s_included || '',
         video_60s: parseRate(rc.video_60s),
-        photo_post: parseRate(rc.photo_post)
+        video_60s_included: rc.video_60s_included || '',
+        photo_post: parseRate(rc.photo_post),
+        photo_post_included: rc.photo_post_included || ''
       });
       console.log('[RateCard] Fetched:', rc);
 
@@ -188,6 +195,15 @@ export default function GigDetailsPage() {
   const standardPrice = rateCard.video_60s ?? Math.round(basicPrice * 2);
   const premiumPrice = rateCard.photo_post ?? Math.round(basicPrice * 4);
 
+  // Parse "What's included" text into feature list (split on commas or newlines)
+  const parseFeatures = (text, defaultFeatures) => {
+    if (!text || !text.trim()) return defaultFeatures;
+    return text
+      .split(/[\n,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
   const packages = {
     basic: {
       name: 'Basic',
@@ -196,7 +212,7 @@ export default function GigDetailsPage() {
       description: gig?.description?.substring(0, 100) || 'Authentic 30-second UGC video. Perfect for product reviews, ads, and short-form content.',
       delivery: gig?.deliveryTime || gig?.delivery_days || 1,
       revisions: 1,
-      features: ['1 x 30-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '3 months usage rights']
+      features: parseFeatures(rateCard.video_30s_included, ['1 x 30-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '3 months usage rights'])
     },
     standard: {
       name: 'Standard',
@@ -205,7 +221,7 @@ export default function GigDetailsPage() {
       description: 'Longer-form 60-second UGC video with premium quality and enhanced storytelling.',
       delivery: (gig?.deliveryTime || gig?.delivery_days || 1) + 2,
       revisions: 2,
-      features: ['1 x 60-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '6 months usage rights', 'Priority support']
+      features: parseFeatures(rateCard.video_60s_included, ['1 x 60-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '6 months usage rights', 'Priority support'])
     },
     premium: {
       name: 'Premium',
@@ -214,7 +230,7 @@ export default function GigDetailsPage() {
       description: 'Complete UGC package including photo posts and full content suite.',
       delivery: (gig?.deliveryTime || gig?.delivery_days || 1) + 4,
       revisions: 5,
-      features: ['Photo post + 60s video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '12 months usage rights', 'Priority support', 'Source files included']
+      features: parseFeatures(rateCard.photo_post_included, ['Photo post + 60s video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '12 months usage rights', 'Priority support', 'Source files included'])
     }
   };
 

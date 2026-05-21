@@ -16,7 +16,14 @@ export default function CreatorProfileSetup() {
     bio: '',
     tags: [],
     social_links: { instagram: '', youtube: '', tiktok: '' },
-    rate_card: { video_30s: '', video_60s: '', photo_post: '' },
+    rate_card: {
+      video_30s: '',
+      video_30s_included: '',
+      video_60s: '',
+      video_60s_included: '',
+      photo_post: '',
+      photo_post_included: ''
+    },
     payment_methods: { upi: '', bank_account: '' },
     receive_briefs: true,
     terms_agreed: false,
@@ -312,45 +319,101 @@ export default function CreatorProfileSetup() {
 
           <div className="form-section">
             <h3><DollarSign size={20} /> Rate Card</h3>
-            <div className="rate-grid">
-              <div className="form-group">
-                <label htmlFor="video_30s">30s Video ($)</label>
-                <input
-                  id="video_30s"
-                  type="number"
-                  value={formData.rate_card.video_30s}
-                  onChange={(e) => handleNestedChange('rate_card', 'video_30s', e.target.value)}
-                  className="input-field"
-                  placeholder="100"
-                  required
-                  data-testid="rate-video-30s"
-                />
+            <p className="rate-card-hint">Set your price for each package and describe what's included.</p>
+
+            <div className="rate-package">
+              <div className="rate-package-header">
+                <h4>Basic — 30s Video</h4>
+                <div className="form-group rate-price-input">
+                  <label htmlFor="video_30s">Price ($)</label>
+                  <input
+                    id="video_30s"
+                    type="number"
+                    value={formData.rate_card.video_30s}
+                    onChange={(e) => handleNestedChange('rate_card', 'video_30s', e.target.value)}
+                    className="input-field"
+                    placeholder="100"
+                    required
+                    data-testid="rate-video-30s"
+                  />
+                </div>
               </div>
               <div className="form-group">
-                <label htmlFor="video_60s">60s Video ($)</label>
-                <input
-                  id="video_60s"
-                  type="number"
-                  value={formData.rate_card.video_60s}
-                  onChange={(e) => handleNestedChange('rate_card', 'video_60s', e.target.value)}
-                  className="input-field"
-                  placeholder="150"
-                  required
-                  data-testid="rate-video-60s"
+                <label htmlFor="video_30s_included">What's Included</label>
+                <textarea
+                  id="video_30s_included"
+                  value={formData.rate_card.video_30s_included}
+                  onChange={(e) => handleNestedChange('rate_card', 'video_30s_included', e.target.value)}
+                  className="textarea-field"
+                  placeholder="e.g., 1 x 30-second video, B-Roll included, Subtitles, 1 revision, 3 months usage rights"
+                  rows="3"
+                  maxLength="500"
                 />
+                <span className="char-count">{(formData.rate_card.video_30s_included || '').length}/500 characters</span>
+              </div>
+            </div>
+
+            <div className="rate-package">
+              <div className="rate-package-header">
+                <h4>Standard — 60s Video</h4>
+                <div className="form-group rate-price-input">
+                  <label htmlFor="video_60s">Price ($)</label>
+                  <input
+                    id="video_60s"
+                    type="number"
+                    value={formData.rate_card.video_60s}
+                    onChange={(e) => handleNestedChange('rate_card', 'video_60s', e.target.value)}
+                    className="input-field"
+                    placeholder="150"
+                    required
+                    data-testid="rate-video-60s"
+                  />
+                </div>
               </div>
               <div className="form-group">
-                <label htmlFor="photo_post">Photo Post ($)</label>
-                <input
-                  id="photo_post"
-                  type="number"
-                  value={formData.rate_card.photo_post}
-                  onChange={(e) => handleNestedChange('rate_card', 'photo_post', e.target.value)}
-                  className="input-field"
-                  placeholder="80"
-                  required
-                  data-testid="rate-photo-post"
+                <label htmlFor="video_60s_included">What's Included</label>
+                <textarea
+                  id="video_60s_included"
+                  value={formData.rate_card.video_60s_included}
+                  onChange={(e) => handleNestedChange('rate_card', 'video_60s_included', e.target.value)}
+                  className="textarea-field"
+                  placeholder="e.g., 1 x 60-second video, B-Roll, Graphics, Subtitles, 2 revisions, 6 months usage rights, Priority support"
+                  rows="3"
+                  maxLength="500"
                 />
+                <span className="char-count">{(formData.rate_card.video_60s_included || '').length}/500 characters</span>
+              </div>
+            </div>
+
+            <div className="rate-package">
+              <div className="rate-package-header">
+                <h4>Premium — Photo Post / Bundle</h4>
+                <div className="form-group rate-price-input">
+                  <label htmlFor="photo_post">Price ($)</label>
+                  <input
+                    id="photo_post"
+                    type="number"
+                    value={formData.rate_card.photo_post}
+                    onChange={(e) => handleNestedChange('rate_card', 'photo_post', e.target.value)}
+                    className="input-field"
+                    placeholder="80"
+                    required
+                    data-testid="rate-photo-post"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="photo_post_included">What's Included</label>
+                <textarea
+                  id="photo_post_included"
+                  value={formData.rate_card.photo_post_included}
+                  onChange={(e) => handleNestedChange('rate_card', 'photo_post_included', e.target.value)}
+                  className="textarea-field"
+                  placeholder="e.g., Photo post + 60s video, Full source files, Unlimited revisions, 12 months usage rights"
+                  rows="3"
+                  maxLength="500"
+                />
+                <span className="char-count">{(formData.rate_card.photo_post_included || '').length}/500 characters</span>
               </div>
             </div>
           </div>

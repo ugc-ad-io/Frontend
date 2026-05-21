@@ -71,16 +71,22 @@ export default function GigDetailsPage() {
     }
   };
 
+  const absolutizeUrl = (url) => {
+    if (!url || typeof url !== 'string') return '';
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const base = (BACKEND_URL || '').replace(/\/$/, '');
+    return `${base}/${url.replace(/^\//, '')}`;
+  };
+
   const fetchCreatorPortfolio = async (creatorId) => {
     try {
       console.log('[Portfolio] Fetching for creator:', creatorId);
       const res = await axios.get(`${API}/profile/${creatorId}`);
-      console.log('[Portfolio] Profile response:', res.data);
       console.log('[Portfolio] res.data.portfolio:', res.data?.portfolio);
       console.log('[Portfolio] res.data.profile?.portfolio:', res.data?.profile?.portfolio);
 
       // Portfolio can be on user root or inside profile sub-object — check both
-      const rawItems = Array.isArray(res.data?.portfolio)
+      const rawItems = Array.isArray(res.data?.portfolio) && res.data.portfolio.length
         ? res.data.portfolio
         : (Array.isArray(res.data?.profile?.portfolio) ? res.data.profile.portfolio : []);
 
@@ -89,9 +95,10 @@ export default function GigDetailsPage() {
       const normalized = rawItems.map((item) => {
         if (!item) return null;
         if (typeof item === 'string') {
-          return { urls: [item], title: '', description: '', project_cost: '', project_duration: '', created_at: '' };
+          return { urls: [absolutizeUrl(item)], title: '', description: '', project_cost: '', project_duration: '', created_at: '' };
         }
-        const urls = Array.isArray(item.urls) ? item.urls : (item.url ? [item.url] : []);
+        const rawUrls = Array.isArray(item.urls) ? item.urls : (item.url ? [item.url] : []);
+        const urls = rawUrls.map(absolutizeUrl).filter(Boolean);
         return {
           urls,
           title: item.title || '',
@@ -100,7 +107,7 @@ export default function GigDetailsPage() {
           project_duration: item.project_duration || '',
           created_at: item.created_at || ''
         };
-      }).filter(Boolean);
+      }).filter((item) => item && item.urls.length > 0);
 
       console.log('[Portfolio] Normalized:', normalized);
       setPortfolio(normalized);
@@ -449,10 +456,22 @@ export default function GigDetailsPage() {
                 <div className="gdp-portfolio-card">
                   <div className="gdp-portfolio-card-media">
                     {isVid ? (
-                      <video src={activeMedia} controls className="gdp-portfolio-media" />
+                      <video
+                        src={activeMedia}
+                        controls
+                        className="gdp-portfolio-media"
+                        onError={(e) => { console.error('[Portfolio] Video failed to load:', activeMedia); }}
+                      />
                     ) : (
-                      <img src={activeMedia} alt={activeItem?.title || 'Portfolio'} className="gdp-portfolio-media"
-                        onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22400%22 height=%22300%22/%3E%3C/svg%3E'; }}
+                      <img
+                        src={activeMedia}
+                        alt={activeItem?.title || 'Portfolio'}
+                        className="gdp-portfolio-media"
+                        onLoad={() => console.log('[Portfolio] Image loaded:', activeMedia)}
+                        onError={(e) => {
+                          console.error('[Portfolio] Image failed to load:', activeMedia);
+                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 font-size=%2218%22 fill=%22%23999%22%3EImage unavailable%3C/text%3E%3C/svg%3E';
+                        }}
                       />
                     )}
                     {activeItem?.urls?.length > 1 && (

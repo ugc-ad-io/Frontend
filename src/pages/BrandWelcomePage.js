@@ -638,66 +638,79 @@ export default function BrandWelcomePage() {
           </section>
 
           <section className="explore-section">
-            <h2>Approved Creator Gigs Available</h2>
-            {approvedGigs.length > 0 ? (
-              <div className="gigs-grid">
-                {approvedGigs.slice(0, 6).map((gig) => (
-                  <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/browse-approved-gigs`)}>
-                    <div className="gig-creator-header">
-                      <div className="creator-avatar">
-                        {gig.creator_name?.charAt(0).toUpperCase() || 'C'}
-                      </div>
-                      <div className="creator-info">
-                        <h4 className="creator-name">{gig.creator_name || 'Creator'}</h4>
-                        <span className="gig-creator-badge" style={{color: '#22c55e'}}>✓ Verified</span>
-                      </div>
-                      <Heart size={20} className="gig-heart-icon" />
-                    </div>
-
-                    <h3 className="gig-title">{gig.title}</h3>
-                    <p className="gig-description">{gig.description?.substring(0, 80)}...</p>
-
-                    <div className="gig-details-grid">
-                      <div className="gig-detail-item">
-                        <span>📁 {gig.category || 'General'}</span>
-                      </div>
-                      <div className="gig-detail-item">
-                        <span>⏱️ Deadline soon</span>
-                      </div>
-                    </div>
-
-                    <div className="gig-footer">
-                      <div className="gig-budget">
-                        <span className="budget-amount">${gig.budget || '0'}</span>
-                      </div>
-                      <button className="gig-cta-button">View Gig</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <p>No approved gigs available yet. Check back soon!</p>
-              </div>
-            )}
-
-            <hr style={{margin: '60px 0', border: 'none', borderTop: '1px solid #e2e8f0'}} />
-
-            <h2>Explore Your Dashboard</h2>
+            <h2>Explore Popular Categories</h2>
             <div className="explore-container">
-              <div className="categories-content">
-                {dashboardCards.map((card, idx) => {
-                  const Icon = card.icon;
+              <div className="categories-sidebar">
+                {contentCategories.length > 0 && contentCategories.map((category) => {
+                  const Icon = getIconComponent(category.icon, category.id);
                   return (
-                    <div key={idx} className="dashboard-card" onClick={() => navigate(card.path)}>
-                      <div className="card-header">
-                        <Icon size={24} />
+                    <button
+                      key={category.id}
+                      className={`category-sidebar-item ${activeCategory === category.id ? 'active' : ''}`}
+                      onClick={() => setActiveCategory(category.id)}
+                    >
+                      <div className="category-item-icon">
+                        <Icon size={20} />
                       </div>
-                      <h3>{card.label}</h3>
-                      <p>{card.description}</p>
-                    </div>
+                      <span>{category.label || category.name}</span>
+                    </button>
                   );
                 })}
+              </div>
+
+              <div className="categories-content">
+                {approvedGigs.length > 0 ? (
+                  <>
+                    {approvedGigs.slice(0, 6).map((gig) => (
+                      <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/browse-approved-gigs`)}>
+                        <div className="gig-creator-header">
+                          <div className="creator-avatar">
+                            {gig.creator_name?.charAt(0).toUpperCase() || 'C'}
+                          </div>
+                          <div className="creator-info">
+                            <h4 className="creator-name">{gig.creator_name || 'Creator'}</h4>
+                            <span className="gig-creator-badge" style={{color: '#22c55e'}}>✓ Verified</span>
+                          </div>
+                          <Heart size={20} className="gig-heart-icon" />
+                        </div>
+
+                        <h3 className="gig-title">{gig.title}</h3>
+                        <p className="gig-description">{gig.description?.substring(0, 80)}...</p>
+
+                        <div className="gig-details-grid">
+                          <div className="gig-detail-item">
+                            <span>📁 {gig.category || 'General'}</span>
+                          </div>
+                          <div className="gig-detail-item">
+                            <span>⏱️ Deadline soon</span>
+                          </div>
+                        </div>
+
+                        <div className="gig-footer">
+                          <div className="gig-budget">
+                            <span className="budget-amount">${gig.budget || '0'}</span>
+                          </div>
+                          <button className="gig-cta-button">View Gig</button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {dashboardCards.map((card, idx) => {
+                      const Icon = card.icon;
+                      return (
+                        <div key={idx} className="dashboard-card" onClick={() => navigate(card.path)}>
+                          <div className="card-header">
+                            <Icon size={24} />
+                          </div>
+                          <h3>{card.label}</h3>
+                          <p>{card.description}</p>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </div>
             </div>
           </section>

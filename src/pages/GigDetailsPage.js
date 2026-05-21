@@ -35,6 +35,7 @@ export default function GigDetailsPage() {
   const [gig, setGig] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
+  const [rateCard, setRateCard] = useState({ video_30s: null, video_60s: null, photo_post: null });
   const [activePortfolioIdx, setActivePortfolioIdx] = useState(0);
   const [activePortfolioMediaIdx, setActivePortfolioMediaIdx] = useState(0);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
@@ -89,6 +90,20 @@ export default function GigDetailsPage() {
       const res = await axios.get(`${API}/profile/${creatorId}`);
       console.log('[Portfolio] res.data.portfolio:', res.data?.portfolio);
       console.log('[Portfolio] res.data.profile?.portfolio:', res.data?.profile?.portfolio);
+
+      // Extract rate_card (creator pricing from initial application)
+      const rc = res.data?.profile?.rate_card || res.data?.rate_card || {};
+      const parseRate = (v) => {
+        if (v === null || v === undefined || v === '') return null;
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      setRateCard({
+        video_30s: parseRate(rc.video_30s),
+        video_60s: parseRate(rc.video_60s),
+        photo_post: parseRate(rc.photo_post)
+      });
+      console.log('[RateCard] Fetched:', rc);
 
       // Portfolio can be on user root or inside profile sub-object — check both
       const rawItems = Array.isArray(res.data?.portfolio) && res.data.portfolio.length
@@ -167,33 +182,39 @@ export default function GigDetailsPage() {
 
   const isVideo = (url) => /\.(mp4|webm|mov)$/i.test(url || '');
 
+  // Fallback price if rate card field is missing (uses gig budget as a sensible default)
+  const fallback = Number(gig?.price || gig?.budget || 0) || 1000;
+  const basicPrice = rateCard.video_30s ?? fallback;
+  const standardPrice = rateCard.video_60s ?? Math.round(basicPrice * 2);
+  const premiumPrice = rateCard.photo_post ?? Math.round(basicPrice * 4);
+
   const packages = {
     basic: {
       name: 'Basic',
-      title: `${numberOfSeconds}s selfie-style video -raw footage`,
-      price: gig?.price || gig?.budget || 1009,
-      description: gig?.description?.substring(0, 100) || 'Natural talking-head video. Perfect for authentic product reviews, app, services.',
+      title: '30s UGC Video',
+      price: basicPrice,
+      description: gig?.description?.substring(0, 100) || 'Authentic 30-second UGC video. Perfect for product reviews, ads, and short-form content.',
       delivery: gig?.deliveryTime || gig?.delivery_days || 1,
       revisions: 1,
-      features: ['1 video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '3 months usage rights']
+      features: ['1 x 30-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '3 months usage rights']
     },
     standard: {
       name: 'Standard',
-      title: `${numberOfSeconds * 2}s premium UGC video`,
-      price: Math.round((gig?.price || gig?.budget || 1009) * 2.5),
-      description: 'Premium quality with enhanced features',
+      title: '60s UGC Video',
+      price: standardPrice,
+      description: 'Longer-form 60-second UGC video with premium quality and enhanced storytelling.',
       delivery: (gig?.deliveryTime || gig?.delivery_days || 1) + 2,
       revisions: 2,
-      features: ['2 videos', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '6 months usage rights', 'Priority support']
+      features: ['1 x 60-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '6 months usage rights', 'Priority support']
     },
     premium: {
       name: 'Premium',
-      title: `${numberOfSeconds * 3}s premium UGC package`,
-      price: Math.round((gig?.price || gig?.budget || 1009) * 4),
-      description: 'Complete UGC package with all features',
+      title: 'Premium UGC Package',
+      price: premiumPrice,
+      description: 'Complete UGC package including photo posts and full content suite.',
       delivery: (gig?.deliveryTime || gig?.delivery_days || 1) + 4,
       revisions: 5,
-      features: ['5 videos', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '12 months usage rights', 'Priority support', 'Source files included']
+      features: ['Photo post + 60s video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '12 months usage rights', 'Priority support', 'Source files included']
     }
   };
 

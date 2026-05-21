@@ -31,6 +31,7 @@ export default function GigDetailsPage() {
   const { user } = useAuth();
 
   const [gig, setGig] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('basic');
@@ -45,6 +46,9 @@ export default function GigDetailsPage() {
     try {
       const res = await axios.get(`${API}/gigs/${gigId}`);
       setGig(res.data);
+      if (res.data?.creator_id) {
+        fetchReviews(res.data.creator_id);
+      }
     } catch (error) {
       toast.error('Failed to load gig details');
       console.error(error);
@@ -53,12 +57,41 @@ export default function GigDetailsPage() {
     }
   };
 
-  const handleContactCreator = () => {
+  const fetchReviews = async (creatorId) => {
+    try {
+      const res = await axios.get(`${API}/reviews/creator/${creatorId}`);
+      setReviews(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
+      setReviews([]);
+    }
+  };
+
+  const handleContactCreator = async () => {
     if (!gig?.creator_id) {
       toast.error('Creator information not available');
       return;
     }
-    navigate(`/dashboard/business/messages?creator=${gig.creator_id}`);
+
+    try {
+      const res = await axios.get(`${API}/business/wallet`);
+      const balance = Number(res.data?.available_balance || 0);
+      const minBalance = Number(res.data?.minimum_chat_balance || 5000);
+      const chatUnlocked = res.data?.chat_unlocked ?? balance >= minBalance;
+
+      if (!chatUnlocked) {
+        toast.error(
+          `Recharge your wallet to chat. Minimum ₹${minBalance.toLocaleString()} balance required (current: ₹${balance.toLocaleString()}).`,
+          { duration: 5000 }
+        );
+        return;
+      }
+
+      navigate(`/dashboard/business/messages?creator=${gig.creator_id}`);
+    } catch (error) {
+      console.error('Wallet check failed:', error);
+      toast.error('Unable to verify wallet balance. Please try again.');
+    }
   };
 
   const handleContinue = () => {
@@ -153,10 +186,15 @@ export default function GigDetailsPage() {
             <div className="gdp-creator-info">
               <div className="gdp-creator-name">{gig.public_creator_id || gig.creator_id || 'Creator'}</div>
               <div className="gdp-creator-meta">
-                <span className="gdp-level">Level 1</span>
-                <span className="gdp-rating">
-                  <Star size={14} fill="#222" /> 5.0 <span className="gdp-review-count">(19 reviews)</span>
-                </span>
+                <span className="gdp-level">{gig.creator_total_reviews >= 10 ? 'Level 2' : gig.creator_total_reviews >= 3 ? 'Level 1' : 'New Creator'}</span>
+                {gig.creator_total_reviews > 0 ? (
+                  <span className="gdp-rating">
+                    <Star size={14} fill="#fbbf24" stroke="#fbbf24" /> {gig.creator_avg_rating?.toFixed(1)}
+                    <span className="gdp-review-count">({gig.creator_total_reviews} review{gig.creator_total_reviews !== 1 ? 's' : ''})</span>
+                  </span>
+                ) : (
+                  <span className="gdp-rating gdp-no-reviews">No reviews yet</span>
+                )}
               </div>
             </div>
             <div className="gdp-creator-actions">
@@ -299,8 +337,15 @@ export default function GigDetailsPage() {
                   UGC Creator, Digital Marketer, Talking head, Podcast
                 </p>
                 <div className="gdp-profile-rating">
-                  <Star size={14} fill="#222" /> 5.0 <span className="gdp-review-count">(19)</span>
-                  <span className="gdp-level">Level 1</span>
+                  {gig.creator_total_reviews > 0 ? (
+                    <>
+                      <Star size={14} fill="#fbbf24" stroke="#fbbf24" /> {gig.creator_avg_rating?.toFixed(1)}
+                      <span className="gdp-review-count">({gig.creator_total_reviews})</span>
+                    </>
+                  ) : (
+                    <span className="gdp-no-reviews">No reviews yet</span>
+                  )}
+                  <span className="gdp-level">{gig.creator_total_reviews >= 10 ? 'Level 2' : gig.creator_total_reviews >= 3 ? 'Level 1' : 'New Creator'}</span>
                 </div>
                 <button className="gdp-contact-btn-secondary" onClick={handleContactCreator}>
                   Contact me
@@ -339,6 +384,67 @@ export default function GigDetailsPage() {
                 videos that convert.
               </p>
             </div>
+          </div>
+
+          <div className="gdp-reviews-section">
+            <h2 className="gdp-section-title">
+              Reviews {reviews.length > 0 && `(${reviews.length})`}
+            </h2>
+
+            {reviews.length === 0 ? (
+              <div className="gdp-reviews-empty">
+                <Star size={32} stroke="#d1d5db" />
+                <p>No reviews yet. Be the first to work with this creator!</p>
+              </div>
+            ) : (
+              <>
+                <div className="gdp-reviews-summary">
+                  <div className="gdp-reviews-avg">
+                    <span className="gdp-reviews-score">{gig.creator_avg_rating?.toFixed(1) || '0.0'}</span>
+                    <div className="gdp-reviews-stars">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={16}
+                          fill={s <= Math.round(gig.creator_avg_rating || 0) ? '#fbbf24' : 'none'}
+                          stroke={s <= Math.round(gig.creator_avg_rating || 0) ? '#fbbf24' : '#d1d5db'}
+                        />
+                      ))}
+                    </div>
+                    <span className="gdp-reviews-count">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+
+                <div className="gdp-reviews-list">
+                  {reviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="gdp-review-item">
+                      <div className="gdp-review-header">
+                        <div className="gdp-review-avatar">
+                          {(review.reviewer_name || review.reviewer_id || 'B')?.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="gdp-review-info">
+                          <div className="gdp-review-author">{review.reviewer_name || 'Brand'}</div>
+                          <div className="gdp-review-stars">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                size={12}
+                                fill={s <= (review.rating || 0) ? '#fbbf24' : 'none'}
+                                stroke={s <= (review.rating || 0) ? '#fbbf24' : '#d1d5db'}
+                              />
+                            ))}
+                            <span className="gdp-review-date">
+                              {review.created_at ? new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="gdp-review-text">{review.review || review.comment || 'No comment provided.'}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 

@@ -683,7 +683,17 @@ export default function BrandWelcomePage() {
                           </div>
                           <div className="creator-info">
                             <h4 className="creator-name">{gig.public_creator_id || gig.creator_id || 'Creator'}</h4>
-                            <span className="gig-creator-badge" style={{color: '#22c55e'}}>✓ Verified</span>
+                            <div className="gig-creator-rating">
+                              {gig.creator_total_reviews > 0 ? (
+                                <>
+                                  <Star size={12} fill="#fbbf24" stroke="#fbbf24" />
+                                  <span className="rating-value">{gig.creator_avg_rating?.toFixed(1)}</span>
+                                  <span className="rating-count">({gig.creator_total_reviews})</span>
+                                </>
+                              ) : (
+                                <span className="rating-new">New Creator</span>
+                              )}
+                            </div>
                           </div>
                           <Heart size={20} className="gig-heart-icon" />
                         </div>
@@ -1541,6 +1551,33 @@ export default function BrandWelcomePage() {
             font-weight: 600;
             text-transform: uppercase;
             white-space: nowrap;
+          }
+
+          .gig-creator-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #07074e;
+          }
+
+          .gig-creator-rating .rating-value {
+            font-weight: 600;
+          }
+
+          .gig-creator-rating .rating-count {
+            color: #6b7280;
+            font-weight: 400;
+          }
+
+          .gig-creator-rating .rating-new {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
           }
 
           .gig-heart-icon {

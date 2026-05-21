@@ -50,6 +50,7 @@ export default function BrandWelcomePage() {
   const { user, logout } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [contentCategories, setContentCategories] = useState([]);
+  const [approvedGigs, setApprovedGigs] = useState([]);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -90,6 +91,19 @@ export default function BrandWelcomePage() {
       }
     };
     fetchCampaigns();
+  }, []);
+
+  useEffect(() => {
+    const fetchApprovedGigs = async () => {
+      try {
+        const response = await axios.get(`${API}/gigs?status=approved`);
+        const gigs = response.data?.data || response.data || [];
+        setApprovedGigs(gigs);
+      } catch (error) {
+        console.error('Failed to fetch approved gigs:', error);
+      }
+    };
+    fetchApprovedGigs();
   }, []);
 
   useEffect(() => {
@@ -624,26 +638,53 @@ export default function BrandWelcomePage() {
           </section>
 
           <section className="explore-section">
-            <h2>Explore Popular Categories</h2>
-            <div className="explore-container">
-              <div className="categories-sidebar">
-                {contentCategories.length > 0 && contentCategories.map((category) => {
-                  const Icon = getIconComponent(category.icon, category.id);
-                  return (
-                    <button
-                      key={category.id}
-                      className={`category-sidebar-item ${activeCategory === category.id ? 'active' : ''}`}
-                      onClick={() => setActiveCategory(category.id)}
-                    >
-                      <div className="category-item-icon">
-                        <Icon size={20} />
+            <h2>Approved Creator Gigs Available</h2>
+            {approvedGigs.length > 0 ? (
+              <div className="gigs-grid">
+                {approvedGigs.slice(0, 6).map((gig) => (
+                  <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/browse-approved-gigs`)}>
+                    <div className="gig-creator-header">
+                      <div className="creator-avatar">
+                        {gig.creator_name?.charAt(0).toUpperCase() || 'C'}
                       </div>
-                      <span>{category.label || category.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                      <div className="creator-info">
+                        <h4 className="creator-name">{gig.creator_name || 'Creator'}</h4>
+                        <span className="gig-creator-badge" style={{color: '#22c55e'}}>✓ Verified</span>
+                      </div>
+                      <Heart size={20} className="gig-heart-icon" />
+                    </div>
 
+                    <h3 className="gig-title">{gig.title}</h3>
+                    <p className="gig-description">{gig.description?.substring(0, 80)}...</p>
+
+                    <div className="gig-details-grid">
+                      <div className="gig-detail-item">
+                        <span>📁 {gig.category || 'General'}</span>
+                      </div>
+                      <div className="gig-detail-item">
+                        <span>⏱️ Deadline soon</span>
+                      </div>
+                    </div>
+
+                    <div className="gig-footer">
+                      <div className="gig-budget">
+                        <span className="budget-amount">${gig.budget || '0'}</span>
+                      </div>
+                      <button className="gig-cta-button">View Gig</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p>No approved gigs available yet. Check back soon!</p>
+              </div>
+            )}
+
+            <hr style={{margin: '60px 0', border: 'none', borderTop: '1px solid #e2e8f0'}} />
+
+            <h2>Explore Your Dashboard</h2>
+            <div className="explore-container">
               <div className="categories-content">
                 {dashboardCards.map((card, idx) => {
                   const Icon = card.icon;
@@ -1369,6 +1410,177 @@ export default function BrandWelcomePage() {
               border-radius: 0;
               min-width: unset;
             }
+          }
+
+          /* Gig Cards Styles */
+          .gigs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+          }
+
+          .gig-card-welcome {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .gig-card-welcome:hover {
+            border-color: #4a90e2;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+            transform: translateY(-4px);
+          }
+
+          .gig-creator-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+          }
+
+          .creator-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            flex-shrink: 0;
+          }
+
+          .creator-info {
+            flex: 1;
+          }
+
+          .creator-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #07074e;
+            margin: 0 0 4px 0;
+            line-height: 1.2;
+          }
+
+          .gig-creator-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border: 1px solid currentColor;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+          }
+
+          .gig-heart-icon {
+            color: #ddd;
+            flex-shrink: 0;
+            transition: color 0.2s;
+          }
+
+          .gig-card-welcome:hover .gig-heart-icon {
+            color: #e74c3c;
+          }
+
+          .gig-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #07074e;
+            margin: 0;
+            line-height: 1.4;
+            min-height: 40px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+
+          .gig-description {
+            font-size: 13px;
+            color: #666;
+            margin: 0;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+
+          .gig-details-grid {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+          }
+
+          .gig-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #999;
+            background: #f5f5f5;
+            padding: 4px 8px;
+            border-radius: 4px;
+          }
+
+          .gig-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+            margin-top: auto;
+          }
+
+          .gig-budget {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: #07074e;
+          }
+
+          .budget-amount {
+            font-size: 16px;
+          }
+
+          .gig-cta-button {
+            flex: 1;
+            padding: 10px 16px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+          }
+
+          .gig-cta-button:hover {
+            background: #357abd;
+            transform: translateY(-1px);
+          }
+
+          .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 16px;
           }
         `}</style>
       </main>

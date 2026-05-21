@@ -191,9 +191,16 @@ export default function GigDetailsPage() {
 
   // Fallback price if rate card field is missing (uses gig budget as a sensible default)
   const fallback = Number(gig?.price || gig?.budget || 0) || 1000;
-  const basicPrice = rateCard.video_30s ?? fallback;
-  const standardPrice = rateCard.video_60s ?? Math.round(basicPrice * 2);
-  const premiumPrice = rateCard.photo_post ?? Math.round(basicPrice * 4);
+  const basicBasePrice = rateCard.video_30s ?? fallback;
+  const standardBasePrice = rateCard.video_60s ?? Math.round(basicBasePrice * 2);
+  const premiumBasePrice = rateCard.photo_post ?? Math.round(basicBasePrice * 4);
+
+  // Each tier has a "base duration" the creator priced their work for.
+  // Scale price linearly with the user's chosen seconds.
+  const seconds = Math.max(Number(numberOfSeconds) || 15, 1);
+  const basicPrice = Math.round((basicBasePrice / 30) * seconds);
+  const standardPrice = Math.round((standardBasePrice / 60) * seconds);
+  const premiumPrice = Math.round((premiumBasePrice / 60) * seconds);
 
   // Parse "What's included" text into feature list (split on commas or newlines)
   const parseFeatures = (text, defaultFeatures) => {
@@ -207,21 +214,21 @@ export default function GigDetailsPage() {
   const packages = {
     basic: {
       name: 'Basic',
-      title: '30s UGC Video',
+      title: `${seconds}s UGC Video`,
       price: basicPrice,
-      description: gig?.description?.substring(0, 100) || 'Authentic 30-second UGC video. Perfect for product reviews, ads, and short-form content.',
+      description: gig?.description?.substring(0, 100) || 'Authentic UGC video. Perfect for product reviews, ads, and short-form content.',
       delivery: gig?.deliveryTime || gig?.delivery_days || 1,
       revisions: 1,
-      features: parseFeatures(rateCard.video_30s_included, ['1 x 30-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '3 months usage rights'])
+      features: parseFeatures(rateCard.video_30s_included, [`1 x ${seconds}-second video`, 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '3 months usage rights'])
     },
     standard: {
       name: 'Standard',
-      title: '60s UGC Video',
+      title: `${seconds}s Premium UGC Video`,
       price: standardPrice,
-      description: 'Longer-form 60-second UGC video with premium quality and enhanced storytelling.',
+      description: 'Longer-form UGC video with premium quality and enhanced storytelling.',
       delivery: (gig?.deliveryTime || gig?.delivery_days || 1) + 2,
       revisions: 2,
-      features: parseFeatures(rateCard.video_60s_included, ['1 x 60-second video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '6 months usage rights', 'Priority support'])
+      features: parseFeatures(rateCard.video_60s_included, [`1 x ${seconds}-second video`, 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '6 months usage rights', 'Priority support'])
     },
     premium: {
       name: 'Premium',
@@ -230,7 +237,7 @@ export default function GigDetailsPage() {
       description: 'Complete UGC package including photo posts and full content suite.',
       delivery: (gig?.deliveryTime || gig?.delivery_days || 1) + 4,
       revisions: 5,
-      features: parseFeatures(rateCard.photo_post_included, ['Photo post + 60s video', 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '12 months usage rights', 'Priority support', 'Source files included'])
+      features: parseFeatures(rateCard.photo_post_included, [`Photo post + ${seconds}s video`, 'B-Roll included', 'Graphics included', 'Subtitles/captions included', '12 months usage rights', 'Priority support', 'Source files included'])
     }
   };
 
@@ -854,17 +861,6 @@ export default function GigDetailsPage() {
               <h3 className="gdp-package-title">{currentPackage.title}</h3>
               <div className="gdp-package-price">₹{currentPackage.price.toLocaleString()}</div>
               <p className="gdp-package-desc">{currentPackage.description}</p>
-
-              <div className="gdp-package-meta">
-                <div className="gdp-package-meta-item">
-                  <Clock size={16} />
-                  <span>{currentPackage.delivery}-day delivery</span>
-                </div>
-                <div className="gdp-package-meta-item">
-                  <RefreshCw size={16} />
-                  <span>{currentPackage.revisions} Revision{currentPackage.revisions > 1 ? 's' : ''}</span>
-                </div>
-              </div>
 
               <ul className="gdp-package-features">
                 {currentPackage.features.map((feature, idx) => (

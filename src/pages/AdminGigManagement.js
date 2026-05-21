@@ -237,6 +237,34 @@ export default function AdminGigManagement() {
                 <p>{selectedGig.description}</p>
               </div>
 
+              {selectedGig.attachments && selectedGig.attachments.length > 0 && (
+                <div className="agm-detail-section">
+                  <h3>Attachments & Images</h3>
+                  <div className="agm-attachments-grid">
+                    {selectedGig.attachments.map((attachment, idx) => {
+                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment);
+                      const isVideo = /\.(mp4|webm|mov)$/i.test(attachment);
+                      const isPdf = /\.pdf$/i.test(attachment);
+                      const imageUrl = attachment.startsWith('http') ? attachment : `${process.env.REACT_APP_BACKEND_URL}${attachment}`;
+
+                      return (
+                        <div key={idx} className="agm-attachment-item">
+                          {isImage ? (
+                            <img src={imageUrl} alt={`Attachment ${idx + 1}`} className="agm-attachment-image" onError={(e) => {e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22150%22 height=%22150%22/%3E%3C/svg%3E';}} />
+                          ) : isVideo ? (
+                            <div className="agm-video-placeholder">🎥 Video</div>
+                          ) : isPdf ? (
+                            <div className="agm-pdf-placeholder">📄 PDF</div>
+                          ) : (
+                            <div className="agm-file-placeholder">📎 File</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="agm-detail-section">
                 <h3>Personal Info</h3>
                 <dl>

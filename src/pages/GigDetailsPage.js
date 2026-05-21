@@ -32,6 +32,9 @@ export default function GigDetailsPage() {
 
   const [gig, setGig] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [portfolio, setPortfolio] = useState([]);
+  const [activePortfolioIdx, setActivePortfolioIdx] = useState(0);
+  const [activePortfolioMediaIdx, setActivePortfolioMediaIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('basic');
@@ -48,6 +51,7 @@ export default function GigDetailsPage() {
       setGig(res.data);
       if (res.data?.creator_id) {
         fetchReviews(res.data.creator_id);
+        fetchCreatorPortfolio(res.data.creator_id);
       }
     } catch (error) {
       toast.error('Failed to load gig details');
@@ -64,6 +68,45 @@ export default function GigDetailsPage() {
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
       setReviews([]);
+    }
+  };
+
+  const fetchCreatorPortfolio = async (creatorId) => {
+    try {
+      console.log('[Portfolio] Fetching for creator:', creatorId);
+      const res = await axios.get(`${API}/profile/${creatorId}`);
+      console.log('[Portfolio] Profile response:', res.data);
+      console.log('[Portfolio] res.data.portfolio:', res.data?.portfolio);
+      console.log('[Portfolio] res.data.profile?.portfolio:', res.data?.profile?.portfolio);
+
+      // Portfolio can be on user root or inside profile sub-object — check both
+      const rawItems = Array.isArray(res.data?.portfolio)
+        ? res.data.portfolio
+        : (Array.isArray(res.data?.profile?.portfolio) ? res.data.profile.portfolio : []);
+
+      console.log('[Portfolio] Raw items found:', rawItems.length, rawItems);
+
+      const normalized = rawItems.map((item) => {
+        if (!item) return null;
+        if (typeof item === 'string') {
+          return { urls: [item], title: '', description: '', project_cost: '', project_duration: '', created_at: '' };
+        }
+        const urls = Array.isArray(item.urls) ? item.urls : (item.url ? [item.url] : []);
+        return {
+          urls,
+          title: item.title || '',
+          description: item.description || '',
+          project_cost: item.project_cost || '',
+          project_duration: item.project_duration || '',
+          created_at: item.created_at || ''
+        };
+      }).filter(Boolean);
+
+      console.log('[Portfolio] Normalized:', normalized);
+      setPortfolio(normalized);
+    } catch (error) {
+      console.error('[Portfolio] Failed to fetch creator portfolio:', error?.response?.status, error?.response?.data, error);
+      setPortfolio([]);
     }
   };
 
@@ -387,6 +430,96 @@ export default function GigDetailsPage() {
               </p>
             </div>
           </div>
+
+          {portfolio.length > 0 && (() => {
+            const activeItem = portfolio[activePortfolioIdx] || portfolio[0];
+            const activeMedia = activeItem?.urls?.[activePortfolioMediaIdx] || activeItem?.urls?.[0] || '';
+            const formatMonthYear = (iso) => {
+              if (!iso) return '';
+              try {
+                const d = new Date(iso);
+                return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+              } catch { return ''; }
+            };
+            const isVid = isVideo(activeMedia);
+            return (
+              <div className="gdp-portfolio-section">
+                <h2 className="gdp-section-title">My Portfolio</h2>
+
+                <div className="gdp-portfolio-card">
+                  <div className="gdp-portfolio-card-media">
+                    {isVid ? (
+                      <video src={activeMedia} controls className="gdp-portfolio-media" />
+                    ) : (
+                      <img src={activeMedia} alt={activeItem?.title || 'Portfolio'} className="gdp-portfolio-media"
+                        onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22400%22 height=%22300%22/%3E%3C/svg%3E'; }}
+                      />
+                    )}
+                    {activeItem?.urls?.length > 1 && (
+                      <div className="gdp-portfolio-count-badge">📷 {activeItem.urls.length}</div>
+                    )}
+                  </div>
+
+                  <div className="gdp-portfolio-card-info">
+                    {activeItem?.created_at && (
+                      <div className="gdp-portfolio-from">From: {formatMonthYear(activeItem.created_at)}</div>
+                    )}
+                    {activeItem?.title && <h3 className="gdp-portfolio-title">{activeItem.title}</h3>}
+                    {activeItem?.description && (
+                      <p className="gdp-portfolio-desc">{activeItem.description}</p>
+                    )}
+
+                    {(activeItem?.project_cost || activeItem?.project_duration) && (
+                      <div className="gdp-portfolio-meta">
+                        {activeItem?.project_cost && (
+                          <div className="gdp-portfolio-meta-item">
+                            <span className="gdp-portfolio-meta-label">Project cost</span>
+                            <span className="gdp-portfolio-meta-value">{activeItem.project_cost}</span>
+                          </div>
+                        )}
+                        {activeItem?.project_duration && (
+                          <div className="gdp-portfolio-meta-item">
+                            <span className="gdp-portfolio-meta-label">Project duration</span>
+                            <span className="gdp-portfolio-meta-value">{activeItem.project_duration}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {portfolio.length > 1 && (
+                  <div className="gdp-portfolio-thumbs">
+                    {portfolio.slice(0, 5).map((item, idx) => {
+                      const thumbUrl = item?.urls?.[0] || '';
+                      const thumbIsVid = isVideo(thumbUrl);
+                      return (
+                        <div
+                          key={idx}
+                          className={`gdp-portfolio-thumb ${idx === activePortfolioIdx ? 'is-active' : ''}`}
+                          onClick={() => { setActivePortfolioIdx(idx); setActivePortfolioMediaIdx(0); }}
+                        >
+                          {thumbIsVid ? (
+                            <video src={thumbUrl} muted />
+                          ) : (
+                            <img src={thumbUrl} alt={item?.title || `Project ${idx + 1}`}
+                              onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22120%22 height=%22120%22/%3E%3C/svg%3E'; }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                    {portfolio.length > 5 && (
+                      <div className="gdp-portfolio-more">
+                        <strong>+{portfolio.length - 5}</strong>
+                        <span>Projects</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="gdp-reviews-section">
             <h2 className="gdp-section-title">

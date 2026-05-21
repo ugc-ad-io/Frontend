@@ -312,10 +312,12 @@ export default function GigDetailsPage() {
                   <div className="gdp-detail-value">{gig.platforms.join(', ')}</div>
                 </div>
               )}
-              {gig.niche && (
+              {(Array.isArray(gig.niche) ? gig.niche.length > 0 : gig.niche) && (
                 <div className="gdp-detail-item">
                   <div className="gdp-detail-label">Niche</div>
-                  <div className="gdp-detail-value">{gig.niche}</div>
+                  <div className="gdp-detail-value">
+                    {Array.isArray(gig.niche) ? gig.niche.join(', ') : gig.niche}
+                  </div>
                 </div>
               )}
             </div>

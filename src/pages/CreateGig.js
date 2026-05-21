@@ -36,14 +36,11 @@ export default function CreateGig() {
     description: '',
     budget: '',
     deadline: '',
-    requirements: '',
-    target_audience: '',
-    skills_required: [],
     gender: '',
     language: '',
     country: '',
     ageRange: '',
-    niche: '',
+    niche: [],
     videoStyles: [],
     filmingStyle: [],
     platforms: []
@@ -183,14 +180,11 @@ export default function CreateGig() {
         budget: parseFloat(formData.budget),
         deadline: isoDeadline,
         attachments: mediaItems.map(item => item.url),
-        requirements: formData.requirements || '',
-        target_audience: formData.target_audience || '',
-        skills_required: formData.skills_required || [],
         gender: formData.gender || '',
         language: formData.language || '',
         country: formData.country || '',
         ageRange: formData.ageRange || '',
-        niche: formData.niche || '',
+        niche: formData.niche || [],
         videoStyles: formData.videoStyles || [],
         filmingStyle: formData.filmingStyle || [],
         platforms: formData.platforms || []
@@ -426,30 +420,36 @@ export default function CreateGig() {
 
               <fieldset>
                 <legend>Niche</legend>
-                <select
-                  name="niche"
-                  value={formData.niche}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select niche</option>
-                  <option value="Beauty & personal care">Beauty & personal care</option>
-                  <option value="Fashion & accessories">Fashion & accessories</option>
-                  <option value="Home & garden">Home & garden</option>
-                  <option value="Health & wellness">Health & wellness</option>
-                  <option value="Food & beverage">Food & beverage</option>
-                  <option value="Tech & gadgets">Tech & gadgets</option>
-                  <option value="Fitness & sports">Fitness & sports</option>
-                  <option value="Travel & lifestyle">Travel & lifestyle</option>
-                  <option value="Gaming">Gaming</option>
-                  <option value="Education & learning">Education & learning</option>
-                  <option value="Finance & business">Finance & business</option>
-                  <option value="Parenting & family">Parenting & family</option>
-                  <option value="Pets & animals">Pets & animals</option>
-                  <option value="Automotive">Automotive</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="Other">Other</option>
-                </select>
-                <small>Optional - Primary content niche</small>
+                <div className="skills-input">
+                  {[
+                    'Beauty & personal care',
+                    'Fashion & accessories',
+                    'Home & garden',
+                    'Health & wellness',
+                    'Food & beverage',
+                    'Tech & gadgets',
+                    'Fitness & sports',
+                    'Travel & lifestyle',
+                    'Gaming',
+                    'Education & learning',
+                    'Finance & business',
+                    'Parenting & family',
+                    'Pets & animals',
+                    'Automotive',
+                    'Entertainment',
+                    'Other'
+                  ].map(niche => (
+                    <label key={niche} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.niche.includes(niche)}
+                        onChange={() => handleMultiSelect('niche', niche)}
+                      />
+                      <span>{niche}</span>
+                    </label>
+                  ))}
+                </div>
+                <small>Optional - Select all niches you create content for</small>
               </fieldset>
 
               <fieldset>
@@ -501,52 +501,6 @@ export default function CreateGig() {
                   ))}
                 </div>
                 <small>Optional - Platforms where you create content</small>
-              </fieldset>
-            </div>
-
-            <div className="create-gig-section">
-              <h3>Additional Details</h3>
-
-              <fieldset>
-                <legend>Requirements</legend>
-                <textarea
-                  name="requirements"
-                  value={formData.requirements}
-                  onChange={handleInputChange}
-                  placeholder="Specify any detailed requirements for the work..."
-                  rows="4"
-                  maxLength="2000"
-                />
-                <small>Optional - Additional requirements (max 2000 characters)</small>
-              </fieldset>
-
-              <fieldset>
-                <legend>Target Audience</legend>
-                <input
-                  type="text"
-                  name="target_audience"
-                  value={formData.target_audience}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Women 18-35, Tech enthusiasts, Fashion lovers"
-                  maxLength="500"
-                />
-                <small>Optional - Describe your target audience (max 500 characters)</small>
-              </fieldset>
-
-              <fieldset>
-                <legend>Skills Required</legend>
-                <div className="skills-input">
-                  {['Video Editing', 'Content Writing', 'Photography', 'Social Media', 'Design', 'Storytelling', 'Animation', 'Scripting'].map(skill => (
-                    <label key={skill} className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.skills_required.includes(skill)}
-                        onChange={() => handleMultiSelect('skills_required', skill)}
-                      />
-                      <span>{skill}</span>
-                    </label>
-                  ))}
-                </div>
               </fieldset>
             </div>
 

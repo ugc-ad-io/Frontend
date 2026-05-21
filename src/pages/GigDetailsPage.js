@@ -542,12 +542,16 @@ export default function GigDetailsPage() {
                   <div className="gdp-detail-value">{gig.gender || 'Not specified'}</div>
                 </div>
               )}
-              {gig.nativeLanguage && (
-                <div className="gdp-detail-item">
-                  <div className="gdp-detail-label">Native language</div>
-                  <div className="gdp-detail-value">{gig.nativeLanguage}</div>
-                </div>
-              )}
+              {(() => {
+                const lang = gig.nativeLanguage || gig.language;
+                const langDisplay = Array.isArray(lang) ? lang.join(', ') : lang;
+                return langDisplay ? (
+                  <div className="gdp-detail-item">
+                    <div className="gdp-detail-label">Languages</div>
+                    <div className="gdp-detail-value">{langDisplay}</div>
+                  </div>
+                ) : null;
+              })()}
               {gig.accent && (
                 <div className="gdp-detail-item">
                   <div className="gdp-detail-label">Accent</div>
@@ -642,7 +646,14 @@ export default function GigDetailsPage() {
               </div>
               <div className="gdp-profile-stat">
                 <div className="gdp-stat-label">Languages</div>
-                <div className="gdp-stat-value">{gig.nativeLanguage || 'English'}</div>
+                <div className="gdp-stat-value">
+                  {(() => {
+                    const lang = gig.nativeLanguage || gig.language;
+                    if (Array.isArray(lang) && lang.length) return lang.join(', ');
+                    if (typeof lang === 'string' && lang) return lang;
+                    return 'English';
+                  })()}
+                </div>
               </div>
             </div>
 

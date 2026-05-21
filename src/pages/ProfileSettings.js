@@ -155,7 +155,7 @@ export default function ProfileSettings() {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [gender, setGender] = useState('');
-  const [language, setLanguage] = useState('');
+  const [languages, setLanguages] = useState([]);
   const [country, setCountry] = useState('');
   const [ageRange, setAgeRange] = useState('');
   
@@ -312,7 +312,15 @@ export default function ProfileSettings() {
       setDescription(response.data.description || '');
       setProfilePhoto(response.data.profile_photo || null);
       setGender(response.data.gender || '');
-      setLanguage(response.data.language || '');
+      // language can be stored as legacy string or new array — normalize to array
+      const lang = response.data.language;
+      if (Array.isArray(lang)) {
+        setLanguages(lang.filter(Boolean));
+      } else if (typeof lang === 'string' && lang.trim()) {
+        setLanguages([lang]);
+      } else {
+        setLanguages([]);
+      }
       setCountry(response.data.country || '');
       setAgeRange(response.data.age_range || '');
     } catch (error) {
@@ -360,22 +368,26 @@ export default function ProfileSettings() {
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        bio: bio || '',
-        description: description || '',
-        gender: gender || '',
-        language: language || '',
-        country: country || '',
-        age_range: ageRange || ''
-      });
+      const params = new URLSearchParams();
+      params.set('bio', bio || '');
+      params.set('description', description || '');
+      params.set('gender', gender || '');
+      params.set('country', country || '');
+      params.set('age_range', ageRange || '');
+      // Send each language as a separate `language` query param so backend can collect as List[str]
+      (languages || []).forEach((l) => params.append('language', l));
       await axios.put(`${API}/profile/update-info?${params.toString()}`);
-      setUser({ ...user, bio, description, gender, language, country, age_range: ageRange });
+      setUser({ ...user, bio, description, gender, language: languages, country, age_range: ageRange });
       toast.success('Profile updated successfully!');
     } catch (error) {
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleLanguage = (lang) => {
+    setLanguages((prev) => prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]);
   };
 
   const handleChangePassword = async (e) => {
@@ -964,29 +976,20 @@ export default function ProfileSettings() {
                   </div>
 
                   <div className="ps-form-group">
-                    <label>Language</label>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                      <option value="">Select language</option>
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Spanish">Spanish</option>
-                      <option value="French">French</option>
-                      <option value="German">German</option>
-                      <option value="Portuguese">Portuguese</option>
-                      <option value="Italian">Italian</option>
-                      <option value="Arabic">Arabic</option>
-                      <option value="Mandarin">Mandarin</option>
-                      <option value="Japanese">Japanese</option>
-                      <option value="Korean">Korean</option>
-                      <option value="Bengali">Bengali</option>
-                      <option value="Tamil">Tamil</option>
-                      <option value="Telugu">Telugu</option>
-                      <option value="Marathi">Marathi</option>
-                      <option value="Gujarati">Gujarati</option>
-                      <option value="Punjabi">Punjabi</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <span className="ps-hint">Optional - Native or working language</span>
+                    <label>Languages</label>
+                    <div className="ps-multi-select">
+                      {['English', 'Hindi', 'Spanish', 'French', 'German', 'Portuguese', 'Italian', 'Arabic', 'Mandarin', 'Japanese', 'Korean', 'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati', 'Punjabi', 'Other'].map((lang) => (
+                        <label key={lang} className={`ps-chip ${languages.includes(lang) ? 'is-selected' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={languages.includes(lang)}
+                            onChange={() => toggleLanguage(lang)}
+                          />
+                          <span>{lang}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <span className="ps-hint">Optional - Select all languages you speak ({languages.length} selected)</span>
                   </div>
 
                   <div className="ps-form-group">

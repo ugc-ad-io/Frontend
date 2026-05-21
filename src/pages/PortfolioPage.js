@@ -75,10 +75,12 @@ function PortfolioMedia({ url, index }) {
 function normalizePortfolio(items) {
   return (items || []).map((item) => {
     if (typeof item === 'string') {
-      return { url: item, title: '', description: '', project_cost: '', project_duration: '' };
+      return { urls: [item], title: '', description: '', project_cost: '', project_duration: '' };
     }
+    // Migrate old single-url items to urls array
+    const urls = Array.isArray(item.urls) ? item.urls : (item.url ? [item.url] : []);
     return {
-      url: item.url || '',
+      urls,
       title: item.title || '',
       description: item.description || '',
       project_cost: item.project_cost || '',
@@ -96,7 +98,7 @@ export default function PortfolioPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    url: '',
+    urls: [],
     title: '',
     description: '',
     project_cost: '',
@@ -134,42 +136,58 @@ export default function PortfolioPage() {
   }, [user?.portfolio]);
 
   const resetForm = () => {
-    setFormData({ url: '', title: '', description: '', project_cost: '', project_duration: '' });
+    setFormData({ urls: [], title: '', description: '', project_cost: '', project_duration: '' });
   };
 
   const handleFileUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
 
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error(`${file.name} is too large. Maximum 50MB per file.`);
+    if (formData.urls.length + files.length > 10) {
+      toast.error('Maximum 10 files per portfolio item');
+      event.target.value = '';
       return;
     }
 
     setUploading(true);
     try {
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
-      const response = await axios.post(`${API}/upload/file`, formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      let fileUrl = response.data?.file_url || response.data?.url;
-      if (fileUrl && fileUrl.startsWith('/')) {
-        fileUrl = `${BACKEND_URL}${fileUrl}`;
+      const uploadedUrls = [];
+      for (const file of files) {
+        if (file.size > 50 * 1024 * 1024) {
+          toast.error(`${file.name} is too large. Maximum 50MB per file.`);
+          continue;
+        }
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        const response = await axios.post(`${API}/upload/file`, formDataUpload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        let fileUrl = response.data?.file_url || response.data?.url;
+        if (fileUrl && fileUrl.startsWith('/')) {
+          fileUrl = `${BACKEND_URL}${fileUrl}`;
+        }
+        if (fileUrl) uploadedUrls.push(fileUrl);
       }
-      setFormData((prev) => ({ ...prev, url: fileUrl }));
-      toast.success('File uploaded. Now fill in the details.');
+
+      if (uploadedUrls.length) {
+        setFormData((prev) => ({ ...prev, urls: [...prev.urls, ...uploadedUrls] }));
+        toast.success(`${uploadedUrls.length} file(s) uploaded`);
+      }
     } catch (error) {
-      toast.error(error.response?.data?.detail || error.message || 'Failed to upload file');
+      toast.error(error.response?.data?.detail || error.message || 'Failed to upload file(s)');
     } finally {
       setUploading(false);
       event.target.value = '';
     }
   };
 
+  const handleRemoveUploadedFile = (urlToRemove) => {
+    setFormData((prev) => ({ ...prev, urls: prev.urls.filter((u) => u !== urlToRemove) }));
+  };
+
   const handleSavePortfolioItem = async () => {
-    if (!formData.url) {
-      toast.error('Please upload an image or video first');
+    if (!formData.urls.length) {
+      toast.error('Please upload at least one image or video');
       return;
     }
     if (!formData.title?.trim()) {
@@ -178,7 +196,7 @@ export default function PortfolioPage() {
     }
 
     const newItem = {
-      url: formData.url,
+      urls: formData.urls,
       title: formData.title.trim(),
       description: formData.description.trim(),
       project_cost: formData.project_cost.trim(),
@@ -200,9 +218,9 @@ export default function PortfolioPage() {
     }
   };
 
-  const handleRemovePortfolioItem = async (url) => {
+  const handleRemovePortfolioItem = async (itemIndex) => {
     try {
-      const nextPortfolio = portfolio.filter((item) => item.url !== url);
+      const nextPortfolio = portfolio.filter((_, idx) => idx !== itemIndex);
       await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
       setPortfolio(nextPortfolio);
       toast.success('Portfolio item removed');
@@ -236,9 +254,12 @@ export default function PortfolioPage() {
 
           <div className="portfolio-grid-rich">
             {portfolio.length ? portfolio.map((item, index) => (
-              <article key={item.url || index} className="portfolio-card">
+              <article key={index} className="portfolio-card">
                 <div className="portfolio-card-media">
-                  <PortfolioMedia url={item.url} index={index} />
+                  <PortfolioMedia url={item.urls?.[0] || ''} index={index} />
+                  {item.urls?.length > 1 && (
+                    <div className="portfolio-card-count">+{item.urls.length - 1}</div>
+                  )}
                 </div>
                 <div className="portfolio-card-body">
                   {item.title && <h3 className="portfolio-card-title">{item.title}</h3>}
@@ -260,7 +281,7 @@ export default function PortfolioPage() {
                   <button
                     type="button"
                     className="portfolio-remove-btn"
-                    onClick={() => handleRemovePortfolioItem(item.url)}
+                    onClick={() => handleRemovePortfolioItem(index)}
                   >
                     <X size={14} /> Remove
                   </button>
@@ -288,35 +309,39 @@ export default function PortfolioPage() {
 
             <div className="portfolio-modal-body">
               <div className="portfolio-form-field">
-                <label>Upload Image or Video *</label>
-                {formData.url ? (
-                  <div className="portfolio-preview">
-                    {isVideoUrl(formData.url) ? (
-                      <video src={formData.url} controls />
-                    ) : (
-                      <img src={formData.url} alt="Preview" />
-                    )}
-                    <button
-                      type="button"
-                      className="portfolio-preview-remove"
-                      onClick={() => setFormData((prev) => ({ ...prev, url: '' }))}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="portfolio-upload-box">
-                    <Upload size={24} />
-                    <span>{uploading ? 'Uploading...' : 'Click to upload (image or video)'}</span>
-                    <small>Max 50MB</small>
-                    <input
-                      type="file"
-                      accept="image/*,video/*"
-                      onChange={handleFileUpload}
-                      disabled={uploading}
-                    />
-                  </label>
-                )}
+                <label>Upload Images / Videos * (up to 10)</label>
+                <div className="portfolio-multi-upload">
+                  {formData.urls.map((url, idx) => (
+                    <div key={idx} className="portfolio-multi-preview">
+                      {isVideoUrl(url) ? (
+                        <video src={url} muted />
+                      ) : (
+                        <img src={url} alt={`Preview ${idx + 1}`} />
+                      )}
+                      <button
+                        type="button"
+                        className="portfolio-preview-remove"
+                        onClick={() => handleRemoveUploadedFile(url)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {formData.urls.length < 10 && (
+                    <label className="portfolio-upload-tile">
+                      <Plus size={20} />
+                      <span>{uploading ? 'Uploading...' : 'Add files'}</span>
+                      <small>Max 50MB each</small>
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        multiple
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
 
               <div className="portfolio-form-field">
@@ -379,7 +404,7 @@ export default function PortfolioPage() {
                 type="button"
                 className="portfolio-btn-save"
                 onClick={handleSavePortfolioItem}
-                disabled={saving || uploading || !formData.url}
+                disabled={saving || uploading || formData.urls.length === 0}
               >
                 {saving ? 'Saving...' : 'Add to Portfolio'}
               </button>
@@ -605,57 +630,85 @@ export default function PortfolioPage() {
           gap: 16px;
         }
 
-        .portfolio-upload-box {
+        .portfolio-multi-upload {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+          gap: 10px;
+        }
+
+        .portfolio-multi-preview {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 1;
+          border-radius: 8px;
+          overflow: hidden;
+          background: #f3f4f6;
+          border: 1px solid #e5e7eb;
+        }
+        .portfolio-multi-preview img,
+        .portfolio-multi-preview video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .portfolio-upload-tile {
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          padding: 28px;
+          gap: 4px;
+          aspect-ratio: 1;
           border: 2px dashed #d1d5db;
           border-radius: 8px;
           background: #f9fafb;
           cursor: pointer;
           color: #6b7280;
           transition: all 0.2s;
+          text-align: center;
+          padding: 8px;
         }
-        .portfolio-upload-box:hover {
+        .portfolio-upload-tile:hover {
           border-color: #07074e;
           background: #f3f4f6;
         }
-        .portfolio-upload-box input { display: none; }
-        .portfolio-upload-box span { font-size: 14px; font-weight: 500; }
-        .portfolio-upload-box small { font-size: 12px; color: #9ca3af; }
+        .portfolio-upload-tile input { display: none; }
+        .portfolio-upload-tile span { font-size: 12px; font-weight: 500; }
+        .portfolio-upload-tile small { font-size: 10px; color: #9ca3af; }
 
-        .portfolio-preview {
-          position: relative;
-          width: 100%;
-          max-height: 280px;
-          border-radius: 8px;
-          overflow: hidden;
-          background: #f3f4f6;
-        }
-        .portfolio-preview img,
-        .portfolio-preview video {
-          width: 100%;
-          max-height: 280px;
-          object-fit: contain;
-          display: block;
-        }
         .portfolio-preview-remove {
           position: absolute;
-          top: 8px;
-          right: 8px;
-          background: rgba(0,0,0,0.6);
+          top: 4px;
+          right: 4px;
+          background: rgba(0,0,0,0.7);
           color: white;
           border: none;
-          width: 28px;
-          height: 28px;
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 0;
+        }
+        .portfolio-preview-remove:hover {
+          background: #ef4444;
+        }
+
+        .portfolio-card-media {
+          position: relative;
+        }
+        .portfolio-card-count {
+          position: absolute;
+          bottom: 8px;
+          right: 8px;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
         }
 
         .portfolio-modal-footer {

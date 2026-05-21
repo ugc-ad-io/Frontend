@@ -27,6 +27,7 @@ import PortfolioPage from './pages/PortfolioPage';
 import CreateGig from './pages/CreateGig';
 import AdminGigManagement from './pages/AdminGigManagement';
 import BrowseApprovedGigs from './pages/BrowseApprovedGigs';
+import GigDetailsPage from './pages/GigDetailsPage';
 import ApplicationsPage from './pages/ApplicationsPage';
 import AdminLayout from './components/AdminLayout';
 import { Toaster } from 'sonner';
@@ -243,6 +244,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['business']}>
                   <BrowseApprovedGigs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gig/:gigId"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <GigDetailsPage />
                 </ProtectedRoute>
               }
             />

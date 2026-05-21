@@ -662,7 +662,7 @@ export default function BrandWelcomePage() {
                 {approvedGigs.length > 0 ? (
                   <>
                     {approvedGigs.slice(0, 6).map((gig) => (
-                      <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/browse-approved-gigs`)}>
+                      <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/gig/${gig.id}`)}>
                         {gig.attachments && gig.attachments.length > 0 && (
                           <div className="gig-media-preview">
                             <img

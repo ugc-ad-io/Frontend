@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -55,6 +56,7 @@ const CreatorLevelBadge = ({ completedWorks = 0 }) => {
 
 export default function BrowseApprovedGigs() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [gigs, setGigs] = useState([]);
   const [filteredGigs, setFilteredGigs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -172,7 +174,7 @@ export default function BrowseApprovedGigs() {
       ) : (
         <div className="gigs-grid">
           {filteredGigs.map(gig => (
-            <div key={gig.id} className="gig-card">
+            <div key={gig.id} className="gig-card" onClick={() => navigate(`/gig/${gig.id}`)} style={{ cursor: 'pointer' }}>
               {/* Creator Info Header */}
               <div className="gig-creator-header">
                 <div className="creator-avatar">
@@ -250,9 +252,9 @@ export default function BrowseApprovedGigs() {
                 </div>
                 <button
                   className="gig-cta-button"
-                  onClick={() => handleContactCreator(gig.id, gig.creator_id)}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/gig/${gig.id}`); }}
                 >
-                  View & Contact
+                  View Gig
                 </button>
               </div>
             </div>

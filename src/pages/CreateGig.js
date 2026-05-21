@@ -41,7 +41,12 @@ export default function CreateGig() {
     skills_required: [],
     gender: '',
     language: '',
-    country: ''
+    country: '',
+    ageRange: '',
+    niche: '',
+    videoStyles: [],
+    filmingStyle: [],
+    platforms: []
   });
 
   const navItems = [
@@ -183,7 +188,12 @@ export default function CreateGig() {
         skills_required: formData.skills_required || [],
         gender: formData.gender || '',
         language: formData.language || '',
-        country: formData.country || ''
+        country: formData.country || '',
+        ageRange: formData.ageRange || '',
+        niche: formData.niche || '',
+        videoStyles: formData.videoStyles || [],
+        filmingStyle: formData.filmingStyle || [],
+        platforms: formData.platforms || []
       };
 
       console.log('Submitting gig data:', gigData);
@@ -394,6 +404,103 @@ export default function CreateGig() {
                   <option value="Other">Other</option>
                 </select>
                 <small>Optional - Country of residence</small>
+              </fieldset>
+
+              <fieldset>
+                <legend>Age Range</legend>
+                <select
+                  name="ageRange"
+                  value={formData.ageRange}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select age range</option>
+                  <option value="13-17">13-17 years old</option>
+                  <option value="18-24">18-24 years old</option>
+                  <option value="25-34">25-34 years old</option>
+                  <option value="35-44">35-44 years old</option>
+                  <option value="45-54">45-54 years old</option>
+                  <option value="55+">55+ years old</option>
+                </select>
+                <small>Optional - Creator's age range</small>
+              </fieldset>
+
+              <fieldset>
+                <legend>Niche</legend>
+                <select
+                  name="niche"
+                  value={formData.niche}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select niche</option>
+                  <option value="Beauty & personal care">Beauty & personal care</option>
+                  <option value="Fashion & accessories">Fashion & accessories</option>
+                  <option value="Home & garden">Home & garden</option>
+                  <option value="Health & wellness">Health & wellness</option>
+                  <option value="Food & beverage">Food & beverage</option>
+                  <option value="Tech & gadgets">Tech & gadgets</option>
+                  <option value="Fitness & sports">Fitness & sports</option>
+                  <option value="Travel & lifestyle">Travel & lifestyle</option>
+                  <option value="Gaming">Gaming</option>
+                  <option value="Education & learning">Education & learning</option>
+                  <option value="Finance & business">Finance & business</option>
+                  <option value="Parenting & family">Parenting & family</option>
+                  <option value="Pets & animals">Pets & animals</option>
+                  <option value="Automotive">Automotive</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Other">Other</option>
+                </select>
+                <small>Optional - Primary content niche</small>
+              </fieldset>
+
+              <fieldset>
+                <legend>Video Styles</legend>
+                <div className="skills-input">
+                  {['Product demo', 'Tutorials', 'Testimonials', 'Before/After', 'Unboxing', 'Talking head', 'Lifestyle', 'Reviews', 'Story-style', 'Comparison'].map(style => (
+                    <label key={style} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.videoStyles.includes(style)}
+                        onChange={() => handleMultiSelect('videoStyles', style)}
+                      />
+                      <span>{style}</span>
+                    </label>
+                  ))}
+                </div>
+                <small>Optional - Select all video styles you offer</small>
+              </fieldset>
+
+              <fieldset>
+                <legend>Filming Style</legend>
+                <div className="skills-input">
+                  {['Handheld', 'Selfie', 'POV', 'Tripod', 'Mirror-style', 'Studio', 'Outdoor', 'In-home'].map(style => (
+                    <label key={style} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.filmingStyle.includes(style)}
+                        onChange={() => handleMultiSelect('filmingStyle', style)}
+                      />
+                      <span>{style}</span>
+                    </label>
+                  ))}
+                </div>
+                <small>Optional - Select all filming styles you offer</small>
+              </fieldset>
+
+              <fieldset>
+                <legend>Platforms</legend>
+                <div className="skills-input">
+                  {['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Snapchat', 'Twitter/X', 'LinkedIn', 'Pinterest'].map(platform => (
+                    <label key={platform} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.platforms.includes(platform)}
+                        onChange={() => handleMultiSelect('platforms', platform)}
+                      />
+                      <span>{platform}</span>
+                    </label>
+                  ))}
+                </div>
+                <small>Optional - Platforms where you create content</small>
               </fieldset>
             </div>
 

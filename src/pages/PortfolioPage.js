@@ -73,18 +73,25 @@ function PortfolioMedia({ url, index }) {
 
 // Convert legacy string entries to objects, leave object entries as-is
 function normalizePortfolio(items) {
-  return (items || []).map((item) => {
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => {
+    if (!item) return { urls: [], title: '', description: '', project_cost: '', project_duration: '' };
     if (typeof item === 'string') {
       return { urls: [item], title: '', description: '', project_cost: '', project_duration: '' };
     }
+    if (typeof item !== 'object') {
+      return { urls: [], title: '', description: '', project_cost: '', project_duration: '' };
+    }
     // Migrate old single-url items to urls array
-    const urls = Array.isArray(item.urls) ? item.urls : (item.url ? [item.url] : []);
+    const urls = Array.isArray(item.urls)
+      ? item.urls.filter((u) => typeof u === 'string')
+      : (typeof item.url === 'string' ? [item.url] : []);
     return {
       urls,
-      title: item.title || '',
-      description: item.description || '',
-      project_cost: item.project_cost || '',
-      project_duration: item.project_duration || ''
+      title: typeof item.title === 'string' ? item.title : '',
+      description: typeof item.description === 'string' ? item.description : '',
+      project_cost: typeof item.project_cost === 'string' ? item.project_cost : '',
+      project_duration: typeof item.project_duration === 'string' ? item.project_duration : ''
     };
   });
 }
@@ -118,18 +125,7 @@ export default function PortfolioPage() {
     { name: 'Settings', icon: Settings, action: () => navigate('/settings') },
   ];
 
-  useEffect(() => {
-    const refreshUserData = async () => {
-      try {
-        const response = await axios.get(`${API}/auth/me`);
-        setUser(response.data);
-      } catch (error) {
-        console.error('Failed to refresh user data');
-      }
-    };
-    refreshUserData();
-  }, [setUser]);
-
+  // Load portfolio from user once; we don't auto-refresh from /auth/me to avoid races
   useEffect(() => {
     setPortfolio(normalizePortfolio(user?.portfolio));
     setLoading(false);
@@ -198,9 +194,9 @@ export default function PortfolioPage() {
     const newItem = {
       urls: formData.urls,
       title: formData.title.trim(),
-      description: formData.description.trim(),
-      project_cost: formData.project_cost.trim(),
-      project_duration: formData.project_duration.trim()
+      description: (formData.description || '').trim(),
+      project_cost: (formData.project_cost || '').trim(),
+      project_duration: (formData.project_duration || '').trim()
     };
 
     setSaving(true);
@@ -208,11 +204,20 @@ export default function PortfolioPage() {
       const nextPortfolio = [...portfolio, newItem];
       await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
       setPortfolio(nextPortfolio);
+      // Also update user context so other pages see the update
+      if (setUser && user) {
+        setUser({ ...user, portfolio: nextPortfolio });
+      }
       toast.success('Portfolio item added');
       setShowModal(false);
       resetForm();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save portfolio item');
+      console.error('Save portfolio error:', error);
+      const detail = error.response?.data?.detail;
+      const errMsg = Array.isArray(detail)
+        ? detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
+        : (detail || error.message || 'Failed to save portfolio item');
+      toast.error(errMsg);
     } finally {
       setSaving(false);
     }
@@ -223,8 +228,12 @@ export default function PortfolioPage() {
       const nextPortfolio = portfolio.filter((_, idx) => idx !== itemIndex);
       await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
       setPortfolio(nextPortfolio);
+      if (setUser && user) {
+        setUser({ ...user, portfolio: nextPortfolio });
+      }
       toast.success('Portfolio item removed');
     } catch (error) {
+      console.error('Remove portfolio error:', error);
       toast.error('Failed to remove portfolio item');
     }
   };

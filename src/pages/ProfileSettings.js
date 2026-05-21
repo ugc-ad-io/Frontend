@@ -154,6 +154,10 @@ export default function ProfileSettings() {
   const [description, setDescription] = useState('');
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [gender, setGender] = useState('');
+  const [language, setLanguage] = useState('');
+  const [country, setCountry] = useState('');
+  const [ageRange, setAgeRange] = useState('');
   
   // Password states
   const [oldPassword, setOldPassword] = useState('');
@@ -307,6 +311,10 @@ export default function ProfileSettings() {
       setBio(response.data.bio || '');
       setDescription(response.data.description || '');
       setProfilePhoto(response.data.profile_photo || null);
+      setGender(response.data.gender || '');
+      setLanguage(response.data.language || '');
+      setCountry(response.data.country || '');
+      setAgeRange(response.data.age_range || '');
     } catch (error) {
       toast.error('Failed to load profile data');
     }
@@ -352,8 +360,16 @@ export default function ProfileSettings() {
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      await axios.put(`${API}/profile/update-info?bio=${encodeURIComponent(bio)}&description=${encodeURIComponent(description)}`);
-      setUser({ ...user, bio, description });
+      const params = new URLSearchParams({
+        bio: bio || '',
+        description: description || '',
+        gender: gender || '',
+        language: language || '',
+        country: country || '',
+        age_range: ageRange || ''
+      });
+      await axios.put(`${API}/profile/update-info?${params.toString()}`);
+      setUser({ ...user, bio, description, gender, language, country, age_range: ageRange });
       toast.success('Profile updated successfully!');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -931,6 +947,85 @@ export default function ProfileSettings() {
                       maxLength={1000}
                     />
                     <span className="ps-char-count">{description.length}/1000</span>
+                  </div>
+
+                  <h3 className="ps-subsection-title">Creator Details</h3>
+
+                  <div className="ps-form-group">
+                    <label>Gender</label>
+                    <select value={gender} onChange={(e) => setGender(e.target.value)}>
+                      <option value="">Select gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                    <span className="ps-hint">Optional - Creator's gender</span>
+                  </div>
+
+                  <div className="ps-form-group">
+                    <label>Language</label>
+                    <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+                      <option value="">Select language</option>
+                      <option value="English">English</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="French">French</option>
+                      <option value="German">German</option>
+                      <option value="Portuguese">Portuguese</option>
+                      <option value="Italian">Italian</option>
+                      <option value="Arabic">Arabic</option>
+                      <option value="Mandarin">Mandarin</option>
+                      <option value="Japanese">Japanese</option>
+                      <option value="Korean">Korean</option>
+                      <option value="Bengali">Bengali</option>
+                      <option value="Tamil">Tamil</option>
+                      <option value="Telugu">Telugu</option>
+                      <option value="Marathi">Marathi</option>
+                      <option value="Gujarati">Gujarati</option>
+                      <option value="Punjabi">Punjabi</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <span className="ps-hint">Optional - Native or working language</span>
+                  </div>
+
+                  <div className="ps-form-group">
+                    <label>Country</label>
+                    <select value={country} onChange={(e) => setCountry(e.target.value)}>
+                      <option value="">Select country</option>
+                      <option value="India">India</option>
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Australia">Australia</option>
+                      <option value="Germany">Germany</option>
+                      <option value="France">France</option>
+                      <option value="Spain">Spain</option>
+                      <option value="Italy">Italy</option>
+                      <option value="Brazil">Brazil</option>
+                      <option value="Mexico">Mexico</option>
+                      <option value="Japan">Japan</option>
+                      <option value="South Korea">South Korea</option>
+                      <option value="China">China</option>
+                      <option value="UAE">UAE</option>
+                      <option value="Singapore">Singapore</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <span className="ps-hint">Optional - Country of residence</span>
+                  </div>
+
+                  <div className="ps-form-group">
+                    <label>Age Range</label>
+                    <select value={ageRange} onChange={(e) => setAgeRange(e.target.value)}>
+                      <option value="">Select age range</option>
+                      <option value="13-17">13-17 years old</option>
+                      <option value="18-24">18-24 years old</option>
+                      <option value="25-34">25-34 years old</option>
+                      <option value="35-44">35-44 years old</option>
+                      <option value="45-54">45-54 years old</option>
+                      <option value="55+">55+ years old</option>
+                    </select>
+                    <span className="ps-hint">Optional - Creator's age range</span>
                   </div>
 
                   <button

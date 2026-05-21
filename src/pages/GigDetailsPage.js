@@ -561,40 +561,40 @@ export default function GigDetailsPage() {
 
           <div className="gdp-creator-details">
             <div className="gdp-detail-grid">
-              {(creatorDetails.gender || gig.gender) && (
-                <div className="gdp-detail-item">
-                  <div className="gdp-detail-label">Gender</div>
-                  <div className="gdp-detail-value">{creatorDetails.gender || gig.gender}</div>
+              <div className="gdp-detail-item">
+                <div className="gdp-detail-label">Gender</div>
+                <div className="gdp-detail-value">
+                  {creatorDetails.gender || gig.gender || 'Not specified'}
                 </div>
-              )}
-              {(() => {
-                const langs = creatorDetails.languages.length
-                  ? creatorDetails.languages
-                  : (gig.nativeLanguage || gig.language);
-                const langDisplay = Array.isArray(langs) ? langs.join(', ') : langs;
-                return langDisplay ? (
-                  <div className="gdp-detail-item">
-                    <div className="gdp-detail-label">Languages</div>
-                    <div className="gdp-detail-value">{langDisplay}</div>
-                  </div>
-                ) : null;
-              })()}
-              {(creatorDetails.country || gig.city) && (
-                <div className="gdp-detail-item">
-                  <div className="gdp-detail-label">Country</div>
-                  <div className="gdp-detail-value">{creatorDetails.country || gig.city}</div>
+              </div>
+              <div className="gdp-detail-item">
+                <div className="gdp-detail-label">Languages</div>
+                <div className="gdp-detail-value">
+                  {(() => {
+                    if (creatorDetails.languages.length) return creatorDetails.languages.join(', ');
+                    const lang = gig.nativeLanguage || gig.language;
+                    if (Array.isArray(lang) && lang.length) return lang.join(', ');
+                    if (typeof lang === 'string' && lang) return lang;
+                    return 'Not specified';
+                  })()}
                 </div>
-              )}
+              </div>
+              <div className="gdp-detail-item">
+                <div className="gdp-detail-label">Country</div>
+                <div className="gdp-detail-value">
+                  {creatorDetails.country || gig.city || 'Not specified'}
+                </div>
+              </div>
+              <div className="gdp-detail-item">
+                <div className="gdp-detail-label">Age range</div>
+                <div className="gdp-detail-value">
+                  {creatorDetails.age_range || gig.ageRange || 'Not specified'}
+                </div>
+              </div>
               {gig.accent && (
                 <div className="gdp-detail-item">
                   <div className="gdp-detail-label">Accent</div>
                   <div className="gdp-detail-value">{gig.accent}</div>
-                </div>
-              )}
-              {(creatorDetails.age_range || gig.ageRange) && (
-                <div className="gdp-detail-item">
-                  <div className="gdp-detail-label">Age range</div>
-                  <div className="gdp-detail-value">{creatorDetails.age_range || gig.ageRange}</div>
                 </div>
               )}
               {gig.videoStyles?.length > 0 && (

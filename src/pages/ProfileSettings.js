@@ -376,11 +376,23 @@ export default function ProfileSettings() {
       params.set('age_range', ageRange || '');
       // Send each language as a separate `language` query param so backend can collect as List[str]
       (languages || []).forEach((l) => params.append('language', l));
-      await axios.put(`${API}/profile/update-info?${params.toString()}`);
+      console.log('[ProfileSave] Sending to', `${API}/profile/update-info?${params.toString()}`);
+      console.log('[ProfileSave] Payload:', { bio, description, gender, languages, country, age_range: ageRange });
+      const res = await axios.put(`${API}/profile/update-info?${params.toString()}`);
+      console.log('[ProfileSave] Response:', res.status, res.data);
+      // Verify by fetching /auth/me after save
+      const verify = await axios.get(`${API}/auth/me`);
+      console.log('[ProfileSave] After-save /auth/me:', {
+        gender: verify.data?.gender,
+        language: verify.data?.language,
+        country: verify.data?.country,
+        age_range: verify.data?.age_range
+      });
       setUser({ ...user, bio, description, gender, language: languages, country, age_range: ageRange });
       toast.success('Profile updated successfully!');
     } catch (error) {
-      toast.error('Failed to update profile');
+      console.error('[ProfileSave] FAILED:', error?.response?.status, error?.response?.data, error);
+      toast.error(error?.response?.data?.detail || 'Failed to update profile');
     } finally {
       setLoading(false);
     }

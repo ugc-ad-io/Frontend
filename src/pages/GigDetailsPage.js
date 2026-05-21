@@ -19,7 +19,8 @@ import {
   Globe,
   Calendar,
   Volume2,
-  Play
+  Play,
+  X
 } from 'lucide-react';
 import './GigDetailsPage.css';
 
@@ -243,10 +244,18 @@ export default function GigDetailsPage() {
   };
 
   const renderPortfolioModal = () => {
-    if (!portfolio.length) return null;
+    console.log('[PortfolioModal] renderPortfolioModal called. portfolio.length:', portfolio.length, 'portfolioModalIdx:', portfolioModalIdx);
+    if (!portfolio.length) {
+      console.warn('[PortfolioModal] No portfolio items, returning null');
+      return null;
+    }
     const safeIdx = Math.min(Math.max(portfolioModalIdx, 0), portfolio.length - 1);
     const modalItem = portfolio[safeIdx];
-    if (!modalItem) return null;
+    console.log('[PortfolioModal] safeIdx:', safeIdx, 'modalItem:', modalItem);
+    if (!modalItem) {
+      console.warn('[PortfolioModal] No modal item at safeIdx, returning null');
+      return null;
+    }
     const urls = Array.isArray(modalItem.urls) ? modalItem.urls : [];
     const safeMediaIdx = Math.min(Math.max(portfolioModalMediaIdx, 0), Math.max(urls.length - 1, 0));
     const modalMedia = urls[safeMediaIdx] || urls[0] || '';
@@ -621,6 +630,7 @@ export default function GigDetailsPage() {
                 <div
                   className="gdp-portfolio-card gdp-portfolio-clickable"
                   onClick={() => {
+                    console.log('[PortfolioModal] Card clicked, opening modal with idx:', activePortfolioIdx);
                     setPortfolioModalIdx(activePortfolioIdx);
                     setPortfolioModalMediaIdx(activePortfolioMediaIdx);
                     setPortfolioModalOpen(true);

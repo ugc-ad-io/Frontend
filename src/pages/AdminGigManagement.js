@@ -43,7 +43,12 @@ export default function AdminGigManagement() {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/gigs`, { params: { limit: 100 } });
-      setGigs(res.data.data || res.data || []);
+      const gigsData = res.data.data || res.data || [];
+      console.log('Fetched gigs from API:', gigsData);
+      gigsData.forEach(gig => {
+        console.log(`Gig ${gig.id}: attachments =`, gig.attachments);
+      });
+      setGigs(gigsData);
     } catch (error) {
       toast.error('Failed to load gigs');
       console.error(error);
@@ -245,12 +250,12 @@ export default function AdminGigManagement() {
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment);
                       const isVideo = /\.(mp4|webm|mov)$/i.test(attachment);
                       const isPdf = /\.pdf$/i.test(attachment);
-                      const imageUrl = attachment.startsWith('http') ? attachment : `${process.env.REACT_APP_BACKEND_URL}${attachment}`;
+                      const imageUrl = attachment.startsWith('http') ? attachment : `${BACKEND_URL}${attachment}`;
 
                       return (
                         <div key={idx} className="agm-attachment-item">
                           {isImage ? (
-                            <img src={imageUrl} alt={`Attachment ${idx + 1}`} className="agm-attachment-image" onError={(e) => {e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22150%22 height=%22150%22/%3E%3C/svg%3E';}} />
+                            <img src={imageUrl} alt={`Attachment ${idx + 1}`} className="agm-attachment-image" onError={(e) => {console.log(`Image failed to load: ${imageUrl}`); e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22150%22 height=%22150%22/%3E%3C/svg%3E';}} onLoad={(e) => {console.log(`Image loaded: ${imageUrl}`);}} />
                           ) : isVideo ? (
                             <div className="agm-video-placeholder">🎥 Video</div>
                           ) : isPdf ? (

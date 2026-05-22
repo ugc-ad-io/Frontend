@@ -894,23 +894,23 @@ export default function Landing() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 4px;
-          padding: 10px 12px;
+          gap: 3px;
+          padding: 6px 8px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
-          border-radius: 14px;
+          border-radius: 10px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.78rem;
+          font-size: 0.7rem;
           font-weight: 500;
           color: var(--lp-text);
-          box-shadow: 0 10px 24px rgba(0,0,0,0.14);
-          width: 78px;
-          min-height: 70px;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+          width: 58px;
+          min-height: 54px;
           text-align: center;
         }
         .lp-chip__icon {
-          width: 26px;
-          height: 26px;
+          width: 20px;
+          height: 20px;
           border-radius: 50%;
           background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
           color: var(--lp-purple-700);
@@ -919,7 +919,7 @@ export default function Landing() {
           justify-content: center;
           font-weight: 700;
           flex-shrink: 0;
-          font-size: 0.85rem;
+          font-size: 0.7rem;
         }
         /* Subtle horizontal stagger for organic feel */
         .lp-chip--0 { transform: translateX(-4px); }

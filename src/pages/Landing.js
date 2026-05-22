@@ -751,19 +751,48 @@ export default function Landing() {
 
       {/* ── Psychological Audit ───────────────────────────────────────────── */}
       <section className="lp-audit">
+        <div className="lp-audit__bg-orb lp-audit__bg-orb--1" aria-hidden="true" />
+        <div className="lp-audit__bg-orb lp-audit__bg-orb--2" aria-hidden="true" />
+
         <div className="lp-audit__inner">
-          <h2 className="lp-audit__heading">Answer This Honestly.</h2>
+          <span className="lp-audit__pill">
+            <HelpCircle size={14} />
+            Quick reality check
+          </span>
+
+          <h2 className="lp-audit__heading">
+            Answer This{' '}
+            <span className="lp-audit__heading--accent">Honestly</span>.
+          </h2>
+          <p className="lp-audit__subtitle">
+            Three questions most brands avoid. The answers usually explain everything.
+          </p>
+
           <div className="lp-audit__grid">
             {auditQuestions.map((q, i) => (
               <article key={i} className="lp-audit-card">
-                <div className="lp-audit-card__title">{q.title}</div>
-                <div className="lp-audit-card__sub">{q.sub}</div>
+                <div className="lp-audit-card__corner">
+                  <span className="lp-audit-card__qnum">Q{i + 1}</span>
+                  <span className="lp-audit-card__qmark">?</span>
+                </div>
+                <div className="lp-audit-card__body">
+                  <p className="lp-audit-card__title">{q.title}</p>
+                  <p className="lp-audit-card__sub">{q.sub}</p>
+                </div>
+                <div className="lp-audit-card__divider" />
+                <div className="lp-audit-card__hint">Pause. Be honest.</div>
               </article>
             ))}
           </div>
-          <p className="lp-audit__footer">
-            This platform exists for brands who don't like their answers yet.
-          </p>
+
+          <div className="lp-audit__footer-card">
+            <div className="lp-audit__footer-icon">
+              <ArrowRight size={18} />
+            </div>
+            <p className="lp-audit__footer-text">
+              This platform exists for brands who don't like their answers yet.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -3130,63 +3159,215 @@ export default function Landing() {
 
         /* ── Psychological Audit ─────────────────────────────────────────── */
         .lp-audit {
-          padding: 100px 8%;
-          background: #FAFAF9;
+          position: relative;
+          padding: 120px 8%;
+          background: linear-gradient(180deg, #FAFAF9 0%, #F3E8FF 100%);
+          overflow: hidden;
+        }
+        .lp-audit__bg-orb {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(90px);
+        }
+        .lp-audit__bg-orb--1 {
+          width: 340px; height: 340px;
+          background: rgba(196, 181, 253, 0.30);
+          top: -80px; right: -80px;
+        }
+        .lp-audit__bg-orb--2 {
+          width: 280px; height: 280px;
+          background: rgba(168, 85, 247, 0.18);
+          bottom: -60px; left: -40px;
         }
         .lp-audit__inner {
-          max-width: 1100px;
+          position: relative;
+          z-index: 2;
+          max-width: 1200px;
           margin: 0 auto;
           text-align: center;
         }
+
+        .lp-audit__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 16px;
+          background: #ffffff;
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #07074e;
+          margin-bottom: 22px;
+          box-shadow: 0 4px 14px rgba(124, 58, 237, 0.08);
+        }
+        .lp-audit__pill svg { color: #07074e; }
+
         .lp-audit__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3rem);
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
           font-weight: 500;
           color: var(--lp-ink);
           letter-spacing: -0.04em;
-          margin: 0 0 50px 0;
+          line-height: 1.15;
+          margin: 0 0 14px 0;
         }
+        .lp-audit__heading--accent {
+          color: #07074e;
+          font-style: italic;
+          position: relative;
+        }
+        .lp-audit__heading--accent::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 100%;
+          height: 6px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          border-radius: 4px;
+          opacity: 0.55;
+        }
+        .lp-audit__subtitle {
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1.05rem;
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 auto 60px;
+          max-width: 580px;
+        }
+
         .lp-audit__grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 22px;
           text-align: left;
-          margin-bottom: 40px;
+          margin-bottom: 56px;
         }
         .lp-audit-card {
+          position: relative;
           background: #ffffff;
           border: 1px solid var(--lp-border);
-          border-radius: 18px;
-          padding: 32px 28px;
-          min-height: 180px;
+          border-radius: 22px;
+          padding: 36px 30px 26px;
+          min-height: 240px;
           display: flex;
           flex-direction: column;
-          justify-content: center;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+          box-shadow: 0 4px 16px rgba(7, 7, 78, 0.04);
+          transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+          overflow: hidden;
+        }
+        .lp-audit-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          border-radius: 22px 22px 0 0;
+        }
+        .lp-audit-card:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 24px 60px rgba(7, 7, 78, 0.12);
+          border-color: var(--lp-purple-200);
+        }
+        .lp-audit-card:hover::before { opacity: 1; }
+
+        .lp-audit-card__corner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 22px;
+        }
+        .lp-audit-card__qnum {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #07074e;
+          letter-spacing: 0.1em;
+          padding: 5px 12px;
+          background: var(--lp-purple-50);
+          border-radius: 100px;
+        }
+        .lp-audit-card__qmark {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 3rem;
+          font-weight: 700;
+          color: var(--lp-purple-200);
+          line-height: 0.5;
+          font-style: italic;
+        }
+
+        .lp-audit-card__body {
+          flex: 1;
+          margin-bottom: 20px;
         }
         .lp-audit-card__title {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.05rem;
+          font-size: 1.02rem;
           font-weight: 500;
           color: var(--lp-text);
           line-height: 1.4;
           letter-spacing: -0.015em;
-          margin-bottom: 8px;
+          margin: 0 0 6px 0;
         }
         .lp-audit-card__sub {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.15rem;
+          font-size: 1.2rem;
           font-weight: 600;
           color: #07074e;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.025em;
           line-height: 1.3;
-        }
-        .lp-audit__footer {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.05rem;
-          color: var(--lp-text-muted);
-          font-style: italic;
           margin: 0;
+        }
+
+        .lp-audit-card__divider {
+          height: 1px;
+          background: var(--lp-border);
+          margin-bottom: 12px;
+        }
+        .lp-audit-card__hint {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          color: var(--lp-text-soft);
+          font-style: italic;
+          letter-spacing: 0.02em;
+        }
+
+        .lp-audit__footer-card {
+          display: inline-flex;
+          align-items: center;
+          gap: 16px;
+          padding: 18px 28px 18px 18px;
+          background: #ffffff;
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 100px;
+          box-shadow: 0 10px 30px rgba(7, 7, 78, 0.08);
+          max-width: 100%;
+        }
+        .lp-audit__footer-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #07074e, #1e1b4b);
+          color: #ffffff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .lp-audit__footer-text {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          letter-spacing: -0.015em;
+          margin: 0;
+          text-align: left;
         }
 
         /* ── Value Proof (Stat Strip) ────────────────────────────────────── */

@@ -772,11 +772,11 @@ export default function Landing() {
           box-shadow: 0 24px 60px rgba(124, 58, 237, 0.20), 0 8px 24px rgba(0,0,0,0.12);
         }
 
-        /* Secondary card — sits significantly BEHIND the main one */
+        /* Secondary card — sits significantly BEHIND the main one, slightly lower */
         .lp-phone--right {
           left: 40%;
           right: 0;
-          top: 8%;
+          top: 18%;
           height: 84%;
           width: auto;
           z-index: 1;

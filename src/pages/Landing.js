@@ -466,13 +466,35 @@ export default function Landing() {
 
       {/* ── Scroll Hook ───────────────────────────────────────────────────── */}
       <section className="lp-hook">
+        <div className="lp-hook__bg-orb lp-hook__bg-orb--1" aria-hidden="true" />
+        <div className="lp-hook__bg-orb lp-hook__bg-orb--2" aria-hidden="true" />
+
         <div className="lp-hook__inner">
-          <h2 className="lp-hook__heading">Most Ads Fail Before the Sound Turns On.</h2>
-          <p className="lp-hook__text">
-            The brain decides in the first few seconds:<br />
-            <em>"Is this real — or is this trying to sell me something?"</em>
-          </p>
-          <p className="lp-hook__tag">We design for that moment.</p>
+          <span className="lp-hook__pill">
+            <span className="lp-hook__pulse" />
+            Truth in 5 seconds
+          </span>
+
+          <h2 className="lp-hook__heading">
+            Most Ads Fail Before the{' '}
+            <span className="lp-hook__heading--accent">Sound Turns On.</span>
+          </h2>
+
+          <div className="lp-hook__quote-wrap">
+            <div className="lp-hook__quote-card">
+              <span className="lp-hook__quote-mark">"</span>
+              <p className="lp-hook__quote-text">
+                The brain decides in the first few seconds —{' '}
+                <em>is this real, or is this trying to sell me something?</em>
+              </p>
+            </div>
+          </div>
+
+          <div className="lp-hook__cta-row">
+            <span className="lp-hook__cta-line" aria-hidden="true" />
+            <p className="lp-hook__tag">We design for that moment.</p>
+            <span className="lp-hook__cta-line" aria-hidden="true" />
+          </div>
         </div>
       </section>
 
@@ -2748,42 +2770,146 @@ export default function Landing() {
 
         /* ── Scroll Hook ─────────────────────────────────────────────────── */
         .lp-hook {
-          padding: 100px 8%;
-          background: #ffffff;
+          position: relative;
+          padding: 120px 8% 110px;
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 50%, #FFFFFF 100%);
           text-align: center;
+          overflow: hidden;
+        }
+        .lp-hook__bg-orb {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(80px);
+        }
+        .lp-hook__bg-orb--1 {
+          width: 380px; height: 380px;
+          background: rgba(196, 181, 253, 0.35);
+          top: -120px; left: -100px;
+        }
+        .lp-hook__bg-orb--2 {
+          width: 320px; height: 320px;
+          background: rgba(168, 85, 247, 0.20);
+          bottom: -100px; right: -80px;
         }
         .lp-hook__inner {
-          max-width: 760px;
+          position: relative;
+          z-index: 2;
+          max-width: 880px;
           margin: 0 auto;
         }
+
+        .lp-hook__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 16px;
+          background: #ffffff;
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #07074e;
+          letter-spacing: 0.01em;
+          margin-bottom: 26px;
+          box-shadow: 0 4px 14px rgba(124, 58, 237, 0.10);
+        }
+        .lp-hook__pulse {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #A855F7;
+          box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.55);
+          animation: hookPulse 1.8s ease-out infinite;
+          flex-shrink: 0;
+        }
+        @keyframes hookPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.55); }
+          70%  { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+        }
+
         .lp-hook__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
           font-weight: 500;
           color: var(--lp-ink);
-          line-height: 1.2;
+          line-height: 1.1;
           letter-spacing: -0.04em;
-          margin: 0 0 22px 0;
+          margin: 0 0 40px 0;
         }
-        .lp-hook__text {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.1rem;
-          color: var(--lp-text);
-          line-height: 1.6;
-          letter-spacing: -0.015em;
-          margin: 0 0 18px 0;
-        }
-        .lp-hook__text em {
+        .lp-hook__heading--accent {
           color: #07074e;
+        }
+
+        .lp-hook__quote-wrap {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 40px;
+        }
+        .lp-hook__quote-card {
+          position: relative;
+          max-width: 640px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 22px;
+          padding: 38px 40px 32px;
+          box-shadow: 0 22px 56px rgba(7, 7, 78, 0.08);
+          text-align: left;
+        }
+        .lp-hook__quote-card::before {
+          content: '';
+          position: absolute;
+          top: 0; bottom: 0; left: 0;
+          width: 4px;
+          background: linear-gradient(180deg, #A855F7 0%, #7C3AED 100%);
+          border-top-left-radius: 22px;
+          border-bottom-left-radius: 22px;
+        }
+        .lp-hook__quote-mark {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 4rem;
+          line-height: 0.6;
+          color: var(--lp-purple-300);
+          display: block;
+          margin-bottom: 4px;
+        }
+        .lp-hook__quote-text {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.15rem;
+          color: var(--lp-text);
+          line-height: 1.55;
+          letter-spacing: -0.015em;
+          margin: 0;
+        }
+        .lp-hook__quote-text em {
+          color: #07074e;
+          font-weight: 600;
           font-style: italic;
+        }
+
+        .lp-hook__cta-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          max-width: 540px;
+          margin: 0 auto;
+        }
+        .lp-hook__cta-line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--lp-border), transparent);
         }
         .lp-hook__tag {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1rem;
+          font-size: 1.05rem;
           font-weight: 600;
-          color: var(--lp-ink);
+          color: #07074e;
           margin: 0;
-          letter-spacing: -0.015em;
+          letter-spacing: -0.02em;
+          white-space: nowrap;
         }
 
         /* ── How It Works (3 Steps) ──────────────────────────────────────── */

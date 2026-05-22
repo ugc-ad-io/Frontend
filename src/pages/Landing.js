@@ -877,35 +877,37 @@ export default function Landing() {
           background: #95BF47; color: #fff;
         }
 
-        /* Category chips — overlay on the RIGHT side of secondary video */
+        /* Category chips — compact pills overlaying the secondary video */
         .lp-chips {
           position: absolute;
           right: 4%;
-          top: 30%;
+          top: 28%;
           display: flex;
           flex-direction: column;
           gap: 10px;
           z-index: 5;
           align-items: flex-end;
+          width: auto;
         }
         .lp-chip {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 18px 8px 8px;
+          gap: 7px;
+          padding: 5px 14px 5px 5px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.88rem;
+          font-size: 0.8rem;
           font-weight: 500;
           color: var(--lp-text);
-          box-shadow: 0 12px 28px rgba(0,0,0,0.14);
-          min-width: 128px;
+          box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+          width: fit-content;
+          white-space: nowrap;
         }
         .lp-chip__icon {
-          width: 30px;
-          height: 30px;
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
           background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
           color: var(--lp-purple-700);
@@ -914,15 +916,16 @@ export default function Landing() {
           justify-content: center;
           font-weight: 700;
           flex-shrink: 0;
+          font-size: 0.8rem;
         }
-        /* Stagger horizontally, biased to the left so chips overlay the video */
-        .lp-chip--0 { transform: translateX(-12px); }
-        .lp-chip--1 { transform: translateX(8px); }
-        .lp-chip--2 { transform: translateX(-18px); }
-        .lp-chip--3 { transform: translateX(4px); }
+        /* Subtle horizontal stagger */
+        .lp-chip--0 { transform: translateX(-6px); }
+        .lp-chip--1 { transform: translateX(4px); }
+        .lp-chip--2 { transform: translateX(-10px); }
+        .lp-chip--3 { transform: translateX(2px); }
         .lp-chip--more {
           color: var(--lp-text-muted);
-          transform: translateX(-8px);
+          transform: translateX(-4px);
         }
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */

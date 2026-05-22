@@ -127,12 +127,18 @@ const compareRows = [
 // Six showcase video slots — extras gracefully fall back to the existing
 // file if the user hasn't downloaded the additional Pexels videos.
 const showcaseVideos = [
-  { id: 1, industryId: 'apps',    label: 'Apps/Software',    src: '/9384669-uhd_2160_3840_24fps.mp4' },
-  { id: 2, industryId: 'apps',    label: 'Apps/Software',    src: '/showcase-2.mp4' },
-  { id: 3, industryId: 'family',  label: 'Family/Kids',      src: '/showcase-3.mp4' },
-  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-4.mp4' },
-  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-5.mp4' },
-  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-6.mp4' },
+  { id: 1, industryId: 'apps',    label: 'Apps/Software',    src: '/9384669-uhd_2160_3840_24fps.mp4',
+    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #f472b6, #fb923c)', logoText: '🎨' },
+  { id: 2, industryId: 'apps',    label: 'Apps/Software',    src: '/showcase-2.mp4',
+    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #a78bfa, #6366f1)', logoText: '8' },
+  { id: 3, industryId: 'family',  label: 'Family/Kids',      src: '/showcase-3.mp4',
+    brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G' },
+  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-4.mp4',
+    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: '✨' },
+  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-5.mp4',
+    brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T' },
+  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-6.mp4',
+    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #818cf8, #a78bfa)', logoText: 'A' },
 ];
 
 // ─── Framer Motion variants ──────────────────────────────────────────────────
@@ -583,22 +589,39 @@ export default function Landing() {
 
           <div className="lp-showcase__grid">
             {(visibleShowcase.length ? visibleShowcase : showcaseVideos).map((v) => (
-              <div key={v.id} className="lp-showcase-card">
-                <video
-                  src={v.src}
-                  className="lp-showcase-card__media"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  onError={(e) => {
-                    // Fallback to the existing UGC video if user hasn't downloaded extra ones
-                    if (!e.currentTarget.src.endsWith('/9384669-uhd_2160_3840_24fps.mp4')) {
-                      e.currentTarget.src = '/9384669-uhd_2160_3840_24fps.mp4';
-                    }
-                  }}
-                />
-                <span className="lp-showcase-card__tag">{v.label}</span>
+              <div key={v.id} className="lp-showcase-item">
+                <div className="lp-showcase-card">
+                  <video
+                    src={v.src}
+                    className="lp-showcase-card__media"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    onError={(e) => {
+                      if (!e.currentTarget.src.endsWith('/9384669-uhd_2160_3840_24fps.mp4')) {
+                        e.currentTarget.src = '/9384669-uhd_2160_3840_24fps.mp4';
+                      }
+                    }}
+                  />
+                  <span className="lp-showcase-card__tag">{v.label}</span>
+                </div>
+
+                <div className="lp-showcase-meta">
+                  <div className="lp-showcase-meta__row">
+                    <div className="lp-showcase-meta__info">
+                      <div className="lp-showcase-meta__brand">{v.brand}</div>
+                    </div>
+                    <div className="lp-showcase-meta__logo" style={{ background: v.logoBg }}>
+                      {v.logoText}
+                    </div>
+                  </div>
+                  <div className="lp-showcase-meta__stars">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
+                    ))}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -1738,8 +1761,16 @@ export default function Landing() {
         .lp-showcase__grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          row-gap: 40px;
-          column-gap: 18px;
+          row-gap: 44px;
+          column-gap: 26px;
+          max-width: 1040px;
+          margin: 0 auto;
+        }
+
+        .lp-showcase-item {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
         }
 
         .lp-showcase-card {
@@ -1777,6 +1808,56 @@ export default function Landing() {
           font-weight: 500;
           box-shadow: 0 4px 12px rgba(0,0,0,0.10);
           letter-spacing: -0.01em;
+        }
+
+        /* Meta footer below each card */
+        .lp-showcase-meta {
+          padding: 0 4px;
+          text-align: left;
+        }
+        .lp-showcase-meta__row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 6px;
+        }
+        .lp-showcase-meta__info {
+          min-width: 0;
+          flex: 1;
+        }
+        .lp-showcase-meta__brand {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          letter-spacing: -0.02em;
+          line-height: 1.2;
+        }
+        .lp-showcase-meta__creator {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          color: var(--lp-text-muted);
+          margin-top: 2px;
+        }
+        .lp-showcase-meta__logo {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          color: #ffffff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Instrument Sans', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          flex-shrink: 0;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+        }
+        .lp-showcase-meta__stars {
+          display: flex;
+          align-items: center;
+          gap: 2px;
         }
 
         @media (max-width: 1024px) {

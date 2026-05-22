@@ -43,26 +43,26 @@ import { motion, useInView } from 'framer-motion';
 const featureData = [
   {
     Icon: Users,
-    title: 'Verified Creators',
-    desc: 'All creators are manually verified to ensure quality and authenticity on every campaign.',
+    title: 'Creator Matchmaking',
+    desc: 'Private, vetted, brand-safe storytellers.',
     gradient: 'linear-gradient(135deg, #A855F7 0%, #C4B5FD 100%)',
     glow: 'rgba(168, 85, 247, 0.28)',
     accent: '#A855F7',
     num: '01',
   },
   {
-    Icon: Briefcase,
-    title: 'Campaign Management',
-    desc: 'Full-featured campaign tools with tracking, real-time chat, and collaboration features.',
+    Icon: MessageCircle,
+    title: 'Direct Collaboration',
+    desc: 'No agencies. No lag. No dilution.',
     gradient: 'linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)',
     glow: 'rgba(124, 58, 237, 0.28)',
     accent: '#7C3AED',
     num: '02',
   },
   {
-    Icon: Shield,
-    title: 'Escrow Protection',
-    desc: 'Secure payment system that holds funds safely and releases them only when work is approved.',
+    Icon: Activity,
+    title: 'Performance Clarity',
+    desc: 'See what converts. Double down with confidence.',
     gradient: 'linear-gradient(135deg, #9333EA 0%, #C4B5FD 100%)',
     glow: 'rgba(147, 51, 234, 0.28)',
     accent: '#9333EA',
@@ -70,8 +70,8 @@ const featureData = [
   },
   {
     Icon: Zap,
-    title: 'Fast & Easy',
-    desc: 'Simple onboarding with a dedicated support team guiding you every step of the way.',
+    title: 'AI UGC',
+    desc: 'Speed, without losing the signal.',
     gradient: 'linear-gradient(135deg, #581C87 0%, #A855F7 100%)',
     glow: 'rgba(88, 28, 135, 0.28)',
     accent: '#581C87',
@@ -80,9 +80,42 @@ const featureData = [
 ];
 
 const stats = [
-  { value: '10K+', label: 'Creators' },
-  { value: '500+', label: 'Brands' },
-  { value: '$2M+', label: 'Paid Out' },
+  { value: '50,000+', label: 'UGC Videos Produced' },
+  { value: '$100M+', label: 'Attributed Revenue' },
+  { value: '300+', label: 'D2C Brands Scaled' },
+];
+
+const howItWorksSteps = [
+  {
+    num: '01',
+    title: 'Match With Belief, Not Reach',
+    desc: "We don't optimize for followers. We optimize for overlap — tone, values, visual instinct.",
+  },
+  {
+    num: '02',
+    title: 'Work Without Middlemen',
+    desc: 'Talk directly. Edit quickly. Launch while the moment still matters.',
+  },
+  {
+    num: '03',
+    title: 'Scale What Earned Attention',
+    desc: "When something works, we don't replace it. We multiply it — carefully.",
+  },
+];
+
+const auditQuestions = [
+  {
+    title: 'Do People Watch Your Ads —',
+    sub: 'Or Tolerate Them Until They Can Skip?',
+  },
+  {
+    title: 'If Your Brand Went Silent for a Week,',
+    sub: 'Would Anyone Notice?',
+  },
+  {
+    title: 'Is Your Content Building Familiarity —',
+    sub: 'Or Just Filling Space?',
+  },
 ];
 
 const proofBadges = [
@@ -276,9 +309,9 @@ export default function Landing() {
               initial="hidden"
               animate="visible"
             >
-              Unlock serious growth with{' '}
+              Your Ads Aren't Being Ignored.{' '}
               <span className="lp-hero__title--gradient">
-                high-performing UGC ads
+                They're Being Doubted.
               </span>
             </motion.h1>
 
@@ -289,10 +322,9 @@ export default function Landing() {
               initial="hidden"
               animate="visible"
             >
-              UGCad is your one-stop solution for scaleable user-generated content
-              (UGC) production. Backed by a network of 7,000+ content creators
-              across the UK, US and Europe, we produce premium UGC video and image
-              content for the world's best brands.
+              People don't scroll because they're bored.
+              <br />
+              They scroll because they don't trust what they see.
             </motion.p>
 
             <motion.div
@@ -307,14 +339,14 @@ export default function Landing() {
                 onClick={handleGetStarted}
                 data-testid="get-started-btn"
               >
-                Get Started <ArrowRight size={18} />
+                Find My Creator Match <ArrowRight size={18} />
               </button>
               <button
                 className="lp-btn-ghost"
                 onClick={() => navigate('/auth')}
                 data-testid="learn-more-btn"
               >
-                View examples
+                Join the Creator Network
               </button>
             </motion.div>
 
@@ -419,6 +451,9 @@ export default function Landing() {
 
       {/* ── Brands Scroll ───────────────────────────────────────────────────── */}
       <section className="lp-brands">
+        <p className="lp-brands__caption">
+          Used by brands that value long-term recall over short-term noise.
+        </p>
         <div className="lp-brands__scroll">
           <div className="lp-brands__track">
             {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
@@ -429,8 +464,36 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Scroll Hook ───────────────────────────────────────────────────── */}
+      <section className="lp-hook">
+        <div className="lp-hook__inner">
+          <h2 className="lp-hook__heading">Most Ads Fail Before the Sound Turns On.</h2>
+          <p className="lp-hook__text">
+            The brain decides in the first few seconds:<br />
+            <em>"Is this real — or is this trying to sell me something?"</em>
+          </p>
+          <p className="lp-hook__tag">We design for that moment.</p>
+        </div>
+      </section>
+
+      {/* ── How It Works (3 Steps) ────────────────────────────────────────── */}
+      <section className="lp-steps">
+        <div className="lp-steps__inner">
+          <h2 className="lp-steps__heading">Less Noise. Better Voices.</h2>
+          <div className="lp-steps__grid">
+            {howItWorksSteps.map((s) => (
+              <article key={s.num} className="lp-step-card">
+                <span className="lp-step-card__num">{s.num}</span>
+                <h3 className="lp-step-card__title">{s.title}</h3>
+                <p className="lp-step-card__desc">{s.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── The Problem ────────────────────────────────────────────────────── */}
-      <section className="lp-problem">
+      <section className="lp-problem" style={{ display: 'none' }}>
         <div className="lp-problem__inner">
           <span className="lp-problem__pill">
             <AlertTriangle size={14} />
@@ -632,6 +695,24 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Psychological Audit ───────────────────────────────────────────── */}
+      <section className="lp-audit">
+        <div className="lp-audit__inner">
+          <h2 className="lp-audit__heading">Answer This Honestly.</h2>
+          <div className="lp-audit__grid">
+            {auditQuestions.map((q, i) => (
+              <article key={i} className="lp-audit-card">
+                <div className="lp-audit-card__title">{q.title}</div>
+                <div className="lp-audit-card__sub">{q.sub}</div>
+              </article>
+            ))}
+          </div>
+          <p className="lp-audit__footer">
+            This platform exists for brands who don't like their answers yet.
+          </p>
+        </div>
+      </section>
+
       {/* ── Comparison Table ─────────────────────────────────────────────── */}
       <section className="lp-compare">
         <div className="lp-compare__inner">
@@ -694,7 +775,7 @@ export default function Landing() {
             initial="hidden"
             animate={featuresInView ? 'visible' : 'hidden'}
           >
-            FEATURES
+            SERVICES
           </motion.span>
 
           <motion.h2
@@ -704,7 +785,7 @@ export default function Landing() {
             animate={featuresInView ? 'visible' : 'hidden'}
             transition={{ delay: 0.1 }}
           >
-            Why Choose UGCad.io?
+            Everything You Need to Sound Human at Scale.
           </motion.h2>
 
           <motion.div
@@ -744,6 +825,36 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Value Proof (Stat Strip) ──────────────────────────────────────── */}
+      <section className="lp-proof">
+        <div className="lp-proof__inner">
+          <h2 className="lp-proof__heading">Trust Changes the Math.</h2>
+          <div className="lp-proof__stats">
+            {stats.map((s) => (
+              <div key={s.label} className="lp-proof-stat">
+                <span className="lp-proof-stat__value">{s.value}</span>
+                <span className="lp-proof-stat__label">{s.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="lp-proof__micro">Not louder ads. Better ones.</p>
+        </div>
+      </section>
+
+      {/* ── Testimonial ───────────────────────────────────────────────────── */}
+      <section className="lp-testimonial">
+        <div className="lp-testimonial__inner">
+          <h2 className="lp-testimonial__heading">What Changes When Trust Comes First</h2>
+          <blockquote className="lp-testimonial__quote">
+            <span className="lp-testimonial__mark">"</span>
+            Our ads stopped feeling like ads.
+            <br />
+            That's when ROAS stabilized.
+          </blockquote>
+          <div className="lp-testimonial__attrib">— D2C Founder</div>
+        </div>
+      </section>
+
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
       <section className="lp-cta" ref={ctaRef}>
         <motion.div
@@ -753,21 +864,10 @@ export default function Landing() {
           animate={ctaInView ? 'visible' : 'hidden'}
         >
           <motion.h2 className="lp-cta__heading" variants={statVariants}>
-            Ready to Start Your Journey?
+            Attention Is Rented.
+            <br />
+            Trust Is Owned.
           </motion.h2>
-
-          <motion.p className="lp-cta__subtext" variants={statVariants}>
-            Join thousands of creators and brands already building on our platform.
-          </motion.p>
-
-          <motion.div className="lp-cta__stats" variants={containerVariants}>
-            {stats.map((s) => (
-              <motion.div key={s.label} className="lp-stat" variants={statVariants}>
-                <span className="lp-stat__value">{s.value}</span>
-                <span className="lp-stat__label">{s.label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
 
           <motion.div className="lp-cta__btn-wrap" variants={statVariants}>
             <button
@@ -775,12 +875,12 @@ export default function Landing() {
               onClick={handleGetStarted}
               data-testid="join-now-btn"
             >
-              Join Now <ArrowRight size={18} />
+              Book a Strategy Call <ArrowRight size={18} />
             </button>
           </motion.div>
 
           <motion.p className="lp-cta__proof" variants={statVariants}>
-            No credit card required &nbsp;·&nbsp; Free to get started
+            15 minutes. No pitch. Just clarity.
           </motion.p>
         </motion.div>
       </section>
@@ -788,6 +888,8 @@ export default function Landing() {
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="lp-footer">
         <div className="lp-footer__inner">
+          <h3 className="lp-footer__main-heading">Built for Brands Who Think Long-Term</h3>
+
           {/* Row 1: 5 columns */}
           <div className="lp-footer__top">
             {/* Brand + newsletter */}
@@ -893,35 +995,35 @@ export default function Landing() {
           {/* Row 2: bottom section */}
           <div className="lp-footer__bottom">
             <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">About UGCad</h4>
+              <h4 className="lp-footer__heading">Platform</h4>
               <ul className="lp-footer__list">
-                <li><a href="#">Our Work</a></li>
-                <li><a href="#">About Us</a></li>
-                <li>
-                  <a href="#">Careers</a>{' '}
-                  <span className="lp-footer__badge">Hiring</span>
-                </li>
-                <li><a href="#">Become A Partner</a></li>
-              </ul>
-            </div>
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Learn more</h4>
-              <ul className="lp-footer__list">
-                <li><a href="#">Book A Demo</a></li>
+                <li><a href="#">How It Works</a></li>
+                <li><a href="#">Creators</a></li>
                 <li><a href="#">Pricing</a></li>
-                <li><a href="#">Underrepresented Founder Discount</a></li>
-                <li><a href="#">FAQs</a></li>
+                <li><a href="#">Case Studies</a></li>
               </ul>
             </div>
             <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Solutions</h4>
+              <h4 className="lp-footer__heading">Company</h4>
               <ul className="lp-footer__list">
-                <li><a href="#">For Agencies</a></li>
-                <li><a href="#">For Startups &amp; SMBs</a></li>
-                <li><a href="#">For Enterprise</a></li>
-                <li><a href="#">For Creators</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Manifesto</a></li>
+                <li><a href="#">Contact</a></li>
               </ul>
             </div>
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">Legal</h4>
+              <ul className="lp-footer__list">
+                <li><a href="#">Terms</a></li>
+                <li><a href="#">Privacy</a></li>
+                <li><a href="#">Usage Rights</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="lp-footer__closing">
+            We don't help brands chase attention.<br />
+            We help them earn familiarity.
           </div>
 
           <div className="lp-footer__copyright">
@@ -2631,6 +2733,305 @@ export default function Landing() {
           .lp-footer__top { grid-template-columns: 1fr 1fr; }
           .lp-footer__brand-col { grid-column: span 2; }
           .lp-footer__bottom { grid-template-columns: 1fr; gap: 28px; }
+        }
+
+        /* ── Brands caption ──────────────────────────────────────────────── */
+        .lp-brands__caption {
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          text-align: center;
+          font-size: 0.95rem;
+          letter-spacing: -0.01em;
+          padding: 0 8% 24px;
+          margin: 0;
+        }
+
+        /* ── Scroll Hook ─────────────────────────────────────────────────── */
+        .lp-hook {
+          padding: 100px 8%;
+          background: #ffffff;
+          text-align: center;
+        }
+        .lp-hook__inner {
+          max-width: 760px;
+          margin: 0 auto;
+        }
+        .lp-hook__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          line-height: 1.2;
+          letter-spacing: -0.04em;
+          margin: 0 0 22px 0;
+        }
+        .lp-hook__text {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.1rem;
+          color: var(--lp-text);
+          line-height: 1.6;
+          letter-spacing: -0.015em;
+          margin: 0 0 18px 0;
+        }
+        .lp-hook__text em {
+          color: #07074e;
+          font-style: italic;
+        }
+        .lp-hook__tag {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          margin: 0;
+          letter-spacing: -0.015em;
+        }
+
+        /* ── How It Works (3 Steps) ──────────────────────────────────────── */
+        .lp-steps {
+          padding: 100px 8%;
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%);
+        }
+        .lp-steps__inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .lp-steps__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          letter-spacing: -0.04em;
+          line-height: 1.2;
+          margin: 0 0 60px 0;
+        }
+        .lp-steps__grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 22px;
+          text-align: left;
+        }
+        .lp-step-card {
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 22px;
+          padding: 32px 26px;
+          transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .lp-step-card:hover {
+          box-shadow: 0 18px 50px rgba(7,7,78,0.10);
+          transform: translateY(-4px);
+        }
+        .lp-step-card__num {
+          display: inline-block;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.92rem;
+          font-weight: 700;
+          color: #07074e;
+          letter-spacing: 0.06em;
+          padding: 5px 14px;
+          background: var(--lp-purple-50);
+          border-radius: 100px;
+          margin-bottom: 22px;
+        }
+        .lp-step-card__title {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          margin: 0 0 12px 0;
+          letter-spacing: -0.02em;
+          line-height: 1.25;
+        }
+        .lp-step-card__desc {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          color: var(--lp-text-muted);
+          line-height: 1.55;
+          letter-spacing: -0.01em;
+          margin: 0;
+        }
+
+        /* ── Psychological Audit ─────────────────────────────────────────── */
+        .lp-audit {
+          padding: 100px 8%;
+          background: #FAFAF9;
+        }
+        .lp-audit__inner {
+          max-width: 1100px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .lp-audit__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(2rem, 4.2vw, 3rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          letter-spacing: -0.04em;
+          margin: 0 0 50px 0;
+        }
+        .lp-audit__grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 22px;
+          text-align: left;
+          margin-bottom: 40px;
+        }
+        .lp-audit-card {
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 18px;
+          padding: 32px 28px;
+          min-height: 180px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+        .lp-audit-card__title {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.05rem;
+          font-weight: 500;
+          color: var(--lp-text);
+          line-height: 1.4;
+          letter-spacing: -0.015em;
+          margin-bottom: 8px;
+        }
+        .lp-audit-card__sub {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.15rem;
+          font-weight: 600;
+          color: #07074e;
+          letter-spacing: -0.02em;
+          line-height: 1.3;
+        }
+        .lp-audit__footer {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.05rem;
+          color: var(--lp-text-muted);
+          font-style: italic;
+          margin: 0;
+        }
+
+        /* ── Value Proof (Stat Strip) ────────────────────────────────────── */
+        .lp-proof {
+          padding: 80px 8%;
+          background: #ffffff;
+        }
+        .lp-proof__inner {
+          max-width: 1100px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .lp-proof__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          letter-spacing: -0.04em;
+          margin: 0 0 44px 0;
+        }
+        .lp-proof__stats {
+          display: flex;
+          justify-content: center;
+          gap: 80px;
+          flex-wrap: wrap;
+          margin-bottom: 28px;
+        }
+        .lp-proof-stat {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          align-items: center;
+        }
+        .lp-proof-stat__value {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 2.4rem;
+          font-weight: 700;
+          color: #07074e;
+          letter-spacing: -0.03em;
+          line-height: 1;
+        }
+        .lp-proof-stat__label {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.88rem;
+          color: var(--lp-text-muted);
+          letter-spacing: -0.01em;
+        }
+        .lp-proof__micro {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          color: var(--lp-text-muted);
+          font-style: italic;
+          margin: 0;
+        }
+
+        /* ── Testimonial ─────────────────────────────────────────────────── */
+        .lp-testimonial {
+          padding: 100px 8%;
+          background: linear-gradient(180deg, #FAFAF9 0%, #FFFFFF 100%);
+        }
+        .lp-testimonial__inner {
+          max-width: 760px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .lp-testimonial__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1.6rem, 3vw, 2.2rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          letter-spacing: -0.04em;
+          margin: 0 0 40px 0;
+        }
+        .lp-testimonial__quote {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1.3rem, 2.6vw, 1.8rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          line-height: 1.4;
+          letter-spacing: -0.02em;
+          margin: 0 0 24px 0;
+          position: relative;
+        }
+        .lp-testimonial__mark {
+          color: #07074e;
+          font-size: 1.5em;
+          line-height: 0;
+          vertical-align: -0.2em;
+          margin-right: 4px;
+        }
+        .lp-testimonial__attrib {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          color: var(--lp-text-muted);
+          letter-spacing: -0.01em;
+        }
+
+        /* ── Footer extras ───────────────────────────────────────────────── */
+        .lp-footer__main-heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          letter-spacing: -0.03em;
+          margin: 0 0 50px 0;
+          text-align: center;
+        }
+        .lp-footer__closing {
+          padding: 40px 0 24px;
+          text-align: center;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.05rem;
+          color: var(--lp-text);
+          line-height: 1.55;
+          letter-spacing: -0.02em;
+          font-weight: 500;
+        }
+
+        @media (max-width: 900px) {
+          .lp-steps__grid, .lp-audit__grid { grid-template-columns: 1fr; }
+          .lp-proof__stats { gap: 40px; }
         }
       `}</style>
     </div>

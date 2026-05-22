@@ -1110,7 +1110,7 @@ export default function Landing() {
         .lp-chips {
           position: absolute;
           right: 4%;
-          top: 36%;
+          top: 70%;
           display: grid;
           grid-template-columns: repeat(2, 46px);
           grid-auto-rows: 42px;

@@ -1205,8 +1205,8 @@ export default function Landing() {
         /* Category chips — small square cards in a 2-column staggered grid */
         .lp-chips {
           position: absolute;
-          right: 4%;
-          top: 70%;
+          right: -4%;
+          top: 80%;
           display: grid;
           grid-template-columns: repeat(2, 46px);
           grid-auto-rows: 42px;

@@ -3315,9 +3315,10 @@ export default function Landing() {
         /* ── Brands caption ──────────────────────────────────────────────── */
         .lp-brands__caption {
           font-family: 'Instrument Sans', sans-serif;
-          color: var(--lp-text-muted);
+          color: #07074e;
           text-align: center;
           font-size: 0.95rem;
+          font-weight: 500;
           letter-spacing: -0.01em;
           padding: 0 8% 28px;
           margin: 0;

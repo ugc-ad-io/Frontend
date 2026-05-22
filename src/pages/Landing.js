@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ArrowRight, Users, Briefcase, Shield, Zap, ChevronRight } from 'lucide-react';
 import {
-  motion,
-  useInView,
-} from 'framer-motion';
+  ArrowRight,
+  Users,
+  Briefcase,
+  Shield,
+  Zap,
+  Award,
+  Sparkles,
+  Smartphone,
+  Activity,
+  Home as HomeIcon,
+  Instagram,
+  ShoppingBag,
+  Music2,
+} from 'lucide-react';
+import { motion, useInView } from 'framer-motion';
 
 // ─── Static data ────────────────────────────────────────────────────────────
 
@@ -14,36 +25,36 @@ const featureData = [
     Icon: Users,
     title: 'Verified Creators',
     desc: 'All creators are manually verified to ensure quality and authenticity on every campaign.',
-    gradient: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
-    glow: 'rgba(99, 102, 241, 0.35)',
-    accent: '#818CF8',
+    gradient: 'linear-gradient(135deg, #A855F7 0%, #C4B5FD 100%)',
+    glow: 'rgba(168, 85, 247, 0.28)',
+    accent: '#A855F7',
     num: '01',
   },
   {
     Icon: Briefcase,
     title: 'Campaign Management',
     desc: 'Full-featured campaign tools with tracking, real-time chat, and collaboration features.',
-    gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
-    glow: 'rgba(139, 92, 246, 0.35)',
-    accent: '#A78BFA',
+    gradient: 'linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)',
+    glow: 'rgba(124, 58, 237, 0.28)',
+    accent: '#7C3AED',
     num: '02',
   },
   {
     Icon: Shield,
     title: 'Escrow Protection',
     desc: 'Secure payment system that holds funds safely and releases them only when work is approved.',
-    gradient: 'linear-gradient(135deg, #06B6D4 0%, #22D3EE 100%)',
-    glow: 'rgba(6, 182, 212, 0.35)',
-    accent: '#22D3EE',
+    gradient: 'linear-gradient(135deg, #9333EA 0%, #C4B5FD 100%)',
+    glow: 'rgba(147, 51, 234, 0.28)',
+    accent: '#9333EA',
     num: '03',
   },
   {
     Icon: Zap,
     title: 'Fast & Easy',
     desc: 'Simple onboarding with a dedicated support team guiding you every step of the way.',
-    gradient: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
-    glow: 'rgba(245, 158, 11, 0.35)',
-    accent: '#FBBF24',
+    gradient: 'linear-gradient(135deg, #581C87 0%, #A855F7 100%)',
+    glow: 'rgba(88, 28, 135, 0.28)',
+    accent: '#581C87',
     num: '04',
   },
 ];
@@ -54,6 +65,19 @@ const stats = [
   { value: '$2M+', label: 'Paid Out' },
 ];
 
+const proofBadges = [
+  { Icon: Award, label: 'Top UGC Platform 2026' },
+  { Icon: Users, label: '500+ Brands' },
+  { Icon: Sparkles, label: '10K+ Creators' },
+];
+
+const categoryChips = [
+  { Icon: Sparkles, label: 'Beauty' },
+  { Icon: Smartphone, label: 'Apps' },
+  { Icon: Activity, label: 'Health' },
+  { Icon: HomeIcon, label: 'Home' },
+];
+
 // ─── Framer Motion variants ──────────────────────────────────────────────────
 
 const heroItemVariants = {
@@ -62,8 +86,8 @@ const heroItemVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      delay: i * 0.12,
-      duration: 0.7,
+      delay: i * 0.1,
+      duration: 0.65,
       ease: [0.25, 0.46, 0.45, 0.94],
     },
   }),
@@ -113,22 +137,22 @@ export default function Landing() {
 
   const handleGetStarted = () => {
     if (user) {
-      if (user.role === 'creator') {
-        navigate('/dashboard/creator');
-      } else if (user.role === 'business') {
-        navigate('/dashboard/business');
-      } else if (user.role === 'admin') {
-        navigate('/dashboard/admin');
-      }
+      if (user.role === 'creator') navigate('/dashboard/creator');
+      else if (user.role === 'business') navigate('/brand-home');
+      else if (user.role === 'admin') navigate('/dashboard/admin');
     } else {
       navigate('/auth');
     }
   };
 
+  // Right phone falls back to existing video if the second one isn't downloaded yet
+  const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
+  const rightVideo = '/ugc-creator-2.mp4';
+
   return (
     <div className="lp-root">
 
-      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
+      {/* ── Navbar — white floating pill ──────────────────────────────────── */}
       <motion.header
         className={`lp-navbar${scrolled ? ' lp-navbar--scrolled' : ''}`}
         initial={{ opacity: 0, y: -16 }}
@@ -142,25 +166,25 @@ export default function Landing() {
             className="lp-navbar__logo"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           />
-          <button className="lp-btn-signin" onClick={() => navigate('/auth')}>
-            Sign In
-          </button>
+          <div className="lp-navbar__actions">
+            <button className="lp-btn-signin" onClick={() => navigate('/auth')}>
+              Sign In
+            </button>
+            <button className="lp-btn-dark" onClick={handleGetStarted}>
+              Get Started
+            </button>
+          </div>
         </div>
       </motion.header>
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
       <section className="lp-hero">
-        {/* Decorative orbs */}
         <div className="lp-orb lp-orb--1" aria-hidden="true" />
         <div className="lp-orb lp-orb--2" aria-hidden="true" />
-        <div className="lp-orb lp-orb--3" aria-hidden="true" />
-        {/* Dot-grid overlay */}
-        <div className="lp-grid-overlay" aria-hidden="true" />
 
         <div className="lp-hero__inner">
-          {/* Left: text */}
+          {/* Left column */}
           <div className="lp-hero__text">
-            {/* Badge */}
             <motion.div
               className="lp-badge"
               custom={0}
@@ -168,11 +192,11 @@ export default function Landing() {
               initial="hidden"
               animate="visible"
             >
-              <span className="lp-badge__dot" aria-hidden="true" />
-              Now in Beta &nbsp;·&nbsp; 10,000+ Creators
+              <Sparkles size={14} />
+              <span>For Creators &amp; Brands</span>
+              <Sparkles size={14} />
             </motion.div>
 
-            {/* Title line 1 */}
             <motion.h1
               className="lp-hero__title"
               custom={1}
@@ -180,36 +204,28 @@ export default function Landing() {
               initial="hidden"
               animate="visible"
             >
-              Connect Creators with
+              Unlock serious growth with{' '}
+              <span className="lp-hero__title--gradient">
+                high-performing UGC ads
+              </span>
             </motion.h1>
 
-            {/* Title line 2 — gradient */}
-            <motion.h1
-              className="lp-hero__title lp-hero__title--gradient"
+            <motion.p
+              className="lp-hero__subtitle"
               custom={2}
               variants={heroItemVariants}
               initial="hidden"
               animate="visible"
             >
-              Brands Seamlessly
-            </motion.h1>
-
-            {/* Subtitle */}
-            <motion.p
-              className="lp-hero__subtitle"
-              custom={3}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              The ultimate platform for user-generated content. Brands find talented
-              creators, creators discover exciting projects — all in one secure marketplace.
+              UGCad is your one-stop solution for scaleable user-generated content
+              (UGC) production. Backed by a network of 7,000+ content creators
+              across the UK, US and Europe, we produce premium UGC video and image
+              content for the world's best brands.
             </motion.p>
 
-            {/* CTA buttons */}
             <motion.div
               className="lp-hero__ctas"
-              custom={4}
+              custom={3}
               variants={heroItemVariants}
               initial="hidden"
               animate="visible"
@@ -226,33 +242,105 @@ export default function Landing() {
                 onClick={() => navigate('/auth')}
                 data-testid="learn-more-btn"
               >
-                See How It Works <ChevronRight size={18} />
+                View examples
               </button>
+            </motion.div>
+
+            <motion.div
+              className="lp-hero__badges"
+              custom={4}
+              variants={heroItemVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {proofBadges.map(({ Icon, label }) => (
+                <div key={label} className="lp-proof-badge">
+                  <span className="lp-proof-badge__icon">
+                    <Icon size={14} />
+                  </span>
+                  <span>{label}</span>
+                </div>
+              ))}
             </motion.div>
           </div>
 
-          {/* Right: video with image overlay */}
+          {/* Right column — phones + floating widgets */}
           <motion.div
-            className="lp-hero__image-wrap"
+            className="lp-hero__media"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.9, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <video
-              src="/9384669-uhd_2160_3840_24fps.mp4"
-              alt="Content creator filming"
-              className="lp-hero__video"
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
-            <img
-              src="/Instagram.jpg"
-              alt="Instagram content"
-              className="lp-hero__overlay-img"
-            />
-            <div className="lp-hero__img-glow" aria-hidden="true" />
+            <div className="lp-phones">
+              <div className="lp-phone lp-phone--left">
+                <video
+                  src={leftVideo}
+                  className="lp-phone__media"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              </div>
+              <div className="lp-phone lp-phone--right">
+                <video
+                  src={rightVideo}
+                  className="lp-phone__media"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  onError={(e) => {
+                    // If ugc-creator-2.mp4 doesn't exist yet, fall back to the existing video
+                    if (e.currentTarget.src.indexOf(leftVideo) === -1) {
+                      e.currentTarget.src = leftVideo;
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Floating widget — creators count */}
+            <div className="lp-float lp-float--creators">
+              <div className="lp-avatars">
+                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #f472b6, #c084fc)' }}>A</span>
+                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #818cf8, #a855f7)' }}>M</span>
+                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #fb923c, #f472b6)' }}>K</span>
+              </div>
+              <div className="lp-float__copy">
+                <span className="lp-float__small">Get content from</span>
+                <span className="lp-float__big">7000+</span>
+                <span className="lp-float__small">high-quality creators</span>
+              </div>
+            </div>
+
+            {/* Floating widget — platforms */}
+            <div className="lp-float lp-float--platforms">
+              <span className="lp-float__small lp-float__small--center">
+                Authentic content for all your platforms
+              </span>
+              <div className="lp-platforms">
+                <span className="lp-platform-icon" title="Instagram"><Instagram size={16} /></span>
+                <span className="lp-platform-icon lp-platform-icon--meta" title="Meta">M</span>
+                <span className="lp-platform-icon" title="Amazon"><ShoppingBag size={16} /></span>
+                <span className="lp-platform-icon" title="TikTok"><Music2 size={16} /></span>
+                <span className="lp-platform-icon lp-platform-icon--shop" title="Shopify">S</span>
+              </div>
+            </div>
+
+            {/* Category chips */}
+            <div className="lp-chips">
+              {categoryChips.map(({ Icon, label }, i) => (
+                <div key={label} className={`lp-chip lp-chip--${i}`}>
+                  <span className="lp-chip__icon"><Icon size={14} /></span>
+                  <span>{label}</span>
+                </div>
+              ))}
+              <div className="lp-chip lp-chip--more">
+                <span className="lp-chip__icon">+</span>
+                <span>More...</span>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -261,23 +349,10 @@ export default function Landing() {
       <section className="lp-brands">
         <div className="lp-brands__scroll">
           <div className="lp-brands__track">
-            <div className="lp-brand-item">Amazon</div>
-            <div className="lp-brand-item">Apple</div>
-            <div className="lp-brand-item">Google</div>
-            <div className="lp-brand-item">Netflix</div>
-            <div className="lp-brand-item">Spotify</div>
-            <div className="lp-brand-item">Tesla</div>
-            <div className="lp-brand-item">Meta</div>
-            <div className="lp-brand-item">Microsoft</div>
-            {/* Duplicate for continuous scroll */}
-            <div className="lp-brand-item">Amazon</div>
-            <div className="lp-brand-item">Apple</div>
-            <div className="lp-brand-item">Google</div>
-            <div className="lp-brand-item">Netflix</div>
-            <div className="lp-brand-item">Spotify</div>
-            <div className="lp-brand-item">Tesla</div>
-            <div className="lp-brand-item">Meta</div>
-            <div className="lp-brand-item">Microsoft</div>
+            {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
+              'Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft'].map((b, i) => (
+              <div key={`${b}-${i}`} className="lp-brand-item">{b}</div>
+            ))}
           </div>
         </div>
       </section>
@@ -319,10 +394,7 @@ export default function Landing() {
                 whileHover={{ y: -6, transition: { duration: 0.22 } }}
                 style={{ '--card-accent': feat.accent, '--card-glow': feat.glow }}
               >
-                {/* Card number */}
                 <span className="lp-card__num">{feat.num}</span>
-
-                {/* Icon with per-card gradient */}
                 <div
                   className="lp-card__icon"
                   style={{
@@ -332,11 +404,8 @@ export default function Landing() {
                 >
                   <feat.Icon size={24} />
                 </div>
-
                 <h3 className="lp-card__title">{feat.title}</h3>
                 <p className="lp-card__body">{feat.desc}</p>
-
-                {/* Bottom accent bar */}
                 <div
                   className="lp-card__bar"
                   style={{ background: feat.gradient }}
@@ -349,8 +418,6 @@ export default function Landing() {
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
       <section className="lp-cta" ref={ctaRef}>
-        <div className="lp-cta__mesh" aria-hidden="true" />
-
         <motion.div
           className="lp-cta__inner"
           variants={containerVariants}
@@ -365,7 +432,6 @@ export default function Landing() {
             Join thousands of creators and brands already building on our platform.
           </motion.p>
 
-          {/* Stats row */}
           <motion.div className="lp-cta__stats" variants={containerVariants}>
             {stats.map((s) => (
               <motion.div key={s.label} className="lp-stat" variants={statVariants}>
@@ -375,9 +441,7 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* Button + pulse ring */}
           <motion.div className="lp-cta__btn-wrap" variants={statVariants}>
-            <div className="lp-pulse-ring" aria-hidden="true" />
             <button
               className="lp-btn-join"
               onClick={handleGetStarted}
@@ -395,65 +459,107 @@ export default function Landing() {
 
       {/* ── Styles ─────────────────────────────────────────────────────────── */}
       <style>{`
+        :root {
+          --lp-purple-50:  #FAF5FF;
+          --lp-purple-100: #F3E8FF;
+          --lp-purple-200: #E9D5FF;
+          --lp-purple-300: #C4B5FD;
+          --lp-purple-500: #A855F7;
+          --lp-purple-600: #9333EA;
+          --lp-purple-700: #7C3AED;
+          --lp-purple-900: #581C87;
+          --lp-ink:        #0A0A0A;
+          --lp-text:       #1F2937;
+          --lp-text-muted: #6B7280;
+          --lp-text-soft:  #9CA3AF;
+          --lp-bg:         #FFFFFF;
+          --lp-bg-soft:    #FAFAF9;
+          --lp-border:     #E5E7EB;
+        }
 
         /* ── Root ─────────────────────────────────────────────────────────── */
         .lp-root {
           min-height: 100vh;
-          font-family: 'Inter', sans-serif;
+          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          background: #ffffff;
+          color: var(--lp-text);
         }
 
-        /* ── Navbar ───────────────────────────────────────────────────────── */
+        /* ── Navbar (floating white pill) ─────────────────────────────────── */
         .lp-navbar {
           position: fixed;
-          top: 0; left: 0; right: 0;
+          top: 20px;
+          left: 0;
+          right: 0;
           z-index: 1000;
-          padding: 18px 8%;
-          transition: background 0.35s ease, backdrop-filter 0.35s ease,
-                      border-color 0.35s ease, box-shadow 0.35s ease;
-          border-bottom: 1px solid transparent;
+          padding: 0 8%;
+          transition: top 0.3s ease;
         }
 
-        .lp-navbar--scrolled {
-          background: rgba(5, 5, 16, 0.82);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-bottom-color: rgba(255, 255, 255, 0.07);
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+        .lp-navbar--scrolled .lp-navbar__inner {
+          box-shadow: 0 8px 32px rgba(0,0,0,0.10);
         }
 
         .lp-navbar__inner {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          max-width: 1300px;
+          justify-content: space-between;
+          max-width: 1240px;
           margin: 0 auto;
+          background: #ffffff;
+          padding: 12px 22px;
+          border-radius: 100px;
+          border: 1px solid var(--lp-border);
+          box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+          transition: box-shadow 0.3s ease;
         }
 
         .lp-navbar__logo {
-          height: 42px;
+          height: 36px;
           width: auto;
           cursor: pointer;
           transition: opacity 0.2s;
-          filter: brightness(0) invert(1);
         }
-        .lp-navbar__logo:hover { opacity: 0.85; }
+        .lp-navbar__logo:hover { opacity: 0.8; }
+
+        .lp-navbar__actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
 
         .lp-btn-signin {
           padding: 9px 22px;
           border-radius: 100px;
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          background: rgba(255, 255, 255, 0.06);
-          color: #F8FAFC;
-          font-family: 'Inter', sans-serif;
+          border: 1px solid var(--lp-border);
+          background: #ffffff;
+          color: var(--lp-text);
+          font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
-          font-size: 0.9rem;
+          font-size: 0.92rem;
           cursor: pointer;
-          transition: all 0.25s ease;
-          backdrop-filter: blur(8px);
+          transition: all 0.22s ease;
         }
         .lp-btn-signin:hover {
-          background: rgba(255, 255, 255, 0.13);
-          border-color: rgba(255, 255, 255, 0.32);
+          border-color: var(--lp-purple-300);
+          color: var(--lp-purple-700);
+        }
+
+        .lp-btn-dark {
+          padding: 9px 22px;
+          border-radius: 100px;
+          background: var(--lp-ink);
+          color: #ffffff;
+          font-family: 'Instrument Sans', sans-serif;
+          font-weight: 600;
+          font-size: 0.92rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.22s ease;
+        }
+        .lp-btn-dark:hover {
+          background: var(--lp-purple-700);
+          transform: translateY(-1px);
         }
 
         /* ── Hero ─────────────────────────────────────────────────────────── */
@@ -463,55 +569,32 @@ export default function Landing() {
           display: flex;
           align-items: center;
           padding: 140px 8% 80px;
-          background: linear-gradient(160deg, #050510 0%, #0D0B26 100%);
+          background: linear-gradient(160deg, #FAF5FF 0%, #F3E8FF 55%, #FFFFFF 100%);
           overflow: hidden;
         }
 
-        /* Orbs */
         .lp-orb {
           position: absolute;
           border-radius: 50%;
-          animation: orbDrift 8s ease-in-out infinite;
           pointer-events: none;
         }
         .lp-orb--1 {
           width: 520px; height: 520px;
-          background: rgba(99, 102, 241, 0.22);
-          filter: blur(90px);
+          background: rgba(168, 85, 247, 0.22);
+          filter: blur(110px);
           top: -120px; left: -120px;
-          animation-delay: 0s;
         }
         .lp-orb--2 {
           width: 420px; height: 420px;
-          background: rgba(139, 92, 246, 0.18);
-          filter: blur(80px);
-          top: 180px; right: -80px;
-          animation-delay: -3s;
-        }
-        .lp-orb--3 {
-          width: 300px; height: 300px;
-          background: rgba(34, 211, 238, 0.1);
-          filter: blur(70px);
-          bottom: 0; left: 38%;
-          animation-delay: -5.5s;
-        }
-
-        /* Dot-grid overlay */
-        .lp-grid-overlay {
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-          pointer-events: none;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-          background-size: 60px 60px;
+          background: rgba(196, 181, 253, 0.32);
+          filter: blur(100px);
+          bottom: -100px; right: -60px;
         }
 
         .lp-hero__inner {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 64px;
+          grid-template-columns: 1fr 1.05fr;
+          gap: 60px;
           align-items: center;
           max-width: 1300px;
           margin: 0 auto;
@@ -523,68 +606,56 @@ export default function Landing() {
         .lp-hero__text {
           display: flex;
           flex-direction: column;
-          gap: 0;
         }
 
-        /* Badge */
         .lp-badge {
           display: inline-flex;
           align-items: center;
-          gap: 9px;
+          gap: 8px;
           padding: 7px 16px;
           border-radius: 100px;
-          background: rgba(99, 102, 241, 0.12);
-          border: 1px solid rgba(99, 102, 241, 0.28);
-          color: #A5B4FC;
-          font-size: 0.82rem;
-          font-weight: 500;
-          margin-bottom: 28px;
+          background: linear-gradient(135deg, #DDD6FE 0%, #C4B5FD 100%);
+          color: var(--lp-purple-900);
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 600;
+          margin-bottom: 24px;
           width: fit-content;
-          letter-spacing: 0.01em;
+          box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.18);
         }
 
-        .lp-badge__dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #22D3EE;
-          box-shadow: 0 0 6px #22D3EE;
-          flex-shrink: 0;
-          animation: pulseRing 1.8s ease-out infinite;
-        }
-
-        /* Titles */
         .lp-hero__title {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: clamp(2.8rem, 5vw, 4rem);
-          font-weight: 700;
-          line-height: 1.15;
-          color: #F8FAFC;
-          margin: 0;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(2.6rem, 5vw, 4.2rem);
+          font-weight: 600;
+          line-height: 1.1;
+          color: var(--lp-ink);
+          margin: 0 0 20px 0;
+          letter-spacing: -0.02em;
         }
 
         .lp-hero__title--gradient {
-          background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 55%, #22D3EE 100%);
+          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 60%, #C084FC 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
-          margin-bottom: 24px;
         }
 
         .lp-hero__subtitle {
-          color: #94A3B8;
-          font-size: 1.08rem;
-          line-height: 1.78;
-          max-width: 500px;
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1.05rem;
+          line-height: 1.7;
+          max-width: 540px;
           margin: 0 0 32px;
         }
 
-        /* CTA buttons */
         .lp-hero__ctas {
           display: flex;
-          gap: 14px;
+          gap: 12px;
           align-items: center;
           flex-wrap: wrap;
+          margin-bottom: 36px;
         }
 
         .lp-btn-primary {
@@ -593,98 +664,261 @@ export default function Landing() {
           gap: 8px;
           padding: 14px 28px;
           border-radius: 100px;
-          background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-          color: white;
-          font-family: 'Inter', sans-serif;
+          background: var(--lp-ink);
+          color: #ffffff;
+          font-family: 'Instrument Sans', sans-serif;
           font-weight: 600;
-          font-size: 0.95rem;
+          font-size: 0.98rem;
           border: none;
           cursor: pointer;
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
-          box-shadow: 0 0 30px rgba(99, 102, 241, 0.38);
+          transition: all 0.25s ease;
+          box-shadow: 0 4px 16px rgba(10,10,10,0.18);
         }
         .lp-btn-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 40px rgba(99, 102, 241, 0.55);
+          box-shadow: 0 12px 32px rgba(124, 58, 237, 0.32);
+          background: var(--lp-purple-700);
         }
 
         .lp-btn-ghost {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 13px 22px;
+          padding: 13px 24px;
           border-radius: 100px;
-          background: transparent;
-          color: #94A3B8;
-          font-family: 'Inter', sans-serif;
+          background: #ffffff;
+          color: var(--lp-text);
+          font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
-          font-size: 0.95rem;
-          border: 1px solid rgba(255, 255, 255, 0.13);
+          font-size: 0.98rem;
+          border: 1px solid var(--lp-border);
           cursor: pointer;
-          transition: all 0.25s ease;
+          transition: all 0.22s ease;
         }
         .lp-btn-ghost:hover {
-          color: #F8FAFC;
-          border-color: rgba(255, 255, 255, 0.32);
-          background: rgba(255, 255, 255, 0.04);
+          border-color: var(--lp-purple-500);
+          color: var(--lp-purple-700);
         }
 
-        /* Image */
-        .lp-hero__image-wrap {
-          position: relative;
-          display: inline-block;
-          width: 100%;
-          max-width: 500px;
+        .lp-hero__badges {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
         }
 
-        .lp-hero__video {
-          width: 49%;
-          height: auto;
-          border-radius: 16px;
-          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
-          object-fit: cover;
-          display: block;
-          float: left;
+        .lp-proof-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 14px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          font-weight: 500;
+          color: var(--lp-text-muted);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
-
-        .lp-hero__overlay-img {
-          width: 49%;
-          height: auto;
-          max-height: 350px;
-          border-radius: 24px;
-          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-          object-fit: cover;
-          display: block;
-          float: right;
-          margin: 0;
-        }
-
-        .lp-hero__img-glow {
-          position: absolute;
-          bottom: -24px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 65%;
-          height: 60px;
-          background: rgba(99, 102, 241, 0.42);
-          filter: blur(40px);
+        .lp-proof-badge__icon {
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
-          z-index: -1;
-          pointer-events: none;
+          background: linear-gradient(135deg, #DDD6FE, #C4B5FD);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--lp-purple-700);
+        }
+
+        /* ── Hero media (phones + floating widgets) ───────────────────────── */
+        .lp-hero__media {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .lp-phones {
+          display: flex;
+          gap: 14px;
+          width: 100%;
+          height: 100%;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .lp-phone {
+          width: 45%;
+          aspect-ratio: 9 / 16;
+          border-radius: 28px;
+          overflow: hidden;
+          background: #111;
+          box-shadow: 0 28px 70px rgba(124, 58, 237, 0.18), 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .lp-phone--left {
+          transform: rotate(-2deg) translateY(10px);
+        }
+        .lp-phone--right {
+          transform: rotate(2deg) translateY(-10px);
+        }
+
+        .lp-phone__media {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        /* Floating widget — creators count */
+        .lp-float {
+          position: absolute;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 18px;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+          padding: 14px 16px;
+          font-family: 'Instrument Sans', sans-serif;
+          z-index: 3;
+        }
+
+        .lp-float--creators {
+          top: 8%;
+          left: -4%;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          max-width: 240px;
+        }
+
+        .lp-avatars {
+          display: flex;
+        }
+        .lp-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          color: #fff;
+          font-weight: 700;
+          font-size: 13px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #fff;
+          margin-left: -8px;
+        }
+        .lp-avatar:first-child { margin-left: 0; }
+
+        .lp-float__copy {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.2;
+        }
+        .lp-float__small {
+          font-size: 0.72rem;
+          color: var(--lp-text-muted);
+          font-weight: 500;
+        }
+        .lp-float__small--center {
+          text-align: center;
+          margin-bottom: 8px;
+        }
+        .lp-float__big {
+          font-size: 1.45rem;
+          font-weight: 700;
+          color: var(--lp-purple-700);
+          line-height: 1;
+        }
+
+        .lp-float--platforms {
+          bottom: 14%;
+          left: 28%;
+          padding: 12px 18px;
+          min-width: 230px;
+        }
+
+        .lp-platforms {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: center;
+        }
+        .lp-platform-icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--lp-purple-50);
+          color: var(--lp-purple-700);
+          font-weight: 700;
+          font-size: 13px;
+        }
+        .lp-platform-icon--meta {
+          background: #1877F2; color: #fff;
+        }
+        .lp-platform-icon--shop {
+          background: #95BF47; color: #fff;
+        }
+
+        /* Category chips */
+        .lp-chips {
+          position: absolute;
+          right: -2%;
+          top: 12%;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          z-index: 3;
+        }
+        .lp-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px 8px 8px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 500;
+          color: var(--lp-text);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+          min-width: 120px;
+        }
+        .lp-chip__icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
+          color: var(--lp-purple-700);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+        .lp-chip--0 { transform: translateX(-30px); }
+        .lp-chip--1 { transform: translateX(10px); }
+        .lp-chip--2 { transform: translateX(-20px); }
+        .lp-chip--3 { transform: translateX(20px); }
+        .lp-chip--more {
+          color: var(--lp-text-muted);
+          transform: translateX(-10px);
         }
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */
         .lp-brands {
-          background: #0a0a0a;
+          background: var(--lp-bg-soft);
           padding: 60px 0;
           overflow: hidden;
+          border-top: 1px solid var(--lp-border);
+          border-bottom: 1px solid var(--lp-border);
         }
-
-        .lp-brands__scroll {
-          width: 100%;
-          overflow: hidden;
-        }
-
+        .lp-brands__scroll { width: 100%; overflow: hidden; }
         .lp-brands__track {
           display: flex;
           gap: 60px;
@@ -692,78 +926,59 @@ export default function Landing() {
           width: max-content;
           padding: 0 8%;
         }
-
         .lp-brand-item {
+          font-family: 'Instrument Sans', sans-serif;
           font-size: 1.5rem;
           font-weight: 700;
-          color: #F8FAFC;
+          color: var(--lp-text);
           white-space: nowrap;
-          letter-spacing: 0.02em;
-          opacity: 0.6;
-          transition: opacity 0.3s ease;
+          opacity: 0.45;
+          transition: all 0.3s ease;
         }
-
         .lp-brand-item:hover {
           opacity: 1;
+          color: var(--lp-purple-600);
         }
-
         @keyframes scrollBrands {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
 
         /* ── Features ─────────────────────────────────────────────────────── */
         .lp-features {
-          position: relative;
           padding: 120px 8%;
           background: #ffffff;
-          overflow: hidden;
+          position: relative;
         }
-
         .lp-features__inner {
           max-width: 1200px;
           margin: 0 auto;
           text-align: center;
-          position: relative;
-          z-index: 1;
         }
 
         .lp-eyebrow {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 0.7rem;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.72rem;
           font-weight: 700;
           letter-spacing: 0.18em;
-          color: #6366F1;
+          color: var(--lp-purple-700);
           text-transform: uppercase;
           margin-bottom: 18px;
-          padding: 5px 14px;
+          padding: 6px 14px;
           border-radius: 100px;
-          background: rgba(99, 102, 241, 0.08);
-          border: 1px solid rgba(99, 102, 241, 0.18);
+          background: var(--lp-purple-50);
+          border: 1px solid var(--lp-purple-200);
         }
 
         .lp-section-heading {
-          font-family: 'Space Grotesk', sans-serif;
+          font-family: 'Instrument Sans', sans-serif;
           font-size: clamp(2rem, 3.5vw, 2.8rem);
-          font-weight: 700;
-          color: #0F172A;
-          margin-bottom: 12px;
-        }
-
-        .lp-section-subheading {
-          color: #64748B;
-          font-size: 1rem;
-          line-height: 1.65;
+          font-weight: 600;
+          color: var(--lp-ink);
           margin-bottom: 60px;
-          max-width: 480px;
-          margin-left: auto;
-          margin-right: auto;
+          letter-spacing: -0.01em;
         }
 
         .lp-features__grid {
@@ -773,49 +988,41 @@ export default function Landing() {
           text-align: left;
         }
 
-        /* Feature card — clean white, premium */
         .lp-card {
           background: #ffffff;
           padding: 32px 26px 26px;
           border-radius: 20px;
-          border: 1.5px solid #F1F5F9;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+          border: 1.5px solid var(--lp-border);
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
           cursor: default;
-          transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+          transition: border-color 0.3s ease, box-shadow 0.3s ease;
           position: relative;
           overflow: hidden;
         }
-
-        /* Colored top accent line on hover */
         .lp-card::after {
           content: '';
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 3px;
-          background: var(--card-accent, #6366F1);
+          background: var(--card-accent, var(--lp-purple-500));
           opacity: 0;
           transition: opacity 0.3s ease;
-          border-radius: 20px 20px 0 0;
         }
-
         .lp-card:hover {
-          border-color: rgba(99, 102, 241, 0.15);
-          box-shadow: 0 16px 48px var(--card-glow, rgba(99,102,241,0.12));
+          border-color: var(--lp-purple-200);
+          box-shadow: 0 16px 40px var(--card-glow, rgba(168,85,247,0.18));
         }
-        .lp-card:hover::after {
-          opacity: 1;
-        }
+        .lp-card:hover::after { opacity: 1; }
 
-        /* Card number */
         .lp-card__num {
           position: absolute;
           top: 20px;
           right: 22px;
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 0.7rem;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.72rem;
           font-weight: 700;
           letter-spacing: 0.06em;
-          color: #E2E8F0;
+          color: #E5E7EB;
         }
 
         .lp-card__icon {
@@ -831,29 +1038,29 @@ export default function Landing() {
           flex-shrink: 0;
         }
         .lp-card:hover .lp-card__icon {
-          transform: scale(1.1) rotate(-3deg);
+          transform: scale(1.08) rotate(-3deg);
         }
 
         .lp-card__title {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 1.1rem;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.12rem;
           font-weight: 600;
-          color: #0F172A;
+          color: var(--lp-ink);
           margin-bottom: 10px;
         }
 
         .lp-card__body {
-          color: #64748B;
-          font-size: 0.91rem;
-          line-height: 1.72;
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 0.92rem;
+          line-height: 1.7;
           margin-bottom: 20px;
         }
 
-        /* Bottom gradient accent bar — animates wider on hover */
         .lp-card__bar {
           height: 2px;
           border-radius: 2px;
-          opacity: 0.4;
+          opacity: 0.35;
           transition: opacity 0.3s ease, width 0.35s ease;
           width: 36px;
         }
@@ -866,19 +1073,9 @@ export default function Landing() {
         .lp-cta {
           position: relative;
           padding: 120px 8%;
-          background: #0D0B26;
+          background: linear-gradient(135deg, #FAF5FF 0%, #E9D5FF 50%, #FAF5FF 100%);
           overflow: hidden;
           text-align: center;
-        }
-
-        .lp-cta__mesh {
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          background: linear-gradient(135deg, #050510 0%, #1e1b4b 40%, #0D0B26 60%, #08081a 100%);
-          background-size: 300% 300%;
-          animation: gradientShift 8s ease infinite;
-          pointer-events: none;
         }
 
         .lp-cta__inner {
@@ -892,22 +1089,23 @@ export default function Landing() {
         }
 
         .lp-cta__heading {
-          font-family: 'Space Grotesk', sans-serif;
+          font-family: 'Instrument Sans', sans-serif;
           font-size: clamp(2.2rem, 4vw, 3rem);
-          font-weight: 700;
-          color: #F8FAFC;
+          font-weight: 600;
+          color: var(--lp-ink);
           margin-bottom: 18px;
           line-height: 1.2;
+          letter-spacing: -0.02em;
         }
 
         .lp-cta__subtext {
-          color: #94A3B8;
-          font-size: 1.08rem;
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1.05rem;
           line-height: 1.7;
           margin-bottom: 52px;
         }
 
-        /* Stats */
         .lp-cta__stats {
           display: flex;
           justify-content: center;
@@ -924,38 +1122,27 @@ export default function Landing() {
         }
 
         .lp-stat__value {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 2.1rem;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 2.2rem;
           font-weight: 700;
-          background: linear-gradient(135deg, #6366F1, #22D3EE);
+          background: linear-gradient(135deg, #7C3AED, #A855F7);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
           line-height: 1;
         }
-
         .lp-stat__label {
-          color: #64748B;
-          font-size: 0.8rem;
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 0.78rem;
           font-weight: 600;
           letter-spacing: 0.1em;
           text-transform: uppercase;
         }
 
-        /* Button + pulse ring */
         .lp-cta__btn-wrap {
-          position: relative;
           display: inline-flex;
           margin-bottom: 28px;
-        }
-
-        .lp-pulse-ring {
-          position: absolute;
-          inset: -5px;
-          border-radius: 100px;
-          border: 2px solid rgba(99, 102, 241, 0.55);
-          animation: pulseRing 1.8s ease-out infinite;
-          pointer-events: none;
         }
 
         .lp-btn-join {
@@ -964,27 +1151,26 @@ export default function Landing() {
           gap: 9px;
           padding: 16px 42px;
           border-radius: 100px;
-          background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+          background: var(--lp-ink);
           color: white;
-          font-family: 'Inter', sans-serif;
-          font-weight: 700;
+          font-family: 'Instrument Sans', sans-serif;
+          font-weight: 600;
           font-size: 1.05rem;
           border: none;
           cursor: pointer;
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
-          box-shadow: 0 0 40px rgba(99, 102, 241, 0.42);
-          position: relative;
-          z-index: 1;
+          transition: all 0.25s ease;
+          box-shadow: 0 8px 28px rgba(10,10,10,0.25);
         }
         .lp-btn-join:hover {
           transform: translateY(-3px);
-          box-shadow: 0 12px 50px rgba(99, 102, 241, 0.62);
+          background: var(--lp-purple-700);
+          box-shadow: 0 16px 40px rgba(124, 58, 237, 0.42);
         }
 
         .lp-cta__proof {
-          color: #475569;
-          font-size: 0.83rem;
-          letter-spacing: 0.01em;
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 0.85rem;
         }
 
         /* ── Responsive ───────────────────────────────────────────────────── */
@@ -993,50 +1179,33 @@ export default function Landing() {
             grid-template-columns: 1fr;
             text-align: center;
           }
-          .lp-hero__text {
-            align-items: center;
-          }
-          .lp-hero__subtitle {
-            max-width: 100%;
-          }
-          .lp-hero__ctas {
-            justify-content: center;
-          }
-          .lp-hero__image-wrap {
+          .lp-hero__text { align-items: center; }
+          .lp-hero__subtitle { max-width: 100%; }
+          .lp-hero__ctas, .lp-hero__badges { justify-content: center; }
+          .lp-hero__media {
             order: -1;
-            max-width: 460px;
+            max-width: 520px;
             margin: 0 auto;
+            aspect-ratio: 1 / 0.9;
           }
-          .lp-features__grid {
-            text-align: left;
-          }
+          .lp-float--creators { left: 2%; }
+          .lp-chips { right: 2%; }
         }
 
         @media (max-width: 640px) {
-          .lp-hero {
-            padding: 120px 5% 60px;
-          }
-          .lp-features {
-            padding: 80px 5%;
-          }
-          .lp-cta {
-            padding: 80px 5%;
-          }
-          .lp-hero__ctas {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .lp-btn-primary,
-          .lp-btn-ghost {
-            justify-content: center;
-          }
-          .lp-cta__stats {
-            gap: 32px;
-          }
-          .lp-orb--1 { opacity: 0.7; }
-          .lp-orb--2 { opacity: 0.6; }
-          .lp-orb--3 { opacity: 0.5; }
-          .lp-navbar { padding: 16px 5%; }
+          .lp-hero { padding: 120px 5% 60px; }
+          .lp-features, .lp-cta { padding: 80px 5%; }
+          .lp-navbar { padding: 0 4%; }
+          .lp-navbar__inner { padding: 10px 14px; }
+          .lp-btn-signin, .lp-btn-dark { padding: 8px 16px; font-size: 0.85rem; }
+          .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
+          .lp-btn-primary, .lp-btn-ghost { justify-content: center; }
+          .lp-cta__stats { gap: 32px; }
+          .lp-float { display: none; }
+          .lp-chips { display: none; }
+          .lp-phone--left, .lp-phone--right { transform: none; }
+          .lp-hero__badges { gap: 6px; }
+          .lp-proof-badge { font-size: 0.7rem; padding: 5px 10px; }
         }
       `}</style>
     </div>

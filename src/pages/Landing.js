@@ -531,29 +531,15 @@ export default function Landing() {
 
       {/* ── Brands Scroll ───────────────────────────────────────────────────── */}
       <section className="lp-brands">
-        <div className="lp-brands__inner">
-          <div className="lp-brands__caption-wrap">
-            <span className="lp-brands__pill">
-              <span className="lp-brands__pulse" />
-              Trusted by 500+ teams
-            </span>
-            <p className="lp-brands__caption">
-              Used by brands that value <em>long-term recall</em> over short-term noise.
-            </p>
-          </div>
-
-          <div className="lp-brands__scroll">
-            <div className="lp-brands__fade lp-brands__fade--left" />
-            <div className="lp-brands__fade lp-brands__fade--right" />
-            <div className="lp-brands__track">
-              {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
-                'Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft'].map((b, i) => (
-                <div key={`${b}-${i}`} className="lp-brand-item">
-                  <span className="lp-brand-item__dot" />
-                  {b}
-                </div>
-              ))}
-            </div>
+        <p className="lp-brands__caption">
+          Used by brands that value long-term recall over short-term noise.
+        </p>
+        <div className="lp-brands__scroll">
+          <div className="lp-brands__track">
+            {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
+              'Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft'].map((b, i) => (
+              <div key={`${b}-${i}`} className="lp-brand-item">{b}</div>
+            ))}
           </div>
         </div>
       </section>
@@ -1709,106 +1695,33 @@ export default function Landing() {
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */
         .lp-brands {
-          background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
-          padding: 70px 0 80px;
+          background: linear-gradient(180deg, #EEEEF2 0%, #F5F5F8 50%, #EEEEF2 100%);
+          padding: 50px 0 60px;
           overflow: hidden;
           border-top: 1px solid var(--lp-border);
           border-bottom: 1px solid var(--lp-border);
         }
-        .lp-brands__inner {
-          max-width: 1300px;
-          margin: 0 auto;
-        }
-        .lp-brands__caption-wrap {
-          text-align: center;
-          margin-bottom: 40px;
-          padding: 0 8%;
-        }
-        .lp-brands__pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 14px;
-          background: #ffffff;
-          border: 1px solid var(--lp-border);
-          border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.78rem;
-          font-weight: 600;
-          color: #07074e;
-          margin-bottom: 16px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-        }
-        .lp-brands__pulse {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #22C55E;
-          box-shadow: 0 0 0 0 rgba(34,197,94,0.55);
-          animation: hookPulse 1.8s ease-out infinite;
-        }
-
-        .lp-brands__scroll {
-          position: relative;
-          width: 100%;
-          overflow: hidden;
-          padding: 8px 0;
-        }
-        .lp-brands__fade {
-          position: absolute;
-          top: 0; bottom: 0;
-          width: 120px;
-          z-index: 2;
-          pointer-events: none;
-        }
-        .lp-brands__fade--left {
-          left: 0;
-          background: linear-gradient(90deg, #FAFAF9, rgba(250,250,249,0));
-        }
-        .lp-brands__fade--right {
-          right: 0;
-          background: linear-gradient(270deg, #FAFAF9, rgba(250,250,249,0));
-        }
-
+        .lp-brands__scroll { width: 100%; overflow: hidden; }
         .lp-brands__track {
           display: flex;
-          gap: 18px;
+          gap: 60px;
           animation: scrollBrands 30s linear infinite;
           width: max-content;
-          padding: 0 18px;
+          padding: 0 8%;
         }
         .lp-brand-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px 24px;
-          background: #ffffff;
-          border: 1px solid var(--lp-border);
-          border-radius: 14px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: var(--lp-text);
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--lp-ink);
           white-space: nowrap;
-          letter-spacing: -0.02em;
+          opacity: 0.5;
           transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-          cursor: default;
-        }
-        .lp-brand-item__dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #07074e, #3A3A66);
-          flex-shrink: 0;
         }
         .lp-brand-item:hover {
+          opacity: 1;
           color: #07074e;
-          border-color: #8888A0;
-          transform: translateY(-2px);
-          box-shadow: 0 10px 28px rgba(7,7,78,0.12);
         }
-
         @keyframes scrollBrands {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -3367,25 +3280,12 @@ export default function Landing() {
         /* ── Brands caption ──────────────────────────────────────────────── */
         .lp-brands__caption {
           font-family: 'Instrument Sans', sans-serif;
-          color: var(--lp-text);
+          color: var(--lp-text-muted);
           text-align: center;
-          font-size: 1.02rem;
-          letter-spacing: -0.015em;
-          line-height: 1.4;
-          padding: 0;
-          margin: 0 auto;
-          max-width: 640px;
-        }
-        .lp-brands__caption em {
-          color: #07074e;
-          font-style: italic;
-          font-weight: 600;
-        }
-
-        @media (max-width: 640px) {
-          .lp-brand-item { padding: 10px 18px; font-size: 1rem; }
-          .lp-brands__fade { width: 60px; }
-          .lp-brands__caption { font-size: 0.92rem; }
+          font-size: 0.95rem;
+          letter-spacing: -0.01em;
+          padding: 0 8% 28px;
+          margin: 0;
         }
 
         /* ── Scroll Hook ─────────────────────────────────────────────────── */

@@ -201,20 +201,26 @@ const compareRows = [
   { label: 'Control over content',             us: CHECK, inhouse: CHECK, agencies: CROSS, platforms: CHECK },
 ];
 
-// Six showcase video slots — extras gracefully fall back to the existing
-// file if the user hasn't downloaded the additional Pexels videos.
+// Six showcase video slots — using Google's public sample video CDN (hotlink-friendly, CORS-enabled).
+// These are demo videos; user can swap to local UGC files in /public when available.
 const showcaseVideos = [
-  { id: 1, industryId: 'apps',    label: 'Apps/Software',    src: '/9384669-uhd_2160_3840_24fps.mp4',
+  { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
+    src: '/9384669-uhd_2160_3840_24fps.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: '🎨' },
-  { id: 2, industryId: 'apps',    label: 'Apps/Software',    src: 'https://videos.pexels.com/video-files/4761426/4761426-hd_1080_1920_25fps.mp4',
+  { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8' },
-  { id: 3, industryId: 'family',  label: 'Family/Kids',      src: 'https://videos.pexels.com/video-files/4123487/4123487-hd_1080_1920_30fps.mp4',
+  { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G' },
-  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: 'https://videos.pexels.com/video-files/3066460/3066460-hd_1080_1920_30fps.mp4',
+  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
     brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: '✨' },
-  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: 'https://videos.pexels.com/video-files/3209828/3209828-hd_1080_1920_25fps.mp4',
+  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T' },
-  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: 'https://videos.pexels.com/video-files/4456030/4456030-hd_1080_1920_25fps.mp4',
+  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A' },
 ];
 
@@ -785,19 +791,27 @@ export default function Landing() {
             {(visibleShowcase.length ? visibleShowcase : showcaseVideos).map((v) => (
               <div key={v.id} className="lp-showcase-item">
                 <div className="lp-showcase-card">
-                  <video
-                    src={v.src}
-                    className="lp-showcase-card__media"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    onError={(e) => {
-                      if (!e.currentTarget.src.endsWith('/9384669-uhd_2160_3840_24fps.mp4')) {
-                        e.currentTarget.src = '/9384669-uhd_2160_3840_24fps.mp4';
-                      }
-                    }}
-                  />
+                  {v.isVideo ? (
+                    <video
+                      src={v.src}
+                      className="lp-showcase-card__media"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={v.src}
+                      alt={v.brand}
+                      className="lp-showcase-card__media"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentNode.style.background = v.logoBg;
+                      }}
+                    />
+                  )}
                   <span className="lp-showcase-card__tag">{v.label}</span>
                 </div>
 
@@ -1695,11 +1709,32 @@ export default function Landing() {
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */
         .lp-brands {
-          background: linear-gradient(180deg, #EEEEF2 0%, #F5F5F8 50%, #EEEEF2 100%);
+          position: relative;
+          background:
+            radial-gradient(circle at 20% 50%, rgba(7, 7, 78, 0.06) 0%, transparent 50%),
+            radial-gradient(circle at 80% 50%, rgba(7, 7, 78, 0.05) 0%, transparent 50%),
+            linear-gradient(180deg, #F8F8FB 0%, #EEEEF2 50%, #F8F8FB 100%);
           padding: 50px 0 60px;
           overflow: hidden;
           border-top: 1px solid var(--lp-border);
           border-bottom: 1px solid var(--lp-border);
+        }
+        .lp-brands::before,
+        .lp-brands::after {
+          content: '';
+          position: absolute;
+          top: 0; bottom: 0;
+          width: 180px;
+          z-index: 2;
+          pointer-events: none;
+        }
+        .lp-brands::before {
+          left: 0;
+          background: linear-gradient(90deg, #EEEEF2 0%, rgba(238,238,242,0.6) 50%, rgba(238,238,242,0) 100%);
+        }
+        .lp-brands::after {
+          right: 0;
+          background: linear-gradient(270deg, #EEEEF2 0%, rgba(238,238,242,0.6) 50%, rgba(238,238,242,0) 100%);
         }
         .lp-brands__scroll { width: 100%; overflow: hidden; }
         .lp-brands__track {

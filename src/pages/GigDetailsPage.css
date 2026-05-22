@@ -146,6 +146,21 @@
   color: #222325;
 }
 
+.gdp-icon-btn.is-wishlisted {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.gdp-icon-btn.is-wishlisted:hover {
+  background: #fee2e2;
+}
+
+.gdp-icon-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* MEDIA SECTION */
 .gdp-media-section {
   margin-bottom: 40px;

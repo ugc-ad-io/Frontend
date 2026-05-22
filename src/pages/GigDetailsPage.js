@@ -51,6 +51,9 @@ export default function GigDetailsPage() {
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
   const [portfolioModalIdx, setPortfolioModalIdx] = useState(0);
   const [portfolioModalMediaIdx, setPortfolioModalMediaIdx] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('basic');
@@ -69,11 +72,36 @@ export default function GigDetailsPage() {
         fetchReviews(res.data.creator_id);
         fetchCreatorPortfolio(res.data.creator_id);
       }
+      fetchWishlist();
     } catch (error) {
       toast.error('Failed to load gig details');
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWishlist = async () => {
+    try {
+      const res = await axios.get(`${API}/gigs/${gigId}/wishlist`);
+      setWishlistCount(Number(res.data?.count || 0));
+      setIsWishlisted(Boolean(res.data?.is_wishlisted));
+    } catch (error) {
+      console.error('Failed to fetch wishlist count:', error);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (wishlistBusy) return;
+    setWishlistBusy(true);
+    try {
+      const res = await axios.post(`${API}/gigs/${gigId}/wishlist`);
+      setWishlistCount(Number(res.data?.count || 0));
+      setIsWishlisted(Boolean(res.data?.is_wishlisted));
+    } catch (error) {
+      toast.error('Could not update wishlist');
+    } finally {
+      setWishlistBusy(false);
     }
   };
 
@@ -495,7 +523,19 @@ export default function GigDetailsPage() {
               </div>
             </div>
             <div className="gdp-creator-actions">
-              <button className="gdp-icon-btn"><Heart size={18} /> <span>20</span></button>
+              <button
+                className={`gdp-icon-btn ${isWishlisted ? 'is-wishlisted' : ''}`}
+                onClick={handleToggleWishlist}
+                disabled={wishlistBusy}
+                aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+              >
+                <Heart
+                  size={18}
+                  fill={isWishlisted ? '#ef4444' : 'none'}
+                  stroke={isWishlisted ? '#ef4444' : 'currentColor'}
+                />
+                <span>{wishlistCount}</span>
+              </button>
               <button className="gdp-icon-btn"><Share2 size={18} /></button>
             </div>
           </div>

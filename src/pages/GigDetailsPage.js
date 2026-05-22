@@ -564,13 +564,14 @@ export default function GigDetailsPage() {
               <div className="gdp-detail-item">
                 <div className="gdp-detail-label">Gender</div>
                 <div className="gdp-detail-value">
-                  {creatorDetails.gender || gig.gender || 'Not specified'}
+                  {gig.creator_gender || creatorDetails.gender || gig.gender || 'Not specified'}
                 </div>
               </div>
               <div className="gdp-detail-item">
                 <div className="gdp-detail-label">Languages</div>
                 <div className="gdp-detail-value">
                   {(() => {
+                    if (Array.isArray(gig.creator_language) && gig.creator_language.length) return gig.creator_language.join(', ');
                     if (creatorDetails.languages.length) return creatorDetails.languages.join(', ');
                     const lang = gig.nativeLanguage || gig.language;
                     if (Array.isArray(lang) && lang.length) return lang.join(', ');
@@ -582,13 +583,13 @@ export default function GigDetailsPage() {
               <div className="gdp-detail-item">
                 <div className="gdp-detail-label">Country</div>
                 <div className="gdp-detail-value">
-                  {creatorDetails.country || gig.city || 'Not specified'}
+                  {gig.creator_country || creatorDetails.country || gig.city || 'Not specified'}
                 </div>
               </div>
               <div className="gdp-detail-item">
                 <div className="gdp-detail-label">Age range</div>
                 <div className="gdp-detail-value">
-                  {creatorDetails.age_range || gig.ageRange || 'Not specified'}
+                  {gig.creator_age_range || creatorDetails.age_range || gig.ageRange || 'Not specified'}
                 </div>
               </div>
               {gig.accent && (
@@ -663,7 +664,7 @@ export default function GigDetailsPage() {
             <div className="gdp-profile-stats">
               <div className="gdp-profile-stat">
                 <div className="gdp-stat-label">From</div>
-                <div className="gdp-stat-value">{creatorDetails.country || gig.city || 'India'}</div>
+                <div className="gdp-stat-value">{gig.creator_country || creatorDetails.country || gig.city || 'India'}</div>
               </div>
               <div className="gdp-profile-stat">
                 <div className="gdp-stat-label">Member since</div>
@@ -681,6 +682,7 @@ export default function GigDetailsPage() {
                 <div className="gdp-stat-label">Languages</div>
                 <div className="gdp-stat-value">
                   {(() => {
+                    if (Array.isArray(gig.creator_language) && gig.creator_language.length) return gig.creator_language.join(', ');
                     if (creatorDetails.languages.length) return creatorDetails.languages.join(', ');
                     const lang = gig.nativeLanguage || gig.language;
                     if (Array.isArray(lang) && lang.length) return lang.join(', ');

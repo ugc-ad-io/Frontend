@@ -738,7 +738,7 @@ export default function Landing() {
           width: 88%;
           margin-left: auto;
           margin-right: auto;
-          aspect-ratio: 1 / 1.08;
+          aspect-ratio: 1 / 0.92;
           display: block;
         }
 
@@ -762,22 +762,22 @@ export default function Landing() {
           display: block;
         }
 
-        /* Main big card on the left — taller */
+        /* Main big card on the left — slightly smaller */
         .lp-phone--left {
           left: 0;
-          top: 2%;
+          top: 4%;
           width: 56%;
-          height: 98%;
+          height: 92%;
           z-index: 2;
           box-shadow: 0 24px 60px rgba(124, 58, 237, 0.20), 0 8px 24px rgba(0,0,0,0.12);
         }
 
-        /* Secondary card — sits BEHIND the main, slightly lower, taller */
+        /* Secondary card — sits significantly BEHIND the main one, slightly lower */
         .lp-phone--right {
           left: 40%;
           right: 0;
-          top: 16%;
-          height: 90%;
+          top: 28%;
+          height: 84%;
           width: auto;
           z-index: 1;
           box-shadow: 0 22px 48px rgba(0,0,0,0.18);

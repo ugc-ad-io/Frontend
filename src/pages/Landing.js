@@ -380,8 +380,8 @@ export default function Landing() {
                 </div>
               ))}
               <div className="lp-chip lp-chip--more">
-                <span className="lp-chip__icon">+</span>
-                <span>More...</span>
+                <span className="lp-chip__icon">🐾</span>
+                <span>+More...</span>
               </div>
             </div>
           </motion.div>
@@ -1106,53 +1106,54 @@ export default function Landing() {
           background: #95BF47; color: #fff;
         }
 
-        /* Category chips — horizontal pills, right side over secondary video */
+        /* Category chips — square cards in a 2-column staggered grid */
         .lp-chips {
           position: absolute;
-          right: 2%;
-          top: 38%;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
+          right: 4%;
+          top: 18%;
+          display: grid;
+          grid-template-columns: repeat(2, 72px);
+          grid-auto-rows: 72px;
+          gap: 14px;
           z-index: 5;
-          align-items: flex-end;
         }
         .lp-chip {
-          display: inline-flex;
+          display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 8px;
-          padding: 7px 18px 7px 7px;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
-          border-radius: 100px;
+          border-radius: 18px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          color: var(--lp-text);
+          font-size: 0.74rem;
+          font-weight: 600;
+          color: var(--lp-ink);
           box-shadow: 0 10px 24px rgba(0,0,0,0.14);
-          width: fit-content;
-          white-space: nowrap;
+          text-align: center;
         }
         .lp-chip__icon {
-          width: 26px;
-          height: 26px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
-          color: var(--lp-purple-700);
+          background: var(--lp-ink);
+          color: #ffffff;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
           flex-shrink: 0;
         }
-        /* Subtle horizontal stagger for organic feel */
-        .lp-chip--0 { transform: translateX(-2px); }
-        .lp-chip--1 { transform: translateX(8px); }
-        .lp-chip--2 { transform: translateX(-6px); }
-        .lp-chip--3 { transform: translateX(4px); }
+        /* Staggered grid: Beauty alone in row 1, then 2x2 below */
+        .lp-chip--0 { grid-column: 2; grid-row: 1; }  /* Beauty */
+        .lp-chip--1 { grid-column: 1; grid-row: 2; }  /* Apps */
+        .lp-chip--2 { grid-column: 2; grid-row: 2; }  /* Health */
+        .lp-chip--3 { grid-column: 1; grid-row: 3; }  /* Home */
         .lp-chip--more {
+          grid-column: 2; grid-row: 3;                 /* +More */
           color: var(--lp-text-muted);
-          transform: translateX(-2px);
         }
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */

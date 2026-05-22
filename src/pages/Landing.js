@@ -2896,10 +2896,11 @@ export default function Landing() {
         /* ── Footer ─────────────────────────────────────────────────────────── */
         .lp-footer {
           position: relative;
-          background: linear-gradient(180deg, #07074e 0%, #050538 100%);
-          color: #FFFFFF;
+          background: linear-gradient(180deg, #FAFAF9 0%, #FFFFFF 100%);
+          color: var(--lp-ink);
           padding: 90px 8% 30px;
           overflow: hidden;
+          border-top: 1px solid var(--lp-border);
         }
         .lp-footer__glow {
           position: absolute;
@@ -2908,12 +2909,12 @@ export default function Landing() {
           filter: blur(140px);
           width: 520px;
           height: 520px;
-          background: rgba(168, 85, 247, 0.30);
+          background: rgba(196, 181, 253, 0.32);
           top: -200px;
           left: -120px;
         }
         .lp-footer__glow--2 {
-          background: rgba(124, 58, 237, 0.22);
+          background: rgba(168, 85, 247, 0.18);
           width: 420px;
           height: 420px;
           top: auto;
@@ -2932,14 +2933,14 @@ export default function Landing() {
         .lp-footer__statement {
           padding-bottom: 56px;
           margin-bottom: 56px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+          border-bottom: 1px solid var(--lp-border);
           text-align: center;
         }
         .lp-footer__statement-eyebrow {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.55);
+          color: var(--lp-text-muted);
           letter-spacing: 0.16em;
           text-transform: uppercase;
           font-style: italic;
@@ -2949,15 +2950,27 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: clamp(1.4rem, 3vw, 2.2rem);
           font-weight: 500;
-          color: #FFFFFF;
+          color: var(--lp-ink);
           line-height: 1.3;
           letter-spacing: -0.03em;
           margin: 0 auto;
           max-width: 820px;
         }
         .lp-footer__statement-accent {
-          color: #C4B5FD;
+          color: #07074e;
           font-style: italic;
+          position: relative;
+        }
+        .lp-footer__statement-accent::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 5px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          border-radius: 4px;
+          opacity: 0.55;
         }
 
         .lp-footer__main {
@@ -2966,7 +2979,7 @@ export default function Landing() {
           gap: 60px;
           padding-bottom: 50px;
           margin-bottom: 24px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+          border-bottom: 1px solid var(--lp-border);
         }
 
         .lp-footer__brand {
@@ -2974,21 +2987,17 @@ export default function Landing() {
         }
         .lp-footer__logo-wrap {
           display: inline-flex;
-          padding: 8px;
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 14px;
           margin-bottom: 18px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
         }
         .lp-footer__logo {
-          height: 32px;
+          height: 36px;
           width: auto;
           display: block;
         }
         .lp-footer__tagline {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.95rem;
-          color: rgba(255, 255, 255, 0.70);
+          color: var(--lp-text-muted);
           line-height: 1.5;
           letter-spacing: -0.015em;
           margin: 0 0 24px 0;
@@ -3002,9 +3011,9 @@ export default function Landing() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: rgba(255, 255, 255, 0.75);
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          color: var(--lp-text-muted);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -3012,9 +3021,9 @@ export default function Landing() {
           text-decoration: none;
         }
         .lp-footer__social-btn:hover {
-          background: #C4B5FD;
-          color: #07074e;
-          border-color: #C4B5FD;
+          background: #07074e;
+          color: #ffffff;
+          border-color: #07074e;
           transform: translateY(-2px);
         }
 
@@ -3127,11 +3136,11 @@ export default function Landing() {
 
         .lp-footer__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.82rem;
+          font-size: 0.78rem;
           font-weight: 600;
-          color: rgba(255, 255, 255, 0.55);
+          color: var(--lp-text-muted);
           margin: 0 0 16px 0;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
         }
 
@@ -3149,12 +3158,13 @@ export default function Landing() {
           line-height: 1.4;
         }
         .lp-footer__list a {
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--lp-text);
           text-decoration: none;
           transition: color 0.18s ease;
           letter-spacing: -0.01em;
+          font-weight: 500;
         }
-        .lp-footer__list a:hover { color: #C4B5FD; }
+        .lp-footer__list a:hover { color: #07074e; }
 
         .lp-footer__badge {
           display: inline-block;
@@ -3210,7 +3220,7 @@ export default function Landing() {
         .lp-footer__copyright {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.55);
+          color: var(--lp-text-muted);
           letter-spacing: -0.01em;
         }
         .lp-footer__location {
@@ -3219,7 +3229,7 @@ export default function Landing() {
           gap: 8px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.55);
+          color: var(--lp-text-muted);
           font-style: italic;
           letter-spacing: -0.01em;
         }
@@ -3235,10 +3245,10 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 8px 14px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
           border-radius: 100px;
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
           font-weight: 500;
@@ -3247,9 +3257,9 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-footer__top-link:hover {
-          background: #C4B5FD;
-          color: #07074e;
-          border-color: #C4B5FD;
+          background: #07074e;
+          color: #ffffff;
+          border-color: #07074e;
         }
 
         @media (max-width: 1100px) {

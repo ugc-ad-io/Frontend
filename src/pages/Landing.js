@@ -201,26 +201,25 @@ const compareRows = [
   { label: 'Control over content',             us: CHECK, inhouse: CHECK, agencies: CROSS, platforms: CHECK },
 ];
 
-// Six showcase video slots — using Google's public sample video CDN (hotlink-friendly, CORS-enabled).
-// These are demo videos; user can swap to local UGC files in /public when available.
+// Six showcase video slots — all unique local UGC videos from /public folder.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/9384669-uhd_2160_3840_24fps.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: '🎨' },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    src: '/6944288-uhd_2160_3840_24fps.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8' },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
-    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    src: '/6951180-uhd_2160_3840_24fps.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G' },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+    src: '/7690504-hd_1080_1920_30fps.mp4',
     brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: '✨' },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+    src: '/13929852-uhd_2160_3840_24fps.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T' },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    src: '/6948556-uhd_2160_3840_24fps.mp4',
     brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A' },
 ];
 
@@ -338,7 +337,7 @@ export default function Landing() {
 
   // Right phone falls back to existing video if the second one isn't downloaded yet
   const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
-  const rightVideo = '/ugc-creator-2.mp4';
+  const rightVideo = '/17811912-uhd_2160_3840_24fps.mp4';
 
   return (
     <div className="lp-root">
@@ -1394,14 +1393,15 @@ export default function Landing() {
           gap: 8px;
           padding: 7px 16px;
           border-radius: 100px;
-          background: linear-gradient(135deg, #BBBBC8 0%, #8888A0 100%);
-          color: var(--lp-purple-900);
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          color: #07074e;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.85rem;
           font-weight: 600;
           margin-bottom: 24px;
           width: fit-content;
-          box-shadow: inset 0 0 0 1px rgba(7, 7, 78, 0.18);
+          box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
         }
 
         .lp-hero__title {

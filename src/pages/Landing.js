@@ -37,7 +37,7 @@ import {
   Youtube,
   Twitter,
 } from 'lucide-react';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, animate, useMotionValue, useTransform } from 'framer-motion';
 
 // ─── Static data ────────────────────────────────────────────────────────────
 
@@ -223,6 +223,46 @@ const statVariants = {
   hidden: { opacity: 0, scale: 0.85 },
   visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeOut' } },
 };
+
+// Animated counter — counts up from 0 to `target` when scrolled into view.
+// Preserves the original string's prefix ($) and suffix (+, K, M).
+function CountUp({ value }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+  const motionVal = useMotionValue(0);
+
+  // Parse the value string: extract prefix, number, and suffix
+  const parsed = (() => {
+    const str = String(value);
+    const prefix = str.match(/^[^\d]*/)?.[0] || '';
+    const suffix = str.match(/[^\d]*$/)?.[0] || '';
+    const numericPart = str.replace(/[^\d.]/g, '');
+    // Detect K / M shorthand
+    let multiplier = 1;
+    if (/M/i.test(suffix)) multiplier = 1;       // already a big number in display
+    else if (/K/i.test(suffix)) multiplier = 1;
+    const num = parseFloat(numericPart) || 0;
+    return { prefix, suffix, num, multiplier };
+  })();
+
+  const display = useTransform(motionVal, (latest) => {
+    const n = Math.floor(latest);
+    // Format with commas for big numbers
+    const formatted = n.toLocaleString('en-US');
+    return `${parsed.prefix}${formatted}${parsed.suffix}`;
+  });
+
+  useEffect(() => {
+    if (!inView) return;
+    const controls = animate(motionVal, parsed.num, {
+      duration: 2.2,
+      ease: [0.16, 1, 0.3, 1],
+    });
+    return () => controls.stop();
+  }, [inView, motionVal, parsed.num]);
+
+  return <motion.span ref={ref}>{display}</motion.span>;
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -911,22 +951,26 @@ export default function Landing() {
       {/* ── Value Proof (Editorial Stats) ─────────────────────────────────── */}
       <section className="lp-proof">
         <div className="lp-proof__inner">
-          <div className="lp-proof__top">
-            <span className="lp-proof__eyebrow">— Proof, not promises</span>
+          <div className="lp-proof__header">
+            <span className="lp-proof__eyebrow">— proof, not promises</span>
             <h2 className="lp-proof__heading">Trust Changes the Math.</h2>
           </div>
+
+          <div className="lp-proof__divider" />
 
           <div className="lp-proof__row">
             {stats.map((s, i) => (
               <div key={s.label} className="lp-proof-num">
                 <span className="lp-proof-num__index">0{i + 1}</span>
-                <span className="lp-proof-num__value">{s.value}</span>
+                <span className="lp-proof-num__value">
+                  <CountUp value={s.value} />
+                </span>
                 <span className="lp-proof-num__label">{s.label}</span>
               </div>
             ))}
           </div>
 
-          <p className="lp-proof__micro">Not louder ads. Better ones.</p>
+          <p className="lp-proof__micro">— Not louder ads. Better ones. —</p>
         </div>
       </section>
 
@@ -3378,129 +3422,112 @@ export default function Landing() {
 
         /* ── Value Proof (Editorial Big Numbers) ─────────────────────────── */
         .lp-proof {
-          padding: 130px 8%;
+          padding: 120px 8%;
           background: #ffffff;
           border-top: 1px solid var(--lp-border);
           border-bottom: 1px solid var(--lp-border);
         }
         .lp-proof__inner {
-          max-width: 1280px;
+          max-width: 1200px;
           margin: 0 auto;
         }
 
-        .lp-proof__top {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 28px;
-          flex-wrap: wrap;
-          margin-bottom: 70px;
-          padding-bottom: 28px;
-          border-bottom: 1px solid var(--lp-border);
+        .lp-proof__header {
+          text-align: center;
+          margin-bottom: 28px;
         }
         .lp-proof__eyebrow {
+          display: block;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.85rem;
+          font-size: 0.78rem;
           font-weight: 500;
           color: var(--lp-text-muted);
-          letter-spacing: 0.02em;
-          text-transform: lowercase;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
           font-style: italic;
+          margin-bottom: 18px;
         }
         .lp-proof__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4vw, 3.2rem);
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
           font-weight: 500;
           color: var(--lp-ink);
           letter-spacing: -0.04em;
           line-height: 1.1;
           margin: 0;
-          text-align: right;
+          text-align: center;
+        }
+
+        .lp-proof__divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--lp-border), transparent);
+          margin: 0 auto 70px;
+          max-width: 600px;
         }
 
         .lp-proof__row {
           display: grid;
-          grid-template-columns: 1fr 1px 1fr 1px 1fr;
-          align-items: stretch;
+          grid-template-columns: repeat(3, 1fr);
+          align-items: center;
           gap: 0;
-          margin-bottom: 72px;
+          margin-bottom: 60px;
         }
-        .lp-proof__row > .lp-proof-num { padding: 8px 36px; }
-        .lp-proof__row > .lp-proof-num:first-child { padding-left: 0; }
-        .lp-proof__row > .lp-proof-num:last-child { padding-right: 0; }
-        .lp-proof__row::before,
-        .lp-proof__row::after { content: none; }
-
-        /* Vertical dividers using inline 1px columns */
-        .lp-proof__row > div:not(.lp-proof-num) {
+        .lp-proof__row > .lp-proof-num {
+          padding: 8px 24px;
+          position: relative;
+        }
+        .lp-proof__row > .lp-proof-num:not(:last-child)::after {
+          content: '';
+          position: absolute;
+          top: 12%;
+          right: 0;
           width: 1px;
+          height: 76%;
           background: var(--lp-border);
-          align-self: stretch;
         }
 
         .lp-proof-num {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          align-items: flex-start;
-          text-align: left;
+          align-items: center;
+          text-align: center;
+          gap: 16px;
         }
         .lp-proof-num__index {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.78rem;
-          font-weight: 500;
+          font-size: 0.72rem;
+          font-weight: 600;
           color: var(--lp-text-soft);
-          letter-spacing: 0.18em;
+          letter-spacing: 0.24em;
         }
         .lp-proof-num__value {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(3rem, 6vw, 5rem);
+          font-size: clamp(2.6rem, 5.2vw, 4.4rem);
           font-weight: 500;
           color: #07074e;
-          letter-spacing: -0.05em;
+          letter-spacing: -0.045em;
           line-height: 1;
+          display: inline-block;
+          min-width: 0;
         }
         .lp-proof-num__label {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 500;
           color: var(--lp-text);
-          letter-spacing: -0.015em;
+          letter-spacing: -0.01em;
           line-height: 1.3;
-          max-width: 220px;
         }
 
         .lp-proof__micro {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.05rem;
+          font-size: 1rem;
           color: var(--lp-text-muted);
           font-style: italic;
           margin: 0;
           text-align: center;
-          letter-spacing: -0.015em;
+          letter-spacing: 0.02em;
         }
-
-        /* Insert vertical dividers as actual elements */
-        .lp-proof__row {
-          grid-template-columns: 1fr auto 1fr auto 1fr;
-        }
-        .lp-proof__row::before {
-          content: '';
-          grid-column: 2;
-          grid-row: 1;
-          width: 1px;
-          background: var(--lp-border);
-        }
-        .lp-proof__row::after {
-          content: '';
-          grid-column: 4;
-          grid-row: 1;
-          width: 1px;
-          background: var(--lp-border);
-        }
-        .lp-proof__row > .lp-proof-num:nth-child(1) { grid-column: 1; }
-        .lp-proof__row > .lp-proof-num:nth-child(2) { grid-column: 3; }
-        .lp-proof__row > .lp-proof-num:nth-child(3) { grid-column: 5; }
 
         /* ── Testimonial ─────────────────────────────────────────────────── */
         .lp-testimonial {

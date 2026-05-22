@@ -1149,43 +1149,76 @@ export default function Landing() {
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="lp-footer">
+        <div className="lp-footer__glow" aria-hidden="true" />
+        <div className="lp-footer__glow lp-footer__glow--2" aria-hidden="true" />
+
         <div className="lp-footer__inner">
-          {/* Bottom section only */}
-          <div className="lp-footer__bottom">
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Platform</h4>
-              <ul className="lp-footer__list">
-                <li><a href="#">How It Works</a></li>
-                <li><a href="#">Creators</a></li>
-                <li><a href="#">Pricing</a></li>
-                <li><a href="#">Case Studies</a></li>
-              </ul>
+          {/* Brand statement at top */}
+          <div className="lp-footer__statement">
+            <p className="lp-footer__statement-eyebrow">— Manifesto</p>
+            <h3 className="lp-footer__statement-line">
+              We don't help brands chase attention.{' '}
+              <span className="lp-footer__statement-accent">We help them earn familiarity.</span>
+            </h3>
+          </div>
+
+          {/* Main row: Logo + Links */}
+          <div className="lp-footer__main">
+            <div className="lp-footer__brand">
+              <div className="lp-footer__logo-wrap">
+                <img src="/ugcad-logo.png" alt="UGCad" className="lp-footer__logo" />
+              </div>
+              <p className="lp-footer__tagline">
+                Built for brands who think long-term.
+              </p>
+              <div className="lp-footer__socials">
+                <a href="#" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
+                <a href="#" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
+                <a href="#" aria-label="X" className="lp-footer__social-btn"><Twitter size={16} /></a>
+                <a href="#" aria-label="YouTube" className="lp-footer__social-btn"><Youtube size={16} /></a>
+              </div>
             </div>
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Company</h4>
-              <ul className="lp-footer__list">
-                <li><a href="#">About</a></li>
-                <li><a href="#">Manifesto</a></li>
-                <li><a href="#">Contact</a></li>
-              </ul>
-            </div>
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Legal</h4>
-              <ul className="lp-footer__list">
-                <li><a href="#">Terms</a></li>
-                <li><a href="#">Privacy</a></li>
-                <li><a href="#">Usage Rights</a></li>
-              </ul>
+
+            <div className="lp-footer__links">
+              <div className="lp-footer__col">
+                <h4 className="lp-footer__heading">Platform</h4>
+                <ul className="lp-footer__list">
+                  <li><a href="#">How It Works</a></li>
+                  <li><a href="#">Creators</a></li>
+                  <li><a href="#">Pricing</a></li>
+                  <li><a href="#">Case Studies</a></li>
+                </ul>
+              </div>
+              <div className="lp-footer__col">
+                <h4 className="lp-footer__heading">Company</h4>
+                <ul className="lp-footer__list">
+                  <li><a href="#">About</a></li>
+                  <li><a href="#">Manifesto</a></li>
+                  <li><a href="#">Contact</a></li>
+                </ul>
+              </div>
+              <div className="lp-footer__col">
+                <h4 className="lp-footer__heading">Legal</h4>
+                <ul className="lp-footer__list">
+                  <li><a href="#">Terms</a></li>
+                  <li><a href="#">Privacy</a></li>
+                  <li><a href="#">Usage Rights</a></li>
+                </ul>
+              </div>
             </div>
           </div>
 
-          <div className="lp-footer__closing">
-            We don't help brands chase attention.<br />
-            We help them earn familiarity.
-          </div>
-
-          <div className="lp-footer__copyright">
-            © {new Date().getFullYear()} UGCad.io. All rights reserved.
+          {/* Bottom strip */}
+          <div className="lp-footer__strip">
+            <span className="lp-footer__copyright">
+              © {new Date().getFullYear()} UGCad.io · All rights reserved.
+            </span>
+            <span className="lp-footer__location">
+              <span className="lp-footer__loc-dot" /> Built quietly, deliberately.
+            </span>
+            <a href="#top" className="lp-footer__top-link" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              Back to top <ArrowRight size={14} style={{ transform: 'rotate(-90deg)' }} />
+            </a>
           </div>
         </div>
       </footer>
@@ -2862,13 +2895,133 @@ export default function Landing() {
 
         /* ── Footer ─────────────────────────────────────────────────────────── */
         .lp-footer {
-          background: #FFFFFF;
-          padding: 80px 8% 28px;
-          border-top: 1px solid var(--lp-border);
+          position: relative;
+          background: linear-gradient(180deg, #07074e 0%, #050538 100%);
+          color: #FFFFFF;
+          padding: 90px 8% 30px;
+          overflow: hidden;
+        }
+        .lp-footer__glow {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(140px);
+          width: 520px;
+          height: 520px;
+          background: rgba(168, 85, 247, 0.30);
+          top: -200px;
+          left: -120px;
+        }
+        .lp-footer__glow--2 {
+          background: rgba(124, 58, 237, 0.22);
+          width: 420px;
+          height: 420px;
+          top: auto;
+          left: auto;
+          bottom: -180px;
+          right: -80px;
         }
         .lp-footer__inner {
+          position: relative;
+          z-index: 2;
           max-width: 1300px;
           margin: 0 auto;
+        }
+
+        /* Manifesto statement at top */
+        .lp-footer__statement {
+          padding-bottom: 56px;
+          margin-bottom: 56px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+          text-align: center;
+        }
+        .lp-footer__statement-eyebrow {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.55);
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          font-style: italic;
+          margin: 0 0 16px 0;
+        }
+        .lp-footer__statement-line {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1.4rem, 3vw, 2.2rem);
+          font-weight: 500;
+          color: #FFFFFF;
+          line-height: 1.3;
+          letter-spacing: -0.03em;
+          margin: 0 auto;
+          max-width: 820px;
+        }
+        .lp-footer__statement-accent {
+          color: #C4B5FD;
+          font-style: italic;
+        }
+
+        .lp-footer__main {
+          display: grid;
+          grid-template-columns: 1.2fr 2fr;
+          gap: 60px;
+          padding-bottom: 50px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        .lp-footer__brand {
+          max-width: 340px;
+        }
+        .lp-footer__logo-wrap {
+          display: inline-flex;
+          padding: 8px;
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 14px;
+          margin-bottom: 18px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+        .lp-footer__logo {
+          height: 32px;
+          width: auto;
+          display: block;
+        }
+        .lp-footer__tagline {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.70);
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 0 24px 0;
+          max-width: 280px;
+        }
+        .lp-footer__socials {
+          display: flex;
+          gap: 8px;
+        }
+        .lp-footer__social-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.75);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.22s ease;
+          text-decoration: none;
+        }
+        .lp-footer__social-btn:hover {
+          background: #C4B5FD;
+          color: #07074e;
+          border-color: #C4B5FD;
+          transform: translateY(-2px);
+        }
+
+        .lp-footer__links {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 40px;
         }
 
         .lp-footer__top {
@@ -2974,11 +3127,12 @@ export default function Landing() {
 
         .lp-footer__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.95rem;
+          font-size: 0.82rem;
           font-weight: 600;
-          color: var(--lp-ink);
+          color: rgba(255, 255, 255, 0.55);
           margin: 0 0 16px 0;
-          letter-spacing: -0.01em;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
         }
 
         .lp-footer__list {
@@ -2991,15 +3145,16 @@ export default function Landing() {
         }
         .lp-footer__list li {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.88rem;
+          font-size: 0.92rem;
           line-height: 1.4;
         }
         .lp-footer__list a {
-          color: var(--lp-text-muted);
+          color: rgba(255, 255, 255, 0.85);
           text-decoration: none;
           transition: color 0.18s ease;
+          letter-spacing: -0.01em;
         }
-        .lp-footer__list a:hover { color: #07074e; }
+        .lp-footer__list a:hover { color: #C4B5FD; }
 
         .lp-footer__badge {
           display: inline-block;
@@ -3044,23 +3199,72 @@ export default function Landing() {
           margin: 0 0 14px 0;
         }
 
+        .lp-footer__strip {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          flex-wrap: wrap;
+          padding-top: 24px;
+        }
         .lp-footer__copyright {
-          padding-top: 28px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.55);
+          letter-spacing: -0.01em;
+        }
+        .lp-footer__location {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.55);
+          font-style: italic;
+          letter-spacing: -0.01em;
+        }
+        .lp-footer__loc-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #22C55E;
+          box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+        .lp-footer__top-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 100px;
+          color: rgba(255, 255, 255, 0.85);
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
-          color: var(--lp-text-muted);
-          text-align: center;
+          font-weight: 500;
+          letter-spacing: -0.01em;
+          text-decoration: none;
+          transition: all 0.22s ease;
+        }
+        .lp-footer__top-link:hover {
+          background: #C4B5FD;
+          color: #07074e;
+          border-color: #C4B5FD;
         }
 
         @media (max-width: 1100px) {
           .lp-footer__top { grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
           .lp-footer__brand-col { grid-column: span 3; }
         }
-        @media (max-width: 720px) {
-          .lp-footer { padding: 60px 6% 24px; }
-          .lp-footer__top { grid-template-columns: 1fr 1fr; }
-          .lp-footer__brand-col { grid-column: span 2; }
-          .lp-footer__bottom { grid-template-columns: 1fr; gap: 28px; }
+        @media (max-width: 880px) {
+          .lp-footer { padding: 70px 6% 24px; }
+          .lp-footer__main { grid-template-columns: 1fr; gap: 40px; }
+          .lp-footer__links { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        }
+        @media (max-width: 600px) {
+          .lp-footer__statement { padding-bottom: 36px; margin-bottom: 36px; }
+          .lp-footer__links { grid-template-columns: 1fr 1fr; gap: 24px; }
+          .lp-footer__strip { justify-content: center; text-align: center; }
         }
 
         /* ── Brands caption ──────────────────────────────────────────────── */

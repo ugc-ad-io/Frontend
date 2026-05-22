@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
   ArrowRight,
+  Star,
   Users,
   Briefcase,
   Shield,

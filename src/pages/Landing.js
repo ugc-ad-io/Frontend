@@ -774,11 +774,11 @@ export default function Landing() {
 
         /* Secondary card — sits significantly BEHIND the main one, slightly lower */
         .lp-phone--right {
-          left: 40%;
           right: 0;
+          left: auto;
           top: 28%;
+          width: 56%;
           height: 84%;
-          width: auto;
           z-index: 1;
           box-shadow: 0 22px 48px rgba(0,0,0,0.18);
         }
@@ -877,21 +877,22 @@ export default function Landing() {
           background: #95BF47; color: #fff;
         }
 
-        /* Category chips — stacked on right edge over secondary card */
+        /* Category chips — overlay on the RIGHT side of secondary video */
         .lp-chips {
           position: absolute;
-          right: -4%;
-          top: 22%;
+          right: 4%;
+          top: 30%;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
           z-index: 5;
+          align-items: flex-end;
         }
         .lp-chip {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 16px 8px 8px;
+          padding: 8px 18px 8px 8px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
           border-radius: 100px;
@@ -899,8 +900,8 @@ export default function Landing() {
           font-size: 0.88rem;
           font-weight: 500;
           color: var(--lp-text);
-          box-shadow: 0 10px 28px rgba(0,0,0,0.10);
-          min-width: 124px;
+          box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+          min-width: 128px;
         }
         .lp-chip__icon {
           width: 30px;
@@ -914,13 +915,14 @@ export default function Landing() {
           font-weight: 700;
           flex-shrink: 0;
         }
-        .lp-chip--0 { transform: translateX(8px); }
-        .lp-chip--1 { transform: translateX(-8px); }
-        .lp-chip--2 { transform: translateX(14px); }
-        .lp-chip--3 { transform: translateX(-4px); }
+        /* Stagger horizontally, biased to the left so chips overlay the video */
+        .lp-chip--0 { transform: translateX(-12px); }
+        .lp-chip--1 { transform: translateX(8px); }
+        .lp-chip--2 { transform: translateX(-18px); }
+        .lp-chip--3 { transform: translateX(4px); }
         .lp-chip--more {
           color: var(--lp-text-muted);
-          transform: translateX(20px);
+          transform: translateX(-8px);
         }
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */

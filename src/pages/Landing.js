@@ -910,17 +910,45 @@ export default function Landing() {
 
       {/* ── Value Proof (Stat Strip) ──────────────────────────────────────── */}
       <section className="lp-proof">
+        <div className="lp-proof__bg-orb lp-proof__bg-orb--1" aria-hidden="true" />
+        <div className="lp-proof__bg-orb lp-proof__bg-orb--2" aria-hidden="true" />
+
         <div className="lp-proof__inner">
-          <h2 className="lp-proof__heading">Trust Changes the Math.</h2>
+          <span className="lp-proof__pill">
+            <Activity size={14} />
+            Numbers we earn
+          </span>
+
+          <h2 className="lp-proof__heading">
+            Trust Changes the{' '}
+            <span className="lp-proof__heading--accent">Math</span>.
+          </h2>
+          <p className="lp-proof__subtitle">
+            Real outcomes from brands that chose conviction over reach.
+          </p>
+
           <div className="lp-proof__stats">
-            {stats.map((s) => (
-              <div key={s.label} className="lp-proof-stat">
+            {[
+              { ...stats[0], Icon: Play,      tone: 'a' },
+              { ...stats[1], Icon: DollarSign, tone: 'b' },
+              { ...stats[2], Icon: Users,     tone: 'c' },
+            ].map((s) => (
+              <div key={s.label} className={`lp-proof-stat lp-proof-stat--${s.tone}`}>
+                <div className="lp-proof-stat__icon">
+                  <s.Icon size={20} />
+                </div>
                 <span className="lp-proof-stat__value">{s.value}</span>
                 <span className="lp-proof-stat__label">{s.label}</span>
+                <div className="lp-proof-stat__bar" />
               </div>
             ))}
           </div>
-          <p className="lp-proof__micro">Not louder ads. Better ones.</p>
+
+          <div className="lp-proof__micro-wrap">
+            <span className="lp-proof__micro-line" aria-hidden="true" />
+            <p className="lp-proof__micro">Not louder ads. Better ones.</p>
+            <span className="lp-proof__micro-line" aria-hidden="true" />
+          </div>
         </div>
       </section>
 
@@ -3372,55 +3400,202 @@ export default function Landing() {
 
         /* ── Value Proof (Stat Strip) ────────────────────────────────────── */
         .lp-proof {
-          padding: 80px 8%;
-          background: #ffffff;
+          position: relative;
+          padding: 120px 8%;
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 60%, #FFFFFF 100%);
+          overflow: hidden;
         }
+        .lp-proof__bg-orb {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(110px);
+        }
+        .lp-proof__bg-orb--1 {
+          width: 380px; height: 380px;
+          background: rgba(196, 181, 253, 0.32);
+          top: -120px; left: 18%;
+        }
+        .lp-proof__bg-orb--2 {
+          width: 320px; height: 320px;
+          background: rgba(168, 85, 247, 0.18);
+          bottom: -80px; right: 12%;
+        }
+
         .lp-proof__inner {
-          max-width: 1100px;
+          position: relative;
+          z-index: 2;
+          max-width: 1200px;
           margin: 0 auto;
           text-align: center;
         }
+
+        .lp-proof__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 16px;
+          background: #ffffff;
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #07074e;
+          margin-bottom: 22px;
+          box-shadow: 0 4px 14px rgba(124, 58, 237, 0.08);
+        }
+        .lp-proof__pill svg { color: #07074e; }
+
         .lp-proof__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
           font-weight: 500;
           color: var(--lp-ink);
           letter-spacing: -0.04em;
-          margin: 0 0 44px 0;
+          line-height: 1.15;
+          margin: 0 0 14px 0;
         }
+        .lp-proof__heading--accent {
+          color: #07074e;
+          font-style: italic;
+          position: relative;
+        }
+        .lp-proof__heading--accent::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 6px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          border-radius: 4px;
+          opacity: 0.55;
+        }
+        .lp-proof__subtitle {
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1.05rem;
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 auto 60px;
+          max-width: 580px;
+        }
+
         .lp-proof__stats {
-          display: flex;
-          justify-content: center;
-          gap: 80px;
-          flex-wrap: wrap;
-          margin-bottom: 28px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 22px;
+          margin-bottom: 56px;
+          max-width: 1000px;
+          margin-left: auto;
+          margin-right: auto;
         }
+
         .lp-proof-stat {
+          position: relative;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 22px;
+          padding: 36px 28px 32px;
           display: flex;
           flex-direction: column;
-          gap: 6px;
           align-items: center;
+          text-align: center;
+          gap: 8px;
+          box-shadow: 0 6px 20px rgba(7, 7, 78, 0.05);
+          transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+          overflow: hidden;
         }
+        .lp-proof-stat::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          border-radius: 22px 22px 0 0;
+        }
+        .lp-proof-stat:hover {
+          transform: translateY(-6px);
+          border-color: var(--lp-purple-200);
+          box-shadow: 0 24px 56px rgba(7, 7, 78, 0.12);
+        }
+        .lp-proof-stat:hover::before { opacity: 1; }
+
+        .lp-proof-stat__icon {
+          width: 52px;
+          height: 52px;
+          border-radius: 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          background: linear-gradient(135deg, #07074e 0%, #1e1b4b 100%);
+          box-shadow: 0 8px 20px rgba(7, 7, 78, 0.22);
+          margin-bottom: 14px;
+          transition: transform 0.3s ease;
+        }
+        .lp-proof-stat:hover .lp-proof-stat__icon {
+          transform: scale(1.08) rotate(-3deg);
+        }
+        .lp-proof-stat--a .lp-proof-stat__icon { background: linear-gradient(135deg, #A855F7, #7C3AED); }
+        .lp-proof-stat--b .lp-proof-stat__icon { background: linear-gradient(135deg, #07074e, #1e1b4b); }
+        .lp-proof-stat--c .lp-proof-stat__icon { background: linear-gradient(135deg, #9333EA, #581C87); }
+
         .lp-proof-stat__value {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 2.4rem;
+          font-size: clamp(2.4rem, 3.6vw, 3.2rem);
           font-weight: 700;
           color: #07074e;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.04em;
           line-height: 1;
         }
         .lp-proof-stat__label {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.88rem;
+          font-size: 0.92rem;
+          font-weight: 500;
           color: var(--lp-text-muted);
           letter-spacing: -0.01em;
+          margin-top: 4px;
+        }
+        .lp-proof-stat__bar {
+          width: 36px;
+          height: 3px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          border-radius: 4px;
+          margin-top: 14px;
+          opacity: 0.45;
+          transition: width 0.3s ease, opacity 0.3s ease;
+        }
+        .lp-proof-stat:hover .lp-proof-stat__bar {
+          width: 60px;
+          opacity: 0.85;
+        }
+
+        .lp-proof__micro-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          max-width: 580px;
+          margin: 0 auto;
+        }
+        .lp-proof__micro-line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--lp-border), transparent);
         }
         .lp-proof__micro {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.95rem;
-          color: var(--lp-text-muted);
+          font-size: 1rem;
+          font-weight: 600;
+          color: #07074e;
           font-style: italic;
           margin: 0;
+          white-space: nowrap;
+          letter-spacing: -0.015em;
         }
 
         /* ── Testimonial ─────────────────────────────────────────────────── */
@@ -3488,7 +3663,7 @@ export default function Landing() {
 
         @media (max-width: 900px) {
           .lp-steps__grid, .lp-audit__grid { grid-template-columns: 1fr; }
-          .lp-proof__stats { gap: 40px; }
+          .lp-proof__stats { grid-template-columns: 1fr; gap: 16px; max-width: 420px; }
           .lp-step-card__connector { display: none; }
           .lp-step-card { min-height: auto; }
         }

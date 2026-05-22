@@ -3015,7 +3015,7 @@ export default function Landing() {
           margin-bottom: 18px;
         }
         .lp-footer__logo {
-          height: 36px;
+          height: 60px;
           width: auto;
           display: block;
         }

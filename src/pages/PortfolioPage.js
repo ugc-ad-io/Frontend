@@ -56,12 +56,35 @@ function PortfolioMedia({ url, index }) {
       const objectUrl = URL.createObjectURL(response.data);
       setFallbackUrl(objectUrl);
     } catch (error) {
+      console.warn('[Portfolio] Failed to load media:', assetUrl, error?.message);
       setFailed(true);
     }
   };
 
   if (failed) {
-    return <div className="pcd-portfolio-fallback">Preview unavailable</div>;
+    return (
+      <div className="pcd-portfolio-fallback">
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)',
+          color: '#6b7280',
+          padding: '20px',
+          gap: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '36px', opacity: 0.5 }}>🖼️</div>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Media not available</div>
+          <div style={{ fontSize: '11px', color: '#9ca3af', lineHeight: 1.4 }}>
+            File may have been removed from the server. Try re-uploading.
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (isVideo) {

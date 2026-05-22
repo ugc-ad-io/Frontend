@@ -124,18 +124,22 @@ export default function GigDetailsPage() {
       const langs = Array.isArray(rawLang)
         ? rawLang.filter(Boolean)
         : (typeof rawLang === 'string' && rawLang ? [rawLang] : []);
-      setCreatorDetails({
+      const finalDetails = {
         gender: res.data?.gender || res.data?.profile?.gender || '',
         languages: langs,
         country: res.data?.country || res.data?.profile?.country || '',
         age_range: res.data?.age_range || res.data?.profile?.age_range || ''
-      });
-      console.log('[CreatorDetails] Fetched:', {
-        gender: res.data?.gender,
-        language: rawLang,
-        country: res.data?.country,
-        age_range: res.data?.age_range
-      });
+      };
+      setCreatorDetails(finalDetails);
+      console.log('[CreatorDetails] RAW res.data fields ->',
+        'gender=', JSON.stringify(res.data?.gender),
+        '| language=', JSON.stringify(res.data?.language),
+        '| country=', JSON.stringify(res.data?.country),
+        '| age_range=', JSON.stringify(res.data?.age_range),
+        '| profile?=', res.data?.profile ? 'YES' : 'NO',
+        '| profile.gender=', JSON.stringify(res.data?.profile?.gender),
+        '| profile.language=', JSON.stringify(res.data?.profile?.language));
+      console.log('[CreatorDetails] FINAL state ->', JSON.stringify(finalDetails));
 
       // Portfolio can be on user root or inside profile sub-object — check both
       const rawItems = Array.isArray(res.data?.portfolio) && res.data.portfolio.length

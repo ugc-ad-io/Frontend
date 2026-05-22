@@ -205,7 +205,7 @@ const compareRows = [
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/17811912-uhd_2160_3840_24fps.mp4',
-    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: '🎨' },
+    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN' },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/6944288-uhd_2160_3840_24fps.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8' },
@@ -214,7 +214,7 @@ const showcaseVideos = [
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G' },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/7690504-hd_1080_1920_30fps.mp4',
-    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: '✨' },
+    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl' },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/13929852-uhd_2160_3840_24fps.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T' },
@@ -2420,28 +2420,18 @@ export default function Landing() {
           color: var(--lp-ink);
         }
 
-        /* Highlight "us" column with light purple background */
+        /* Highlight "us" column with light purple background + bordered tab */
         .lp-compare__cell--us {
           background: var(--lp-purple-50);
-          position: relative;
-        }
-        .lp-compare__cell--us::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: -1px;
-          bottom: -1px;
           border-left: 1.5px solid var(--lp-purple-300);
           border-right: 1.5px solid var(--lp-purple-300);
-          pointer-events: none;
         }
-        .lp-compare__row--head .lp-compare__cell--us::before {
+        .lp-compare__row--head .lp-compare__cell--us {
           border-top: 1.5px solid var(--lp-purple-300);
           border-top-left-radius: 16px;
           border-top-right-radius: 16px;
         }
-        .lp-compare__row:last-child .lp-compare__cell--us::before {
+        .lp-compare__row:last-child .lp-compare__cell--us {
           border-bottom: 1.5px solid var(--lp-purple-300);
           border-bottom-left-radius: 16px;
           border-bottom-right-radius: 16px;
@@ -3351,7 +3341,7 @@ export default function Landing() {
         .lp-hook__inner {
           position: relative;
           z-index: 2;
-          max-width: 880px;
+          max-width: 1100px;
           margin: 0 auto;
         }
 
@@ -3388,12 +3378,19 @@ export default function Landing() {
 
         .lp-hook__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.4rem);
+          font-size: clamp(1.6rem, 3vw, 2.6rem);
           font-weight: 500;
           color: var(--lp-ink);
-          line-height: 1.1;
+          line-height: 1.15;
           letter-spacing: -0.04em;
           margin: 0 0 40px 0;
+          white-space: nowrap;
+        }
+        @media (max-width: 780px) {
+          .lp-hook__heading {
+            white-space: normal;
+            font-size: clamp(1.4rem, 5vw, 2rem);
+          }
         }
         .lp-hook__heading--accent {
           color: #07074e;

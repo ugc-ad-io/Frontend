@@ -877,11 +877,11 @@ export default function Landing() {
           background: #95BF47; color: #fff;
         }
 
-        /* Category chips — compact pills overlaying the secondary video */
+        /* Category chips — vertical (icon on top, label below) like Twirl */
         .lp-chips {
           position: absolute;
-          right: 4%;
-          top: 28%;
+          right: 6%;
+          top: 16%;
           display: flex;
           flex-direction: column;
           gap: 10px;
@@ -890,24 +890,27 @@ export default function Landing() {
           width: auto;
         }
         .lp-chip {
-          display: inline-flex;
+          display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 7px;
-          padding: 5px 14px 5px 5px;
+          justify-content: center;
+          gap: 4px;
+          padding: 10px 12px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
-          border-radius: 100px;
+          border-radius: 14px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           font-weight: 500;
           color: var(--lp-text);
           box-shadow: 0 10px 24px rgba(0,0,0,0.14);
-          width: fit-content;
-          white-space: nowrap;
+          width: 78px;
+          min-height: 70px;
+          text-align: center;
         }
         .lp-chip__icon {
-          width: 24px;
-          height: 24px;
+          width: 26px;
+          height: 26px;
           border-radius: 50%;
           background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
           color: var(--lp-purple-700);
@@ -916,16 +919,16 @@ export default function Landing() {
           justify-content: center;
           font-weight: 700;
           flex-shrink: 0;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
         }
-        /* Subtle horizontal stagger */
-        .lp-chip--0 { transform: translateX(-6px); }
-        .lp-chip--1 { transform: translateX(4px); }
-        .lp-chip--2 { transform: translateX(-10px); }
+        /* Subtle horizontal stagger for organic feel */
+        .lp-chip--0 { transform: translateX(-4px); }
+        .lp-chip--1 { transform: translateX(6px); }
+        .lp-chip--2 { transform: translateX(-8px); }
         .lp-chip--3 { transform: translateX(2px); }
         .lp-chip--more {
           color: var(--lp-text-muted);
-          transform: translateX(-4px);
+          transform: translateX(-2px);
         }
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */

@@ -32,6 +32,9 @@ import {
   HandHeart,
   Check,
   X,
+  Linkedin,
+  Youtube,
+  Twitter,
 } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
 
@@ -782,6 +785,151 @@ export default function Landing() {
         </motion.div>
       </section>
 
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      <footer className="lp-footer">
+        <div className="lp-footer__inner">
+          {/* Row 1: 5 columns */}
+          <div className="lp-footer__top">
+            {/* Brand + newsletter */}
+            <div className="lp-footer__brand-col">
+              <img src="/ugcad-logo.png" alt="UGCad" className="lp-footer__logo" />
+              <p className="lp-footer__tagline">
+                Sign up to our newsletter to receive content wisdom straight to your inbox.
+              </p>
+              <form className="lp-footer__form" onSubmit={(e) => e.preventDefault()}>
+                <label className="lp-footer__label">Email <span className="lp-footer__required">*</span></label>
+                <input
+                  type="email"
+                  className="lp-footer__input"
+                  placeholder="Enter your email"
+                />
+                <label className="lp-footer__label">Industry <span className="lp-footer__required">*</span></label>
+                <select className="lp-footer__input" defaultValue="">
+                  <option value="" disabled>Select your industry</option>
+                  {industries.map((i) => (
+                    <option key={i.id} value={i.id}>{i.label}</option>
+                  ))}
+                </select>
+                <button type="submit" className="lp-footer__subscribe">Subscribe</button>
+              </form>
+              <p className="lp-footer__privacy">
+                Unsubscribe anytime. By subscribing you agree to our{' '}
+                <a href="#privacy" className="lp-footer__link-accent">Privacy Policy.</a>
+              </p>
+            </div>
+
+            {/* Industries */}
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">Industries</h4>
+              <ul className="lp-footer__list">
+                <li><a href="#">Beauty &amp; Skincare</a></li>
+                <li><a href="#">Health &amp; Wellness</a></li>
+                <li><a href="#">Food &amp; Beverage</a></li>
+                <li><a href="#">Pets</a></li>
+                <li><a href="#">Apps &amp; Software</a></li>
+                <li><a href="#">Consumer Services</a></li>
+                <li><a href="#">Fitness</a></li>
+                <li><a href="#">Home &amp; Living</a></li>
+                <li><a href="#">Family &amp; Kids</a></li>
+                <li><a href="#">Finance &amp; Insurance</a></li>
+                <li><a href="#">Travel</a></li>
+                <li><a href="#">Charity</a></li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">Resources</h4>
+              <ul className="lp-footer__list">
+                <li><a href="#">UGCad vs Others</a></li>
+                <li><a href="#">Success Cases</a></li>
+                <li><a href="#">Blog</a></li>
+                <li>
+                  <a href="#">E-Books &amp; Guides</a>{' '}
+                  <span className="lp-footer__badge">New</span>
+                </li>
+                <li><a href="#">Webinars &amp; Events</a></li>
+                <li><a href="#">Experts</a></li>
+                <li><a href="#">UGC Diaries</a></li>
+              </ul>
+            </div>
+
+            {/* Free Downloads */}
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">Free Downloads</h4>
+              <ul className="lp-footer__list">
+                <li><a href="#">Never Run Out of UGC Ideas Again — Steal This 2026 Calendar</a></li>
+                <li><a href="#">The Agency's Guide to UGC</a></li>
+                <li><a href="#">The Consent Form You Need for Filming Street Interviews</a></li>
+                <li><a href="#">The Gen Z Playbook Brands Can't Afford to Ignore</a></li>
+                <li><a href="#">The UGC Strategy That Builds Beauty Empires</a></li>
+                <li><a href="#" className="lp-footer__link-accent">View All</a></li>
+              </ul>
+            </div>
+
+            {/* Follow */}
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">Follow Our Journey</h4>
+              <ul className="lp-footer__social">
+                <li><a href="#"><Music2 size={18} /> TikTok</a></li>
+                <li><a href="#"><Instagram size={18} /> Instagram</a></li>
+                <li><a href="#"><Linkedin size={18} /> LinkedIn</a></li>
+                <li><a href="#"><Twitter size={18} /> X</a></li>
+                <li><a href="#"><Heart size={18} /> Pinterest</a></li>
+                <li><a href="#"><Youtube size={18} /> YouTube</a></li>
+              </ul>
+              <h4 className="lp-footer__heading" style={{ marginTop: 22 }}>Contact</h4>
+              <p className="lp-footer__contact">
+                For brands &amp; agencies:<br />
+                <a href="mailto:brands@ugcad.io" className="lp-footer__link-accent">brands@ugcad.io</a>
+              </p>
+              <p className="lp-footer__contact">
+                For creators:<br />
+                <a href="mailto:creators@ugcad.io" className="lp-footer__link-accent">creators@ugcad.io</a>
+              </p>
+            </div>
+          </div>
+
+          {/* Row 2: bottom section */}
+          <div className="lp-footer__bottom">
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">About UGCad</h4>
+              <ul className="lp-footer__list">
+                <li><a href="#">Our Work</a></li>
+                <li><a href="#">About Us</a></li>
+                <li>
+                  <a href="#">Careers</a>{' '}
+                  <span className="lp-footer__badge">Hiring</span>
+                </li>
+                <li><a href="#">Become A Partner</a></li>
+              </ul>
+            </div>
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">Learn more</h4>
+              <ul className="lp-footer__list">
+                <li><a href="#">Book A Demo</a></li>
+                <li><a href="#">Pricing</a></li>
+                <li><a href="#">Underrepresented Founder Discount</a></li>
+                <li><a href="#">FAQs</a></li>
+              </ul>
+            </div>
+            <div className="lp-footer__col">
+              <h4 className="lp-footer__heading">Solutions</h4>
+              <ul className="lp-footer__list">
+                <li><a href="#">For Agencies</a></li>
+                <li><a href="#">For Startups &amp; SMBs</a></li>
+                <li><a href="#">For Enterprise</a></li>
+                <li><a href="#">For Creators</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="lp-footer__copyright">
+            © {new Date().getFullYear()} UGCad.io. All rights reserved.
+          </div>
+        </div>
+      </footer>
+
       {/* ── Styles ─────────────────────────────────────────────────────────── */}
       <style>{`
         :root {
@@ -960,10 +1108,9 @@ export default function Landing() {
         }
 
         .lp-hero__title--gradient {
-          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 60%, #C084FC 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #07074e;
+          background: none;
+          -webkit-text-fill-color: #07074e;
         }
 
         .lp-hero__subtitle {
@@ -1327,10 +1474,9 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-problem__heading--accent {
-          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #07074e;
+          background: none;
+          -webkit-text-fill-color: #07074e;
         }
         .lp-problem__subtitle {
           font-family: 'Instrument Sans', sans-serif;
@@ -1694,10 +1840,9 @@ export default function Landing() {
           margin: 0 0 14px 0;
         }
         .lp-showcase__heading--accent {
-          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #07074e;
+          background: none;
+          -webkit-text-fill-color: #07074e;
         }
         .lp-showcase__subtitle {
           font-family: 'Instrument Sans', sans-serif;
@@ -1893,10 +2038,9 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-compare__heading--accent {
-          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #07074e;
+          background: none;
+          -webkit-text-fill-color: #07074e;
         }
 
         .lp-compare__table {
@@ -2206,10 +2350,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 2.2rem;
           font-weight: 700;
-          background: linear-gradient(135deg, #7C3AED, #A855F7);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #07074e;
           line-height: 1;
         }
         .lp-stat__label {
@@ -2287,6 +2428,209 @@ export default function Landing() {
           .lp-phone--left, .lp-phone--right { transform: none; }
           .lp-hero__badges { gap: 6px; }
           .lp-proof-badge { font-size: 0.7rem; padding: 5px 10px; }
+        }
+
+        /* ── Footer ─────────────────────────────────────────────────────────── */
+        .lp-footer {
+          background: #FFFFFF;
+          padding: 80px 8% 28px;
+          border-top: 1px solid var(--lp-border);
+        }
+        .lp-footer__inner {
+          max-width: 1300px;
+          margin: 0 auto;
+        }
+
+        .lp-footer__top {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr 1fr 1.3fr 1fr;
+          gap: 36px;
+          padding-bottom: 50px;
+          border-bottom: 1px solid var(--lp-border);
+        }
+        .lp-footer__bottom {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 36px;
+          padding: 50px 0 30px;
+          border-bottom: 1px solid var(--lp-border);
+        }
+
+        .lp-footer__brand-col {
+          padding-right: 12px;
+        }
+
+        .lp-footer__logo {
+          height: 36px;
+          width: auto;
+          margin-bottom: 18px;
+          display: block;
+        }
+
+        .lp-footer__tagline {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.92rem;
+          color: var(--lp-text);
+          line-height: 1.5;
+          margin: 0 0 22px 0;
+          max-width: 320px;
+        }
+
+        .lp-footer__form {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          max-width: 340px;
+        }
+        .lp-footer__label {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          color: var(--lp-text);
+          font-weight: 500;
+          margin-top: 4px;
+        }
+        .lp-footer__required { color: #07074e; }
+
+        .lp-footer__input {
+          padding: 12px 14px;
+          border: 1px solid var(--lp-border);
+          border-radius: 10px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.92rem;
+          background: #ffffff;
+          color: var(--lp-text);
+          width: 100%;
+        }
+        .lp-footer__input:focus {
+          outline: none;
+          border-color: #07074e;
+          box-shadow: 0 0 0 3px rgba(7,7,78,0.12);
+        }
+
+        .lp-footer__subscribe {
+          margin-top: 12px;
+          padding: 14px 22px;
+          background: var(--lp-ink);
+          color: #ffffff;
+          border: none;
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.22s ease;
+        }
+        .lp-footer__subscribe:hover {
+          background: #07074e;
+          transform: translateY(-1px);
+        }
+
+        .lp-footer__privacy {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          color: var(--lp-text-muted);
+          line-height: 1.5;
+          margin: 14px 0 0 0;
+          max-width: 340px;
+        }
+        .lp-footer__link-accent {
+          color: #07074e;
+          text-decoration: underline;
+          font-weight: 500;
+        }
+        .lp-footer__link-accent:hover { opacity: 0.7; }
+
+        .lp-footer__col { min-width: 0; }
+
+        .lp-footer__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          margin: 0 0 16px 0;
+          letter-spacing: -0.01em;
+        }
+
+        .lp-footer__list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .lp-footer__list li {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.88rem;
+          line-height: 1.4;
+        }
+        .lp-footer__list a {
+          color: var(--lp-text-muted);
+          text-decoration: none;
+          transition: color 0.18s ease;
+        }
+        .lp-footer__list a:hover { color: #07074e; }
+
+        .lp-footer__badge {
+          display: inline-block;
+          padding: 2px 10px;
+          background: linear-gradient(135deg, #DDD6FE, #C4B5FD);
+          color: #07074e;
+          border-radius: 100px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          vertical-align: middle;
+          margin-left: 4px;
+        }
+
+        .lp-footer__social {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .lp-footer__social a {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          color: var(--lp-text);
+          text-decoration: none;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.9rem;
+          font-weight: 500;
+          transition: color 0.18s ease;
+        }
+        .lp-footer__social a:hover { color: #07074e; }
+        .lp-footer__social svg { color: var(--lp-text-muted); }
+
+        .lp-footer__contact {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          color: var(--lp-text);
+          line-height: 1.6;
+          margin: 0 0 14px 0;
+        }
+
+        .lp-footer__copyright {
+          padding-top: 28px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          color: var(--lp-text-muted);
+          text-align: center;
+        }
+
+        @media (max-width: 1100px) {
+          .lp-footer__top { grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
+          .lp-footer__brand-col { grid-column: span 3; }
+        }
+        @media (max-width: 720px) {
+          .lp-footer { padding: 60px 6% 24px; }
+          .lp-footer__top { grid-template-columns: 1fr 1fr; }
+          .lp-footer__brand-col { grid-column: span 2; }
+          .lp-footer__bottom { grid-template-columns: 1fr; gap: 28px; }
         }
       `}</style>
     </div>

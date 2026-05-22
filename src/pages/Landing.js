@@ -108,12 +108,15 @@ const industries = [
   { id: 'charity',   Icon: HandHeart,    label: 'Charity' },
 ];
 
-// Three showcase video slots — the 2nd & 3rd will gracefully fall back
-// to the existing file if the user hasn't downloaded the extra Pexels videos.
+// Six showcase video slots — extras gracefully fall back to the existing
+// file if the user hasn't downloaded the additional Pexels videos.
 const showcaseVideos = [
-  { id: 1, industryId: 'apps',   label: 'Apps/Software', src: '/9384669-uhd_2160_3840_24fps.mp4' },
-  { id: 2, industryId: 'apps',   label: 'Apps/Software', src: '/showcase-2.mp4' },
-  { id: 3, industryId: 'family', label: 'Family/Kids',   src: '/showcase-3.mp4' },
+  { id: 1, industryId: 'apps',    label: 'Apps/Software',    src: '/9384669-uhd_2160_3840_24fps.mp4' },
+  { id: 2, industryId: 'apps',    label: 'Apps/Software',    src: '/showcase-2.mp4' },
+  { id: 3, industryId: 'family',  label: 'Family/Kids',      src: '/showcase-3.mp4' },
+  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-4.mp4' },
+  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-5.mp4' },
+  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-6.mp4' },
 ];
 
 // ─── Framer Motion variants ──────────────────────────────────────────────────

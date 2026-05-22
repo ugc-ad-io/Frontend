@@ -626,12 +626,12 @@ export default function Landing() {
 
         .lp-hero__title {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2.6rem, 5vw, 4.2rem);
-          font-weight: 600;
+          font-size: 2.8rem;
+          font-weight: 500;
           line-height: 1.1;
           color: var(--lp-ink);
           margin: 0 0 20px 0;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.05em;
         }
 
         .lp-hero__title--gradient {
@@ -735,34 +735,21 @@ export default function Landing() {
         .lp-hero__media {
           position: relative;
           width: 100%;
-          aspect-ratio: 1 / 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          aspect-ratio: 1 / 1.05;
+          display: block;
         }
 
         .lp-phones {
-          display: flex;
-          gap: 14px;
+          position: relative;
           width: 100%;
           height: 100%;
-          align-items: center;
-          justify-content: center;
         }
 
         .lp-phone {
-          width: 45%;
-          aspect-ratio: 9 / 16;
-          border-radius: 28px;
+          position: absolute;
+          border-radius: 22px;
           overflow: hidden;
           background: #111;
-          box-shadow: 0 28px 70px rgba(124, 58, 237, 0.18), 0 8px 24px rgba(0,0,0,0.12);
-        }
-        .lp-phone--left {
-          transform: rotate(-2deg) translateY(10px);
-        }
-        .lp-phone--right {
-          transform: rotate(2deg) translateY(-10px);
         }
 
         .lp-phone__media {
@@ -770,6 +757,26 @@ export default function Landing() {
           height: 100%;
           object-fit: cover;
           display: block;
+        }
+
+        /* Main big card on the left — like Twirl's hero shot */
+        .lp-phone--left {
+          left: 0;
+          top: 0;
+          width: 62%;
+          height: 100%;
+          z-index: 2;
+          box-shadow: 0 32px 80px rgba(124, 58, 237, 0.22), 0 12px 32px rgba(0,0,0,0.14);
+        }
+
+        /* Smaller secondary card on the right — partially behind */
+        .lp-phone--right {
+          right: 0;
+          top: 8%;
+          width: 42%;
+          height: 84%;
+          z-index: 1;
+          box-shadow: 0 28px 60px rgba(0,0,0,0.18);
         }
 
         /* Floating widget — creators count */
@@ -785,12 +792,13 @@ export default function Landing() {
         }
 
         .lp-float--creators {
-          top: 8%;
-          left: -4%;
+          top: 14%;
+          left: -6%;
           display: flex;
           align-items: center;
           gap: 12px;
           max-width: 240px;
+          z-index: 4;
         }
 
         .lp-avatars {
@@ -833,10 +841,11 @@ export default function Landing() {
         }
 
         .lp-float--platforms {
-          bottom: 14%;
-          left: 28%;
+          bottom: 10%;
+          left: 8%;
           padding: 12px 18px;
           min-width: 230px;
+          z-index: 4;
         }
 
         .lp-platforms {
@@ -864,34 +873,34 @@ export default function Landing() {
           background: #95BF47; color: #fff;
         }
 
-        /* Category chips */
+        /* Category chips — stacked on right edge over secondary card */
         .lp-chips {
           position: absolute;
-          right: -2%;
-          top: 12%;
+          right: -4%;
+          top: 22%;
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          z-index: 3;
+          gap: 12px;
+          z-index: 5;
         }
         .lp-chip {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 14px 8px 8px;
+          padding: 8px 16px 8px 8px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.85rem;
+          font-size: 0.88rem;
           font-weight: 500;
           color: var(--lp-text);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-          min-width: 120px;
+          box-shadow: 0 10px 28px rgba(0,0,0,0.10);
+          min-width: 124px;
         }
         .lp-chip__icon {
-          width: 28px;
-          height: 28px;
+          width: 30px;
+          height: 30px;
           border-radius: 50%;
           background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
           color: var(--lp-purple-700);
@@ -901,13 +910,13 @@ export default function Landing() {
           font-weight: 700;
           flex-shrink: 0;
         }
-        .lp-chip--0 { transform: translateX(-30px); }
-        .lp-chip--1 { transform: translateX(10px); }
-        .lp-chip--2 { transform: translateX(-20px); }
-        .lp-chip--3 { transform: translateX(20px); }
+        .lp-chip--0 { transform: translateX(8px); }
+        .lp-chip--1 { transform: translateX(-8px); }
+        .lp-chip--2 { transform: translateX(14px); }
+        .lp-chip--3 { transform: translateX(-4px); }
         .lp-chip--more {
           color: var(--lp-text-muted);
-          transform: translateX(-10px);
+          transform: translateX(20px);
         }
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */

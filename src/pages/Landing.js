@@ -996,13 +996,24 @@ export default function Landing() {
           initial="hidden"
           animate={ctaInView ? 'visible' : 'hidden'}
         >
+          <motion.span className="lp-cta__pill" variants={statVariants}>
+            <span className="lp-cta__pulse" aria-hidden="true" />
+            Limited slots this week
+          </motion.span>
+
           <motion.h2 className="lp-cta__heading" variants={statVariants}>
-            Attention Is Rented.
+            Attention Is{' '}
+            <span className="lp-cta__heading--strike">Rented</span>.
             <br />
-            Trust Is Owned.
+            Trust Is{' '}
+            <span className="lp-cta__heading--accent">Owned</span>.
           </motion.h2>
 
-          <motion.div className="lp-cta__btn-wrap" variants={statVariants}>
+          <motion.p className="lp-cta__subtext" variants={statVariants}>
+            Stop renting eyeballs. Start owning belief.
+          </motion.p>
+
+          <motion.div className="lp-cta__btn-row" variants={statVariants}>
             <button
               className="lp-btn-join"
               onClick={handleGetStarted}
@@ -1010,11 +1021,34 @@ export default function Landing() {
             >
               Book a Strategy Call <ArrowRight size={18} />
             </button>
+            <button
+              className="lp-btn-outline"
+              onClick={() => navigate('/auth')}
+            >
+              See How It Works
+            </button>
           </motion.div>
 
           <motion.p className="lp-cta__proof" variants={statVariants}>
-            15 minutes. No pitch. Just clarity.
+            <span className="lp-cta__dot" /> 15 minutes &nbsp;·&nbsp; No pitch &nbsp;·&nbsp; Just clarity
           </motion.p>
+
+          <motion.div className="lp-cta__signals" variants={statVariants}>
+            <div className="lp-cta__signal">
+              <div className="lp-cta__signal-num">300+</div>
+              <div className="lp-cta__signal-label">D2C brands trust us</div>
+            </div>
+            <div className="lp-cta__signal-divider" />
+            <div className="lp-cta__signal">
+              <div className="lp-cta__signal-num">5.0★</div>
+              <div className="lp-cta__signal-label">Avg founder rating</div>
+            </div>
+            <div className="lp-cta__signal-divider" />
+            <div className="lp-cta__signal">
+              <div className="lp-cta__signal-num">48h</div>
+              <div className="lp-cta__signal-label">Avg response time</div>
+            </div>
+          </motion.div>
         </motion.div>
       </section>
 
@@ -2532,30 +2566,107 @@ export default function Landing() {
         /* ── CTA ──────────────────────────────────────────────────────────── */
         .lp-cta {
           position: relative;
-          padding: 120px 8%;
+          padding: 140px 8% 130px;
           background: linear-gradient(135deg, #FAF5FF 0%, #E9D5FF 50%, #FAF5FF 100%);
           overflow: hidden;
           text-align: center;
+        }
+        .lp-cta::before,
+        .lp-cta::after {
+          content: '';
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(110px);
+        }
+        .lp-cta::before {
+          width: 500px; height: 500px;
+          background: rgba(168, 85, 247, 0.30);
+          top: -180px; left: -120px;
+        }
+        .lp-cta::after {
+          width: 420px; height: 420px;
+          background: rgba(124, 58, 237, 0.22);
+          bottom: -160px; right: -120px;
         }
 
         .lp-cta__inner {
           position: relative;
           z-index: 1;
-          max-width: 680px;
+          max-width: 820px;
           margin: 0 auto;
           display: flex;
           flex-direction: column;
           align-items: center;
         }
 
+        .lp-cta__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 18px;
+          background: rgba(255,255,255,0.85);
+          backdrop-filter: blur(8px);
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #07074e;
+          margin-bottom: 28px;
+          box-shadow: 0 4px 16px rgba(124,58,237,0.10);
+        }
+        .lp-cta__pulse {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #A855F7;
+          box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.55);
+          animation: hookPulse 1.8s ease-out infinite;
+          flex-shrink: 0;
+        }
+
         .lp-cta__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2.2rem, 4vw, 3rem);
-          font-weight: 600;
+          font-size: clamp(2.6rem, 5.2vw, 4.4rem);
+          font-weight: 500;
           color: var(--lp-ink);
-          margin-bottom: 18px;
-          line-height: 1.2;
-          letter-spacing: -0.02em;
+          margin: 0 0 18px 0;
+          line-height: 1.05;
+          letter-spacing: -0.05em;
+        }
+        .lp-cta__heading--strike {
+          position: relative;
+          color: var(--lp-text-muted);
+          font-style: italic;
+        }
+        .lp-cta__heading--strike::after {
+          content: '';
+          position: absolute;
+          top: 55%;
+          left: -4%;
+          right: -4%;
+          height: 4px;
+          background: #07074e;
+          transform: rotate(-3deg);
+          border-radius: 4px;
+        }
+        .lp-cta__heading--accent {
+          color: #07074e;
+          font-style: italic;
+          position: relative;
+          padding: 0 4px;
+        }
+        .lp-cta__heading--accent::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 8px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          border-radius: 4px;
+          opacity: 0.55;
         }
 
         .lp-cta__subtext {
@@ -2597,16 +2708,30 @@ export default function Landing() {
           text-transform: uppercase;
         }
 
-        .lp-cta__btn-wrap {
-          display: inline-flex;
-          margin-bottom: 28px;
+        .lp-cta__subtext {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.1rem;
+          color: var(--lp-text);
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 0 42px 0;
+          max-width: 540px;
+        }
+
+        .lp-cta__btn-row {
+          display: flex;
+          gap: 14px;
+          align-items: center;
+          flex-wrap: wrap;
+          justify-content: center;
+          margin-bottom: 22px;
         }
 
         .lp-btn-join {
           display: inline-flex;
           align-items: center;
           gap: 9px;
-          padding: 16px 42px;
+          padding: 16px 38px;
           border-radius: 100px;
           background: var(--lp-ink);
           color: white;
@@ -2616,18 +2741,97 @@ export default function Landing() {
           border: none;
           cursor: pointer;
           transition: all 0.25s ease;
-          box-shadow: 0 8px 28px rgba(10,10,10,0.25);
+          box-shadow: 0 12px 32px rgba(7, 7, 78, 0.32);
         }
         .lp-btn-join:hover {
           transform: translateY(-3px);
-          background: var(--lp-purple-700);
-          box-shadow: 0 16px 40px rgba(124, 58, 237, 0.42);
+          background: #07074e;
+          box-shadow: 0 18px 46px rgba(7, 7, 78, 0.48);
+        }
+
+        .lp-btn-outline {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 15px 32px;
+          border-radius: 100px;
+          background: rgba(255,255,255,0.8);
+          backdrop-filter: blur(6px);
+          color: var(--lp-ink);
+          font-family: 'Instrument Sans', sans-serif;
+          font-weight: 600;
+          font-size: 1rem;
+          border: 1px solid var(--lp-border);
+          cursor: pointer;
+          transition: all 0.22s ease;
+        }
+        .lp-btn-outline:hover {
+          background: #ffffff;
+          border-color: #07074e;
+          color: #07074e;
         }
 
         .lp-cta__proof {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
           font-family: 'Instrument Sans', sans-serif;
           color: var(--lp-text-muted);
-          font-size: 0.85rem;
+          font-size: 0.9rem;
+          margin: 0 0 56px 0;
+        }
+        .lp-cta__dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #22C55E;
+          box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+          display: inline-block;
+        }
+
+        .lp-cta__signals {
+          display: inline-flex;
+          align-items: center;
+          gap: 28px;
+          padding: 20px 32px;
+          background: rgba(255,255,255,0.7);
+          backdrop-filter: blur(12px);
+          border: 1px solid var(--lp-border);
+          border-radius: 18px;
+          box-shadow: 0 10px 30px rgba(7,7,78,0.08);
+        }
+        .lp-cta__signal {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+        .lp-cta__signal-num {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.4rem;
+          font-weight: 600;
+          color: #07074e;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+        .lp-cta__signal-label {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          color: var(--lp-text-muted);
+          letter-spacing: -0.01em;
+        }
+        .lp-cta__signal-divider {
+          width: 1px;
+          height: 38px;
+          background: var(--lp-border);
+        }
+
+        @media (max-width: 640px) {
+          .lp-cta { padding: 90px 5%; }
+          .lp-cta__signals { flex-direction: column; gap: 16px; padding: 20px 24px; }
+          .lp-cta__signal-divider { width: 38px; height: 1px; }
+          .lp-cta__btn-row { flex-direction: column; width: 100%; }
+          .lp-btn-join, .lp-btn-outline { width: 100%; justify-content: center; }
         }
 
         /* ── Responsive ───────────────────────────────────────────────────── */

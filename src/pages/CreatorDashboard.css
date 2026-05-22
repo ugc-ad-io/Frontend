@@ -7,8 +7,23 @@
   display: flex;
   background: #F3F3FF;
   color: #07074e;
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: 'Instrument Sans', sans-serif;
   font-size: 14px;
+}
+
+.pcd-shell *,
+.pcd-shell h1,
+.pcd-shell h2,
+.pcd-shell h3,
+.pcd-shell h4,
+.pcd-shell h5,
+.pcd-shell h6,
+.pcd-shell p,
+.pcd-shell span,
+.pcd-shell div,
+.pcd-shell label,
+.pcd-shell a {
+  font-family: 'Instrument Sans', sans-serif;
 }
 
 .pcd-shell button,
@@ -420,8 +435,8 @@
   margin-top: 24px;
   padding: 32px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  background: linear-gradient(135deg, #07074e 0%, #1F1F4E 100%);
+  box-shadow: 0 4px 12px rgba(7, 7, 78, 0.25);
 }
 
 .pcd-level-banner::before,

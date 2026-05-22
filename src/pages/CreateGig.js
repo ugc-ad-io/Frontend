@@ -36,10 +36,6 @@ export default function CreateGig() {
     description: '',
     budget: '',
     deadline: '',
-    gender: '',
-    language: '',
-    country: '',
-    ageRange: '',
     niche: [],
     videoStyles: [],
     filmingStyle: [],
@@ -180,10 +176,6 @@ export default function CreateGig() {
         budget: parseFloat(formData.budget),
         deadline: isoDeadline,
         attachments: mediaItems.map(item => item.url),
-        gender: formData.gender || '',
-        language: formData.language || '',
-        country: formData.country || '',
-        ageRange: formData.ageRange || '',
         niche: formData.niche || [],
         videoStyles: formData.videoStyles || [],
         filmingStyle: formData.filmingStyle || [],
@@ -324,99 +316,6 @@ export default function CreateGig() {
 
             <div className="create-gig-section">
               <h3>Creator Details</h3>
-
-              <fieldset>
-                <legend>Gender</legend>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <small>Optional - Creator's gender</small>
-              </fieldset>
-
-              <fieldset>
-                <legend>Language</legend>
-                <select
-                  name="language"
-                  value={formData.language}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select language</option>
-                  <option value="English">English</option>
-                  <option value="Hindi">Hindi</option>
-                  <option value="Spanish">Spanish</option>
-                  <option value="French">French</option>
-                  <option value="German">German</option>
-                  <option value="Portuguese">Portuguese</option>
-                  <option value="Italian">Italian</option>
-                  <option value="Arabic">Arabic</option>
-                  <option value="Mandarin">Mandarin</option>
-                  <option value="Japanese">Japanese</option>
-                  <option value="Korean">Korean</option>
-                  <option value="Bengali">Bengali</option>
-                  <option value="Tamil">Tamil</option>
-                  <option value="Telugu">Telugu</option>
-                  <option value="Marathi">Marathi</option>
-                  <option value="Gujarati">Gujarati</option>
-                  <option value="Punjabi">Punjabi</option>
-                  <option value="Other">Other</option>
-                </select>
-                <small>Optional - Native or working language</small>
-              </fieldset>
-
-              <fieldset>
-                <legend>Country</legend>
-                <select
-                  name="country"
-                  value={formData.country}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select country</option>
-                  <option value="India">India</option>
-                  <option value="United States">United States</option>
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="Canada">Canada</option>
-                  <option value="Australia">Australia</option>
-                  <option value="Germany">Germany</option>
-                  <option value="France">France</option>
-                  <option value="Spain">Spain</option>
-                  <option value="Italy">Italy</option>
-                  <option value="Brazil">Brazil</option>
-                  <option value="Mexico">Mexico</option>
-                  <option value="Japan">Japan</option>
-                  <option value="South Korea">South Korea</option>
-                  <option value="China">China</option>
-                  <option value="UAE">UAE</option>
-                  <option value="Singapore">Singapore</option>
-                  <option value="Other">Other</option>
-                </select>
-                <small>Optional - Country of residence</small>
-              </fieldset>
-
-              <fieldset>
-                <legend>Age Range</legend>
-                <select
-                  name="ageRange"
-                  value={formData.ageRange}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select age range</option>
-                  <option value="13-17">13-17 years old</option>
-                  <option value="18-24">18-24 years old</option>
-                  <option value="25-34">25-34 years old</option>
-                  <option value="35-44">35-44 years old</option>
-                  <option value="45-54">45-54 years old</option>
-                  <option value="55+">55+ years old</option>
-                </select>
-                <small>Optional - Creator's age range</small>
-              </fieldset>
 
               <fieldset>
                 <legend>Niche</legend>

@@ -51,6 +51,7 @@ export default function BrandWelcomePage() {
   const [campaigns, setCampaigns] = useState([]);
   const [contentCategories, setContentCategories] = useState([]);
   const [approvedGigs, setApprovedGigs] = useState([]);
+  const [gigsLoading, setGigsLoading] = useState(true);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -95,12 +96,15 @@ export default function BrandWelcomePage() {
 
   useEffect(() => {
     const fetchApprovedGigs = async () => {
+      setGigsLoading(true);
       try {
         const response = await axios.get(`${API}/gigs?status=approved`);
         const gigs = response.data?.data || response.data || [];
         setApprovedGigs(gigs);
       } catch (error) {
         console.error('Failed to fetch approved gigs:', error);
+      } finally {
+        setGigsLoading(false);
       }
     };
     fetchApprovedGigs();
@@ -659,7 +663,30 @@ export default function BrandWelcomePage() {
               </div>
 
               <div className="categories-content">
-                {approvedGigs.length > 0 ? (
+                {gigsLoading ? (
+                  <>
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="gig-card-welcome" style={{ pointerEvents: 'none' }}>
+                        <div style={{
+                          width: '100%',
+                          aspectRatio: '4/3',
+                          background: 'linear-gradient(110deg, #eeeef2 8%, #f6f6f9 18%, #eeeef2 33%)',
+                          backgroundSize: '200% 100%',
+                          animation: 'gigSkeleton 1.4s linear infinite',
+                          borderRadius: '8px',
+                          marginBottom: '12px'
+                        }} />
+                        <div style={{ height: '14px', width: '60%', background: '#eeeef2', borderRadius: '4px', marginBottom: '8px' }} />
+                        <div style={{ height: '12px', width: '90%', background: '#f3f3f7', borderRadius: '4px' }} />
+                      </div>
+                    ))}
+                    <style>{`
+                      @keyframes gigSkeleton {
+                        to { background-position-x: -200%; }
+                      }
+                    `}</style>
+                  </>
+                ) : approvedGigs.length > 0 ? (
                   <>
                     {approvedGigs.slice(0, 6).map((gig) => (
                       <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/gig/${gig.id}`)}>

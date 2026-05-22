@@ -206,15 +206,15 @@ const compareRows = [
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    src: '/9384669-uhd_2160_3840_24fps.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: '🎨' },
-  { id: 2, industryId: 'apps',    label: 'Apps/Software',    src: '/showcase-2.mp4',
+  { id: 2, industryId: 'apps',    label: 'Apps/Software',    src: 'https://videos.pexels.com/video-files/4761426/4761426-hd_1080_1920_25fps.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8' },
-  { id: 3, industryId: 'family',  label: 'Family/Kids',      src: '/showcase-3.mp4',
+  { id: 3, industryId: 'family',  label: 'Family/Kids',      src: 'https://videos.pexels.com/video-files/4123487/4123487-hd_1080_1920_30fps.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G' },
-  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-4.mp4',
+  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: 'https://videos.pexels.com/video-files/3066460/3066460-hd_1080_1920_30fps.mp4',
     brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: '✨' },
-  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-5.mp4',
+  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: 'https://videos.pexels.com/video-files/3209828/3209828-hd_1080_1920_25fps.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T' },
-  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-6.mp4',
+  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: 'https://videos.pexels.com/video-files/4456030/4456030-hd_1080_1920_25fps.mp4',
     brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A' },
 ];
 
@@ -531,15 +531,29 @@ export default function Landing() {
 
       {/* ── Brands Scroll ───────────────────────────────────────────────────── */}
       <section className="lp-brands">
-        <p className="lp-brands__caption">
-          Used by brands that value long-term recall over short-term noise.
-        </p>
-        <div className="lp-brands__scroll">
-          <div className="lp-brands__track">
-            {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
-              'Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft'].map((b, i) => (
-              <div key={`${b}-${i}`} className="lp-brand-item">{b}</div>
-            ))}
+        <div className="lp-brands__inner">
+          <div className="lp-brands__caption-wrap">
+            <span className="lp-brands__pill">
+              <span className="lp-brands__pulse" />
+              Trusted by 500+ teams
+            </span>
+            <p className="lp-brands__caption">
+              Used by brands that value <em>long-term recall</em> over short-term noise.
+            </p>
+          </div>
+
+          <div className="lp-brands__scroll">
+            <div className="lp-brands__fade lp-brands__fade--left" />
+            <div className="lp-brands__fade lp-brands__fade--right" />
+            <div className="lp-brands__track">
+              {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
+                'Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft'].map((b, i) => (
+                <div key={`${b}-${i}`} className="lp-brand-item">
+                  <span className="lp-brand-item__dot" />
+                  {b}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -1695,33 +1709,106 @@ export default function Landing() {
 
         /* ── Brands Scroll ────────────────────────────────────────────────── */
         .lp-brands {
-          background: var(--lp-bg-soft);
-          padding: 60px 0;
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
+          padding: 70px 0 80px;
           overflow: hidden;
           border-top: 1px solid var(--lp-border);
           border-bottom: 1px solid var(--lp-border);
         }
-        .lp-brands__scroll { width: 100%; overflow: hidden; }
-        .lp-brands__track {
-          display: flex;
-          gap: 60px;
-          animation: scrollBrands 30s linear infinite;
-          width: max-content;
+        .lp-brands__inner {
+          max-width: 1300px;
+          margin: 0 auto;
+        }
+        .lp-brands__caption-wrap {
+          text-align: center;
+          margin-bottom: 40px;
           padding: 0 8%;
         }
-        .lp-brand-item {
+        .lp-brands__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 14px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.5rem;
-          font-weight: 700;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #07074e;
+          margin-bottom: 16px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+        .lp-brands__pulse {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #22C55E;
+          box-shadow: 0 0 0 0 rgba(34,197,94,0.55);
+          animation: hookPulse 1.8s ease-out infinite;
+        }
+
+        .lp-brands__scroll {
+          position: relative;
+          width: 100%;
+          overflow: hidden;
+          padding: 8px 0;
+        }
+        .lp-brands__fade {
+          position: absolute;
+          top: 0; bottom: 0;
+          width: 120px;
+          z-index: 2;
+          pointer-events: none;
+        }
+        .lp-brands__fade--left {
+          left: 0;
+          background: linear-gradient(90deg, #FAFAF9, rgba(250,250,249,0));
+        }
+        .lp-brands__fade--right {
+          right: 0;
+          background: linear-gradient(270deg, #FAFAF9, rgba(250,250,249,0));
+        }
+
+        .lp-brands__track {
+          display: flex;
+          gap: 18px;
+          animation: scrollBrands 30s linear infinite;
+          width: max-content;
+          padding: 0 18px;
+        }
+        .lp-brand-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 24px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 14px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.1rem;
+          font-weight: 600;
           color: var(--lp-text);
           white-space: nowrap;
-          opacity: 0.45;
+          letter-spacing: -0.02em;
           transition: all 0.3s ease;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+          cursor: default;
+        }
+        .lp-brand-item__dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #07074e, #3A3A66);
+          flex-shrink: 0;
         }
         .lp-brand-item:hover {
-          opacity: 1;
-          color: var(--lp-purple-600);
+          color: #07074e;
+          border-color: #8888A0;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 28px rgba(7,7,78,0.12);
         }
+
         @keyframes scrollBrands {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -3280,12 +3367,25 @@ export default function Landing() {
         /* ── Brands caption ──────────────────────────────────────────────── */
         .lp-brands__caption {
           font-family: 'Instrument Sans', sans-serif;
-          color: var(--lp-text-muted);
+          color: var(--lp-text);
           text-align: center;
-          font-size: 0.95rem;
-          letter-spacing: -0.01em;
-          padding: 0 8% 24px;
-          margin: 0;
+          font-size: 1.02rem;
+          letter-spacing: -0.015em;
+          line-height: 1.4;
+          padding: 0;
+          margin: 0 auto;
+          max-width: 640px;
+        }
+        .lp-brands__caption em {
+          color: #07074e;
+          font-style: italic;
+          font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+          .lp-brand-item { padding: 10px 18px; font-size: 1rem; }
+          .lp-brands__fade { width: 60px; }
+          .lp-brands__caption { font-size: 0.92rem; }
         }
 
         /* ── Scroll Hook ─────────────────────────────────────────────────── */

@@ -3077,13 +3077,6 @@ export default function Landing() {
           padding-right: 12px;
         }
 
-        .lp-footer__logo {
-          height: 36px;
-          width: auto;
-          margin-bottom: 18px;
-          display: block;
-        }
-
         .lp-footer__tagline {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.92rem;

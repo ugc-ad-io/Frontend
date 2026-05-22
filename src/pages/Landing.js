@@ -204,7 +204,7 @@ const compareRows = [
 // Six showcase video slots — all unique local UGC videos from /public folder.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: '/9384669-uhd_2160_3840_24fps.mp4',
+    src: '/17811912-uhd_2160_3840_24fps.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: '🎨' },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/6944288-uhd_2160_3840_24fps.mp4',
@@ -337,7 +337,7 @@ export default function Landing() {
 
   // Right phone falls back to existing video if the second one isn't downloaded yet
   const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
-  const rightVideo = '/17811912-uhd_2160_3840_24fps.mp4';
+  const rightVideo = '/6948556-uhd_2160_3840_24fps.mp4';
 
   return (
     <div className="lp-root">

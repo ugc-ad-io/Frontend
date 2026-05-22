@@ -644,8 +644,9 @@ export default function Landing() {
         .lp-hero__subtitle {
           font-family: 'Instrument Sans', sans-serif;
           color: var(--lp-text-muted);
-          font-size: 1.05rem;
-          line-height: 1.7;
+          font-size: 1rem;
+          line-height: 1.5;
+          letter-spacing: -0.015em;
           max-width: 540px;
           margin: 0 0 32px;
         }
@@ -769,14 +770,15 @@ export default function Landing() {
           box-shadow: 0 32px 80px rgba(124, 58, 237, 0.22), 0 12px 32px rgba(0,0,0,0.14);
         }
 
-        /* Smaller secondary card on the right — partially behind */
+        /* Secondary card — partially BEHIND the main one on the right */
         .lp-phone--right {
-          right: 0;
-          top: 8%;
-          width: 42%;
-          height: 84%;
+          left: 52%;             /* starts before main ends (62%), creating 10% overlap */
+          right: -4%;            /* extends slightly past the container right edge */
+          top: 4%;
+          height: 92%;
+          width: auto;           /* width derived from left+right */
           z-index: 1;
-          box-shadow: 0 28px 60px rgba(0,0,0,0.18);
+          box-shadow: 0 28px 60px rgba(0,0,0,0.20);
         }
 
         /* Floating widget — creators count */

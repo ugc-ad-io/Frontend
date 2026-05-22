@@ -735,8 +735,10 @@ export default function Landing() {
         /* ── Hero media (phones + floating widgets) ───────────────────────── */
         .lp-hero__media {
           position: relative;
-          width: 100%;
-          aspect-ratio: 1 / 1.05;
+          width: 88%;
+          margin-left: auto;
+          margin-right: auto;
+          aspect-ratio: 1 / 0.92;
           display: block;
         }
 
@@ -760,25 +762,25 @@ export default function Landing() {
           display: block;
         }
 
-        /* Main big card on the left — like Twirl's hero shot */
+        /* Main big card on the left — slightly smaller */
         .lp-phone--left {
           left: 0;
-          top: 0;
-          width: 62%;
-          height: 100%;
+          top: 4%;
+          width: 56%;
+          height: 92%;
           z-index: 2;
-          box-shadow: 0 32px 80px rgba(124, 58, 237, 0.22), 0 12px 32px rgba(0,0,0,0.14);
+          box-shadow: 0 24px 60px rgba(124, 58, 237, 0.20), 0 8px 24px rgba(0,0,0,0.12);
         }
 
         /* Secondary card — sits significantly BEHIND the main one */
         .lp-phone--right {
-          left: 42%;             /* deep overlap: starts 20% before main ends */
-          right: -2%;            /* extends slightly past the right edge */
-          top: 5%;
-          height: 90%;
+          left: 40%;
+          right: 0;
+          top: 8%;
+          height: 84%;
           width: auto;
           z-index: 1;
-          box-shadow: 0 28px 60px rgba(0,0,0,0.22);
+          box-shadow: 0 22px 48px rgba(0,0,0,0.18);
         }
 
         /* Floating widget — creators count */

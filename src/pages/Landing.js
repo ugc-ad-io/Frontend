@@ -46,7 +46,7 @@ const featureData = [
     Icon: Users,
     title: 'Creator Matchmaking',
     desc: 'Private, vetted, brand-safe storytellers.',
-    gradient: 'linear-gradient(135deg, #07074e 0%, #9A9ABF 100%)',
+    gradient: 'linear-gradient(135deg, #07074e 0%, #8888A0 100%)',
     glow: 'rgba(7, 7, 78, 0.28)',
     accent: '#07074e',
     num: '01',
@@ -64,9 +64,9 @@ const featureData = [
     Icon: Activity,
     title: 'Performance Clarity',
     desc: 'See what converts. Double down with confidence.',
-    gradient: 'linear-gradient(135deg, #1F1F66 0%, #9A9ABF 100%)',
-    glow: 'rgba(147, 51, 234, 0.28)',
-    accent: '#1F1F66',
+    gradient: 'linear-gradient(135deg, #1F1F4E 0%, #8888A0 100%)',
+    glow: 'rgba(31, 31, 102, 0.28)',
+    accent: '#1F1F4E',
     num: '03',
   },
   {
@@ -74,7 +74,7 @@ const featureData = [
     title: 'AI UGC',
     desc: 'Speed, without losing the signal.',
     gradient: 'linear-gradient(135deg, #050538 0%, #07074e 100%)',
-    glow: 'rgba(88, 28, 135, 0.28)',
+    glow: 'rgba(5, 5, 56, 0.28)',
     accent: '#050538',
     num: '04',
   },
@@ -205,9 +205,9 @@ const compareRows = [
 // file if the user hasn't downloaded the additional Pexels videos.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    src: '/9384669-uhd_2160_3840_24fps.mp4',
-    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #f472b6, #fb923c)', logoText: '🎨' },
+    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: '🎨' },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    src: '/showcase-2.mp4',
-    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F66, #6366f1)', logoText: '8' },
+    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8' },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      src: '/showcase-3.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G' },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-4.mp4',
@@ -215,7 +215,7 @@ const showcaseVideos = [
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-5.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T' },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', src: '/showcase-6.mp4',
-    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #818cf8, #1F1F66)', logoText: 'A' },
+    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A' },
 ];
 
 // ─── Framer Motion variants ──────────────────────────────────────────────────
@@ -487,9 +487,9 @@ export default function Landing() {
             {/* Floating widget — creators count */}
             <div className="lp-float lp-float--creators">
               <div className="lp-avatars">
-                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #f472b6, #9A9ABF)' }}>A</span>
-                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #818cf8, #07074e)' }}>M</span>
-                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #fb923c, #f472b6)' }}>K</span>
+                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #3A3A66, #8888A0)' }}>A</span>
+                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #1F1F4E, #07074e)' }}>M</span>
+                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #fb923c, #3A3A66)' }}>K</span>
               </div>
               <div className="lp-float__copy">
                 <span className="lp-float__small">Get content from</span>
@@ -1226,12 +1226,12 @@ export default function Landing() {
       {/* ── Styles ─────────────────────────────────────────────────────────── */}
       <style>{`
         :root {
-          --lp-purple-50:  #F0F0F8;
-          --lp-purple-100: #E1E1EF;
-          --lp-purple-200: #C8C8DE;
-          --lp-purple-300: #9A9ABF;
-          --lp-purple-500: #4A4A8C;
-          --lp-purple-600: #1F1F66;
+          --lp-purple-50:  #EEEEF2;
+          --lp-purple-100: #DDDDE3;
+          --lp-purple-200: #BBBBC8;
+          --lp-purple-300: #8888A0;
+          --lp-purple-500: #3A3A66;
+          --lp-purple-600: #1F1F4E;
           --lp-purple-700: #07074e;
           --lp-purple-900: #050538;
           --lp-ink:        #0A0A0A;
@@ -1335,7 +1335,7 @@ export default function Landing() {
           display: flex;
           align-items: center;
           padding: 140px 8% 80px;
-          background: linear-gradient(160deg, #F7F7FB 0%, #F0F0F8 55%, #FFFFFF 100%);
+          background: linear-gradient(160deg, #F5F5F8 0%, #EEEEF2 55%, #FFFFFF 100%);
           overflow: hidden;
         }
 
@@ -1380,7 +1380,7 @@ export default function Landing() {
           gap: 8px;
           padding: 7px 16px;
           border-radius: 100px;
-          background: linear-gradient(135deg, #C8C8DE 0%, #9A9ABF 100%);
+          background: linear-gradient(135deg, #BBBBC8 0%, #8888A0 100%);
           color: var(--lp-purple-900);
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.85rem;
@@ -1490,7 +1490,7 @@ export default function Landing() {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #C8C8DE, #9A9ABF);
+          background: linear-gradient(135deg, #BBBBC8, #8888A0);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -1674,7 +1674,7 @@ export default function Landing() {
           width: 16px;
           height: 16px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #F0F0F8, #C8C8DE);
+          background: linear-gradient(135deg, #EEEEF2, #BBBBC8);
           color: var(--lp-purple-700);
           display: inline-flex;
           align-items: center;
@@ -1855,7 +1855,7 @@ export default function Landing() {
         .lp-stamp--slack {
           top: 32%;
           left: 36%;
-          color: #611f69;
+          color: #07074e;
           transform: rotate(-4deg);
         }
         .lp-stamp--wa {
@@ -1997,12 +1997,12 @@ export default function Landing() {
           width: 90px;
           height: 90px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #E1E1EF, #9A9ABF);
+          background: linear-gradient(135deg, #DDDDE3, #8888A0);
           color: var(--lp-purple-700);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 8px 22px rgba(124,58,237,0.18);
+          box-shadow: 0 8px 22px rgba(7, 7, 78,0.18);
           z-index: 2;
         }
 
@@ -2116,7 +2116,7 @@ export default function Landing() {
         /* ── Showcase / Best UGC ──────────────────────────────────────────── */
         .lp-showcase {
           padding: 80px 8% 100px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F7F7FB 100%);
+          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 100%);
         }
         .lp-showcase__inner {
           max-width: 1200px;
@@ -2311,7 +2311,7 @@ export default function Landing() {
         /* ── Comparison Table ─────────────────────────────────────────────── */
         .lp-compare {
           padding: 100px 8% 100px;
-          background: linear-gradient(180deg, #F7F7FB 0%, #FFFFFF 50%, #F0F0F8 100%);
+          background: linear-gradient(180deg, #F5F5F8 0%, #FFFFFF 50%, #EEEEF2 100%);
         }
         .lp-compare__inner {
           max-width: 1200px;
@@ -2528,7 +2528,7 @@ export default function Landing() {
         }
         .lp-card:hover {
           border-color: var(--lp-purple-200);
-          box-shadow: 0 16px 40px var(--card-glow, rgba(168,85,247,0.18));
+          box-shadow: 0 16px 40px var(--card-glow, rgba(7, 7, 78,0.18));
         }
         .lp-card:hover::after { opacity: 1; }
 
@@ -2591,7 +2591,7 @@ export default function Landing() {
         .lp-cta {
           position: relative;
           padding: 140px 8% 130px;
-          background: linear-gradient(135deg, #F7F7FB 0%, #E1E1EF 50%, #F7F7FB 100%);
+          background: linear-gradient(135deg, #F5F5F8 0%, #DDDDE3 50%, #F5F5F8 100%);
           overflow: hidden;
           text-align: center;
         }
@@ -2638,7 +2638,7 @@ export default function Landing() {
           font-weight: 600;
           color: #07074e;
           margin-bottom: 28px;
-          box-shadow: 0 4px 16px rgba(124,58,237,0.10);
+          box-shadow: 0 4px 16px rgba(7, 7, 78,0.10);
         }
         .lp-cta__pulse {
           width: 8px;
@@ -2688,7 +2688,7 @@ export default function Landing() {
           left: 0;
           width: 100%;
           height: 8px;
-          background: linear-gradient(90deg, #9A9ABF, #07074e);
+          background: linear-gradient(90deg, #8888A0, #07074e);
           border-radius: 4px;
           opacity: 0.55;
         }
@@ -2968,7 +2968,7 @@ export default function Landing() {
           left: 0;
           width: 100%;
           height: 5px;
-          background: linear-gradient(90deg, #9A9ABF, #07074e);
+          background: linear-gradient(90deg, #8888A0, #07074e);
           border-radius: 4px;
           opacity: 0.55;
         }
@@ -3169,7 +3169,7 @@ export default function Landing() {
         .lp-footer__badge {
           display: inline-block;
           padding: 2px 10px;
-          background: linear-gradient(135deg, #C8C8DE, #9A9ABF);
+          background: linear-gradient(135deg, #BBBBC8, #8888A0);
           color: #07074e;
           border-radius: 100px;
           font-size: 0.7rem;
@@ -3292,7 +3292,7 @@ export default function Landing() {
         .lp-hook {
           position: relative;
           padding: 120px 8% 110px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F7F7FB 50%, #FFFFFF 100%);
+          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 50%, #FFFFFF 100%);
           text-align: center;
           overflow: hidden;
         }
@@ -3435,7 +3435,7 @@ export default function Landing() {
         /* ── How It Works (3 Steps) ──────────────────────────────────────── */
         .lp-steps {
           padding: 100px 8% 120px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F7F7FB 50%, #FFFFFF 100%);
+          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 50%, #FFFFFF 100%);
           position: relative;
         }
         .lp-steps__inner {
@@ -3499,7 +3499,7 @@ export default function Landing() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #9A9ABF, #07074e, #07074e);
+          background: linear-gradient(90deg, #8888A0, #07074e, #07074e);
           border-radius: 24px 24px 0 0;
           opacity: 0;
           transition: opacity 0.3s ease;
@@ -3541,7 +3541,7 @@ export default function Landing() {
           width: 54px;
           height: 54px;
           border-radius: 16px;
-          background: linear-gradient(135deg, #07074e 0%, #1e1b4b 100%);
+          background: linear-gradient(135deg, #07074e 0%, #050538 100%);
           color: #ffffff;
           display: inline-flex;
           align-items: center;
@@ -3620,7 +3620,7 @@ export default function Landing() {
         .lp-audit {
           position: relative;
           padding: 120px 8%;
-          background: linear-gradient(180deg, #FAFAF9 0%, #F0F0F8 100%);
+          background: linear-gradient(180deg, #FAFAF9 0%, #EEEEF2 100%);
           overflow: hidden;
         }
         .lp-audit__bg-orb {
@@ -3685,7 +3685,7 @@ export default function Landing() {
           left: 0;
           width: 100%;
           height: 6px;
-          background: linear-gradient(90deg, #9A9ABF, #07074e);
+          background: linear-gradient(90deg, #8888A0, #07074e);
           border-radius: 4px;
           opacity: 0.55;
         }
@@ -3724,7 +3724,7 @@ export default function Landing() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #9A9ABF, #07074e);
+          background: linear-gradient(90deg, #8888A0, #07074e);
           opacity: 0;
           transition: opacity 0.3s ease;
           border-radius: 22px 22px 0 0;
@@ -3812,7 +3812,7 @@ export default function Landing() {
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #07074e, #1e1b4b);
+          background: linear-gradient(135deg, #07074e, #050538);
           color: #ffffff;
           display: inline-flex;
           align-items: center;
@@ -3942,7 +3942,7 @@ export default function Landing() {
         .lp-testimonial {
           position: relative;
           padding: 120px 8%;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F7F7FB 100%);
+          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 100%);
           overflow: hidden;
         }
         .lp-testimonial__bg-orb {
@@ -4007,7 +4007,7 @@ export default function Landing() {
           left: 0;
           width: 100%;
           height: 6px;
-          background: linear-gradient(90deg, #9A9ABF, #07074e);
+          background: linear-gradient(90deg, #8888A0, #07074e);
           border-radius: 4px;
           opacity: 0.55;
         }
@@ -4047,7 +4047,7 @@ export default function Landing() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #9A9ABF, #07074e);
+          background: linear-gradient(90deg, #8888A0, #07074e);
           opacity: 0;
           transition: opacity 0.3s ease;
         }
@@ -4058,7 +4058,7 @@ export default function Landing() {
         .lp-tcard:hover::before { opacity: 1; }
 
         .lp-tcard--featured {
-          background: linear-gradient(180deg, #FFFFFF 0%, #F7F7FB 100%);
+          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 100%);
           border-color: var(--lp-purple-200);
           box-shadow: 0 20px 50px rgba(7, 7, 78, 0.12);
         }
@@ -4111,7 +4111,7 @@ export default function Landing() {
           border-radius: 50%;
           overflow: hidden;
           flex-shrink: 0;
-          background: linear-gradient(135deg, #07074e, #1e1b4b);
+          background: linear-gradient(135deg, #07074e, #050538);
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.20);
           display: inline-flex;
           align-items: center;

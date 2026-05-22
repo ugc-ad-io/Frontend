@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Settings,
   Star,
+  Upload,
   User,
   Zap,
   Award,
@@ -36,6 +37,7 @@ export default function ReviewsPage() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
+    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
     { name: 'Reviews', icon: Star, action: () => {}, active: true },

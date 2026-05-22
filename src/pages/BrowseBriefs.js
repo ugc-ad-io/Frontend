@@ -21,6 +21,7 @@ import {
   Sparkles,
   Star,
   IndianRupee,
+  Upload,
   User,
   Zap,
 } from 'lucide-react';
@@ -109,6 +110,7 @@ export default function BrowseBriefs() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
+    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
     { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },

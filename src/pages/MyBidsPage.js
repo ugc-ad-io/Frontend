@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Settings,
   Star,
+  Upload,
   User,
   Zap,
 } from 'lucide-react';
@@ -46,6 +47,7 @@ export default function MyBidsPage() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
+    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => {}, active: true },
     { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },

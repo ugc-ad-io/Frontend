@@ -29,6 +29,8 @@ import {
   DollarSign,
   Plane,
   HandHeart,
+  Check,
+  X,
 } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
 
@@ -106,6 +108,20 @@ const industries = [
   { id: 'travel',    Icon: Plane,        label: 'Travel' },
   { id: 'home',      Icon: HomeIcon,     label: 'Home/Household' },
   { id: 'charity',   Icon: HandHeart,    label: 'Charity' },
+];
+
+// Comparison table data: UGCad vs In-house vs UGC agencies vs UGC platforms
+const CHECK = '__check__';
+const CROSS = '__cross__';
+const compareRows = [
+  { label: 'Flexible plans or pay-per-video',  us: CHECK, inhouse: CHECK, agencies: CROSS, platforms: CHECK },
+  { label: 'Dedicated support',                us: CHECK, inhouse: CROSS, agencies: CHECK, platforms: CROSS },
+  { label: 'Costs',                            us: '$$',  inhouse: '$$$\n(including salaries)', agencies: '$$$$', platforms: '$' },
+  { label: 'Creator quality',                  us: 'High', inhouse: 'Uncertain', agencies: 'Usually good', platforms: 'Low' },
+  { label: 'Turnaround time',                  us: 'Within 14 days', inhouse: 'Unpredictable', agencies: '4-6 weeks', platforms: 'Days' },
+  { label: 'Content quality',                  us: 'High', inhouse: 'Uncertain', agencies: 'Good', platforms: 'Low' },
+  { label: 'Creative strategy support',        us: CHECK, inhouse: CROSS, agencies: CHECK, platforms: CROSS },
+  { label: 'Control over content',             us: CHECK, inhouse: CHECK, agencies: CROSS, platforms: CHECK },
 ];
 
 // Six showcase video slots — extras gracefully fall back to the existing
@@ -583,6 +599,59 @@ export default function Landing() {
                   }}
                 />
                 <span className="lp-showcase-card__tag">{v.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Comparison Table ─────────────────────────────────────────────── */}
+      <section className="lp-compare">
+        <div className="lp-compare__inner">
+          <h2 className="lp-compare__heading">
+            Better than a{' '}
+            <span className="lp-compare__heading--accent">UGC platform</span>,{' '}
+            easier than an{' '}
+            <span className="lp-compare__heading--accent">agency</span>
+          </h2>
+
+          <div className="lp-compare__table">
+            {/* Header row */}
+            <div className="lp-compare__row lp-compare__row--head">
+              <div className="lp-compare__cell lp-compare__cell--label"></div>
+              <div className="lp-compare__cell lp-compare__cell--us lp-compare__cell--us-head">
+                <img src="/ugcad-logo.png" alt="UGCad" className="lp-compare__logo" />
+              </div>
+              <div className="lp-compare__cell lp-compare__cell--head">In-house</div>
+              <div className="lp-compare__cell lp-compare__cell--head">UGC agencies</div>
+              <div className="lp-compare__cell lp-compare__cell--head">UGC platforms</div>
+            </div>
+
+            {compareRows.map((row, i) => (
+              <div key={row.label} className={`lp-compare__row${i % 2 === 1 ? ' lp-compare__row--alt' : ''}`}>
+                <div className="lp-compare__cell lp-compare__cell--label">{row.label}</div>
+                <div className="lp-compare__cell lp-compare__cell--us">
+                  {row.us === CHECK ? (
+                    <span className="lp-compare__check lp-compare__check--filled">
+                      <Check size={16} strokeWidth={3} />
+                    </span>
+                  ) : row.us === CROSS ? (
+                    <span className="lp-compare__x"><X size={20} /></span>
+                  ) : (
+                    <span className="lp-compare__text">{row.us}</span>
+                  )}
+                </div>
+                {['inhouse', 'agencies', 'platforms'].map((col) => (
+                  <div key={col} className="lp-compare__cell">
+                    {row[col] === CHECK ? (
+                      <span className="lp-compare__check"><Check size={20} strokeWidth={2.5} /></span>
+                    ) : row[col] === CROSS ? (
+                      <span className="lp-compare__x"><X size={20} strokeWidth={2.5} /></span>
+                    ) : (
+                      <span className="lp-compare__text">{row[col]}</span>
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
@@ -1669,12 +1738,13 @@ export default function Landing() {
         .lp-showcase__grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 18px;
+          row-gap: 40px;
+          column-gap: 18px;
         }
 
         .lp-showcase-card {
           position: relative;
-          aspect-ratio: 9 / 14;
+          aspect-ratio: 9 / 11;
           border-radius: 18px;
           overflow: hidden;
           background: #111;
@@ -1716,6 +1786,161 @@ export default function Landing() {
           .lp-showcase { padding: 60px 5%; }
           .lp-showcase__grid { grid-template-columns: 1fr; }
           .lp-filter { padding: 8px 14px; font-size: 0.82rem; }
+        }
+
+        /* ── Comparison Table ─────────────────────────────────────────────── */
+        .lp-compare {
+          padding: 100px 8% 100px;
+          background: linear-gradient(180deg, #FAF5FF 0%, #FFFFFF 50%, #F3E8FF 100%);
+        }
+        .lp-compare__inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .lp-compare__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          line-height: 1.2;
+          letter-spacing: -0.04em;
+          margin: 0 0 60px 0;
+          max-width: 900px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .lp-compare__heading--accent {
+          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .lp-compare__table {
+          background: #ffffff;
+          border-radius: 24px;
+          border: 1px solid var(--lp-border);
+          overflow: hidden;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.05);
+          position: relative;
+        }
+
+        .lp-compare__row {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+          align-items: stretch;
+          border-top: 1px solid var(--lp-border);
+        }
+        .lp-compare__row:first-child {
+          border-top: none;
+        }
+        .lp-compare__row--head .lp-compare__cell {
+          padding: 22px 16px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          letter-spacing: -0.01em;
+        }
+        .lp-compare__row--alt {
+          background: #FAFAF9;
+        }
+
+        .lp-compare__cell {
+          padding: 22px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          color: var(--lp-text);
+          text-align: center;
+        }
+
+        .lp-compare__cell--label {
+          justify-content: flex-start;
+          text-align: left;
+          padding-left: 28px;
+          font-weight: 500;
+          color: var(--lp-ink);
+        }
+
+        /* Highlight "us" column with light purple background */
+        .lp-compare__cell--us {
+          background: var(--lp-purple-50);
+          position: relative;
+        }
+        .lp-compare__cell--us::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: -1px;
+          bottom: -1px;
+          border-left: 1.5px solid var(--lp-purple-300);
+          border-right: 1.5px solid var(--lp-purple-300);
+          pointer-events: none;
+        }
+        .lp-compare__row--head .lp-compare__cell--us::before {
+          border-top: 1.5px solid var(--lp-purple-300);
+          border-top-left-radius: 16px;
+          border-top-right-radius: 16px;
+        }
+        .lp-compare__row:last-child .lp-compare__cell--us::before {
+          border-bottom: 1.5px solid var(--lp-purple-300);
+          border-bottom-left-radius: 16px;
+          border-bottom-right-radius: 16px;
+        }
+
+        .lp-compare__logo {
+          height: 32px;
+          width: auto;
+        }
+
+        /* Check icons */
+        .lp-compare__check {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--lp-text);
+        }
+        .lp-compare__check--filled {
+          background: var(--lp-purple-600);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.32);
+        }
+
+        .lp-compare__x {
+          color: var(--lp-text-soft);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .lp-compare__text {
+          color: var(--lp-text);
+          font-weight: 500;
+          white-space: pre-line;
+        }
+
+        @media (max-width: 900px) {
+          .lp-compare { padding: 60px 4%; }
+          .lp-compare__row {
+            grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr;
+          }
+          .lp-compare__cell { padding: 14px 8px; font-size: 0.78rem; }
+          .lp-compare__cell--label { padding-left: 14px; }
+          .lp-compare__row--head .lp-compare__cell { font-size: 0.82rem; }
+          .lp-compare__check { width: 28px; height: 28px; }
+          .lp-compare__logo { height: 22px; }
+        }
+        @media (max-width: 640px) {
+          .lp-compare__heading { font-size: 1.6rem; margin-bottom: 30px; }
+          .lp-compare__cell { font-size: 0.7rem; padding: 10px 6px; }
         }
 
         /* ── Features ─────────────────────────────────────────────────────── */

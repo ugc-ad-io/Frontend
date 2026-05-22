@@ -1150,111 +1150,7 @@ export default function Landing() {
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="lp-footer">
         <div className="lp-footer__inner">
-          <h3 className="lp-footer__main-heading">Built for Brands Who Think Long-Term</h3>
-
-          {/* Row 1: 5 columns */}
-          <div className="lp-footer__top">
-            {/* Brand + newsletter */}
-            <div className="lp-footer__brand-col">
-              <img src="/ugcad-logo.png" alt="UGCad" className="lp-footer__logo" />
-              <p className="lp-footer__tagline">
-                Sign up to our newsletter to receive content wisdom straight to your inbox.
-              </p>
-              <form className="lp-footer__form" onSubmit={(e) => e.preventDefault()}>
-                <label className="lp-footer__label">Email <span className="lp-footer__required">*</span></label>
-                <input
-                  type="email"
-                  className="lp-footer__input"
-                  placeholder="Enter your email"
-                />
-                <label className="lp-footer__label">Industry <span className="lp-footer__required">*</span></label>
-                <select className="lp-footer__input" defaultValue="">
-                  <option value="" disabled>Select your industry</option>
-                  {industries.map((i) => (
-                    <option key={i.id} value={i.id}>{i.label}</option>
-                  ))}
-                </select>
-                <button type="submit" className="lp-footer__subscribe">Subscribe</button>
-              </form>
-              <p className="lp-footer__privacy">
-                Unsubscribe anytime. By subscribing you agree to our{' '}
-                <a href="#privacy" className="lp-footer__link-accent">Privacy Policy.</a>
-              </p>
-            </div>
-
-            {/* Industries */}
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Industries</h4>
-              <ul className="lp-footer__list">
-                <li><a href="#">Beauty &amp; Skincare</a></li>
-                <li><a href="#">Health &amp; Wellness</a></li>
-                <li><a href="#">Food &amp; Beverage</a></li>
-                <li><a href="#">Pets</a></li>
-                <li><a href="#">Apps &amp; Software</a></li>
-                <li><a href="#">Consumer Services</a></li>
-                <li><a href="#">Fitness</a></li>
-                <li><a href="#">Home &amp; Living</a></li>
-                <li><a href="#">Family &amp; Kids</a></li>
-                <li><a href="#">Finance &amp; Insurance</a></li>
-                <li><a href="#">Travel</a></li>
-                <li><a href="#">Charity</a></li>
-              </ul>
-            </div>
-
-            {/* Resources */}
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Resources</h4>
-              <ul className="lp-footer__list">
-                <li><a href="#">UGCad vs Others</a></li>
-                <li><a href="#">Success Cases</a></li>
-                <li><a href="#">Blog</a></li>
-                <li>
-                  <a href="#">E-Books &amp; Guides</a>{' '}
-                  <span className="lp-footer__badge">New</span>
-                </li>
-                <li><a href="#">Webinars &amp; Events</a></li>
-                <li><a href="#">Experts</a></li>
-                <li><a href="#">UGC Diaries</a></li>
-              </ul>
-            </div>
-
-            {/* Free Downloads */}
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Free Downloads</h4>
-              <ul className="lp-footer__list">
-                <li><a href="#">Never Run Out of UGC Ideas Again — Steal This 2026 Calendar</a></li>
-                <li><a href="#">The Agency's Guide to UGC</a></li>
-                <li><a href="#">The Consent Form You Need for Filming Street Interviews</a></li>
-                <li><a href="#">The Gen Z Playbook Brands Can't Afford to Ignore</a></li>
-                <li><a href="#">The UGC Strategy That Builds Beauty Empires</a></li>
-                <li><a href="#" className="lp-footer__link-accent">View All</a></li>
-              </ul>
-            </div>
-
-            {/* Follow */}
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Follow Our Journey</h4>
-              <ul className="lp-footer__social">
-                <li><a href="#"><Music2 size={18} /> TikTok</a></li>
-                <li><a href="#"><Instagram size={18} /> Instagram</a></li>
-                <li><a href="#"><Linkedin size={18} /> LinkedIn</a></li>
-                <li><a href="#"><Twitter size={18} /> X</a></li>
-                <li><a href="#"><Heart size={18} /> Pinterest</a></li>
-                <li><a href="#"><Youtube size={18} /> YouTube</a></li>
-              </ul>
-              <h4 className="lp-footer__heading" style={{ marginTop: 22 }}>Contact</h4>
-              <p className="lp-footer__contact">
-                For brands &amp; agencies:<br />
-                <a href="mailto:brands@ugcad.io" className="lp-footer__link-accent">brands@ugcad.io</a>
-              </p>
-              <p className="lp-footer__contact">
-                For creators:<br />
-                <a href="mailto:creators@ugcad.io" className="lp-footer__link-accent">creators@ugcad.io</a>
-              </p>
-            </div>
-          </div>
-
-          {/* Row 2: bottom section */}
+          {/* Bottom section only */}
           <div className="lp-footer__bottom">
             <div className="lp-footer__col">
               <h4 className="lp-footer__heading">Platform</h4>
@@ -2986,7 +2882,7 @@ export default function Landing() {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 36px;
-          padding: 50px 0 30px;
+          padding: 20px 0 40px;
           border-bottom: 1px solid var(--lp-border);
         }
 

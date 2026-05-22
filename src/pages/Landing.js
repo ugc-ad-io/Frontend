@@ -15,6 +15,20 @@ import {
   Instagram,
   ShoppingBag,
   Music2,
+  AlertTriangle,
+  HelpCircle,
+  MessageCircle,
+  Hash,
+  Play,
+  User,
+  Heart,
+  Coffee,
+  Dumbbell,
+  PawPrint,
+  Gamepad2,
+  DollarSign,
+  Plane,
+  HandHeart,
 } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
 
@@ -78,6 +92,30 @@ const categoryChips = [
   { Icon: HomeIcon, label: 'Home' },
 ];
 
+const industries = [
+  { id: 'health',    Icon: Heart,        label: 'Health/Wellness' },
+  { id: 'beauty',    Icon: Sparkles,     label: 'Beauty/Cosmetics' },
+  { id: 'food',      Icon: Coffee,       label: 'Food/Beverage' },
+  { id: 'fitness',   Icon: Dumbbell,     label: 'Fitness/Supplements' },
+  { id: 'services',  Icon: Briefcase,    label: 'Consumer Services' },
+  { id: 'family',    Icon: Users,        label: 'Family/Kids' },
+  { id: 'pets',      Icon: PawPrint,     label: 'Pets' },
+  { id: 'gaming',    Icon: Gamepad2,     label: 'Gaming' },
+  { id: 'apps',      Icon: Smartphone,   label: 'Apps/Software' },
+  { id: 'finance',   Icon: DollarSign,   label: 'Finance/Insurance' },
+  { id: 'travel',    Icon: Plane,        label: 'Travel' },
+  { id: 'home',      Icon: HomeIcon,     label: 'Home/Household' },
+  { id: 'charity',   Icon: HandHeart,    label: 'Charity' },
+];
+
+// Three showcase video slots — the 2nd & 3rd will gracefully fall back
+// to the existing file if the user hasn't downloaded the extra Pexels videos.
+const showcaseVideos = [
+  { id: 1, industryId: 'apps',   label: 'Apps/Software', src: '/9384669-uhd_2160_3840_24fps.mp4' },
+  { id: 2, industryId: 'apps',   label: 'Apps/Software', src: '/showcase-2.mp4' },
+  { id: 3, industryId: 'family', label: 'Family/Kids',   src: '/showcase-3.mp4' },
+];
+
 // ─── Framer Motion variants ──────────────────────────────────────────────────
 
 const heroItemVariants = {
@@ -123,6 +161,11 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [selectedIndustry, setSelectedIndustry] = useState(null);
+
+  const visibleShowcase = selectedIndustry
+    ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
+    : showcaseVideos;
 
   const featuresRef = useRef(null);
   const ctaRef = useRef(null);
@@ -352,6 +395,192 @@ export default function Landing() {
             {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
               'Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft'].map((b, i) => (
               <div key={`${b}-${i}`} className="lp-brand-item">{b}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── The Problem ────────────────────────────────────────────────────── */}
+      <section className="lp-problem">
+        <div className="lp-problem__inner">
+          <span className="lp-problem__pill">
+            <AlertTriangle size={14} />
+            The problem
+          </span>
+          <h2 className="lp-problem__heading">
+            Creating content that{' '}
+            <span className="lp-problem__heading--accent">truly performs</span>{' '}
+            isn't easy
+          </h2>
+          <p className="lp-problem__subtitle">
+            We know firsthand how tough it is to consistently create content that performs.
+          </p>
+
+          <div className="lp-problem__grid">
+            {/* Card 1 — Tedious price negotiations */}
+            <article className="lp-pcard">
+              <div className="lp-pcard__visual">
+                <div className="lp-pmedia lp-pmedia--c1">
+                  <div className="lp-stamp lp-stamp--fiverr">fiverr.</div>
+                  <div className="lp-stamp lp-stamp--slack"><Hash size={20} /></div>
+                  <div className="lp-stamp lp-stamp--wa"><MessageCircle size={20} /></div>
+                  <div className="lp-stamp lp-stamp--check">✓✓</div>
+                  <div className="lp-stamp lp-stamp--num">3</div>
+                  <div className="lp-stamp lp-stamp--bell">🔔<span className="lp-stamp__badge">10</span></div>
+
+                  <div className="lp-update-card">
+                    <div className="lp-update-card__title">Content updates</div>
+                    <div className="lp-update-card__body">You've been waiting for <strong>4 days</strong> without a response.</div>
+                  </div>
+
+                  <div className="lp-tag-pill lp-tag-pill--reject">
+                    <span className="lp-tag-dot lp-tag-dot--reject"></span>
+                    Contract Rejected
+                  </div>
+
+                  <div className="lp-contract-card">
+                    <div className="lp-contract-card__title">Your contract</div>
+                    <div className="lp-tag-pill lp-tag-pill--pending">
+                      <AlertTriangle size={12} />
+                      Signature pending
+                    </div>
+                  </div>
+
+                  <div className="lp-vertical-tag">Signature pending</div>
+                  <div className="lp-vertical-tag lp-vertical-tag--right">Endless Slack Channels</div>
+                </div>
+              </div>
+              <h3 className="lp-pcard__title">Tedious price negotiations</h3>
+            </article>
+
+            {/* Card 2 — Limited UGC creator access */}
+            <article className="lp-pcard">
+              <div className="lp-pcard__visual">
+                <div className="lp-pmedia lp-pmedia--c2">
+                  <div className="lp-ring lp-ring--1"></div>
+                  <div className="lp-ring lp-ring--2"></div>
+
+                  <div className="lp-center-avatar">
+                    <User size={36} />
+                  </div>
+
+                  <div className="lp-q lp-q--1"><HelpCircle size={20} /></div>
+                  <div className="lp-q lp-q--2"><HelpCircle size={20} /></div>
+                  <div className="lp-q lp-q--3"><HelpCircle size={20} /></div>
+                  <div className="lp-q lp-q--4"><HelpCircle size={20} /></div>
+                  <div className="lp-q lp-q--5"><HelpCircle size={20} /></div>
+
+                  <div className="lp-tag-pill lp-tag-pill--reject lp-tag-pill--center">
+                    <span className="lp-tag-dot lp-tag-dot--reject"></span>
+                    Only one creator found
+                  </div>
+                </div>
+              </div>
+              <h3 className="lp-pcard__title">Limited UGC creator access</h3>
+            </article>
+
+            {/* Card 3 — Inconsistent quality */}
+            <article className="lp-pcard">
+              <div className="lp-pcard__visual">
+                <div className="lp-pmedia lp-pmedia--c3">
+                  <div className="lp-task-row">
+                    <div className="lp-task-icon"><Music2 size={18} /></div>
+                    <div className="lp-task-info">
+                      <div className="lp-task-title">Tik tok</div>
+                      <div className="lp-task-sub">follow-up assignments</div>
+                    </div>
+                    <div className="lp-tag-pill lp-tag-pill--reject">
+                      <span className="lp-tag-dot lp-tag-dot--reject"></span>
+                      Delayed tasks!
+                    </div>
+                  </div>
+
+                  <div className="lp-progress-card">
+                    <div className="lp-progress-card__label">Task Done: <strong>02 / 50</strong></div>
+                    <div className="lp-progress-track"><div className="lp-progress-fill"></div></div>
+                  </div>
+
+                  <div className="lp-submission-row">
+                    <div className="lp-submission-icon"><Play size={14} /></div>
+                    <div className="lp-submission-info">
+                      <div className="lp-submission-title">Raw content</div>
+                      <div className="lp-submission-sub">Latest submission</div>
+                    </div>
+                    <div className="lp-tag-pill lp-tag-pill--reject lp-tag-pill--sm">
+                      <span className="lp-tag-dot lp-tag-dot--reject"></span>
+                      Rejected
+                    </div>
+                  </div>
+
+                  <div className="lp-submission-row lp-submission-row--muted">
+                    <div className="lp-submission-icon"><Play size={14} /></div>
+                    <div className="lp-submission-info">
+                      <div className="lp-submission-title">Edited content</div>
+                      <div className="lp-submission-sub">Latest submission</div>
+                    </div>
+                    <div className="lp-tag-pill lp-tag-pill--pending lp-tag-pill--sm">
+                      <span className="lp-tag-dot lp-tag-dot--pending"></span>
+                      Pending
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h3 className="lp-pcard__title">Inconsistent quality or no creator follow-up</h3>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Showcase — Best UGC on the internet ────────────────────────────── */}
+      <section className="lp-showcase">
+        <div className="lp-showcase__inner">
+          <h2 className="lp-showcase__heading">
+            We create the{' '}
+            <span className="lp-showcase__heading--accent">best UGC</span>{' '}
+            on the internet
+          </h2>
+          <p className="lp-showcase__subtitle">Choose your industry to see examples!</p>
+
+          <div className="lp-showcase__filters">
+            {industries.map(({ id, Icon, label }) => (
+              <button
+                key={id}
+                type="button"
+                className={`lp-filter${selectedIndustry === id ? ' is-active' : ''}`}
+                onClick={() => setSelectedIndustry(selectedIndustry === id ? null : id)}
+              >
+                <Icon size={14} />
+                <span>{label}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              className="lp-filter lp-filter--reset"
+              onClick={() => setSelectedIndustry(null)}
+            >
+              Reset
+            </button>
+          </div>
+
+          <div className="lp-showcase__grid">
+            {(visibleShowcase.length ? visibleShowcase : showcaseVideos).map((v) => (
+              <div key={v.id} className="lp-showcase-card">
+                <video
+                  src={v.src}
+                  className="lp-showcase-card__media"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  onError={(e) => {
+                    // Fallback to the existing UGC video if user hasn't downloaded extra ones
+                    if (!e.currentTarget.src.endsWith('/9384669-uhd_2160_3840_24fps.mp4')) {
+                      e.currentTarget.src = '/9384669-uhd_2160_3840_24fps.mp4';
+                    }
+                  }}
+                />
+                <span className="lp-showcase-card__tag">{v.label}</span>
+              </div>
             ))}
           </div>
         </div>
@@ -877,40 +1106,36 @@ export default function Landing() {
           background: #95BF47; color: #fff;
         }
 
-        /* Category chips — vertical (icon on top, label below) like Twirl */
+        /* Category chips — horizontal pills, right side over secondary video */
         .lp-chips {
           position: absolute;
-          right: 6%;
-          top: 16%;
+          right: 2%;
+          top: 38%;
           display: flex;
           flex-direction: column;
           gap: 10px;
           z-index: 5;
           align-items: flex-end;
-          width: auto;
         }
         .lp-chip {
-          display: flex;
-          flex-direction: column;
+          display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 3px;
-          padding: 6px 8px;
+          gap: 8px;
+          padding: 7px 18px 7px 7px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
-          border-radius: 10px;
+          border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.7rem;
+          font-size: 0.85rem;
           font-weight: 500;
           color: var(--lp-text);
-          box-shadow: 0 8px 18px rgba(0,0,0,0.12);
-          width: 58px;
-          min-height: 54px;
-          text-align: center;
+          box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+          width: fit-content;
+          white-space: nowrap;
         }
         .lp-chip__icon {
-          width: 20px;
-          height: 20px;
+          width: 26px;
+          height: 26px;
           border-radius: 50%;
           background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
           color: var(--lp-purple-700);
@@ -919,13 +1144,12 @@ export default function Landing() {
           justify-content: center;
           font-weight: 700;
           flex-shrink: 0;
-          font-size: 0.7rem;
         }
         /* Subtle horizontal stagger for organic feel */
-        .lp-chip--0 { transform: translateX(-4px); }
-        .lp-chip--1 { transform: translateX(6px); }
-        .lp-chip--2 { transform: translateX(-8px); }
-        .lp-chip--3 { transform: translateX(2px); }
+        .lp-chip--0 { transform: translateX(-2px); }
+        .lp-chip--1 { transform: translateX(8px); }
+        .lp-chip--2 { transform: translateX(-6px); }
+        .lp-chip--3 { transform: translateX(4px); }
         .lp-chip--more {
           color: var(--lp-text-muted);
           transform: translateX(-2px);
@@ -963,6 +1187,530 @@ export default function Landing() {
         @keyframes scrollBrands {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
+        }
+
+        /* ── The Problem section ──────────────────────────────────────────── */
+        .lp-problem {
+          padding: 100px 8% 60px;
+          background: #ffffff;
+        }
+        .lp-problem__inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .lp-problem__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 100px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          color: var(--lp-text-muted);
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          margin-bottom: 18px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .lp-problem__pill svg { color: var(--lp-purple-600); }
+
+        .lp-problem__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          line-height: 1.15;
+          letter-spacing: -0.04em;
+          margin: 0 0 16px 0;
+          max-width: 900px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .lp-problem__heading--accent {
+          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .lp-problem__subtitle {
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1rem;
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 auto 60px;
+          max-width: 620px;
+        }
+
+        .lp-problem__grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 22px;
+          text-align: left;
+        }
+
+        .lp-pcard {
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 24px;
+          padding: 22px;
+          display: flex;
+          flex-direction: column;
+          transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .lp-pcard:hover {
+          box-shadow: 0 18px 50px rgba(124, 58, 237, 0.10);
+          transform: translateY(-4px);
+        }
+
+        .lp-pcard__visual {
+          background: var(--lp-bg-soft);
+          border-radius: 18px;
+          padding: 22px;
+          height: 320px;
+          position: relative;
+          overflow: hidden;
+          margin-bottom: 18px;
+        }
+
+        .lp-pcard__title {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.35rem;
+          font-weight: 500;
+          color: var(--lp-ink);
+          letter-spacing: -0.02em;
+          margin: 0;
+          line-height: 1.25;
+        }
+
+        /* Common pmedia container — content is absolutely positioned */
+        .lp-pmedia {
+          position: relative;
+          width: 100%;
+          height: 100%;
+        }
+
+        /* Card 1 — visual stamps */
+        .lp-pmedia--c1 .lp-stamp {
+          position: absolute;
+          width: 50px;
+          height: 50px;
+          border-radius: 12px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          color: var(--lp-text);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .lp-stamp--fiverr {
+          top: 56%;
+          left: 0;
+          font-size: 0.95rem;
+          color: #1DBF73;
+          font-style: italic;
+          transform: rotate(-8deg);
+        }
+        .lp-stamp--slack {
+          top: 32%;
+          left: 36%;
+          color: #611f69;
+          transform: rotate(-4deg);
+        }
+        .lp-stamp--wa {
+          bottom: 8%;
+          left: 22%;
+          background: #25D366;
+          color: #fff;
+          border-color: #25D366;
+          border-radius: 50%;
+        }
+        .lp-stamp--check {
+          top: 52%;
+          left: 32%;
+          width: 40px; height: 40px;
+          color: #4A4A4A;
+          font-size: 0.9rem;
+          background: #FAFAFA;
+          border-radius: 8px;
+          transform: rotate(2deg);
+        }
+        .lp-stamp--num {
+          top: 8%;
+          right: 14%;
+          width: 38px; height: 38px;
+          font-size: 1rem;
+          color: #6B7280;
+          background: #FAFAFA;
+          transform: rotate(8deg);
+        }
+        .lp-stamp--bell {
+          top: -4%;
+          left: 38%;
+          width: 38px; height: 38px;
+          background: #FAFAFA;
+          font-size: 1rem;
+          position: absolute;
+        }
+        .lp-stamp__badge {
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          background: #ef4444;
+          color: #fff;
+          font-size: 0.6rem;
+          padding: 1px 5px;
+          border-radius: 8px;
+          font-weight: 700;
+        }
+
+        .lp-update-card {
+          position: absolute;
+          top: 10%;
+          left: 50%;
+          width: 48%;
+          background: #fff;
+          border: 1px solid var(--lp-border);
+          border-radius: 10px;
+          padding: 8px 10px;
+          box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+          transform: rotate(-90deg);
+          transform-origin: left top;
+        }
+        .lp-update-card__title { font-size: 0.72rem; font-weight: 600; color: var(--lp-ink); }
+        .lp-update-card__body { font-size: 0.62rem; color: var(--lp-text-muted); line-height: 1.3; margin-top: 2px; }
+
+        .lp-vertical-tag {
+          position: absolute;
+          bottom: 14%;
+          left: 6%;
+          font-size: 0.62rem;
+          color: var(--lp-text-muted);
+          writing-mode: vertical-rl;
+          transform: rotate(180deg);
+          font-weight: 500;
+        }
+        .lp-vertical-tag--right {
+          left: auto;
+          right: 4%;
+          bottom: 10%;
+          color: var(--lp-text-soft);
+        }
+
+        .lp-tag-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 10px;
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.72rem;
+          font-weight: 500;
+          background: #FFFFFF;
+          border: 1px solid #FCA5A5;
+          color: #E11D48;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+          white-space: nowrap;
+        }
+        .lp-tag-pill--sm { font-size: 0.65rem; padding: 4px 8px; }
+        .lp-tag-pill--pending { border-color: #FCD34D; color: #B45309; }
+        .lp-tag-pill--reject { border-color: #FCA5A5; color: #E11D48; }
+        .lp-tag-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .lp-tag-dot--reject { background: #E11D48; }
+        .lp-tag-dot--pending { background: #B45309; }
+
+        .lp-pmedia--c1 .lp-tag-pill--reject {
+          position: absolute;
+          top: 38%;
+          right: 6%;
+        }
+        .lp-contract-card {
+          position: absolute;
+          bottom: 6%;
+          left: 22%;
+          width: 60%;
+          background: #fff;
+          border: 1px solid var(--lp-border);
+          border-radius: 12px;
+          padding: 10px 12px;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+        }
+        .lp-contract-card__title {
+          font-size: 0.72rem;
+          color: var(--lp-text-muted);
+          margin-bottom: 6px;
+        }
+
+        /* Card 2 — limited access */
+        .lp-pmedia--c2 { display: flex; align-items: center; justify-content: center; }
+        .lp-ring {
+          position: absolute;
+          border: 1.5px dashed #E5E7EB;
+          border-radius: 50%;
+        }
+        .lp-ring--1 { width: 70%; height: 70%; top: 15%; left: 15%; }
+        .lp-ring--2 { width: 95%; height: 95%; top: 2.5%; left: 2.5%; }
+
+        .lp-center-avatar {
+          position: relative;
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #E9D5FF, #C4B5FD);
+          color: var(--lp-purple-700);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 8px 22px rgba(124,58,237,0.18);
+          z-index: 2;
+        }
+
+        .lp-q {
+          position: absolute;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: #fff;
+          border: 1px solid var(--lp-border);
+          color: var(--lp-text-soft);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .lp-q--1 { top: 18%; left: 8%; }
+        .lp-q--2 { top: 26%; right: 10%; }
+        .lp-q--3 { bottom: 30%; left: 4%; }
+        .lp-q--4 { bottom: 22%; right: 6%; }
+        .lp-q--5 { top: 48%; right: 28%; }
+
+        .lp-tag-pill--center {
+          position: absolute;
+          bottom: 10%;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        /* Card 3 — inconsistent quality */
+        .lp-pmedia--c3 {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding-top: 4px;
+        }
+        .lp-task-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          background: #fff;
+          border: 1px solid var(--lp-border);
+          border-radius: 12px;
+        }
+        .lp-task-icon {
+          width: 32px; height: 32px;
+          border-radius: 8px;
+          background: #111;
+          color: #fff;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .lp-task-info { flex: 1; min-width: 0; }
+        .lp-task-title { font-size: 0.82rem; font-weight: 600; color: var(--lp-ink); }
+        .lp-task-sub { font-size: 0.7rem; color: var(--lp-text-muted); }
+
+        .lp-progress-card {
+          background: #fff;
+          border: 1px solid var(--lp-border);
+          border-radius: 10px;
+          padding: 10px 12px;
+        }
+        .lp-progress-card__label {
+          font-size: 0.78rem;
+          color: var(--lp-text);
+          margin-bottom: 8px;
+        }
+        .lp-progress-card__label strong { color: var(--lp-ink); }
+        .lp-progress-track {
+          width: 100%;
+          height: 4px;
+          background: #F3F4F6;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        .lp-progress-fill {
+          width: 4%;
+          height: 100%;
+          background: linear-gradient(90deg, #A855F7, #7C3AED);
+          border-radius: 4px;
+        }
+
+        .lp-submission-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: #fff;
+          border: 1px solid var(--lp-border);
+          border-radius: 10px;
+        }
+        .lp-submission-row--muted { opacity: 0.85; }
+        .lp-submission-icon {
+          width: 26px; height: 26px;
+          border-radius: 6px;
+          background: #F3F4F6;
+          color: var(--lp-text-soft);
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .lp-submission-info { flex: 1; min-width: 0; }
+        .lp-submission-title { font-size: 0.78rem; font-weight: 600; color: var(--lp-ink); }
+        .lp-submission-sub { font-size: 0.66rem; color: var(--lp-text-muted); }
+
+        @media (max-width: 1024px) {
+          .lp-problem__grid { grid-template-columns: 1fr; }
+          .lp-pcard__visual { height: 280px; }
+        }
+
+        /* ── Showcase / Best UGC ──────────────────────────────────────────── */
+        .lp-showcase {
+          padding: 80px 8% 100px;
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%);
+        }
+        .lp-showcase__inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .lp-showcase__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(2rem, 4.2vw, 3.4rem);
+          font-weight: 500;
+          color: var(--lp-ink);
+          line-height: 1.2;
+          letter-spacing: -0.04em;
+          margin: 0 0 14px 0;
+        }
+        .lp-showcase__heading--accent {
+          background: linear-gradient(90deg, #7C3AED 0%, #A855F7 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .lp-showcase__subtitle {
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1rem;
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 0 40px;
+        }
+
+        .lp-showcase__filters {
+          display: flex;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-bottom: 50px;
+          max-width: 980px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .lp-filter {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          border-radius: 100px;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          color: var(--lp-text);
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.92rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .lp-filter svg { color: var(--lp-text-muted); flex-shrink: 0; }
+        .lp-filter:hover {
+          border-color: var(--lp-purple-300);
+          color: var(--lp-purple-700);
+        }
+        .lp-filter:hover svg { color: var(--lp-purple-600); }
+        .lp-filter.is-active {
+          background: var(--lp-purple-50);
+          border-color: var(--lp-purple-500);
+          color: var(--lp-purple-700);
+        }
+        .lp-filter.is-active svg { color: var(--lp-purple-600); }
+
+        .lp-filter--reset {
+          background: var(--lp-ink);
+          color: #ffffff;
+          border-color: var(--lp-ink);
+        }
+        .lp-filter--reset:hover {
+          background: var(--lp-purple-700);
+          color: #ffffff;
+          border-color: var(--lp-purple-700);
+        }
+
+        .lp-showcase__grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+        }
+
+        .lp-showcase-card {
+          position: relative;
+          aspect-ratio: 9 / 14;
+          border-radius: 18px;
+          overflow: hidden;
+          background: #111;
+          box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .lp-showcase-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 24px 52px rgba(124, 58, 237, 0.18);
+        }
+
+        .lp-showcase-card__media {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .lp-showcase-card__tag {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          padding: 6px 14px;
+          border-radius: 100px;
+          background: rgba(255,255,255,0.95);
+          backdrop-filter: blur(6px);
+          color: var(--lp-text);
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          font-weight: 500;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+          letter-spacing: -0.01em;
+        }
+
+        @media (max-width: 1024px) {
+          .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lp-showcase { padding: 60px 5%; }
+          .lp-showcase__grid { grid-template-columns: 1fr; }
+          .lp-filter { padding: 8px 14px; font-size: 0.82rem; }
         }
 
         /* ── Features ─────────────────────────────────────────────────────── */

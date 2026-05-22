@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
   ArrowRight,
+  ChevronRight,
   Star,
   Users,
   Briefcase,
@@ -88,18 +89,24 @@ const stats = [
 const howItWorksSteps = [
   {
     num: '01',
+    Icon: Users,
     title: 'Match With Belief, Not Reach',
     desc: "We don't optimize for followers. We optimize for overlap — tone, values, visual instinct.",
+    tag: 'Matching',
   },
   {
     num: '02',
+    Icon: Zap,
     title: 'Work Without Middlemen',
     desc: 'Talk directly. Edit quickly. Launch while the moment still matters.',
+    tag: 'Collaboration',
   },
   {
     num: '03',
+    Icon: Activity,
     title: 'Scale What Earned Attention',
     desc: "When something works, we don't replace it. We multiply it — carefully.",
+    tag: 'Growth',
   },
 ];
 
@@ -501,13 +508,38 @@ export default function Landing() {
       {/* ── How It Works (3 Steps) ────────────────────────────────────────── */}
       <section className="lp-steps">
         <div className="lp-steps__inner">
+          <span className="lp-steps__eyebrow">How it works</span>
           <h2 className="lp-steps__heading">Less Noise. Better Voices.</h2>
+          <p className="lp-steps__subtitle">
+            Three deliberate steps. No marketplace chaos. No agency lag.
+          </p>
+
           <div className="lp-steps__grid">
-            {howItWorksSteps.map((s) => (
+            {howItWorksSteps.map((s, i) => (
               <article key={s.num} className="lp-step-card">
-                <span className="lp-step-card__num">{s.num}</span>
+                <div className="lp-step-card__header">
+                  <span className="lp-step-card__num">Step {s.num}</span>
+                  <span className="lp-step-card__tag">{s.tag}</span>
+                </div>
+
+                <div className="lp-step-card__icon">
+                  <s.Icon size={24} />
+                </div>
+
                 <h3 className="lp-step-card__title">{s.title}</h3>
                 <p className="lp-step-card__desc">{s.desc}</p>
+
+                <div className="lp-step-card__footer">
+                  <span className="lp-step-card__arrow">
+                    <ArrowRight size={16} />
+                  </span>
+                </div>
+
+                {i < howItWorksSteps.length - 1 && (
+                  <div className="lp-step-card__connector" aria-hidden="true">
+                    <ChevronRight size={20} />
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -2914,13 +2946,28 @@ export default function Landing() {
 
         /* ── How It Works (3 Steps) ──────────────────────────────────────── */
         .lp-steps {
-          padding: 100px 8%;
-          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%);
+          padding: 100px 8% 120px;
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 50%, #FFFFFF 100%);
+          position: relative;
         }
         .lp-steps__inner {
           max-width: 1200px;
           margin: 0 auto;
           text-align: center;
+        }
+        .lp-steps__eyebrow {
+          display: inline-block;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: 0.18em;
+          color: #07074e;
+          text-transform: uppercase;
+          padding: 6px 16px;
+          background: var(--lp-purple-50);
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 100px;
+          margin-bottom: 20px;
         }
         .lp-steps__heading {
           font-family: 'Instrument Sans', sans-serif;
@@ -2928,8 +2975,17 @@ export default function Landing() {
           font-weight: 500;
           color: var(--lp-ink);
           letter-spacing: -0.04em;
-          line-height: 1.2;
-          margin: 0 0 60px 0;
+          line-height: 1.15;
+          margin: 0 0 16px 0;
+        }
+        .lp-steps__subtitle {
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1.05rem;
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 auto 64px;
+          max-width: 580px;
         }
         .lp-steps__grid {
           display: grid;
@@ -2937,32 +2993,82 @@ export default function Landing() {
           gap: 22px;
           text-align: left;
         }
+
         .lp-step-card {
+          position: relative;
           background: #ffffff;
           border: 1px solid var(--lp-border);
-          border-radius: 22px;
-          padding: 32px 26px;
-          transition: box-shadow 0.3s ease, transform 0.3s ease;
+          border-radius: 24px;
+          padding: 32px 28px 28px;
+          transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
+          overflow: visible;
+          display: flex;
+          flex-direction: column;
+          min-height: 320px;
+        }
+        .lp-step-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7, #7C3AED);
+          border-radius: 24px 24px 0 0;
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
         .lp-step-card:hover {
-          box-shadow: 0 18px 50px rgba(7,7,78,0.10);
-          transform: translateY(-4px);
+          box-shadow: 0 22px 60px rgba(7, 7, 78, 0.12);
+          transform: translateY(-6px);
+          border-color: var(--lp-purple-200);
         }
-        .lp-step-card__num {
-          display: inline-block;
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.92rem;
-          font-weight: 700;
-          color: #07074e;
-          letter-spacing: 0.06em;
-          padding: 5px 14px;
-          background: var(--lp-purple-50);
-          border-radius: 100px;
+        .lp-step-card:hover::before { opacity: 1; }
+
+        .lp-step-card__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           margin-bottom: 22px;
         }
+        .lp-step-card__num {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #07074e;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          padding: 5px 12px;
+          background: var(--lp-purple-50);
+          border-radius: 100px;
+        }
+        .lp-step-card__tag {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: var(--lp-text-muted);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .lp-step-card__icon {
+          width: 54px;
+          height: 54px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #07074e 0%, #1e1b4b 100%);
+          color: #ffffff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 8px 22px rgba(7, 7, 78, 0.22);
+          margin-bottom: 22px;
+          transition: transform 0.3s ease;
+        }
+        .lp-step-card:hover .lp-step-card__icon {
+          transform: scale(1.08) rotate(-3deg);
+        }
+
         .lp-step-card__title {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.25rem;
+          font-size: 1.3rem;
           font-weight: 600;
           color: var(--lp-ink);
           margin: 0 0 12px 0;
@@ -2973,9 +3079,53 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.95rem;
           color: var(--lp-text-muted);
-          line-height: 1.55;
+          line-height: 1.6;
           letter-spacing: -0.01em;
-          margin: 0;
+          margin: 0 0 24px 0;
+          flex: 1;
+        }
+
+        .lp-step-card__footer {
+          margin-top: auto;
+          padding-top: 16px;
+          border-top: 1px solid var(--lp-border);
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+        }
+        .lp-step-card__arrow {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: #FAFAF9;
+          color: #07074e;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.3s ease, transform 0.3s ease;
+        }
+        .lp-step-card:hover .lp-step-card__arrow {
+          background: #07074e;
+          color: #ffffff;
+          transform: translateX(4px);
+        }
+
+        /* Connector chevron between cards (decorative, only visible at desktop) */
+        .lp-step-card__connector {
+          position: absolute;
+          top: 50%;
+          right: -22px;
+          transform: translateY(-50%);
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #ffffff;
+          color: var(--lp-purple-300);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+          z-index: 2;
         }
 
         /* ── Psychological Audit ─────────────────────────────────────────── */
@@ -3158,6 +3308,8 @@ export default function Landing() {
         @media (max-width: 900px) {
           .lp-steps__grid, .lp-audit__grid { grid-template-columns: 1fr; }
           .lp-proof__stats { gap: 40px; }
+          .lp-step-card__connector { display: none; }
+          .lp-step-card { min-height: auto; }
         }
       `}</style>
     </div>

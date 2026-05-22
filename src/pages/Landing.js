@@ -110,6 +110,39 @@ const howItWorksSteps = [
   },
 ];
 
+const testimonials = [
+  {
+    quote: 'Our ads stopped feeling like ads. That\'s when ROAS stabilized.',
+    accent: 'ROAS stabilized',
+    name: 'Rohan Kapoor',
+    role: 'Founder, Glowly · D2C Beauty',
+    photo: 'https://images.unsplash.com/photo-1600896997793-b8ed3459a17f?w=400&h=400&fit=crop&crop=faces',
+    initials: 'RK',
+    metric: '+2.3×',
+    metricLabel: 'ROAS in 60 days',
+  },
+  {
+    quote: 'Finally, content that doesn\'t scream "I was paid for this."',
+    accent: 'doesn\'t scream',
+    name: 'Ananya Verma',
+    role: 'CMO, Thix Hair',
+    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=faces',
+    initials: 'AV',
+    metric: '4.1×',
+    metricLabel: 'Hook-rate lift',
+  },
+  {
+    quote: 'We went from 12 mediocre creatives a month to 3 great ones. Sales doubled.',
+    accent: 'Sales doubled',
+    name: 'Marcus Lee',
+    role: 'Founder, Gener8',
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=faces',
+    initials: 'ML',
+    metric: '2×',
+    metricLabel: 'Revenue growth',
+  },
+];
+
 const auditQuestions = [
   {
     title: 'Do People Watch Your Ads —',
@@ -974,17 +1007,79 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Testimonial ───────────────────────────────────────────────────── */}
+      {/* ── Testimonials ──────────────────────────────────────────────────── */}
       <section className="lp-testimonial">
+        <div className="lp-testimonial__bg-orb lp-testimonial__bg-orb--1" aria-hidden="true" />
+        <div className="lp-testimonial__bg-orb lp-testimonial__bg-orb--2" aria-hidden="true" />
+
         <div className="lp-testimonial__inner">
-          <h2 className="lp-testimonial__heading">What Changes When Trust Comes First</h2>
-          <blockquote className="lp-testimonial__quote">
-            <span className="lp-testimonial__mark">"</span>
-            Our ads stopped feeling like ads.
-            <br />
-            That's when ROAS stabilized.
-          </blockquote>
-          <div className="lp-testimonial__attrib">— D2C Founder</div>
+          <span className="lp-testimonial__pill">
+            <Star size={14} fill="#FBBF24" stroke="#FBBF24" />
+            Founder stories
+          </span>
+
+          <h2 className="lp-testimonial__heading">
+            What Changes When{' '}
+            <span className="lp-testimonial__heading--accent">Trust</span>{' '}
+            Comes First
+          </h2>
+          <p className="lp-testimonial__subtitle">
+            Real founders. Real numbers. Same shift in how their ads land.
+          </p>
+
+          <div className="lp-testimonial__grid">
+            {testimonials.map((t, i) => {
+              const [before, after] = t.accent && t.quote.includes(t.accent)
+                ? [t.quote.split(t.accent)[0], t.quote.split(t.accent)[1]]
+                : [t.quote, ''];
+              return (
+                <article key={i} className={`lp-tcard${i === 0 ? ' lp-tcard--featured' : ''}`}>
+                  <div className="lp-tcard__rating">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
+                    ))}
+                  </div>
+
+                  <span className="lp-tcard__mark">"</span>
+
+                  <blockquote className="lp-tcard__quote">
+                    {before}
+                    {t.accent && <em>{t.accent}</em>}
+                    {after}
+                  </blockquote>
+
+                  <div className="lp-tcard__author">
+                    <div className="lp-tcard__photo">
+                      <img
+                        src={t.photo}
+                        alt={t.name}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentNode.classList.add('lp-tcard__photo--fallback');
+                        }}
+                      />
+                      <span className="lp-tcard__initials">{t.initials}</span>
+                    </div>
+                    <div className="lp-tcard__author-info">
+                      <div className="lp-tcard__name">{t.name}</div>
+                      <div className="lp-tcard__role">{t.role}</div>
+                    </div>
+                  </div>
+
+                  <div className="lp-tcard__metric">
+                    <span className="lp-tcard__metric-val">{t.metric}</span>
+                    <span className="lp-tcard__metric-label">{t.metricLabel}</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="lp-testimonial__more">
+            <span className="lp-testimonial__more-line" aria-hidden="true" />
+            <span className="lp-testimonial__more-text">300+ founders. Same story, different brand.</span>
+            <span className="lp-testimonial__more-line" aria-hidden="true" />
+          </div>
         </div>
       </section>
 
@@ -3735,44 +3830,268 @@ export default function Landing() {
 
         /* ── Testimonial ─────────────────────────────────────────────────── */
         .lp-testimonial {
-          padding: 100px 8%;
-          background: linear-gradient(180deg, #FAFAF9 0%, #FFFFFF 100%);
+          position: relative;
+          padding: 120px 8%;
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%);
+          overflow: hidden;
         }
+        .lp-testimonial__bg-orb {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(110px);
+        }
+        .lp-testimonial__bg-orb--1 {
+          width: 360px; height: 360px;
+          background: rgba(196, 181, 253, 0.30);
+          top: -100px; left: -80px;
+        }
+        .lp-testimonial__bg-orb--2 {
+          width: 300px; height: 300px;
+          background: rgba(168, 85, 247, 0.18);
+          bottom: -80px; right: -60px;
+        }
+
         .lp-testimonial__inner {
-          max-width: 760px;
+          position: relative;
+          z-index: 2;
+          max-width: 900px;
           margin: 0 auto;
           text-align: center;
         }
+
+        .lp-testimonial__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 16px;
+          background: #ffffff;
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #07074e;
+          margin-bottom: 22px;
+          box-shadow: 0 4px 14px rgba(124, 58, 237, 0.08);
+        }
+
         .lp-testimonial__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.6rem, 3vw, 2.2rem);
+          font-size: clamp(2rem, 4.2vw, 3.2rem);
           font-weight: 500;
           color: var(--lp-ink);
           letter-spacing: -0.04em;
-          margin: 0 0 40px 0;
+          line-height: 1.15;
+          margin: 0 0 56px 0;
         }
-        .lp-testimonial__quote {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.3rem, 2.6vw, 1.8rem);
-          font-weight: 500;
-          color: var(--lp-ink);
-          line-height: 1.4;
-          letter-spacing: -0.02em;
-          margin: 0 0 24px 0;
+        .lp-testimonial__heading--accent {
+          color: #07074e;
+          font-style: italic;
           position: relative;
         }
-        .lp-testimonial__mark {
-          color: #07074e;
-          font-size: 1.5em;
-          line-height: 0;
-          vertical-align: -0.2em;
-          margin-right: 4px;
+        .lp-testimonial__heading--accent::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 6px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          border-radius: 4px;
+          opacity: 0.55;
         }
-        .lp-testimonial__attrib {
+
+        .lp-testimonial__subtitle {
+          font-family: 'Instrument Sans', sans-serif;
+          color: var(--lp-text-muted);
+          font-size: 1.05rem;
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: -28px auto 56px;
+          max-width: 600px;
+        }
+
+        .lp-testimonial__grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 22px;
+          margin-bottom: 56px;
+          text-align: left;
+        }
+
+        .lp-tcard {
+          position: relative;
+          background: #ffffff;
+          border: 1px solid var(--lp-border);
+          border-radius: 22px;
+          padding: 28px 26px 24px;
+          box-shadow: 0 12px 30px rgba(7, 7, 78, 0.06);
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          overflow: hidden;
+        }
+        .lp-tcard::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #C4B5FD, #A855F7);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .lp-tcard:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 24px 56px rgba(7, 7, 78, 0.14);
+        }
+        .lp-tcard:hover::before { opacity: 1; }
+
+        .lp-tcard--featured {
+          background: linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%);
+          border-color: var(--lp-purple-200);
+          box-shadow: 0 20px 50px rgba(124, 58, 237, 0.12);
+        }
+        .lp-tcard--featured::before { opacity: 1; }
+
+        .lp-tcard__rating {
+          display: flex;
+          gap: 2px;
+          margin-bottom: 14px;
+        }
+        .lp-tcard__mark {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 3.4rem;
+          line-height: 0.5;
+          color: var(--lp-purple-300);
+          display: block;
+          margin-bottom: 4px;
+        }
+        .lp-tcard__quote {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.1rem;
+          font-weight: 500;
+          color: var(--lp-ink);
+          line-height: 1.45;
+          letter-spacing: -0.015em;
+          margin: 0 0 22px 0;
+          flex: 1;
+        }
+        .lp-tcard--featured .lp-tcard__quote {
+          font-size: 1.18rem;
+        }
+        .lp-tcard__quote em {
+          color: #07074e;
+          font-weight: 600;
+          font-style: italic;
+        }
+
+        .lp-tcard__author {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-top: 18px;
+          border-top: 1px solid var(--lp-border);
+          margin-bottom: 14px;
+        }
+        .lp-tcard__photo {
+          position: relative;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          overflow: hidden;
+          flex-shrink: 0;
+          background: linear-gradient(135deg, #07074e, #1e1b4b);
+          box-shadow: 0 4px 14px rgba(7, 7, 78, 0.20);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .lp-tcard__photo img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          z-index: 2;
+        }
+        .lp-tcard__initials {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #ffffff;
+          letter-spacing: -0.01em;
+          z-index: 1;
+        }
+        .lp-tcard__author-info { flex: 1; min-width: 0; }
+        .lp-tcard__name {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          letter-spacing: -0.015em;
+        }
+        .lp-tcard__role {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.78rem;
           color: var(--lp-text-muted);
-          letter-spacing: -0.01em;
+          margin-top: 2px;
+          line-height: 1.3;
+        }
+
+        .lp-tcard__metric {
+          display: inline-flex;
+          flex-direction: column;
+          padding: 8px 14px;
+          background: var(--lp-purple-50);
+          border: 1px solid var(--lp-purple-200);
+          border-radius: 10px;
+          align-self: flex-start;
+        }
+        .lp-tcard__metric-val {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #07074e;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+        .lp-tcard__metric-label {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.68rem;
+          color: var(--lp-text-muted);
+          margin-top: 2px;
+        }
+
+        @media (max-width: 1024px) {
+          .lp-testimonial__grid { grid-template-columns: 1fr; max-width: 560px; margin-left: auto; margin-right: auto; margin-bottom: 56px; }
+        }
+
+        .lp-testimonial__more {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        .lp-testimonial__more-line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--lp-border), transparent);
+        }
+        .lp-testimonial__more-text {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.9rem;
+          color: var(--lp-text-muted);
+          font-style: italic;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+          .lp-testimonial__card { padding: 28px 24px; }
+          .lp-testimonial__author { flex-wrap: wrap; }
+          .lp-testimonial__metric { margin-left: auto; }
         }
 
         /* ── Footer extras ───────────────────────────────────────────────── */

@@ -770,15 +770,15 @@ export default function Landing() {
           box-shadow: 0 32px 80px rgba(124, 58, 237, 0.22), 0 12px 32px rgba(0,0,0,0.14);
         }
 
-        /* Secondary card — partially BEHIND the main one on the right */
+        /* Secondary card — sits significantly BEHIND the main one */
         .lp-phone--right {
-          left: 52%;             /* starts before main ends (62%), creating 10% overlap */
-          right: -4%;            /* extends slightly past the container right edge */
-          top: 4%;
-          height: 92%;
-          width: auto;           /* width derived from left+right */
+          left: 42%;             /* deep overlap: starts 20% before main ends */
+          right: -2%;            /* extends slightly past the right edge */
+          top: 5%;
+          height: 90%;
+          width: auto;
           z-index: 1;
-          box-shadow: 0 28px 60px rgba(0,0,0,0.20);
+          box-shadow: 0 28px 60px rgba(0,0,0,0.22);
         }
 
         /* Floating widget — creators count */

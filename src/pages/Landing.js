@@ -375,13 +375,13 @@ export default function Landing() {
             <div className="lp-chips">
               {categoryChips.map(({ Icon, label }, i) => (
                 <div key={label} className={`lp-chip lp-chip--${i}`}>
-                  <span className="lp-chip__icon"><Icon size={14} /></span>
+                  <span className="lp-chip__icon"><Icon size={10} /></span>
                   <span>{label}</span>
                 </div>
               ))}
               <div className="lp-chip lp-chip--more">
-                <span className="lp-chip__icon">🐾</span>
-                <span>+More...</span>
+                <span className="lp-chip__icon">+</span>
+                <span>More...</span>
               </div>
             </div>
           </motion.div>
@@ -1106,15 +1106,15 @@ export default function Landing() {
           background: #95BF47; color: #fff;
         }
 
-        /* Category chips — square cards in a 2-column staggered grid */
+        /* Category chips — small square cards in a 2-column staggered grid */
         .lp-chips {
           position: absolute;
           right: 4%;
-          top: 18%;
+          top: 36%;
           display: grid;
-          grid-template-columns: repeat(2, 72px);
-          grid-auto-rows: 72px;
-          gap: 14px;
+          grid-template-columns: repeat(2, 46px);
+          grid-auto-rows: 42px;
+          gap: 10px;
           z-index: 5;
         }
         .lp-chip {
@@ -1122,29 +1122,30 @@ export default function Landing() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          padding: 8px;
+          gap: 3px;
+          padding: 4px;
           background: #ffffff;
           border: 1px solid var(--lp-border);
-          border-radius: 18px;
+          border-radius: 10px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.74rem;
+          font-size: 0.62rem;
           font-weight: 600;
           color: var(--lp-ink);
-          box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+          box-shadow: 0 6px 14px rgba(0,0,0,0.10);
           text-align: center;
         }
         .lp-chip__icon {
-          width: 28px;
-          height: 28px;
+          width: 16px;
+          height: 16px;
           border-radius: 50%;
-          background: var(--lp-ink);
-          color: #ffffff;
+          background: linear-gradient(135deg, #F3E8FF, #DDD6FE);
+          color: var(--lp-purple-700);
           display: inline-flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
           flex-shrink: 0;
+          font-size: 0.6rem;
         }
         /* Staggered grid: Beauty alone in row 1, then 2x2 below */
         .lp-chip--0 { grid-column: 2; grid-row: 1; }  /* Beauty */

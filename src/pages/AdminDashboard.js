@@ -2763,7 +2763,7 @@ export default function AdminDashboard() {
 
         .analytics-cards {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 24px;
           margin-bottom: 40px;
         }
@@ -4314,10 +4314,28 @@ export default function AdminDashboard() {
 
         .analytics-cards {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 20px;
           margin-bottom: 32px;
           padding: 0 32px;
+        }
+
+        @media (max-width: 1280px) {
+          .analytics-cards {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 960px) {
+          .analytics-cards {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 560px) {
+          .analytics-cards {
+            grid-template-columns: 1fr;
+          }
         }
 
         .analytics-card {

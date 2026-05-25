@@ -13,6 +13,7 @@ export default function CreatorProfileSetup() {
   const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    username: '',
     bio: '',
     tags: [],
     social_links: { instagram: '', youtube: '', tiktok: '' },
@@ -135,7 +136,17 @@ export default function CreatorProfileSetup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    const usernamePattern = /^[a-z0-9_]{3,20}$/;
+    if (!formData.username.trim()) {
+      toast.error('Please choose a username');
+      return;
+    }
+    if (!usernamePattern.test(formData.username.trim())) {
+      toast.error('Username must be 3–20 characters: lowercase letters, numbers, or underscores');
+      return;
+    }
+
     if (!formData.terms_agreed) {
       toast.error('Please agree to the terms and conditions');
       return;
@@ -165,7 +176,7 @@ export default function CreatorProfileSetup() {
   };
 
   const sectionCompletion = {
-    about: formData.bio.trim().length > 0,
+    about: formData.bio.trim().length > 0 && /^[a-z0-9_]{3,20}$/.test(formData.username.trim()),
     intro: !!formData.intro_video,
     portfolio: formData.portfolio.length > 0,
     tags: formData.tags.length > 0,
@@ -198,6 +209,30 @@ export default function CreatorProfileSetup() {
                 <p className="hint">Introduce yourself in your own words.</p>
               </div>
               {sectionCompletion.about && <CheckCircle2 size={20} className="section-check" />}
+            </div>
+            <div className="form-group">
+              <label htmlFor="username" className="username-label">
+                <span>Username <span className="private-pill">Private</span></span>
+                <span className="label-meta">3–20 chars · lowercase, numbers, _</span>
+              </label>
+              <div className="username-input-wrapper">
+                <span className="username-prefix">@</span>
+                <input
+                  id="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  className="input-field username-input"
+                  placeholder="yourname"
+                  maxLength={20}
+                  required
+                  data-testid="username-input"
+                />
+              </div>
+              <p className="field-note">
+                🔒 Sirf aapke account ke liye hai — <strong>brands ko aapka username nahi dikhega.</strong> Unko sirf aapka public handle dikhega.
+              </p>
+              <span className="char-count">{formData.username.length}/20 characters</span>
             </div>
             <div className="form-group">
               <label htmlFor="bio">Bio <span className="label-meta">(100 words max)</span></label>
@@ -757,6 +792,62 @@ export default function CreatorProfileSetup() {
           font-weight: 400;
           color: #a0aec0;
           font-size: 0.8rem;
+        }
+
+        .username-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .private-pill {
+          display: inline-block;
+          margin-left: 6px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          padding: 2px 9px;
+          background: #fef3c7;
+          color: #92400e;
+          border-radius: 999px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .username-input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .username-prefix {
+          position: absolute;
+          left: 14px;
+          font-weight: 700;
+          color: #07074e;
+          font-size: 1rem;
+          pointer-events: none;
+        }
+
+        .username-input {
+          padding-left: 30px !important;
+          letter-spacing: 0.01em;
+        }
+
+        .field-note {
+          margin: 4px 0 0;
+          padding: 10px 14px;
+          background: #f0fdf4;
+          border-left: 3px solid #22c55e;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          color: #166534;
+          line-height: 1.5;
+        }
+
+        .field-note strong {
+          color: #14532d;
         }
 
         .char-count {

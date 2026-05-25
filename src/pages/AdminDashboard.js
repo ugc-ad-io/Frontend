@@ -121,6 +121,13 @@ export default function AdminDashboard() {
     reason_details: ''
   });
 
+  const displayHandle = (obj, nicknameKey = 'nickname', usernameKey = 'username') => {
+    if (!obj) return '—';
+    const uname = obj[usernameKey];
+    const nick = obj[nicknameKey];
+    return uname ? `@${uname}` : (nick || '—');
+  };
+
   useEffect(() => {
     fetchStats();
     fetchPendingProfiles();
@@ -934,7 +941,7 @@ export default function AdminDashboard() {
                     <div key={profile.id} className="profile-card" data-testid={`profile-${profile.id}`}>
                       <div className="profile-header">
                         <div>
-                          <h3>{profile.nickname}</h3>
+                          <h3>{profile.username ? `@${profile.username}` : (profile.nickname || '—')}</h3>
                           <span className="badge badge-pending">{profile.role}</span>
                         </div>
                       </div>
@@ -1137,7 +1144,7 @@ export default function AdminDashboard() {
                     {allUsers.map(u => (
                       <tr key={u.id} data-testid={`user-row-${u.id}`} className={u.banned ? 'banned-row' : ''}>
                         <td>
-                          {u.nickname}
+                          {u.username ? `@${u.username}` : (u.nickname || '—')}
                           {u.banned && <span className="banned-badge">BANNED</span>}
                         </td>
                         <td>{u.email}</td>
@@ -1262,23 +1269,23 @@ export default function AdminDashboard() {
                       ← Back to Conversations
                     </button>
                     <div className="chat-participants">
-                      <span className="participant-name">{selectedChat.user1.nickname}</span>
+                      <span className="participant-name">{displayHandle(selectedChat.user1)}</span>
                       <span className="chat-separator">↔</span>
-                      <span className="participant-name">{selectedChat.user2.nickname}</span>
+                      <span className="participant-name">{displayHandle(selectedChat.user2)}</span>
                     </div>
                   </div>
-                  
+
                   <div className="chat-messages">
                     {chatMessages.length === 0 ? (
                       <p className="no-messages">No messages in this conversation</p>
                     ) : (
                       chatMessages.map((msg, idx) => (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className={`message-item ${msg.filtered ? 'filtered-message' : ''}`}
                         >
                           <div className="message-header">
-                            <span className="message-sender">{msg.sender_nickname}</span>
+                            <span className="message-sender">{displayHandle(msg, 'sender_nickname', 'sender_username')}</span>
                             <span className="message-time">
                               {new Date(msg.timestamp).toLocaleString()}
                             </span>
@@ -1312,16 +1319,16 @@ export default function AdminDashboard() {
                         >
                           <div className="conversation-participants">
                             <div className="participant">
-                              <span className="participant-nickname">{chat.user1.nickname}</span>
+                              <span className="participant-nickname">{displayHandle(chat.user1)}</span>
                               <span className="participant-role badge badge-active">{chat.user1.role}</span>
                             </div>
                             <div className="conversation-arrow">↔</div>
                             <div className="participant">
-                              <span className="participant-nickname">{chat.user2.nickname}</span>
+                              <span className="participant-nickname">{displayHandle(chat.user2)}</span>
                               <span className="participant-role badge badge-active">{chat.user2.role}</span>
                             </div>
                           </div>
-                          
+
                           <div className="conversation-preview">
                             <p className="last-message">{chat.last_message}</p>
                             <span className="last-message-time">
@@ -1374,9 +1381,9 @@ export default function AdminDashboard() {
                       ← Back to Flagged Report
                     </button>
                     <div className="chat-participants">
-                      <span className="participant-name">{selectedChat.user1.nickname}</span>
+                      <span className="participant-name">{displayHandle(selectedChat.user1)}</span>
                       <span className="chat-separator">↔</span>
-                      <span className="participant-name">{selectedChat.user2.nickname}</span>
+                      <span className="participant-name">{displayHandle(selectedChat.user2)}</span>
                     </div>
                   </div>
                   <div className="chat-messages">
@@ -1386,7 +1393,7 @@ export default function AdminDashboard() {
                       chatMessages.filter(m => m.filtered).map((msg, idx) => (
                         <div key={idx} className="message-item filtered-message" data-testid={`flagged-msg-${idx}`}>
                           <div className="message-header">
-                            <span className="message-sender">{msg.sender_nickname}</span>
+                            <span className="message-sender">{displayHandle(msg, 'sender_nickname', 'sender_username')}</span>
                             <span className="message-time">
                               {new Date(msg.timestamp).toLocaleString()}
                             </span>
@@ -1419,12 +1426,12 @@ export default function AdminDashboard() {
                         >
                           <div className="conversation-participants">
                             <div className="participant">
-                              <span className="participant-nickname">{chat.user1.nickname}</span>
+                              <span className="participant-nickname">{displayHandle(chat.user1)}</span>
                               <span className="participant-role badge badge-active">{chat.user1.role}</span>
                             </div>
                             <div className="conversation-arrow">↔</div>
                             <div className="participant">
-                              <span className="participant-nickname">{chat.user2.nickname}</span>
+                              <span className="participant-nickname">{displayHandle(chat.user2)}</span>
                               <span className="participant-role badge badge-active">{chat.user2.role}</span>
                             </div>
                           </div>
@@ -2056,8 +2063,8 @@ export default function AdminDashboard() {
             <h2>User Details</h2>
             <div className="user-details-grid">
               <div className="detail-row">
-                <span className="detail-label">Nickname:</span>
-                <span className="detail-value">{selectedUser.nickname}</span>
+                <span className="detail-label">Username:</span>
+                <span className="detail-value">{selectedUser.username ? `@${selectedUser.username}` : (selectedUser.nickname || '—')}</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Email:</span>

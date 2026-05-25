@@ -4314,11 +4314,12 @@ export default function AdminDashboard() {
         }
 
         .analytics-cards .analytics-card {
-          flex: 1 1 calc(25% - 15px);
-          min-width: 220px;
+          flex: 1 1 0;
+          min-width: 0;
+          box-sizing: border-box;
         }
 
-        @media (max-width: 1100px) {
+        @media (max-width: 900px) {
           .analytics-cards .analytics-card {
             flex: 1 1 calc(50% - 10px);
           }

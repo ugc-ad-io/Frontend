@@ -23,6 +23,7 @@ function AdminLayout({ children }) {
     '/dashboard/admin/users': 'users',
     '/dashboard/admin/assignments': 'assignments',
     '/dashboard/admin/flagged': 'flagged',
+    '/dashboard/admin/analytics': 'analytics',
   };
 
   const activeTab = pathToTab[currentPath] || 'stats';
@@ -60,6 +61,7 @@ function AdminLayout({ children }) {
                   users: ['User Management', 'Search, edit, and ban users'],
                   assignments: ['Campaign Assignments', 'Assign campaigns to managers'],
                   flagged: ['Flagged Messages', 'Review reported chat messages'],
+                  analytics: ['Platform Analytics', 'Revenue, growth, and performance metrics'],
                 };
                 const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', `Welcome, ${user?.nickname || ''} - ${user?.role || ''}`];
                 return (<>

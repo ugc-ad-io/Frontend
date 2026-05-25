@@ -32,6 +32,8 @@ import AdminWithdrawals from './pages/AdminWithdrawals';
 import AdminAllCampaigns from './pages/AdminAllCampaigns';
 import AdminUsers from './pages/AdminUsers';
 import AdminAssignments from './pages/AdminAssignments';
+import AdminFlaggedMessages from './pages/AdminFlaggedMessages';
+import AdminAnalytics from './pages/AdminAnalytics';
 import BrowseApprovedGigs from './pages/BrowseApprovedGigs';
 import GigDetailsPage from './pages/GigDetailsPage';
 import ApplicationsPage from './pages/ApplicationsPage';
@@ -364,6 +366,22 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminAssignments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/flagged"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminFlaggedMessages />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/analytics"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminAnalytics />
                 </ProtectedRoute>
               }
             />

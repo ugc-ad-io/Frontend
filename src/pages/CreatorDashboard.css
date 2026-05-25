@@ -2118,12 +2118,12 @@
 }
 
 .pcd-status-card svg {
-  color: #7387ff;
+  color: #07074e;
 }
 
 .pcd-eyebrow {
   margin: 18px 0 8px;
-  color: #7387ff;
+  color: #07074e;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -2147,7 +2147,7 @@
   border: 0;
   border-radius: 12px;
   padding: 13px 22px;
-  background: #7387ff;
+  background: #07074e;
   color: #fff;
   font-weight: 850;
   cursor: pointer;

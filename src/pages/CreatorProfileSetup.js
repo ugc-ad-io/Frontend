@@ -160,13 +160,17 @@ export default function CreatorProfileSetup() {
     setLoading(true);
 
     try {
-      await axios.put(`${API}/profile/creator`, formData);
+      const response = await axios.put(`${API}/profile/creator`, formData);
       toast.success('Profile submitted for review!');
-      
-      // Update user context
-      const updatedUser = { ...user, profile_completed: true, approval_status: 'pending' };
+
+      const updatedUser = {
+        ...user,
+        profile_completed: true,
+        approval_status: 'pending',
+        username: response.data?.username || formData.username.trim().toLowerCase()
+      };
       setUser(updatedUser);
-      
+
       navigate('/dashboard/creator');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update profile');

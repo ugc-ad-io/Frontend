@@ -300,7 +300,7 @@ export default function CreatorDashboard() {
     navigate('/');
   };
 
-  const displayName = user?.nickname || user?.full_name || user?.email || 'Creator';
+  const displayName = user?.username ? `@${user.username}` : (user?.nickname || user?.full_name || user?.email || 'Creator');
   const rating = Number(user?.average_rating || 0);
   const totalEarned = useMemo(() => {
     const bidsTotal = myBids.reduce((sum, campaign) => sum + Number(campaign.myBid?.amount || 0), 0);

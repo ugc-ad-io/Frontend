@@ -27,6 +27,11 @@ import PortfolioPage from './pages/PortfolioPage';
 import CreateGig from './pages/CreateGig';
 import AdminGigManagement from './pages/AdminGigManagement';
 import AdminProfiles from './pages/AdminProfiles';
+import AdminCampaigns from './pages/AdminCampaigns';
+import AdminWithdrawals from './pages/AdminWithdrawals';
+import AdminAllCampaigns from './pages/AdminAllCampaigns';
+import AdminUsers from './pages/AdminUsers';
+import AdminAssignments from './pages/AdminAssignments';
 import BrowseApprovedGigs from './pages/BrowseApprovedGigs';
 import GigDetailsPage from './pages/GigDetailsPage';
 import ApplicationsPage from './pages/ApplicationsPage';
@@ -319,6 +324,46 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminProfiles />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/campaigns"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminCampaigns />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/withdrawals"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminWithdrawals />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/all-campaigns"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminAllCampaigns />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/users"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/assignments"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminAssignments />
                 </ProtectedRoute>
               }
             />

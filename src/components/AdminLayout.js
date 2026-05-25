@@ -13,9 +13,19 @@ function AdminLayout({ children }) {
   };
 
   const currentPath = window.location.pathname;
-  const isApplicationsPage = currentPath === '/dashboard/admin/applications';
-  const isProfilesPage = currentPath === '/dashboard/admin/profiles';
-  const isGigManagementPage = currentPath === '/dashboard/admin/gig-management';
+  const pathToTab = {
+    '/dashboard/admin/applications': 'applications',
+    '/dashboard/admin/profiles': 'profiles',
+    '/dashboard/admin/campaigns': 'campaigns',
+    '/dashboard/admin/gig-management': 'gigs',
+    '/dashboard/admin/withdrawals': 'withdrawals',
+    '/dashboard/admin/all-campaigns': 'allcampaigns',
+    '/dashboard/admin/users': 'users',
+    '/dashboard/admin/assignments': 'assignments',
+    '/dashboard/admin/flagged': 'flagged',
+  };
+
+  const activeTab = pathToTab[currentPath] || 'stats';
 
   const handleTabClick = (tab) => {
     if (tab.id === 'applications') {
@@ -31,14 +41,6 @@ function AdminLayout({ children }) {
     }
   };
 
-  const activeTab = isApplicationsPage
-    ? 'applications'
-    : isProfilesPage
-      ? 'profiles'
-      : isGigManagementPage
-        ? 'gigs'
-        : 'stats';
-
   return (
     <div className="admin-dashboard">
       <AdminSidebar activeTab={activeTab} onTabClick={handleTabClick} user={user} />
@@ -47,27 +49,24 @@ function AdminLayout({ children }) {
         <div className="dashboard-header">
           <div className="header-content">
             <div>
-              {isApplicationsPage ? (
-                <>
-                  <h1>Applications Management</h1>
-                  <p>Manage creator and brand applications</p>
-                </>
-              ) : isProfilesPage ? (
-                <>
-                  <h1>Profile Approvals</h1>
-                  <p>Review and approve newly submitted profiles</p>
-                </>
-              ) : isGigManagementPage ? (
-                <>
-                  <h1>Gig Management</h1>
-                  <p>Review and approve creator gigs</p>
-                </>
-              ) : (
-                <>
-                  <h1>Admin Dashboard</h1>
-                  <p>Welcome, {user?.nickname} - {user?.role}</p>
-                </>
-              )}
+              {(() => {
+                const titles = {
+                  applications: ['Applications Management', 'Manage creator and brand applications'],
+                  profiles: ['Profile Approvals', 'Review and approve newly submitted profiles'],
+                  campaigns: ['Campaign Approvals', 'Review and approve brand campaigns'],
+                  gigs: ['Gig Management', 'Review and approve creator gigs'],
+                  withdrawals: ['Withdrawal Requests', 'Review pending withdrawals'],
+                  allcampaigns: ['All Campaigns', 'View every campaign on the platform'],
+                  users: ['User Management', 'Search, edit, and ban users'],
+                  assignments: ['Campaign Assignments', 'Assign campaigns to managers'],
+                  flagged: ['Flagged Messages', 'Review reported chat messages'],
+                };
+                const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', `Welcome, ${user?.nickname || ''} - ${user?.role || ''}`];
+                return (<>
+                  <h1>{title}</h1>
+                  <p>{subtitle}</p>
+                </>);
+              })()}
             </div>
             <button className="btn-secondary" onClick={handleLogout}>
               <LogOut size={20} /> Logout

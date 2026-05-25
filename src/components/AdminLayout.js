@@ -14,10 +14,14 @@ function AdminLayout({ children }) {
 
   const currentPath = window.location.pathname;
   const isApplicationsPage = currentPath === '/dashboard/admin/applications';
+  const isProfilesPage = currentPath === '/dashboard/admin/profiles';
+  const isGigManagementPage = currentPath === '/dashboard/admin/gig-management';
 
   const handleTabClick = (tab) => {
     if (tab.id === 'applications') {
       navigate('/dashboard/admin/applications');
+    } else if (tab.id === 'gigs') {
+      navigate('/dashboard/admin/gig-management');
     } else if (tab.id === 'stats') {
       navigate('/dashboard/admin');
     } else if (tab.id === 'allcampaigns') {
@@ -27,7 +31,13 @@ function AdminLayout({ children }) {
     }
   };
 
-  const activeTab = isApplicationsPage ? 'applications' : 'stats';
+  const activeTab = isApplicationsPage
+    ? 'applications'
+    : isProfilesPage
+      ? 'profiles'
+      : isGigManagementPage
+        ? 'gigs'
+        : 'stats';
 
   return (
     <div className="admin-dashboard">
@@ -41,6 +51,16 @@ function AdminLayout({ children }) {
                 <>
                   <h1>Applications Management</h1>
                   <p>Manage creator and brand applications</p>
+                </>
+              ) : isProfilesPage ? (
+                <>
+                  <h1>Profile Approvals</h1>
+                  <p>Review and approve newly submitted profiles</p>
+                </>
+              ) : isGigManagementPage ? (
+                <>
+                  <h1>Gig Management</h1>
+                  <p>Review and approve creator gigs</p>
                 </>
               ) : (
                 <>

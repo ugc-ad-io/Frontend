@@ -925,74 +925,7 @@ export default function AdminDashboard() {
 
           {/* Applications tab removed - opens as separate page */}
 
-          {activeTab === 'profiles' && (
-            <div className="profiles-section fade-in">
-              <h2>Pending Profile Approvals</h2>
-              {loading ? (
-                <div className="loading">Loading...</div>
-              ) : pendingProfiles.length === 0 ? (
-                <div className="empty-state">
-                  <CheckCircle size={64} />
-                  <p>No pending profile approvals</p>
-                </div>
-              ) : (
-                <div className="items-grid">
-                  {pendingProfiles.map(profile => (
-                    <div key={profile.id} className="profile-card" data-testid={`profile-${profile.id}`}>
-                      <div className="profile-header">
-                        <div>
-                          <h3>{profile.username ? `@${profile.username}` : (profile.nickname || '—')}</h3>
-                          <span className="badge badge-pending">{profile.role}</span>
-                        </div>
-                      </div>
-                      <div className="profile-details">
-                        <p><strong>Email:</strong> {profile.email}</p>
-                        {profile.profile && (
-                          <>
-                            {profile.role === 'creator' && (
-                              <>
-                                <p><strong>Bio:</strong> {profile.profile.bio?.substring(0, 100)}...</p>
-                                <p><strong>Tags:</strong> {profile.profile.tags?.join(', ')}</p>
-                                <p><strong>Rate Card:</strong></p>
-                                <ul className="rate-list">
-                                  <li>30s Video: ${profile.profile.rate_card?.video_30s}</li>
-                                  <li>60s Video: ${profile.profile.rate_card?.video_60s}</li>
-                                  <li>Photo: ${profile.profile.rate_card?.photo_post}</li>
-                                </ul>
-                              </>
-                            )}
-                            {profile.role === 'business' && (
-                              <>
-                                <p><strong>Description:</strong> {profile.profile.business_description?.substring(0, 100)}...</p>
-                                <p><strong>Industry:</strong> {profile.profile.industry_category}</p>
-                                <p><strong>Product Type:</strong> {profile.profile.product_type}</p>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <div className="profile-actions">
-                        <button
-                          className="btn-approve"
-                          onClick={() => handleApproveProfile(profile.id)}
-                          data-testid={`approve-profile-${profile.id}`}
-                        >
-                          <CheckCircle size={18} /> Approve
-                        </button>
-                        <button
-                          className="btn-reject"
-                          onClick={() => handleRejectProfile(profile.id)}
-                          data-testid={`reject-profile-${profile.id}`}
-                        >
-                          <XCircle size={18} /> Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Profiles tab is now a separate page at /dashboard/admin/profiles (AdminProfiles.js) */}
 
           {activeTab === 'campaigns' && (
             <div className="campaigns-section fade-in">

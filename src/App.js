@@ -26,6 +26,7 @@ import ReviewsPage from './pages/ReviewsPage';
 import PortfolioPage from './pages/PortfolioPage';
 import CreateGig from './pages/CreateGig';
 import AdminGigManagement from './pages/AdminGigManagement';
+import AdminProfiles from './pages/AdminProfiles';
 import BrowseApprovedGigs from './pages/BrowseApprovedGigs';
 import GigDetailsPage from './pages/GigDetailsPage';
 import ApplicationsPage from './pages/ApplicationsPage';
@@ -310,6 +311,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminGigManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/profiles"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminProfiles />
                 </ProtectedRoute>
               }
             />

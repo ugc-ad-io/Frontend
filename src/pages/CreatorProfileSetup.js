@@ -212,7 +212,7 @@ export default function CreatorProfileSetup() {
             </div>
             <div className="form-group">
               <label htmlFor="username" className="username-label">
-                <span>Username <span className="private-pill">Private</span></span>
+                <span>Username</span>
                 <span className="label-meta">3–20 chars · lowercase, numbers, _</span>
               </label>
               <div className="username-input-wrapper">
@@ -229,9 +229,6 @@ export default function CreatorProfileSetup() {
                   data-testid="username-input"
                 />
               </div>
-              <p className="field-note">
-                🔒 Sirf aapke account ke liye hai — <strong>brands ko aapka username nahi dikhega.</strong> Unko sirf aapka public handle dikhega.
-              </p>
               <span className="char-count">{formData.username.length}/20 characters</span>
             </div>
             <div className="form-group">
@@ -802,19 +799,6 @@ export default function CreatorProfileSetup() {
           gap: 8px;
         }
 
-        .private-pill {
-          display: inline-block;
-          margin-left: 6px;
-          font-size: 0.7rem;
-          font-weight: 700;
-          padding: 2px 9px;
-          background: #fef3c7;
-          color: #92400e;
-          border-radius: 999px;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-
         .username-input-wrapper {
           position: relative;
           display: flex;
@@ -833,21 +817,6 @@ export default function CreatorProfileSetup() {
         .username-input {
           padding-left: 30px !important;
           letter-spacing: 0.01em;
-        }
-
-        .field-note {
-          margin: 4px 0 0;
-          padding: 10px 14px;
-          background: #f0fdf4;
-          border-left: 3px solid #22c55e;
-          border-radius: 8px;
-          font-size: 0.82rem;
-          color: #166534;
-          line-height: 1.5;
-        }
-
-        .field-note strong {
-          color: #14532d;
         }
 
         .char-count {

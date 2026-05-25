@@ -169,10 +169,14 @@ function normalizeCreatorDirectoryItem(item = {}) {
   const portfolio = item.portfolio || profile.portfolio || [];
   const languages = item.languages || profile.languages || item.content_languages || [];
   const cityTier = item.city_tier || profile.city_tier || item.location_region || 'Curated';
+  const publicCreatorId = item.public_creator_id || item.creator_public_id || '';
+  const handle = item.handle || (item.nickname ? `@${String(item.nickname).replace(/^@/, '')}` : '@creator');
 
   return {
     id: item.id || item.creator_id,
-    handle: item.handle || (item.nickname ? `@${String(item.nickname).replace(/^@/, '')}` : '@creator'),
+    publicCreatorId,
+    handle,
+    displayId: publicCreatorId || handle,
     avatar: item.profile_photo || item.profile_picture || profile.profile_picture || profile.avatar_url || '',
     category: item.primary_category || profile.primary_category || tags[0] || 'Creator',
     languages: Array.isArray(languages) ? languages : [languages].filter(Boolean),
@@ -391,7 +395,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       ...emptyInviteForm,
       campaign_name: campaigns[0]?.title || '',
       budget: campaigns[0] ? formatMoney(campaigns[0].budget_max || campaigns[0].budget_min || 0) : creator.budgetRange || '',
-      message: `Hi ${creator.handle}, we think your content style could be a strong fit for our brand.`,
+      message: `Hi ${creator.displayId || creator.handle}, we think your content style could be a strong fit for our brand.`,
     });
   };
 
@@ -667,11 +671,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
     });
 
     creatorDirectory.forEach(creator => {
-      if (matches(creator.handle, creator.category, creator.style, creator.budgetRange, creator.cityTier, ...(creator.languages || []))) {
+      if (matches(creator.displayId, creator.publicCreatorId, creator.handle, creator.category, creator.style, creator.budgetRange, creator.cityTier, ...(creator.languages || []))) {
         results.push({
-          key: `creator-${creator.id || creator.handle}`,
+          key: `creator-${creator.id || creator.displayId}`,
           type: 'Creator',
-          title: creator.handle || 'Creator',
+          title: creator.displayId || creator.handle || 'Creator',
           meta: [creator.category, creator.cityTier].filter(Boolean).join(' • '),
           target: '/dashboard/business/browse-creator'
         });
@@ -1422,7 +1426,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     return (
                     <div className="deals-row" key={deal.campaign_id}>
                       <strong className="deal-title" data-label="Campaign">{deal.campaign_title || 'Untitled Campaign'}</strong>
-                      <span className="creator-handle" data-label="Creator">{deal.creator_nickname ? `@${deal.creator_nickname.replace(/^@/, '')}` : '-'}</span>
+                      <span className="creator-handle" data-label="Creator">{deal.public_creator_id || (deal.creator_nickname ? `@${deal.creator_nickname.replace(/^@/, '')}` : '-')}</span>
                       <span className={`deal-stage ${tone}`} data-label="Stage">{deal.stage_label || deal.stage || '-'}</span>
                       <span className="deal-date" data-label="Due Date">{formatDate(deal.due_date)}</span>
                       <strong className="deal-funds" data-label="Funds Hold">{formatMoney(deal.escrow_amount)}</strong>
@@ -1703,26 +1707,30 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </div>
               ) : (
                 <div className="creator-directory-grid">
-                  {creatorDirectory.map(creator => (
-                    <article key={creator.id || creator.handle} className="creator-directory-card">
+                  {creatorDirectory.map(creator => {
+                    const avatarInitial = (creator.publicCreatorId
+                      ? creator.publicCreatorId.replace(/[^A-Za-z0-9]/g, '').charAt(0)
+                      : creator.handle.replace('@', '').charAt(0)).toUpperCase() || 'C';
+                    return (
+                    <article key={creator.id || creator.displayId} className="creator-directory-card">
                       <div className="creator-card-top">
                         <div className="creator-card-avatar">
                           {creator.avatar ? (
-                            <img src={getAssetUrl(creator.avatar)} alt={creator.handle} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                            <img src={getAssetUrl(creator.avatar)} alt={creator.displayId} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
                           ) : (
-                            <span>{creator.handle.replace('@', '').charAt(0).toUpperCase()}</span>
+                            <span>{avatarInitial}</span>
                           )}
-                          <b>{creator.handle.replace('@', '').charAt(0).toUpperCase()}</b>
+                          <b>{avatarInitial}</b>
                         </div>
                         <div>
-                          <h3>{creator.handle}</h3>
+                          <h3>{creator.displayId}</h3>
                           <span>{creator.category}</span>
                         </div>
                       </div>
 
                       <div className="creator-portfolio-preview">
                         {creator.portfolioPreview ? (
-                          <img src={getAssetUrl(creator.portfolioPreview)} alt={`${creator.handle} portfolio preview`} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                          <img src={getAssetUrl(creator.portfolioPreview)} alt={`${creator.displayId} portfolio preview`} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
                         ) : (
                           <div><ImageIcon size={26} /> Portfolio preview</div>
                         )}
@@ -1744,7 +1752,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         </button>
                       </div>
                     </article>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </div>

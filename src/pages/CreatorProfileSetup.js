@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Upload, Tag, DollarSign } from 'lucide-react';
+import { Upload, Tag, DollarSign, User, Video, Image as ImageIcon, Share2, CreditCard, CheckCircle2, Sparkles, X } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -164,19 +164,54 @@ export default function CreatorProfileSetup() {
     }
   };
 
+  const sectionCompletion = {
+    about: formData.bio.trim().length > 0,
+    intro: !!formData.intro_video,
+    portfolio: formData.portfolio.length > 0,
+    tags: formData.tags.length > 0,
+    social: !!(formData.social_links.instagram || formData.social_links.youtube),
+    rates: !!(formData.rate_card.video_30s && formData.rate_card.video_60s && formData.rate_card.photo_post),
+    payment: !!formData.payment_methods.upi,
+    terms: formData.terms_agreed
+  };
+  const completedCount = Object.values(sectionCompletion).filter(Boolean).length;
+  const totalSections = Object.keys(sectionCompletion).length;
+  const progressPct = Math.round((completedCount / totalSections) * 100);
+
   return (
     <div className="profile-setup-page">
       <div className="profile-container fade-in">
-        <div className="profile-header">
+        <div className="profile-hero">
+          <div className="hero-badge">
+            <Sparkles size={14} /> Creator Onboarding
+          </div>
           <h1>Complete Your Creator Profile</h1>
-          <p>Tell us about yourself and showcase your work</p>
+          <p>Tell us about yourself and showcase your work — brands discover you through this page.</p>
+
+          <div className="progress-wrap">
+            <div className="progress-meta">
+              <span>Profile completeness</span>
+              <strong>{progressPct}%</strong>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+            <span className="progress-sub">{completedCount} of {totalSections} sections filled</span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="profile-form">
-          <div className="form-section">
-            <h3>About You</h3>
+          <section className={`form-section ${sectionCompletion.about ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">1</span>
+              <div className="section-title">
+                <h3><User size={18} /> About You</h3>
+                <p className="hint">Introduce yourself in your own words.</p>
+              </div>
+              {sectionCompletion.about && <CheckCircle2 size={20} className="section-check" />}
+            </div>
             <div className="form-group">
-              <label htmlFor="bio">Bio (100 words max)</label>
+              <label htmlFor="bio">Bio <span className="label-meta">(100 words max)</span></label>
               <textarea
                 id="bio"
                 value={formData.bio}
@@ -189,11 +224,17 @@ export default function CreatorProfileSetup() {
               />
               <span className="char-count">{formData.bio.length}/500 characters</span>
             </div>
-          </div>
+          </section>
 
-          <div className="form-section">
-            <h3><Upload size={20} /> Intro Video (Optional)</h3>
-            <p className="hint">Upload a short introduction video to help brands get to know you</p>
+          <section className={`form-section ${sectionCompletion.intro ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">2</span>
+              <div className="section-title">
+                <h3><Video size={18} /> Intro Video <span className="optional-pill">Optional</span></h3>
+                <p className="hint">A 30–60s clip introducing yourself helps brands trust you faster.</p>
+              </div>
+              {sectionCompletion.intro && <CheckCircle2 size={20} className="section-check" />}
+            </div>
             <div className="form-group">
               <input
                 type="file"
@@ -202,24 +243,47 @@ export default function CreatorProfileSetup() {
                 style={{ display: 'none' }}
                 id="intro-video-upload"
               />
-              <label htmlFor="intro-video-upload" className="upload-btn">
-                {uploadingVideo ? 'Uploading...' : formData.intro_video ? '✓ Video Uploaded' : 'Choose Video'}
+              <label htmlFor="intro-video-upload" className={`dropzone ${formData.intro_video ? 'is-filled' : ''} ${uploadingVideo ? 'is-loading' : ''}`}>
+                {uploadingVideo ? (
+                  <>
+                    <div className="spinner" />
+                    <span>Uploading...</span>
+                  </>
+                ) : formData.intro_video ? (
+                  <>
+                    <CheckCircle2 size={28} />
+                    <span><strong>Video uploaded</strong></span>
+                    <span className="dropzone-sub">Click to replace</span>
+                  </>
+                ) : (
+                  <>
+                    <Video size={28} />
+                    <span><strong>Choose video</strong> or drag and drop</span>
+                    <span className="dropzone-sub">MP4, MOV, WEBM · Max 50MB</span>
+                  </>
+                )}
               </label>
               {formData.intro_video && (
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, intro_video: '' }))}
-                  className="btn-secondary-small"
+                  className="btn-ghost"
                 >
-                  Remove
+                  <X size={14} /> Remove video
                 </button>
               )}
             </div>
-          </div>
+          </section>
 
-          <div className="form-section">
-            <h3><Upload size={20} /> Portfolio (Optional)</h3>
-            <p className="hint">Upload images or videos showcasing your previous work (max 10MB per file)</p>
+          <section className={`form-section ${sectionCompletion.portfolio ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">3</span>
+              <div className="section-title">
+                <h3><ImageIcon size={18} /> Portfolio <span className="optional-pill">Optional</span></h3>
+                <p className="hint">Past work that shows your style. Max 10MB per file.</p>
+              </div>
+              {sectionCompletion.portfolio && <CheckCircle2 size={20} className="section-check" />}
+            </div>
             <div className="form-group">
               <input
                 type="file"
@@ -229,8 +293,19 @@ export default function CreatorProfileSetup() {
                 style={{ display: 'none' }}
                 id="portfolio-upload"
               />
-              <label htmlFor="portfolio-upload" className="upload-btn">
-                {uploadingPortfolio ? 'Uploading...' : 'Add Portfolio Items'}
+              <label htmlFor="portfolio-upload" className={`dropzone ${uploadingPortfolio ? 'is-loading' : ''}`}>
+                {uploadingPortfolio ? (
+                  <>
+                    <div className="spinner" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={28} />
+                    <span><strong>Add portfolio items</strong></span>
+                    <span className="dropzone-sub">Images or videos · Select multiple</span>
+                  </>
+                )}
               </label>
               {formData.portfolio.length > 0 && (
                 <div className="portfolio-preview">
@@ -247,6 +322,7 @@ export default function CreatorProfileSetup() {
                           type="button"
                           onClick={() => removePortfolioItem(url)}
                           className="remove-btn"
+                          aria-label="Remove item"
                         >
                           ×
                         </button>
@@ -256,12 +332,19 @@ export default function CreatorProfileSetup() {
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          <div className="form-section">
-            <h3><Tag size={20} /> Tags & Niche</h3>
+          <section className={`form-section ${sectionCompletion.tags ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">4</span>
+              <div className="section-title">
+                <h3><Tag size={18} /> Tags & Niche</h3>
+                <p className="hint">Help brands discover you by your strengths.</p>
+              </div>
+              {sectionCompletion.tags && <CheckCircle2 size={20} className="section-check" />}
+            </div>
             <div className="form-group">
-              <label htmlFor="tags">Add Tags (Fashion, Beauty, Tech, etc.)</label>
+              <label htmlFor="tags">Add Tags <span className="label-meta">(Fashion, Beauty, Tech, etc.)</span></label>
               <div className="tag-input-wrapper">
                 <input
                   id="tags"
@@ -286,11 +369,17 @@ export default function CreatorProfileSetup() {
                 ))}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="form-section">
-            <h3>Social Links (Private)</h3>
-            <p className="hint">These will be hidden from public view</p>
+          <section className={`form-section ${sectionCompletion.social ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">5</span>
+              <div className="section-title">
+                <h3><Share2 size={18} /> Social Links <span className="optional-pill">Private</span></h3>
+                <p className="hint">Used internally for verification — hidden from public view.</p>
+              </div>
+              {sectionCompletion.social && <CheckCircle2 size={20} className="section-check" />}
+            </div>
             <div className="form-group">
               <label htmlFor="instagram">Instagram</label>
               <input
@@ -315,11 +404,17 @@ export default function CreatorProfileSetup() {
                 data-testid="youtube-input"
               />
             </div>
-          </div>
+          </section>
 
-          <div className="form-section">
-            <h3><DollarSign size={20} /> Rate Card</h3>
-            <p className="rate-card-hint">Set your price for each package and describe what's included.</p>
+          <section className={`form-section ${sectionCompletion.rates ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">6</span>
+              <div className="section-title">
+                <h3><DollarSign size={18} /> Rate Card</h3>
+                <p className="hint">Set your price for each package and describe what's included.</p>
+              </div>
+              {sectionCompletion.rates && <CheckCircle2 size={20} className="section-check" />}
+            </div>
 
             <div className="rate-package">
               <div className="rate-package-header">
@@ -416,10 +511,17 @@ export default function CreatorProfileSetup() {
                 <span className="char-count">{(formData.rate_card.photo_post_included || '').length}/500 characters</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="form-section">
-            <h3>Payment Methods</h3>
+          <section className={`form-section ${sectionCompletion.payment ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">7</span>
+              <div className="section-title">
+                <h3><CreditCard size={18} /> Payment Methods</h3>
+                <p className="hint">Where you'd like to receive payouts.</p>
+              </div>
+              {sectionCompletion.payment && <CheckCircle2 size={20} className="section-check" />}
+            </div>
             <div className="form-group">
               <label htmlFor="upi">UPI ID</label>
               <input
@@ -445,9 +547,17 @@ export default function CreatorProfileSetup() {
                 data-testid="bank-input"
               />
             </div>
-          </div>
+          </section>
 
-          <div className="form-section">
+          <section className={`form-section ${sectionCompletion.terms ? 'is-complete' : ''}`}>
+            <div className="section-head">
+              <span className="section-number">8</span>
+              <div className="section-title">
+                <h3><CheckCircle2 size={18} /> Preferences & Terms</h3>
+                <p className="hint">Final step before review.</p>
+              </div>
+              {sectionCompletion.terms && <CheckCircle2 size={20} className="section-check" />}
+            </div>
             <label className="checkbox-label">
               <input
                 type="checkbox"
@@ -455,7 +565,7 @@ export default function CreatorProfileSetup() {
                 onChange={(e) => handleInputChange('receive_briefs', e.target.checked)}
                 data-testid="receive-briefs-checkbox"
               />
-              I want to receive campaign briefs
+              <span>I want to receive campaign briefs</span>
             </label>
 
             <label className="checkbox-label">
@@ -466,73 +576,218 @@ export default function CreatorProfileSetup() {
                 required
                 data-testid="terms-checkbox"
               />
-              I agree to the Terms & Conditions
+              <span>I agree to the Terms & Conditions</span>
             </label>
-          </div>
+          </section>
 
-          <button type="submit" className="btn-primary" disabled={loading} data-testid="submit-profile-btn">
-            {loading ? 'Submitting...' : 'Submit for Review'}
-          </button>
+          <div className="submit-bar">
+            <div className="submit-meta">
+              <strong>{progressPct}% complete</strong>
+              <span>Your profile will be reviewed by our team within 24–48 hours.</span>
+            </div>
+            <button type="submit" className="btn-primary submit-btn" disabled={loading} data-testid="submit-profile-btn">
+              {loading ? 'Submitting...' : 'Submit for Review'}
+            </button>
+          </div>
         </form>
       </div>
 
       <style jsx>{`
         .profile-setup-page {
           min-height: 100vh;
-          padding: 60px 20px;
-          background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+          padding: 40px 20px 60px;
+          background:
+            radial-gradient(1200px 600px at 10% -10%, rgba(102, 126, 234, 0.15), transparent 60%),
+            radial-gradient(1000px 500px at 110% 10%, rgba(118, 75, 162, 0.18), transparent 60%),
+            linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
         }
 
         .profile-container {
-          max-width: 800px;
+          max-width: 880px;
           margin: 0 auto;
           background: white;
-          border-radius: 24px;
-          padding: 48px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+          border-radius: 28px;
+          padding: 0;
+          box-shadow: 0 20px 60px rgba(45, 55, 90, 0.10), 0 2px 8px rgba(45, 55, 90, 0.04);
+          overflow: hidden;
+          border: 1px solid rgba(102, 126, 234, 0.08);
         }
 
-        .profile-header {
-          text-align: center;
-          margin-bottom: 48px;
+        .profile-hero {
+          position: relative;
+          padding: 44px 48px 36px;
+          background:
+            radial-gradient(600px 240px at 90% 0%, rgba(255, 255, 255, 0.35), transparent 60%),
+            linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
         }
 
-        .profile-header h1 {
-          font-size: 2rem;
+        .hero-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: 999px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          margin-bottom: 16px;
+          backdrop-filter: blur(8px);
+        }
+
+        .profile-hero h1 {
+          font-size: 2.1rem;
           font-weight: 700;
-          color: #1a202c;
-          margin-bottom: 8px;
+          margin: 0 0 8px;
+          letter-spacing: -0.02em;
         }
 
-        .profile-header p {
-          color: #718096;
+        .profile-hero p {
+          font-size: 1rem;
+          opacity: 0.92;
+          margin: 0 0 24px;
+          max-width: 560px;
+          line-height: 1.55;
+        }
+
+        .progress-wrap {
+          background: rgba(255, 255, 255, 0.16);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          border-radius: 16px;
+          padding: 14px 18px;
+          backdrop-filter: blur(10px);
+        }
+
+        .progress-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+          font-size: 0.9rem;
+        }
+
+        .progress-meta strong {
+          font-size: 1.1rem;
+          font-weight: 700;
+        }
+
+        .progress-bar {
+          height: 8px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 999px;
+          overflow: hidden;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #ffd86b 0%, #ff9d6c 100%);
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+
+        .progress-sub {
+          display: block;
+          margin-top: 8px;
+          font-size: 0.8rem;
+          opacity: 0.85;
         }
 
         .profile-form {
           display: flex;
           flex-direction: column;
-          gap: 32px;
+          gap: 20px;
+          padding: 32px 48px 40px;
         }
 
         .form-section {
           display: flex;
           flex-direction: column;
           gap: 16px;
+          background: #fbfcff;
+          border: 1.5px solid #e8ecff;
+          border-radius: 18px;
+          padding: 24px 28px;
+          transition: all 0.25s ease;
         }
 
-        .form-section h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #2d3748;
+        .form-section:hover {
+          border-color: #c7d2fe;
+          box-shadow: 0 4px 16px rgba(102, 126, 234, 0.08);
+        }
+
+        .form-section.is-complete {
+          border-color: #86efac;
+          background: linear-gradient(135deg, #f0fdf4 0%, #fbfcff 60%);
+        }
+
+        .section-head {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+        }
+
+        .section-number {
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.9rem;
+          box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+        }
+
+        .form-section.is-complete .section-number {
+          background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+          box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
+        }
+
+        .section-title {
+          flex: 1;
+        }
+
+        .section-title h3 {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #1a202c;
+          margin: 0 0 4px;
           display: flex;
           align-items: center;
           gap: 8px;
+          letter-spacing: -0.01em;
+        }
+
+        .section-title h3 :global(svg) {
+          color: #667eea;
+        }
+
+        .section-check {
+          color: #22c55e;
+          flex-shrink: 0;
+          margin-top: 4px;
+        }
+
+        .optional-pill {
+          font-size: 0.7rem;
+          font-weight: 600;
+          padding: 2px 10px;
+          background: #eef2ff;
+          color: #6366f1;
+          border-radius: 999px;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
         }
 
         .hint {
-          font-size: 0.875rem;
-          color: #a0aec0;
-          font-style: italic;
+          font-size: 0.85rem;
+          color: #718096;
+          margin: 0;
+          line-height: 1.5;
         }
 
         .form-group {
@@ -544,18 +799,24 @@ export default function CreatorProfileSetup() {
         .form-group label {
           font-weight: 600;
           color: #2d3748;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
+        }
+
+        .label-meta {
+          font-weight: 400;
+          color: #a0aec0;
+          font-size: 0.8rem;
         }
 
         .char-count {
           text-align: right;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           color: #a0aec0;
         }
 
         .tag-input-wrapper {
           display: flex;
-          gap: 12px;
+          gap: 10px;
         }
 
         .tag-input-wrapper .input-field {
@@ -563,42 +824,49 @@ export default function CreatorProfileSetup() {
         }
 
         .tag-input-wrapper .btn-secondary {
-          padding: 12px 24px;
+          padding: 12px 22px;
+          white-space: nowrap;
         }
 
         .tags-list {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
-          margin-top: 8px;
+          margin-top: 4px;
         }
 
         .tag-badge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 6px 12px;
+          padding: 6px 14px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
-          border-radius: 20px;
-          font-size: 0.875rem;
+          border-radius: 999px;
+          font-size: 0.85rem;
           font-weight: 500;
+          box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
         }
 
         .tag-badge button {
-          background: none;
+          background: rgba(255, 255, 255, 0.25);
           border: none;
           color: white;
-          font-size: 1.25rem;
+          font-size: 0.9rem;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
           cursor: pointer;
           padding: 0;
           line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s ease;
         }
 
-        .rate-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
+        .tag-badge button:hover {
+          background: rgba(255, 255, 255, 0.45);
         }
 
         .checkbox-label {
@@ -608,51 +876,118 @@ export default function CreatorProfileSetup() {
           font-size: 0.95rem;
           color: #2d3748;
           cursor: pointer;
+          padding: 10px 14px;
+          border-radius: 10px;
+          background: white;
+          border: 1.5px solid #e2e8f0;
+          transition: all 0.2s ease;
+        }
+
+        .checkbox-label:hover {
+          border-color: #c7d2fe;
+          background: #f9faff;
         }
 
         .checkbox-label input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
+          accent-color: #667eea;
           cursor: pointer;
         }
 
-        .profile-form .btn-primary {
-          margin-top: 16px;
-        }
-
-        .upload-btn {
-          display: inline-block;
-          padding: 12px 24px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border-radius: 12px;
-          font-weight: 600;
+        .dropzone {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 32px 24px;
+          background: white;
+          border: 2px dashed #c7d2fe;
+          border-radius: 14px;
+          color: #4a5568;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.25s ease;
           text-align: center;
         }
 
-        .upload-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        .dropzone :global(svg) {
+          color: #667eea;
         }
 
-        .btn-secondary-small {
-          margin-left: 12px;
-          padding: 8px 16px;
-          background: white;
-          color: #4a5568;
-          border: 2px solid #e2e8f0;
-          border-radius: 8px;
+        .dropzone:hover {
+          border-color: #667eea;
+          background: #f5f7ff;
+          transform: translateY(-1px);
+        }
+
+        .dropzone.is-filled {
+          background: linear-gradient(135deg, #f0fdf4 0%, #f9faff 100%);
+          border-color: #22c55e;
+          color: #166534;
+        }
+
+        .dropzone.is-filled :global(svg) {
+          color: #22c55e;
+        }
+
+        .dropzone.is-loading {
+          opacity: 0.75;
+          pointer-events: none;
+        }
+
+        .dropzone strong {
+          font-weight: 600;
+          color: #1a202c;
+        }
+
+        .dropzone.is-filled strong {
+          color: #166534;
+        }
+
+        .dropzone-sub {
+          font-size: 0.8rem;
+          color: #94a3b8;
+        }
+
+        .spinner {
+          width: 24px;
+          height: 24px;
+          border: 3px solid #e2e8f0;
+          border-top-color: #667eea;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .btn-ghost {
+          align-self: flex-start;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: transparent;
+          color: #ef4444;
+          border: none;
+          font-size: 0.85rem;
           font-weight: 600;
           cursor: pointer;
+          border-radius: 8px;
+          transition: background 0.2s ease;
+        }
+
+        .btn-ghost:hover {
+          background: #fef2f2;
         }
 
         .portfolio-preview {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          gap: 16px;
-          margin-top: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 12px;
+          margin-top: 8px;
         }
 
         .portfolio-item {
@@ -660,6 +995,7 @@ export default function CreatorProfileSetup() {
           border-radius: 12px;
           overflow: hidden;
           aspect-ratio: 1;
+          border: 2px solid #e2e8f0;
         }
 
         .portfolio-item img {
@@ -670,33 +1006,102 @@ export default function CreatorProfileSetup() {
 
         .remove-btn {
           position: absolute;
-          top: 8px;
-          right: 8px;
-          width: 28px;
-          height: 28px;
-          background: rgba(255, 0, 0, 0.8);
+          top: 6px;
+          right: 6px;
+          width: 26px;
+          height: 26px;
+          background: rgba(15, 23, 42, 0.7);
           color: white;
           border: none;
           border-radius: 50%;
-          font-size: 20px;
+          font-size: 18px;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           line-height: 1;
+          transition: background 0.2s ease;
+          backdrop-filter: blur(4px);
         }
 
         .remove-btn:hover {
-          background: rgba(255, 0, 0, 1);
+          background: #ef4444;
         }
 
-        @media (max-width: 640px) {
-          .profile-container {
-            padding: 32px 24px;
+        .submit-bar {
+          position: sticky;
+          bottom: 20px;
+          margin-top: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          padding: 18px 24px;
+          background: white;
+          border: 1.5px solid #e8ecff;
+          border-radius: 18px;
+          box-shadow: 0 10px 30px rgba(45, 55, 90, 0.12);
+          flex-wrap: wrap;
+        }
+
+        .submit-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .submit-meta strong {
+          font-size: 1rem;
+          color: #1a202c;
+          font-weight: 700;
+        }
+
+        .submit-meta span {
+          font-size: 0.8rem;
+          color: #718096;
+        }
+
+        .submit-btn {
+          min-width: 200px;
+        }
+
+        @media (max-width: 720px) {
+          .profile-setup-page {
+            padding: 20px 12px 40px;
           }
 
-          .rate-grid {
-            grid-template-columns: 1fr;
+          .profile-container {
+            border-radius: 20px;
+          }
+
+          .profile-hero {
+            padding: 32px 24px 28px;
+          }
+
+          .profile-hero h1 {
+            font-size: 1.6rem;
+          }
+
+          .profile-form {
+            padding: 24px 20px 28px;
+          }
+
+          .form-section {
+            padding: 20px 18px;
+          }
+
+          .section-head {
+            gap: 10px;
+          }
+
+          .submit-bar {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+          }
+
+          .submit-btn {
+            width: 100%;
           }
         }
       `}</style>

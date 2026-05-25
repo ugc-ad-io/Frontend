@@ -1,4 +1,4 @@
-import { TrendingUp, FileText, Users, Briefcase, DollarSign, Download, UserPlus, BarChart } from 'lucide-react';
+import { TrendingUp, FileText, Users, Briefcase, DollarSign, Download, UserPlus, BarChart, AlertTriangle } from 'lucide-react';
 
 function AdminSidebar({ activeTab, onTabClick, user }) {
   const adminTabs = [
@@ -11,6 +11,7 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
     { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns', slug: 'all-campaigns' },
     { id: 'users', label: 'Users', icon: Users, testId: 'tab-users', slug: 'users' },
     { id: 'assignments', label: 'Assignments', icon: UserPlus, testId: 'tab-assignments', slug: 'assignments' },
+    { id: 'flagged', label: 'Flagged Messages', icon: AlertTriangle, testId: 'tab-flagged', slug: 'flagged', adminOnly: true },
     { id: 'analytics', label: 'Analytics', icon: BarChart, testId: 'tab-analytics', slug: 'analytics' },
   ];
 
@@ -23,7 +24,7 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
         </div>
         <nav className="admin-sidebar-nav" aria-label="Admin dashboard">
           <span className="admin-nav-label">Admin</span>
-          {adminTabs.map((tab) => {
+          {adminTabs.filter((tab) => !tab.adminOnly || user?.role === 'admin').map((tab) => {
             const Icon = tab.icon;
             return (
               <button

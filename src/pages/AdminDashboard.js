@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText } from 'lucide-react';
+import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -23,6 +23,7 @@ export default function AdminDashboard() {
     users: 'users',
     assignments: 'assignments',
     chats: 'chats',
+    flagged: 'flagged',
     payments: 'payments',
     notifications: 'notifications',
     broadcast: 'broadcast',
@@ -140,6 +141,7 @@ export default function AdminDashboard() {
     setActiveTab(nextTab);
 
     if (nextTab === 'chats') fetchAllChats();
+    if (nextTab === 'flagged') fetchAllChats();
     if (nextTab === 'payments') {
       fetchPaymentGateways();
       fetchPaymentTransactions();
@@ -1332,6 +1334,109 @@ export default function AdminDashboard() {
                               ⚠️ {chat.violation_count} violation(s) detected
                             </div>
                           )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'flagged' && user?.role === 'admin' && (
+            <div className="flagged-section fade-in">
+              <div className="flagged-header">
+                <div>
+                  <h2><AlertTriangle size={22} /> Flagged Messages Report</h2>
+                  <p className="section-description">
+                    Conversations where users tried to share personal contact info (phone, email, WhatsApp, "call me", etc.).
+                    These are auto-detected and the participants receive warnings.
+                  </p>
+                </div>
+                <div className="flagged-stats">
+                  <div className="flagged-stat-card">
+                    <span className="flagged-stat-value">{allChats.filter(c => c.has_violations).length}</span>
+                    <span className="flagged-stat-label">Conversations with violations</span>
+                  </div>
+                  <div className="flagged-stat-card">
+                    <span className="flagged-stat-value">
+                      {allChats.reduce((sum, c) => sum + (c.violation_count || 0), 0)}
+                    </span>
+                    <span className="flagged-stat-label">Total flagged messages</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedChat ? (
+                <div className="chat-view">
+                  <div className="chat-header">
+                    <button className="btn-back" onClick={() => setSelectedChat(null)} data-testid="back-to-flagged">
+                      ← Back to Flagged Report
+                    </button>
+                    <div className="chat-participants">
+                      <span className="participant-name">{selectedChat.user1.nickname}</span>
+                      <span className="chat-separator">↔</span>
+                      <span className="participant-name">{selectedChat.user2.nickname}</span>
+                    </div>
+                  </div>
+                  <div className="chat-messages">
+                    {chatMessages.filter(m => m.filtered).length === 0 ? (
+                      <p className="no-messages">No flagged messages in this conversation</p>
+                    ) : (
+                      chatMessages.filter(m => m.filtered).map((msg, idx) => (
+                        <div key={idx} className="message-item filtered-message" data-testid={`flagged-msg-${idx}`}>
+                          <div className="message-header">
+                            <span className="message-sender">{msg.sender_nickname}</span>
+                            <span className="message-time">
+                              {new Date(msg.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="message-content">{msg.message}</div>
+                          <div className="filtered-badge">⚠️ Content Filtered — reported to admin</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flagged-list">
+                  {allChats.filter(c => c.has_violations).length === 0 ? (
+                    <div className="empty-state">
+                      <CheckCircle size={64} color="#48bb78" />
+                      <p>No flagged conversations — platform looks clean!</p>
+                    </div>
+                  ) : (
+                    <div className="conversations-grid">
+                      {allChats.filter(c => c.has_violations).map((chat, idx) => (
+                        <div
+                          key={idx}
+                          className="conversation-card has-violations"
+                          data-testid={`flagged-chat-${idx}`}
+                          onClick={() => {
+                            setSelectedChat(chat);
+                            fetchChatMessages(chat.user1.id, chat.user2.id);
+                          }}
+                        >
+                          <div className="conversation-participants">
+                            <div className="participant">
+                              <span className="participant-nickname">{chat.user1.nickname}</span>
+                              <span className="participant-role badge badge-active">{chat.user1.role}</span>
+                            </div>
+                            <div className="conversation-arrow">↔</div>
+                            <div className="participant">
+                              <span className="participant-nickname">{chat.user2.nickname}</span>
+                              <span className="participant-role badge badge-active">{chat.user2.role}</span>
+                            </div>
+                          </div>
+                          <div className="conversation-preview">
+                            <p className="last-message">{chat.last_message}</p>
+                            <span className="last-message-time">
+                              {new Date(chat.last_message_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="violation-indicator">
+                            <AlertTriangle size={14} /> {chat.violation_count} flagged message{chat.violation_count !== 1 ? 's' : ''} — view details
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -3287,6 +3392,68 @@ export default function AdminDashboard() {
 
         .chats-section {
           padding: 32px;
+        }
+
+        .flagged-section {
+          padding: 32px;
+        }
+
+        .flagged-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 24px;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+
+        .flagged-header h2 {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #92400e;
+          margin: 0 0 8px 0;
+        }
+
+        .flagged-stats {
+          display: flex;
+          gap: 16px;
+        }
+
+        .flagged-stat-card {
+          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+          border: 2px solid #f59e0b;
+          padding: 16px 24px;
+          border-radius: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          min-width: 140px;
+        }
+
+        .flagged-stat-value {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: #92400e;
+        }
+
+        .flagged-stat-label {
+          font-size: 0.8rem;
+          color: #533f03;
+          text-align: center;
+          margin-top: 4px;
+        }
+
+        .flagged-list .conversation-card {
+          border-left: 4px solid #ef4444;
+        }
+
+        .flagged-list .violation-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #fee2e2;
+          color: #991b1b;
         }
 
         .conversations-grid {

@@ -2761,13 +2761,6 @@ export default function AdminDashboard() {
           margin: 0 auto;
         }
 
-        .analytics-cards {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 24px;
-          margin-bottom: 40px;
-        }
-
         .analytics-card {
           background: white;
           padding: 24px;
@@ -4313,28 +4306,27 @@ export default function AdminDashboard() {
         }
 
         .analytics-cards {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          display: flex;
+          flex-wrap: wrap;
           gap: 20px;
           margin-bottom: 32px;
-          padding: 0 32px;
+          width: 100%;
         }
 
-        @media (max-width: 1280px) {
-          .analytics-cards {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
+        .analytics-cards .analytics-card {
+          flex: 1 1 calc(25% - 15px);
+          min-width: 220px;
         }
 
-        @media (max-width: 960px) {
-          .analytics-cards {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        @media (max-width: 1100px) {
+          .analytics-cards .analytics-card {
+            flex: 1 1 calc(50% - 10px);
           }
         }
 
         @media (max-width: 560px) {
-          .analytics-cards {
-            grid-template-columns: 1fr;
+          .analytics-cards .analytics-card {
+            flex: 1 1 100%;
           }
         }
 

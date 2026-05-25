@@ -187,17 +187,6 @@ export default function CreatorProfileSetup() {
           </div>
           <h1>Complete Your Creator Profile</h1>
           <p>Tell us about yourself and showcase your work — brands discover you through this page.</p>
-
-          <div className="progress-wrap">
-            <div className="progress-meta">
-              <span>Profile completeness</span>
-              <strong>{progressPct}%</strong>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progressPct}%` }} />
-            </div>
-            <span className="progress-sub">{completedCount} of {totalSections} sections filled</span>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="profile-form">
@@ -597,8 +586,8 @@ export default function CreatorProfileSetup() {
           min-height: 100vh;
           padding: 40px 20px 60px;
           background:
-            radial-gradient(1200px 600px at 10% -10%, rgba(102, 126, 234, 0.15), transparent 60%),
-            radial-gradient(1000px 500px at 110% 10%, rgba(118, 75, 162, 0.18), transparent 60%),
+            radial-gradient(1200px 600px at 10% -10%, rgba(7, 7, 78, 0.15), transparent 60%),
+            radial-gradient(1000px 500px at 110% 10%, rgba(30, 30, 126, 0.18), transparent 60%),
             linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
         }
 
@@ -610,7 +599,7 @@ export default function CreatorProfileSetup() {
           padding: 0;
           box-shadow: 0 20px 60px rgba(45, 55, 90, 0.10), 0 2px 8px rgba(45, 55, 90, 0.04);
           overflow: hidden;
-          border: 1px solid rgba(102, 126, 234, 0.08);
+          border: 1px solid rgba(7, 7, 78, 0.08);
         }
 
         .profile-hero {
@@ -618,7 +607,7 @@ export default function CreatorProfileSetup() {
           padding: 44px 48px 36px;
           background:
             radial-gradient(600px 240px at 90% 0%, rgba(255, 255, 255, 0.35), transparent 60%),
-            linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            linear-gradient(135deg, #07074e 0%, #1e1e7e 100%);
           color: white;
         }
 
@@ -651,46 +640,8 @@ export default function CreatorProfileSetup() {
           line-height: 1.55;
         }
 
-        .progress-wrap {
-          background: rgba(255, 255, 255, 0.16);
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          border-radius: 16px;
-          padding: 14px 18px;
-          backdrop-filter: blur(10px);
-        }
-
-        .progress-meta {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-          font-size: 0.9rem;
-        }
-
-        .progress-meta strong {
-          font-size: 1.1rem;
-          font-weight: 700;
-        }
-
-        .progress-bar {
-          height: 8px;
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 999px;
-          overflow: hidden;
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, #ffd86b 0%, #ff9d6c 100%);
-          border-radius: 999px;
-          transition: width 0.4s ease;
-        }
-
-        .progress-sub {
-          display: block;
-          margin-top: 8px;
-          font-size: 0.8rem;
-          opacity: 0.85;
+        .profile-hero p {
+          margin-bottom: 0;
         }
 
         .profile-form {
@@ -712,8 +663,8 @@ export default function CreatorProfileSetup() {
         }
 
         .form-section:hover {
-          border-color: #c7d2fe;
-          box-shadow: 0 4px 16px rgba(102, 126, 234, 0.08);
+          border-color: #c5c5e0;
+          box-shadow: 0 4px 16px rgba(7, 7, 78, 0.08);
         }
 
         .form-section.is-complete {
@@ -732,14 +683,14 @@ export default function CreatorProfileSetup() {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074e 0%, #1e1e7e 100%);
           color: white;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
           font-size: 0.9rem;
-          box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 2px 6px rgba(7, 7, 78, 0.3);
         }
 
         .form-section.is-complete .section-number {
@@ -763,7 +714,7 @@ export default function CreatorProfileSetup() {
         }
 
         .section-title h3 :global(svg) {
-          color: #667eea;
+          color: #07074e;
         }
 
         .section-check {
@@ -776,8 +727,8 @@ export default function CreatorProfileSetup() {
           font-size: 0.7rem;
           font-weight: 600;
           padding: 2px 10px;
-          background: #eef2ff;
-          color: #6366f1;
+          background: #e8e8f5;
+          color: #07074e;
           border-radius: 999px;
           letter-spacing: 0.02em;
           text-transform: uppercase;
@@ -840,12 +791,12 @@ export default function CreatorProfileSetup() {
           align-items: center;
           gap: 8px;
           padding: 6px 14px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074e 0%, #1e1e7e 100%);
           color: white;
           border-radius: 999px;
           font-size: 0.85rem;
           font-weight: 500;
-          box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
+          box-shadow: 0 2px 6px rgba(7, 7, 78, 0.25);
         }
 
         .tag-badge button {
@@ -884,14 +835,14 @@ export default function CreatorProfileSetup() {
         }
 
         .checkbox-label:hover {
-          border-color: #c7d2fe;
+          border-color: #c5c5e0;
           background: #f9faff;
         }
 
         .checkbox-label input[type="checkbox"] {
           width: 18px;
           height: 18px;
-          accent-color: #667eea;
+          accent-color: #07074e;
           cursor: pointer;
         }
 
@@ -903,7 +854,7 @@ export default function CreatorProfileSetup() {
           gap: 8px;
           padding: 32px 24px;
           background: white;
-          border: 2px dashed #c7d2fe;
+          border: 2px dashed #c5c5e0;
           border-radius: 14px;
           color: #4a5568;
           cursor: pointer;
@@ -912,11 +863,11 @@ export default function CreatorProfileSetup() {
         }
 
         .dropzone :global(svg) {
-          color: #667eea;
+          color: #07074e;
         }
 
         .dropzone:hover {
-          border-color: #667eea;
+          border-color: #07074e;
           background: #f5f7ff;
           transform: translateY(-1px);
         }
@@ -954,7 +905,7 @@ export default function CreatorProfileSetup() {
           width: 24px;
           height: 24px;
           border: 3px solid #e2e8f0;
-          border-top-color: #667eea;
+          border-top-color: #07074e;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }

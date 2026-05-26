@@ -136,9 +136,9 @@ function ApplicationsPage() {
   if (selectedApplication) {
     return (
       <>
-        <div className="detail-view" style={{ padding: '40px', marginLeft: '-40px', marginRight: '-40px', marginTop: '-40px' }}>
+        <div className="detail-view">
           <button className="btn-back" onClick={() => setSelectedApplication(null)}>
-            <ChevronLeft size={20} /> Back
+            <ChevronLeft size={18} /> Back
           </button>
 
           {applicationType === 'creators' ? (

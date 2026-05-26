@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ChevronLeft, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronLeft, CheckCircle, XCircle, Search, Users, Briefcase, Clock, FileText, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import '../styles/ApplicationsPage.css';
@@ -13,6 +13,7 @@ function ApplicationsPage() {
   const [applicationType, setApplicationType] = useState('creators');
   const [filterState, setFilterState] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showMoreInfoModal, setShowMoreInfoModal] = useState(false);
   const [rejectFormData, setRejectFormData] = useState({ reason_code: '', reason_details: '' });
   const [moreInfoFormData, setMoreInfoFormData] = useState({
@@ -99,10 +100,38 @@ function ApplicationsPage() {
     if (filterState !== 'all' && app.status !== filterState) return false;
     const appCategory = app.category || app.business_profile?.industry;
     if (filterCategory !== 'all' && appCategory !== filterCategory) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const name = (applicationType === 'creators' ? app.nickname : app.business_name) || '';
+      const email = (applicationType === 'creators' ? app.email : app.business_email) || '';
+      if (!name.toLowerCase().includes(q) && !email.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
   const categories = [...new Set(applications.map(app => app.category || app.business_profile?.industry))].filter(Boolean);
+
+  const stats = useMemo(() => ({
+    total: applications.length,
+    pending: applications.filter(a => a.status === 'pending').length,
+    approved: applications.filter(a => a.status === 'approved').length,
+    rejected: applications.filter(a => a.status === 'rejected').length,
+  }), [applications]);
+
+  const getInitials = (name) => {
+    if (!name) return '?';
+    const clean = name.replace(/^@/, '').trim();
+    const parts = clean.split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return clean.slice(0, 2).toUpperCase();
+  };
+
+  const avatarColor = (name) => {
+    const palette = ['#6366f1', '#3b82f6', '#0ea5e9', '#14b8a6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+    return palette[hash % palette.length];
+  };
 
   if (selectedApplication) {
     return (
@@ -567,106 +596,145 @@ function ApplicationsPage() {
   }
 
   return (
-    <>
-      <div style={{ padding: '0' }}>
-        <div style={{ marginBottom: '40px', backgroundColor: 'white', padding: '30px', borderRadius: '12px' }}>
-          <div style={{ marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '1.8rem', color: '#0f172a', margin: '0 0 12px 0', fontWeight: '700' }}>Applications List</h2>
-          </div>
-          <div style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', paddingBottom: '0' }}>
-            <button
-              onClick={() => setApplicationType('creators')}
-              style={{
-                padding: '14px 28px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                color: applicationType === 'creators' ? '#3b82f6' : '#64748b',
-                borderBottom: applicationType === 'creators' ? '3px solid #3b82f6' : '3px solid transparent',
-                fontWeight: 600,
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Creator Applications
-            </button>
-            <button
-              onClick={() => setApplicationType('brands')}
-              style={{
-                padding: '14px 28px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                color: applicationType === 'brands' ? '#3b82f6' : '#64748b',
-                borderBottom: applicationType === 'brands' ? '3px solid #3b82f6' : '3px solid transparent',
-                fontWeight: 600,
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Brand Applications
-            </button>
+    <div className="apps-page">
+      <div className="apps-stats">
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-blue"><FileText size={20} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Total</span>
+            <span className="stat-value">{stats.total}</span>
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '40px', backgroundColor: 'white', padding: '25px 30px', borderRadius: '14px', boxShadow: '0 2px 16px rgba(0, 0, 0, 0.06)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '200px' }}>
-            <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#475569' }}>Status</label>
-            <select value={filterState} onChange={(e) => setFilterState(e.target.value)} style={{ padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '0.95rem', backgroundColor: 'white', cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: 500, color: '#0f172a' }}>
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-amber"><Clock size={20} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Pending</span>
+            <span className="stat-value">{stats.pending}</span>
           </div>
-          {categories.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '200px' }}>
-              <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#475569' }}>Category</label>
-              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} style={{ padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '0.95rem', backgroundColor: 'white', cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: 500, color: '#0f172a' }}>
-                <option value="all">All Categories</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
-
-        <div style={{ padding: '0 20px' }}>
-
-      {loading ? (
-        <div className="loading">Loading applications...</div>
-      ) : filteredApplications.length === 0 ? (
-        <div className="empty-state">
-          <CheckCircle size={64} />
-          <p>No applications found</p>
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-green"><CheckCircle size={20} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Approved</span>
+            <span className="stat-value">{stats.approved}</span>
+          </div>
         </div>
-      ) : (
-        <div className="applications-list">
-          {filteredApplications.map(app => (
-            <div key={app.id} className="application-card" onClick={() => setSelectedApplication(app)}>
-              <div className="card-header">
-                <h3>{applicationType === 'creators' ? app.nickname : app.business_name}</h3>
-                <span className={`status-badge status-${app.status}`}>
-                  {app.status?.replace(/_/g, ' ').toUpperCase()}
-                </span>
-              </div>
-              <div className="card-body">
-                <p><strong>Email:</strong> {applicationType === 'creators' ? app.email : app.business_email}</p>
-                <p><strong>Category:</strong> {applicationType === 'creators' ? app.category : app.business_profile?.industry}</p>
-                <p><strong>Submitted:</strong> {new Date(app.submitted_date).toLocaleDateString()}</p>
-                {app.sla_remaining_days && (
-                  <p><strong>SLA Remaining:</strong> {app.sla_remaining_days} days</p>
-                )}
-              </div>
-              <div className="card-action">View Details →</div>
-            </div>
-          ))}
-        </div>
-      )}
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-red"><XCircle size={20} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Rejected</span>
+            <span className="stat-value">{stats.rejected}</span>
+          </div>
         </div>
       </div>
-    </>
+
+      <div className="apps-toolbar">
+        <div className="apps-tabs">
+          <button
+            className={`apps-tab ${applicationType === 'creators' ? 'active' : ''}`}
+            onClick={() => setApplicationType('creators')}
+          >
+            <Users size={16} />
+            Creators
+          </button>
+          <button
+            className={`apps-tab ${applicationType === 'brands' ? 'active' : ''}`}
+            onClick={() => setApplicationType('brands')}
+          >
+            <Briefcase size={16} />
+            Brands
+          </button>
+        </div>
+
+        <div className="apps-controls">
+          <div className="apps-search">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder={`Search ${applicationType === 'creators' ? 'creators' : 'brands'}…`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <select className="apps-select" value={filterState} onChange={(e) => setFilterState(e.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          {categories.length > 0 && (
+            <select className="apps-select" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+              <option value="all">All categories</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="apps-skeleton-list">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="apps-skeleton-row" />
+          ))}
+        </div>
+      ) : filteredApplications.length === 0 ? (
+        <div className="apps-empty">
+          <CheckCircle size={56} />
+          <h3>No applications found</h3>
+          <p>Try adjusting your filters or search query.</p>
+        </div>
+      ) : (
+        <div className="apps-list">
+          {filteredApplications.map(app => {
+            const name = applicationType === 'creators' ? app.nickname : app.business_name;
+            const email = applicationType === 'creators' ? app.email : app.business_email;
+            const category = applicationType === 'creators' ? app.category : app.business_profile?.industry;
+            return (
+              <div key={app.id} className="apps-row" onClick={() => setSelectedApplication(app)}>
+                <div className="apps-row-identity">
+                  <div className="apps-avatar" style={{ background: avatarColor(name || '') }}>
+                    {getInitials(name)}
+                  </div>
+                  <div className="apps-name-block">
+                    <h4>{name}</h4>
+                    <span className={`apps-status apps-status-${app.status}`}>
+                      {app.status?.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="apps-row-meta">
+                  <div className="apps-meta">
+                    <span className="apps-meta-label">Email</span>
+                    <span className="apps-meta-value" title={email}>{email}</span>
+                  </div>
+                  <div className="apps-meta">
+                    <span className="apps-meta-label">Category</span>
+                    <span className="apps-meta-value">{category || '—'}</span>
+                  </div>
+                  <div className="apps-meta">
+                    <span className="apps-meta-label">Submitted</span>
+                    <span className="apps-meta-value">{new Date(app.submitted_date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="apps-meta">
+                    <span className="apps-meta-label">SLA</span>
+                    <span className={`apps-meta-value ${app.sla_remaining_days <= 1 ? 'apps-sla-urgent' : ''}`}>
+                      {app.sla_remaining_days != null ? `${app.sla_remaining_days}d left` : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <button className="apps-row-action" onClick={(e) => { e.stopPropagation(); setSelectedApplication(app); }}>
+                  View <ArrowRight size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

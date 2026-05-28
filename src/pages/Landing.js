@@ -15,8 +15,8 @@ import {
   Activity,
   Home as HomeIcon,
   Instagram,
-  ShoppingBag,
   Music2,
+  Video,
   AlertTriangle,
   HelpCircle,
   MessageCircle,
@@ -164,11 +164,36 @@ const proofBadges = [
   { Icon: Sparkles, label: '10K+ Creators' },
 ];
 
-const categoryChips = [
-  { Icon: Sparkles, label: 'Beauty' },
-  { Icon: Smartphone, label: 'Apps' },
-  { Icon: Activity, label: 'Health' },
-  { Icon: HomeIcon, label: 'Home' },
+// Icon positions in SVG viewBox 1190×330 — extracted from reference Lottie SVG.
+const HERO_ICONS = [
+  { Icon: Users,     label: 'Creator',   x: 174.6,  y: 52.7,  bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', iconColor: '#fff' },
+  { Icon: Video,     label: 'Content',   x: 63,     y: 164.5, bg: 'linear-gradient(135deg, #F97316, #FBBF24)', iconColor: '#fff' },
+  { Icon: Instagram, label: 'Instagram', x: 286.6,  y: 276.8, bg: 'linear-gradient(135deg, #EF4444, #DC2626)', iconColor: '#fff' },
+  { Icon: Music2,    label: 'TikTok',    x: 1126.6, y: 52.5,  bg: '#ffffff', iconColor: '#38A1D6' },
+  { Icon: Briefcase, label: 'Gig',       x: 1014.6, y: 276.5, bg: 'linear-gradient(135deg, #334155, #1E293B)', iconColor: '#fff' },
+];
+
+// Exact path data from the reference Lottie SVG (viewBox 1190×330).
+// Path is relative to center (567.618, 148) — wrapped in <g transform> at render.
+const CONNECTOR_PATH_D = "M-354.98,112 C-354.98,112 -524,112 -524,112 C-528.42,112 -532,108.42 -532,104 C-532,104 -532,48.71 -532,48.71 M-532,-47.65 C-532,-47.65 -532,-104 -532,-104 C-532,-108.42 -528.42,-112 -524,-112 C-524,-112 -468,-112 -468,-112 M-374,-112 C-374,-112 -288,-112 -288,-112 C-283.58,-112 -280,-108.42 -280,-104 C-280,-104 -280,-60.19 -280,-60.19 C-280,-55.78 -276.42,-52.19 -272,-52.19 C-272,-52.19 -228.2,-52.19 -228.2,-52.19 M-485.14,0 C-485.14,0 -316.2,0 -316.2,0 C-311.78,0 -308.2,3.58 -308.2,8 C-308.2,8 -308.2,51.24 -308.2,51.24 M-308.2,51.24 C-308.2,51.24 -308.2,63.94 -308.2,63.94 M-308.2,51.24 C-308.2,51.24 -236.2,51.24 -236.2,51.24 C-231.78,51.24 -228.2,54.82 -228.2,59.24 C-228.2,59.24 -228.2,69.82 -228.2,69.82 C-228.2,74.24 -224.62,77.82 -220.2,77.82 C-220.2,77.82 -201.2,77.82 -201.2,77.82 M233.84,-52.3 C233.84,-52.3 306.08,-52.3 306.08,-52.3 M479.51,-112 C479.51,-112 400.01,-112 400.01,-112 C395.59,-112 392,-108.42 392,-104 C392,-104 392,-60.3 392,-60.3 C392,-55.88 388.42,-52.3 384,-52.3 C384,-52.3 306.08,-52.3 306.08,-52.3 M420,65.18 C420,65.18 420,59.24 420,59.24 C420,54.82 416.42,51.24 412,51.24 C412,51.24 306.08,51.24 306.08,51.24 M467.59,112 C467.59,112 524,112 524,112 C528.42,112 532,108.42 532,104 C532,104 532,-65.13 532,-65.13 M306.08,-52.3 C306.08,-52.3 306.08,51.24 306.08,51.24 M306.08,51.24 C306.08,51.24 241.84,51.24 241.84,51.24 C237.43,51.24 233.84,54.82 233.84,59.24 C233.84,59.24 233.84,69.84 233.84,69.84 C233.84,74.26 230.26,77.84 225.84,77.84 C225.84,77.84 201,77.84 201,77.84";
+
+// Arrow markers — positions in absolute 1190×330 viewBox coords.
+const HERO_ARROWS = [
+  { x: 246.9, y: 276.2, rot: 0, color: '#FF4D4D' },
+  { x: 62.6, y: 204.2, rot: 90, color: '#FFB866' },
+  { x: 62.6, y: 124.9, rot: 270, color: '#FFB866' },
+  { x: 134.9, y: 52.5, rot: 0, color: '#316BFF' },
+  { x: 214.3, y: 52.7, rot: 180, color: '#316BFF' },
+  { x: 375.3, y: 112.2, rot: 0, color: '#213856' },
+  { x: 816, y: 112.2, rot: 180, color: '#213856' },
+  { x: 403, y: 242.4, rot: 0, color: '#213856' },
+  { x: 784.4, y: 242.4, rot: 180, color: '#C8F23A' },
+  { x: 286.6, y: 237.2, rot: 270, color: '#FF4D4D' },
+  { x: 102.7, y: 164.5, rot: 0, color: '#FFB866' },
+  { x: 1014.6, y: 236.9, rot: 270, color: '#fff' },
+  { x: 1126.8, y: 92.2, rot: 90, color: '#38A1D6' },
+  { x: 1054.6, y: 276.8, rot: 0, color: '#fff' },
+  { x: 1086.8, y: 52.5, rot: 180, color: '#38A1D6' },
 ];
 
 const industries = [
@@ -335,9 +360,8 @@ export default function Landing() {
     }
   };
 
-  // Right phone falls back to existing video if the second one isn't downloaded yet
-  const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
-  const rightVideo = '/6948556-uhd_2160_3840_24fps.mp4';
+  // Hero phone-mini video (currently commented out in JSX)
+  // const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
 
   return (
     <div className="lp-root">
@@ -369,185 +393,235 @@ export default function Landing() {
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
       <section className="lp-hero">
-        <div className="lp-orb lp-orb--1" aria-hidden="true" />
-        <div className="lp-orb lp-orb--2" aria-hidden="true" />
+        {/* Layer 1: dashed connectors + icons + arrows — all in one SVG, one coordinate system */}
+        <svg
+          className="lp-hero__connectors"
+          viewBox="0 0 1190 330"
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden="true"
+        >
+          {/* Dashed paths — exact reference geometry, offset to center */}
+          <g transform="translate(594.618, 164.5)">
+            <motion.path
+              d={CONNECTOR_PATH_D}
+              fill="none"
+              stroke="rgb(152, 161, 172)"
+              strokeOpacity="0.6"
+              strokeWidth="1"
+              strokeDasharray="4 4"
+              strokeLinecap="round"
+              strokeLinejoin="miter"
+              strokeMiterlimit="4"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
+            />
+          </g>
 
+          {/* Single animated line — follows one continuous route across the circuit */}
+          <line x1="0" y1="0" x2="16" y2="0" stroke="#C8F23A" strokeWidth="2" strokeLinecap="round" opacity="0.8">
+            <animateMotion dur="20s" repeatCount="indefinite" rotate="auto"
+              path="M 240 276 L 71 276 C 67 276 63 272 63 268 L 63 61 C 63 57 67 53 71 53 L 307 53 C 311 53 315 57 315 61 L 315 104 C 315 108 319 112 323 112 L 366 112 L 287 165 L 287 216 L 358 216 C 362 216 366 220 366 224 L 366 234 C 366 238 370 242 374 242 L 393 242 L 500 242 L 700 242 L 796 242 C 800 242 804 238 804 234 L 804 224 C 804 220 808 216 812 216 L 901 216 L 901 112 C 901 108 905 104 909 104 L 979 112 C 983 112 987 108 987 104 L 987 61 C 987 57 991 53 995 53 L 1074 53 L 1127 53 C 1127 57 1127 99 1127 99 L 1127 268 C 1127 272 1123 276 1119 276 L 1062 276"
+            />
+          </line>
+
+          {/* Arrow markers at exact reference positions */}
+          {HERO_ARROWS.map((a, i) => (
+            <polygon
+              key={i}
+              points="-3.7,-4.2 3.7,0 -3.7,4.2"
+              fill={a.color}
+              transform={`translate(${a.x},${a.y}) rotate(${a.rot})`}
+            />
+          ))}
+
+          {/* Icons inside SVG — exact reference positions */}
+          {HERO_ICONS.map(({ Icon, label, x, y, bg, iconColor }, i) => (
+            <motion.g
+              key={label}
+              initial={{ opacity: 0, scale: 0.5 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.7 + i * 0.1, type: 'spring', stiffness: 220 }}
+              style={{ transformOrigin: `${x}px ${y}px` }}
+            >
+              <foreignObject x={x - 44} y={y - 44} width={88} height={88}>
+                <div
+                  className="lp-hero__icon"
+                  style={{ background: bg }}
+                  aria-label={label}
+                >
+                  <Icon size={22} color={iconColor || '#fff'} strokeWidth={2} />
+                </div>
+              </foreignObject>
+            </motion.g>
+          ))}
+        </svg>
+
+        {/* Layer 3: headline + CTAs */}
         <div className="lp-hero__inner">
-          {/* Left column */}
-          <div className="lp-hero__text">
-            <motion.div
-              className="lp-badge"
-              custom={0}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <Sparkles size={14} />
-              <span>For Creators &amp; Brands</span>
-              <Sparkles size={14} />
-            </motion.div>
-
-            <motion.h1
-              className="lp-hero__title"
-              custom={1}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              Your Ads Aren't Being Ignored.{' '}
-              <span className="lp-hero__title--gradient">
-                They're Being Doubted.
-              </span>
-            </motion.h1>
-
-            <motion.p
-              className="lp-hero__subtitle"
-              custom={2}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              People don't scroll because they're bored.
-              <br />
-              They scroll because they don't trust what they see.
-            </motion.p>
-
-            <motion.div
-              className="lp-hero__ctas"
-              custom={3}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <button
-                className="lp-btn-primary"
-                onClick={handleGetStarted}
-                data-testid="get-started-btn"
-              >
-                Find My Creator Match <ArrowRight size={18} />
-              </button>
-              <button
-                className="lp-btn-ghost"
-                onClick={() => navigate('/auth')}
-                data-testid="learn-more-btn"
-              >
-                Join the Creator Network
-              </button>
-            </motion.div>
-
-            <motion.div
-              className="lp-hero__badges"
-              custom={4}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {proofBadges.map(({ Icon, label }) => (
-                <div key={label} className="lp-proof-badge">
-                  <span className="lp-proof-badge__icon">
-                    <Icon size={14} />
-                  </span>
-                  <span>{label}</span>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* Right column — phones + floating widgets */}
           <motion.div
-            className="lp-hero__media"
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.9, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="lp-badge"
+            custom={0}
+            variants={heroItemVariants}
+            initial="hidden"
+            animate="visible"
           >
-            <div className="lp-phones">
-              <div className="lp-phone lp-phone--left">
-                <video
-                  src={leftVideo}
-                  className="lp-phone__media"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                />
-              </div>
-              <div className="lp-phone lp-phone--right">
-                <video
-                  src={rightVideo}
-                  className="lp-phone__media"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  onError={(e) => {
-                    // If ugc-creator-2.mp4 doesn't exist yet, fall back to the existing video
-                    if (e.currentTarget.src.indexOf(leftVideo) === -1) {
-                      e.currentTarget.src = leftVideo;
-                    }
-                  }}
-                />
-              </div>
-            </div>
+            <Sparkles size={14} />
+            <span>For Creators &amp; Brands</span>
+            <Sparkles size={14} />
+          </motion.div>
 
-            {/* Floating widget — creators count */}
-            <div className="lp-float lp-float--creators">
-              <div className="lp-avatars">
-                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #3A3A66, #8888A0)' }}>A</span>
-                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #1F1F4E, #07074e)' }}>M</span>
-                <span className="lp-avatar" style={{ background: 'linear-gradient(135deg, #fb923c, #3A3A66)' }}>K</span>
-              </div>
-              <div className="lp-float__copy">
-                <span className="lp-float__small">Get content from</span>
-                <span className="lp-float__big">7000+</span>
-                <span className="lp-float__small">high-quality creators</span>
-              </div>
-            </div>
+          <motion.h1
+            className="lp-hero__title"
+            custom={1}
+            variants={heroItemVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            Your Ads Aren't Being Ignored.
+            <br />
+            <span className="lp-hero__mark">They're Being Doubted.</span>
+          </motion.h1>
 
-            {/* Floating widget — platforms */}
-            <div className="lp-float lp-float--platforms">
-              <span className="lp-float__small lp-float__small--center">
-                Authentic content for all your platforms
-              </span>
-              <div className="lp-platforms">
-                <span className="lp-platform-icon" title="Instagram"><Instagram size={16} /></span>
-                <span className="lp-platform-icon lp-platform-icon--meta" title="Meta">M</span>
-                <span className="lp-platform-icon" title="Amazon"><ShoppingBag size={16} /></span>
-                <span className="lp-platform-icon" title="TikTok"><Music2 size={16} /></span>
-                <span className="lp-platform-icon lp-platform-icon--shop" title="Shopify">S</span>
-              </div>
-            </div>
+          <motion.p
+            className="lp-hero__subtitle"
+            custom={2}
+            variants={heroItemVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            People don't scroll because they're bored.
+            <br />
+            They scroll because they don't trust what they see.
+          </motion.p>
 
-            {/* Category chips */}
-            <div className="lp-chips">
-              {categoryChips.map(({ Icon, label }, i) => (
-                <div key={label} className={`lp-chip lp-chip--${i}`}>
-                  <span className="lp-chip__icon"><Icon size={10} /></span>
-                  <span>{label}</span>
-                </div>
-              ))}
-              <div className="lp-chip lp-chip--more">
-                <span className="lp-chip__icon">+</span>
-                <span>More...</span>
+          <motion.div
+            className="lp-hero__ctas"
+            custom={3}
+            variants={heroItemVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <button
+              className="lp-btn-primary"
+              onClick={handleGetStarted}
+              data-testid="get-started-btn"
+            >
+              Find My Creator Match <ArrowRight size={18} />
+            </button>
+            <button
+              className="lp-btn-ghost"
+              onClick={() => navigate('/auth')}
+              data-testid="learn-more-btn"
+            >
+              Join the Creator Network
+            </button>
+          </motion.div>
+
+          <motion.div
+            className="lp-hero__badges"
+            custom={4}
+            variants={heroItemVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {proofBadges.map(({ Icon, label }) => (
+              <div key={label} className="lp-proof-badge">
+                <span className="lp-proof-badge__icon">
+                  <Icon size={14} />
+                </span>
+                <span>{label}</span>
               </div>
-            </div>
+            ))}
           </motion.div>
         </div>
-      </section>
 
-      {/* ── Brands Scroll ───────────────────────────────────────────────────── */}
-      <section className="lp-brands">
-        <p className="lp-brands__caption">
-          Used by brands that value long-term recall over short-term noise.
-        </p>
-        <div className="lp-brands__scroll">
-          <div className="lp-brands__track">
-            {['Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft',
-              'Amazon','Apple','Google','Netflix','Spotify','Tesla','Meta','Microsoft'].map((b, i) => (
-              <div key={`${b}-${i}`} className="lp-brand-item">{b}</div>
-            ))}
+        {/* Layer 4: shrunk phone tucked bottom-right — commented out */}
+        {/*
+        <motion.div
+          className="lp-hero__phone-mini"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.9 }}
+        >
+          <video src={leftVideo} autoPlay muted loop playsInline />
+        </motion.div>
+        */}
+
+        {/* Layer 5: bottom strip — counter + scrolling logos */}
+        <div className="lp-hero__strip">
+          <div className="lp-hero__brands-side lp-hero__brands-side--left">
+            <div className="lp-brands__track lp-brands__track--left">
+              {(() => {
+                const base = [
+                  { name: 'Amazon', letter: 'a' },
+                  { name: 'Apple', letter: '' },
+                  { name: 'Google', letter: 'G' },
+                  { name: 'Netflix', letter: 'N' },
+                  { name: 'Spotify', letter: '♫' },
+                  { name: 'Tesla', letter: 'T' },
+                  { name: 'Meta', letter: '∞' },
+                  { name: 'Microsoft', letter: '⊞' },
+                ];
+                return [...base, ...base, ...base, ...base];
+              })().map((b, i) => (
+                <div key={`L-${b.name}-${i}`} className="lp-brand-item">
+                  <div className="lp-brand-item__icon">{b.letter}</div>
+                  <div className="lp-brand-item__name">{b.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lp-hero__brand-center">
+            <img src="/edited-image-preview_-_Edited-removebg-preview.png" alt="UGCad.io" />
+          </div>
+
+          <div className="lp-hero__brands-side lp-hero__brands-side--right">
+            <div className="lp-brands__track lp-brands__track--right">
+              {(() => {
+                const base = [
+                  { name: 'HubSpot', letter: 'H' },
+                  { name: 'Notion', letter: 'N' },
+                  { name: 'Slack', letter: '#' },
+                  { name: 'Stripe', letter: 'S' },
+                  { name: 'Figma', letter: 'F' },
+                  { name: 'Canva', letter: 'C' },
+                  { name: 'Airbnb', letter: 'A' },
+                  { name: 'Uber', letter: 'U' },
+                ];
+                return [...base, ...base, ...base, ...base];
+              })().map((b, i) => (
+                <div key={`R-${b.name}-${i}`} className="lp-brand-item">
+                  <div className="lp-brand-item__icon">{b.letter}</div>
+                  <div className="lp-brand-item__name">{b.name}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Layer 6: curved divider into next light section */}
+        <svg
+          className="lp-hero__divider"
+          viewBox="0 0 1440 80"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0,0 C480,80 960,80 1440,0 L1440,80 L0,80 Z" fill="#0a0a0a" />
+        </svg>
       </section>
+
+      {/* connector 1: hero → hook — L-bend from both sides (mirror) */}
+      <div className="lp-connector" style={{ height: 180 }}>
+        <svg viewBox="0 0 1400 180" width="100%" height="100%">
+          <path d="M 80 0 L 80 80 L 480 80 L 480 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 1320 0 L 1320 80 L 920 80 L 920 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
 
       {/* ── Scroll Hook ───────────────────────────────────────────────────── */}
       <section className="lp-hook">
@@ -582,6 +656,13 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* connector 2: hook → steps — straight vertical line on right */}
+      <div className="lp-connector" style={{ height: 120 }}>
+        <svg viewBox="0 0 1400 120" width="100%" height="100%">
+          <path d="M 700 0 L 700 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
 
       {/* ── How It Works (3 Steps) ────────────────────────────────────────── */}
       <section className="lp-steps">
@@ -755,6 +836,14 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* connector 3: steps → showcase — small L-bends from both sides */}
+      <div className="lp-connector" style={{ height: 70 }}>
+        <svg viewBox="0 0 1400 70" width="100%" height="100%">
+          <path d="M 300 0 L 300 35 L 500 35 L 500 70" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 1100 0 L 1100 35 L 900 35 L 900 70" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
+
       {/* ── Showcase — Best UGC on the internet ────────────────────────────── */}
       <section className="lp-showcase">
         <div className="lp-showcase__inner">
@@ -835,6 +924,13 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* connector 4: showcase → audit — U-shape from left, across, down right */}
+      <div className="lp-connector" style={{ height: 110 }}>
+        <svg viewBox="0 0 1400 110" width="100%" height="100%">
+          <path d="M 200 0 L 200 40 L 1200 40 L 1200 110" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
+
       {/* ── Psychological Audit ───────────────────────────────────────────── */}
       <section className="lp-audit">
         <div className="lp-audit__bg-orb lp-audit__bg-orb--1" aria-hidden="true" />
@@ -881,6 +977,13 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* connector 5: audit → compare — S-curve center-to-left */}
+      <div className="lp-connector" style={{ height: 100 }}>
+        <svg viewBox="0 0 1400 100" width="100%" height="100%">
+          <path d="M 900 0 L 900 30 L 500 30 L 500 70 L 180 70 L 180 100" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
 
       {/* ── Comparison Table ─────────────────────────────────────────────── */}
       <section className="lp-compare">
@@ -934,6 +1037,13 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* connector 6: compare → features — straight vertical center */}
+      <div className="lp-connector" style={{ height: 110 }}>
+        <svg viewBox="0 0 1400 110" width="100%" height="100%">
+          <path d="M 700 0 L 700 110" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
 
       {/* ── Features ───────────────────────────────────────────────────────── */}
       <section className="lp-features" ref={featuresRef}>
@@ -994,6 +1104,14 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* connector 7: features → proof — fork from center splitting into two */}
+      <div className="lp-connector" style={{ height: 120 }}>
+        <svg viewBox="0 0 1400 120" width="100%" height="100%">
+          <path d="M 700 0 L 700 50 L 350 50 L 350 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 700 50 L 1050 50 L 1050 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
+
       {/* ── Value Proof (Editorial Stats) ─────────────────────────────────── */}
       <section className="lp-proof">
         <div className="lp-proof__inner">
@@ -1019,6 +1137,14 @@ export default function Landing() {
           <p className="lp-proof__micro">— Not louder ads. Better ones. —</p>
         </div>
       </section>
+
+      {/* connector 8: proof → testimonial — T-junction horizontal with center drop */}
+      <div className="lp-connector" style={{ height: 90 }}>
+        <svg viewBox="0 0 1400 90" width="100%" height="100%">
+          <path d="M 200 0 L 1200 0" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 700 0 L 700 90" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
 
       {/* ── Testimonials ──────────────────────────────────────────────────── */}
       <section className="lp-testimonial">
@@ -1095,6 +1221,14 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* connector 9: testimonial → cta — V-shape converging to center */}
+      <div className="lp-connector" style={{ height: 100 }}>
+        <svg viewBox="0 0 1400 100" width="100%" height="100%">
+          <path d="M 200 0 L 700 100" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 1200 0 L 700 100" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+        </svg>
+      </div>
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
       <section className="lp-cta" ref={ctaRef}>
@@ -1239,20 +1373,20 @@ export default function Landing() {
       {/* ── Styles ─────────────────────────────────────────────────────────── */}
       <style>{`
         :root {
-          --lp-purple-50:  #EEEEF2;
-          --lp-purple-100: #DDDDE3;
+          --lp-purple-50:  rgba(255,255,255,0.06);
+          --lp-purple-100: rgba(255,255,255,0.08);
           --lp-purple-200: #BBBBC8;
           --lp-purple-300: #8888A0;
           --lp-purple-500: #3A3A66;
           --lp-purple-600: #1F1F4E;
-          --lp-purple-700: #07074e;
+          --lp-purple-700: #A78BFA;
           --lp-purple-900: #050538;
           --lp-ink:        #0A0A0A;
-          --lp-text:       #1F2937;
-          --lp-text-muted: #6B7280;
+          --lp-text:       #ffffff;
+          --lp-text-muted: rgba(255, 255, 255, 0.7);
           --lp-text-soft:  #9CA3AF;
-          --lp-bg:         #FFFFFF;
-          --lp-bg-soft:    #FAFAF9;
+          --lp-bg:         #0a0a0a;
+          --lp-bg-soft:    #0a0a0a;
           --lp-border:     #E5E7EB;
         }
 
@@ -1260,7 +1394,15 @@ export default function Landing() {
         .lp-root {
           min-height: 100vh;
           font-family: 'Instrument Sans', 'Inter', sans-serif;
-          background: #ffffff;
+          background: #0a0a0a;
+          color: #ffffff;
+        }
+        .lp-root h1, .lp-root h2, .lp-root h3, .lp-root h4, .lp-root h5, .lp-root h6,
+        .lp-root p, .lp-root span, .lp-root div, .lp-root li, .lp-root a,
+        .lp-root label, .lp-root td, .lp-root th, .lp-root strong, .lp-root em,
+        .lp-root blockquote, .lp-root figcaption, .lp-root input, .lp-root textarea,
+        .lp-root select, .lp-root button {
+          color: #ffffff;
           color: var(--lp-text);
         }
 
@@ -1285,7 +1427,8 @@ export default function Landing() {
           justify-content: space-between;
           max-width: 1240px;
           margin: 0 auto;
-          background: #ffffff;
+          background: rgba(10, 10, 10, 0.85);
+          backdrop-filter: blur(12px);
           padding: 12px 22px;
           border-radius: 100px;
           border: 1px solid var(--lp-border);
@@ -1311,7 +1454,7 @@ export default function Landing() {
           padding: 9px 22px;
           border-radius: 100px;
           border: 1px solid var(--lp-border);
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
@@ -1341,149 +1484,175 @@ export default function Landing() {
           transform: translateY(-1px);
         }
 
-        /* ── Hero ─────────────────────────────────────────────────────────── */
+        /* ── Hero (dark constellation) ─────────────────────────────────────── */
         .lp-hero {
           position: relative;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          padding: 140px 8% 80px;
-          background: linear-gradient(160deg, #F5F5F8 0%, #EEEEF2 55%, #FFFFFF 100%);
+          background: #0a0a0a;
+          color: #ffffff;
+          min-height: auto;
+          padding: 130px 6% 0;
           overflow: hidden;
+          isolation: isolate;
         }
 
-        .lp-orb {
+        /* Layer 1: dashed SVG connectors + icons + arrows */
+        .lp-hero__connectors {
           position: absolute;
-          border-radius: 50%;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: calc(100vh - 140px);
+          z-index: 1;
           pointer-events: none;
         }
-        .lp-orb--1 {
-          width: 520px; height: 520px;
-          background: rgba(7, 7, 78, 0.22);
-          filter: blur(110px);
-          top: -120px; left: -120px;
+
+        /* Layer 2: floating squircle icon nodes */
+        .lp-hero__icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 20px;
+          outline: 8px solid rgba(239, 239, 239, 0.15);
+          outline-offset: 4px;
+          display: grid;
+          place-items: center;
+          box-shadow:
+            0 14px 32px rgba(0, 0, 0, 0.55),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18),
+            0 0 0 1px rgba(255, 255, 255, 0.06);
+          margin: 16px auto;
         }
-        .lp-orb--2 {
-          width: 420px; height: 420px;
-          background: rgba(154, 154, 191, 0.32);
-          filter: blur(100px);
-          bottom: -100px; right: -60px;
+        .lp-hero__icon-inner {
+          display: grid;
+          place-items: center;
+          width: 100%;
+          height: 100%;
         }
 
+        /* Layer 3: centered headline + CTAs */
         .lp-hero__inner {
-          display: grid;
-          grid-template-columns: 1fr 1.05fr;
-          gap: 60px;
-          align-items: center;
-          max-width: 1300px;
+          position: relative;
+          z-index: 3;
+          max-width: 1080px;
           margin: 0 auto;
           width: 100%;
-          position: relative;
-          z-index: 2;
-        }
-
-        .lp-hero__text {
+          text-align: center;
           display: flex;
           flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: calc(100vh - 280px);
         }
 
         .lp-badge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 7px 16px;
+          padding: 6px 14px;
           border-radius: 100px;
-          background: #ffffff;
-          border: 1px solid var(--lp-border);
-          color: #07074e;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #C8F23A;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 600;
-          margin-bottom: 24px;
-          width: fit-content;
-          box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
+          margin-bottom: 18px;
+          backdrop-filter: blur(8px);
         }
 
         .lp-hero__title {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 2.8rem;
+          font-size: clamp(2rem, 4.5vw, 3.6rem);
           font-weight: 500;
           line-height: 1.1;
-          color: var(--lp-ink);
-          margin: 0 0 20px 0;
-          letter-spacing: -0.05em;
+          color: #ffffff;
+          margin: 0 0 24px 0;
+          letter-spacing: -0.04em;
+          max-width: 20ch;
         }
 
-        .lp-hero__title--gradient {
-          color: #07074e;
-          background: none;
-          -webkit-text-fill-color: #07074e;
+        .lp-hero__mark {
+          display: inline-block;
+          background: #A78BFA;
+          color: #ffffff;
+          padding: 0.04em 0.28em;
+          border-radius: 10px;
+          white-space: nowrap;
+          box-shadow: 0 10px 36px rgba(200, 242, 58, 0.32);
         }
 
         .lp-hero__subtitle {
           font-family: 'Instrument Sans', sans-serif;
-          color: var(--lp-text-muted);
+          color: rgba(255, 255, 255, 0.65);
           font-size: 1rem;
-          line-height: 1.5;
-          letter-spacing: -0.015em;
-          max-width: 540px;
-          margin: 0 0 32px;
+          line-height: 1.55;
+          max-width: 520px;
+          margin: 0 auto 28px;
+          text-align: center;
+        }
+
+        .lp-hero__accent {
+          color: #C8F23A;
+          font-weight: 600;
         }
 
         .lp-hero__ctas {
           display: flex;
           gap: 12px;
           align-items: center;
+          justify-content: center;
           flex-wrap: wrap;
-          margin-bottom: 36px;
+          margin-bottom: 16px;
         }
 
-        .lp-btn-primary {
+        /* Scoped button overrides inside the dark hero only */
+        .lp-hero .lp-btn-primary {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           padding: 14px 28px;
           border-radius: 100px;
-          background: var(--lp-ink);
+          background: #A78BFA;
           color: #ffffff;
           font-family: 'Instrument Sans', sans-serif;
-          font-weight: 600;
+          font-weight: 700;
           font-size: 0.98rem;
           border: none;
           cursor: pointer;
-          transition: all 0.25s ease;
-          box-shadow: 0 4px 16px rgba(10,10,10,0.18);
+          transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+          box-shadow: 0 12px 32px rgba(200, 242, 58, 0.30);
         }
-        .lp-btn-primary:hover {
+        .lp-hero .lp-btn-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(7, 7, 78, 0.32);
-          background: var(--lp-purple-700);
+          filter: brightness(1.08);
+          box-shadow: 0 16px 40px rgba(232, 255, 110, 0.45);
         }
 
-        .lp-btn-ghost {
+        .lp-hero .lp-btn-ghost {
           display: inline-flex;
           align-items: center;
           gap: 6px;
           padding: 13px 24px;
           border-radius: 100px;
-          background: #ffffff;
-          color: var(--lp-text);
+          background: rgba(255, 255, 255, 0.06);
+          color: #ffffff;
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
           font-size: 0.98rem;
-          border: 1px solid var(--lp-border);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           cursor: pointer;
-          transition: all 0.22s ease;
+          transition: background 0.22s ease, border-color 0.22s ease;
+          backdrop-filter: blur(8px);
         }
-        .lp-btn-ghost:hover {
-          border-color: var(--lp-purple-500);
-          color: var(--lp-purple-700);
+        .lp-hero .lp-btn-ghost:hover {
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.32);
         }
 
         .lp-hero__badges {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
+          justify-content: center;
         }
 
         .lp-proof-badge {
@@ -1491,281 +1660,193 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 7px 14px;
-          background: #ffffff;
-          border: 1px solid var(--lp-border);
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 500;
-          color: var(--lp-text-muted);
-          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+          color: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(8px);
         }
         .lp-proof-badge__icon {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #BBBBC8, #8888A0);
+          background: linear-gradient(135deg, #8A85F2, #A78BFA);
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: var(--lp-purple-700);
+          color: #ffffff;
         }
 
-        /* ── Hero media (phones + floating widgets) ───────────────────────── */
-        .lp-hero__media {
-          position: relative;
-          width: 88%;
-          margin-left: auto;
-          margin-right: auto;
-          aspect-ratio: 1 / 0.92;
-          display: block;
-        }
-
-        .lp-phones {
-          position: relative;
-          width: 100%;
-          height: 100%;
-        }
-
-        .lp-phone {
+        /* Layer 4: shrunk phone tucked bottom-right */
+        .lp-hero__phone-mini {
           position: absolute;
-          border-radius: 22px;
+          right: 5%;
+          bottom: 200px;
+          width: 200px;
+          height: 360px;
+          border-radius: 26px;
           overflow: hidden;
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          box-shadow:
+            0 30px 70px rgba(0, 0, 0, 0.55),
+            0 0 0 1px rgba(167, 139, 250, 0.15);
+          z-index: 2;
           background: #111;
         }
-
-        .lp-phone__media {
+        .lp-hero__phone-mini video {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
         }
 
-        /* Main big card on the left — slightly smaller */
-        .lp-phone--left {
-          left: 0;
-          top: 4%;
-          width: 56%;
-          height: 92%;
-          z-index: 2;
-          box-shadow: 0 24px 60px rgba(7, 7, 78, 0.20), 0 8px 24px rgba(0,0,0,0.12);
-        }
-
-        /* Secondary card — sits significantly BEHIND the main one, slightly lower */
-        .lp-phone--right {
-          right: 0;
-          left: auto;
-          top: 28%;
-          width: 56%;
-          height: 84%;
-          z-index: 1;
-          box-shadow: 0 22px 48px rgba(0,0,0,0.18);
-        }
-
-        /* Floating widget — creators count */
-        .lp-float {
-          position: absolute;
-          background: #ffffff;
-          border: 1px solid var(--lp-border);
-          border-radius: 18px;
-          box-shadow: 0 16px 40px rgba(0,0,0,0.12);
-          padding: 14px 16px;
-          font-family: 'Instrument Sans', sans-serif;
+        /* Layer 5: bottom strip — counter + scrolling logos */
+        .lp-hero__strip {
+          position: relative;
           z-index: 3;
-        }
-
-        .lp-float--creators {
-          top: 14%;
-          left: -6%;
           display: flex;
           align-items: center;
-          gap: 12px;
-          max-width: 240px;
-          z-index: 4;
+          gap: 0;
+          width: 100vw;
+          max-width: 100vw;
+          margin: 60px 0 0;
+          margin-left: calc(50% - 50vw);
+          margin-right: calc(50% - 50vw);
+          padding: 24px 0 80px;
         }
 
-        .lp-avatars {
-          display: flex;
-        }
-        .lp-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          color: #fff;
-          font-weight: 700;
-          font-size: 13px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border: 2px solid #fff;
-          margin-left: -8px;
-        }
-        .lp-avatar:first-child { margin-left: 0; }
-
-        .lp-float__copy {
+        .lp-hero__strip-counter {
+          flex-shrink: 0;
           display: flex;
           flex-direction: column;
           line-height: 1.2;
+          font-family: 'Instrument Sans', sans-serif;
         }
-        .lp-float__small {
-          font-size: 0.72rem;
-          color: var(--lp-text-muted);
+        .lp-hero__strip-counter strong {
+          font-size: 1.7rem;
+          font-weight: 600;
+          color: #ffffff;
+          letter-spacing: -0.02em;
+        }
+        .lp-hero__strip-counter span {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.55);
           font-weight: 500;
         }
-        .lp-float__small--center {
-          text-align: center;
-          margin-bottom: 8px;
-        }
-        .lp-float__big {
-          font-size: 1.45rem;
-          font-weight: 700;
-          color: var(--lp-purple-700);
-          line-height: 1;
-        }
 
-        .lp-float--platforms {
-          bottom: 10%;
-          left: 8%;
-          padding: 12px 18px;
-          min-width: 230px;
-          z-index: 4;
+        /* Two-sided scrolling brand strip with center logo */
+        .lp-hero__brands-side {
+          flex: 1;
+          overflow: hidden;
         }
-
-        .lp-platforms {
+        .lp-hero__brands-side--left {
+          -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 15%, #000 100%);
+                  mask-image: linear-gradient(90deg, transparent 0%, #000 15%, #000 100%);
+        }
+        .lp-hero__brands-side--right {
+          -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
+                  mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
+        }
+        .lp-hero__brands-side .lp-brands__track {
           display: flex;
-          gap: 10px;
+          gap: 28px;
+          width: max-content;
+          padding: 0 20px;
           align-items: center;
-          justify-content: center;
         }
-        .lp-platform-icon {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--lp-purple-50);
-          color: var(--lp-purple-700);
-          font-weight: 700;
-          font-size: 13px;
+        .lp-brands__track--left {
+          animation: scrollBrandsRight 30s linear infinite;
         }
-        .lp-platform-icon--meta {
-          background: #1877F2; color: #fff;
+        .lp-brands__track--right {
+          animation: scrollBrandsLeft 30s linear infinite;
         }
-        .lp-platform-icon--shop {
-          background: #95BF47; color: #fff;
-        }
-
-        /* Category chips — small square cards in a 2-column staggered grid */
-        .lp-chips {
-          position: absolute;
-          right: -4%;
-          top: 80%;
-          display: grid;
-          grid-template-columns: repeat(2, 46px);
-          grid-auto-rows: 42px;
-          gap: 10px;
-          z-index: 5;
-        }
-        .lp-chip {
+        .lp-hero__brands-side .lp-brand-item {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: 3px;
-          padding: 4px;
-          background: #ffffff;
-          border: 1px solid var(--lp-border);
-          border-radius: 10px;
+          gap: 8px;
+          flex-shrink: 0;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.62rem;
-          font-weight: 600;
-          color: var(--lp-ink);
-          box-shadow: 0 6px 14px rgba(0,0,0,0.10);
-          text-align: center;
         }
-        .lp-chip__icon {
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #EEEEF2, #BBBBC8);
-          color: var(--lp-purple-700);
-          display: inline-flex;
+        .lp-brand-item__icon {
+          width: 96px;
+          height: 96px;
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          display: flex;
           align-items: center;
           justify-content: center;
+          font-size: 2.6rem;
           font-weight: 700;
-          flex-shrink: 0;
-          font-size: 0.6rem;
-        }
-        /* Staggered grid: Beauty alone in row 1, then 2x2 below */
-        .lp-chip--0 { grid-column: 2; grid-row: 1; }  /* Beauty */
-        .lp-chip--1 { grid-column: 1; grid-row: 2; }  /* Apps */
-        .lp-chip--2 { grid-column: 2; grid-row: 2; }  /* Health */
-        .lp-chip--3 { grid-column: 1; grid-row: 3; }  /* Home */
-        .lp-chip--more {
-          grid-column: 2; grid-row: 3;                 /* +More */
-          color: var(--lp-text-muted);
-        }
-
-        /* ── Brands Scroll ────────────────────────────────────────────────── */
-        .lp-brands {
-          position: relative;
-          background:
-            radial-gradient(circle at 20% 50%, rgba(7, 7, 78, 0.06) 0%, transparent 50%),
-            radial-gradient(circle at 80% 50%, rgba(7, 7, 78, 0.05) 0%, transparent 50%),
-            linear-gradient(180deg, #F8F8FB 0%, #EEEEF2 50%, #F8F8FB 100%);
-          padding: 50px 0 60px;
-          overflow: hidden;
-          border-top: 1px solid var(--lp-border);
-          border-bottom: 1px solid var(--lp-border);
-        }
-        .lp-brands::before,
-        .lp-brands::after {
-          content: '';
-          position: absolute;
-          top: 0; bottom: 0;
-          width: 180px;
-          z-index: 2;
-          pointer-events: none;
-        }
-        .lp-brands::before {
-          left: 0;
-          background: linear-gradient(90deg, #EEEEF2 0%, rgba(238,238,242,0.6) 50%, rgba(238,238,242,0) 100%);
-        }
-        .lp-brands::after {
-          right: 0;
-          background: linear-gradient(270deg, #EEEEF2 0%, rgba(238,238,242,0.6) 50%, rgba(238,238,242,0) 100%);
-        }
-        .lp-brands__scroll { width: 100%; overflow: hidden; }
-        .lp-brands__track {
-          display: flex;
-          gap: 60px;
-          animation: scrollBrands 30s linear infinite;
-          width: max-content;
-          padding: 0 8%;
-        }
-        .lp-brand-item {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--lp-ink);
-          white-space: nowrap;
-          opacity: 0.5;
+          color: rgba(255, 255, 255, 0.85);
           transition: all 0.3s ease;
         }
-        .lp-brand-item:hover {
-          opacity: 1;
-          color: #07074e;
+        .lp-brand-item__name {
+          font-size: 0.78rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.55);
+          white-space: nowrap;
+          transition: color 0.3s ease;
         }
-        @keyframes scrollBrands {
+        .lp-brand-item:hover .lp-brand-item__icon {
+          background: rgba(167, 139, 250, 0.15);
+          border-color: rgba(167, 139, 250, 0.35);
+        }
+        .lp-brand-item:hover .lp-brand-item__name { color: #ffffff; }
+
+        /* Center main logo — highlighted with glow */
+        .lp-hero__brand-center {
+          flex-shrink: 0;
+          width: 190px;
+          height: 190px;
+          border-radius: 36px;
+          background: #1f1f1f;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.55),
+                      0 0 35px rgba(167, 139, 250, 0.6),
+                      0 0 160px rgba(167, 139, 250, 0.4);
+          position: relative;
+          z-index: 4;
+        }
+        .lp-hero__brand-center img {
+          width: 150px;
+          height: 150px;
+          object-fit: contain;
+        }
+
+        /* Left track moves right→left (brands flow toward center from right) */
+        /* Right track moves left→right (brands flow toward center from left, i.e. exiting right) */
+        @keyframes scrollBrandsLeft {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(-25%); }
+        }
+        @keyframes scrollBrandsRight {
+          0% { transform: translateX(-25%); }
+          100% { transform: translateX(0); }
+        }
+
+        /* Layer 6: curved divider into next light section */
+        .lp-hero__divider {
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          width: 100%;
+          height: 80px;
+          z-index: 4;
+          display: block;
         }
 
         /* ── The Problem section ──────────────────────────────────────────── */
         .lp-problem {
           padding: 100px 8% 60px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
         }
         .lp-problem__inner {
           max-width: 1200px;
@@ -1778,7 +1859,7 @@ export default function Landing() {
           gap: 6px;
           padding: 6px 14px;
           border-radius: 100px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text-muted);
           font-family: 'Instrument Sans', sans-serif;
@@ -1802,9 +1883,9 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-problem__heading--accent {
-          color: #07074e;
+          color: #A78BFA;
           background: none;
-          -webkit-text-fill-color: #07074e;
+          -webkit-text-fill-color: #A78BFA;
         }
         .lp-problem__subtitle {
           font-family: 'Instrument Sans', sans-serif;
@@ -1824,7 +1905,7 @@ export default function Landing() {
         }
 
         .lp-pcard {
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 24px;
           padding: 22px;
@@ -1870,7 +1951,7 @@ export default function Landing() {
           width: 50px;
           height: 50px;
           border-radius: 12px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           display: flex;
           align-items: center;
@@ -1890,7 +1971,7 @@ export default function Landing() {
         .lp-stamp--slack {
           top: 32%;
           left: 36%;
-          color: #07074e;
+          color: #A78BFA;
           transform: rotate(-4deg);
         }
         .lp-stamp--wa {
@@ -1905,7 +1986,7 @@ export default function Landing() {
           top: 52%;
           left: 32%;
           width: 40px; height: 40px;
-          color: #4A4A4A;
+          color: rgba(255, 255, 255, 0.7);
           font-size: 0.9rem;
           background: #FAFAFA;
           border-radius: 8px;
@@ -1916,7 +1997,7 @@ export default function Landing() {
           right: 14%;
           width: 38px; height: 38px;
           font-size: 1rem;
-          color: #6B7280;
+          color: rgba(255, 255, 255, 0.6);
           background: #FAFAFA;
           transform: rotate(8deg);
         }
@@ -1982,15 +2063,15 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.72rem;
           font-weight: 500;
-          background: #FFFFFF;
+          background: rgba(255,255,255,0.06);
           border: 1px solid #FCA5A5;
-          color: #E11D48;
+          color: #FCA5A5;
           box-shadow: 0 4px 12px rgba(0,0,0,0.06);
           white-space: nowrap;
         }
         .lp-tag-pill--sm { font-size: 0.65rem; padding: 4px 8px; }
-        .lp-tag-pill--pending { border-color: #FCD34D; color: #B45309; }
-        .lp-tag-pill--reject { border-color: #FCA5A5; color: #E11D48; }
+        .lp-tag-pill--pending { border-color: #FCD34D; color: #FCD34D; }
+        .lp-tag-pill--reject { border-color: #FCA5A5; color: #FCA5A5; }
         .lp-tag-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
         .lp-tag-dot--reject { background: #E11D48; }
         .lp-tag-dot--pending { background: #B45309; }
@@ -2032,7 +2113,7 @@ export default function Landing() {
           width: 90px;
           height: 90px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #DDDDE3, #8888A0);
+          background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
           color: var(--lp-purple-700);
           display: flex;
           align-items: center;
@@ -2151,7 +2232,8 @@ export default function Landing() {
         /* ── Showcase / Best UGC ──────────────────────────────────────────── */
         .lp-showcase {
           padding: 80px 8% 100px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 100%);
+          background: transparent;
+          color: #ffffff;
         }
         .lp-showcase__inner {
           max-width: 1200px;
@@ -2168,9 +2250,9 @@ export default function Landing() {
           margin: 0 0 14px 0;
         }
         .lp-showcase__heading--accent {
-          color: #07074e;
+          color: #A78BFA;
           background: none;
-          -webkit-text-fill-color: #07074e;
+          -webkit-text-fill-color: #A78BFA;
         }
         .lp-showcase__subtitle {
           font-family: 'Instrument Sans', sans-serif;
@@ -2198,7 +2280,7 @@ export default function Landing() {
           gap: 8px;
           padding: 10px 20px;
           border-radius: 100px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
@@ -2346,7 +2428,8 @@ export default function Landing() {
         /* ── Comparison Table ─────────────────────────────────────────────── */
         .lp-compare {
           padding: 100px 8% 100px;
-          background: linear-gradient(180deg, #F5F5F8 0%, #FFFFFF 50%, #EEEEF2 100%);
+          background: transparent;
+          color: #ffffff;
         }
         .lp-compare__inner {
           max-width: 1200px;
@@ -2366,13 +2449,13 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-compare__heading--accent {
-          color: #07074e;
+          color: #A78BFA;
           background: none;
-          -webkit-text-fill-color: #07074e;
+          -webkit-text-fill-color: #A78BFA;
         }
 
         .lp-compare__table {
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border-radius: 24px;
           border: 1px solid var(--lp-border);
           overflow: hidden;
@@ -2398,7 +2481,7 @@ export default function Landing() {
           letter-spacing: -0.01em;
         }
         .lp-compare__row--alt {
-          background: #FAFAF9;
+          background: rgba(7, 7, 78, 0.15);
         }
 
         .lp-compare__cell {
@@ -2490,7 +2573,8 @@ export default function Landing() {
         /* ── Features ─────────────────────────────────────────────────────── */
         .lp-features {
           padding: 120px 8%;
-          background: #ffffff;
+          background: transparent;
+          color: #ffffff;
           position: relative;
         }
         .lp-features__inner {
@@ -2532,7 +2616,7 @@ export default function Landing() {
         }
 
         .lp-card {
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           padding: 32px 26px 26px;
           border-radius: 20px;
           border: 1.5px solid var(--lp-border);
@@ -2616,7 +2700,8 @@ export default function Landing() {
         .lp-cta {
           position: relative;
           padding: 140px 8% 130px;
-          background: linear-gradient(135deg, #F5F5F8 0%, #DDDDE3 50%, #F5F5F8 100%);
+          background: transparent;
+          color: #ffffff;
           overflow: hidden;
           text-align: center;
         }
@@ -2661,7 +2746,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
           font-weight: 600;
-          color: #07074e;
+          color: #A78BFA;
           margin-bottom: 28px;
           box-shadow: 0 4px 16px rgba(7, 7, 78,0.10);
         }
@@ -2669,7 +2754,7 @@ export default function Landing() {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           box-shadow: 0 0 0 0 rgba(7, 7, 78, 0.55);
           animation: hookPulse 1.8s ease-out infinite;
           flex-shrink: 0;
@@ -2696,12 +2781,12 @@ export default function Landing() {
           left: -4%;
           right: -4%;
           height: 4px;
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           transform: rotate(-3deg);
           border-radius: 4px;
         }
         .lp-cta__heading--accent {
-          color: #07074e;
+          color: #A78BFA;
           font-style: italic;
           position: relative;
           padding: 0 4px;
@@ -2745,7 +2830,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 2.2rem;
           font-weight: 700;
-          color: #07074e;
+          color: #A78BFA;
           line-height: 1;
         }
         .lp-stat__label {
@@ -2794,7 +2879,7 @@ export default function Landing() {
         }
         .lp-btn-join:hover {
           transform: translateY(-3px);
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           box-shadow: 0 18px 46px rgba(7, 7, 78, 0.48);
         }
 
@@ -2815,9 +2900,9 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-btn-outline:hover {
-          background: #ffffff;
-          border-color: #07074e;
-          color: #07074e;
+          background: rgba(255, 255, 255, 0.06);
+          border-color: #A78BFA;
+          color: #A78BFA;
         }
 
         .lp-cta__proof {
@@ -2859,7 +2944,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 1.4rem;
           font-weight: 600;
-          color: #07074e;
+          color: #A78BFA;
           letter-spacing: -0.02em;
           line-height: 1;
         }
@@ -2885,43 +2970,49 @@ export default function Landing() {
 
         /* ── Responsive ───────────────────────────────────────────────────── */
         @media (max-width: 1024px) {
-          .lp-hero__inner {
-            grid-template-columns: 1fr;
-            text-align: center;
+          .lp-hero { padding: 130px 5% 0; }
+          .lp-hero__icon { width: 52px; height: 52px; border-radius: 18px; }
+          .lp-hero__icon-inner svg { width: 22px; height: 22px; }
+          .lp-hero__phone-mini { display: none; }
+          .lp-hero__strip {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 20px;
+            margin-top: 60px;
+            padding-bottom: 110px;
           }
-          .lp-hero__text { align-items: center; }
-          .lp-hero__subtitle { max-width: 100%; }
-          .lp-hero__ctas, .lp-hero__badges { justify-content: center; }
-          .lp-hero__media {
-            order: -1;
-            max-width: 520px;
-            margin: 0 auto;
-            aspect-ratio: 1 / 0.9;
-          }
-          .lp-float--creators { left: 2%; }
-          .lp-chips { right: 2%; }
+          .lp-hero__strip-logos { width: 100%; }
         }
 
-        @media (max-width: 640px) {
-          .lp-hero { padding: 120px 5% 60px; }
-          .lp-features, .lp-cta { padding: 80px 5%; }
+        @media (max-width: 768px) {
+          .lp-hero { padding: 120px 5% 0; min-height: auto; }
+          .lp-hero__connectors { display: none; }
+          .lp-hero__title { max-width: 100%; }
           .lp-navbar { padding: 0 4%; }
           .lp-navbar__inner { padding: 10px 14px; }
           .lp-btn-signin, .lp-btn-dark { padding: 8px 16px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
-          .lp-btn-primary, .lp-btn-ghost { justify-content: center; }
-          .lp-cta__stats { gap: 32px; }
-          .lp-float { display: none; }
-          .lp-chips { display: none; }
-          .lp-phone--left, .lp-phone--right { transform: none; }
+          .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
           .lp-hero__badges { gap: 6px; }
           .lp-proof-badge { font-size: 0.7rem; padding: 5px 10px; }
+          .lp-hero__strip-counter strong { font-size: 1.4rem; }
+        }
+
+        @media (max-width: 480px) {
+          .lp-hero__divider { height: 50px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .lp-hero__connectors path { stroke-dasharray: 6 8 !important; opacity: 0.45; }
+          .lp-hero__icon { animation: none !important; }
+          .lp-hero__icon-inner { animation: none !important; }
+          .lp-hero__strip-logos .lp-brands__track { animation: none !important; }
         }
 
         /* ── Footer ─────────────────────────────────────────────────────────── */
         .lp-footer {
           position: relative;
-          background: linear-gradient(180deg, #FAFAF9 0%, #FFFFFF 100%);
+          background: transparent;
           color: var(--lp-ink);
           padding: 90px 8% 30px;
           overflow: hidden;
@@ -2982,7 +3073,7 @@ export default function Landing() {
           max-width: 820px;
         }
         .lp-footer__statement-accent {
-          color: #07074e;
+          color: #A78BFA;
           font-style: italic;
           position: relative;
         }
@@ -3036,7 +3127,7 @@ export default function Landing() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text-muted);
           display: inline-flex;
@@ -3046,9 +3137,9 @@ export default function Landing() {
           text-decoration: none;
         }
         .lp-footer__social-btn:hover {
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           color: #ffffff;
-          border-color: #07074e;
+          border-color: #A78BFA;
           transform: translateY(-2px);
         }
 
@@ -3099,7 +3190,7 @@ export default function Landing() {
           font-weight: 500;
           margin-top: 4px;
         }
-        .lp-footer__required { color: #07074e; }
+        .lp-footer__required { color: #A78BFA; }
 
         .lp-footer__input {
           padding: 12px 14px;
@@ -3107,13 +3198,13 @@ export default function Landing() {
           border-radius: 10px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.92rem;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           color: var(--lp-text);
           width: 100%;
         }
         .lp-footer__input:focus {
           outline: none;
-          border-color: #07074e;
+          border-color: #A78BFA;
           box-shadow: 0 0 0 3px rgba(7,7,78,0.12);
         }
 
@@ -3131,7 +3222,7 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-footer__subscribe:hover {
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           transform: translateY(-1px);
         }
 
@@ -3144,7 +3235,7 @@ export default function Landing() {
           max-width: 340px;
         }
         .lp-footer__link-accent {
-          color: #07074e;
+          color: #A78BFA;
           text-decoration: underline;
           font-weight: 500;
         }
@@ -3182,13 +3273,13 @@ export default function Landing() {
           letter-spacing: -0.01em;
           font-weight: 500;
         }
-        .lp-footer__list a:hover { color: #07074e; }
+        .lp-footer__list a:hover { color: #A78BFA; }
 
         .lp-footer__badge {
           display: inline-block;
           padding: 2px 10px;
           background: linear-gradient(135deg, #BBBBC8, #8888A0);
-          color: #07074e;
+          color: #A78BFA;
           border-radius: 100px;
           font-size: 0.7rem;
           font-weight: 600;
@@ -3216,7 +3307,7 @@ export default function Landing() {
           font-weight: 500;
           transition: color 0.18s ease;
         }
-        .lp-footer__social a:hover { color: #07074e; }
+        .lp-footer__social a:hover { color: #A78BFA; }
         .lp-footer__social svg { color: var(--lp-text-muted); }
 
         .lp-footer__contact {
@@ -3263,7 +3354,7 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 8px 14px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 100px;
           color: var(--lp-text);
@@ -3275,9 +3366,9 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-footer__top-link:hover {
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           color: #ffffff;
-          border-color: #07074e;
+          border-color: #A78BFA;
         }
 
         @media (max-width: 1100px) {
@@ -3295,27 +3386,44 @@ export default function Landing() {
           .lp-footer__strip { justify-content: center; text-align: center; }
         }
 
-        /* ── Brands caption ──────────────────────────────────────────────── */
-        .lp-brands__caption {
-          font-family: 'Instrument Sans', sans-serif;
-          color: #07074e;
-          text-align: center;
-          font-size: 0.95rem;
-          font-weight: 500;
-          letter-spacing: -0.01em;
-          padding: 0 8% 28px;
-          margin: 0;
+        /* ── Section connectors ─────────────────────────────────────────── */
+        .lp-connector {
+          position: relative;
+          width: 100%;
+          pointer-events: none;
+          overflow: visible;
+          background: transparent;
+        }
+        .lp-connector svg { display: block; }
+        .lp-connector svg path {
+          animation: connectorFlow 1.2s linear infinite;
+        }
+        @keyframes connectorFlow {
+          0% { stroke-dashoffset: 0; }
+          100% { stroke-dashoffset: -12; }
+        }
+        @media (max-width: 1024px) {
+          .lp-connector { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-connector svg path { animation: none; }
         }
 
         /* ── Scroll Hook ─────────────────────────────────────────────────── */
         .lp-hook {
           position: relative;
           padding: 120px 8% 110px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 50%, #FFFFFF 100%);
+          background: transparent;
+          color: #ffffff;
           text-align: center;
           overflow: hidden;
         }
-        .lp-hook__bg-orb {
+        .lp-hook__bg-orb,
+        .lp-audit__bg-orb,
+        .lp-testimonial__bg-orb {
+          display: none;
+        }
+        .lp-hook__bg-orb--legacy {
           position: absolute;
           border-radius: 50%;
           pointer-events: none;
@@ -3343,13 +3451,13 @@ export default function Landing() {
           align-items: center;
           gap: 8px;
           padding: 7px 16px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
           font-weight: 600;
-          color: #07074e;
+          color: #A78BFA;
           letter-spacing: 0.01em;
           margin-bottom: 26px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.10);
@@ -3358,7 +3466,7 @@ export default function Landing() {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           box-shadow: 0 0 0 0 rgba(7, 7, 78, 0.55);
           animation: hookPulse 1.8s ease-out infinite;
           flex-shrink: 0;
@@ -3386,7 +3494,7 @@ export default function Landing() {
           }
         }
         .lp-hook__heading--accent {
-          color: #07074e;
+          color: #A78BFA;
         }
 
         .lp-hook__quote-wrap {
@@ -3397,7 +3505,7 @@ export default function Landing() {
         .lp-hook__quote-card {
           position: relative;
           max-width: 640px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
           padding: 38px 40px 32px;
@@ -3430,7 +3538,7 @@ export default function Landing() {
           margin: 0;
         }
         .lp-hook__quote-text em {
-          color: #07074e;
+          color: #A78BFA;
           font-weight: 600;
           font-style: italic;
         }
@@ -3452,7 +3560,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 1.05rem;
           font-weight: 600;
-          color: #07074e;
+          color: #A78BFA;
           margin: 0;
           letter-spacing: -0.02em;
           white-space: nowrap;
@@ -3461,7 +3569,8 @@ export default function Landing() {
         /* ── How It Works (3 Steps) ──────────────────────────────────────── */
         .lp-steps {
           padding: 100px 8% 120px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 50%, #FFFFFF 100%);
+          background: transparent;
+          color: #ffffff;
           position: relative;
         }
         .lp-steps__inner {
@@ -3475,7 +3584,7 @@ export default function Landing() {
           font-size: 0.78rem;
           font-weight: 700;
           letter-spacing: 0.18em;
-          color: #07074e;
+          color: #A78BFA;
           text-transform: uppercase;
           padding: 6px 16px;
           background: var(--lp-purple-50);
@@ -3510,7 +3619,7 @@ export default function Landing() {
 
         .lp-step-card {
           position: relative;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 24px;
           padding: 32px 28px 28px;
@@ -3547,7 +3656,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
           font-weight: 700;
-          color: #07074e;
+          color: #A78BFA;
           letter-spacing: 0.08em;
           text-transform: uppercase;
           padding: 5px 12px;
@@ -3611,15 +3720,15 @@ export default function Landing() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: #FAFAF9;
-          color: #07074e;
+          background: rgba(255,255,255,0.06);
+          color: #A78BFA;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           transition: background 0.3s ease, transform 0.3s ease;
         }
         .lp-step-card:hover .lp-step-card__arrow {
-          background: #07074e;
+          background: rgba(167, 139, 250, 0.15);
           color: #ffffff;
           transform: translateX(4px);
         }
@@ -3633,7 +3742,7 @@ export default function Landing() {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           color: var(--lp-purple-300);
           display: flex;
           align-items: center;
@@ -3646,7 +3755,8 @@ export default function Landing() {
         .lp-audit {
           position: relative;
           padding: 120px 8%;
-          background: linear-gradient(180deg, #FAFAF9 0%, #EEEEF2 100%);
+          background: transparent;
+          color: #ffffff;
           overflow: hidden;
         }
         .lp-audit__bg-orb {
@@ -3678,17 +3788,17 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 7px 16px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
           font-weight: 600;
-          color: #07074e;
+          color: #A78BFA;
           margin-bottom: 22px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
         }
-        .lp-audit__pill svg { color: #07074e; }
+        .lp-audit__pill svg { color: #A78BFA; }
 
         .lp-audit__heading {
           font-family: 'Instrument Sans', sans-serif;
@@ -3700,7 +3810,7 @@ export default function Landing() {
           margin: 0 0 14px 0;
         }
         .lp-audit__heading--accent {
-          color: #07074e;
+          color: #A78BFA;
           font-style: italic;
           position: relative;
         }
@@ -3734,7 +3844,7 @@ export default function Landing() {
         }
         .lp-audit-card {
           position: relative;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
           padding: 36px 30px 26px;
@@ -3772,7 +3882,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 700;
-          color: #07074e;
+          color: #A78BFA;
           letter-spacing: 0.1em;
           padding: 5px 12px;
           background: var(--lp-purple-50);
@@ -3804,7 +3914,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 1.2rem;
           font-weight: 600;
-          color: #07074e;
+          color: #A78BFA;
           letter-spacing: -0.025em;
           line-height: 1.3;
           margin: 0;
@@ -3828,7 +3938,7 @@ export default function Landing() {
           align-items: center;
           gap: 16px;
           padding: 18px 28px 18px 18px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           box-shadow: 0 10px 30px rgba(7, 7, 78, 0.08);
@@ -3858,9 +3968,10 @@ export default function Landing() {
         /* ── Value Proof (Editorial Big Numbers) ─────────────────────────── */
         .lp-proof {
           padding: 120px 8%;
-          background: #ffffff;
-          border-top: 1px solid var(--lp-border);
-          border-bottom: 1px solid var(--lp-border);
+          background: transparent;
+          color: #ffffff;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .lp-proof__inner {
           max-width: 1200px;
@@ -3939,7 +4050,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: clamp(2.6rem, 5.2vw, 4.4rem);
           font-weight: 500;
-          color: #07074e;
+          color: #A78BFA;
           letter-spacing: -0.045em;
           line-height: 1;
           display: inline-block;
@@ -3968,7 +4079,8 @@ export default function Landing() {
         .lp-testimonial {
           position: relative;
           padding: 120px 8%;
-          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 100%);
+          background: transparent;
+          color: #ffffff;
           overflow: hidden;
         }
         .lp-testimonial__bg-orb {
@@ -4001,13 +4113,13 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 7px 16px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
           font-weight: 600;
-          color: #07074e;
+          color: #A78BFA;
           margin-bottom: 22px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
         }
@@ -4022,7 +4134,7 @@ export default function Landing() {
           margin: 0 0 56px 0;
         }
         .lp-testimonial__heading--accent {
-          color: #07074e;
+          color: #A78BFA;
           font-style: italic;
           position: relative;
         }
@@ -4058,7 +4170,7 @@ export default function Landing() {
 
         .lp-tcard {
           position: relative;
-          background: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
           padding: 28px 26px 24px;
@@ -4084,8 +4196,8 @@ export default function Landing() {
         .lp-tcard:hover::before { opacity: 1; }
 
         .lp-tcard--featured {
-          background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F8 100%);
-          border-color: var(--lp-purple-200);
+          background: linear-gradient(180deg, rgba(7,7,78,0.2) 0%, rgba(7,7,78,0.1) 100%);
+          border-color: rgba(7,7,78,0.4);
           box-shadow: 0 20px 50px rgba(7, 7, 78, 0.12);
         }
         .lp-tcard--featured::before { opacity: 1; }
@@ -4117,7 +4229,7 @@ export default function Landing() {
           font-size: 1.18rem;
         }
         .lp-tcard__quote em {
-          color: #07074e;
+          color: #A78BFA;
           font-weight: 600;
           font-style: italic;
         }
@@ -4188,7 +4300,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 1.05rem;
           font-weight: 700;
-          color: #07074e;
+          color: #A78BFA;
           letter-spacing: -0.02em;
           line-height: 1;
         }

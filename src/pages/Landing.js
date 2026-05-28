@@ -36,8 +36,11 @@ import {
   Linkedin,
   Youtube,
   Twitter,
+  SkipForward,
+  BellOff,
+  Repeat,
 } from 'lucide-react';
-import { motion, useInView, animate, useMotionValue, useTransform } from 'framer-motion';
+import { motion, useInView, animate, useMotionValue, useTransform, useScroll } from 'framer-motion';
 
 // ─── Static data ────────────────────────────────────────────────────────────
 
@@ -147,14 +150,17 @@ const auditQuestions = [
   {
     title: 'Do People Watch Your Ads —',
     sub: 'Or Tolerate Them Until They Can Skip?',
+    Icon: SkipForward,
   },
   {
     title: 'If Your Brand Went Silent for a Week,',
     sub: 'Would Anyone Notice?',
+    Icon: BellOff,
   },
   {
     title: 'Is Your Content Building Familiarity —',
     sub: 'Or Just Filling Space?',
+    Icon: Repeat,
   },
 ];
 
@@ -342,6 +348,21 @@ export default function Landing() {
   const featuresRef = useRef(null);
   const ctaRef = useRef(null);
   const featuresInView = useInView(featuresRef, { once: true, margin: '-80px' });
+
+  // Audit cards — scroll-linked peel-away animation
+  const auditRef = useRef(null);
+  const { scrollYProgress: auditProgress } = useScroll({
+    target: auditRef,
+    offset: ['start start', 'end end'],
+  });
+  // Q1 (back-left, z=1) peels last; Q2 (front, z=3) peels first; Q3 (right, z=2) peels middle
+  // Order of peeling: Q2 → Q3 → Q1 (in stack-front-to-back order)
+  const card2Y = useTransform(auditProgress, [0.1, 0.35], [0, -800]);
+  const card2Opacity = useTransform(auditProgress, [0.1, 0.32], [1, 0]);
+  const card3Y = useTransform(auditProgress, [0.4, 0.65], [35, -800]);
+  const card3Opacity = useTransform(auditProgress, [0.4, 0.62], [1, 0]);
+  const card1Y = useTransform(auditProgress, [0.7, 0.95], [-35, -800]);
+  const card1Opacity = useTransform(auditProgress, [0.7, 0.92], [1, 0]);
   const ctaInView = useInView(ctaRef, { once: true, margin: '-80px' });
 
   useEffect(() => {
@@ -365,6 +386,14 @@ export default function Landing() {
 
   return (
     <div className="lp-root">
+
+      {/* ── Animated background blobs ───────────────────────────────────── */}
+      <div className="lp-bg-animations" aria-hidden="true">
+        <div className="lp-bg-blob lp-bg-blob--1" />
+        <div className="lp-bg-blob lp-bg-blob--2" />
+        <div className="lp-bg-blob lp-bg-blob--3" />
+        <div className="lp-bg-blob lp-bg-blob--4" />
+      </div>
 
       {/* ── Navbar — white floating pill ──────────────────────────────────── */}
       <motion.header
@@ -615,11 +644,13 @@ export default function Landing() {
         </svg>
       </section>
 
-      {/* connector 1: hero → hook — L-bend from both sides (mirror) */}
-      <div className="lp-connector" style={{ height: 180 }}>
-        <svg viewBox="0 0 1400 180" width="100%" height="100%">
+      {/* connector 1: hero → hook — joined U-bridge with center drop into badge */}
+      <div className="lp-connector" style={{ height: 380, marginBottom: -110 }}>
+        <svg viewBox="0 0 1400 380" width="100%" height="100%" preserveAspectRatio="none">
           <path d="M 80 0 L 80 80 L 480 80 L 480 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
           <path d="M 1320 0 L 1320 80 L 920 80 L 920 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 480 180 L 920 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 700 180 L 700 380" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -657,10 +688,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 2: hook → steps — straight vertical line on right */}
-      <div className="lp-connector" style={{ height: 120 }}>
-        <svg viewBox="0 0 1400 120" width="100%" height="100%">
-          <path d="M 700 0 L 700 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 2: hook → steps — straight vertical line, overlaps into both sections */}
+      <div className="lp-connector" style={{ height: 320, marginTop: -100, marginBottom: -100 }}>
+        <svg viewBox="0 0 1400 320" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 700 0 L 700 320" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -836,11 +867,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 3: steps → showcase — small L-bends from both sides */}
-      <div className="lp-connector" style={{ height: 70 }}>
-        <svg viewBox="0 0 1400 70" width="100%" height="100%">
-          <path d="M 300 0 L 300 35 L 500 35 L 500 70" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 1100 0 L 1100 35 L 900 35 L 900 70" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 3: steps → showcase — L-bends from outer cards + center straight line */}
+      <div className="lp-connector" style={{ height: 270, marginTop: -100, marginBottom: -80 }}>
+        <svg viewBox="0 0 1400 270" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 300 0 L 300 100 L 500 100 L 500 270" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 1100 0 L 1100 100 L 900 100 L 900 270" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 700 0 L 700 270" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -852,32 +884,16 @@ export default function Landing() {
             <span className="lp-showcase__heading--accent">best UGC</span>{' '}
             on the internet
           </h2>
-          <p className="lp-showcase__subtitle">Choose your industry to see examples!</p>
 
-          <div className="lp-showcase__filters">
-            {industries.map(({ id, Icon, label }) => (
-              <button
-                key={id}
-                type="button"
-                className={`lp-filter${selectedIndustry === id ? ' is-active' : ''}`}
-                onClick={() => setSelectedIndustry(selectedIndustry === id ? null : id)}
-              >
-                <Icon size={14} />
-                <span>{label}</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              className="lp-filter lp-filter--reset"
-              onClick={() => setSelectedIndustry(null)}
-            >
-              Reset
-            </button>
-          </div>
 
-          <div className="lp-showcase__grid">
-            {(visibleShowcase.length ? visibleShowcase : showcaseVideos).map((v) => (
-              <div key={v.id} className="lp-showcase-item">
+          <div className="lp-showcase__viewport">
+          {(() => {
+            const items = visibleShowcase.length ? visibleShowcase : showcaseVideos;
+            const mid = Math.ceil(items.length / 2);
+            const row1 = items.slice(0, mid);
+            const row2 = items.slice(mid).length ? items.slice(mid) : items.slice(0, mid);
+            const renderItem = (v, idx, prefix) => (
+              <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
                 <div className="lp-showcase-card">
                   {v.isVideo ? (
                     <video
@@ -900,9 +916,7 @@ export default function Landing() {
                       }}
                     />
                   )}
-                  <span className="lp-showcase-card__tag">{v.label}</span>
                 </div>
-
                 <div className="lp-showcase-meta">
                   <div className="lp-showcase-meta__row">
                     <div className="lp-showcase-meta__info">
@@ -919,20 +933,35 @@ export default function Landing() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            return (
+              <>
+                <div className="lp-showcase__row">
+                  <div className="lp-showcase__track lp-showcase__track--left">
+                    {[...row1, ...row1, ...row1].map((v, idx) => renderItem(v, idx, 'R1'))}
+                  </div>
+                </div>
+                <div className="lp-showcase__row">
+                  <div className="lp-showcase__track lp-showcase__track--right">
+                    {[...row2, ...row2, ...row2].map((v, idx) => renderItem(v, idx, 'R2'))}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
           </div>
         </div>
       </section>
 
-      {/* connector 4: showcase → audit — U-shape from left, across, down right */}
-      <div className="lp-connector" style={{ height: 110 }}>
-        <svg viewBox="0 0 1400 110" width="100%" height="100%">
-          <path d="M 200 0 L 200 40 L 1200 40 L 1200 110" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 4: showcase → audit — extends up into carousel, U-shape, drops to cards */}
+      <div className="lp-connector" style={{ height: 720, marginTop: -120, marginBottom: -480, position: 'relative', zIndex: 5 }}>
+        <svg viewBox="0 0 1400 720" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 200 0 L 200 160 L 1200 160 L 1200 600 L 900 600 L 900 720" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
       {/* ── Psychological Audit ───────────────────────────────────────────── */}
-      <section className="lp-audit">
+      <section className="lp-audit" ref={auditRef}>
         <div className="lp-audit__bg-orb lp-audit__bg-orb--1" aria-hidden="true" />
         <div className="lp-audit__bg-orb lp-audit__bg-orb--2" aria-hidden="true" />
 
@@ -951,20 +980,38 @@ export default function Landing() {
           </p>
 
           <div className="lp-audit__grid">
-            {auditQuestions.map((q, i) => (
-              <article key={i} className="lp-audit-card">
-                <div className="lp-audit-card__corner">
-                  <span className="lp-audit-card__qnum">Q{i + 1}</span>
-                  <span className="lp-audit-card__qmark">?</span>
-                </div>
-                <div className="lp-audit-card__body">
-                  <p className="lp-audit-card__title">{q.title}</p>
-                  <p className="lp-audit-card__sub">{q.sub}</p>
-                </div>
-                <div className="lp-audit-card__divider" />
-                <div className="lp-audit-card__hint">Pause. Be honest.</div>
-              </article>
-            ))}
+            {auditQuestions.map((q, i) => {
+              // i=0 → Q1 (back-left, peels last), i=1 → Q2 (front, peels first), i=2 → Q3 (right, peels middle)
+              const positions = [
+                { x: -90, rotate: -20, z: 1, y: card1Y },
+                { x:   0, rotate:  -4, z: 3, y: card2Y },
+                { x:  90, rotate:  12, z: 2, y: card3Y },
+              ];
+              const p = positions[i] || positions[0];
+              return (
+                <motion.article
+                  key={i}
+                  className="lp-audit-card"
+                  style={{
+                    x: p.x,
+                    y: p.y,
+                    rotate: p.rotate,
+                    zIndex: p.z,
+                  }}
+                >
+                  <div className="lp-audit-card__corner">
+                    <span className="lp-audit-card__qnum">Q{i + 1}</span>
+                    <span className="lp-audit-card__qmark">?</span>
+                  </div>
+                  <div className="lp-audit-card__body">
+                    <p className="lp-audit-card__title">{q.title}</p>
+                    <p className="lp-audit-card__sub">{q.sub}</p>
+                  </div>
+                  <div className="lp-audit-card__divider" />
+                  <div className="lp-audit-card__hint">Pause. Be honest.</div>
+                </motion.article>
+              );
+            })}
           </div>
 
           <div className="lp-audit__footer-card">
@@ -978,70 +1025,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 5: audit → compare — S-curve center-to-left */}
-      <div className="lp-connector" style={{ height: 100 }}>
-        <svg viewBox="0 0 1400 100" width="100%" height="100%">
-          <path d="M 900 0 L 900 30 L 500 30 L 500 70 L 180 70 L 180 100" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-        </svg>
-      </div>
-
-      {/* ── Comparison Table ─────────────────────────────────────────────── */}
-      <section className="lp-compare">
-        <div className="lp-compare__inner">
-          <h2 className="lp-compare__heading">
-            Better than a{' '}
-            <span className="lp-compare__heading--accent">UGC platform</span>,{' '}
-            easier than an{' '}
-            <span className="lp-compare__heading--accent">agency</span>
-          </h2>
-
-          <div className="lp-compare__table">
-            {/* Header row */}
-            <div className="lp-compare__row lp-compare__row--head">
-              <div className="lp-compare__cell lp-compare__cell--label"></div>
-              <div className="lp-compare__cell lp-compare__cell--us lp-compare__cell--us-head">
-                <img src="/ugcad-logo.png" alt="UGCad" className="lp-compare__logo" />
-              </div>
-              <div className="lp-compare__cell lp-compare__cell--head">In-house</div>
-              <div className="lp-compare__cell lp-compare__cell--head">UGC agencies</div>
-              <div className="lp-compare__cell lp-compare__cell--head">UGC platforms</div>
-            </div>
-
-            {compareRows.map((row, i) => (
-              <div key={row.label} className={`lp-compare__row${i % 2 === 1 ? ' lp-compare__row--alt' : ''}`}>
-                <div className="lp-compare__cell lp-compare__cell--label">{row.label}</div>
-                <div className="lp-compare__cell lp-compare__cell--us">
-                  {row.us === CHECK ? (
-                    <span className="lp-compare__check lp-compare__check--filled">
-                      <Check size={16} strokeWidth={3} />
-                    </span>
-                  ) : row.us === CROSS ? (
-                    <span className="lp-compare__x"><X size={20} /></span>
-                  ) : (
-                    <span className="lp-compare__text">{row.us}</span>
-                  )}
-                </div>
-                {['inhouse', 'agencies', 'platforms'].map((col) => (
-                  <div key={col} className="lp-compare__cell">
-                    {row[col] === CHECK ? (
-                      <span className="lp-compare__check"><Check size={20} strokeWidth={2.5} /></span>
-                    ) : row[col] === CROSS ? (
-                      <span className="lp-compare__x"><X size={20} strokeWidth={2.5} /></span>
-                    ) : (
-                      <span className="lp-compare__text">{row[col]}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* connector 6: compare → features — straight vertical center */}
-      <div className="lp-connector" style={{ height: 110 }}>
-        <svg viewBox="0 0 1400 110" width="100%" height="100%">
-          <path d="M 700 0 L 700 110" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 5+6: audit footer pill → SERVICES badge — straight center line, reaches up to audit pill */}
+      <div className="lp-connector" style={{ height: 360, marginTop: -120, marginBottom: -60, position: 'relative', zIndex: 5, pointerEvents: 'none' }}>
+        <svg viewBox="0 0 1400 360" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 700 0 L 700 360" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -1104,11 +1091,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 7: features → proof — fork from center splitting into two */}
-      <div className="lp-connector" style={{ height: 120 }}>
-        <svg viewBox="0 0 1400 120" width="100%" height="100%">
-          <path d="M 700 0 L 700 50 L 350 50 L 350 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 700 50 L 1050 50 L 1050 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 7: features → proof — 4 drops from service cards, merge to center drop into proof text */}
+      <div className="lp-connector" style={{ height: 380, marginTop: -120, marginBottom: -120, position: 'relative', zIndex: 5 }}>
+        <svg viewBox="0 0 1400 380" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 350 0 L 350 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 583 0 L 583 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 817 0 L 817 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 1050 0 L 1050 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 350 130 L 1050 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 700 130 L 700 380" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -1138,11 +1129,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 8: proof → testimonial — T-junction horizontal with center drop */}
-      <div className="lp-connector" style={{ height: 90 }}>
-        <svg viewBox="0 0 1400 90" width="100%" height="100%">
-          <path d="M 200 0 L 1200 0" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 700 0 L 700 90" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 8: proof → testimonial — straight center line, reduced spacing */}
+      <div className="lp-connector" style={{ height: 220, marginTop: -60, marginBottom: -60, position: 'relative', zIndex: 5 }}>
+        <svg viewBox="0 0 1400 220" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 700 0 L 700 220" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -1222,11 +1212,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 9: testimonial → cta — V-shape converging to center */}
-      <div className="lp-connector" style={{ height: 100 }}>
-        <svg viewBox="0 0 1400 100" width="100%" height="100%">
-          <path d="M 200 0 L 700 100" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 1200 0 L 700 100" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 9: testimonial → cta — touch card bottom border only (no overlap into cards), converge to center, drop to badge */}
+      <div className="lp-connector" style={{ height: 330, marginTop: -100, marginBottom: -80, position: 'relative', zIndex: 5, pointerEvents: 'none' }}>
+        <svg viewBox="0 0 1400 330" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 420 0 L 420 170 L 700 170" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 980 0 L 980 170 L 700 170" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+          <path d="M 700 170 L 700 330" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -1396,6 +1387,72 @@ export default function Landing() {
           font-family: 'Instrument Sans', 'Inter', sans-serif;
           background: #0a0a0a;
           color: #ffffff;
+          position: relative;
+        }
+
+        /* ── Animated purple background blobs ──────────────────────────── */
+        .lp-bg-animations {
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          overflow: hidden;
+        }
+        .lp-bg-blob {
+          position: absolute;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #07074e 0%, #07074e 100%);
+          filter: blur(80px);
+          opacity: 0.5;
+          will-change: transform, opacity;
+        }
+        .lp-bg-blob--1 {
+          width: 480px; height: 480px;
+          top: 10%; left: 15%;
+          animation: blobFloat1 20s ease-in-out infinite, blobPulse 6s ease-in-out infinite;
+        }
+        .lp-bg-blob--2 {
+          width: 520px; height: 520px;
+          top: 60%; right: 12%;
+          animation: blobFloat2 25s ease-in-out infinite, blobPulse 8s ease-in-out infinite 2s;
+        }
+        .lp-bg-blob--3 {
+          width: 380px; height: 380px;
+          top: 40%; left: 50%;
+          animation: blobFloat3 18s ease-in-out infinite, blobPulse 7s ease-in-out infinite 3s;
+        }
+        .lp-bg-blob--4 {
+          width: 440px; height: 440px;
+          bottom: 5%; left: 25%;
+          animation: blobFloat4 22s ease-in-out infinite, blobPulse 9s ease-in-out infinite 1s;
+        }
+        @keyframes blobFloat1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33%      { transform: translate(80px, -60px) scale(1.1); }
+          66%      { transform: translate(-50px, 70px) scale(0.95); }
+        }
+        @keyframes blobFloat2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50%      { transform: translate(-100px, -40px) scale(1.15); }
+        }
+        @keyframes blobFloat3 {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50%      { transform: translate(-30%, -70%) scale(1.2); }
+        }
+        @keyframes blobFloat4 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          40%      { transform: translate(120px, -80px) scale(1.1); }
+          70%      { transform: translate(-60px, 40px) scale(0.9); }
+        }
+        @keyframes blobPulse {
+          0%, 100% { opacity: 0.35; }
+          50%      { opacity: 0.65; }
+        }
+        @media (max-width: 768px) {
+          .lp-bg-blob { width: 280px !important; height: 280px !important; filter: blur(60px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-bg-blob { animation: none !important; }
         }
         .lp-root h1, .lp-root h2, .lp-root h3, .lp-root h4, .lp-root h5, .lp-root h6,
         .lp-root p, .lp-root span, .lp-root div, .lp-root li, .lp-root a,
@@ -1427,17 +1484,17 @@ export default function Landing() {
           justify-content: space-between;
           max-width: 1240px;
           margin: 0 auto;
-          background: rgba(10, 10, 10, 0.85);
+          background: #ffffff;
           backdrop-filter: blur(12px);
           padding: 12px 22px;
           border-radius: 100px;
-          border: 1px solid var(--lp-border);
-          box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
           transition: box-shadow 0.3s ease;
         }
 
         .lp-navbar__logo {
-          height: 36px;
+          height: 52px;
           width: auto;
           cursor: pointer;
           transition: opacity 0.2s;
@@ -1450,21 +1507,21 @@ export default function Landing() {
           align-items: center;
         }
 
-        .lp-btn-signin {
+        .lp-root .lp-btn-signin {
           padding: 9px 22px;
           border-radius: 100px;
-          border: 1px solid var(--lp-border);
-          background: rgba(255, 255, 255, 0.06);
-          color: var(--lp-text);
+          border: 1px solid rgba(0, 0, 0, 0.18);
+          background: transparent;
+          color: #000000;
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
           font-size: 0.92rem;
           cursor: pointer;
           transition: all 0.22s ease;
         }
-        .lp-btn-signin:hover {
-          border-color: var(--lp-purple-300);
-          color: var(--lp-purple-700);
+        .lp-root .lp-btn-signin:hover {
+          border-color: rgba(0, 0, 0, 0.4);
+          color: #000000;
         }
 
         .lp-btn-dark {
@@ -2314,19 +2371,56 @@ export default function Landing() {
           border-color: var(--lp-purple-700);
         }
 
-        .lp-showcase__grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          row-gap: 44px;
-          column-gap: 26px;
-          max-width: 1040px;
-          margin: 0 auto;
+        .lp-showcase__viewport {
+          display: flex;
+          flex-direction: column;
+          gap: 44px;
+          padding: 8px 0;
+          width: 100vw;
+          max-width: 100vw;
+          margin-left: calc(50% - 50vw);
+          margin-right: calc(50% - 50vw);
+          overflow: hidden;
+          -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 3%, #000 97%, transparent 100%);
+                  mask-image: linear-gradient(90deg, transparent 0%, #000 3%, #000 97%, transparent 100%);
+        }
+        .lp-showcase__row {
+          overflow: hidden;
+        }
+        .lp-showcase__track {
+          display: flex;
+          gap: 26px;
+          width: max-content;
+          padding: 0 8%;
+          will-change: transform;
+        }
+        .lp-showcase__track--left {
+          animation: showcaseScrollLeft 60s linear infinite;
+        }
+        .lp-showcase__track--right {
+          animation: showcaseScrollRight 60s linear infinite;
+        }
+        .lp-showcase__viewport:hover .lp-showcase__track {
+          animation-play-state: paused;
+        }
+        @keyframes showcaseScrollLeft {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-33.333%); }
+        }
+        @keyframes showcaseScrollRight {
+          0%   { transform: translateX(-33.333%); }
+          100% { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-showcase__track { animation: none; }
         }
 
         .lp-showcase-item {
           display: flex;
           flex-direction: column;
           gap: 14px;
+          width: 300px;
+          flex-shrink: 0;
         }
 
         .lp-showcase-card {
@@ -2417,7 +2511,7 @@ export default function Landing() {
         }
 
         @media (max-width: 1024px) {
-          .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); }
+          .lp-showcase__grid { grid-auto-columns: minmax(240px, 280px); }
         }
         @media (max-width: 640px) {
           .lp-showcase { padding: 60px 5%; }
@@ -2572,7 +2666,7 @@ export default function Landing() {
 
         /* ── Features ─────────────────────────────────────────────────────── */
         .lp-features {
-          padding: 120px 8%;
+          padding: 60px 8% 120px;
           background: transparent;
           color: #ffffff;
           position: relative;
@@ -2699,7 +2793,7 @@ export default function Landing() {
         /* ── CTA ──────────────────────────────────────────────────────────── */
         .lp-cta {
           position: relative;
-          padding: 140px 8% 130px;
+          padding: 70px 8% 100px;
           background: transparent;
           color: #ffffff;
           overflow: hidden;
@@ -2734,7 +2828,7 @@ export default function Landing() {
           align-items: center;
         }
 
-        .lp-cta__pill {
+        .lp-root .lp-cta__pill {
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -2746,7 +2840,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.82rem;
           font-weight: 600;
-          color: #A78BFA;
+          color: #07074e;
           margin-bottom: 28px;
           box-shadow: 0 4px 16px rgba(7, 7, 78,0.10);
         }
@@ -2883,7 +2977,7 @@ export default function Landing() {
           box-shadow: 0 18px 46px rgba(7, 7, 78, 0.48);
         }
 
-        .lp-btn-outline {
+        .lp-root .lp-btn-outline {
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -2891,7 +2985,7 @@ export default function Landing() {
           border-radius: 100px;
           background: rgba(255,255,255,0.8);
           backdrop-filter: blur(6px);
-          color: var(--lp-ink);
+          color: #07074e;
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 600;
           font-size: 1rem;
@@ -2940,18 +3034,18 @@ export default function Landing() {
           align-items: center;
           gap: 4px;
         }
-        .lp-cta__signal-num {
+        .lp-root .lp-cta__signal-num {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 1.4rem;
           font-weight: 600;
-          color: #A78BFA;
+          color: #07074e;
           letter-spacing: -0.02em;
           line-height: 1;
         }
-        .lp-cta__signal-label {
+        .lp-root .lp-cta__signal-label {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
-          color: var(--lp-text-muted);
+          color: #07074e;
           letter-spacing: -0.01em;
         }
         .lp-cta__signal-divider {
@@ -3757,7 +3851,8 @@ export default function Landing() {
           padding: 120px 8%;
           background: transparent;
           color: #ffffff;
-          overflow: hidden;
+          overflow: visible;
+          min-height: 280vh;
         }
         .lp-audit__bg-orb {
           position: absolute;
@@ -3776,7 +3871,8 @@ export default function Landing() {
           bottom: -60px; left: -40px;
         }
         .lp-audit__inner {
-          position: relative;
+          position: sticky;
+          top: 80px;
           z-index: 2;
           max-width: 1200px;
           margin: 0 auto;
@@ -3836,24 +3932,30 @@ export default function Landing() {
         }
 
         .lp-audit__grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 22px;
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 440px;
+          margin: 60px auto;
+          max-width: 600px;
           text-align: left;
-          margin-bottom: 56px;
+          perspective: 1200px;
         }
         .lp-audit-card {
-          position: relative;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid var(--lp-border);
+          position: absolute;
+          width: 100%;
+          max-width: 380px;
+          background: #A78BFA;
+          border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 22px;
           padding: 36px 30px 26px;
-          min-height: 240px;
+          min-height: 280px;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 4px 16px rgba(7, 7, 78, 0.04);
-          transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+          box-shadow: 0 12px 40px rgba(7, 7, 78, 0.4);
           overflow: hidden;
+          transform-origin: center center;
         }
         .lp-audit-card::before {
           content: '';
@@ -3865,70 +3967,72 @@ export default function Landing() {
           transition: opacity 0.3s ease;
           border-radius: 22px 22px 0 0;
         }
-        .lp-audit-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 24px 60px rgba(7, 7, 78, 0.12);
-          border-color: var(--lp-purple-200);
-        }
-        .lp-audit-card:hover::before { opacity: 1; }
-
         .lp-audit-card__corner {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           justify-content: space-between;
           margin-bottom: 22px;
         }
-        .lp-audit-card__qnum {
+        .lp-root .lp-audit-card__qnum {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 700;
-          color: #A78BFA;
+          color: #ffffff;
           letter-spacing: 0.1em;
           padding: 5px 12px;
-          background: var(--lp-purple-50);
+          background: #A78BFA;
+          border: 1px solid rgba(255, 255, 255, 0.6);
           border-radius: 100px;
         }
-        .lp-audit-card__qmark {
+        .lp-root .lp-audit-card__qmark {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 3rem;
           font-weight: 700;
-          color: var(--lp-purple-200);
+          color: #07074e;
           line-height: 0.5;
           font-style: italic;
         }
 
         .lp-audit-card__body {
+          position: relative;
+          z-index: 1;
           flex: 1;
           margin-bottom: 20px;
         }
-        .lp-audit-card__title {
+        .lp-root .lp-audit-card__title {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.02rem;
+          font-size: 1.35rem;
           font-weight: 500;
-          color: var(--lp-text);
+          color: #07074e;
           line-height: 1.4;
           letter-spacing: -0.015em;
-          margin: 0 0 6px 0;
+          margin: 0 0 10px 0;
         }
-        .lp-audit-card__sub {
+        .lp-root .lp-audit-card__sub {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.2rem;
+          font-size: 1.65rem;
           font-weight: 600;
-          color: #A78BFA;
+          color: #07074e;
           letter-spacing: -0.025em;
           line-height: 1.3;
           margin: 0;
         }
 
         .lp-audit-card__divider {
+          position: relative;
+          z-index: 1;
           height: 1px;
-          background: var(--lp-border);
+          background: rgba(7, 7, 78, 0.25);
           margin-bottom: 12px;
         }
-        .lp-audit-card__hint {
+        .lp-root .lp-audit-card__hint {
+          position: relative;
+          z-index: 1;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.78rem;
-          color: var(--lp-text-soft);
+          font-size: 0.95rem;
+          color: rgba(7, 7, 78, 0.75);
           font-style: italic;
           letter-spacing: 0.02em;
         }
@@ -3967,11 +4071,9 @@ export default function Landing() {
 
         /* ── Value Proof (Editorial Big Numbers) ─────────────────────────── */
         .lp-proof {
-          padding: 120px 8%;
+          padding: 120px 8% 60px;
           background: transparent;
           color: #ffffff;
-          border-top: 1px solid rgba(255,255,255,0.1);
-          border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .lp-proof__inner {
           max-width: 1200px;
@@ -4078,7 +4180,7 @@ export default function Landing() {
         /* ── Testimonial ─────────────────────────────────────────────────── */
         .lp-testimonial {
           position: relative;
-          padding: 120px 8%;
+          padding: 60px 8% 60px;
           background: transparent;
           color: #ffffff;
           overflow: hidden;
@@ -4197,7 +4299,7 @@ export default function Landing() {
 
         .lp-tcard--featured {
           background: linear-gradient(180deg, rgba(7,7,78,0.2) 0%, rgba(7,7,78,0.1) 100%);
-          border-color: rgba(7,7,78,0.4);
+          border-color: var(--lp-border);
           box-shadow: 0 20px 50px rgba(7, 7, 78, 0.12);
         }
         .lp-tcard--featured::before { opacity: 1; }

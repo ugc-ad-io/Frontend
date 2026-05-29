@@ -139,10 +139,10 @@ export default function MessagesPage() {
   const navItems = user?.role === 'business'
     ? [
       { name: 'Brand Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/business') },
-      { name: 'Post a Brief', icon: SquarePen, action: () => navigate('/dashboard/business/post-brief') },
-      { name: 'Creator Bids', icon: UserRoundSearch, action: () => navigate('/dashboard/business/pending-bids') },
+      { name: 'Post a Brief', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
+      { name: 'All Campaigns', icon: Briefcase, action: () => navigate('/dashboard/business/all-campaigns') },
+      { name: 'Creator Bids', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
       { name: 'Browse Creator', icon: Search, action: () => navigate('/dashboard/business/browse-creator') },
-      { name: 'All Campaigns', icon: ClipboardList, action: () => navigate('/dashboard/business/all-campaigns') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
       { name: 'Manage Shipment', icon: Package, action: () => navigate('/dashboard/business/shipments') },

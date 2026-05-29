@@ -1483,32 +1483,39 @@
 }
 
 .ps-container {
-  display: grid;
-  grid-template-columns: 200px 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
   max-width: 1200px;
 }
 
 .ps-tab-sidebar {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #e5e7ff;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(7, 7, 78, 0.04);
 }
 
 .ps-tab-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: white;
-  border: 2px solid transparent;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 100px;
   color: #4a5568;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   text-align: left;
+  white-space: nowrap;
 }
 
 .ps-tab-btn:hover {
@@ -1519,9 +1526,11 @@
 .ps-tab-btn.is-active {
   background: #07074e;
   color: white;
-  border-color: #07074e;
-  box-shadow: 0 8px 20px rgba(7, 7, 78, 0.28);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(7, 7, 78, 0.28);
+}
+.ps-tab-btn:hover:not(.is-active) {
+  background: #f3f3ff;
+  color: #07074e;
 }
 .ps-tab-btn.is-active svg {
   color: white;

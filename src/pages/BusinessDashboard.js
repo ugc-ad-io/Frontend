@@ -2386,7 +2386,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex: 0 0 auto;
           background: #667eea;
           color: white;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .business-sidebar-mark {
@@ -2616,7 +2616,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .brand-profile-photo {
           background: #667eea;
           color: white;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .dashboard-content {
@@ -2822,7 +2822,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: #DDF7E9;
           color: #27AE60;
           font-size: 11px;
-          font-weight: 800;
+          font-weight: 600;
           line-height: 1;
           white-space: nowrap;
         }
@@ -2840,7 +2840,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .brand-metric-card strong {
           color: #07074E;
           font-size: clamp(22px, 1.6vw, 28px);
-          font-weight: 800;
+          font-weight: 600;
           line-height: 1.1;
           letter-spacing: -0.01em;
           overflow-wrap: anywhere;
@@ -2907,7 +2907,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin: 0 0 8px;
           color: #07074E;
           font-size: 28px;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .post-brief-head p {
@@ -2925,7 +2925,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border-radius: 999px;
           background: #EEF0FF;
           color: #7387FF;
-          font-weight: 800;
+          font-weight: 600;
           font-size: 14px;
         }
 
@@ -2959,7 +2959,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin: 0;
           color: #07074E;
           font-size: 20px;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .performance-panel {
@@ -2983,7 +2983,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border-radius: 12px;
           background: #F0F1FF;
           color: #9F9FD1;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .performance-controls {
@@ -3018,7 +3018,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #07074E;
           cursor: pointer;
           font-size: 14px;
-          font-weight: 800;
+          font-weight: 600;
           outline: 0;
           padding: 9px 30px 9px 11px;
         }
@@ -3036,7 +3036,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: inherit;
           cursor: pointer;
           font-size: 14px;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .period-switch button.active {
@@ -3363,7 +3363,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: white;
           color: #07074E;
           box-shadow: 0 14px 28px rgba(7, 7, 78, 0.12);
-          font-weight: 800;
+          font-weight: 600;
           line-height: 1.35;
           text-align: center;
           opacity: 0;
@@ -3385,7 +3385,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           justify-content: space-around;
           color: #9F9FD1;
-          font-weight: 800;
+          font-weight: 600;
           font-size: 12px;
           margin-top: 12px;
         }
@@ -3508,7 +3508,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin-top: 5px;
           color: #9F9FD1;
           font-size: 12px;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .top-campaign-copy small i {
@@ -3568,7 +3568,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .mini-kpi p {
           margin: 0 0 12px;
           color: #9F9FD1;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .mini-kpi strong {
@@ -3603,7 +3603,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: transparent;
           color: #7387FF;
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .deals-table {
@@ -3686,7 +3686,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border: 0;
           border-radius: 10px;
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 600;
           padding: 10px 12px;
         }
 
@@ -3706,7 +3706,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           align-items: center;
           gap: 8px;
           color: #27AE60;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .brand-right-rail {
@@ -3739,7 +3739,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: #FBFBFF;
           color: #07074E;
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 600;
           text-align: left;
           transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
         }
@@ -3812,7 +3812,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           justify-content: space-between;
           margin-bottom: 8px;
           color: #07074E;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .budget-line i {
@@ -3847,7 +3847,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: #F7F7FF;
           color: #07074E;
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .quick-action-grid svg {
@@ -4246,6 +4246,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border-radius: 16px;
           border: 2px solid #e2e8f0;
           transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
         }
 
         .campaign-card:hover,
@@ -4302,6 +4305,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
+          margin-top: auto;
         }
 
         .campaign-actions-row button {
@@ -4311,6 +4315,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
           align-items: center;
           justify-content: center;
           gap: 8px;
+        }
+
+        /* Rejected / single-button cards: don't stretch the lone button full width */
+        .campaign-actions-row > button:only-child {
+          flex: 0 1 auto;
+          width: 100%;
+          max-width: 100%;
         }
 
         .all-campaigns-section {
@@ -4408,7 +4419,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin: 0;
           color: #8A8DBD;
           font-size: 13px;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .all-campaigns-stats strong {
@@ -4428,7 +4439,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: #FFFFFF;
           color: #6F72A8;
           text-align: center;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .all-campaigns-empty {
@@ -4798,7 +4809,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .campaign-budget {
           color: #9F9FD1;
           font-size: 16px;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .bids-preview {
@@ -5316,7 +5327,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .wallet-hero-card p {
           margin: 24px 0 8px;
           color: rgba(255, 255, 255, 0.66);
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .wallet-hero-card h2 {
@@ -5540,7 +5551,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .wallet-empty {
           padding: 36px;
           color: #9F9FD1;
-          font-weight: 800;
+          font-weight: 600;
           text-align: center;
         }
 
@@ -5632,7 +5643,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin-top: 14px;
           color: #B7B7E6;
           text-align: center;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .wallet-progress-body {
@@ -5667,7 +5678,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .wallet-progress-body span,
         .wallet-progress-track small {
           color: #9F9FD1;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .wallet-progress-track {
@@ -5678,7 +5689,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           justify-content: space-between;
           color: #B7B7E6;
-          font-weight: 800;
+          font-weight: 600;
           font-size: 12px;
         }
 
@@ -5793,7 +5804,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .work-review-stats p {
           margin: 0;
           color: #9F9FD1;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .work-review-stats strong {
@@ -5939,7 +5950,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #07074E;
           text-decoration: none;
           font-size: 13px;
-          font-weight: 800;
+          font-weight: 600;
         }
 
         .work-review-files a span {
@@ -5976,7 +5987,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .work-review-card-side small {
           color: #9F9FD1;
-          font-weight: 800;
+          font-weight: 600;
           text-transform: uppercase;
           font-size: 11px;
         }

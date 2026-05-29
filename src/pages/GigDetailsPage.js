@@ -523,6 +523,11 @@ export default function GigDetailsPage() {
 
   return (
     <div className="gdp-container">
+      <div className="gdp-bg-orbs" aria-hidden="true">
+        <span className="gdp-bg-orb gdp-bg-orb--1" />
+        <span className="gdp-bg-orb gdp-bg-orb--2" />
+        <span className="gdp-bg-orb gdp-bg-orb--3" />
+      </div>
       <div className="gdp-back-bar">
         <button onClick={() => navigate(-1)} className="gdp-back-link">
           <ArrowLeft size={18} /> Back

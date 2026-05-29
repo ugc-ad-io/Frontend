@@ -1499,16 +1499,15 @@ export default function BrandWelcomePage() {
             align-items: center;
             gap: 8px;
             max-width: calc(100% - 20px);
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
           }
           .creator-avatar--overlay {
-            width: 24px;
-            height: 24px;
-            font-size: 11px;
-            border: 1.5px solid rgba(255, 255, 255, 0.7);
+            width: 18px;
+            height: 18px;
+            font-size: 9px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
           }
           .creator-name-overlay {
-            color: #fff;
+            color: #000;
             font-size: 11px;
             font-weight: 600;
             white-space: nowrap;

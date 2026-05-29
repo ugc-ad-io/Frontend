@@ -726,7 +726,6 @@ export default function BrandWelcomePage() {
                         </div>
 
                         <h3 className="gig-title">{gig.title}</h3>
-                        <p className="gig-description">{gig.description?.substring(0, 80)}...</p>
 
                         <div className="gig-footer">
                           <div className="gig-budget">

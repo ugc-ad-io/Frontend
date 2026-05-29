@@ -897,6 +897,19 @@ export default function BrandWelcomePage() {
             min-height: 100vh;
             background: #f8f9ff;
             overflow-x: hidden;
+            font-family: 'Instrument Sans', sans-serif;
+          }
+          .welcome-page h1,
+          .welcome-page h2,
+          .welcome-page h3,
+          .welcome-page h4,
+          .welcome-page p,
+          .welcome-page span,
+          .welcome-page button,
+          .welcome-page input,
+          .welcome-page a,
+          .welcome-page li {
+            font-family: 'Instrument Sans', sans-serif;
           }
 
           /* Ambient floating background orbs */

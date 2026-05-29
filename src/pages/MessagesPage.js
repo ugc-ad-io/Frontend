@@ -555,7 +555,6 @@ export default function MessagesPage() {
       description={user?.role === 'business' ? 'Connect with creators and manage campaign conversations' : 'Connect with brands and manage conversations'}
       topbarExtra={null}
       sidebarExtra={null}
-      sidebarVariant={user?.role === 'business' ? 'business-match' : undefined}
       sidebarLabel={user?.role === 'business' ? 'Business' : 'Menu'}
     >
       <div className="msg-layout">

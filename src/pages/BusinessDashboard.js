@@ -2763,12 +2763,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .brand-metric-card {
-          min-height: 186px;
-          padding: 22px 24px 20px;
+          min-height: 148px;
+          padding: 16px 18px 14px;
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
-          gap: 14px;
+          gap: 10px;
           transition: transform 160ms ease, box-shadow 160ms ease;
         }
 
@@ -2781,18 +2781,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 10px;
         }
 
         .metric-icon {
-          width: 50px;
-          height: 50px;
+          width: 38px;
+          height: 38px;
           display: grid;
           place-items: center;
-          border-radius: 14px;
+          border-radius: 10px;
           color: #7387FF;
           background: #EEF0FF;
-          box-shadow: 0 8px 18px rgba(115, 135, 255, 0.16);
+          box-shadow: 0 6px 14px rgba(115, 135, 255, 0.16);
+          flex-shrink: 0;
         }
+        .metric-icon svg { width: 18px; height: 18px; }
 
         .metric-icon.success {
           color: #27AE60;
@@ -2814,39 +2817,43 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .metric-trend {
-          padding: 7px 10px;
+          padding: 5px 9px;
           border-radius: 999px;
           background: #DDF7E9;
           color: #27AE60;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 800;
           line-height: 1;
+          white-space: nowrap;
         }
 
         .brand-metric-card p {
-          min-height: 36px;
-          margin: 2px 0 -6px;
+          min-height: 0;
+          margin: 0;
           color: #9F9FD1;
-          font-size: 14px;
-          font-weight: 800;
-          line-height: 1.28;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.3;
+          letter-spacing: 0.01em;
         }
 
         .brand-metric-card strong {
           color: #07074E;
-          font-size: clamp(27px, 1.9vw, 34px);
-          line-height: 1;
-          letter-spacing: 0;
+          font-size: clamp(22px, 1.6vw, 28px);
+          font-weight: 800;
+          line-height: 1.1;
+          letter-spacing: -0.01em;
           overflow-wrap: anywhere;
+          margin-top: 2px;
         }
 
         .brand-metric-card small {
           display: block;
           margin-top: auto;
-          padding-top: 14px;
+          padding-top: 10px;
           border-top: 1px solid #EEF0FF;
           color: #9F9FD1;
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 700;
           line-height: 1.35;
         }

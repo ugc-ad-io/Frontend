@@ -1496,7 +1496,7 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 18px;
+            margin-bottom: 8px;
           }
 
           .gig-preview-image {
@@ -1530,8 +1530,8 @@ export default function BrandWelcomePage() {
           .gig-creator-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 16px 12px 16px;
+            gap: 10px;
+            padding: 8px 16px 8px 16px;
             border-bottom: 1px solid #f0f0f0;
           }
 
@@ -1624,9 +1624,9 @@ export default function BrandWelcomePage() {
           .gig-description {
             font-size: 11px;
             color: #666;
-            margin: 0;
+            margin: 2px 0 0 0;
             padding: 0 16px;
-            line-height: 1.45;
+            line-height: 1.35;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -1656,7 +1656,7 @@ export default function BrandWelcomePage() {
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 12px 16px;
+            padding: 8px 16px;
             border-top: 1px solid #f0f0f0;
             margin-top: auto;
           }

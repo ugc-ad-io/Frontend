@@ -701,29 +701,16 @@ export default function BrandWelcomePage() {
                             {gig.attachments.length > 1 && (
                               <div className="attachment-more">+{gig.attachments.length - 1}</div>
                             )}
-                          </div>
-                        )}
-
-                        <div className="gig-creator-header">
-                          <div className="creator-avatar">
-                            {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
-                          </div>
-                          <div className="creator-info">
-                            <h4 className="creator-name">{gig.public_creator_id || gig.creator_id || 'Creator'}</h4>
-                            <div className="gig-creator-rating">
-                              {gig.creator_total_reviews > 0 ? (
-                                <>
-                                  <Star size={12} fill="#fbbf24" stroke="#fbbf24" />
-                                  <span className="rating-value">{gig.creator_avg_rating?.toFixed(1)}</span>
-                                  <span className="rating-count">({gig.creator_total_reviews})</span>
-                                </>
-                              ) : (
-                                <span className="rating-new">New Creator</span>
-                              )}
+                            <div className="gig-creator-overlay">
+                              <div className="creator-avatar creator-avatar--overlay">
+                                {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
+                              </div>
+                              <span className="creator-name-overlay">
+                                {gig.public_creator_id || gig.creator_id || 'Creator'}
+                              </span>
                             </div>
                           </div>
-                          <Heart size={20} className="gig-heart-icon" />
-                        </div>
+                        )}
 
                         <h3 className="gig-title">{gig.title}</h3>
 
@@ -1504,6 +1491,34 @@ export default function BrandWelcomePage() {
             object-fit: cover;
           }
 
+          .gig-creator-overlay {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px 5px 5px;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
+            border-radius: 999px;
+            max-width: calc(100% - 20px);
+          }
+          .creator-avatar--overlay {
+            width: 24px;
+            height: 24px;
+            font-size: 11px;
+            border: 1.5px solid rgba(255, 255, 255, 0.7);
+          }
+          .creator-name-overlay {
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
           .attachment-more {
             position: absolute;
             bottom: 8px;
@@ -1671,17 +1686,17 @@ export default function BrandWelcomePage() {
           }
 
           .budget-amount {
-            font-size: 12px;
+            font-size: 14px;
           }
 
           .gig-cta-button {
             flex: 1;
-            padding: 5px 10px;
+            padding: 7px 12px;
             background: #4a90e2;
             color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 9px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;

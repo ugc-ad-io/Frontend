@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail, Video, Star, Gift, Zap, PlayCircle, Share2, Smile, TrendingUpIcon, Book, Camera } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail, Video, Star, Gift, Zap, PlayCircle, Share2, Smile, TrendingUpIcon, Book, Camera, ArrowRight } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -45,6 +46,25 @@ const getIconComponent = (iconName, categoryId) => {
   return icon || Star;
 };
 
+// ── Motion variants (reused across the page) ─────────────────────────────
+const sectionVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (i = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+};
+const cardStagger = {
+  hidden: { opacity: 0, y: 30, scale: 0.96 },
+  visible: (i = 0) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.45, delay: 0.15 + i * 0.06 },
+  }),
+};
+
 export default function BrandWelcomePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -55,6 +75,16 @@ export default function BrandWelcomePage() {
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+
+  // Sliding tab indicator state (top-bar categories)
+  const tabRefs = useRef({});
+  const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const el = tabRefs.current[activeCategory];
+    if (el) {
+      setTabIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+    }
+  }, [activeCategory, contentCategories]);
 
   const topBarCategories = [
     { id: 'all', label: 'All' },
@@ -156,19 +186,28 @@ export default function BrandWelcomePage() {
       title: 'Post a Campaign Brief',
       description: 'Create a new campaign and attract top creators',
       icon: Plus,
-      path: '/dashboard/business/post-brief'
+      path: '/dashboard/business/post-brief',
+      accent: '#7c3aed',
+      accentSoft: 'rgba(124, 58, 237, 0.12)',
+      accentBorder: 'rgba(124, 58, 237, 0.22)',
     },
     {
       title: 'Browse Top Creators',
       description: 'Discover vetted creators and send private invitations',
       icon: Users,
-      path: '/dashboard/business/browse-creator'
+      path: '/dashboard/business/browse-creator',
+      accent: '#0ea5e9',
+      accentSoft: 'rgba(14, 165, 233, 0.12)',
+      accentBorder: 'rgba(14, 165, 233, 0.22)',
     },
     {
       title: 'Your Profile Progress',
       description: `${user?.nickname || user?.full_name || 'Brand'} • Complete your profile`,
       icon: CheckCircle,
-      path: '/settings'
+      path: '/settings',
+      accent: '#10b981',
+      accentSoft: 'rgba(16, 185, 129, 0.12)',
+      accentBorder: 'rgba(16, 185, 129, 0.22)',
     }
   ];
 
@@ -602,29 +641,67 @@ export default function BrandWelcomePage() {
         {topBarCategories.map((category) => (
           <button
             key={category.id}
+            ref={(el) => { tabRefs.current[category.id] = el; }}
             className={`category-btn ${activeCategory === category.id ? 'active' : ''}`}
             onClick={() => setActiveCategory(category.id)}
           >
             {category.label}
           </button>
         ))}
+        <motion.span
+          className="category-btn-indicator"
+          aria-hidden="true"
+          animate={{ left: tabIndicator.left, width: tabIndicator.width }}
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        />
       </nav>
 
       <main className="welcome-main">
         {showMenuDropdown && <div className="modal-backdrop" onClick={() => setShowMenuDropdown(false)} />}
 
         <div className="welcome-content">
-          <div className="welcome-banner">
-            <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}! 👋</h1>
-            <p>Discover how to grow your brand with top-tier creators</p>
-          </div>
+          <motion.div
+            className="welcome-banner"
+            custom={0}
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="welcome-banner-orb welcome-banner-orb--1" aria-hidden="true" />
+            <div className="welcome-banner-orb welcome-banner-orb--2" aria-hidden="true" />
+            <div className="welcome-banner-content">
+              <span className="welcome-banner-eyebrow">✨ Brand Dashboard</span>
+              <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}! 👋</h1>
+              <p>Discover how to grow your brand with top-tier creators</p>
+            </div>
+          </motion.div>
 
-          <section className="recommended-section">
+          <motion.section
+            className="recommended-section"
+            custom={1}
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+          >
             <div className="recommended-cards">
               {recommendedCards.map((card, idx) => {
                 const Icon = card.icon;
                 return (
-                  <div key={idx} className="recommended-card" onClick={() => navigate(card.path)}>
+                  <motion.div
+                    key={idx}
+                    className="recommended-card"
+                    onClick={() => navigate(card.path)}
+                    custom={idx}
+                    variants={cardStagger}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={{ y: -4 }}
+                    style={{
+                      '--accent': card.accent,
+                      '--accent-soft': card.accentSoft,
+                      '--accent-border': card.accentBorder,
+                    }}
+                  >
                     <div className="recommended-card-badge">RECOMMENDED FOR YOU</div>
                     <div className="recommended-card-inner">
                       <div className="recommended-card-icon">
@@ -635,14 +712,24 @@ export default function BrandWelcomePage() {
                         <p>{card.description}</p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="explore-section">
-            <h2>Explore Popular Categories</h2>
+          <motion.section
+            className="explore-section"
+            custom={2}
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="explore-section-header">
+              <span className="section-eyebrow">DISCOVER</span>
+              <h2>Explore Popular Categories</h2>
+              <p className="section-subtitle">Browse creators by content type — find the right fit for your campaign</p>
+            </div>
             <div className="explore-container">
               <div className="categories-sidebar">
                 {contentCategories.length > 0 && contentCategories.map((category) => {
@@ -666,82 +753,120 @@ export default function BrandWelcomePage() {
                 {gigsLoading ? (
                   <>
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="gig-card-welcome" style={{ pointerEvents: 'none' }}>
-                        <div style={{
-                          width: '100%',
-                          aspectRatio: '4/3',
-                          background: 'linear-gradient(110deg, #eeeef2 8%, #f6f6f9 18%, #eeeef2 33%)',
-                          backgroundSize: '200% 100%',
-                          animation: 'gigSkeleton 1.4s linear infinite',
-                          borderRadius: '8px',
-                          marginBottom: '12px'
-                        }} />
-                        <div style={{ height: '14px', width: '60%', background: '#eeeef2', borderRadius: '4px', marginBottom: '8px' }} />
-                        <div style={{ height: '12px', width: '90%', background: '#f3f3f7', borderRadius: '4px' }} />
+                      <div key={i} className="gig-card-welcome gig-card-skeleton" style={{ pointerEvents: 'none', animationDelay: `${i * 0.1}s` }}>
+                        <div className="skel skel-img" />
+                        <div className="skel skel-line" style={{ width: '60%', marginTop: '12px' }} />
+                        <div className="skel skel-line" style={{ width: '90%', marginTop: '8px', height: '12px' }} />
                       </div>
                     ))}
                     <style>{`
                       @keyframes gigSkeleton {
-                        to { background-position-x: -200%; }
+                        0%   { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                      }
+                      .skel {
+                        background: linear-gradient(115deg, #e9eaf3 0%, #fafbff 50%, #e9eaf3 100%);
+                        background-size: 200% 100%;
+                        animation: gigSkeleton 1.6s ease-in-out infinite;
+                        border-radius: 6px;
+                      }
+                      .skel-img {
+                        width: 100%;
+                        aspectRatio: 4/3;
+                        height: 240px;
+                        border-radius: 0;
+                      }
+                      .skel-line {
+                        height: 14px;
+                        margin-left: 16px;
+                        margin-right: 16px;
                       }
                     `}</style>
                   </>
                 ) : approvedGigs.length > 0 ? (
-                  <>
-                    {approvedGigs.slice(0, 6).map((gig) => (
-                      <div key={gig.id} className="gig-card-welcome" onClick={() => navigate(`/gig/${gig.id}`)}>
-                        {gig.attachments && gig.attachments.length > 0 && (
-                          <div className="gig-media-preview">
-                            <img
-                              src={gig.attachments[0]}
-                              alt="Gig preview"
-                              className="gig-preview-image"
-                              onError={(e) => {e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E';}}
-                            />
-                            {gig.attachments.length > 1 && (
-                              <div className="attachment-more">+{gig.attachments.length - 1}</div>
-                            )}
-                            <div className="gig-creator-overlay">
-                              <div className="creator-avatar creator-avatar--overlay">
-                                {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeCategory}
+                      style={{ display: 'contents' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      {approvedGigs.slice(0, 6).map((gig, idx) => (
+                        <motion.div
+                          key={gig.id}
+                          className="gig-card-welcome"
+                          onClick={() => navigate(`/gig/${gig.id}`)}
+                          custom={idx}
+                          variants={cardStagger}
+                          initial="hidden"
+                          animate="visible"
+                          whileHover={{ y: -4 }}
+                        >
+                          {gig.attachments && gig.attachments.length > 0 && (
+                            <div className="gig-media-preview">
+                              <img
+                                src={gig.attachments[0]}
+                                alt="Gig preview"
+                                className="gig-preview-image"
+                                onError={(e) => {e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E';}}
+                              />
+                              <div className="gig-price-chip">${gig.budget || '0'}</div>
+                              {gig.attachments.length > 1 && (
+                                <div className="attachment-more">+{gig.attachments.length - 1}</div>
+                              )}
+                              <div className="gig-creator-overlay">
+                                <div className="creator-avatar creator-avatar--overlay">
+                                  {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
+                                </div>
+                                <span className="creator-name-overlay">
+                                  {gig.public_creator_id || gig.creator_id || 'Creator'}
+                                </span>
                               </div>
-                              <span className="creator-name-overlay">
-                                {gig.public_creator_id || gig.creator_id || 'Creator'}
-                              </span>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        <h3 className="gig-title">{gig.title}</h3>
+                          <h3 className="gig-title">{gig.title}</h3>
 
-                        <div className="gig-footer">
-                          <div className="gig-budget">
-                            <span className="budget-amount">${gig.budget || '0'}</span>
+                          <div className="gig-footer gig-footer--simple">
+                            <button className="gig-cta-button gig-cta-button--wide">
+                              <span>View Gig</span>
+                              <ArrowRight size={12} className="gig-cta-arrow" />
+                            </button>
                           </div>
-                          <button className="gig-cta-button">View Gig</button>
-                        </div>
-                      </div>
-                    ))}
-                  </>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  </AnimatePresence>
                 ) : (
                   <>
                     {dashboardCards.map((card, idx) => {
                       const Icon = card.icon;
                       return (
-                        <div key={idx} className="dashboard-card" onClick={() => navigate(card.path)}>
+                        <motion.div
+                          key={idx}
+                          className="dashboard-card"
+                          onClick={() => navigate(card.path)}
+                          custom={idx}
+                          variants={cardStagger}
+                          initial="hidden"
+                          animate="visible"
+                          whileHover={{ y: -4 }}
+                        >
                           <div className="card-header">
                             <Icon size={24} />
                           </div>
                           <h3>{card.label}</h3>
                           <p>{card.description}</p>
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </>
                 )}
               </div>
             </div>
-          </section>
+          </motion.section>
         </div>
 
         <style>{`
@@ -784,7 +909,9 @@ export default function BrandWelcomePage() {
             background: #a0aec0;
           }
 
+          .categories-bar { position: sticky; }
           .category-btn {
+            position: relative;
             padding: 16px 0;
             background: none;
             border: none;
@@ -793,8 +920,7 @@ export default function BrandWelcomePage() {
             font-weight: 500;
             cursor: pointer;
             white-space: nowrap;
-            transition: all 0.3s ease;
-            border-bottom: 2px solid transparent;
+            transition: color 0.2s ease;
           }
 
           .category-btn:hover {
@@ -803,7 +929,15 @@ export default function BrandWelcomePage() {
 
           .category-btn.active {
             color: #667eea;
-            border-bottom-color: #667eea;
+          }
+
+          .category-btn-indicator {
+            position: absolute;
+            bottom: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+            pointer-events: none;
           }
 
           .welcome-header {
@@ -866,7 +1000,7 @@ export default function BrandWelcomePage() {
           .header-search-bar:focus-within {
             background: white;
             border-color: #667eea;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15), 0 2px 8px rgba(102, 126, 234, 0.1);
           }
 
           .header-search-bar input {
@@ -914,19 +1048,65 @@ export default function BrandWelcomePage() {
           }
 
           .welcome-banner {
+            position: relative;
+            overflow: hidden;
             margin-bottom: 48px;
+            padding: 32px 36px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.25);
+          }
+          .welcome-banner-content {
+            position: relative;
+            z-index: 1;
+          }
+          .welcome-banner-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.25;
+            pointer-events: none;
+          }
+          .welcome-banner-orb--1 {
+            width: 240px;
+            height: 240px;
+            background: #ffffff;
+            top: -100px;
+            right: -60px;
+          }
+          .welcome-banner-orb--2 {
+            width: 200px;
+            height: 200px;
+            background: #fbbf24;
+            bottom: -100px;
+            left: 30%;
+            opacity: 0.18;
+          }
+          .welcome-banner-eyebrow {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.18);
+            padding: 5px 14px;
+            border-radius: 100px;
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            backdrop-filter: blur(8px);
           }
 
           .welcome-banner h1 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 700;
-            color: #1a202c;
+            color: #ffffff;
+            letter-spacing: -0.02em;
             margin: 0 0 8px 0;
           }
 
           .welcome-banner p {
             font-size: 1.05rem;
-            color: #718096;
+            color: rgba(255, 255, 255, 0.88);
             margin: 0;
           }
 
@@ -1128,31 +1308,50 @@ export default function BrandWelcomePage() {
           }
 
           .recommended-card {
+            position: relative;
             background: white;
-            padding: 16px 24px;
-            border-radius: 12px;
+            padding: 18px 24px;
+            border-radius: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--accent-border, #e2e8f0);
             display: flex;
             flex-direction: column;
             gap: 12px;
+            overflow: hidden;
+          }
+          .recommended-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 0%, var(--accent-soft, rgba(102, 126, 234, 0.08)) 50%, transparent 100%);
+            transform: translateX(-100%);
+            pointer-events: none;
+            transition: transform 0.7s ease;
+          }
+          .recommended-card:hover::after {
+            transform: translateX(100%);
           }
 
           .recommended-card:hover {
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
-            border-color: #667eea;
-            background: #f8f9ff;
+            box-shadow: 0 10px 28px var(--accent-soft, rgba(102, 126, 234, 0.12));
+            border-color: var(--accent, #667eea);
+            background: #fefeff;
           }
 
           .recommended-card-badge {
-            font-size: 0.65rem;
+            display: inline-block;
+            font-size: 0.62rem;
             font-weight: 700;
-            color: #a0aec0;
+            color: var(--accent, #a0aec0);
+            background: var(--accent-soft, transparent);
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.12em;
             line-height: 1;
+            padding: 4px 10px;
+            border-radius: 100px;
             margin-bottom: 4px;
+            align-self: flex-start;
           }
 
           .recommended-card-inner {
@@ -1162,15 +1361,19 @@ export default function BrandWelcomePage() {
           }
 
           .recommended-card-icon {
-            width: 44px;
-            height: 44px;
-            min-width: 44px;
-            background: #f0f4ff;
-            border-radius: 10px;
+            width: 46px;
+            height: 46px;
+            min-width: 46px;
+            background: var(--accent-soft, #f0f4ff);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #667eea;
+            color: var(--accent, #667eea);
+            transition: transform 0.3s ease;
+          }
+          .recommended-card:hover .recommended-card-icon {
+            transform: scale(1.08) rotate(-3deg);
           }
 
           .recommended-card-content {
@@ -1191,11 +1394,29 @@ export default function BrandWelcomePage() {
             line-height: 1.4;
           }
 
+          .explore-section-header {
+            margin: 0 0 28px;
+          }
+          .section-eyebrow {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: #667eea;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+          }
           .explore-section h2 {
-            font-size: 1.5rem;
+            font-size: 1.65rem;
             font-weight: 700;
             color: #1a202c;
-            margin: 0 0 24px 0;
+            letter-spacing: -0.02em;
+            margin: 0 0 6px 0;
+          }
+          .section-subtitle {
+            color: #718096;
+            font-size: 0.95rem;
+            margin: 0;
           }
 
           .explore-container {
@@ -1232,6 +1453,7 @@ export default function BrandWelcomePage() {
           }
 
           .category-sidebar-item {
+            position: relative;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -1240,37 +1462,66 @@ export default function BrandWelcomePage() {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
             color: #4a5568;
             font-size: 0.95rem;
             font-weight: 500;
             text-align: left;
-            border-left: 3px solid transparent;
+            overflow: hidden;
+          }
+          .category-sidebar-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10%;
+            bottom: 10%;
+            width: 0;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            border-radius: 0 2px 2px 0;
+            transition: width 0.25s ease;
           }
 
           .category-sidebar-item:hover {
             background: #f7fafc;
             border-color: #cbd5e0;
+            transform: translateX(2px);
+          }
+          .category-sidebar-item:hover::before {
+            width: 3px;
           }
 
           .category-sidebar-item.active {
             background: #f0f4ff;
             border-color: #667eea;
-            border-left-color: #667eea;
             color: #667eea;
+          }
+          .category-sidebar-item.active::before {
+            width: 4px;
           }
 
           .category-item-icon {
-            min-width: 24px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f0f4ff, #e9eafd);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: inherit;
+            color: #667eea;
+            transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+          }
+          .category-sidebar-item.active .category-item-icon {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #ffffff;
+          }
+          .category-sidebar-item:hover .category-item-icon {
+            transform: scale(1.05);
           }
 
           .category-item-icon svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             flex-shrink: 0;
           }
 
@@ -1492,6 +1743,10 @@ export default function BrandWelcomePage() {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.5s ease;
+          }
+          .gig-card-welcome:hover .gig-preview-image {
+            transform: scale(1.06);
           }
 
           .gig-creator-overlay {
@@ -1504,9 +1759,9 @@ export default function BrandWelcomePage() {
             max-width: calc(100% - 20px);
           }
           .creator-avatar.creator-avatar--overlay {
-            width: 10px;
-            height: 10px;
-            font-size: 6px;
+            width: 16px;
+            height: 16px;
+            font-size: 9px;
             border: 1px solid rgba(255, 255, 255, 0.7);
           }
           .creator-name-overlay {
@@ -1522,16 +1777,37 @@ export default function BrandWelcomePage() {
             position: absolute;
             bottom: 8px;
             right: 8px;
-            width: 40px;
-            height: 40px;
+            width: 26px;
+            height: 26px;
             background: rgba(0,0,0,0.6);
             color: white;
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 600;
+          }
+
+          .gig-price-chip {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #ffffff;
+            color: #07074e;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 5px 12px;
+            border-radius: 100px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+            z-index: 2;
+          }
+
+          .gig-footer--simple {
+            padding: 8px 16px 12px;
+          }
+          .gig-cta-button--wide {
+            width: 100%;
           }
 
           .gig-card-welcome:hover {
@@ -1689,21 +1965,31 @@ export default function BrandWelcomePage() {
 
           .gig-cta-button {
             flex: 1;
-            padding: 7px 12px;
-            background: #4a90e2;
+            padding: 6px 10px;
+            background: linear-gradient(135deg, #5a9ee5 0%, #4a90e2 100%);
             color: white;
             border: none;
             border-radius: 6px;
             font-size: 11px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s ease;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
           }
-
+          .gig-cta-arrow {
+            transition: transform 0.25s ease;
+          }
           .gig-cta-button:hover {
-            background: #357abd;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.35);
+          }
+          .gig-cta-button:hover .gig-cta-arrow {
+            transform: translateX(3px);
           }
 
           .empty-state {

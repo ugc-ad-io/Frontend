@@ -144,13 +144,13 @@
 
 .msg-layout {
   display: flex;
-  gap: 16px;
-  padding: 32px;
-  margin: 0 0 0 -32px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  border-radius: 0;
-  box-shadow: none;
-  border: none;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(7, 7, 78, 0.05);
+  border: 1px solid #e5e7ff;
   flex: 1;
   height: clamp(560px, calc(100vh - 150px), 720px);
   min-height: 0;
@@ -159,20 +159,21 @@
 
 .pcd-content > .msg-layout {
   margin: 0;
-  padding: 32px;
-  background: #f5f4ff;
+  padding: 0;
+  background: #ffffff;
 }
 
 /* Left Panel: Conversations */
 .msg-list-panel {
-  width: 360px;
+  width: 340px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: transparent;
   flex-shrink: 0;
-  border-radius: 28px;
-  box-shadow: 0 8px 30px rgba(93, 95, 239, 0.08);
-  border: 1px solid rgba(93, 95, 239, 0.06);
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  border-right: 1px solid #e5e7ff;
   overflow: hidden;
   min-height: 0;
   height: 100%;

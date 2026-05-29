@@ -1498,11 +1498,8 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 5px 10px 5px 5px;
-            background: rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(6px);
-            border-radius: 999px;
             max-width: calc(100% - 20px);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
           }
           .creator-avatar--overlay {
             width: 24px;

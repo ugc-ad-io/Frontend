@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail, Video, Star, Gift, Zap, PlayCircle, Share2, Smile, TrendingUpIcon, Book, Camera, ArrowRight } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail, Video, Star, Gift, Zap, PlayCircle, Share2, Smile, TrendingUpIcon, Book, Camera, ArrowRight, Sparkles, Rocket } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -187,27 +187,27 @@ export default function BrandWelcomePage() {
       description: 'Create a new campaign and attract top creators',
       icon: Plus,
       path: '/dashboard/business/post-brief',
-      accent: '#7c3aed',
-      accentSoft: 'rgba(124, 58, 237, 0.12)',
-      accentBorder: 'rgba(124, 58, 237, 0.22)',
+      accent: '#07074E',
+      accentSoft: 'rgba(7, 7, 78, 0.08)',
+      accentBorder: 'rgba(7, 7, 78, 0.18)',
     },
     {
       title: 'Browse Top Creators',
       description: 'Discover vetted creators and send private invitations',
       icon: Users,
       path: '/dashboard/business/browse-creator',
-      accent: '#0ea5e9',
-      accentSoft: 'rgba(14, 165, 233, 0.12)',
-      accentBorder: 'rgba(14, 165, 233, 0.22)',
+      accent: '#07074E',
+      accentSoft: 'rgba(7, 7, 78, 0.08)',
+      accentBorder: 'rgba(7, 7, 78, 0.18)',
     },
     {
       title: 'Your Profile Progress',
       description: `${user?.nickname || user?.full_name || 'Brand'} • Complete your profile`,
       icon: CheckCircle,
       path: '/settings',
-      accent: '#10b981',
-      accentSoft: 'rgba(16, 185, 129, 0.12)',
-      accentBorder: 'rgba(16, 185, 129, 0.22)',
+      accent: '#07074E',
+      accentSoft: 'rgba(7, 7, 78, 0.08)',
+      accentBorder: 'rgba(7, 7, 78, 0.18)',
     }
   ];
 
@@ -259,7 +259,7 @@ export default function BrandWelcomePage() {
                 </div>
               </div>
               <div className="info-item">
-                <div className="info-icon">🚀</div>
+                <div className="info-icon"><Rocket size={20} /></div>
                 <div>
                   <h3>What's Next?</h3>
                   <p>Create your first campaign</p>
@@ -559,10 +559,12 @@ export default function BrandWelcomePage() {
     <div className="welcome-page">
       <header className="welcome-header">
         <div className="welcome-header-left">
-          <div className="brand-logo">
-            <div className="logo-icon">U</div>
-            <span>UGCad.io</span>
-          </div>
+          <img
+            src="/ugcad-logo.png"
+            alt="UGCad.io"
+            className="brand-logo-img"
+            onClick={() => navigate('/brand-home')}
+          />
         </div>
 
         <div className="header-search-bar">
@@ -670,8 +672,11 @@ export default function BrandWelcomePage() {
             <div className="welcome-banner-orb welcome-banner-orb--1" aria-hidden="true" />
             <div className="welcome-banner-orb welcome-banner-orb--2" aria-hidden="true" />
             <div className="welcome-banner-content">
-              <span className="welcome-banner-eyebrow">✨ Brand Dashboard</span>
-              <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}! 👋</h1>
+              <span className="welcome-banner-eyebrow">
+                <Sparkles size={12} strokeWidth={2.5} />
+                Brand Dashboard
+              </span>
+              <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}</h1>
               <p>Discover how to grow your brand with top-tier creators</p>
             </div>
           </motion.div>
@@ -933,7 +938,7 @@ export default function BrandWelcomePage() {
           }
 
           .category-btn:hover {
-            color: #1a202c;
+            color: #07074E;
           }
 
           .category-btn.active {
@@ -965,6 +970,14 @@ export default function BrandWelcomePage() {
           .welcome-header-left {
             flex-shrink: 0;
           }
+
+          .brand-logo-img {
+            height: 44px;
+            width: auto;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+          }
+          .brand-logo-img:hover { opacity: 0.85; }
 
           .brand-logo {
             display: flex;
@@ -1008,8 +1021,8 @@ export default function BrandWelcomePage() {
           .header-search-bar:hover,
           .header-search-bar:focus-within {
             background: white;
-            border-color: #07074E;
-            box-shadow: 0 0 0 4px rgba(7, 7, 78, 0.15), 0 2px 8px rgba(7, 7, 78, 0.1);
+            border-color: #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
           }
 
           .header-search-bar input {
@@ -1093,7 +1106,9 @@ export default function BrandWelcomePage() {
             opacity: 0.18;
           }
           .welcome-banner-eyebrow {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             background: rgba(255, 255, 255, 0.18);
             padding: 5px 14px;
             border-radius: 100px;

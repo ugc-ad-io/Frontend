@@ -1490,12 +1490,13 @@ export default function BrandWelcomePage() {
           .gig-media-preview {
             position: relative;
             width: 100%;
-            height: 180px;
+            height: 240px;
             background: #f0f0f0;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-bottom: 18px;
           }
 
           .gig-preview-image {
@@ -1615,11 +1616,9 @@ export default function BrandWelcomePage() {
             margin: 0;
             padding: 0 16px;
             line-height: 1.35;
-            min-height: 34px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+            white-space: nowrap;
             overflow: hidden;
+            text-overflow: ellipsis;
           }
 
           .gig-description {

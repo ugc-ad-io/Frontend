@@ -1500,7 +1500,7 @@ export default function BrandWelcomePage() {
             gap: 8px;
             max-width: calc(100% - 20px);
           }
-          .creator-avatar--overlay {
+          .creator-avatar.creator-avatar--overlay {
             width: 10px;
             height: 10px;
             font-size: 6px;
@@ -1668,9 +1668,8 @@ export default function BrandWelcomePage() {
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 8px 16px;
-            border-top: 1px solid #f0f0f0;
-            margin-top: auto;
+            padding: 6px 16px 8px;
+            margin-top: 4px;
           }
 
           .gig-budget {

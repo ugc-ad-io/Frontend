@@ -728,15 +728,6 @@ export default function BrandWelcomePage() {
                         <h3 className="gig-title">{gig.title}</h3>
                         <p className="gig-description">{gig.description?.substring(0, 80)}...</p>
 
-                        <div className="gig-details-grid">
-                          <div className="gig-detail-item">
-                            <span>📁 {gig.category || 'General'}</span>
-                          </div>
-                          <div className="gig-detail-item">
-                            <span>⏱️ Deadline soon</span>
-                          </div>
-                        </div>
-
                         <div className="gig-footer">
                           <div className="gig-budget">
                             <span className="budget-amount">${gig.budget || '0'}</span>
@@ -1618,13 +1609,13 @@ export default function BrandWelcomePage() {
           }
 
           .gig-title {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 600;
             color: #07074e;
             margin: 0;
             padding: 0 16px;
-            line-height: 1.4;
-            min-height: 40px;
+            line-height: 1.35;
+            min-height: 34px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -1632,11 +1623,11 @@ export default function BrandWelcomePage() {
           }
 
           .gig-description {
-            font-size: 13px;
+            font-size: 11px;
             color: #666;
             margin: 0;
             padding: 0 16px;
-            line-height: 1.5;
+            line-height: 1.45;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -1680,17 +1671,17 @@ export default function BrandWelcomePage() {
           }
 
           .budget-amount {
-            font-size: 16px;
+            font-size: 14px;
           }
 
           .gig-cta-button {
             flex: 1;
-            padding: 10px 16px;
+            padding: 7px 12px;
             background: #4a90e2;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;

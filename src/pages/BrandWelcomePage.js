@@ -1501,9 +1501,9 @@ export default function BrandWelcomePage() {
             max-width: calc(100% - 20px);
           }
           .creator-avatar--overlay {
-            width: 18px;
-            height: 18px;
-            font-size: 9px;
+            width: 10px;
+            height: 10px;
+            font-size: 6px;
             border: 1px solid rgba(255, 255, 255, 0.7);
           }
           .creator-name-overlay {

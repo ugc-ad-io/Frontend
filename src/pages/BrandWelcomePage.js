@@ -1278,6 +1278,8 @@ export default function BrandWelcomePage() {
             flex: 1;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-auto-rows: min-content;
+            align-items: start;
             gap: 20px;
           }
 

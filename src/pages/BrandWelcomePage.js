@@ -1460,7 +1460,6 @@ export default function BrandWelcomePage() {
             grid-auto-rows: min-content;
             align-items: start;
             gap: 24px;
-            margin-bottom: 40px;
           }
 
           .gig-card-welcome {

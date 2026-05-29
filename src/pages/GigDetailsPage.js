@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star,
   Heart,
@@ -23,6 +24,24 @@ import {
   X
 } from 'lucide-react';
 import './GigDetailsPage.css';
+
+// ── Motion variants ─────────────────────────────────────────────────────
+const sectionVariants = {
+  hidden:  { opacity: 0, y: 20 },
+  visible: (i = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+};
+const listStagger = {
+  hidden:  { opacity: 0, x: -10 },
+  visible: (i = 0) => ({
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.35, delay: 0.2 + i * 0.06 },
+  }),
+};
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -58,6 +77,16 @@ export default function GigDetailsPage() {
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('basic');
   const [numberOfSeconds, setNumberOfSeconds] = useState(15);
+
+  // Sliding tab indicator (Basic / Standard / Premium)
+  const packageTabRefs = useRef({});
+  const [pkgIndicator, setPkgIndicator] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const el = packageTabRefs.current[selectedPackage];
+    if (el) {
+      setPkgIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+    }
+  }, [selectedPackage]);
 
   useEffect(() => {
     fetchGig();
@@ -502,9 +531,22 @@ export default function GigDetailsPage() {
 
       <div className="gdp-content">
         <div className="gdp-main">
-          <h1 className="gdp-title">{gig.title}</h1>
+          <motion.div
+            custom={0}
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <h1 className="gdp-title">{gig.title}</h1>
+          </motion.div>
 
-          <div className="gdp-creator-row">
+          <motion.div
+            className="gdp-creator-row"
+            custom={0}
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+          >
             <div className="gdp-creator-avatar">
               {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
             </div>
@@ -523,47 +565,95 @@ export default function GigDetailsPage() {
               </div>
             </div>
             <div className="gdp-creator-actions">
-              <button
+              <motion.button
                 className={`gdp-icon-btn ${isWishlisted ? 'is-wishlisted' : ''}`}
                 onClick={handleToggleWishlist}
                 disabled={wishlistBusy}
                 aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
               >
-                <Heart
-                  size={18}
-                  fill={isWishlisted ? '#ef4444' : 'none'}
-                  stroke={isWishlisted ? '#ef4444' : 'currentColor'}
-                />
+                <motion.span
+                  key={isWishlisted ? 'on' : 'off'}
+                  initial={{ scale: 0.85 }}
+                  animate={{ scale: [0.85, 1.2, 1] }}
+                  transition={{ duration: 0.35 }}
+                  style={{ display: 'inline-flex' }}
+                >
+                  <Heart
+                    size={18}
+                    fill={isWishlisted ? '#ef4444' : 'none'}
+                    stroke={isWishlisted ? '#ef4444' : 'currentColor'}
+                  />
+                </motion.span>
                 <span>{wishlistCount}</span>
-              </button>
-              <button className="gdp-icon-btn"><Share2 size={18} /></button>
+              </motion.button>
+              <motion.button
+                className="gdp-icon-btn"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <Share2 size={18} />
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="gdp-media-section">
+          <motion.div
+            className="gdp-media-section"
+            custom={1}
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+          >
             {attachments.length > 0 ? (
               <>
                 <div className="gdp-media-main">
-                  {isVideo(currentAttachment) ? (
-                    <video src={currentAttachment} controls className="gdp-media-content" />
-                  ) : (
-                    <img
-                      src={currentAttachment}
-                      alt="Gig media"
-                      className="gdp-media-content"
-                      onError={(e) => {
-                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22400%22%3E%3Crect fill=%22%23e0e0e0%22 width=%22600%22 height=%22400%22/%3E%3Ctext x=%22300%22 y=%22200%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2218%22%3EImage Preview%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                  )}
+                  <AnimatePresence mode="wait">
+                    {isVideo(currentAttachment) ? (
+                      <motion.video
+                        key={`v-${activeMediaIndex}`}
+                        src={currentAttachment}
+                        controls
+                        className="gdp-media-content"
+                        initial={{ opacity: 0, scale: 1.02 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    ) : (
+                      <motion.img
+                        key={`i-${activeMediaIndex}`}
+                        src={currentAttachment}
+                        alt="Gig media"
+                        className="gdp-media-content"
+                        initial={{ opacity: 0, scale: 1.02 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        onError={(e) => {
+                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22400%22%3E%3Crect fill=%22%23e0e0e0%22 width=%22600%22 height=%22400%22/%3E%3Ctext x=%22300%22 y=%22200%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2218%22%3EImage Preview%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                    )}
+                  </AnimatePresence>
                   {attachments.length > 1 && (
                     <>
-                      <button className="gdp-media-nav gdp-media-prev" onClick={handlePrevMedia}>
+                      <motion.button
+                        className="gdp-media-nav gdp-media-prev"
+                        onClick={handlePrevMedia}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                      >
                         <ChevronLeft size={24} />
-                      </button>
-                      <button className="gdp-media-nav gdp-media-next" onClick={handleNextMedia}>
+                      </motion.button>
+                      <motion.button
+                        className="gdp-media-nav gdp-media-next"
+                        onClick={handleNextMedia}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                      >
                         <ChevronRight size={24} />
-                      </button>
+                      </motion.button>
                     </>
                   )}
                 </div>
@@ -596,8 +686,14 @@ export default function GigDetailsPage() {
             ) : (
               <div className="gdp-media-empty">No media available</div>
             )}
-          </div>
+          </motion.div>
 
+          <motion.div
+            custom={2}
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+          >
           <div className="gdp-about-section">
             <h2 className="gdp-section-title">About this gig</h2>
             <p className="gdp-description">{gig.description}</p>
@@ -932,20 +1028,34 @@ export default function GigDetailsPage() {
               </>
             )}
           </div>
+          </motion.div>
         </div>
 
-        <aside className="gdp-sidebar">
+        <motion.aside
+          className="gdp-sidebar"
+          custom={3}
+          variants={sectionVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="gdp-package-card">
             <div className="gdp-package-tabs">
               {Object.keys(packages).map((key) => (
                 <button
                   key={key}
+                  ref={(el) => { packageTabRefs.current[key] = el; }}
                   className={`gdp-package-tab ${selectedPackage === key ? 'is-active' : ''}`}
                   onClick={() => setSelectedPackage(key)}
                 >
                   {packages[key].name}
                 </button>
               ))}
+              <motion.span
+                className="gdp-package-tab-indicator"
+                aria-hidden="true"
+                animate={{ left: pkgIndicator.left, width: pkgIndicator.width }}
+                transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+              />
             </div>
 
             <div className="gdp-package-body">
@@ -955,10 +1065,16 @@ export default function GigDetailsPage() {
 
               <ul className="gdp-package-features">
                 {currentPackage.features.map((feature, idx) => (
-                  <li key={idx}>
-                    <Check size={16} />
+                  <motion.li
+                    key={`${selectedPackage}-${idx}`}
+                    custom={idx}
+                    variants={listStagger}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    <span className="gdp-feature-check"><Check size={12} strokeWidth={3} /></span>
                     <span>{feature}</span>
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
 
@@ -973,16 +1089,22 @@ export default function GigDetailsPage() {
                 />
               </div>
 
-              <button className="gdp-continue-btn" onClick={handleContinue}>
-                Continue <ChevronRight size={18} />
-              </button>
+              <motion.button
+                className="gdp-continue-btn"
+                onClick={handleContinue}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span>Continue</span>
+                <ChevronRight size={18} className="gdp-continue-arrow" />
+              </motion.button>
             </div>
           </div>
 
           <button className="gdp-contact-btn" onClick={handleContactCreator}>
             Contact me
           </button>
-        </aside>
+        </motion.aside>
       </div>
     </div>
   );

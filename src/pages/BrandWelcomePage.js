@@ -557,6 +557,12 @@ export default function BrandWelcomePage() {
 
   return (
     <div className="welcome-page">
+      <div className="welcome-bg-orbs" aria-hidden="true">
+        <span className="welcome-bg-orb welcome-bg-orb--1" />
+        <span className="welcome-bg-orb welcome-bg-orb--2" />
+        <span className="welcome-bg-orb welcome-bg-orb--3" />
+        <span className="welcome-bg-orb welcome-bg-orb--4" />
+      </div>
       <header className="welcome-header">
         <div className="welcome-header-left">
           <img
@@ -885,10 +891,89 @@ export default function BrandWelcomePage() {
 
         <style>{`
           .welcome-page {
+            position: relative;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
             background: #f8f9ff;
+            overflow-x: hidden;
+          }
+
+          /* Ambient floating background orbs */
+          .welcome-bg-orbs {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+          }
+          .welcome-bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(70px);
+            opacity: 0.32;
+            will-change: transform;
+          }
+          .welcome-bg-orb--1 {
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, rgba(7, 7, 78, 0.5) 0%, rgba(7, 7, 78, 0) 70%);
+            top: -120px;
+            left: -100px;
+            animation: orbDrift1 22s ease-in-out infinite;
+          }
+          .welcome-bg-orb--2 {
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0) 70%);
+            top: 30%;
+            right: -120px;
+            animation: orbDrift2 26s ease-in-out infinite;
+          }
+          .welcome-bg-orb--3 {
+            width: 360px;
+            height: 360px;
+            background: radial-gradient(circle, rgba(74, 144, 226, 0.25) 0%, rgba(74, 144, 226, 0) 70%);
+            bottom: 25%;
+            left: 18%;
+            animation: orbDrift3 30s ease-in-out infinite;
+          }
+          .welcome-bg-orb--4 {
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, rgba(7, 7, 78, 0.32) 0%, rgba(7, 7, 78, 0) 70%);
+            bottom: -180px;
+            right: 20%;
+            animation: orbDrift4 28s ease-in-out infinite;
+          }
+
+          @keyframes orbDrift1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%      { transform: translate(60px, 80px) scale(1.1); }
+            66%      { transform: translate(-30px, 120px) scale(0.95); }
+          }
+          @keyframes orbDrift2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50%      { transform: translate(-80px, 40px) scale(1.08); }
+          }
+          @keyframes orbDrift3 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%      { transform: translate(70px, -50px) scale(1.05); }
+            66%      { transform: translate(-50px, -90px) scale(0.92); }
+          }
+          @keyframes orbDrift4 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50%      { transform: translate(80px, -60px) scale(1.1); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .welcome-bg-orb { animation: none !important; }
+          }
+
+          .welcome-header,
+          .categories-bar,
+          .welcome-main {
+            position: relative;
+            z-index: 1;
           }
 
           .categories-bar {

@@ -1105,10 +1105,6 @@ export default function GigDetailsPage() {
               </motion.button>
             </div>
           </div>
-
-          <button className="gdp-contact-btn" onClick={handleContactCreator}>
-            Contact me
-          </button>
         </motion.aside>
       </div>
     </div>

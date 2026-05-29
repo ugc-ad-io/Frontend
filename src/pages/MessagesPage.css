@@ -165,7 +165,7 @@
 
 /* Left Panel: Conversations */
 .msg-list-panel {
-  width: 340px;
+  width: 320px;
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -173,11 +173,11 @@
   border-radius: 0;
   box-shadow: none;
   border: none;
-  border-right: 1px solid #e5e7ff;
   overflow: hidden;
   min-height: 0;
   height: 100%;
 }
+.msg-list-panel .msg-list-header { display: none; }
 
 .msg-list-header {
   padding: 28px 24px 20px 24px;

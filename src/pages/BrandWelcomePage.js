@@ -1616,6 +1616,8 @@ export default function BrandWelcomePage() {
             margin: 0 0 2px 0;
             padding: 0 16px;
             line-height: 1.2;
+            min-height: 0;
+            display: block;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;

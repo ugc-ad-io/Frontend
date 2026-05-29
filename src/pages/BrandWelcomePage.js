@@ -1457,6 +1457,8 @@ export default function BrandWelcomePage() {
           .gigs-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-auto-rows: min-content;
+            align-items: start;
             gap: 24px;
             margin-bottom: 40px;
           }

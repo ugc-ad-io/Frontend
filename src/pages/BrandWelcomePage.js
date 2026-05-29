@@ -1671,17 +1671,17 @@ export default function BrandWelcomePage() {
           }
 
           .budget-amount {
-            font-size: 14px;
+            font-size: 12px;
           }
 
           .gig-cta-button {
             flex: 1;
-            padding: 7px 12px;
+            padding: 5px 10px;
             background: #4a90e2;
             color: white;
             border: none;
-            border-radius: 6px;
-            font-size: 11px;
+            border-radius: 5px;
+            font-size: 9px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;

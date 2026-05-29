@@ -26,6 +26,18 @@
   font-family: 'Instrument Sans', sans-serif;
 }
 
+/* Flatten all default heading and strong-tag boldness across the dashboard */
+.pcd-shell h1,
+.pcd-shell h2,
+.pcd-shell h3,
+.pcd-shell h4,
+.pcd-shell h5,
+.pcd-shell h6,
+.pcd-shell strong,
+.pcd-shell b {
+  font-weight: 400;
+}
+
 .pcd-shell button,
 .pcd-shell input,
 .pcd-shell textarea,
@@ -96,7 +108,7 @@
   gap: 12px;
   margin-bottom: 40px;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-brand-mark {
@@ -119,7 +131,7 @@
   padding: 0 16px 6px;
   color: #9f9fd1;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -147,7 +159,7 @@
 .pcd-nav-item.is-active {
   color: #07074E;
   background: #fff;
-  font-weight: 700;
+  font-weight: 400;
   box-shadow: none;
 }
 
@@ -166,7 +178,7 @@
   margin-top: 2px;
   color: #9f9fd1;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .pcd-avatar {
@@ -178,7 +190,7 @@
   border-radius: 50%;
   background: #7387FF;
   color: #fff;
-  font-weight: 800;
+  font-weight: 400;
   box-shadow: 0 8px 18px rgba(7, 7, 78, 0.16);
   overflow: hidden;
 }
@@ -245,7 +257,7 @@
   margin: 0 0 4px;
   color: #1a1d3f;
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.15;
 }
 
@@ -255,7 +267,7 @@
   margin: 0;
   color: #a5a8c0;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .pcd-hamburger {
@@ -330,7 +342,7 @@
   background: transparent;
   color: #9f9fd1;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -351,7 +363,7 @@
 
 .pcd-logout {
   padding: 10px 14px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-stat-grid {
@@ -405,14 +417,14 @@
   background: #ecfdf5;
   color: #10b981;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .pcd-stat-card p {
   margin: 0 0 6px;
   color: #6b7280;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -421,7 +433,7 @@
   margin: 0;
   color: #1a1d3f;
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.1;
 }
 
@@ -494,7 +506,7 @@
   margin: 0 0 8px;
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -512,7 +524,7 @@
   margin: 0;
   color: #fff;
   font-size: 28px;
-  font-weight: 760;
+  font-weight: 400;
 }
 
 .pcd-progress-block {
@@ -527,7 +539,7 @@
   margin-bottom: 10px;
   color: #fff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-progress-track {
@@ -552,7 +564,7 @@
   margin: 14px 0 0;
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-level-metrics {
@@ -579,7 +591,7 @@
   margin-bottom: 6px;
   color: rgba(255, 255, 255, 0.68);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -626,7 +638,7 @@
   margin: 0;
   color: #1a1d3f;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-section-header button,
@@ -645,7 +657,7 @@
   background: #fff;
   color: #07074e;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 400;
   cursor: pointer;
   transition: 160ms ease;
 }
@@ -673,7 +685,7 @@
   background: #f9fafb;
   color: #6b7280;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -684,13 +696,13 @@
   border-top: 1px solid #f3f4f6;
   color: #1a1d3f;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
 }
 
 .pcd-table td:first-child {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .pcd-table td button {
@@ -705,7 +717,7 @@
   background: #fef3c7;
   color: #f59e0b;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
   text-transform: capitalize;
 }
 
@@ -714,7 +726,7 @@
   background: linear-gradient(135deg, rgba(72, 187, 120, 0.15) 0%, rgba(56, 161, 105, 0.1) 100%);
   color: #2f855a;
   border-color: rgba(72, 187, 120, 0.2);
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .pcd-status.revision,
@@ -729,7 +741,7 @@
   background: rgba(115, 135, 255, 0.15);
   color: #7387FF;
   border-color: rgba(115, 135, 255, 0.2);
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .pcd-empty-row {
@@ -760,7 +772,7 @@
   color: #07074e;
   padding: 9px 14px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .pcd-chart {
@@ -784,7 +796,7 @@
 .pcd-chart-label {
   fill: #9f9fd1;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-updates-card {
@@ -809,14 +821,14 @@
   margin: 0 0 3px;
   color: #07074e;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .pcd-update p {
   margin: 0 0 6px;
   color: #9f9fd1;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 400;
   line-height: 1.35;
 }
 
@@ -826,7 +838,7 @@
   gap: 4px;
   color: #9f9fd1;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .pcd-section-header > span {
@@ -835,7 +847,7 @@
   background: rgba(115, 135, 255, 0.1);
   color: #7387ff;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -870,14 +882,14 @@
   margin: 0 0 5px;
   color: #07074e;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 400;
 }
 
 .pcd-badge-card p {
   margin: 0;
   color: #9f9fd1;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-rate-card {
@@ -914,7 +926,7 @@
   background: #7387ff;
   color: #fff;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -965,7 +977,7 @@
   padding: 13px 18px;
   background: #7387ff;
   color: #fff;
-  font-weight: 850;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -989,7 +1001,7 @@
   color: #9f9fd1;
   padding: 12px 16px;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -1052,7 +1064,7 @@
   margin: 0 0 4px;
   color: #07074e;
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 400;
   line-height: 1.2;
 }
 
@@ -1061,7 +1073,7 @@
   margin: 0;
   color: #9f9fd1;
   font-size: 18px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1125,7 +1137,7 @@
 .pcd-campaign-card dt {
   color: #9f9fd1;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex: 0 0 auto;
@@ -1135,7 +1147,7 @@
   margin: 0;
   color: #07074e;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 400;
   text-align: right;
   flex: 0 0 auto;
 }
@@ -1184,7 +1196,7 @@
   background: #7387FF;
   border-color: transparent;
   color: #fff;
-  font-weight: 600;
+  font-weight: 400;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   transition: all 0.3s ease;
 }
@@ -1229,7 +1241,7 @@
 
 .pcd-review-card small {
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-review-card-enhanced {
@@ -1264,7 +1276,7 @@
 
 .campaign-title {
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #1a202c;
   margin: 0 0 4px;
   line-height: 1.4;
@@ -1273,7 +1285,7 @@
 .brand-name {
   font-size: 0.9rem;
   color: #7387ff;
-  font-weight: 600;
+  font-weight: 400;
   margin: 0;
 }
 
@@ -1306,7 +1318,7 @@
   gap: 6px;
   color: #9f9fd1;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 400;
   margin-top: auto;
 }
 
@@ -1322,7 +1334,7 @@
 
 .pcd-portfolio-head h2 {
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #1a202c;
   margin: 0;
 }
@@ -1381,7 +1393,7 @@
   padding: 18px;
   color: #9f9fd1;
   text-align: center;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .pcd-portfolio-item:hover img,
@@ -1399,7 +1411,7 @@
   background: #7387FF;
   flex-shrink: 0;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 400;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -1422,7 +1434,7 @@
   border-radius: 16px;
   background: #fbfbff;
   color: #9f9fd1;
-  font-weight: 750;
+  font-weight: 400;
   text-align: center;
 }
 
@@ -1481,7 +1493,7 @@
   margin: 0;
   color: #07074e;
   font-size: 16px;
-  font-weight: 850;
+  font-weight: 400;
 }
 
 .pcd-brief-filter-head > button {
@@ -1492,7 +1504,7 @@
   background: transparent;
   color: #7387ff;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -1517,7 +1529,7 @@
   color: #07074e;
   padding: 11px 12px 11px 38px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   outline-color: #7387ff;
 }
 
@@ -1551,7 +1563,7 @@
   color: #07074e;
   padding: 0;
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -1582,7 +1594,7 @@
   color: #9f9fd1;
   padding: 0;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   text-align: left;
   cursor: pointer;
 }
@@ -1651,7 +1663,7 @@
   padding: 2px 7px;
   font-size: 11px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 400;
 }
 
 .pcd-brief-results {
@@ -1678,7 +1690,7 @@
 .pcd-brief-toolbar > span {
   color: #07074e;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-brief-toolbar > span strong {
@@ -1700,7 +1712,7 @@
   color: #9f9fd1;
   padding: 9px 13px;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .pcd-brief-toolbar select {
@@ -1708,7 +1720,7 @@
   background: transparent;
   color: #07074e;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 400;
   outline: 0;
 }
 
@@ -1840,7 +1852,7 @@
   color: #fff;
   padding: 6px 10px;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1878,7 +1890,7 @@
   overflow: hidden;
   color: #fff;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1907,7 +1919,7 @@
   color: #07074e;
   padding: 0;
   font-size: 16px;
-  font-weight: 850;
+  font-weight: 400;
   line-height: 1.32;
   text-align: left;
   -webkit-box-orient: vertical;
@@ -1925,7 +1937,7 @@
   margin: 10px 0 16px;
   color: #9f9fd1;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 400;
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -1948,7 +1960,7 @@
   color: #9f9fd1;
   padding: 5px 9px;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 400;
 }
 
 .pcd-brief-tags .match {
@@ -1985,7 +1997,7 @@
 .pcd-brief-footer strong {
   color: #07074e;
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 400;
   line-height: 1.1;
 }
 
@@ -1996,7 +2008,7 @@
   gap: 5px;
   color: #9f9fd1;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 400;
 }
 
 .pcd-brief-footer small {
@@ -2015,7 +2027,7 @@
   color: #07074e;
   padding: 10px 18px;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 400;
   cursor: pointer;
   transition: 160ms ease;
 }
@@ -2067,7 +2079,7 @@
 .pcd-modal p {
   margin: -10px 0 0;
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .pcd-modal label {
@@ -2075,7 +2087,7 @@
   gap: 7px;
   color: #07074e;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 400;
 }
 
 .pcd-modal input,
@@ -2125,7 +2137,7 @@
   margin: 18px 0 8px;
   color: #07074e;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2149,7 +2161,7 @@
   padding: 13px 22px;
   background: #07074e;
   color: #fff;
-  font-weight: 850;
+  font-weight: 400;
   cursor: pointer;
 }
 

@@ -39,7 +39,7 @@
   height: 36px;
   border-radius: 11px;
   background: #07074e;
-  font-weight: 900;
+  font-weight: 400;
   box-shadow: 0 10px 22px rgba(7, 7, 78, 0.35);
 }
 
@@ -73,7 +73,7 @@
   background: transparent;
   color: rgba(255, 255, 255, 0.74);
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -119,7 +119,7 @@
   border-radius: 50%;
   background: linear-gradient(135deg, #f3c7a8, #71503e);
   font-style: normal;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .bs-main {
@@ -155,7 +155,7 @@
   gap: 12px;
   margin-bottom: 40px;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .business-sidebar-mark,
@@ -165,7 +165,7 @@
   flex: 0 0 auto;
   background: #07074e;
   color: white;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .business-sidebar-mark {
@@ -184,7 +184,7 @@
   padding: 0 16px 6px;
   color: #b7b7e6;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -212,7 +212,7 @@
 .business-nav-item.active {
   color: #07074e;
   background: white;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .business-nav-item span {
@@ -266,7 +266,7 @@
   margin-top: 2px;
   color: #b7b7e6;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .business-main {
@@ -296,7 +296,7 @@
   gap: 8px;
   color: #b7b7e6;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .settings-main-header .brand-breadcrumb strong {
@@ -315,7 +315,7 @@
   margin: 0;
   color: #9f9fd1;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .settings-main-header .brand-search {
@@ -340,7 +340,7 @@
   outline: 0;
   background: transparent;
   color: #07074e;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .settings-main-header .header-actions {
@@ -361,7 +361,7 @@
   background: #fff;
   color: #07074e;
   cursor: pointer;
-  font-weight: 900;
+  font-weight: 400;
   box-shadow: 0 8px 24px rgba(7, 7, 78, 0.06);
 }
 
@@ -394,7 +394,7 @@
   gap: 9px;
   color: #b7b7e6;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-crumb strong {
@@ -410,7 +410,7 @@
 .bs-top p {
   color: #9f9fd1;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-search {
@@ -430,7 +430,7 @@
   border: 0;
   outline: 0;
   color: #07074e;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-top-actions {
@@ -476,7 +476,7 @@
   border-radius: 50%;
   background: white;
   color: #07074e;
-  font-weight: 900;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -534,7 +534,7 @@
   background: transparent;
   color: #9f9fd1;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 400;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -557,7 +557,7 @@
   display: grid;
   place-items: center;
   color: #07074e;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .bs-card-head {
@@ -587,7 +587,7 @@
 .bs-card-head p {
   margin: 0;
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-card-body {
@@ -639,7 +639,7 @@
   border: 0;
   background: transparent;
   color: #07074e;
-  font-weight: 800;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -660,7 +660,7 @@
 }
 
 .bs-field span {
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .bs-field input,
@@ -673,7 +673,7 @@
   color: #07074e;
   font: inherit;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 400;
   padding: 14px 17px;
   outline: none;
 }
@@ -702,7 +702,7 @@
   border-radius: 13px;
   border: 0;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -740,7 +740,7 @@
   color: #18a957;
   font-style: normal;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -762,7 +762,7 @@
   background: #f7f7ff;
   color: #9f9fd1;
   text-transform: uppercase;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .bs-member {
@@ -784,7 +784,7 @@
   background: #eef0ff;
   color: #07074e;
   font-style: normal;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .bs-member strong,
@@ -799,7 +799,7 @@
 .bs-member small {
   margin-top: 4px;
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-role {
@@ -808,7 +808,7 @@
   border-radius: 999px;
   background: #f1f1ff;
   color: #9f9fd1;
-  font-weight: 900;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -817,7 +817,7 @@
   align-items: center;
   gap: 8px;
   color: #18a957;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: capitalize;
 }
 
@@ -846,7 +846,7 @@
 .bs-seat-note {
   padding: 20px 31px;
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-plan-card {
@@ -861,7 +861,7 @@
 
 .bs-plan-card small {
   color: #b7b7e6;
-  font-weight: 900;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -881,7 +881,7 @@
   background: white;
   padding: 13px 25px;
   color: #07074e;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .bs-budget-card {
@@ -921,7 +921,7 @@
 
 .bs-budget-card p {
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-budget-card em {
@@ -948,7 +948,7 @@
   border-radius: 13px;
   background: white;
   color: #07074e;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .bs-toggle-list {
@@ -981,7 +981,7 @@
 .bs-toggle-row p {
   margin-top: 5px;
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-toggle-row > button {
@@ -1079,12 +1079,12 @@
 .bs-status-card dt {
   color: #9f9fd1;
   text-transform: uppercase;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .bs-status-card dd {
   margin: 0;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .bs-status-card button {
@@ -1099,7 +1099,7 @@
   border-radius: 14px;
   background: rgba(255,255,255,0.1);
   color: white;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .bs-quick-card h3 {
@@ -1119,7 +1119,7 @@
   background: transparent;
   color: #23235f;
   text-align: left;
-  font-weight: 800;
+  font-weight: 400;
   font-size: 16px;
 }
 
@@ -1168,7 +1168,7 @@
 
 .bs-help-card p {
   color: #9f9fd1;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.5;
 }
 
@@ -1178,7 +1178,7 @@
   border-bottom: 2px solid #07074e;
   background: transparent;
   color: #07074e;
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .bs-dashboard-top {
@@ -1319,7 +1319,7 @@
   border-radius: 12px;
   background: #fbfbff;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .bs-dashboard-page .bs-field input:focus,
@@ -1452,7 +1452,7 @@
 
 .ps-topbar h1 {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 400;
   color: #07074e;
 }
 
@@ -1471,7 +1471,7 @@
   border: 2px solid #e2e8f0;
   border-radius: 12px;
   color: #4a5568;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 24px;
@@ -1510,7 +1510,7 @@
   border: none;
   border-radius: 100px;
   color: #4a5568;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -1545,7 +1545,7 @@
 
 .ps-panel h2 {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 400;
   color: #1a202c;
   margin-bottom: 8px;
 }
@@ -1561,7 +1561,7 @@
 
 .ps-form-group label {
   display: block;
-  font-weight: 600;
+  font-weight: 400;
   color: #2d3748;
   margin-bottom: 8px;
 }
@@ -1601,7 +1601,7 @@
 
 .ps-subsection-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 400;
   color: #2d3748;
   margin: 32px 0 16px 0;
   padding-top: 24px;
@@ -1646,7 +1646,7 @@
   background: #07074e;
   border-color: #07074e;
   color: white;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .ps-chip.is-selected:hover {
@@ -1709,7 +1709,7 @@
   background: #07074e;
   color: white;
   border-radius: 12px;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -1738,7 +1738,7 @@
   color: white;
   border: none;
   border-radius: 12px;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1763,7 +1763,7 @@
   color: white;
   border: none;
   border-radius: 12px;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -1799,7 +1799,7 @@
 .ps-info-box h3,
 .ps-success-box h3 {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 400;
   color: #1a202c;
   margin-bottom: 8px;
 }

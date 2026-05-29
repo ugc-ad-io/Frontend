@@ -341,13 +341,13 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
+            font-weight: 400;
             font-size: 1rem;
           }
 
           .logo-text {
             font-size: 1.25rem;
-            font-weight: 700;
+            font-weight: 400;
             color: #1a202c;
           }
 
@@ -360,7 +360,7 @@ export default function BrandWelcomePage() {
             border: 2px solid #e2e8f0;
             border-radius: 8px;
             color: #4a5568;
-            font-weight: 600;
+            font-weight: 400;
             cursor: pointer;
             transition: all 0.3s ease;
           }
@@ -404,7 +404,7 @@ export default function BrandWelcomePage() {
 
           .approval-card h1 {
             font-size: 2.5rem;
-            font-weight: 700;
+            font-weight: 400;
             color: #1a202c;
             margin-bottom: 12px;
           }
@@ -447,7 +447,7 @@ export default function BrandWelcomePage() {
 
           .info-item h3 {
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 400;
             color: #2d3748;
             margin-bottom: 4px;
           }
@@ -478,7 +478,7 @@ export default function BrandWelcomePage() {
             border: none;
             border-radius: 8px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 400;
             cursor: pointer;
             transition: all 0.3s ease;
           }
@@ -505,7 +505,7 @@ export default function BrandWelcomePage() {
 
           .footer-section h4 {
             font-size: 1rem;
-            font-weight: 700;
+            font-weight: 400;
             color: #1a202c;
             margin-bottom: 12px;
           }
@@ -1029,7 +1029,7 @@ export default function BrandWelcomePage() {
             border: none;
             color: #718096;
             font-size: 0.95rem;
-            font-weight: 500;
+            font-weight: 400;
             cursor: pointer;
             white-space: nowrap;
             transition: color 0.2s ease;
@@ -1092,13 +1092,13 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
+            font-weight: 400;
             font-size: 0.9rem;
           }
 
           .brand-logo span {
             font-size: 1.1rem;
-            font-weight: 700;
+            font-weight: 400;
             color: #1a202c;
           }
 
@@ -1212,7 +1212,7 @@ export default function BrandWelcomePage() {
             border-radius: 100px;
             font-size: 0.72rem;
             letter-spacing: 0.12em;
-            font-weight: 600;
+            font-weight: 400;
             text-transform: uppercase;
             margin-bottom: 14px;
             backdrop-filter: blur(8px);
@@ -1220,7 +1220,7 @@ export default function BrandWelcomePage() {
 
           .welcome-banner h1 {
             font-size: 2.2rem;
-            font-weight: 700;
+            font-weight: 400;
             color: #ffffff;
             letter-spacing: -0.02em;
             margin: 0 0 8px 0;
@@ -1284,7 +1284,7 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
+            font-weight: 400;
             transition: all 0.3s ease;
             flex-shrink: 0;
           }
@@ -1339,7 +1339,7 @@ export default function BrandWelcomePage() {
           .dropdown-section-label {
             padding: 8px 20px;
             font-size: 0.75rem;
-            font-weight: 700;
+            font-weight: 400;
             color: #a0aec0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -1377,7 +1377,7 @@ export default function BrandWelcomePage() {
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 400;
             min-width: 24px;
             text-align: center;
           }
@@ -1464,7 +1464,7 @@ export default function BrandWelcomePage() {
           .recommended-card-badge {
             display: inline-block;
             font-size: 0.62rem;
-            font-weight: 700;
+            font-weight: 400;
             color: var(--accent, #a0aec0);
             background: var(--accent-soft, transparent);
             text-transform: uppercase;
@@ -1504,7 +1504,7 @@ export default function BrandWelcomePage() {
 
           .recommended-card h3 {
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 400;
             color: #1a202c;
             margin: 0 0 4px 0;
           }
@@ -1522,7 +1522,7 @@ export default function BrandWelcomePage() {
           .section-eyebrow {
             display: inline-block;
             font-size: 0.72rem;
-            font-weight: 700;
+            font-weight: 400;
             letter-spacing: 0.15em;
             color: #07074E;
             margin-bottom: 8px;
@@ -1530,7 +1530,7 @@ export default function BrandWelcomePage() {
           }
           .explore-section h2 {
             font-size: 1.65rem;
-            font-weight: 700;
+            font-weight: 400;
             color: #1a202c;
             letter-spacing: -0.02em;
             margin: 0 0 6px 0;
@@ -1588,7 +1588,7 @@ export default function BrandWelcomePage() {
             transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
             color: #4a5568;
             font-size: 0.9rem;
-            font-weight: 500;
+            font-weight: 400;
             text-align: left;
             overflow: hidden;
             line-height: 1.3;
@@ -1691,7 +1691,7 @@ export default function BrandWelcomePage() {
 
           .dashboard-card h3 {
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 400;
             color: #1a202c;
             margin: 0 0 8px 0;
           }
@@ -1895,7 +1895,7 @@ export default function BrandWelcomePage() {
           .creator-name-overlay {
             color: #000;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 400;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1914,7 +1914,7 @@ export default function BrandWelcomePage() {
             align-items: center;
             justify-content: center;
             font-size: 10px;
-            font-weight: 600;
+            font-weight: 400;
           }
 
           .gig-price-chip {
@@ -1923,7 +1923,7 @@ export default function BrandWelcomePage() {
             left: 10px;
             background: #ffffff;
             color: #07074e;
-            font-weight: 700;
+            font-weight: 400;
             font-size: 13px;
             padding: 5px 12px;
             border-radius: 100px;
@@ -1995,7 +1995,7 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
+            font-weight: 400;
             font-size: 16px;
             flex-shrink: 0;
           }
@@ -2006,7 +2006,7 @@ export default function BrandWelcomePage() {
 
           .creator-name {
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 400;
             color: #07074e;
             margin: 0 0 4px 0;
             line-height: 1.2;
@@ -2018,7 +2018,7 @@ export default function BrandWelcomePage() {
             border: 1px solid currentColor;
             border-radius: 12px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 400;
             text-transform: uppercase;
             white-space: nowrap;
           }
@@ -2032,7 +2032,7 @@ export default function BrandWelcomePage() {
           }
 
           .gig-creator-rating .rating-value {
-            font-weight: 600;
+            font-weight: 400;
           }
 
           .gig-creator-rating .rating-count {
@@ -2047,7 +2047,7 @@ export default function BrandWelcomePage() {
             padding: 2px 8px;
             border-radius: 10px;
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 400;
           }
 
           .gig-heart-icon {
@@ -2062,7 +2062,7 @@ export default function BrandWelcomePage() {
 
           .gig-card-welcome .gig-title {
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 400;
             color: #07074e;
             margin: 0 0 2px 0;
             padding: 0 16px;
@@ -2117,7 +2117,7 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             gap: 6px;
-            font-weight: 600;
+            font-weight: 400;
             color: #07074e;
           }
 
@@ -2133,7 +2133,7 @@ export default function BrandWelcomePage() {
             border: none;
             border-radius: 6px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 400;
             cursor: pointer;
             transition: all 0.25s ease;
             white-space: nowrap;

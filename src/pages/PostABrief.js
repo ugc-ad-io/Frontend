@@ -601,7 +601,7 @@ export default function PostABrief() {
           border-radius: 16px;
           background: transparent;
           color: #9F9FD1;
-          font-weight: 600;
+          font-weight: 400;
           cursor: pointer;
         }
 
@@ -660,7 +660,7 @@ export default function PostABrief() {
           background: #F3F3FF;
           color: #7387FF;
           font-size: 12px;
-          font-weight: 600;
+          font-weight: 400;
           text-transform: uppercase;
         }
 
@@ -673,7 +673,7 @@ export default function PostABrief() {
         .step-header p {
           margin: 0;
           color: #9F9FD1;
-          font-weight: 700;
+          font-weight: 400;
         }
 
         .form-row {
@@ -691,13 +691,13 @@ export default function PostABrief() {
         .form-group label {
           color: #07074E;
           font-size: 13px;
-          font-weight: 900;
+          font-weight: 400;
           text-transform: uppercase;
         }
 
         .form-group small {
           color: #9F9FD1;
-          font-weight: 700;
+          font-weight: 400;
         }
 
         .input-field,
@@ -710,7 +710,7 @@ export default function PostABrief() {
           color: #07074E;
           font: inherit;
           font-size: 15px;
-          font-weight: 700;
+          font-weight: 400;
           padding: 14px 16px;
           outline: 0;
         }
@@ -732,7 +732,7 @@ export default function PostABrief() {
           border-radius: 999px;
           background: white;
           color: #7777B7;
-          font-weight: 600;
+          font-weight: 400;
           cursor: pointer;
         }
 
@@ -766,7 +766,7 @@ export default function PostABrief() {
         .brief-switch-row p {
           margin: 5px 0 0;
           color: #9F9FD1;
-          font-weight: 700;
+          font-weight: 400;
         }
 
         .brief-switch-row > button {
@@ -776,7 +776,7 @@ export default function PostABrief() {
           border-radius: 999px;
           background: #DCDDFA;
           color: #07074E;
-          font-weight: 900;
+          font-weight: 400;
           cursor: pointer;
         }
 
@@ -799,7 +799,7 @@ export default function PostABrief() {
           border-radius: 10px;
           background: transparent;
           color: #7777B7;
-          font-weight: 900;
+          font-weight: 400;
           cursor: pointer;
         }
 
@@ -834,7 +834,7 @@ export default function PostABrief() {
           border-radius: 11px;
           background: #EEF0FF;
           color: #7387FF;
-          font-weight: 900;
+          font-weight: 400;
           padding: 10px 13px;
           cursor: pointer;
         }
@@ -858,7 +858,7 @@ export default function PostABrief() {
           border-radius: 14px;
           background: white;
           color: #07074E;
-          font-weight: 600;
+          font-weight: 400;
         }
 
         .brief-check input {
@@ -871,7 +871,7 @@ export default function PostABrief() {
           align-items: flex-start;
           gap: 10px;
           color: #7387FF;
-          font-weight: 600;
+          font-weight: 400;
         }
 
         .brief-note.warning {
@@ -889,7 +889,7 @@ export default function PostABrief() {
           justify-content: space-between;
           margin: 0;
           color: #7777B7;
-          font-weight: 600;
+          font-weight: 400;
         }
 
         .commission-card strong {
@@ -924,12 +924,12 @@ export default function PostABrief() {
 
         .summary-box span {
           color: #9F9FD1;
-          font-weight: 600;
+          font-weight: 400;
         }
 
         .summary-box strong {
           color: #07074E;
-          font-weight: 600;
+          font-weight: 400;
         }
 
         .pab-footer {
@@ -961,7 +961,7 @@ export default function PostABrief() {
           padding: 0 22px;
           border: 0;
           border-radius: 11px;
-          font-weight: 900;
+          font-weight: 400;
           cursor: pointer;
         }
 
@@ -1019,7 +1019,7 @@ export default function PostABrief() {
         .brief-progress-ring span,
         .preview-type {
           color: #9F9FD1;
-          font-weight: 600;
+          font-weight: 400;
         }
 
         .tip-card {
@@ -1049,7 +1049,7 @@ export default function PostABrief() {
 
         .tip-card p {
           color: #7777B7;
-          font-weight: 600;
+          font-weight: 400;
           line-height: 1.55;
         }
 
@@ -1063,7 +1063,7 @@ export default function PostABrief() {
           justify-content: space-between;
           gap: 12px;
           color: #9F9FD1;
-          font-weight: 600;
+          font-weight: 400;
         }
 
         .summary-item strong {
@@ -1097,7 +1097,7 @@ export default function PostABrief() {
 
         .brief-modal p {
           color: #7777B7;
-          font-weight: 700;
+          font-weight: 400;
           line-height: 1.55;
         }
 

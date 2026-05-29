@@ -1609,22 +1609,22 @@ export default function BrandWelcomePage() {
             color: #e74c3c;
           }
 
-          .gig-title {
+          .gig-card-welcome .gig-title {
             font-size: 13px;
             font-weight: 600;
             color: #07074e;
-            margin: 0;
+            margin: 0 0 2px 0;
             padding: 0 16px;
-            line-height: 1.35;
+            line-height: 1.2;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           }
 
-          .gig-description {
+          .gig-card-welcome .gig-description {
             font-size: 11px;
             color: #666;
-            margin: 2px 0 0 0;
+            margin: 0;
             padding: 0 16px;
             line-height: 1.35;
             display: -webkit-box;

@@ -304,7 +304,7 @@ export default function BrandWelcomePage() {
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
             color: #1a202c;
           }
 
@@ -335,7 +335,7 @@ export default function BrandWelcomePage() {
           .logo-icon {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
             color: white;
             border-radius: 12px;
             display: flex;
@@ -366,8 +366,8 @@ export default function BrandWelcomePage() {
           }
 
           .header-logout-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
+            border-color: #07074E;
+            color: #07074E;
           }
 
           .approval-content {
@@ -393,7 +393,7 @@ export default function BrandWelcomePage() {
           }
 
           .pending-icon {
-            color: #667eea;
+            color: #07074E;
             animation: pulse 2s ease-in-out infinite;
           }
 
@@ -473,7 +473,7 @@ export default function BrandWelcomePage() {
 
           .btn-primary {
             padding: 14px 32px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
             color: white;
             border: none;
             border-radius: 8px;
@@ -485,7 +485,7 @@ export default function BrandWelcomePage() {
 
           .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(7, 7, 78, 0.4);
           }
 
           .approval-footer {
@@ -812,7 +812,13 @@ export default function BrandWelcomePage() {
                                 className="gig-preview-image"
                                 onError={(e) => {e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E';}}
                               />
-                              <div className="gig-price-chip">${gig.budget || '0'}</div>
+                              <button
+                                className="gig-wishlist-btn"
+                                onClick={(e) => { e.stopPropagation(); }}
+                                aria-label="Add to wishlist"
+                              >
+                                <Heart size={16} />
+                              </button>
                               {gig.attachments.length > 1 && (
                                 <div className="attachment-more">+{gig.attachments.length - 1}</div>
                               )}
@@ -829,8 +835,11 @@ export default function BrandWelcomePage() {
 
                           <h3 className="gig-title">{gig.title}</h3>
 
-                          <div className="gig-footer gig-footer--simple">
-                            <button className="gig-cta-button gig-cta-button--wide">
+                          <div className="gig-footer">
+                            <div className="gig-budget">
+                              <span className="budget-amount">${gig.budget || '0'}</span>
+                            </div>
+                            <button className="gig-cta-button">
                               <span>View Gig</span>
                               <ArrowRight size={12} className="gig-cta-arrow" />
                             </button>
@@ -928,14 +937,14 @@ export default function BrandWelcomePage() {
           }
 
           .category-btn.active {
-            color: #667eea;
+            color: #07074E;
           }
 
           .category-btn-indicator {
             position: absolute;
             bottom: 0;
             height: 2px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #07074E, #07074E);
             border-radius: 2px;
             pointer-events: none;
           }
@@ -966,7 +975,7 @@ export default function BrandWelcomePage() {
           .logo-icon {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
             color: white;
             border-radius: 8px;
             display: flex;
@@ -999,8 +1008,8 @@ export default function BrandWelcomePage() {
           .header-search-bar:hover,
           .header-search-bar:focus-within {
             background: white;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15), 0 2px 8px rgba(102, 126, 234, 0.1);
+            border-color: #07074E;
+            box-shadow: 0 0 0 4px rgba(7, 7, 78, 0.15), 0 2px 8px rgba(7, 7, 78, 0.1);
           }
 
           .header-search-bar input {
@@ -1038,8 +1047,8 @@ export default function BrandWelcomePage() {
           }
 
           .header-icon-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
+            border-color: #07074E;
+            color: #07074E;
             background: #f7fafc;
           }
 
@@ -1053,9 +1062,9 @@ export default function BrandWelcomePage() {
             margin-bottom: 48px;
             padding: 32px 36px;
             border-radius: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
             color: #fff;
-            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.25);
+            box-shadow: 0 20px 50px rgba(7, 7, 78, 0.25);
           }
           .welcome-banner-content {
             position: relative;
@@ -1133,8 +1142,8 @@ export default function BrandWelcomePage() {
           }
 
           .brand-round-action:hover {
-            border-color: #667eea;
-            color: #667eea;
+            border-color: #07074E;
+            color: #07074E;
           }
 
           .brand-round-action i {
@@ -1155,8 +1164,8 @@ export default function BrandWelcomePage() {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            border: 2px solid #667eea;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid #07074E;
+            background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
             color: white;
             cursor: pointer;
             display: flex;
@@ -1241,7 +1250,7 @@ export default function BrandWelcomePage() {
 
           .dropdown-nav-item:hover {
             background: #f7fafc;
-            color: #667eea;
+            color: #07074E;
           }
 
           .dropdown-nav-item svg {
@@ -1324,7 +1333,7 @@ export default function BrandWelcomePage() {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(120deg, transparent 0%, var(--accent-soft, rgba(102, 126, 234, 0.08)) 50%, transparent 100%);
+            background: linear-gradient(120deg, transparent 0%, var(--accent-soft, rgba(7, 7, 78, 0.08)) 50%, transparent 100%);
             transform: translateX(-100%);
             pointer-events: none;
             transition: transform 0.7s ease;
@@ -1334,8 +1343,8 @@ export default function BrandWelcomePage() {
           }
 
           .recommended-card:hover {
-            box-shadow: 0 10px 28px var(--accent-soft, rgba(102, 126, 234, 0.12));
-            border-color: var(--accent, #667eea);
+            box-shadow: 0 10px 28px var(--accent-soft, rgba(7, 7, 78, 0.12));
+            border-color: var(--accent, #07074E);
             background: #fefeff;
           }
 
@@ -1369,7 +1378,7 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--accent, #667eea);
+            color: var(--accent, #07074E);
             transition: transform 0.3s ease;
           }
           .recommended-card:hover .recommended-card-icon {
@@ -1402,7 +1411,7 @@ export default function BrandWelcomePage() {
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.15em;
-            color: #667eea;
+            color: #07074E;
             margin-bottom: 8px;
             text-transform: uppercase;
           }
@@ -1425,12 +1434,12 @@ export default function BrandWelcomePage() {
           }
 
           .categories-sidebar {
-            width: 200px;
+            width: 220px;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            max-height: 400px;
+            gap: 6px;
+            max-height: 640px;
             overflow-y: auto;
           }
 
@@ -1457,17 +1466,23 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 16px;
+            padding: 10px 14px;
+            min-height: 52px;
             background: white;
             border: 1px solid #e2e8f0;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
             color: #4a5568;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 500;
             text-align: left;
             overflow: hidden;
+            line-height: 1.3;
+          }
+          .category-sidebar-item > span {
+            flex: 1;
+            min-width: 0;
           }
           .category-sidebar-item::before {
             content: '';
@@ -1476,7 +1491,7 @@ export default function BrandWelcomePage() {
             top: 10%;
             bottom: 10%;
             width: 0;
-            background: linear-gradient(180deg, #667eea, #764ba2);
+            background: linear-gradient(180deg, #07074E, #07074E);
             border-radius: 0 2px 2px 0;
             transition: width 0.25s ease;
           }
@@ -1492,8 +1507,8 @@ export default function BrandWelcomePage() {
 
           .category-sidebar-item.active {
             background: #f0f4ff;
-            border-color: #667eea;
-            color: #667eea;
+            border-color: #07074E;
+            color: #07074E;
           }
           .category-sidebar-item.active::before {
             width: 4px;
@@ -1504,15 +1519,15 @@ export default function BrandWelcomePage() {
             height: 32px;
             min-width: 32px;
             border-radius: 8px;
-            background: linear-gradient(135deg, #f0f4ff, #e9eafd);
+            background: linear-gradient(135deg, rgba(7, 7, 78, 0.06), rgba(7, 7, 78, 0.1));
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #667eea;
+            color: #07074E;
             transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
           }
           .category-sidebar-item.active .category-item-icon {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #07074E, #07074E);
             color: #ffffff;
           }
           .category-sidebar-item:hover .category-item-icon {
@@ -1545,8 +1560,8 @@ export default function BrandWelcomePage() {
 
           .dashboard-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
-            border-color: #667eea;
+            box-shadow: 0 8px 24px rgba(7, 7, 78, 0.12);
+            border-color: #07074E;
           }
 
           .card-header {
@@ -1557,7 +1572,7 @@ export default function BrandWelcomePage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #667eea;
+            color: #07074E;
             margin-bottom: 16px;
           }
 
@@ -1803,6 +1818,40 @@ export default function BrandWelcomePage() {
             z-index: 2;
           }
 
+          .gig-wishlist-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.92);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #4a5568;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(6px);
+            transition: transform 0.2s ease, color 0.2s ease, background 0.2s ease;
+            z-index: 2;
+          }
+          .gig-wishlist-btn:hover {
+            color: #ef4444;
+            background: #ffffff;
+            transform: scale(1.1);
+          }
+          .gig-wishlist-btn:active {
+            transform: scale(0.95);
+          }
+          .gig-wishlist-btn.active {
+            color: #ef4444;
+          }
+          .gig-wishlist-btn.active svg {
+            fill: currentColor;
+          }
+
           .gig-footer--simple {
             padding: 8px 16px 12px;
           }
@@ -1828,7 +1877,7 @@ export default function BrandWelcomePage() {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
             color: white;
             display: flex;
             align-items: center;

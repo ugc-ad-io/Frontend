@@ -3,8 +3,27 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
+
+const adminCardStagger = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  visible: (i = 0) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.45, delay: 0.1 + i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+};
+const adminSectionVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, delay: 0.25 + i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+};
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -825,7 +844,7 @@ export default function AdminDashboard() {
       <div className="dashboard-content">
         {analytics && user?.role === 'admin' && (
           <div className="analytics-cards">
-            <div className="analytics-card">
+            <motion.div className="analytics-card" custom={0} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
               <div className="card-icon" style={{background: '#dbeafe'}}>
                 <DollarSign size={24} color="#2563eb" />
               </div>
@@ -834,8 +853,8 @@ export default function AdminDashboard() {
                 <h3 className="card-value">${analytics.platform_commission.toLocaleString()}</h3>
                 <p className="card-sub">20% commission</p>
               </div>
-            </div>
-            <div className="analytics-card">
+            </motion.div>
+            <motion.div className="analytics-card" custom={1} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
               <div className="card-icon" style={{background: '#d1fae5'}}>
                 <Users size={24} color="#059669" />
               </div>
@@ -844,44 +863,50 @@ export default function AdminDashboard() {
                 <h3 className="card-value">{analytics.new_creators}</h3>
                 <p className="card-sub">Last 30 days</p>
               </div>
-            </div>
-            <div className="analytics-card">
-              <div className="card-icon" style={{background: '#fef3c7'}}>
-                <Briefcase size={24} color="#d97706" />
+            </motion.div>
+            <motion.div className="analytics-card" custom={2} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
+              <div className="card-icon" style={{background: 'rgba(7, 7, 78, 0.08)'}}>
+                <Briefcase size={24} color="#07074E" />
               </div>
               <div className="card-content">
                 <p className="card-label">New Businesses</p>
                 <h3 className="card-value">{analytics.new_businesses}</h3>
                 <p className="card-sub">Last 30 days</p>
               </div>
-            </div>
-            <div className="analytics-card">
+            </motion.div>
+            <motion.div className="analytics-card" custom={3} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
               <div className="card-icon" style={{background: '#e0e7ff'}}>
-                <TrendingUp size={24} color="#667eea" />
+                <TrendingUp size={24} color="#07074E" />
               </div>
               <div className="card-content">
                 <p className="card-label">Active Campaigns</p>
                 <h3 className="card-value">{analytics.active_campaigns}</h3>
                 <p className="card-sub">of {analytics.total_campaigns} total</p>
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
         <div className="tab-content">
           {activeTab === 'stats' && stats && (
             <div className="operator-dashboard fade-in">
-              <section className="operator-section priority">
+              <motion.section
+                className="operator-section priority"
+                custom={0}
+                variants={adminSectionVariants}
+                initial="hidden"
+                animate="visible"
+              >
                 <div className="operator-section-head">
                   <h3>SLA-at-risk items</h3>
                   <span>Top priority</span>
                 </div>
                 <div className="operator-risk-list">
-                  <div><strong>{pendingWithdrawals.length}</strong><span>Disputes with &lt;4 hours to SLA breach</span></div>
-                  <div><strong>0</strong><span>Shipping label requests older than 4 hours</span></div>
-                  <div><strong>{pendingProfiles.length}</strong><span>Applications in review &gt;2 business days</span></div>
-                  <div><strong>{pendingCampaigns.length}</strong><span>Deals auto-transitioning within 24 hours</span></div>
+                  <motion.div custom={0} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>{pendingWithdrawals.length}</strong><span>Disputes with &lt;4 hours to SLA breach</span></motion.div>
+                  <motion.div custom={1} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>0</strong><span>Shipping label requests older than 4 hours</span></motion.div>
+                  <motion.div custom={2} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>{pendingProfiles.length}</strong><span>Applications in review &gt;2 business days</span></motion.div>
+                  <motion.div custom={3} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>{pendingCampaigns.length}</strong><span>Deals auto-transitioning within 24 hours</span></motion.div>
                 </div>
-              </section>
+              </motion.section>
 
               <section className="operator-section">
                 <div className="operator-section-head">
@@ -2083,29 +2108,44 @@ export default function AdminDashboard() {
         }
 
         .analytics-card {
+          position: relative;
           background: white;
-          padding: 24px;
+          padding: 22px 24px;
           border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border: 1px solid #eef0ff;
+          box-shadow: 0 6px 22px rgba(7, 7, 78, 0.05);
           display: flex;
           align-items: center;
-          gap: 20px;
-          transition: all 0.3s ease;
+          gap: 18px;
+          overflow: hidden;
+          transition: box-shadow 0.3s ease, border-color 0.3s ease;
         }
-
+        .analytics-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(120deg, transparent 0%, rgba(7, 7, 78, 0.04) 50%, transparent 100%);
+          transform: translateX(-100%);
+          pointer-events: none;
+          transition: transform 0.7s ease;
+        }
+        .analytics-card:hover::after { transform: translateX(100%); }
         .analytics-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+          box-shadow: 0 12px 32px rgba(7, 7, 78, 0.1);
+          border-color: rgba(7, 7, 78, 0.12);
         }
 
         .card-icon {
-          width: 64px;
-          height: 64px;
-          border-radius: 16px;
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
         }
+        .analytics-card:hover .card-icon { transform: scale(1.08) rotate(-4deg); }
 
         .card-content {
           flex: 1;
@@ -2156,12 +2196,12 @@ export default function AdminDashboard() {
         }
 
         .tab:hover {
-          color: #667eea;
+          color: #07074E;
         }
 
         .tab.active {
-          color: #667eea;
-          border-bottom-color: #667eea;
+          color: #07074E;
+          border-bottom-color: #07074E;
         }
 
         .tab-content {
@@ -2197,7 +2237,7 @@ export default function AdminDashboard() {
         .stat-icon {
           width: 64px;
           height: 64px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           border-radius: 16px;
           display: flex;
           align-items: center;
@@ -2233,7 +2273,7 @@ export default function AdminDashboard() {
         }
 
         .operator-section:hover {
-          box-shadow: 0 12px 28px rgba(102, 126, 234, 0.12);
+          box-shadow: 0 12px 28px rgba(7, 7, 78, 0.12);
           border-color: #c7d2e8;
           transform: translateY(-4px);
         }
@@ -2251,7 +2291,7 @@ export default function AdminDashboard() {
           padding: 8px 16px;
           border-radius: 24px;
           background: linear-gradient(135deg, #e8ecff 0%, #dfe4ff 100%);
-          color: #667eea;
+          color: #07074E;
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.04em;
@@ -2279,7 +2319,7 @@ export default function AdminDashboard() {
         }
 
         .operator-section.priority {
-          border: 2px solid #f59e0b;
+          border: 2px solid #07074E;
           background: linear-gradient(135deg, rgba(255, 247, 237, 0.8) 0%, rgba(254, 243, 199, 0.4) 50%, #ffffff 100%);
           position: relative;
           overflow: hidden;
@@ -2292,7 +2332,7 @@ export default function AdminDashboard() {
           left: 0;
           right: 0;
           height: 4px;
-          background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+          background: linear-gradient(90deg, #07074E 0%, #07074E 100%);
         }
 
         .operator-section-head {
@@ -2339,7 +2379,7 @@ export default function AdminDashboard() {
           left: 0;
           right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(90deg, #07074E 0%, #07074E 100%);
           opacity: 0;
           transition: opacity 0.3s ease;
         }
@@ -2349,7 +2389,7 @@ export default function AdminDashboard() {
           border-color: #d1daf0;
           background: linear-gradient(135deg, #f0f4fb 0%, #eff2f8 100%);
           transform: translateY(-4px);
-          box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+          box-shadow: 0 8px 20px rgba(7, 7, 78, 0.15);
         }
 
         .operator-risk-list > div:hover::before,
@@ -2365,7 +2405,7 @@ export default function AdminDashboard() {
           line-height: 1;
           margin-bottom: 14px;
           font-weight: 800;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -2424,9 +2464,9 @@ export default function AdminDashboard() {
         }
 
         .operator-actions button:hover {
-          border-color: #667eea;
+          border-color: #07074E;
           background: linear-gradient(135deg, #eff2f8 0%, #e8ecff 100%);
-          box-shadow: 0 8px 24px rgba(102, 126, 234, 0.18);
+          box-shadow: 0 8px 24px rgba(7, 7, 78, 0.18);
           transform: translateY(-3px);
         }
 
@@ -2480,7 +2520,7 @@ export default function AdminDashboard() {
           left: 0;
           right: 0;
           height: 4px;
-          background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(90deg, #07074E 0%, #07074E 100%);
           transform: scaleX(0);
           transform-origin: left;
           transition: transform 0.4s ease;
@@ -2491,7 +2531,7 @@ export default function AdminDashboard() {
         .withdrawal-card:hover {
           border-color: #c7d2e8;
           background: linear-gradient(135deg, #f0f4fb 0%, #eef2f8 100%);
-          box-shadow: 0 12px 32px rgba(102, 126, 234, 0.12);
+          box-shadow: 0 12px 32px rgba(7, 7, 78, 0.12);
           transform: translateY(-6px);
         }
 
@@ -2681,8 +2721,8 @@ export default function AdminDashboard() {
 
         .input-field:focus {
           outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          border-color: #07074E;
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
         }
 
         .users-table {
@@ -2743,7 +2783,7 @@ export default function AdminDashboard() {
 
         .flagged-stat-card {
           background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          border: 2px solid #f59e0b;
+          border: 2px solid #07074E;
           padding: 16px 24px;
           border-radius: 12px;
           display: flex;
@@ -2793,13 +2833,13 @@ export default function AdminDashboard() {
         }
 
         .conversation-card:hover {
-          border-color: #667eea;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+          border-color: #07074E;
+          box-shadow: 0 4px 12px rgba(7, 7, 78, 0.2);
           transform: translateY(-2px);
         }
 
         .conversation-card.has-violations {
-          border-left: 4px solid #f59e0b;
+          border-left: 4px solid #07074E;
           background: #fffbeb;
         }
 
@@ -2857,7 +2897,7 @@ export default function AdminDashboard() {
         .violation-indicator {
           margin-top: 12px;
           padding: 8px 12px;
-          background: #fef3c7;
+          background: rgba(7, 7, 78, 0.08);
           border-radius: 8px;
           color: #92400e;
           font-size: 0.85rem;
@@ -2891,8 +2931,8 @@ export default function AdminDashboard() {
         }
 
         .btn-back:hover {
-          border-color: #667eea;
-          color: #667eea;
+          border-color: #07074E;
+          color: #07074E;
         }
 
         .chat-participants {
@@ -2935,7 +2975,7 @@ export default function AdminDashboard() {
         }
 
         .message-item.filtered-message {
-          border-color: #f59e0b;
+          border-color: #07074E;
           background: #fffbeb;
         }
 
@@ -2966,7 +3006,7 @@ export default function AdminDashboard() {
         .filtered-badge {
           margin-top: 8px;
           padding: 4px 8px;
-          background: #fef3c7;
+          background: rgba(7, 7, 78, 0.08);
           border-radius: 6px;
           color: #92400e;
           font-size: 0.75rem;
@@ -3083,7 +3123,7 @@ export default function AdminDashboard() {
         }
 
         .campaign-count-badge {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           color: white;
           padding: 6px 16px;
           border-radius: 20px;
@@ -3109,8 +3149,8 @@ export default function AdminDashboard() {
         }
 
         .campaign-item-small:hover {
-          border-color: #667eea;
-          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+          border-color: #07074E;
+          box-shadow: 0 2px 8px rgba(7, 7, 78, 0.2);
         }
 
         .campaign-info-small {
@@ -3179,7 +3219,7 @@ export default function AdminDashboard() {
         }
 
         .btn-assign {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           color: white;
         }
 
@@ -3239,8 +3279,8 @@ export default function AdminDashboard() {
 
         .select-input:focus {
           outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          border-color: #07074E;
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
         }
 
         .modal-actions {
@@ -3317,7 +3357,7 @@ export default function AdminDashboard() {
         }
 
         .default-badge {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           color: white;
           padding: 4px 12px;
           border-radius: 12px;
@@ -3363,7 +3403,7 @@ export default function AdminDashboard() {
         }
 
         .gateway-toggle input:checked + .slider {
-          background-color: #667eea;
+          background-color: #07074E;
         }
 
         .gateway-toggle input:checked + .slider:before {
@@ -3486,13 +3526,13 @@ export default function AdminDashboard() {
         .txn-id {
           font-family: monospace;
           font-size: 0.9rem;
-          color: #667eea;
+          color: #07074E;
         }
 
         .gateway-badge {
           display: inline-block;
           padding: 4px 8px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           color: white;
           border-radius: 8px;
           font-size: 0.75rem;
@@ -3579,8 +3619,8 @@ export default function AdminDashboard() {
 
         .textarea-field:focus {
           outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          border-color: #07074E;
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
         }
 
         .form-row {
@@ -3712,7 +3752,7 @@ export default function AdminDashboard() {
         }
 
         .permission-count {
-          color: #667eea;
+          color: #07074E;
           font-weight: 600;
         }
 
@@ -3740,7 +3780,7 @@ export default function AdminDashboard() {
         }
 
         .metric-card.highlight {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           color: white;
         }
 
@@ -3793,7 +3833,7 @@ export default function AdminDashboard() {
         }
 
         .role-badge.support_staff {
-          background: #fef3c7;
+          background: rgba(7, 7, 78, 0.08);
           color: #92400e;
         }
 
@@ -3861,8 +3901,8 @@ export default function AdminDashboard() {
         }
 
         .role-badge.admin {
-          background: #fef3c7;
-          color: #d97706;
+          background: rgba(7, 7, 78, 0.08);
+          color: #07074E;
         }
 
         .staff-details {
@@ -3892,7 +3932,7 @@ export default function AdminDashboard() {
 
         .permission-tag {
           background: #e0e7ff;
-          color: #667eea;
+          color: #07074E;
           padding: 4px 8px;
           border-radius: 8px;
           font-size: 0.75rem;
@@ -4026,12 +4066,12 @@ export default function AdminDashboard() {
         }
 
         .app-tab-btn.active {
-          color: #667eea;
-          border-bottom-color: #667eea;
+          color: #07074E;
+          border-bottom-color: #07074E;
         }
 
         .app-tab-btn:hover {
-          color: #667eea;
+          color: #07074E;
         }
 
         .applications-filters {
@@ -4079,8 +4119,8 @@ export default function AdminDashboard() {
         .filter-group select:focus,
         .filter-group input:focus {
           outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          border-color: #07074E;
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
         }
 
         .applications-list {
@@ -4153,7 +4193,7 @@ export default function AdminDashboard() {
 
         .sla-remaining {
           font-weight: 700;
-          color: #667eea;
+          color: #07074E;
         }
 
         .status-badge {
@@ -4166,7 +4206,7 @@ export default function AdminDashboard() {
         }
 
         .status-pending {
-          background: #fef3c7;
+          background: rgba(7, 7, 78, 0.08);
           color: #b45309;
         }
 
@@ -4190,7 +4230,7 @@ export default function AdminDashboard() {
           border: 1.5px solid #d1daf0;
           border-radius: 8px;
           background: linear-gradient(135deg, #f5f7ff 0%, #eff2f8 100%);
-          color: #667eea;
+          color: #07074E;
           cursor: pointer;
           font-weight: 700;
           font-size: 12px;
@@ -4198,8 +4238,8 @@ export default function AdminDashboard() {
         }
 
         .btn-view-detail:hover {
-          border-color: #667eea;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+          border-color: #07074E;
+          box-shadow: 0 4px 12px rgba(7, 7, 78, 0.15);
           transform: translateY(-2px);
         }
 
@@ -4219,7 +4259,7 @@ export default function AdminDashboard() {
           border: 1.5px solid #dde4f0;
           border-radius: 8px;
           background: white;
-          color: #667eea;
+          color: #07074E;
           cursor: pointer;
           font-weight: 700;
           font-size: 14px;
@@ -4228,8 +4268,8 @@ export default function AdminDashboard() {
         }
 
         .btn-back:hover {
-          border-color: #667eea;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+          border-color: #07074E;
+          box-shadow: 0 4px 12px rgba(7, 7, 78, 0.1);
           background: #f5f7ff;
         }
 
@@ -4285,7 +4325,7 @@ export default function AdminDashboard() {
           display: inline-block;
           margin-right: 8px;
           padding: 6px 12px;
-          background: #fef3c7;
+          background: rgba(7, 7, 78, 0.08);
           color: #b45309;
           border-radius: 20px;
           font-size: 12px;
@@ -4402,7 +4442,7 @@ export default function AdminDashboard() {
 
         .rate-value {
           font-size: 18px;
-          color: #667eea;
+          color: #07074E;
           font-weight: 800;
         }
 
@@ -4420,8 +4460,8 @@ export default function AdminDashboard() {
         }
 
         .video-card:hover {
-          border-color: #667eea;
-          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+          border-color: #07074E;
+          box-shadow: 0 6px 16px rgba(7, 7, 78, 0.15);
           transform: translateY(-4px);
         }
 
@@ -4449,7 +4489,7 @@ export default function AdminDashboard() {
           transform: translate(-50%, -50%);
           width: 48px;
           height: 48px;
-          background: rgba(102, 126, 234, 0.9);
+          background: rgba(7, 7, 78, 0.9);
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -4461,7 +4501,7 @@ export default function AdminDashboard() {
         }
 
         .play-button:hover {
-          background: #667eea;
+          background: #07074E;
           transform: translate(-50%, -50%) scale(1.1);
         }
 
@@ -4526,13 +4566,13 @@ export default function AdminDashboard() {
         }
 
         .verify-badge.pending {
-          background: #fef3c7;
+          background: rgba(7, 7, 78, 0.08);
           color: #b45309;
         }
 
         .doc-link {
           display: block;
-          color: #667eea;
+          color: #07074E;
           font-weight: 700;
           font-size: 13px;
           text-decoration: none;
@@ -4541,7 +4581,7 @@ export default function AdminDashboard() {
         }
 
         .doc-link:hover {
-          color: #764ba2;
+          color: #07074E;
         }
 
         .doc-info {
@@ -4569,8 +4609,8 @@ export default function AdminDashboard() {
         }
 
         .social-card:hover {
-          border-color: #667eea;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+          border-color: #07074E;
+          box-shadow: 0 4px 12px rgba(7, 7, 78, 0.1);
         }
 
         .social-card h4 {
@@ -4586,7 +4626,7 @@ export default function AdminDashboard() {
         .social-card p {
           margin: 0 0 8px 0;
           font-size: 13px;
-          color: #667eea;
+          color: #07074E;
           text-decoration: none;
           font-weight: 600;
           word-break: break-all;
@@ -4660,7 +4700,7 @@ export default function AdminDashboard() {
         }
 
         .gst-badge.pending {
-          background: #fef3c7;
+          background: rgba(7, 7, 78, 0.08);
           color: #b45309;
         }
 
@@ -4677,14 +4717,14 @@ export default function AdminDashboard() {
         }
 
         .website-preview a {
-          color: #667eea;
+          color: #07074E;
           font-weight: 700;
           text-decoration: none;
           transition: color 0.3s ease;
         }
 
         .website-preview a:hover {
-          color: #764ba2;
+          color: #07074E;
         }
 
         .decision-section {
@@ -4821,8 +4861,8 @@ export default function AdminDashboard() {
         .form-group textarea:focus,
         .form-group input:focus {
           outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          border-color: #07074E;
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
         }
 
         .form-group textarea {
@@ -4849,14 +4889,14 @@ export default function AdminDashboard() {
         }
 
         .btn-confirm {
-          background: #667eea;
+          background: #07074E;
           color: white;
-          border-color: #667eea;
+          border-color: #07074E;
         }
 
         .btn-confirm:hover {
-          background: #764ba2;
-          border-color: #764ba2;
+          background: #07074E;
+          border-color: #07074E;
         }
 
         .btn-confirm.btn-reject {
@@ -4866,12 +4906,12 @@ export default function AdminDashboard() {
 
         .btn-cancel {
           background: white;
-          color: #667eea;
+          color: #07074E;
           border-color: #dde4f0;
         }
 
         .btn-cancel:hover {
-          border-color: #667eea;
+          border-color: #07074E;
           background: #f5f7ff;
         }
 

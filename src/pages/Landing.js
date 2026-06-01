@@ -2374,7 +2374,7 @@ export default function Landing() {
         .lp-showcase__viewport {
           display: flex;
           flex-direction: column;
-          gap: 44px;
+          gap: 32px;
           padding: 8px 0;
           width: 100vw;
           max-width: 100vw;
@@ -2389,7 +2389,7 @@ export default function Landing() {
         }
         .lp-showcase__track {
           display: flex;
-          gap: 26px;
+          gap: 20px;
           width: max-content;
           padding: 0 8%;
           will-change: transform;
@@ -2418,8 +2418,8 @@ export default function Landing() {
         .lp-showcase-item {
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          width: 300px;
+          gap: 12px;
+          width: 220px;
           flex-shrink: 0;
         }
 

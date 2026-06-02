@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
@@ -39,8 +39,71 @@ import {
   SkipForward,
   BellOff,
   Repeat,
+  ChevronDown,
+  LayoutGrid,
+  LogIn,
 } from 'lucide-react';
 import { motion, useInView, animate, useMotionValue, useTransform, useScroll } from 'framer-motion';
+
+// Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
+const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
+
+// Top-creator leaderboard shown under the hero — rows reveal one-by-one on scroll.
+// Edit / add / remove freely; the reveal stagger recomputes from the item count.
+const TOP_CREATORS = [
+  { name: 'aanya.creates', metric: '1.2M views' },
+  { name: 'marcus.lee', metric: '980K views' },
+  { name: 'thefoodiekai', metric: '845K views' },
+  { name: 'priya.shoots', metric: '712K views' },
+  { name: 'devon.makes', metric: '690K views' },
+  { name: 'lina.studio', metric: '604K views' },
+  { name: 'oncamerawithzo', metric: '558K views' },
+  { name: 'reelsbynoah', metric: '503K views' },
+  { name: 'maya.unfiltered', metric: '477K views' },
+  { name: 'thecartertwins', metric: '441K views' },
+  { name: 'sana.skincare', metric: '398K views' },
+];
+
+// 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 4 -> "4th" ...
+const ordinal = (n) => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
+// Height of one leaderboard row, in vh (also used to compute the scroll range).
+const LOGO3D_ITEM_VH = 10;
+// Fraction of the section scroll over which all leaderboard rows pass the centre.
+const LOGO3D_SCROLL_END = 0.78;
+
+// One leaderboard row. `p` is the scroll-progress point where this row sits at the
+// centre; it stays hidden until the scroll approaches that point, then fades in —
+// so rows appear one-by-one at the centre as the track scrolls them upward.
+function LeaderboardRow({ progress, p, rank, name, metric }) {
+  // Spotlight: this row is brightest exactly when it sits at the centre (progress = p),
+  // and dims as it moves away above/below. Breakpoints kept inside [0,1] and strictly
+  // increasing (framer requires monotonic, non-negative input offsets).
+  const c1 = Math.min(0.999, Math.max(0.001, p));
+  const c0 = Math.max(0, c1 - 0.06);
+  const c2 = Math.min(1, c1 + 0.06);
+  const opacity = useTransform(progress, [c0, c1, c2], [0.5, 1, 0.5]);
+  // the widest (centre) line stays pure white across a band; off-centre lines are grey.
+  const cInL = (c0 + c1) / 2;
+  const cInR = (c1 + c2) / 2;
+  const color = useTransform(progress, [c0, cInL, cInR, c2], ['#7c818b', '#ffffff', '#ffffff', '#7c818b']);
+  // tilt on the Y axis (from the right): off-centre lines — already scrolled (above)
+  // and not-yet-scrolled (below) — tilt right; the centred line is flat.
+  const rotateY = useTransform(progress, [c0, c1, c2], [-22, 0, -22]);
+  // the line at the centre is largest; lines above/below shrink.
+  const scale = useTransform(progress, [c0, c1, c2], [0.62, 1, 0.62]);
+  return (
+    <motion.div className="lp-logo3d__boardItem" style={{ opacity, rotateY, scale, color }}>
+      <span className="lp-logo3d__rank">{rank}</span>
+      <span className="lp-logo3d__creator">{name}</span>
+      <span className="lp-logo3d__metric">{metric}</span>
+    </motion.div>
+  );
+}
 
 // ─── Static data ────────────────────────────────────────────────────────────
 
@@ -365,6 +428,27 @@ export default function Landing() {
   const card1Opacity = useTransform(auditProgress, [0.7, 0.92], [1, 0]);
   const ctaInView = useInView(ctaRef, { once: true, margin: '-80px' });
 
+  // 3D glass logo — scroll-driven pinned scene under the hero
+  const logo3dRef = useRef(null);
+  const logo3dInView = useInView(logo3dRef, { once: true, margin: '200px' });
+  const { scrollYProgress: logo3dProgress } = useScroll({
+    target: logo3dRef,
+    offset: ['start start', 'end end'],
+  });
+  // Leaderboard scrolls vertically: 1st row centered at the start, last row
+  // centered at the end — each rank passes through the centre one-by-one.
+  const logoBoardStart = 50 - LOGO3D_ITEM_VH / 2;
+  const logoBoardEnd = 50 - (TOP_CREATORS.length - 0.5) * LOGO3D_ITEM_VH;
+  // All leaderboard lines fully scroll through by LOGO3D_SCROLL_END, then fade out.
+  const logoBoardY = useTransform(logo3dProgress, [0, LOGO3D_SCROLL_END], [`${logoBoardStart}vh`, `${logoBoardEnd}vh`]);
+  // Lines finish scrolling (~0.78), then fully fade out (~0.86) BEFORE the logo moves —
+  // so the logo never overlaps the still-visible text.
+  const logoBoardOpacity = useTransform(logo3dProgress, [0.8, 0.86], [1, 0]);
+  // Logo sits at the top-LEFT while the lines scroll + fade, then glides to the centre
+  // (it's base-centred in CSS, so x/y go from left+up to 0).
+  const logoX = useTransform(logo3dProgress, [0.88, 1], ['-32vw', '0vw']);
+  const logoY = useTransform(logo3dProgress, [0.88, 1], ['-12vh', '0vh']);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -409,12 +493,31 @@ export default function Landing() {
             className="lp-navbar__logo"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           />
+
+          <nav className="lp-navbar__links">
+            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
+              Explore Creators
+            </a>
+            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
+              <DollarSign size={16} /> Pricing
+            </a>
+            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
+              <Sparkles size={16} /> Intelligence
+            </a>
+            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
+              <LayoutGrid size={16} /> Others <ChevronDown size={15} />
+            </a>
+          </nav>
+
           <div className="lp-navbar__actions">
-            <button className="lp-btn-signin" onClick={() => navigate('/auth')}>
-              Sign In
+            <a className="lp-nav-join" href="#" onClick={(e) => { e.preventDefault(); navigate('/auth'); }}>
+              Join as <em>Creator</em>
+            </a>
+            <button className="lp-btn-login" onClick={() => navigate('/auth')}>
+              <LogIn size={16} /> Log in
             </button>
-            <button className="lp-btn-dark" onClick={handleGetStarted}>
-              Get Started
+            <button className="lp-btn-signup" onClick={handleGetStarted}>
+              Sign Up
             </button>
           </div>
         </div>
@@ -586,19 +689,26 @@ export default function Landing() {
             <div className="lp-brands__track lp-brands__track--left">
               {(() => {
                 const base = [
-                  { name: 'Amazon', letter: 'a' },
-                  { name: 'Apple', letter: '' },
-                  { name: 'Google', letter: 'G' },
-                  { name: 'Netflix', letter: 'N' },
-                  { name: 'Spotify', letter: '♫' },
-                  { name: 'Tesla', letter: 'T' },
-                  { name: 'Meta', letter: '∞' },
-                  { name: 'Microsoft', letter: '⊞' },
+                  { name: 'YouTube', slug: 'youtube' },
+                  { name: 'Instagram', slug: 'instagram' },
+                  { name: 'Spotify', slug: 'spotify' },
+                  { name: 'Meta', slug: 'meta' },
+                  { name: 'Pinterest', slug: 'pinterest' },
+                  { name: 'Snapchat', slug: 'snapchat' },
+                  { name: 'Twitch', slug: 'twitch' },
+                  { name: 'Discord', slug: 'discord' },
                 ];
                 return [...base, ...base, ...base, ...base];
               })().map((b, i) => (
                 <div key={`L-${b.name}-${i}`} className="lp-brand-item">
-                  <div className="lp-brand-item__icon">{b.letter}</div>
+                  <div className="lp-brand-item__icon">
+                    <img
+                      src={`https://cdn.simpleicons.org/${b.slug}`}
+                      alt={b.name}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                    />
+                  </div>
                   <div className="lp-brand-item__name">{b.name}</div>
                 </div>
               ))}
@@ -613,19 +723,26 @@ export default function Landing() {
             <div className="lp-brands__track lp-brands__track--right">
               {(() => {
                 const base = [
-                  { name: 'HubSpot', letter: 'H' },
-                  { name: 'Notion', letter: 'N' },
-                  { name: 'Slack', letter: '#' },
-                  { name: 'Stripe', letter: 'S' },
-                  { name: 'Figma', letter: 'F' },
-                  { name: 'Canva', letter: 'C' },
-                  { name: 'Airbnb', letter: 'A' },
-                  { name: 'Uber', letter: 'U' },
+                  { name: 'Figma', slug: 'figma' },
+                  { name: 'Vimeo', slug: 'vimeo' },
+                  { name: 'Reddit', slug: 'reddit' },
+                  { name: 'Stripe', slug: 'stripe' },
+                  { name: 'Shopify', slug: 'shopify' },
+                  { name: 'Dribbble', slug: 'dribbble' },
+                  { name: 'Patreon', slug: 'patreon' },
+                  { name: 'Behance', slug: 'behance' },
                 ];
                 return [...base, ...base, ...base, ...base];
               })().map((b, i) => (
                 <div key={`R-${b.name}-${i}`} className="lp-brand-item">
-                  <div className="lp-brand-item__icon">{b.letter}</div>
+                  <div className="lp-brand-item__icon">
+                    <img
+                      src={`https://cdn.simpleicons.org/${b.slug}`}
+                      alt={b.name}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                    />
+                  </div>
                   <div className="lp-brand-item__name">{b.name}</div>
                 </div>
               ))}
@@ -642,6 +759,38 @@ export default function Landing() {
         >
           <path d="M0,0 C480,80 960,80 1440,0 L1440,80 L0,80 Z" fill="#0a0a0a" />
         </svg>
+      </section>
+
+      {/* ── 3D glass logo (left) + center copy — scroll-driven ──────────────── */}
+      <section className="lp-logo3d" ref={logo3dRef}>
+        <div className="lp-logo3d__sticky">
+          {/* 3D logo — top-left while lines scroll, then glides to centre */}
+          <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoY }}>
+            {logo3dInView ? (
+              <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
+                <HeroLogo3D progress={logo3dProgress} />
+              </Suspense>
+            ) : (
+              <div className="lp-logo3d__placeholder" aria-hidden="true" />
+            )}
+          </motion.div>
+
+          {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
+          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity }}>
+            <motion.div className="lp-logo3d__boardTrack" style={{ y: logoBoardY }}>
+              {TOP_CREATORS.map((c, i) => (
+                <LeaderboardRow
+                  key={c.name}
+                  progress={logo3dProgress}
+                  p={(i / (TOP_CREATORS.length - 1)) * LOGO3D_SCROLL_END}
+                  rank={ordinal(i + 1)}
+                  name={c.name}
+                  metric={c.metric}
+                />
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
       </section>
 
       {/* connector 1: hero → hook — joined U-bridge with center drop into badge */}
@@ -1474,72 +1623,97 @@ export default function Landing() {
           transition: top 0.3s ease;
         }
 
-        .lp-navbar--scrolled .lp-navbar__inner {
-          box-shadow: 0 8px 32px rgba(0,0,0,0.10);
-        }
-
         .lp-navbar__inner {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          max-width: 1240px;
+          gap: 32px;
+          max-width: 1320px;
           margin: 0 auto;
-          background: #ffffff;
-          backdrop-filter: blur(12px);
-          padding: 12px 22px;
-          border-radius: 100px;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-          transition: box-shadow 0.3s ease;
+          background: transparent;       /* no white container */
+          padding: 10px 4px;
         }
 
         .lp-navbar__logo {
-          height: 52px;
+          height: 44px;
           width: auto;
           cursor: pointer;
           transition: opacity 0.2s;
         }
         .lp-navbar__logo:hover { opacity: 0.8; }
 
-        .lp-navbar__actions {
+        /* Center nav links */
+        .lp-navbar__links {
           display: flex;
-          gap: 10px;
+          align-items: center;
+          gap: 26px;
+        }
+        .lp-root .lp-navlink {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.88);
+          text-decoration: none;
+          cursor: pointer;
+          transition: color 0.2s ease;
+        }
+        .lp-root .lp-navlink:hover { color: #ffffff; }
+        .lp-navlink svg { color: rgba(255, 255, 255, 0.6); }
+
+        .lp-navbar__actions {
+          margin-left: auto;
+          display: flex;
+          gap: 12px;
           align-items: center;
         }
 
-        .lp-root .lp-btn-signin {
-          padding: 9px 22px;
-          border-radius: 100px;
-          border: 1px solid rgba(0, 0, 0, 0.18);
+        /* Join as Creator — purple text link */
+        .lp-root .lp-nav-join {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #a78bfa;
+          text-decoration: none;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
+        }
+        .lp-root .lp-nav-join em { font-style: italic; }
+        .lp-root .lp-nav-join:hover { opacity: 0.8; }
+
+        /* Log in — outlined button */
+        .lp-btn-login {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 18px;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.25);
           background: transparent;
-          color: #000000;
+          color: #ffffff;
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
           font-size: 0.92rem;
           cursor: pointer;
-          transition: all 0.22s ease;
+          transition: all 0.2s ease;
         }
-        .lp-root .lp-btn-signin:hover {
-          border-color: rgba(0, 0, 0, 0.4);
-          color: #000000;
-        }
+        .lp-btn-login:hover { border-color: rgba(255, 255, 255, 0.55); }
 
-        .lp-btn-dark {
-          padding: 9px 22px;
-          border-radius: 100px;
-          background: var(--lp-ink);
+        /* Sign Up — filled purple button */
+        .lp-root .lp-btn-signup {
+          padding: 8px 22px;
+          border-radius: 10px;
+          border: 1px solid #A78BFA;
+          background: #A78BFA;
           color: #ffffff;
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 600;
           font-size: 0.92rem;
-          border: none;
           cursor: pointer;
-          transition: all 0.22s ease;
+          transition: all 0.2s ease;
         }
-        .lp-btn-dark:hover {
-          background: var(--lp-purple-700);
-          transform: translateY(-1px);
-        }
+        .lp-root .lp-btn-signup:hover { background: #9170f0; border-color: #9170f0; }
 
         /* ── Hero (dark constellation) ─────────────────────────────────────── */
         .lp-hero {
@@ -1829,18 +2003,23 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
         }
         .lp-brand-item__icon {
+          position: relative;
           width: 96px;
           height: 96px;
-          border-radius: 22px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 24px;
+          background: #131316;
+          border: 1px solid rgba(255, 255, 255, 0.09);
+          /* soft highlight from the top-left for a subtly raised tile (like the ref) */
+          box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.10);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 2.6rem;
-          font-weight: 700;
-          color: rgba(255, 255, 255, 0.85);
           transition: all 0.3s ease;
+        }
+        .lp-brand-item__icon img {
+          width: 46px;
+          height: 46px;
+          object-fit: contain;
         }
         .lp-brand-item__name {
           font-size: 0.78rem;
@@ -1858,23 +2037,23 @@ export default function Landing() {
         /* Center main logo — highlighted with glow */
         .lp-hero__brand-center {
           flex-shrink: 0;
-          width: 190px;
-          height: 190px;
-          border-radius: 36px;
+          width: 140px;
+          height: 140px;
+          border-radius: 28px;
           background: #1f1f1f;
           border: 1px solid rgba(255, 255, 255, 0.1);
           display: flex;
           align-items: center;
           justify-content: center;
           box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.55),
-                      0 0 35px rgba(167, 139, 250, 0.6),
-                      0 0 160px rgba(167, 139, 250, 0.4);
+                      0 0 28px rgba(167, 139, 250, 0.6),
+                      0 0 120px rgba(167, 139, 250, 0.4);
           position: relative;
           z-index: 4;
         }
         .lp-hero__brand-center img {
-          width: 150px;
-          height: 150px;
+          width: 108px;
+          height: 108px;
           object-fit: contain;
         }
 
@@ -1898,6 +2077,102 @@ export default function Landing() {
           height: 80px;
           z-index: 4;
           display: block;
+        }
+
+        /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
+        .lp-logo3d {
+          position: relative;
+          height: 300vh;                 /* scroll travel that drives the animation */
+          background: transparent;       /* show the shared animated page background */
+          z-index: 2;
+        }
+        .lp-logo3d__sticky {
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          width: 100%;
+          overflow: hidden;
+          display: flex;                 /* centers the copy */
+          align-items: center;
+          justify-content: center;
+          /* transparent — shows the shared animated page background (.lp-bg-animations) */
+          background: transparent;
+        }
+        /* small 3D logo pinned to the upper-left */
+        .lp-logo3d__stage {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          margin-top: calc(clamp(200px, 40vh, 440px) * -0.5);   /* base-centre vertically */
+          margin-left: calc(clamp(200px, 27vw, 400px) * -0.5);  /* base-centre horizontally */
+          width: clamp(200px, 27vw, 400px);
+          height: clamp(200px, 40vh, 440px);
+          z-index: 3;                    /* above the leaderboard when they overlap */
+        }
+        .lp-logo3d__canvas {
+          width: 100% !important;
+          height: 100% !important;
+          display: block;
+        }
+
+        /* leaderboard viewport — fixed 100vh window, fades at top + bottom edges */
+        .lp-logo3d__board {
+          position: relative;
+          width: 64%;
+          max-width: 760px;
+          height: 100vh;
+          z-index: 2;
+          overflow: hidden;
+          perspective: 700px;            /* 3D depth for the per-row X tilt */
+          perspective-origin: center center;
+          -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
+                  mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
+        }
+        .lp-logo3d__boardTrack {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          will-change: transform;
+          transform-style: preserve-3d;  /* let each row's rotateX use the perspective */
+        }
+        .lp-logo3d__boardItem {
+          height: 10vh;                  /* matches LOGO3D_ITEM_VH */
+          transform-origin: center center;  /* pivot from centre so text stays centred */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.6em;
+          white-space: nowrap;
+          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-size: clamp(1.2rem, 2.6vw, 2.3rem);
+          font-weight: 600;
+          letter-spacing: -0.02em;
+          color: #ffffff;
+        }
+        /* colour is driven per-row (grey → white at the centre); spans inherit it */
+        .lp-logo3d__rank { color: inherit; font-weight: 500; }
+        .lp-logo3d__creator { color: inherit; }
+        .lp-logo3d__metric { color: inherit; font-weight: 500; }
+        .lp-logo3d__placeholder,
+        .lp-logo3d__loading {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          color: var(--lp-text-soft);
+          font-family: 'Instrument Sans', 'Inter', sans-serif;
+        }
+        @media (max-width: 900px) {
+          .lp-logo3d { height: 260vh; }
+          .lp-logo3d__stage {
+            width: clamp(120px, 34vw, 200px);
+            height: clamp(120px, 22vh, 220px);
+            margin-top: calc(clamp(120px, 22vh, 220px) * -0.5);
+            margin-left: calc(clamp(120px, 34vw, 200px) * -0.5);
+          }
+          .lp-logo3d__board { width: 92%; }
+          .lp-logo3d__boardItem { font-size: clamp(0.85rem, 4vw, 1.4rem); }
         }
 
         /* ── The Problem section ──────────────────────────────────────────── */
@@ -3082,9 +3357,11 @@ export default function Landing() {
           .lp-hero { padding: 120px 5% 0; min-height: auto; }
           .lp-hero__connectors { display: none; }
           .lp-hero__title { max-width: 100%; }
-          .lp-navbar { padding: 0 4%; }
-          .lp-navbar__inner { padding: 10px 14px; }
-          .lp-btn-signin, .lp-btn-dark { padding: 8px 16px; font-size: 0.85rem; }
+          .lp-navbar__inner { padding: 10px 5%; gap: 16px; }
+          .lp-navbar__links { display: none; }
+          .lp-nav-join { display: none; }
+          .lp-navbar__logo { height: 38px; }
+          .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
           .lp-hero__badges { gap: 6px; }

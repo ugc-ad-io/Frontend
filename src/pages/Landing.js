@@ -16,7 +16,6 @@ import {
   Home as HomeIcon,
   Instagram,
   Music2,
-  Video,
   AlertTriangle,
   HelpCircle,
   MessageCircle,
@@ -43,7 +42,7 @@ import {
   LayoutGrid,
   LogIn,
 } from 'lucide-react';
-import { motion, useInView, animate, useMotionValue, useTransform, useScroll } from 'framer-motion';
+import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent } from 'framer-motion';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
@@ -233,38 +232,6 @@ const proofBadges = [
   { Icon: Sparkles, label: '10K+ Creators' },
 ];
 
-// Icon positions in SVG viewBox 1190×330 — extracted from reference Lottie SVG.
-const HERO_ICONS = [
-  { Icon: Users,     label: 'Creator',   x: 174.6,  y: 52.7,  bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', iconColor: '#fff' },
-  { Icon: Video,     label: 'Content',   x: 63,     y: 164.5, bg: 'linear-gradient(135deg, #F97316, #FBBF24)', iconColor: '#fff' },
-  { Icon: Instagram, label: 'Instagram', x: 286.6,  y: 276.8, bg: 'linear-gradient(135deg, #EF4444, #DC2626)', iconColor: '#fff' },
-  { Icon: Music2,    label: 'TikTok',    x: 1126.6, y: 52.5,  bg: '#ffffff', iconColor: '#38A1D6' },
-  { Icon: Briefcase, label: 'Gig',       x: 1014.6, y: 276.5, bg: 'linear-gradient(135deg, #334155, #1E293B)', iconColor: '#fff' },
-];
-
-// Exact path data from the reference Lottie SVG (viewBox 1190×330).
-// Path is relative to center (567.618, 148) — wrapped in <g transform> at render.
-const CONNECTOR_PATH_D = "M-354.98,112 C-354.98,112 -524,112 -524,112 C-528.42,112 -532,108.42 -532,104 C-532,104 -532,48.71 -532,48.71 M-532,-47.65 C-532,-47.65 -532,-104 -532,-104 C-532,-108.42 -528.42,-112 -524,-112 C-524,-112 -468,-112 -468,-112 M-374,-112 C-374,-112 -288,-112 -288,-112 C-283.58,-112 -280,-108.42 -280,-104 C-280,-104 -280,-60.19 -280,-60.19 C-280,-55.78 -276.42,-52.19 -272,-52.19 C-272,-52.19 -228.2,-52.19 -228.2,-52.19 M-485.14,0 C-485.14,0 -316.2,0 -316.2,0 C-311.78,0 -308.2,3.58 -308.2,8 C-308.2,8 -308.2,51.24 -308.2,51.24 M-308.2,51.24 C-308.2,51.24 -308.2,63.94 -308.2,63.94 M-308.2,51.24 C-308.2,51.24 -236.2,51.24 -236.2,51.24 C-231.78,51.24 -228.2,54.82 -228.2,59.24 C-228.2,59.24 -228.2,69.82 -228.2,69.82 C-228.2,74.24 -224.62,77.82 -220.2,77.82 C-220.2,77.82 -201.2,77.82 -201.2,77.82 M233.84,-52.3 C233.84,-52.3 306.08,-52.3 306.08,-52.3 M479.51,-112 C479.51,-112 400.01,-112 400.01,-112 C395.59,-112 392,-108.42 392,-104 C392,-104 392,-60.3 392,-60.3 C392,-55.88 388.42,-52.3 384,-52.3 C384,-52.3 306.08,-52.3 306.08,-52.3 M420,65.18 C420,65.18 420,59.24 420,59.24 C420,54.82 416.42,51.24 412,51.24 C412,51.24 306.08,51.24 306.08,51.24 M467.59,112 C467.59,112 524,112 524,112 C528.42,112 532,108.42 532,104 C532,104 532,-65.13 532,-65.13 M306.08,-52.3 C306.08,-52.3 306.08,51.24 306.08,51.24 M306.08,51.24 C306.08,51.24 241.84,51.24 241.84,51.24 C237.43,51.24 233.84,54.82 233.84,59.24 C233.84,59.24 233.84,69.84 233.84,69.84 C233.84,74.26 230.26,77.84 225.84,77.84 C225.84,77.84 201,77.84 201,77.84";
-
-// Arrow markers — positions in absolute 1190×330 viewBox coords.
-const HERO_ARROWS = [
-  { x: 246.9, y: 276.2, rot: 0, color: '#FF4D4D' },
-  { x: 62.6, y: 204.2, rot: 90, color: '#FFB866' },
-  { x: 62.6, y: 124.9, rot: 270, color: '#FFB866' },
-  { x: 134.9, y: 52.5, rot: 0, color: '#316BFF' },
-  { x: 214.3, y: 52.7, rot: 180, color: '#316BFF' },
-  { x: 375.3, y: 112.2, rot: 0, color: '#213856' },
-  { x: 816, y: 112.2, rot: 180, color: '#213856' },
-  { x: 403, y: 242.4, rot: 0, color: '#213856' },
-  { x: 784.4, y: 242.4, rot: 180, color: '#C8F23A' },
-  { x: 286.6, y: 237.2, rot: 270, color: '#FF4D4D' },
-  { x: 102.7, y: 164.5, rot: 0, color: '#FFB866' },
-  { x: 1014.6, y: 236.9, rot: 270, color: '#fff' },
-  { x: 1126.8, y: 92.2, rot: 90, color: '#38A1D6' },
-  { x: 1054.6, y: 276.8, rot: 0, color: '#fff' },
-  { x: 1086.8, y: 52.5, rot: 180, color: '#38A1D6' },
-];
-
 const industries = [
   { id: 'health',    Icon: Heart,        label: 'Health/Wellness' },
   { id: 'beauty',    Icon: Sparkles,     label: 'Beauty/Cosmetics' },
@@ -449,6 +416,41 @@ export default function Landing() {
   const logoX = useTransform(logo3dProgress, [0.88, 1], ['-32vw', '0vw']);
   const logoY = useTransform(logo3dProgress, [0.88, 1], ['-12vh', '0vh']);
 
+  // ── Hero — scroll-driven PNG logo sequence ──────────────────────────────────
+  // Pinned hero plays in three phases as you scroll through its tall section:
+  //   P1 (0–0.30): logo nudges down.  P2 (0.30–0.62): grows + glides to centre,
+  //   copy + brand strip fade.  P3 (0.62–1): bg light→dark, navy mark crossfades
+  //   to white with a glow, navbar flips to its dark-friendly theme.
+  const heroRef = useRef(null);
+  const { scrollYProgress: heroP } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end end'],
+  });
+  // Logo stays on the RIGHT: dips down a bit on the 1st scroll, then grows in
+  // place on the 2nd scroll (anchored to its right edge so it never clips off).
+  const heroLogoY = useTransform(heroP, [0, 0.3], ['0vh', '7vh']);
+  const heroLogoScale = useTransform(heroP, [0.3, 0.6], [1, 1.5]);
+  // State-driven CSS classes (reliable plain-CSS opacity — motion-value opacity
+  // didn't apply consistently here): hide the brand strip past the 2nd scroll,
+  // and recolour the logo white → navy blue on the 3rd scroll.
+  const [heroCollapsed, setHeroCollapsed] = useState(false);
+  const [heroNavy, setHeroNavy] = useState(false);
+  useMotionValueEvent(heroP, 'change', (v) => {
+    setHeroCollapsed(v > 0.42);
+    setHeroNavy(v > 0.62);
+  });
+  // On small screens, skip the pinned scroll choreography and fall back to a
+  // clean stacked static hero (inline motion styles are dropped). Reduced-motion
+  // is intentionally NOT a trigger — the scroll sequence is core to this hero.
+  const [heroStatic, setHeroStatic] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setHeroStatic(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -523,76 +525,14 @@ export default function Landing() {
         </div>
       </motion.header>
 
-      {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <section className="lp-hero">
-        {/* Layer 1: dashed connectors + icons + arrows — all in one SVG, one coordinate system */}
-        <svg
-          className="lp-hero__connectors"
-          viewBox="0 0 1190 330"
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden="true"
-        >
-          {/* Dashed paths — exact reference geometry, offset to center */}
-          <g transform="translate(594.618, 164.5)">
-            <motion.path
-              d={CONNECTOR_PATH_D}
-              fill="none"
-              stroke="rgb(152, 161, 172)"
-              strokeOpacity="0.6"
-              strokeWidth="1"
-              strokeDasharray="4 4"
-              strokeLinecap="round"
-              strokeLinejoin="miter"
-              strokeMiterlimit="4"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
-            />
-          </g>
-
-          {/* Single animated line — follows one continuous route across the circuit */}
-          <line x1="0" y1="0" x2="16" y2="0" stroke="#C8F23A" strokeWidth="2" strokeLinecap="round" opacity="0.8">
-            <animateMotion dur="20s" repeatCount="indefinite" rotate="auto"
-              path="M 240 276 L 71 276 C 67 276 63 272 63 268 L 63 61 C 63 57 67 53 71 53 L 307 53 C 311 53 315 57 315 61 L 315 104 C 315 108 319 112 323 112 L 366 112 L 287 165 L 287 216 L 358 216 C 362 216 366 220 366 224 L 366 234 C 366 238 370 242 374 242 L 393 242 L 500 242 L 700 242 L 796 242 C 800 242 804 238 804 234 L 804 224 C 804 220 808 216 812 216 L 901 216 L 901 112 C 901 108 905 104 909 104 L 979 112 C 983 112 987 108 987 104 L 987 61 C 987 57 991 53 995 53 L 1074 53 L 1127 53 C 1127 57 1127 99 1127 99 L 1127 268 C 1127 272 1123 276 1119 276 L 1062 276"
-            />
-          </line>
-
-          {/* Arrow markers at exact reference positions */}
-          {HERO_ARROWS.map((a, i) => (
-            <polygon
-              key={i}
-              points="-3.7,-4.2 3.7,0 -3.7,4.2"
-              fill={a.color}
-              transform={`translate(${a.x},${a.y}) rotate(${a.rot})`}
-            />
-          ))}
-
-          {/* Icons inside SVG — exact reference positions */}
-          {HERO_ICONS.map(({ Icon, label, x, y, bg, iconColor }, i) => (
-            <motion.g
-              key={label}
-              initial={{ opacity: 0, scale: 0.5 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.7 + i * 0.1, type: 'spring', stiffness: 220 }}
-              style={{ transformOrigin: `${x}px ${y}px` }}
-            >
-              <foreignObject x={x - 44} y={y - 44} width={88} height={88}>
-                <div
-                  className="lp-hero__icon"
-                  style={{ background: bg }}
-                  aria-label={label}
-                >
-                  <Icon size={22} color={iconColor || '#fff'} strokeWidth={2} />
-                </div>
-              </foreignObject>
-            </motion.g>
-          ))}
-        </svg>
-
-        {/* Layer 3: headline + CTAs */}
-        <div className="lp-hero__inner">
+      {/* ── Hero — scroll-driven PNG logo sequence ─────────────────────────── */}
+      <section
+        className={`lp-hero${heroStatic ? ' lp-hero--static' : ''}${!heroStatic && heroCollapsed ? ' lp-hero--collapsed' : ''}${!heroStatic && heroNavy ? ' lp-hero--navy' : ''}`}
+        ref={heroRef}
+      >
+        <motion.div className="lp-hero__sticky">
+          {/* Left: marketing copy — hides once the logo grows (2nd scroll) */}
+          <div className="lp-hero__inner">
           <motion.div
             className="lp-badge"
             custom={0}
@@ -668,23 +608,28 @@ export default function Landing() {
               </div>
             ))}
           </motion.div>
-        </div>
+          </div>
 
-        {/* Layer 4: shrunk phone tucked bottom-right — commented out */}
-        {/*
-        <motion.div
-          className="lp-hero__phone-mini"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.9 }}
-        >
-          <video src={leftVideo} autoPlay muted loop playsInline />
-        </motion.div>
-        */}
+          {/* Right: the UGC logo mark — grows in place on the right; recolours later */}
+          <motion.div
+            className="lp-hero__logo"
+            style={heroStatic ? undefined : { y: heroLogoY, scale: heroLogoScale }}
+          >
+            <img
+              src="/edited-image-preview_-_Edited-removebg-preview.png"
+              alt="UGCad"
+              className="lp-hero__logo-img lp-hero__logo-img--white"
+            />
+            <img
+              src="/ugcad-logo_-_Edited-removebg-preview.png"
+              alt=""
+              aria-hidden="true"
+              className="lp-hero__logo-img lp-hero__logo-img--navy"
+            />
+          </motion.div>
 
-        {/* Layer 5: bottom strip — counter + scrolling logos */}
-        <div className="lp-hero__strip">
+          {/* Bottom strip — scrolling brand logos (hidden once past the 2nd scroll) */}
+          <div className="lp-hero__strip">
           <div className="lp-hero__brands-side lp-hero__brands-side--left">
             <div className="lp-brands__track lp-brands__track--left">
               {(() => {
@@ -748,9 +693,10 @@ export default function Landing() {
               ))}
             </div>
           </div>
-        </div>
+          </div>
+        </motion.div>
 
-        {/* Layer 6: curved divider into next light section */}
+        {/* curved divider into the next section */}
         <svg
           className="lp-hero__divider"
           viewBox="0 0 1440 80"
@@ -1716,63 +1662,83 @@ export default function Landing() {
         .lp-root .lp-btn-signup:hover { background: #9170f0; border-color: #9170f0; }
 
         /* ── Hero (dark constellation) ─────────────────────────────────────── */
+        /* Tall scroll track that drives the pinned hero sequence */
         .lp-hero {
           position: relative;
-          background: #0a0a0a;
+          height: 420vh;
           color: #ffffff;
-          min-height: auto;
-          padding: 130px 6% 0;
-          overflow: hidden;
           isolation: isolate;
+          z-index: 3;
         }
 
-        /* Layer 1: dashed SVG connectors + icons + arrows */
-        .lp-hero__connectors {
-          position: absolute;
+        /* Pinned stage — stays dark throughout; bottom padding reserves room for the strip */
+        .lp-hero__sticky {
+          position: sticky;
           top: 0;
-          left: 0;
-          width: 100%;
-          height: calc(100vh - 140px);
-          z-index: 1;
-          pointer-events: none;
+          height: 100vh;
+          overflow: hidden;
+          background: #0a0a0a;
+          padding: 120px 6% 210px;
         }
 
-        /* Layer 2: floating squircle icon nodes */
-        .lp-hero__icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 20px;
-          outline: 8px solid rgba(239, 239, 239, 0.15);
-          outline-offset: 4px;
-          display: grid;
-          place-items: center;
-          box-shadow:
-            0 14px 32px rgba(0, 0, 0, 0.55),
-            inset 0 1px 0 rgba(255, 255, 255, 0.18),
-            0 0 0 1px rgba(255, 255, 255, 0.06);
-          margin: 16px auto;
-        }
-        .lp-hero__icon-inner {
-          display: grid;
-          place-items: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        /* Layer 3: centered headline + CTAs */
+        /* Left: marketing copy (left-aligned, upper zone) */
         .lp-hero__inner {
           position: relative;
           z-index: 3;
-          max-width: 1080px;
-          margin: 0 auto;
+          max-width: 560px;
           width: 100%;
-          text-align: center;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
-          min-height: calc(100vh - 280px);
+          min-height: 0;
+          transition: opacity 0.45s ease;
         }
+
+        /* Right: the UGC logo mark — anchored to the right; grows in place on the
+           2nd scroll (transform-origin right so it never clips off the right edge) */
+        .lp-hero__logo {
+          position: absolute;
+          top: 50%;
+          right: 5vw;
+          margin-top: calc(clamp(220px, 26vw, 420px) * -0.5);
+          width: clamp(220px, 26vw, 420px);
+          height: clamp(220px, 26vw, 420px);
+          transform-origin: right center;
+          z-index: 4;
+          will-change: transform;
+          pointer-events: none;
+        }
+
+        /* 2nd scroll onward — brand strip hides; the copy (text) stays visible */
+        .lp-hero__strip { transition: opacity 0.45s ease; }
+        .lp-hero--collapsed .lp-hero__strip {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .lp-hero__logo-img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          transition: opacity 0.5s ease;
+        }
+        /* Start state — clean white mark with a soft glow (visible by default) */
+        .lp-hero__logo-img--white {
+          opacity: 1;
+          filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.28));
+        }
+        /* 3rd-scroll state — navy-blue mark; brightened + blue glow so it reads clearly
+           on the dark stage. Hidden until the .lp-hero--navy class is applied. */
+        .lp-hero__logo-img--navy {
+          opacity: 0;
+          filter: brightness(3.2) saturate(1.6) drop-shadow(0 0 34px rgba(80, 100, 255, 0.85));
+        }
+        /* 3rd scroll — crossfade white → navy blue */
+        .lp-hero--navy .lp-hero__logo-img--white { opacity: 0; }
+        .lp-hero--navy .lp-hero__logo-img--navy { opacity: 1; }
 
         .lp-badge {
           display: inline-flex;
@@ -1808,7 +1774,6 @@ export default function Landing() {
           padding: 0.04em 0.28em;
           border-radius: 10px;
           white-space: nowrap;
-          box-shadow: 0 10px 36px rgba(200, 242, 58, 0.32);
         }
 
         .lp-hero__subtitle {
@@ -1817,8 +1782,8 @@ export default function Landing() {
           font-size: 1rem;
           line-height: 1.55;
           max-width: 520px;
-          margin: 0 auto 28px;
-          text-align: center;
+          margin: 0 0 28px;
+          text-align: left;
         }
 
         .lp-hero__accent {
@@ -1830,7 +1795,7 @@ export default function Landing() {
           display: flex;
           gap: 12px;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           flex-wrap: wrap;
           margin-bottom: 16px;
         }
@@ -1849,13 +1814,11 @@ export default function Landing() {
           font-size: 0.98rem;
           border: none;
           cursor: pointer;
-          transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
-          box-shadow: 0 12px 32px rgba(200, 242, 58, 0.30);
+          transition: transform 0.25s ease, filter 0.25s ease;
         }
         .lp-hero .lp-btn-primary:hover {
           transform: translateY(-2px);
           filter: brightness(1.08);
-          box-shadow: 0 16px 40px rgba(232, 255, 110, 0.45);
         }
 
         .lp-hero .lp-btn-ghost {
@@ -1883,7 +1846,7 @@ export default function Landing() {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
-          justify-content: center;
+          justify-content: flex-start;
         }
 
         .lp-proof-badge {
@@ -1934,19 +1897,18 @@ export default function Landing() {
           display: block;
         }
 
-        /* Layer 5: bottom strip — counter + scrolling logos */
+        /* Bottom strip — scrolling brand logos, pinned to the base of the stage */
         .lp-hero__strip {
-          position: relative;
+          position: absolute;
+          left: 0;
+          bottom: 0;
           z-index: 3;
           display: flex;
           align-items: center;
           gap: 0;
           width: 100vw;
           max-width: 100vw;
-          margin: 60px 0 0;
-          margin-left: calc(50% - 50vw);
-          margin-right: calc(50% - 50vw);
-          padding: 24px 0 80px;
+          padding: 24px 0 14px;
         }
 
         .lp-hero__strip-counter {
@@ -3339,23 +3301,48 @@ export default function Landing() {
 
         /* ── Responsive ───────────────────────────────────────────────────── */
         @media (max-width: 1024px) {
-          .lp-hero { padding: 130px 5% 0; }
-          .lp-hero__icon { width: 52px; height: 52px; border-radius: 18px; }
-          .lp-hero__icon-inner svg { width: 22px; height: 22px; }
-          .lp-hero__phone-mini { display: none; }
-          .lp-hero__strip {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 20px;
-            margin-top: 60px;
-            padding-bottom: 110px;
-          }
-          .lp-hero__strip-logos { width: 100%; }
+          .lp-hero__sticky { padding: 130px 5% 0; }
+        }
+
+        /* Static fallback — small screens & reduced-motion: no pinning, stacked layout.
+           Driven by the .lp-hero--static class (set from a matchMedia check in JS). */
+        .lp-hero--static { height: auto; }
+        .lp-hero--static .lp-hero__sticky {
+          position: relative;
+          height: auto;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 32px;
+          padding: 120px 6% 140px;
+        }
+        .lp-hero--static .lp-hero__inner {
+          min-height: 0;
+          align-items: center;
+          text-align: center;
+          max-width: 640px;
+        }
+        .lp-hero--static .lp-hero__subtitle { margin-left: auto; margin-right: auto; text-align: center; }
+        .lp-hero--static .lp-hero__ctas,
+        .lp-hero--static .lp-hero__badges { justify-content: center; }
+        .lp-hero--static .lp-hero__logo {
+          position: relative;
+          top: auto;
+          left: auto;
+          right: auto;
+          margin: 0 auto;
+          width: clamp(180px, 60vw, 300px);
+          height: clamp(180px, 60vw, 300px);
+        }
+        .lp-hero--static .lp-hero__strip {
+          position: relative;
+          left: auto;
+          bottom: auto;
         }
 
         @media (max-width: 768px) {
-          .lp-hero { padding: 120px 5% 0; min-height: auto; }
-          .lp-hero__connectors { display: none; }
           .lp-hero__title { max-width: 100%; }
           .lp-navbar__inner { padding: 10px 5%; gap: 16px; }
           .lp-navbar__links { display: none; }
@@ -3366,18 +3353,32 @@ export default function Landing() {
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
           .lp-hero__badges { gap: 6px; }
           .lp-proof-badge { font-size: 0.7rem; padding: 5px 10px; }
-          .lp-hero__strip-counter strong { font-size: 1.4rem; }
         }
 
         @media (max-width: 480px) {
           .lp-hero__divider { height: 50px; }
         }
 
+        /* Short viewports (e.g. laptops ~700px tall) — scale the pinned hero down so
+           copy, logo and the brand strip all fit without overlapping. */
+        @media (min-width: 769px) and (max-height: 800px) {
+          .lp-hero__sticky { padding: 100px 6% 170px; }
+          .lp-hero__title { font-size: clamp(1.7rem, 3.6vw, 2.8rem); }
+          .lp-hero__subtitle { font-size: 0.92rem; margin-bottom: 18px; }
+          .lp-hero__logo {
+            margin-top: calc(clamp(180px, 22vw, 320px) * -0.5);
+            width: clamp(180px, 22vw, 320px);
+            height: clamp(180px, 22vw, 320px);
+          }
+          .lp-hero__strip { padding: 16px 0 28px; }
+          .lp-brand-item__icon { width: 72px; height: 72px; border-radius: 18px; }
+          .lp-brand-item__icon img { width: 36px; height: 36px; }
+          .lp-hero__brand-center { width: 108px; height: 108px; }
+          .lp-hero__brand-center img { width: 82px; height: 82px; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .lp-hero__connectors path { stroke-dasharray: 6 8 !important; opacity: 0.45; }
-          .lp-hero__icon { animation: none !important; }
-          .lp-hero__icon-inner { animation: none !important; }
-          .lp-hero__strip-logos .lp-brands__track { animation: none !important; }
+          .lp-hero__brands-side .lp-brands__track { animation: none !important; }
         }
 
         /* ── Footer ─────────────────────────────────────────────────────────── */

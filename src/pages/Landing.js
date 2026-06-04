@@ -41,6 +41,7 @@ import {
   ChevronDown,
   LayoutGrid,
   LogIn,
+  Menu,
 } from 'lucide-react';
 import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent } from 'framer-motion';
 
@@ -369,6 +370,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState(null);
 
   const visibleShowcase = selectedIndustry
@@ -519,6 +521,43 @@ export default function Landing() {
               <LogIn size={16} /> Log in
             </button>
             <button className="lp-btn-signup" onClick={handleGetStarted}>
+              Sign Up
+            </button>
+          </div>
+
+          {/* Mobile hamburger — toggles the slide-down menu */}
+          <button
+            className="lp-navbar__burger"
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+
+        {/* Mobile menu panel */}
+        <div className={`lp-navbar__mobile${menuOpen ? ' lp-navbar__mobile--open' : ''}`}>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
+            Explore Creators
+          </a>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
+            <DollarSign size={16} /> Pricing
+          </a>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
+            <Sparkles size={16} /> Intelligence
+          </a>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
+            <LayoutGrid size={16} /> Others
+          </a>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/auth'); }}>
+            Join as Creator
+          </a>
+          <div className="lp-navbar__mobile-actions">
+            <button className="lp-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth'); }}>
+              <LogIn size={16} /> Log in
+            </button>
+            <button className="lp-btn-signup" onClick={() => { setMenuOpen(false); handleGetStarted(); }}>
               Sign Up
             </button>
           </div>
@@ -1660,6 +1699,48 @@ export default function Landing() {
           transition: all 0.2s ease;
         }
         .lp-root .lp-btn-signup:hover { background: #9170f0; border-color: #9170f0; }
+
+        /* Mobile hamburger + slide-down menu (hidden on desktop) */
+        .lp-navbar__burger {
+          display: none;
+          margin-left: auto;
+          align-items: center;
+          justify-content: center;
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.06);
+          color: #ffffff;
+          cursor: pointer;
+        }
+        .lp-navbar__mobile {
+          display: none;
+          flex-direction: column;
+          gap: 4px;
+          margin: 10px 4px 0;
+          padding: 12px;
+          border-radius: 16px;
+          background: rgba(18, 18, 22, 0.96);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(12px);
+        }
+        .lp-navbar__mobile .lp-navlink {
+          padding: 12px 12px;
+          border-radius: 10px;
+          color: rgba(255, 255, 255, 0.9);
+        }
+        .lp-navbar__mobile .lp-navlink:active { background: rgba(255, 255, 255, 0.08); }
+        .lp-navbar__mobile-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 8px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .lp-navbar__mobile-actions .lp-btn-login,
+        .lp-navbar__mobile-actions .lp-btn-signup { flex: 1; justify-content: center; }
 
         /* ── Hero (dark constellation) ─────────────────────────────────────── */
         /* Tall scroll track that drives the pinned hero sequence */
@@ -3347,6 +3428,9 @@ export default function Landing() {
           .lp-navbar__inner { padding: 10px 5%; gap: 16px; }
           .lp-navbar__links { display: none; }
           .lp-nav-join { display: none; }
+          .lp-navbar__actions { display: none; }
+          .lp-navbar__burger { display: inline-flex; }
+          .lp-navbar__mobile--open { display: flex; }
           .lp-navbar__logo { height: 38px; }
           .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
@@ -3357,6 +3441,35 @@ export default function Landing() {
 
         @media (max-width: 480px) {
           .lp-hero__divider { height: 50px; }
+        }
+
+        /* ── Whole-page mobile polish ─────────────────────────────────────── */
+        @media (max-width: 600px) {
+          /* Tighter horizontal gutters + trimmed vertical padding on phones */
+          .lp-hook { padding: 72px 6% 60px; }
+          .lp-steps { padding: 56px 6%; }
+          .lp-showcase { padding: 48px 4% 56px; }
+          .lp-compare { padding: 48px 5%; }
+          .lp-features { padding: 56px 6% 72px; }
+          .lp-proof { padding: 64px 6%; }
+          .lp-testimonial { padding: 56px 6%; }
+          .lp-cta { padding: 56px 6% 72px; }
+          /* Keep big display headings from overflowing very small screens */
+          .lp-section-heading,
+          .lp-steps__heading,
+          .lp-showcase__heading,
+          .lp-compare__heading,
+          .lp-testimonial__heading,
+          .lp-proof__heading { font-size: clamp(1.5rem, 6vw, 2rem); }
+        }
+
+        /* Comparison table — keep the 5 columns legible on small phones */
+        @media (max-width: 480px) {
+          .lp-compare__cell { font-size: 0.62rem; padding: 9px 4px; }
+          .lp-compare__cell--label { padding-left: 8px; }
+          .lp-compare__check { width: 22px; height: 22px; }
+          .lp-compare__logo { height: 16px; }
+          .lp-compare__row--head .lp-compare__cell { font-size: 0.64rem; }
         }
 
         /* Short viewports (e.g. laptops ~700px tall) — scale the pinned hero down so

@@ -2,25 +2,46 @@ import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, Environment, Center, Bounds, OrbitControls, Html } from '@react-three/drei';
 
-// Loads the glass logo and rotates it from scroll progress (0..1) plus a gentle idle drift.
+// How far through the scroll the "tip to landscape" phase lasts. Up to here the
+// logo tips from upright to flat; after here it spins in place.
+const TIP_END = 0.18;
+// Spin finishes here (a whole number of turns → face-on), then the logo HOLDS that
+// flat, face-on pose to the end so it always rests settled, never mid-spin.
+const SPIN_END = 0.85;
+// smoothstep ease so the tip eases in and lands softly instead of being linear.
+const ease = (t) => t * t * (3 - 2 * t);
+
+// Drives the logo purely from scroll progress (0..1) in two deliberate phases:
+//   Phase 1 (0 → TIP_END):  tip from upright (portrait) to landscape, laying it on
+//                           its side so the long axis points toward the content (right).
+//   Phase 2 (TIP_END → 1):  spin in place around its long axis, staying landscape.
+// Outer group = tip, inner group = spin — nesting keeps the two motions independent
+// (the spin always tracks the logo's own long axis, whatever the tip).
 function LogoModel({ progress }) {
   const { scene } = useGLTF('/model-compressed.glb'); // keeps the authored glass material
-  const ref = useRef();
-  const idle = useRef(0);
+  const tipRef = useRef();
+  const spinRef = useRef();
 
-  useFrame((_, delta) => {
-    if (!ref.current) return;
-    const p = progress ? progress.get() : 0;      // scroll progress through the section
-    idle.current += delta * 0.12;                  // slow continuous drift so it never feels frozen
-    ref.current.rotation.y = p * Math.PI * 2 + idle.current; // left-right spin (scroll + idle)
-    ref.current.rotation.x = p * Math.PI * 2;                // top-to-bottom tumble across the scroll
+  useFrame(() => {
+    const p = progress ? progress.get() : 0;        // scroll progress through the section
+
+    // Phase 1 — tip upright → landscape (-90° around Z sends the top to the right).
+    const tip = ease(Math.min(p / TIP_END, 1));
+    if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
+
+    // Phase 2 — once flat, spin around the long axis: 2 full turns, completing by
+    // SPIN_END and clamped to 1 so it lands (and holds) exactly face-on like the target.
+    const spin = Math.min(Math.max((p - TIP_END) / (SPIN_END - TIP_END), 0), 1);
+    if (spinRef.current) spinRef.current.rotation.y = spin * Math.PI * 4;
   });
 
   return (
-    <group ref={ref}>
-      <Center>
-        <primitive object={scene} />
-      </Center>
+    <group ref={tipRef}>
+      <group ref={spinRef}>
+        <Center>
+          <primitive object={scene} />
+        </Center>
+      </group>
     </group>
   );
 }
@@ -49,7 +70,10 @@ export default function HeroLogo3D({ progress }) {
         <Bounds fit clip observe margin={1.2}>
           <LogoModel progress={progress} />
         </Bounds>
-        <Environment preset="city" />
+        {/* Self-hosted from /public to avoid the cross-origin HDR fetch drei's
+            `preset` does (raw.githack.com), which the deployed site blocks via CORS.
+            potsdamer_platz_1k.hdr is exactly what preset="city" resolves to. */}
+        <Environment files="/hdri/potsdamer_platz_1k.hdr" />
       </Suspense>
       <OrbitControls enableZoom={false} enablePan={false} />
     </Canvas>

@@ -1,1123 +1,1501 @@
-import { useState } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
-import axios from 'axios';
-import { toast } from 'sonner';
-import { Upload, Tag, DollarSign, User, Video, Image as ImageIcon, Share2, CreditCard, CheckCircle2, Sparkles, X } from 'lucide-react';
+import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Instagram, Check, Trash2, Pencil } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// ── Step config ────────────────────────────────────────────────────────────
+// Sign Up is the (already-done) step 1, so these display as steps 2..N+1.
+// Steps 1-3 are built; step 4 is a stub until its design arrives.
+const STEP_META = [
+  { title: 'Profile Basics', sub: 'Just the essentials to get your creator profile started.' },
+  { title: 'Contact Information', sub: 'We use this to communicate about projects and payments.' },
+  { title: 'Build Your Creator Portfolio', sub: 'This is the profile brands will see when shortlisting creators. Add what shows your experience best.' },
+  { title: 'Recording Setup & Equipment', sub: 'Select what you have access to. This helps brands match you with the right projects.' },
+];
+const TOTAL_STEPS = STEP_META.length;
+
+// Contact step option lists (static for now — swap for an API later).
+// `iso` drives the flag image (flagcdn.com) — emoji flags don't render on Windows.
+const DIAL_CODES = [
+  { code: '+91', iso: 'in' },
+  { code: '+1', iso: 'us' },
+  { code: '+44', iso: 'gb' },
+  { code: '+61', iso: 'au' },
+];
+const flagUrl = (iso) => `https://flagcdn.com/24x18/${iso}.png`;
+const COUNTRIES = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany'];
+// All 28 states + 8 union territories of India.
+const STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
+  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan',
+  'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi',
+  'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+];
+// Major cities per state/UT — the City dropdown is populated from the chosen State.
+const CITIES_BY_STATE = {
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool', 'Rajahmundry', 'Tirupati', 'Kakinada'],
+  'Arunachal Pradesh': ['Itanagar', 'Naharlagun', 'Pasighat', 'Tawang'],
+  'Assam': ['Guwahati', 'Silchar', 'Dibrugarh', 'Jorhat', 'Nagaon', 'Tinsukia', 'Tezpur'],
+  'Bihar': ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Darbhanga', 'Purnia', 'Arrah', 'Begusarai'],
+  'Chhattisgarh': ['Raipur', 'Bhilai', 'Bilaspur', 'Korba', 'Durg', 'Raigarh'],
+  'Goa': ['Panaji', 'Margao', 'Vasco da Gama', 'Mapusa', 'Ponda'],
+  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Gandhinagar', 'Junagadh'],
+  'Haryana': ['Gurugram', 'Faridabad', 'Panipat', 'Ambala', 'Karnal', 'Hisar', 'Rohtak', 'Sonipat'],
+  'Himachal Pradesh': ['Shimla', 'Dharamshala', 'Solan', 'Mandi', 'Kullu', 'Manali'],
+  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Hazaribagh', 'Deoghar'],
+  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi-Dharwad', 'Mangaluru', 'Belagavi', 'Davanagere', 'Ballari', 'Tumakuru'],
+  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Kannur', 'Alappuzha'],
+  'Madhya Pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar', 'Rewa'],
+  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Solapur', 'Thane', 'Navi Mumbai', 'Kolhapur'],
+  'Manipur': ['Imphal', 'Thoubal', 'Bishnupur'],
+  'Meghalaya': ['Shillong', 'Tura', 'Jowai'],
+  'Mizoram': ['Aizawl', 'Lunglei', 'Champhai'],
+  'Nagaland': ['Kohima', 'Dimapur', 'Mokokchung'],
+  'Odisha': ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Sambalpur', 'Puri'],
+  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali', 'Hoshiarpur'],
+  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Bikaner', 'Ajmer', 'Bhilwara', 'Alwar'],
+  'Sikkim': ['Gangtok', 'Namchi', 'Gyalshing'],
+  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Erode', 'Vellore'],
+  'Telangana': ['Hyderabad', 'Secunderabad', 'Warangal', 'Nizamabad', 'Karimnagar', 'Khammam'],
+  'Tripura': ['Agartala', 'Udaipur', 'Dharmanagar'],
+  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Varanasi', 'Meerut', 'Prayagraj', 'Noida', 'Bareilly'],
+  'Uttarakhand': ['Dehradun', 'Haridwar', 'Roorkee', 'Haldwani', 'Rishikesh', 'Nainital'],
+  'West Bengal': ['Kolkata', 'Howrah', 'Durgapur', 'Asansol', 'Siliguri', 'Darjeeling', 'Kharagpur'],
+  'Andaman and Nicobar Islands': ['Port Blair'],
+  'Chandigarh': ['Chandigarh'],
+  'Dadra and Nagar Haveli and Daman and Diu': ['Silvassa', 'Daman', 'Diu'],
+  'Delhi': ['New Delhi', 'Delhi', 'Dwarka', 'Rohini', 'Saket'],
+  'Jammu and Kashmir': ['Srinagar', 'Jammu', 'Anantnag', 'Baramulla'],
+  'Ladakh': ['Leh', 'Kargil'],
+  'Lakshadweep': ['Kavaratti'],
+  'Puducherry': ['Puducherry', 'Karaikal', 'Yanam', 'Mahe'],
+};
+
+const GENDERS = ['Male', 'Female', 'Other'];
+
+const BODY_TYPES = [
+  { label: 'Average', icon: '🧍' },
+  { label: 'Slim', icon: '🧍' },
+  { label: 'Athletic', icon: '🏃' },
+  { label: 'Plus Size', icon: '🧍' },
+  { label: 'No Preference', none: true },
+];
+
+const SKIN_TONES = [
+  { label: 'Fair', icon: '👩🏻' },
+  { label: 'Brown', icon: '👩🏽' },
+  { label: 'Dark', icon: '👩🏿' },
+  { label: 'No preference', icon: '👩' },
+];
+
+// ── Step 4 — Build Your Creator Portfolio ──────────────────────────────────
+const SKILLS = [
+  { label: 'Script Writing', icon: '🖊️' },
+  { label: 'Voiceovers', icon: '🎤' },
+  { label: 'Acting', icon: '🎭' },
+  { label: 'Videography (DOP)', icon: '🎥' },
+  { label: 'Video Editing', icon: '🎬' },
+  { label: 'Modelling', icon: '🕺' },
+];
+const PLATFORMS = [
+  { key: 'youtube', label: 'YouTube', badge: '▶', color: '#FF0000' },
+  { key: 'linkedin', label: 'LinkedIn', badge: 'in', color: '#0A66C2' },
+  { key: 'instagram', label: 'Instagram', Icon: Instagram, color: 'linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)' },
+  { key: 'tiktok', label: 'TikTok', badge: '♪', color: '#111111' },
+];
+// Picker options for "Add another social link".
+const ADD_PLATFORMS = ['YouTube', 'Facebook', 'X (Twitter)', 'Website', 'Custom'];
+const badgeFor = (label) => ({
+  'YouTube': { c: '▶', bg: '#FF0000' },
+  'Facebook': { c: 'f', bg: '#1877F2' },
+  'X (Twitter)': { c: '𝕏', bg: '#111111' },
+  'Website': { c: '🌐', bg: '#6d28d9' },
+}[label] || { c: (label || '?').charAt(0).toUpperCase(), bg: '#7c3aed' });
+const LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi', 'Bhojpuri'];
+const WEEKLY = ['1–5 hrs / week', '6–10 hrs / week', '11–20 hrs / week', '20+ hrs / week'];
+const TOPICS = ['None', 'Alcohol', 'Gambling', 'Adult products'];
+const PAYOUT_PERIODS = ['Per Month', 'Per Video', 'Per Hour'];
+// Step 5 — Recording Setup & Equipment
+const CORE_SETUP = [
+  { label: 'DSLR Camera', icon: '📷' },
+  { label: 'Iphone', icon: '🍎' },
+  { label: 'Android Phone', icon: '🤖' },
+  { label: 'Tripod / Stable mount', icon: '🎥' },
+  { label: 'External microphone', icon: '🎙️' },
+  { label: 'Quiet / noise-controlled room', icon: '💤' },
+  { label: 'Artificial lighting', icon: '☀️' },
+  { label: 'Green screen', icon: '🟩' },
+  { label: 'Aesthetic background', icon: '🖼️' },
+];
+const APPEAR_IN = [
+  { label: 'Solo only', icon: '🧑' },
+  { label: 'Friends / peers', icon: '👥' },
+  { label: 'Family members', icon: '👨‍👩‍👧' },
+  { label: 'Pets / animals', icon: '🐾' },
+];
+const ADDONS = [
+  { key: 'ownAccount', title: 'Post content from your own account', note: 'Includes organic posts or collab posts.', yes: 'Yes, I can post from my account' },
+  { key: 'runAds', title: 'Run ads via your account (Collab / Branded Ads)', note: 'Only for brand-approved, paid collaborations.', yes: "Yes, I'm open to running ads" },
+  { key: 'newAccount', title: 'Create a new account for a brand', note: 'For brands that need a fresh account for campaigns.', yes: 'Yes, I can set up an account' },
+];
+
+// Required fields per step — every one must be filled to proceed, and each filled
+// field nudges the completion ring up. (mapLink stays optional.) Add a step's array
+// here as you build it so it counts toward completion + validation automatically.
+const STEP1_FIELDS = ['fullName', 'age', 'gender', 'bodyType', 'skinTone']; // photo is optional
+const STEP2_FIELDS = ['phone', 'pincode', 'country', 'state', 'city', 'address'];
+const STEP_FIELDS = { 1: STEP1_FIELDS, 2: STEP2_FIELDS };
+const isFilled = (v) => String(v ?? '').trim() !== '';
+
+// Custom dial-code picker that shows real flag images (native <option> can't).
+function DialCodeSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+  const sel = DIAL_CODES.find((d) => d.code === value) || DIAL_CODES[0];
+  return (
+    <div className="ps-dial" ref={ref}>
+      <button type="button" className="ps-dial__btn" onClick={() => setOpen((o) => !o)}>
+        <img src={flagUrl(sel.iso)} alt="" className="ps-dial__flag" />
+        <span>{sel.code}</span>
+        <ChevronDown size={16} className="ps-dial__chev" />
+      </button>
+      {open && (
+        <div className="ps-dial__menu">
+          {DIAL_CODES.map((d) => (
+            <button
+              key={d.code}
+              type="button"
+              className={`ps-dial__opt${d.code === value ? ' ps-dial__opt--on' : ''}`}
+              onClick={() => { onChange(d.code); setOpen(false); }}
+            >
+              <img src={flagUrl(d.iso)} alt="" className="ps-dial__flag" />
+              <span>{d.code}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Per-language fluency picker shown on a selected language chip.
+const FLUENCY = ['Native', 'Fluent', 'Conversational'];
+function FluencyMenu({ value, onPick }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+  return (
+    <div className="ps-flu" ref={ref}>
+      <button type="button" className="ps-flu__btn" onClick={() => setOpen((o) => !o)}>
+        {value || 'Fluency'}
+        <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+      </button>
+      {open && (
+        <div className="ps-flu__menu">
+          {FLUENCY.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`ps-flu__opt${value === f ? ' ps-flu__opt--on' : ''}`}
+              onClick={() => { onPick(f); setOpen(false); }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CreatorProfileSetup() {
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    username: '',
-    bio: '',
-    tags: [],
-    social_links: { instagram: '', youtube: '', tiktok: '' },
-    rate_card: {
-      video_30s: '',
-      video_30s_included: '',
-      video_60s: '',
-      video_60s_included: '',
-      photo_post: '',
-      photo_post_included: ''
-    },
-    payment_methods: { upi: '', bank_account: '' },
-    receive_briefs: true,
-    terms_agreed: false,
-    intro_video: '',
+  const fileRef = useRef(null);
+  const linkRefs = useRef({}); // per-platform input refs, to focus on "+Add social link"
+  const [step, setStep] = useState(1);
+  const [showErrors, setShowErrors] = useState(false);
+  const [customOpen, setCustomOpen] = useState({});   // which "Other" inputs are open
+  const [customDraft, setCustomDraft] = useState({});  // their draft text
+  const [addOpen, setAddOpen] = useState(false);       // "Add another social link" picker
+  const [addPlatform, setAddPlatform] = useState('YouTube');
+  const [customPlatform, setCustomPlatform] = useState('');
+  const extraIdRef = useRef(0);
+  const [submitting, setSubmitting] = useState(false);     // Submit Application in progress
+  const [submitted, setSubmitted] = useState(false);       // show the thank-you card
+  const [editingId, setEditingId] = useState(null);        // portfolio item being edited
+  const [editDraft, setEditDraft] = useState({ brand: '', desc: '' });
+  const [justAddedId, setJustAddedId] = useState(null);    // shows the "Added" badge
+  const pfIdRef = useRef(0);
+  const brandRef = useRef(null);
+  const [data, setData] = useState({
+    photoPreview: '',
+    fullName: '',
+    age: '',
+    gender: '',
+    bodyType: '',
+    skinTone: '',
+    // Step 2 — Contact Information
+    dialCode: '+91',
+    phone: '',
+    pincode: '',
+    country: '',
+    state: '',
+    city: '',
+    address: '',
+    mapLink: '',
+    // Step 4 — Build Your Creator Portfolio
+    skills: [],
+    links: { youtube: '', linkedin: '', instagram: '', tiktok: '' },
+    followers: { youtube: '', linkedin: '', instagram: '', tiktok: '' },
+    showFollowers: { youtube: false, linkedin: false, instagram: false, tiktok: false },
+    extraLinks: [], // user-added social links: { id, platform, url }
+    ownAccount: '',
+    runAds: '',
+    newAccount: '',
     portfolio: [],
-    availability_calendar: {}
+    pfBrand: '', pfDesc: '', pfLink: '', pfVideo: '', pfVideoUrl: '',
+    languages: [],
+    langFluency: {}, // { language: 'Native' | 'Fluent' | 'Conversational' }
+    // Step 5 — Recording Setup & Equipment
+    coreSetup: [],
+    appearIn: [],
+    bring: '',
+    weekly: '',
+    flexible: false,
+    lastSalary: '', expectedPayout: '', payoutPeriod: 'Per Month',
+    topics: ['None'],
   });
-  const [tagInput, setTagInput] = useState('');
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+  const pfFileRef = useRef(null);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  // App theme paints html/#root/body light (App.css gradient + Tailwind --background).
+  // Force them dark while this dark page is mounted; restore on unmount.
+  useEffect(() => {
+    const root = document.getElementById('root');
+    const targets = [document.documentElement, document.body, root].filter(Boolean);
+    const prev = targets.map((el) => el.style.background);
+    targets.forEach((el) => { el.style.background = '#0a0a0a'; });
+    return () => { targets.forEach((el, i) => { el.style.background = prev[i]; }); };
+  }, []);
+
+  const set = (field, value) => setData((d) => ({ ...d, [field]: value }));
+  // Toggle a value in an array field (multi-select chips).
+  const toggleIn = (field, value) => setData((d) => {
+    const arr = d[field];
+    return { ...d, [field]: arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value] };
+  });
+  // "None" topic is exclusive; picking any other clears None.
+  const toggleTopic = (t) => setData((d) => {
+    if (t === 'None') return { ...d, topics: ['None'] };
+    const rest = d.topics.filter((x) => x !== 'None');
+    return { ...d, topics: rest.includes(t) ? rest.filter((x) => x !== t) : [...rest, t] };
+  });
+  const setLink = (key, value) => setData((d) => ({ ...d, links: { ...d.links, [key]: value } }));
+  const setFollowers = (key, value) => setData((d) => ({ ...d, followers: { ...d.followers, [key]: value } }));
+  const toggleFollowers = (key) => setData((d) => ({ ...d, showFollowers: { ...d.showFollowers, [key]: !d.showFollowers[key] } }));
+  const addPortfolio = () => {
+    if (!isFilled(data.pfBrand) && !isFilled(data.pfLink) && !isFilled(data.pfVideo)) return;
+    const id = `p${pfIdRef.current++}`;
+    setData((d) => ({ ...d, portfolio: [...d.portfolio, { id, brand: d.pfBrand, desc: d.pfDesc, link: d.pfLink, video: d.pfVideo, videoUrl: d.pfVideoUrl }], pfBrand: '', pfDesc: '', pfLink: '', pfVideo: '', pfVideoUrl: '' }));
+    setJustAddedId(id);
+    setEditingId(null);
+  };
+  const startModify = (item) => { setEditingId(item.id); setEditDraft({ brand: item.brand, desc: item.desc }); setJustAddedId(null); };
+  const cancelModify = () => setEditingId(null);
+  const saveModify = () => {
+    setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: editDraft.brand, desc: editDraft.desc } : it)) }));
+    setEditingId(null);
+  };
+  const deleteItem = (id) => {
+    setData((d) => ({ ...d, portfolio: d.portfolio.filter((it) => it.id !== id) }));
+    setEditingId((e) => (e === id ? null : e));
+    setJustAddedId((j) => (j === id ? null : j));
+  };
+  // Extra social links.
+  const closeAddSocial = () => { setAddOpen(false); setAddPlatform('YouTube'); setCustomPlatform(''); };
+  const addSocial = () => {
+    const label = addPlatform === 'Custom' ? customPlatform.trim() : addPlatform;
+    if (!label) return;
+    const id = `x${extraIdRef.current++}`;
+    setData((d) => ({ ...d, extraLinks: [...d.extraLinks, { id, platform: label, url: '' }] }));
+    closeAddSocial();
+  };
+  const setFluency = (lang, v) => setData((d) => ({ ...d, langFluency: { ...d.langFluency, [lang]: v } }));
+  const setExtraUrl = (id, value) => setData((d) => ({ ...d, extraLinks: d.extraLinks.map((l) => (l.id === id ? { ...l, url: value } : l)) }));
+  const removeExtra = (id) => setData((d) => ({ ...d, extraLinks: d.extraLinks.filter((l) => l.id !== id) }));
+  // Custom "Other" entries (skills / languages / topics).
+  const openCustom = (key) => setCustomOpen((o) => ({ ...o, [key]: !o[key] }));
+  const setDraft = (key, v) => setCustomDraft((d) => ({ ...d, [key]: v }));
+  const addCustom = (field) => {
+    const v = (customDraft[field] || '').trim();
+    if (!v) return;
+    setData((d) => {
+      if (field === 'topics') {
+        const rest = d.topics.filter((x) => x !== 'None');
+        return rest.includes(v) ? d : { ...d, topics: [...rest, v] };
+      }
+      return d[field].includes(v) ? d : { ...d, [field]: [...d[field], v] };
+    });
+    setDraft(field, '');
   };
 
-  const handleNestedChange = (parent, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [parent]: { ...prev[parent], [field]: value }
-    }));
+  // Required-field checks per step → { key: boolean }. Steps with no requirements
+  // (stubs) return {} and count as complete.
+  const checksFor = (s) => {
+    const f = STEP_FIELDS[s];
+    if (f) return Object.fromEntries(f.map((k) => [k, isFilled(data[k])]));
+    if (s === 3) return {
+      skills: data.skills.length > 0,
+      profileLink: PLATFORMS.some((p) => isFilled(data.links[p.key])) || data.extraLinks.some((l) => isFilled(l.url)),
+      ownAccount: isFilled(data.ownAccount),
+      runAds: isFilled(data.runAds),
+      newAccount: isFilled(data.newAccount),
+      portfolio: data.portfolio.length > 0,
+      languages: data.languages.length > 0,
+      expectedPayout: isFilled(data.expectedPayout),
+    };
+    return {};
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()]
-      }));
-      setTagInput('');
+  // Completion includes optional fields too (e.g. the skippable final step), so the
+  // ring can still reach 100% — kept separate from the required checks above.
+  const completionFor = (s) => (s === TOTAL_STEPS
+    ? { coreSetup: data.coreSetup.length > 0, appearIn: data.appearIn.length > 0, bring: isFilled(data.bring) }
+    : checksFor(s));
+
+  // Field-granular completion: Sign Up counts as 1 done step; every other step adds
+  // its filled-check fraction, so each detail the user fills nudges the ring up live.
+  const percent = useMemo(() => {
+    let credit = 1;
+    for (let s = 1; s <= TOTAL_STEPS; s++) {
+      const vals = Object.values(completionFor(s));
+      if (vals.length) credit += vals.filter(Boolean).length / vals.length;
     }
-  };
+    return Math.round((credit / (TOTAL_STEPS + 1)) * 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
-  const removeTag = (tag) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(t => t !== tag)
-    }));
-  };
+  const checks = checksFor(step);
+  const stepComplete = Object.values(checks).every(Boolean);
 
-  const handleVideoUpload = async (e) => {
+  const onPickPhoto = (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (file) set('photoPreview', URL.createObjectURL(file));
+  };
+  const onPickVideo = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setData((d) => ({ ...d, pfVideo: file.name, pfVideoUrl: URL.createObjectURL(file) }));
+  };
 
-    // Validate file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video file too large. Maximum 50MB allowed.');
+  const back = () => { setShowErrors(false); setStep((s) => Math.max(1, s - 1)); };
+  const proceed = () => {
+    if (!stepComplete) {
+      // Reveal "This field is required" under every empty field and scroll up to them.
+      setShowErrors(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-
-    setUploadingVideo(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
-
-    try {
-      const response = await axios.post(`${API}/upload/file`, formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setFormData(prev => ({ ...prev, intro_video: response.data.file_url }));
-      toast.success('Intro video uploaded!');
-    } catch (error) {
-      console.error('Video upload error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to upload video');
-    } finally {
-      setUploadingVideo(false);
+    setShowErrors(false);
+    if (step < TOTAL_STEPS) {
+      setStep((s) => s + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Final step → submit. TODO: persist profile to backend here, then show success.
+      setSubmitting(true);
+      setTimeout(() => {
+        setSubmitting(false);
+        setSubmitted(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 1600);
     }
   };
 
-  const handlePortfolioUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+  const meta = STEP_META[step - 1];
+  // A field shows its error only after the user tries to proceed with it incomplete.
+  const err = (k) => showErrors && checks[k] === false;
+  const reqError = (f) => (err(f) ? <span className="ps-error">This field is required</span> : null);
 
-    setUploadingPortfolio(true);
+  // Custom chips (user-added values not in the predefined list) + the "Other" toggle.
+  const customTail = (field, predefined, label) => (
+    <>
+      {data[field].filter((v) => !predefined.includes(v)).map((v) => (
+        <button
+          key={v}
+          type="button"
+          className="ps-chip ps-chip--on"
+          onClick={() => (field === 'topics' ? toggleTopic(v) : toggleIn(field, v))}
+        >
+          {v} <X size={13} />
+        </button>
+      ))}
+      <button
+        type="button"
+        className={`ps-chip ps-chip--add${customOpen[field] ? ' ps-chip--add-on' : ''}`}
+        onClick={() => openCustom(field)}
+      >
+        <Plus size={15} /> {label}
+      </button>
+    </>
+  );
+  // The reveal-on-click input row for adding a custom value.
+  const customInput = (field, placeholder) => customOpen[field] && (
+    <div className="ps-custom">
+      <div className="ps-custom__row">
+        <input
+          className="ps-input"
+          placeholder={placeholder}
+          value={customDraft[field] || ''}
+          onChange={(e) => setDraft(field, e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(field); } }}
+          autoFocus
+        />
+        <button type="button" className="ps-custom__add" onClick={() => addCustom(field)}>Add</button>
+      </div>
+      <p className="ps-custom__hint">Press <strong>Enter</strong> to add quickly.</p>
+    </div>
+  );
 
-    try {
-      const uploadPromises = files.map(async (file) => {
-        // Validate file size (max 10MB per file for portfolio)
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large. Maximum 10MB per file.`);
-        }
-        
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', file);
-        const response = await axios.post(`${API}/upload/file`, formDataUpload, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        return response.data.file_url;
-      });
-
-      const uploadedUrls = await Promise.all(uploadPromises);
-      setFormData(prev => ({ 
-        ...prev, 
-        portfolio: [...prev.portfolio, ...uploadedUrls]
-      }));
-      toast.success(`${uploadedUrls.length} file(s) uploaded to portfolio!`);
-    } catch (error) {
-      console.error('Portfolio upload error:', error);
-      toast.error(error.response?.data?.detail || error.message || 'Failed to upload portfolio items');
-    } finally {
-      setUploadingPortfolio(false);
-    }
-  };
-
-  const removePortfolioItem = (url) => {
-    setFormData(prev => ({
-      ...prev,
-      portfolio: prev.portfolio.filter(item => item !== url)
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const usernamePattern = /^[a-z0-9_]{3,20}$/;
-    if (!formData.username.trim()) {
-      toast.error('Please choose a username');
-      return;
-    }
-    if (!usernamePattern.test(formData.username.trim())) {
-      toast.error('Username must be 3–20 characters: lowercase letters, numbers, or underscores');
-      return;
-    }
-
-    if (!formData.terms_agreed) {
-      toast.error('Please agree to the terms and conditions');
-      return;
-    }
-
-    if (formData.tags.length === 0) {
-      toast.error('Please add at least one tag/niche');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await axios.put(`${API}/profile/creator`, formData);
-      toast.success('Profile submitted for review!');
-
-      const updatedUser = {
-        ...user,
-        profile_completed: true,
-        approval_status: 'pending',
-        username: response.data?.username || formData.username.trim().toLowerCase()
-      };
-      setUser(updatedUser);
-
-      navigate('/dashboard/creator');
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sectionCompletion = {
-    about: formData.bio.trim().length > 0 && /^[a-z0-9_]{3,20}$/.test(formData.username.trim()),
-    intro: !!formData.intro_video,
-    portfolio: formData.portfolio.length > 0,
-    tags: formData.tags.length > 0,
-    social: !!(formData.social_links.instagram || formData.social_links.youtube),
-    rates: !!(formData.rate_card.video_30s && formData.rate_card.video_60s && formData.rate_card.photo_post),
-    payment: !!formData.payment_methods.upi,
-    terms: formData.terms_agreed
-  };
-  const completedCount = Object.values(sectionCompletion).filter(Boolean).length;
-  const totalSections = Object.keys(sectionCompletion).length;
-  const progressPct = Math.round((completedCount / totalSections) * 100);
-
-  return (
-    <div className="profile-setup-page">
-      <div className="profile-container fade-in">
-        <div className="profile-hero">
-          <div className="hero-badge">
-            <Sparkles size={14} /> Creator Onboarding
-          </div>
-          <h1>Complete Your Creator Profile</h1>
-          <p>Tell us about yourself and showcase your work — brands discover you through this page.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="profile-form">
-          <section className={`form-section ${sectionCompletion.about ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">1</span>
-              <div className="section-title">
-                <h3><User size={18} /> About You</h3>
-                <p className="hint">Introduce yourself in your own words.</p>
-              </div>
-              {sectionCompletion.about && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-            <div className="form-group">
-              <label htmlFor="username" className="username-label">
-                <span>Username</span>
-                <span className="label-meta">3–20 chars · lowercase, numbers, _</span>
-              </label>
-              <div className="username-input-wrapper">
-                <span className="username-prefix">@</span>
-                <input
-                  id="username"
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                  className="input-field username-input"
-                  placeholder="yourname"
-                  maxLength={20}
-                  required
-                  data-testid="username-input"
-                />
-              </div>
-              <span className="char-count">{formData.username.length}/20 characters</span>
-            </div>
-            <div className="form-group">
-              <label htmlFor="bio">Bio <span className="label-meta">(100 words max)</span></label>
-              <textarea
-                id="bio"
-                value={formData.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
-                className="textarea-field"
-                placeholder="Tell brands about yourself, your style, and expertise..."
-                maxLength={500}
-                required
-                data-testid="bio-input"
-              />
-              <span className="char-count">{formData.bio.length}/500 characters</span>
-            </div>
-          </section>
-
-          <section className={`form-section ${sectionCompletion.intro ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">2</span>
-              <div className="section-title">
-                <h3><Video size={18} /> Intro Video <span className="optional-pill">Optional</span></h3>
-                <p className="hint">A 30–60s clip introducing yourself helps brands trust you faster.</p>
-              </div>
-              {sectionCompletion.intro && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-            <div className="form-group">
-              <input
-                type="file"
-                accept="video/mp4,video/quicktime,video/webm"
-                onChange={handleVideoUpload}
-                style={{ display: 'none' }}
-                id="intro-video-upload"
-              />
-              <label htmlFor="intro-video-upload" className={`dropzone ${formData.intro_video ? 'is-filled' : ''} ${uploadingVideo ? 'is-loading' : ''}`}>
-                {uploadingVideo ? (
-                  <>
-                    <div className="spinner" />
-                    <span>Uploading...</span>
-                  </>
-                ) : formData.intro_video ? (
-                  <>
-                    <CheckCircle2 size={28} />
-                    <span><strong>Video uploaded</strong></span>
-                    <span className="dropzone-sub">Click to replace</span>
-                  </>
-                ) : (
-                  <>
-                    <Video size={28} />
-                    <span><strong>Choose video</strong> or drag and drop</span>
-                    <span className="dropzone-sub">MP4, MOV, WEBM · Max 50MB</span>
-                  </>
-                )}
-              </label>
-              {formData.intro_video && (
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, intro_video: '' }))}
-                  className="btn-ghost"
-                >
-                  <X size={14} /> Remove video
-                </button>
-              )}
-            </div>
-          </section>
-
-          <section className={`form-section ${sectionCompletion.portfolio ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">3</span>
-              <div className="section-title">
-                <h3><ImageIcon size={18} /> Portfolio <span className="optional-pill">Optional</span></h3>
-                <p className="hint">Past work that shows your style. Max 10MB per file.</p>
-              </div>
-              {sectionCompletion.portfolio && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-            <div className="form-group">
-              <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                onChange={handlePortfolioUpload}
-                style={{ display: 'none' }}
-                id="portfolio-upload"
-              />
-              <label htmlFor="portfolio-upload" className={`dropzone ${uploadingPortfolio ? 'is-loading' : ''}`}>
-                {uploadingPortfolio ? (
-                  <>
-                    <div className="spinner" />
-                    <span>Uploading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload size={28} />
-                    <span><strong>Add portfolio items</strong></span>
-                    <span className="dropzone-sub">Images or videos · Select multiple</span>
-                  </>
-                )}
-              </label>
-              {formData.portfolio.length > 0 && (
-                <div className="portfolio-preview">
-                  {formData.portfolio.map((url, idx) => {
-                    const isVideo = url.match(/\.(mp4|mov|webm|avi)$/i);
-                    return (
-                      <div key={idx} className="portfolio-item">
-                        {isVideo ? (
-                          <video src={`${BACKEND_URL}${url}`} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <img src={`${BACKEND_URL}${url}`} alt={`Portfolio ${idx + 1}`} />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removePortfolioItem(url)}
-                          className="remove-btn"
-                          aria-label="Remove item"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className={`form-section ${sectionCompletion.tags ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">4</span>
-              <div className="section-title">
-                <h3><Tag size={18} /> Tags & Niche</h3>
-                <p className="hint">Help brands discover you by your strengths.</p>
-              </div>
-              {sectionCompletion.tags && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-            <div className="form-group">
-              <label htmlFor="tags">Add Tags <span className="label-meta">(Fashion, Beauty, Tech, etc.)</span></label>
-              <div className="tag-input-wrapper">
-                <input
-                  id="tags"
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  className="input-field"
-                  placeholder="Type and press Enter"
-                  data-testid="tag-input"
-                />
-                <button type="button" onClick={addTag} className="btn-secondary" data-testid="add-tag-btn">
-                  Add
-                </button>
-              </div>
-              <div className="tags-list">
-                {formData.tags.map((tag, idx) => (
-                  <span key={idx} className="tag-badge" data-testid={`tag-${idx}`}>
-                    {tag}
-                    <button type="button" onClick={() => removeTag(tag)} data-testid={`remove-tag-${idx}`}>×</button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className={`form-section ${sectionCompletion.social ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">5</span>
-              <div className="section-title">
-                <h3><Share2 size={18} /> Social Links <span className="optional-pill">Private</span></h3>
-                <p className="hint">Used internally for verification — hidden from public view.</p>
-              </div>
-              {sectionCompletion.social && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-            <div className="form-group">
-              <label htmlFor="instagram">Instagram</label>
-              <input
-                id="instagram"
-                type="text"
-                value={formData.social_links.instagram}
-                onChange={(e) => handleNestedChange('social_links', 'instagram', e.target.value)}
-                className="input-field"
-                placeholder="@username"
-                data-testid="instagram-input"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="youtube">YouTube</label>
-              <input
-                id="youtube"
-                type="text"
-                value={formData.social_links.youtube}
-                onChange={(e) => handleNestedChange('social_links', 'youtube', e.target.value)}
-                className="input-field"
-                placeholder="Channel URL"
-                data-testid="youtube-input"
-              />
-            </div>
-          </section>
-
-          <section className={`form-section ${sectionCompletion.rates ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">6</span>
-              <div className="section-title">
-                <h3><DollarSign size={18} /> Rate Card</h3>
-                <p className="hint">Set your price for each package and describe what's included.</p>
-              </div>
-              {sectionCompletion.rates && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-
-            <div className="rate-package">
-              <div className="rate-package-header">
-                <h4>Basic — 30s Video</h4>
-                <div className="form-group rate-price-input">
-                  <label htmlFor="video_30s">Price ($)</label>
-                  <input
-                    id="video_30s"
-                    type="number"
-                    value={formData.rate_card.video_30s}
-                    onChange={(e) => handleNestedChange('rate_card', 'video_30s', e.target.value)}
-                    className="input-field"
-                    placeholder="100"
-                    required
-                    data-testid="rate-video-30s"
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="video_30s_included">What's Included</label>
-                <textarea
-                  id="video_30s_included"
-                  value={formData.rate_card.video_30s_included}
-                  onChange={(e) => handleNestedChange('rate_card', 'video_30s_included', e.target.value)}
-                  className="textarea-field"
-                  placeholder="e.g., 1 x 30-second video, B-Roll included, Subtitles, 1 revision, 3 months usage rights"
-                  rows="3"
-                  maxLength="500"
-                />
-                <span className="char-count">{(formData.rate_card.video_30s_included || '').length}/500 characters</span>
-              </div>
-            </div>
-
-            <div className="rate-package">
-              <div className="rate-package-header">
-                <h4>Standard — 60s Video</h4>
-                <div className="form-group rate-price-input">
-                  <label htmlFor="video_60s">Price ($)</label>
-                  <input
-                    id="video_60s"
-                    type="number"
-                    value={formData.rate_card.video_60s}
-                    onChange={(e) => handleNestedChange('rate_card', 'video_60s', e.target.value)}
-                    className="input-field"
-                    placeholder="150"
-                    required
-                    data-testid="rate-video-60s"
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="video_60s_included">What's Included</label>
-                <textarea
-                  id="video_60s_included"
-                  value={formData.rate_card.video_60s_included}
-                  onChange={(e) => handleNestedChange('rate_card', 'video_60s_included', e.target.value)}
-                  className="textarea-field"
-                  placeholder="e.g., 1 x 60-second video, B-Roll, Graphics, Subtitles, 2 revisions, 6 months usage rights, Priority support"
-                  rows="3"
-                  maxLength="500"
-                />
-                <span className="char-count">{(formData.rate_card.video_60s_included || '').length}/500 characters</span>
-              </div>
-            </div>
-
-            <div className="rate-package">
-              <div className="rate-package-header">
-                <h4>Premium — Photo Post / Bundle</h4>
-                <div className="form-group rate-price-input">
-                  <label htmlFor="photo_post">Price ($)</label>
-                  <input
-                    id="photo_post"
-                    type="number"
-                    value={formData.rate_card.photo_post}
-                    onChange={(e) => handleNestedChange('rate_card', 'photo_post', e.target.value)}
-                    className="input-field"
-                    placeholder="80"
-                    required
-                    data-testid="rate-photo-post"
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="photo_post_included">What's Included</label>
-                <textarea
-                  id="photo_post_included"
-                  value={formData.rate_card.photo_post_included}
-                  onChange={(e) => handleNestedChange('rate_card', 'photo_post_included', e.target.value)}
-                  className="textarea-field"
-                  placeholder="e.g., Photo post + 60s video, Full source files, Unlimited revisions, 12 months usage rights"
-                  rows="3"
-                  maxLength="500"
-                />
-                <span className="char-count">{(formData.rate_card.photo_post_included || '').length}/500 characters</span>
-              </div>
-            </div>
-          </section>
-
-          <section className={`form-section ${sectionCompletion.payment ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">7</span>
-              <div className="section-title">
-                <h3><CreditCard size={18} /> Payment Methods</h3>
-                <p className="hint">Where you'd like to receive payouts.</p>
-              </div>
-              {sectionCompletion.payment && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-            <div className="form-group">
-              <label htmlFor="upi">UPI ID</label>
-              <input
-                id="upi"
-                type="text"
-                value={formData.payment_methods.upi}
-                onChange={(e) => handleNestedChange('payment_methods', 'upi', e.target.value)}
-                className="input-field"
-                placeholder="yourname@upi"
-                required
-                data-testid="upi-input"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="bank_account">Bank Account (Last 4 digits)</label>
-              <input
-                id="bank_account"
-                type="text"
-                value={formData.payment_methods.bank_account}
-                onChange={(e) => handleNestedChange('payment_methods', 'bank_account', e.target.value)}
-                className="input-field"
-                placeholder="XXXX1234"
-                data-testid="bank-input"
-              />
-            </div>
-          </section>
-
-          <section className={`form-section ${sectionCompletion.terms ? 'is-complete' : ''}`}>
-            <div className="section-head">
-              <span className="section-number">8</span>
-              <div className="section-title">
-                <h3><CheckCircle2 size={18} /> Preferences & Terms</h3>
-                <p className="hint">Final step before review.</p>
-              </div>
-              {sectionCompletion.terms && <CheckCircle2 size={20} className="section-check" />}
-            </div>
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={formData.receive_briefs}
-                onChange={(e) => handleInputChange('receive_briefs', e.target.checked)}
-                data-testid="receive-briefs-checkbox"
-              />
-              <span>I want to receive campaign briefs</span>
-            </label>
-
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={formData.terms_agreed}
-                onChange={(e) => handleInputChange('terms_agreed', e.target.checked)}
-                required
-                data-testid="terms-checkbox"
-              />
-              <span>I agree to the Terms & Conditions</span>
-            </label>
-          </section>
-
-          <div className="submit-bar">
-            <div className="submit-meta">
-              <strong>{progressPct}% complete</strong>
-              <span>Your profile will be reviewed by our team within 24–48 hours.</span>
-            </div>
-            <button type="submit" className="btn-primary submit-btn" disabled={loading} data-testid="submit-profile-btn">
-              {loading ? 'Submitting...' : 'Submit for Review'}
+  const renderStep = () => {
+    if (step === 1) {
+      return (
+        <>
+          {/* Photo upload (optional) */}
+          <div className="ps-field">
+            <button type="button" className="ps-upload" onClick={() => fileRef.current?.click()}>
+              <span className="ps-upload__icon">
+                {data.photoPreview
+                  ? <img src={data.photoPreview} alt="" className="ps-upload__preview" />
+                  : <ImagePlus size={22} />}
+              </span>
+              <span className="ps-upload__text">
+                <span className="ps-upload__title">{data.photoPreview ? 'Change profile photo' : 'Upload profile photo'}</span>
+                <span className="ps-upload__hint">Allowed images · Max 5MB</span>
+              </span>
+              <span className="ps-upload__cta">Browse</span>
+              <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />
             </button>
           </div>
-        </form>
+
+          {/* Full name */}
+          <div className="ps-field">
+            <label className="ps-label">Full Name</label>
+            <input
+              className={`ps-input${err('fullName') ? ' ps-input--error' : ''}`}
+              placeholder="Enter your full name"
+              value={data.fullName}
+              onChange={(e) => set('fullName', e.target.value)}
+            />
+            {reqError('fullName')}
+          </div>
+
+          {/* Age + Gender */}
+          <div className="ps-row">
+            <div className="ps-field">
+              <label className="ps-label">Age</label>
+              <input
+                className={`ps-input${err('age') ? ' ps-input--error' : ''}`}
+                type="number"
+                min="13"
+                placeholder="Enter your age"
+                value={data.age}
+                onChange={(e) => set('age', e.target.value)}
+              />
+              {reqError('age')}
+            </div>
+            <div className="ps-field">
+              <label className="ps-label">Gender</label>
+              <div className="ps-select">
+                <select
+                  className={`ps-select__el${data.gender ? '' : ' ps-select__el--empty'}${err('gender') ? ' ps-select__el--error' : ''}`}
+                  value={data.gender}
+                  onChange={(e) => set('gender', e.target.value)}
+                >
+                  <option value="" disabled>Select an option</option>
+                  {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <ChevronDown size={18} className="ps-select__chev" />
+              </div>
+              {reqError('gender')}
+            </div>
+          </div>
+
+          {/* Body type */}
+          <div className="ps-field">
+            <label className="ps-label">Body Type</label>
+            <div className={`ps-chips${err('bodyType') ? ' ps-chips--error' : ''}`}>
+              {BODY_TYPES.map(({ label, icon, none }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ps-chip${data.bodyType === label ? ' ps-chip--on' : ''}`}
+                  onClick={() => set('bodyType', label)}
+                >
+                  <span className="ps-chip__icon">{none ? <X size={16} /> : icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {reqError('bodyType')}
+          </div>
+
+          {/* Skin tone */}
+          <div className="ps-field">
+            <label className="ps-label">Skin Tone</label>
+            <div className={`ps-chips${err('skinTone') ? ' ps-chips--error' : ''}`}>
+              {SKIN_TONES.map(({ label, icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ps-chip${data.skinTone === label ? ' ps-chip--on' : ''}`}
+                  onClick={() => set('skinTone', label)}
+                >
+                  <span className="ps-chip__icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {reqError('skinTone')}
+          </div>
+        </>
+      );
+    }
+
+    if (step === 2) {
+      return (
+        <>
+          {/* Phone number */}
+          <div className="ps-field">
+            <label className="ps-label">Phone number</label>
+            <div className="ps-phone">
+              <DialCodeSelect value={data.dialCode} onChange={(v) => set('dialCode', v)} />
+              <input
+                className={`ps-input${err('phone') ? ' ps-input--error' : ''}`}
+                type="tel"
+                placeholder="Enter your phone number"
+                value={data.phone}
+                onChange={(e) => set('phone', e.target.value)}
+              />
+            </div>
+            {reqError('phone')}
+          </div>
+
+          {/* Pincode */}
+          <div className="ps-field">
+            <label className="ps-label">Pincode</label>
+            <input
+              className={`ps-input${err('pincode') ? ' ps-input--error' : ''}`}
+              placeholder="e.g- 800001"
+              value={data.pincode}
+              onChange={(e) => set('pincode', e.target.value)}
+            />
+            {reqError('pincode')}
+          </div>
+
+          {/* Country */}
+          <div className="ps-field">
+            <label className="ps-label">Country</label>
+            <div className="ps-select">
+              <select
+                className={`ps-select__el${data.country ? '' : ' ps-select__el--empty'}${err('country') ? ' ps-select__el--error' : ''}`}
+                value={data.country}
+                onChange={(e) => set('country', e.target.value)}
+              >
+                <option value="" disabled>Select an option</option>
+                {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <ChevronDown size={18} className="ps-select__chev" />
+            </div>
+            {reqError('country')}
+          </div>
+
+          {/* State + City */}
+          <div className="ps-row">
+            <div className="ps-field">
+              <label className="ps-label">State</label>
+              <div className="ps-select">
+                <select
+                  className={`ps-select__el${data.state ? '' : ' ps-select__el--empty'}${err('state') ? ' ps-select__el--error' : ''}`}
+                  value={data.state}
+                  onChange={(e) => { set('state', e.target.value); set('city', ''); }}
+                >
+                  <option value="" disabled>Select an option</option>
+                  {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <ChevronDown size={18} className="ps-select__chev" />
+              </div>
+              {reqError('state')}
+            </div>
+            <div className="ps-field">
+              <label className="ps-label">City</label>
+              <div className="ps-select">
+                <select
+                  className={`ps-select__el${data.city ? '' : ' ps-select__el--empty'}${err('city') ? ' ps-select__el--error' : ''}`}
+                  value={data.city}
+                  disabled={!data.state}
+                  onChange={(e) => set('city', e.target.value)}
+                >
+                  <option value="" disabled>{data.state ? 'Select an option' : 'Select a state first'}</option>
+                  {(CITIES_BY_STATE[data.state] || []).map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <ChevronDown size={18} className="ps-select__chev" />
+              </div>
+              {reqError('city')}
+            </div>
+          </div>
+
+          {/* Detailed Address */}
+          <div className="ps-field">
+            <label className="ps-label">Detailed Address</label>
+            <input
+              className={`ps-input${err('address') ? ' ps-input--error' : ''}`}
+              placeholder="123 Main St, Anytown"
+              value={data.address}
+              onChange={(e) => set('address', e.target.value)}
+            />
+            {reqError('address')}
+          </div>
+
+          {/* Google Map Link */}
+          <div className="ps-field">
+            <label className="ps-label">Google Map Link (Optional)</label>
+            <input
+              className="ps-input"
+              placeholder="Paste Google map link"
+              value={data.mapLink}
+              onChange={(e) => set('mapLink', e.target.value)}
+            />
+          </div>
+        </>
+      );
+    }
+
+    if (step === 3) {
+      return (
+        <>
+          {/* Skills */}
+          <div className="ps-field">
+            <label className="ps-label">Select all skills you have <span className="ps-muted">(Select all that apply)</span></label>
+            <div className={`ps-chips${err('skills') ? ' ps-chips--error' : ''}`}>
+              {SKILLS.map(({ label, icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ps-chip${data.skills.includes(label) ? ' ps-chip--on' : ''}`}
+                  onClick={() => toggleIn('skills', label)}
+                >
+                  <span className="ps-chip__icon">{icon}</span>{label}
+                </button>
+              ))}
+              {customTail('skills', SKILLS.map((s) => s.label), 'Others')}
+            </div>
+            {customInput('skills', 'Type a skill (e.g. Lighting, Directing)')}
+            {err('skills') && <span className="ps-error">Select at least one skill</span>}
+          </div>
+
+          {/* Profile links */}
+          <div className="ps-field">
+            <label className="ps-label">Profile links</label>
+            <p className="ps-hinttext">Add at least one profile link. Brands shortlist creators by skills, not followers. 😎</p>
+            <div className="ps-links">
+              {PLATFORMS.map((p) => (
+                <div key={p.key} className="ps-link">
+                  <span className="ps-link__badge" style={{ background: p.color }}>
+                    {p.Icon ? <p.Icon size={18} color="#fff" /> : p.badge}
+                  </span>
+                  <input
+                    ref={(el) => { linkRefs.current[p.key] = el; }}
+                    className="ps-link__input"
+                    placeholder={`${p.label} profile`}
+                    value={data.links[p.key]}
+                    onChange={(e) => setLink(p.key, e.target.value)}
+                  />
+                  {/* Show "+Add social link" only while the field is empty; once a
+                      link is typed/pasted the button disappears. */}
+                  {!data.links[p.key] && (
+                    <button
+                      type="button"
+                      className="ps-link__add"
+                      onClick={() => linkRefs.current[p.key]?.focus()}
+                    >
+                      +Add social link
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* User-added social links */}
+              {data.extraLinks.map((l) => {
+                const b = badgeFor(l.platform);
+                return (
+                  <div key={l.id} className="ps-link">
+                    <span className="ps-link__badge" style={{ background: b.bg }}>{b.c}</span>
+                    <input
+                      className="ps-link__input"
+                      placeholder={`${l.platform} link`}
+                      value={l.url}
+                      onChange={(e) => setExtraUrl(l.id, e.target.value)}
+                    />
+                    <button type="button" className="ps-link__remove" onClick={() => removeExtra(l.id)}><X size={16} /></button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {!addOpen ? (
+              <button type="button" className="ps-addlink" onClick={() => setAddOpen(true)}><Plus size={15} /> Add another social link</button>
+            ) : (
+              <div className="ps-addbox">
+                <div className="ps-addbox__row">
+                  <div className="ps-select ps-addbox__select">
+                    <select className="ps-select__el" value={addPlatform} onChange={(e) => setAddPlatform(e.target.value)}>
+                      {ADD_PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <ChevronDown size={18} className="ps-select__chev" />
+                  </div>
+                  <button type="button" className="ps-addbox__cancel" onClick={closeAddSocial}>Cancel</button>
+                </div>
+                {addPlatform === 'Custom' && (
+                  <input
+                    className="ps-input"
+                    placeholder="Custom platform name (e.g. Snapchat)"
+                    value={customPlatform}
+                    onChange={(e) => setCustomPlatform(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSocial(); } }}
+                    autoFocus
+                  />
+                )}
+                <button type="button" className="ps-btn-soft ps-addbox__add" onClick={addSocial}>Add</button>
+              </div>
+            )}
+            {err('profileLink') && <span className="ps-error">Add at least one profile link</span>}
+          </div>
+
+          {/* Add-ons & permissions */}
+          <div className="ps-section">
+            <h3 className="ps-h3">Creator Add-ons &amp; Permissions</h3>
+            <p className="ps-hinttext">Some brands may need extra support beyond content creation. Select what you're open to offering.</p>
+            <p className="ps-label" style={{ marginTop: '6px' }}>What are you comfortable with?</p>
+            {ADDONS.map((a) => (
+              <div key={a.key} className={`ps-perm${err(a.key) ? ' ps-perm--error' : ''}`}>
+                <div className="ps-perm__title">{a.title}</div>
+                <div className="ps-perm__note">ⓘ {a.note}</div>
+                <label className="ps-radio">
+                  <input type="radio" name={a.key} checked={data[a.key] === 'yes'} onChange={() => set(a.key, 'yes')} />
+                  <span className="ps-radio__dot" /> {a.yes}
+                </label>
+                <label className="ps-radio">
+                  <input type="radio" name={a.key} checked={data[a.key] === 'no'} onChange={() => set(a.key, 'no')} />
+                  <span className="ps-radio__dot" /> Not available
+                </label>
+              </div>
+            ))}
+          </div>
+
+          {/* Portfolio videos */}
+          <div className="ps-section">
+            <h3 className="ps-h3">Upload your Portfolio videos</h3>
+            <p className="ps-hinttext">UGC, brand ads, reels, or speaking samples work best.</p>
+            <div className="ps-pf">
+              <div className="ps-pf__left">
+                <input ref={pfFileRef} type="file" accept="video/*" hidden onChange={onPickVideo} />
+                {data.pfVideoUrl ? (
+                  <>
+                    <div className="ps-pf__thumb ps-pf__thumb--filled">
+                      <video src={`${data.pfVideoUrl}#t=0.1`} muted preload="metadata" className="ps-pf__thumbimg" />
+                      <span className="ps-pf__play"><Play size={18} /></span>
+                    </div>
+                    <button type="button" className="ps-pf__change" onClick={() => pfFileRef.current?.click()}>Change video</button>
+                  </>
+                ) : (
+                  <>
+                    <div className="ps-pf__thumb ps-pf__thumb--empty">
+                      <img src="/uplaod.png" alt="Upload a video" className="ps-pf__thumbimg" />
+                    </div>
+                    <button type="button" className="ps-pf__upload" onClick={() => pfFileRef.current?.click()}>
+                      ⬇ Upload <span className="ps-muted">(max 200 MB)</span>
+                    </button>
+                    <div className="ps-pf__or">OR</div>
+                    <input className="ps-input" placeholder="Add link" value={data.pfLink} onChange={(e) => set('pfLink', e.target.value)} />
+                  </>
+                )}
+              </div>
+              <div className="ps-pf__right">
+                <input ref={brandRef} className="ps-input" placeholder="Brand name" value={data.pfBrand} onChange={(e) => set('pfBrand', e.target.value)} />
+                <textarea className="ps-input ps-textarea" placeholder="Description (Optional - not visible to clients)" value={data.pfDesc} onChange={(e) => set('pfDesc', e.target.value)} />
+                <button type="button" className="ps-btn-soft" onClick={addPortfolio}>Add to Profile</button>
+              </div>
+            </div>
+
+            {data.portfolio.length > 0 && (
+              <>
+                <button type="button" className="ps-addlink" onClick={() => brandRef.current?.focus()}><Plus size={15} /> Add More Videos</button>
+                <div className="ps-vids">
+                  {data.portfolio.map((it) => (
+                    <div key={it.id} className="ps-vid">
+                      <div className="ps-vid__thumb">
+                        {it.videoUrl
+                          ? <video src={`${it.videoUrl}#t=0.1`} muted preload="metadata" className="ps-vid__thumbimg" />
+                          : <img src="/uplaod.png" alt="" className="ps-vid__thumbimg" />}
+                        <span className="ps-pf__play"><Play size={18} /></span>
+                      </div>
+                      {editingId === it.id ? (
+                        <div className="ps-vid__body">
+                          <input className="ps-input" placeholder="Brand name" value={editDraft.brand} onChange={(e) => setEditDraft((d) => ({ ...d, brand: e.target.value }))} />
+                          <textarea className="ps-input ps-textarea" placeholder="What was this video for and what was your role?" value={editDraft.desc} onChange={(e) => setEditDraft((d) => ({ ...d, desc: e.target.value }))} />
+                          <div className="ps-vid__actions">
+                            <button type="button" className="ps-btn-soft" onClick={saveModify}>Save Changes</button>
+                            <button type="button" className="ps-vid__del" onClick={() => deleteItem(it.id)}><Trash2 size={14} /> Delete</button>
+                            <button type="button" className="ps-vid__cancel" onClick={cancelModify}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="ps-vid__body">
+                          <div className="ps-vid__name">{it.brand || it.link || it.video || 'Untitled'}</div>
+                          <div className="ps-vid__desc">{isFilled(it.desc) ? it.desc : <span className="ps-muted">No description added yet.</span>}</div>
+                          <div className="ps-vid__actions ps-vid__actions--read">
+                            <div className="ps-vid__left">
+                              {justAddedId === it.id && <span className="ps-vid__added"><Check size={14} /> Added</span>}
+                              <button type="button" className="ps-vid__btn" onClick={() => startModify(it)}><Pencil size={14} /> Modify</button>
+                            </div>
+                            <button type="button" className="ps-vid__del ps-vid__del--out" onClick={() => deleteItem(it.id)}><Trash2 size={14} /> Delete</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {err('portfolio') && <span className="ps-error">This field is required</span>}
+          </div>
+
+          {/* Languages */}
+          <div className="ps-field">
+            <label className="ps-label">Languages you can create in <span className="ps-muted">(Select all that apply)</span></label>
+            <p className="ps-hinttext">Pick the languages you can confidently write / speak on camera.</p>
+            <div className={`ps-chips${err('languages') ? ' ps-chips--error' : ''}`}>
+              {/* Selected languages — each gets a fluency picker + remove */}
+              {data.languages.map((l) => (
+                <div key={l} className="ps-langchip">
+                  <span className="ps-langchip__name">{l}</span>
+                  <FluencyMenu value={data.langFluency[l]} onPick={(v) => setFluency(l, v)} />
+                  <button type="button" className="ps-langchip__x" onClick={() => toggleIn('languages', l)}><X size={14} /></button>
+                </div>
+              ))}
+              {/* Unselected predefined languages */}
+              {LANGUAGES.filter((l) => !data.languages.includes(l)).map((l) => (
+                <button key={l} type="button" className="ps-chip" onClick={() => toggleIn('languages', l)}>{l}</button>
+              ))}
+              <button
+                type="button"
+                className={`ps-chip ps-chip--add${customOpen.languages ? ' ps-chip--add-on' : ''}`}
+                onClick={() => openCustom('languages')}
+              >
+                <Plus size={15} /> Other
+              </button>
+            </div>
+            {customInput('languages', 'Type a language')}
+            {err('languages') && <span className="ps-error">Select at least one language</span>}
+          </div>
+
+          {/* Compensation */}
+          <div className="ps-section">
+            <h3 className="ps-h3">Compensation Preferences</h3>
+            <p className="ps-hinttext">We generally follow standardized pricing on the platform. The details below help us benchmark and may be used for internal or special projects.</p>
+            <div className="ps-comp">
+              <span className="ps-comp__label">Expected payout</span>
+              <input
+                className={`ps-input${err('expectedPayout') ? ' ps-input--error' : ''}`}
+                placeholder="Per video or per month (e.g. ₹4,000 / video)"
+                value={data.expectedPayout}
+                onChange={(e) => set('expectedPayout', e.target.value)}
+              />
+              <div className="ps-select ps-comp__period">
+                <select className="ps-select__el" value={data.payoutPeriod} onChange={(e) => set('payoutPeriod', e.target.value)}>
+                  {PAYOUT_PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <ChevronDown size={18} className="ps-select__chev" />
+              </div>
+            </div>
+            {err('expectedPayout') && <span className="ps-error">Enter your expected payout</span>}
+          </div>
+
+          {/* Topics to avoid */}
+          <div className="ps-divider" />
+          <div className="ps-field">
+            <label className="ps-label">Topics you prefer not to work with <span className="ps-muted">(optional)</span></label>
+            <p className="ps-hinttext">This helps us avoid mismatched projects.</p>
+            <div className="ps-chips">
+              {TOPICS.map((t) => (
+                <button key={t} type="button" className={`ps-chip${data.topics.includes(t) ? ' ps-chip--on' : ''}`} onClick={() => toggleTopic(t)}>{t}</button>
+              ))}
+              {customTail('topics', TOPICS, 'Other')}
+            </div>
+            {customInput('topics', 'Type a topic')}
+          </div>
+        </>
+      );
+    }
+
+    if (step === 4) {
+      return (
+        <>
+          {/* Core setup */}
+          <div className="ps-field">
+            <label className="ps-label">Core Setup <span className="ps-muted">(What can you record with?)</span></label>
+            <div className="ps-chips">
+              {CORE_SETUP.map(({ label, icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ps-chip${data.coreSetup.includes(label) ? ' ps-chip--on' : ''}`}
+                  onClick={() => toggleIn('coreSetup', label)}
+                >
+                  <span className="ps-chip__icon">{icon}</span>{label}
+                </button>
+              ))}
+              {customTail('coreSetup', CORE_SETUP.map((s) => s.label), 'Others')}
+            </div>
+            {customInput('coreSetup', 'Type equipment (e.g. Gimbal)')}
+            <p className="ps-hinttext">Select all that apply</p>
+          </div>
+
+          {/* Who can appear */}
+          <div className="ps-field">
+            <label className="ps-label">Who can appear in your videos?</label>
+            <div className="ps-chips">
+              {APPEAR_IN.map(({ label, icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ps-chip${data.appearIn.includes(label) ? ' ps-chip--on' : ''}`}
+                  onClick={() => toggleIn('appearIn', label)}
+                >
+                  <span className="ps-chip__icon">{icon}</span>{label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* What you bring */}
+          <div className="ps-field">
+            <label className="ps-label">Tell us what you can bring to your video</label>
+            <input
+              className="ps-input"
+              placeholder="e.g. Professional lighting, acting experience, props, creative ideas…"
+              value={data.bring}
+              onChange={(e) => set('bring', e.target.value)}
+            />
+          </div>
+
+          <div className="ps-note">😉 You can edit this anytime. Only relevant brands see your details.</div>
+        </>
+      );
+    }
+
+    // Remaining steps — placeholder until their designs are provided.
+    return (
+      <div className="ps-stub">
+        <span className="ps-stub__icon"><User size={26} /></span>
+        <h3 className="ps-stub__title">{meta.title}</h3>
+        <p className="ps-stub__text">
+          This step is coming next. Send the design for <strong>“{meta.title}”</strong> and it'll
+          slot right in — the wizard, navigation, and completion bar are already wired up.
+        </p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="ps-root">
+      <div className="ps-bg" aria-hidden="true">
+        <div className="ps-blob ps-blob--1" />
+        <div className="ps-blob ps-blob--2" />
+        <div className="ps-grid" />
       </div>
 
-      <style jsx>{`
-        .profile-setup-page {
+      <header className="ps-topbar">
+        <button className="ps-brand" onClick={() => navigate('/')}>
+          <img src="/ugcad-logo.png" alt="UGCad.io" className="ps-brand__logo" />
+        </button>
+        <span className="ps-topbar__tag">Creator onboarding</span>
+      </header>
+
+      <main className="ps-main">
+        {submitted ? (
+          <motion.div
+            className="ps-card ps-thanks"
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          >
+            <motion.div
+              className="ps-thanks__icon"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 260, damping: 16 }}
+            >
+              <Check size={40} strokeWidth={3} />
+            </motion.div>
+            <h1 className="ps-thanks__title">Application Submitted 🎉</h1>
+            <p className="ps-thanks__text">
+              Thanks for submitting your creator profile. Our team will review it and get back to
+              you within <strong>48 hours</strong>. Keep an eye on your inbox!
+            </p>
+            <div className="ps-thanks__actions">
+              <button className="ps-btn-primary" onClick={() => navigate('/dashboard/creator')}>
+                Go to Dashboard <ArrowRight size={18} />
+              </button>
+              <button className="ps-btn-ghost ps-thanks__home" onClick={() => navigate('/')}>Back to Home</button>
+            </div>
+          </motion.div>
+        ) : (
+          <>
+            {/* Progress bar — sits at the top, above the form, and fills as you go */}
+            <div className="ps-bar">
+              <div className="ps-bar__top">
+                <span className="ps-bar__label">Your Profile is <strong>{percent}%</strong> Complete</span>
+              </div>
+              <div className="ps-bar__track">
+                <motion.span
+                  className="ps-bar__fill"
+                  animate={{ width: `${percent}%` }}
+                  transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+                />
+              </div>
+            </div>
+
+            <motion.div
+              className="ps-card"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            >
+              <div className="ps-card__head">
+                <span className="ps-step">Step {step + 1} of {TOTAL_STEPS + 1}</span>
+                <h1 className="ps-title">{meta.title}</h1>
+                <p className="ps-sub">{meta.sub}</p>
+              </div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={step}
+                  className="ps-body"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.26, ease: 'easeOut' }}
+                >
+                  {renderStep()}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="ps-actions">
+                {step > 1 && (
+                  <button className="ps-btn-ghost" onClick={back} disabled={submitting}>
+                    <ArrowLeft size={18} /> Go Back
+                  </button>
+                )}
+                <button className="ps-btn-primary" onClick={proceed} disabled={submitting}>
+                  {submitting
+                    ? <><span className="ps-spin" /> Submitting…</>
+                    : <>{step < TOTAL_STEPS ? 'Proceed' : 'Submit Application'} <ArrowRight size={18} /></>}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </main>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
+
+        .ps-root {
+          --ps-purple: #A78BFA;
+          --ps-purple-deep: #9170f0;
           min-height: 100vh;
-          padding: 40px 20px 60px;
+          background: #0a0a0a;
+          color: #fff;
+          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          position: relative;
+          overflow-x: hidden;
+        }
+        .ps-root *, .ps-root *::before, .ps-root *::after { box-sizing: border-box; }
+        /* Guaranteed full-viewport dark backdrop behind everything. */
+        .ps-root::before { content: ''; position: fixed; inset: 0; background: #0a0a0a; z-index: -1; }
+        .ps-topbar, .ps-main { background: transparent; }
+
+        /* Background atmosphere */
+        .ps-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .ps-blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.45;
+          background: linear-gradient(135deg, #2a1a6e, #11103f); }
+        .ps-blob--1 { width: 520px; height: 520px; top: -12%; left: -6%; }
+        .ps-blob--2 { width: 460px; height: 460px; bottom: -14%; right: -4%;
+          background: linear-gradient(135deg, #3b1a6e, #0c0c33); }
+        .ps-grid { position: absolute; inset: 0; opacity: 0.25;
+          background-image: radial-gradient(rgba(167,139,250,0.10) 1px, transparent 1px);
+          background-size: 26px 26px; mask-image: radial-gradient(120% 80% at 50% 0%, #000, transparent 70%); }
+
+        /* Topbar */
+        .ps-topbar { position: relative; z-index: 1; display: flex; align-items: center; gap: 16px;
+          padding: 20px 7%; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .ps-brand { display: inline-flex; align-items: center; gap: 10px; background: none; border: none; cursor: pointer; padding: 0; }
+        .ps-brand__logo { height: 40px; width: auto; display: block; }
+        .ps-brand__mark { width: 24px; height: 24px; border-radius: 7px;
+          background: linear-gradient(135deg, #A78BFA, #7c3aed); box-shadow: 0 4px 16px rgba(167,139,250,0.55); }
+        .ps-brand__name { color: #fff; font-size: 1.25rem; font-weight: 700; }
+        .ps-brand__name-2 { color: rgba(255,255,255,0.7); font-weight: 500; }
+        .ps-topbar__tag { margin-left: auto; font-size: 0.82rem; font-weight: 500; letter-spacing: 0.02em;
+          color: rgba(255,255,255,0.45); padding: 6px 14px; border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Layout */
+        .ps-main { position: relative; z-index: 1; max-width: 660px; margin: 0 auto; padding: 26px 5% 80px; }
+
+        /* Top progress bar */
+        .ps-bar { margin-bottom: 22px; }
+        .ps-bar__top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        .ps-bar__label { font-size: 0.98rem; font-weight: 600; color: #fff; }
+        .ps-bar__label strong { color: var(--ps-purple); }
+        .ps-bar__hint { font-size: 0.82rem; color: rgba(255,255,255,0.45); }
+        .ps-bar__track { width: 100%; height: 9px; border-radius: 999px; background: rgba(255,255,255,0.09);
+          overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+        .ps-bar__fill { display: block; height: 100%; border-radius: 999px;
+          background: linear-gradient(90deg, #A78BFA, #7c3aed); box-shadow: 0 0 14px rgba(167,139,250,0.55); }
+
+        /* Form card */
+        .ps-card { position: relative; border-radius: 18px; padding: 26px 28px 22px;
+          border: 1px solid rgba(255,255,255,0.09);
           background:
-            radial-gradient(1200px 600px at 10% -10%, rgba(7, 7, 78, 0.15), transparent 60%),
-            radial-gradient(1000px 500px at 110% 10%, rgba(30, 30, 126, 0.18), transparent 60%),
-            linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
-        }
-
-        .profile-container {
-          max-width: 880px;
-          margin: 0 auto;
-          background: white;
-          border-radius: 28px;
-          padding: 0;
-          box-shadow: 0 20px 60px rgba(45, 55, 90, 0.10), 0 2px 8px rgba(45, 55, 90, 0.04);
-          overflow: hidden;
-          border: 1px solid rgba(7, 7, 78, 0.08);
-        }
-
-        .profile-hero {
-          position: relative;
-          padding: 44px 48px 36px;
-          background:
-            radial-gradient(600px 240px at 90% 0%, rgba(255, 255, 255, 0.35), transparent 60%),
-            linear-gradient(135deg, #07074e 0%, #1e1e7e 100%);
-          color: white;
-        }
-
-        .hero-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: rgba(255, 255, 255, 0.18);
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          border-radius: 999px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          margin-bottom: 16px;
-          backdrop-filter: blur(8px);
-        }
-
-        .profile-hero h1 {
-          font-size: 2.1rem;
-          font-weight: 700;
-          margin: 0 0 8px;
-          letter-spacing: -0.02em;
-        }
-
-        .profile-hero p {
-          font-size: 1rem;
-          opacity: 0.92;
-          margin: 0 0 24px;
-          max-width: 560px;
-          line-height: 1.55;
-        }
-
-        .profile-hero p {
-          margin-bottom: 0;
-        }
-
-        .profile-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          padding: 32px 48px 40px;
-        }
-
-        .form-section {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          background: #fbfcff;
-          border: 1.5px solid #e8ecff;
-          border-radius: 18px;
-          padding: 24px 28px;
-          transition: all 0.25s ease;
-        }
-
-        .form-section:hover {
-          border-color: #c5c5e0;
-          box-shadow: 0 4px 16px rgba(7, 7, 78, 0.08);
-        }
-
-        .form-section.is-complete {
-          border-color: #86efac;
-          background: linear-gradient(135deg, #f0fdf4 0%, #fbfcff 60%);
-        }
-
-        .section-head {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
-        }
-
-        .section-number {
-          flex-shrink: 0;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #07074e 0%, #1e1e7e 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 0.9rem;
-          box-shadow: 0 2px 6px rgba(7, 7, 78, 0.3);
-        }
-
-        .form-section.is-complete .section-number {
-          background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-          box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
-        }
-
-        .section-title {
-          flex: 1;
-        }
-
-        .section-title h3 {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #1a202c;
-          margin: 0 0 4px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          letter-spacing: -0.01em;
-        }
-
-        .section-title h3 :global(svg) {
-          color: #07074e;
-        }
-
-        .section-check {
-          color: #22c55e;
-          flex-shrink: 0;
-          margin-top: 4px;
-        }
-
-        .optional-pill {
-          font-size: 0.7rem;
-          font-weight: 600;
-          padding: 2px 10px;
-          background: #e8e8f5;
-          color: #07074e;
-          border-radius: 999px;
-          letter-spacing: 0.02em;
-          text-transform: uppercase;
-        }
-
-        .hint {
-          font-size: 0.85rem;
-          color: #718096;
-          margin: 0;
-          line-height: 1.5;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .form-group label {
-          font-weight: 600;
-          color: #2d3748;
-          font-size: 0.9rem;
-        }
-
-        .label-meta {
-          font-weight: 400;
-          color: #a0aec0;
-          font-size: 0.8rem;
-        }
-
-        .username-label {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .username-input-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .username-prefix {
-          position: absolute;
-          left: 14px;
-          font-weight: 700;
-          color: #07074e;
-          font-size: 1rem;
-          pointer-events: none;
-        }
-
-        .username-input {
-          padding-left: 30px !important;
-          letter-spacing: 0.01em;
-        }
-
-        .char-count {
-          text-align: right;
-          font-size: 0.8rem;
-          color: #a0aec0;
-        }
-
-        .tag-input-wrapper {
-          display: flex;
-          gap: 10px;
-        }
-
-        .tag-input-wrapper .input-field {
-          flex: 1;
-        }
-
-        .tag-input-wrapper .btn-secondary {
-          padding: 12px 22px;
-          white-space: nowrap;
-        }
-
-        .tags-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 4px;
-        }
-
-        .tag-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 14px;
-          background: linear-gradient(135deg, #07074e 0%, #1e1e7e 100%);
-          color: white;
-          border-radius: 999px;
-          font-size: 0.85rem;
-          font-weight: 500;
-          box-shadow: 0 2px 6px rgba(7, 7, 78, 0.25);
-        }
-
-        .tag-badge button {
-          background: rgba(255, 255, 255, 0.25);
-          border: none;
-          color: white;
-          font-size: 0.9rem;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          cursor: pointer;
-          padding: 0;
-          line-height: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background 0.2s ease;
-        }
-
-        .tag-badge button:hover {
-          background: rgba(255, 255, 255, 0.45);
-        }
-
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-size: 0.95rem;
-          color: #2d3748;
-          cursor: pointer;
-          padding: 10px 14px;
-          border-radius: 10px;
-          background: white;
-          border: 1.5px solid #e2e8f0;
-          transition: all 0.2s ease;
-        }
-
-        .checkbox-label:hover {
-          border-color: #c5c5e0;
-          background: #f9faff;
-        }
-
-        .checkbox-label input[type="checkbox"] {
-          width: 18px;
-          height: 18px;
-          accent-color: #07074e;
-          cursor: pointer;
-        }
-
-        .dropzone {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 32px 24px;
-          background: white;
-          border: 2px dashed #c5c5e0;
-          border-radius: 14px;
-          color: #4a5568;
-          cursor: pointer;
-          transition: all 0.25s ease;
-          text-align: center;
-        }
-
-        .dropzone :global(svg) {
-          color: #07074e;
-        }
-
-        .dropzone:hover {
-          border-color: #07074e;
-          background: #f5f7ff;
-          transform: translateY(-1px);
-        }
-
-        .dropzone.is-filled {
-          background: linear-gradient(135deg, #f0fdf4 0%, #f9faff 100%);
-          border-color: #22c55e;
-          color: #166534;
-        }
-
-        .dropzone.is-filled :global(svg) {
-          color: #22c55e;
-        }
-
-        .dropzone.is-loading {
-          opacity: 0.75;
-          pointer-events: none;
-        }
-
-        .dropzone strong {
-          font-weight: 600;
-          color: #1a202c;
-        }
-
-        .dropzone.is-filled strong {
-          color: #166534;
-        }
-
-        .dropzone-sub {
-          font-size: 0.8rem;
-          color: #94a3b8;
-        }
-
-        .spinner {
-          width: 24px;
-          height: 24px;
-          border: 3px solid #e2e8f0;
-          border-top-color: #07074e;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .btn-ghost {
-          align-self: flex-start;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: transparent;
-          color: #ef4444;
-          border: none;
-          font-size: 0.85rem;
-          font-weight: 600;
-          cursor: pointer;
-          border-radius: 8px;
-          transition: background 0.2s ease;
-        }
-
-        .btn-ghost:hover {
-          background: #fef2f2;
-        }
-
-        .portfolio-preview {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-          gap: 12px;
-          margin-top: 8px;
-        }
-
-        .portfolio-item {
-          position: relative;
-          border-radius: 12px;
-          overflow: hidden;
-          aspect-ratio: 1;
-          border: 2px solid #e2e8f0;
-        }
-
-        .portfolio-item img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .remove-btn {
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          width: 26px;
-          height: 26px;
-          background: rgba(15, 23, 42, 0.7);
-          color: white;
-          border: none;
-          border-radius: 50%;
-          font-size: 18px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          line-height: 1;
-          transition: background 0.2s ease;
-          backdrop-filter: blur(4px);
-        }
-
-        .remove-btn:hover {
-          background: #ef4444;
-        }
-
-        .submit-bar {
-          position: sticky;
-          bottom: 20px;
-          margin-top: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          padding: 18px 24px;
-          background: white;
-          border: 1.5px solid #e8ecff;
-          border-radius: 18px;
-          box-shadow: 0 10px 30px rgba(45, 55, 90, 0.12);
-          flex-wrap: wrap;
-        }
-
-        .submit-meta {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .submit-meta strong {
-          font-size: 1rem;
-          color: #1a202c;
-          font-weight: 700;
-        }
-
-        .submit-meta span {
-          font-size: 0.8rem;
-          color: #718096;
-        }
-
-        .submit-btn {
-          min-width: 200px;
-        }
-
-        @media (max-width: 720px) {
-          .profile-setup-page {
-            padding: 20px 12px 40px;
-          }
-
-          .profile-container {
-            border-radius: 20px;
-          }
-
-          .profile-hero {
-            padding: 32px 24px 28px;
-          }
-
-          .profile-hero h1 {
-            font-size: 1.6rem;
-          }
-
-          .profile-form {
-            padding: 24px 20px 28px;
-          }
-
-          .form-section {
-            padding: 20px 18px;
-          }
-
-          .section-head {
-            gap: 10px;
-          }
-
-          .submit-bar {
-            flex-direction: column;
-            align-items: stretch;
-            text-align: center;
-          }
-
-          .submit-btn {
-            width: 100%;
-          }
+            radial-gradient(120% 100% at 50% -10%, rgba(167,139,250,0.14), transparent 55%),
+            rgba(255,255,255,0.028);
+          box-shadow: 0 24px 60px rgba(0,0,0,0.5); overflow: hidden; }
+        .ps-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+          background: linear-gradient(90deg, transparent, rgba(167,139,250,0.7), transparent); }
+        .ps-card__head { margin-bottom: 18px; }
+        .ps-step { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 0.68rem; font-weight: 700;
+          background: linear-gradient(120deg, #A78BFA, #8f6ff0); color: #fff;
+          box-shadow: 0 6px 18px rgba(167,139,250,0.45); }
+        .ps-title { font-size: 1.35rem; font-weight: 700; margin: 11px 0 0; color: #fff; letter-spacing: -0.01em; }
+        .ps-sub { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 5px 0 0; }
+        .ps-body { display: flex; flex-direction: column; gap: 16px; }
+
+        /* Upload */
+        .ps-upload { display: flex; align-items: center; gap: 16px; width: 100%; text-align: left;
+          padding: 16px 18px; border-radius: 16px; cursor: pointer;
+          border: 1px dashed rgba(167,139,250,0.4); background: rgba(167,139,250,0.06); transition: all 0.2s; }
+        .ps-upload:hover { background: rgba(167,139,250,0.11); border-color: rgba(167,139,250,0.65); }
+        .ps-upload__icon { width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(167,139,250,0.14); border: 1px solid rgba(167,139,250,0.25); color: var(--ps-purple); }
+        .ps-upload__preview { width: 100%; height: 100%; object-fit: cover; }
+        .ps-upload__text { display: flex; flex-direction: column; gap: 3px; }
+        .ps-upload__title { font-size: 0.98rem; font-weight: 600; color: #fff; }
+        .ps-optional { font-weight: 500; color: rgba(255,255,255,0.4); }
+        .ps-upload__hint { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
+        .ps-upload__cta { margin-left: auto; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem;
+          font-weight: 600; color: #fff; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); }
+
+        /* Fields */
+        .ps-field { display: flex; flex-direction: column; gap: 7px; }
+        .ps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .ps-label { font-size: 0.88rem; font-weight: 600; color: #fff; }
+        .ps-input { width: 100%; padding: 10px 13px; border-radius: 10px; font-size: 0.88rem;
+          color: #fff; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.12);
+          outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; font-family: inherit; }
+        .ps-input::placeholder { color: rgba(255,255,255,0.38); }
+        .ps-input:focus { border-color: var(--ps-purple); background: rgba(167,139,250,0.06);
+          box-shadow: 0 0 0 4px rgba(167,139,250,0.16); }
+
+        .ps-select { position: relative; }
+        .ps-select__el { width: 100%; padding: 10px 38px 10px 13px; border-radius: 10px; font-size: 0.88rem;
+          color: #fff; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.12);
+          outline: none; appearance: none; -webkit-appearance: none; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .ps-select__el--empty { color: rgba(255,255,255,0.38); }
+        .ps-select__el:disabled { opacity: 0.5; cursor: not-allowed; }
+        .ps-select__el:focus { border-color: var(--ps-purple); box-shadow: 0 0 0 4px rgba(167,139,250,0.16); }
+        .ps-select__el option { color: #111; }
+        .ps-select__chev { position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+          color: rgba(255,255,255,0.5); pointer-events: none; }
+
+        /* Phone number — dial-code picker + number input */
+        .ps-phone { display: flex; gap: 12px; }
+        .ps-phone .ps-input { flex: 1; }
+
+        /* Custom flag dial-code dropdown */
+        .ps-dial { position: relative; flex-shrink: 0; }
+        .ps-dial__btn { display: flex; align-items: center; gap: 8px; height: 100%; min-height: 50px;
+          padding: 0 14px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.98rem;
+          color: #fff; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.12); transition: all 0.2s; }
+        .ps-dial__btn:hover { border-color: rgba(167,139,250,0.5); }
+        .ps-dial__flag { width: 22px; height: 16px; border-radius: 3px; object-fit: cover; display: block;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.12); }
+        .ps-dial__chev { color: rgba(255,255,255,0.5); margin-left: 2px; }
+        .ps-dial__menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; min-width: 120px;
+          padding: 6px; border-radius: 12px; background: #15151c; border: 1px solid rgba(255,255,255,0.12);
+          box-shadow: 0 20px 50px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
+        .ps-dial__opt { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 9px;
+          cursor: pointer; font-family: inherit; font-size: 0.94rem; color: #fff; background: none; border: none; text-align: left; }
+        .ps-dial__opt:hover { background: rgba(255,255,255,0.06); }
+        .ps-dial__opt--on { background: rgba(167,139,250,0.16); }
+
+        /* Chips */
+        .ps-chips { display: flex; flex-wrap: wrap; gap: 12px; }
+        .ps-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
+          font-size: 0.83rem; font-weight: 500; color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.18s;
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); font-family: inherit; }
+        .ps-chip:hover { border-color: rgba(167,139,250,0.55); color: #fff; transform: translateY(-1px); }
+        .ps-chip--on { background: rgba(167,139,250,0.18); border-color: var(--ps-purple); color: #fff;
+          box-shadow: 0 0 0 3px rgba(167,139,250,0.16); }
+        .ps-chip__icon { display: inline-flex; align-items: center; font-size: 0.98rem; }
+
+        /* Selected language chip with fluency picker */
+        .ps-langchip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; border-radius: 10px;
+          background: rgba(167,139,250,0.16); border: 1px solid var(--ps-purple); color: #fff; font-size: 0.83rem; }
+        .ps-langchip__name { font-weight: 500; }
+        .ps-langchip__x { display: flex; background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.7); padding: 2px; }
+        .ps-langchip__x:hover { color: #fff; }
+        .ps-flu { position: relative; }
+        .ps-flu__btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 7px;
+          background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: #fff; cursor: pointer;
+          font-family: inherit; font-size: 0.76rem; font-weight: 500; }
+        .ps-flu__btn:hover { background: rgba(255,255,255,0.16); }
+        .ps-flu__menu { position: absolute; top: calc(100% + 5px); left: 0; z-index: 30; min-width: 150px; padding: 5px;
+          border-radius: 10px; background: #15151c; border: 1px solid rgba(255,255,255,0.12);
+          box-shadow: 0 18px 44px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
+        .ps-flu__opt { padding: 8px 12px; border-radius: 7px; text-align: left; background: none; border: none; cursor: pointer;
+          color: #fff; font-family: inherit; font-size: 0.85rem; }
+        .ps-flu__opt:hover { background: rgba(255,255,255,0.07); }
+        .ps-flu__opt--on { background: rgba(167,139,250,0.18); }
+
+        /* Stub steps */
+        .ps-stub { text-align: center; padding: 34px 10px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .ps-stub__icon { width: 62px; height: 62px; border-radius: 18px; display: flex; align-items: center;
+          justify-content: center; background: rgba(167,139,250,0.14); color: var(--ps-purple); }
+        .ps-stub__title { font-size: 1.3rem; font-weight: 700; margin: 0; color: #fff; }
+        .ps-stub__text { font-size: 0.97rem; line-height: 1.6; color: rgba(255,255,255,0.55); max-width: 420px; margin: 0; }
+        .ps-stub__text strong { color: #fff; }
+
+        /* Actions */
+        .ps-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 24px;
+          padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.07); }
+        .ps-btn-ghost { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 999px;
+          font-size: 0.88rem; font-weight: 600; color: #fff; cursor: pointer; font-family: inherit;
+          background: transparent; border: 1px solid rgba(255,255,255,0.22); margin-right: auto; transition: all 0.2s; }
+        .ps-btn-ghost:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.04); }
+        .ps-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 10px 26px; border-radius: 999px;
+          font-size: 0.9rem; font-weight: 600; color: #fff; cursor: pointer; border: none; font-family: inherit;
+          background: linear-gradient(120deg, #A78BFA, #8f6ff0);
+          box-shadow: 0 12px 30px rgba(167,139,250,0.45); transition: all 0.2s; }
+        .ps-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(167,139,250,0.6); }
+        .ps-btn-primary:disabled, .ps-btn-ghost:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .ps-spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4);
+          border-top-color: #fff; animation: psSpin 0.7s linear infinite; }
+        @keyframes psSpin { to { transform: rotate(360deg); } }
+
+        /* Thank-you / submitted card */
+        .ps-thanks { text-align: center; padding: 48px 36px; display: flex; flex-direction: column; align-items: center; }
+        .ps-thanks__icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center;
+          justify-content: center; color: #fff; margin-bottom: 22px;
+          background: linear-gradient(135deg, #A78BFA, #7c3aed); box-shadow: 0 0 0 10px rgba(167,139,250,0.14), 0 16px 40px rgba(124,58,237,0.5); }
+        .ps-thanks__title { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0 0 12px; }
+        .ps-thanks__text { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.65); max-width: 420px; margin: 0 0 28px; }
+        .ps-thanks__text strong { color: #fff; }
+        .ps-thanks__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .ps-thanks__home { margin-right: 0; }
+        /* Validation */
+        .ps-error { font-size: 0.82rem; color: #f06d6d; margin-top: 2px; }
+        .ps-input--error, .ps-select__el--error { border-color: #ef4444 !important;
+          box-shadow: 0 0 0 3px rgba(239,68,68,0.16) !important; }
+        .ps-upload--error { border-color: #ef4444 !important; }
+        .ps-chips--error { border-radius: 14px; padding: 8px; margin: -8px;
+          box-shadow: 0 0 0 1px #ef4444, 0 0 0 4px rgba(239,68,68,0.14); }
+
+        /* ── Step 4 — Build Your Creator Portfolio ── */
+        .ps-muted { font-weight: 500; color: rgba(255,255,255,0.42); }
+        .ps-hinttext { font-size: 0.78rem; line-height: 1.5; color: rgba(255,255,255,0.5); margin: -2px 0 3px; }
+        .ps-section { display: flex; flex-direction: column; gap: 9px; padding-top: 6px;
+          border-top: 1px solid rgba(255,255,255,0.07); }
+        .ps-h3 { font-size: 0.98rem; font-weight: 700; color: #fff; margin: 4px 0 0; }
+        .ps-chip--add { color: var(--ps-purple); border-style: dashed; }
+        .ps-chip--add svg { color: var(--ps-purple); }
+        .ps-chip--add-on { background: rgba(167,139,250,0.16); border-style: solid; border-color: var(--ps-purple); }
+
+        /* Custom "Other" add-input */
+        .ps-custom { margin-top: 10px; }
+        .ps-custom__row { display: flex; gap: 10px; }
+        .ps-custom__row .ps-input { flex: 1; }
+        .ps-custom__add { padding: 0 24px; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: 600;
+          font-size: 0.92rem; color: #fff; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); transition: all 0.2s; }
+        .ps-custom__add:hover { background: rgba(167,139,250,0.2); border-color: rgba(167,139,250,0.45); }
+        .ps-custom__hint { font-size: 0.82rem; color: rgba(255,255,255,0.45); margin: 8px 0 0; }
+        .ps-custom__hint strong { color: #fff; }
+
+        /* Profile links */
+        .ps-links { display: flex; flex-direction: column; gap: 10px; }
+        .ps-link { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 12px; border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+        .ps-link__badge { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; color: #fff;
+          display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; }
+        .ps-link__input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #fff;
+          font-family: inherit; font-size: 0.95rem; }
+        .ps-link__input::placeholder { color: rgba(255,255,255,0.4); }
+        .ps-link__followers { width: 110px; flex-shrink: 0; padding: 8px 12px; border-radius: 9px; color: #fff;
+          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14); outline: none; font-family: inherit; font-size: 0.88rem; }
+        .ps-link__add { flex-shrink: 0; padding: 8px 14px; border-radius: 9px; cursor: pointer; font-family: inherit;
+          font-size: 0.85rem; font-weight: 600; color: var(--ps-purple); background: rgba(167,139,250,0.12);
+          border: 1px solid rgba(167,139,250,0.3); }
+        .ps-link__add:hover { background: rgba(167,139,250,0.2); }
+        .ps-addlink { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 2px;
+          background: none; border: none; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 600; color: var(--ps-purple); }
+        .ps-link__remove { flex-shrink: 0; display: flex; background: none; border: none; cursor: pointer;
+          color: rgba(255,255,255,0.5); padding: 6px; }
+        .ps-link__remove:hover { color: #fff; }
+
+        /* Add-another-social-link picker */
+        .ps-addbox { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; padding: 14px; border-radius: 14px;
+          border: 1px solid rgba(167,139,250,0.3); background: rgba(167,139,250,0.05); }
+        .ps-addbox__row { display: flex; gap: 10px; align-items: center; }
+        .ps-addbox__select { flex: 1; }
+        .ps-addbox__cancel { padding: 11px 22px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600;
+          font-size: 0.9rem; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); }
+        .ps-addbox__cancel:hover { border-color: rgba(255,255,255,0.4); }
+        .ps-addbox__add { align-self: flex-end; }
+
+        /* Permissions */
+        .ps-perm { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+        .ps-perm--error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.14); }
+        .ps-perm__title { font-size: 0.9rem; font-weight: 600; color: #fff; }
+        .ps-perm__note { font-size: 0.74rem; color: var(--ps-purple); margin-bottom: 4px; }
+        .ps-radio { display: flex; align-items: center; gap: 9px; padding: 5px 0; cursor: pointer;
+          font-size: 0.86rem; color: rgba(255,255,255,0.85); }
+        .ps-radio input { position: absolute; opacity: 0; pointer-events: none; }
+        .ps-radio__dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+          border: 2px solid rgba(255,255,255,0.3); transition: all 0.15s; }
+        .ps-radio input:checked + .ps-radio__dot { border-color: var(--ps-purple);
+          box-shadow: inset 0 0 0 3.5px var(--ps-purple); }
+
+        /* Portfolio uploader */
+        .ps-pf { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 16px; border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+        .ps-pf__left { display: flex; flex-direction: column; gap: 10px; }
+        .ps-pf__thumb { position: relative; height: 90px; border-radius: 12px; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #fff; }
+        .ps-pf__thumbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* Section divider */
+        .ps-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 6px 0 4px; }
+        .ps-pf__play { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; color: #fff;
+          background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.4); }
+        .ps-pf__change { padding: 8px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.82rem;
+          font-weight: 600; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); }
+        .ps-pf__change:hover { border-color: var(--ps-purple); }
+        .ps-pf__upload { padding: 9px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.85rem;
+          font-weight: 600; color: #fff; background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.22); }
+        .ps-pf__or { text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+        .ps-pf__right { display: flex; flex-direction: column; gap: 10px; }
+        .ps-textarea { min-height: 80px; resize: vertical; padding-top: 12px; }
+        .ps-btn-soft { align-self: flex-start; padding: 10px 22px; border-radius: 999px; cursor: pointer;
+          white-space: nowrap; font-family: inherit; font-size: 0.92rem; font-weight: 600; color: #fff; border: none;
+          background: linear-gradient(120deg, #A78BFA, #8f6ff0); box-shadow: 0 8px 20px rgba(167,139,250,0.35); }
+        /* Added portfolio video cards */
+        .ps-vids { display: flex; flex-direction: column; gap: 14px; }
+        .ps-vid { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 14px; border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+        .ps-vid__thumb { position: relative; align-self: start; height: 120px; border-radius: 10px; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #fff; }
+        .ps-vid__thumbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .ps-vid__body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+        .ps-vid__name { font-size: 0.92rem; font-weight: 600; color: #fff; }
+        .ps-vid__desc { font-size: 0.82rem; color: rgba(255,255,255,0.8); min-height: 46px; padding: 10px 12px;
+          border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); }
+        .ps-vid__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .ps-vid__actions--read { justify-content: space-between; }
+        .ps-vid__left { display: flex; align-items: center; gap: 12px; }
+        .ps-vid__btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+          font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); }
+        .ps-vid__btn:hover { border-color: var(--ps-purple); }
+        .ps-vid__del { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+          font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #f06d6d; background: none; border: none; }
+        .ps-vid__del--out { border: 1px solid rgba(240,109,109,0.4); }
+        .ps-vid__del:hover { background: rgba(240,109,109,0.1); }
+        .ps-vid__cancel { padding: 8px 14px; background: none; border: none; cursor: pointer; font-family: inherit;
+          font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.7); }
+        .ps-vid__cancel:hover { color: #fff; }
+        .ps-vid__added { display: inline-flex; align-items: center; gap: 5px; font-size: 0.83rem; font-weight: 600; color: #4ade80; }
+
+        /* Info note (final step) */
+        .ps-note { font-size: 0.82rem; line-height: 1.5; color: rgba(255,255,255,0.6); padding: 12px 14px;
+          border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+
+        /* Checkbox */
+        .ps-check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.92rem;
+          color: rgba(255,255,255,0.8); margin-top: 4px; }
+        .ps-check input { position: absolute; opacity: 0; pointer-events: none; }
+        .ps-check__box { width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+          border: 2px solid rgba(255,255,255,0.3); transition: all 0.15s; }
+        .ps-check input:checked + .ps-check__box { background: var(--ps-purple); border-color: var(--ps-purple);
+          box-shadow: inset 0 0 0 2px #0e0e14; }
+        .ps-check strong { color: #fff; }
+
+        /* Compensation */
+        .ps-comp { display: flex; align-items: center; gap: 12px; }
+        .ps-comp__label { width: 130px; flex-shrink: 0; font-size: 0.92rem; color: rgba(255,255,255,0.7); }
+        .ps-comp .ps-input { flex: 1; }
+        .ps-comp__period { width: 150px; flex-shrink: 0; }
+
+        /* Sidebar */
+        .ps-side { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 18px; }
+        .ps-progress { display: flex; align-items: center; gap: 16px; padding: 20px;
+          border-radius: 20px; border: 1px solid rgba(255,255,255,0.09);
+          background: radial-gradient(120% 120% at 100% 0%, rgba(167,139,250,0.16), transparent 60%), rgba(255,255,255,0.03); }
+        .ps-progress__ring { position: relative; width: 66px; height: 66px; border-radius: 50%; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: conic-gradient(var(--ps-purple) var(--p), rgba(255,255,255,0.1) 0); }
+        .ps-progress__ring::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: #0e0e14; }
+        .ps-progress__pct { position: relative; z-index: 1; font-size: 0.9rem; font-weight: 700; color: #fff; }
+        .ps-progress__title { font-size: 0.95rem; font-weight: 600; color: #fff; line-height: 1.3; }
+        .ps-progress__hint { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 5px; }
+
+        .ps-tracker { display: flex; flex-direction: column; padding: 8px;
+          border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.025); }
+        .ps-track { position: relative; display: flex; align-items: center; gap: 13px; padding: 11px 12px;
+          border-radius: 14px; background: none; border: none; cursor: default; text-align: left; transition: background 0.2s; }
+        .ps-track--done { cursor: pointer; }
+        .ps-track--done:hover { background: rgba(255,255,255,0.04); }
+        .ps-track:not(:last-child)::before { content: ''; position: absolute; left: 28px; top: 38px; bottom: -3px;
+          width: 2px; background: rgba(255,255,255,0.1); }
+        .ps-track--done::before { background: rgba(167,139,250,0.5); }
+        .ps-track__dot { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700;
+          background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.12); }
+        .ps-track--active .ps-track__dot { background: linear-gradient(120deg, #A78BFA, #8f6ff0); color: #fff;
+          border-color: transparent; box-shadow: 0 0 0 4px rgba(167,139,250,0.18); }
+        .ps-track--done .ps-track__dot { background: rgba(167,139,250,0.22); color: var(--ps-purple); border-color: rgba(167,139,250,0.5); }
+        .ps-track__text { display: flex; flex-direction: column; }
+        .ps-track__title { font-size: 0.92rem; font-weight: 600; color: rgba(255,255,255,0.6); }
+        .ps-track--active .ps-track__title, .ps-track--done .ps-track__title { color: #fff; }
+        .ps-track__sub { font-size: 0.74rem; color: rgba(255,255,255,0.4); }
+
+        /* Responsive */
+        @media (max-width: 560px) {
+          .ps-card { padding: 26px 22px; }
+          .ps-row { grid-template-columns: 1fr; }
+          .ps-title { font-size: 1.5rem; }
+          .ps-upload__cta { display: none; }
         }
       `}</style>
     </div>

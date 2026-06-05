@@ -267,22 +267,22 @@ const compareRows = [
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/17811912-uhd_2160_3840_24fps.mp4',
-    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN' },
+    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8 },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/6944288-uhd_2160_3840_24fps.mp4',
-    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8' },
+    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9 },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
     src: '/6951180-uhd_2160_3840_24fps.mp4',
-    brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G' },
+    brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0 },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/7690504-hd_1080_1920_30fps.mp4',
-    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl' },
+    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7 },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/13929852-uhd_2160_3840_24fps.mp4',
-    brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T' },
+    brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9 },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/6948556-uhd_2160_3840_24fps.mp4',
-    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A' },
+    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8 },
 ];
 
 // ─── Framer Motion variants ──────────────────────────────────────────────────
@@ -413,10 +413,10 @@ export default function Landing() {
   // Lines finish scrolling (~0.78), then fully fade out (~0.86) BEFORE the logo moves —
   // so the logo never overlaps the still-visible text.
   const logoBoardOpacity = useTransform(logo3dProgress, [0.8, 0.86], [1, 0]);
-  // Logo sits at the top-LEFT while the lines scroll + fade, then glides to the centre
-  // (it's base-centred in CSS, so x/y go from left+up to 0).
-  const logoX = useTransform(logo3dProgress, [0.88, 1], ['-32vw', '0vw']);
-  const logoY = useTransform(logo3dProgress, [0.88, 1], ['-12vh', '0vh']);
+  // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
+  // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
+  const logoX = '-32vw';
+  const logoY = '-12vh';
 
   // ── Hero — scroll-driven PNG logo sequence ──────────────────────────────────
   // Pinned hero plays in three phases as you scroll through its tall section:
@@ -465,7 +465,7 @@ export default function Landing() {
       else if (user.role === 'business') navigate('/brand-home');
       else if (user.role === 'admin') navigate('/dashboard/admin');
     } else {
-      navigate('/auth');
+      navigate('/auth?role=business');
     }
   };
 
@@ -514,13 +514,13 @@ export default function Landing() {
           </nav>
 
           <div className="lp-navbar__actions">
-            <a className="lp-nav-join" href="#" onClick={(e) => { e.preventDefault(); navigate('/auth'); }}>
+            <a className="lp-nav-join" href="/creator" onClick={(e) => { e.preventDefault(); navigate('/creator'); }}>
               Join as <em>Creator</em>
             </a>
-            <button className="lp-btn-login" onClick={() => navigate('/auth')}>
+            <button className="lp-btn-login" onClick={() => navigate('/auth?role=business')}>
               <LogIn size={16} /> Log in
             </button>
-            <button className="lp-btn-signup" onClick={handleGetStarted}>
+            <button className="lp-btn-signup" onClick={() => navigate('/auth?mode=signup&role=business')}>
               Sign Up
             </button>
           </div>
@@ -550,14 +550,14 @@ export default function Landing() {
           <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
             <LayoutGrid size={16} /> Others
           </a>
-          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/auth'); }}>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/auth?mode=signup&role=creator'); }}>
             Join as Creator
           </a>
           <div className="lp-navbar__mobile-actions">
-            <button className="lp-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth'); }}>
+            <button className="lp-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth?role=business'); }}>
               <LogIn size={16} /> Log in
             </button>
-            <button className="lp-btn-signup" onClick={() => { setMenuOpen(false); handleGetStarted(); }}>
+            <button className="lp-btn-signup" onClick={() => { setMenuOpen(false); navigate('/auth?mode=signup&role=business'); }}>
               Sign Up
             </button>
           </div>
@@ -624,7 +624,7 @@ export default function Landing() {
             </button>
             <button
               className="lp-btn-ghost"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/auth?role=business')}
               data-testid="learn-more-btn"
             >
               Join the Creator Network
@@ -1050,21 +1050,16 @@ export default function Landing() {
                       }}
                     />
                   )}
+                  <div className="lp-showcase-card__rating">
+                    <Star size={12} fill="#FBBF24" stroke="#FBBF24" />
+                    {v.rating.toFixed(1)}
+                  </div>
+                  <span className={`lp-showcase-card__tier lp-showcase-card__tier--${v.tier.toLowerCase()}`}>
+                    {v.tier}
+                  </span>
                 </div>
                 <div className="lp-showcase-meta">
-                  <div className="lp-showcase-meta__row">
-                    <div className="lp-showcase-meta__info">
-                      <div className="lp-showcase-meta__brand">{v.brand}</div>
-                    </div>
-                    <div className="lp-showcase-meta__logo" style={{ background: v.logoBg }}>
-                      {v.logoText}
-                    </div>
-                  </div>
-                  <div className="lp-showcase-meta__stars">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
-                    ))}
-                  </div>
+                  <div className="lp-showcase-meta__brand">{v.brand}</div>
                 </div>
               </div>
             );
@@ -1072,12 +1067,12 @@ export default function Landing() {
               <>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--left">
-                    {[...row1, ...row1, ...row1].map((v, idx) => renderItem(v, idx, 'R1'))}
+                    {Array.from({ length: 8 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
                   </div>
                 </div>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--right">
-                    {[...row2, ...row2, ...row2].map((v, idx) => renderItem(v, idx, 'R2'))}
+                    {Array.from({ length: 8 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
                   </div>
                 </div>
               </>
@@ -1390,7 +1385,7 @@ export default function Landing() {
             </button>
             <button
               className="lp-btn-outline"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/auth?role=business')}
             >
               See How It Works
             </button>
@@ -2713,20 +2708,20 @@ export default function Landing() {
           will-change: transform;
         }
         .lp-showcase__track--left {
-          animation: showcaseScrollLeft 60s linear infinite;
+          animation: showcaseScrollLeft 55s linear infinite;
         }
         .lp-showcase__track--right {
-          animation: showcaseScrollRight 60s linear infinite;
+          animation: showcaseScrollRight 55s linear infinite;
         }
         .lp-showcase__viewport:hover .lp-showcase__track {
           animation-play-state: paused;
         }
         @keyframes showcaseScrollLeft {
           0%   { transform: translateX(0); }
-          100% { transform: translateX(-33.333%); }
+          100% { transform: translateX(-50%); }
         }
         @keyframes showcaseScrollRight {
-          0%   { transform: translateX(-33.333%); }
+          0%   { transform: translateX(-50%); }
           100% { transform: translateX(0); }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -2737,13 +2732,13 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           gap: 12px;
-          width: 220px;
+          width: 172px;
           flex-shrink: 0;
         }
 
         .lp-showcase-card {
           position: relative;
-          aspect-ratio: 9 / 11;
+          aspect-ratio: 9 / 13;
           border-radius: 18px;
           overflow: hidden;
           background: #111;
@@ -2762,37 +2757,57 @@ export default function Landing() {
           display: block;
         }
 
-        .lp-showcase-card__tag {
+        /* Top-left numeric rating overlay */
+        .lp-showcase-card__rating {
           position: absolute;
-          top: 12px;
-          right: 12px;
-          padding: 6px 14px;
+          top: 10px;
+          left: 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 9px;
           border-radius: 100px;
-          background: rgba(255,255,255,0.95);
-          backdrop-filter: blur(6px);
-          color: var(--lp-text);
+          background: rgba(10, 10, 20, 0.55);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.14);
+          color: #fff;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
-          font-weight: 500;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+          font-weight: 700;
           letter-spacing: -0.01em;
+          line-height: 1;
+        }
+
+        /* Top-right tier badge overlay */
+        .lp-showcase-card__tier {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          padding: 4px 10px;
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.66rem;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          color: #fff;
+          text-transform: uppercase;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .lp-showcase-card__tier--elite {
+          background: linear-gradient(135deg, #7c3aed, #4338ca);
+        }
+        .lp-showcase-card__tier--pro {
+          background: linear-gradient(135deg, #2563eb, #1e3a8a);
+        }
+        .lp-showcase-card__tier--rising {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
         }
 
         /* Meta footer below each card */
         .lp-showcase-meta {
           padding: 0 4px;
-          text-align: left;
-        }
-        .lp-showcase-meta__row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 6px;
-        }
-        .lp-showcase-meta__info {
-          min-width: 0;
-          flex: 1;
+          text-align: center;
         }
         .lp-showcase-meta__brand {
           font-family: 'Instrument Sans', sans-serif;
@@ -2802,32 +2817,6 @@ export default function Landing() {
           letter-spacing: -0.02em;
           line-height: 1.2;
         }
-        .lp-showcase-meta__creator {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.85rem;
-          color: var(--lp-text-muted);
-          margin-top: 2px;
-        }
-        .lp-showcase-meta__logo {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          color: #ffffff;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Instrument Sans', sans-serif;
-          font-weight: 700;
-          font-size: 1rem;
-          flex-shrink: 0;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.10);
-        }
-        .lp-showcase-meta__stars {
-          display: flex;
-          align-items: center;
-          gap: 2px;
-        }
-
         @media (max-width: 1024px) {
           .lp-showcase__grid { grid-auto-columns: minmax(240px, 280px); }
         }

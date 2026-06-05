@@ -1,14 +1,15 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import Landing from './pages/Landing';
+import CreatorLanding from './pages/CreatorLanding';
 import Auth from './pages/Auth';
+import CreatorSignup from './pages/CreatorSignup';
 import CreatorProfileSetup from './pages/CreatorProfileSetup';
 import BusinessProfileSetup from './pages/BusinessProfileSetup';
 import CreatorDashboard from './pages/CreatorDashboard';
 import BusinessDashboard from './pages/BusinessDashboard';
-import BrandWelcomePage from './pages/BrandWelcomePage';
 import AdminDashboard from './pages/AdminDashboard';
 import ProfileSettings from './pages/ProfileSettings';
 import CampaignDetails from './pages/CampaignDetails';
@@ -110,15 +111,28 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
+// Resets scroll to the top on every route change so a new page never opens
+// at the scroll position of the page you navigated from.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
         <AuthProvider>
+          <ScrollToTop />
           <Toaster position="top-right" richColors />
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/creator" element={<CreatorLanding />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/creator/signup" element={<CreatorSignup />} />
             <Route
               path="/profile-setup/creator"
               element={
@@ -203,7 +217,7 @@ function App() {
               path="/brand-home"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BrandWelcomePage />
+                  <BusinessDashboard page="overview" />
                 </ProtectedRoute>
               }
             />

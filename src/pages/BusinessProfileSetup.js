@@ -1,267 +1,523 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import axios from 'axios';
 import { toast } from 'sonner';
-import { Building2, Globe } from 'lucide-react';
+import { ChevronDown, CheckCircle } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// iso = flagcdn country code (flags are image-based so they render on Windows too).
+const DIAL_CODES = [
+  { iso: 'in', label: 'IN', code: '+91' },
+  { iso: 'us', label: 'US', code: '+1' },
+  { iso: 'gb', label: 'GB', code: '+44' },
+  { iso: 'au', label: 'AU', code: '+61' },
+  { iso: 'ca', label: 'CA', code: '+1' },
+  { iso: 'de', label: 'DE', code: '+49' },
+  { iso: 'fr', label: 'FR', code: '+33' },
+  { iso: 'ae', label: 'AE', code: '+971' },
+  { iso: 'sg', label: 'SG', code: '+65' },
+];
+
+const flagSrc = (iso) => `https://flagcdn.com/w40/${iso}.png`;
+
+const COUNTRIES = [
+  'United States', 'United Kingdom', 'India', 'Canada', 'Australia',
+  'Germany', 'France', 'United Arab Emirates', 'Singapore', 'Netherlands',
+  'Spain', 'Italy', 'Japan', 'Brazil', 'Mexico', 'Other',
+];
+
+const INDUSTRIES = [
+  'Fashion & Apparel', 'Beauty & Cosmetics', 'Technology & Gadgets',
+  'Food & Beverage', 'Health & Fitness', 'Home & Lifestyle',
+  'Travel & Tourism', 'Education', 'Entertainment', 'Other',
+];
 
 export default function BusinessProfileSetup() {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    business_description: '',
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [dial, setDial] = useState(DIAL_CODES[0]);   // default India
+  const [dialOpen, setDialOpen] = useState(false);
+  const [form, setForm] = useState({
+    businessName: '',
+    facebook: '',
     website: '',
-    social_links: { facebook: '', instagram: '', linkedin: '' },
-    product_type: '',
-    industry_category: '',
+    instagram: '',
+    phone: '',
+    country: '',
+    industry: '',
+    gstin: '',
   });
 
-  const industries = [
-    'Fashion & Apparel',
-    'Beauty & Cosmetics',
-    'Technology & Gadgets',
-    'Food & Beverage',
-    'Health & Fitness',
-    'Home & Lifestyle',
-    'Travel & Tourism',
-    'Education',
-    'Entertainment',
-    'Other'
-  ];
+  const set = (field, value) => setForm((p) => ({ ...p, [field]: value }));
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const errors = {
+    businessName: !form.businessName.trim() ? 'Business name is required.' : '',
+    website: !form.website.trim() ? 'Website is required' : '',
+    instagram: !form.instagram.trim() ? 'Instagram is required' : '',
+    phone: !form.phone.trim() ? 'Phone number is required' : '',
+    country: !form.country ? 'Country is required.' : '',
   };
+  const err = (field) => (submitted ? errors[field] : '');
 
-  const handleNestedChange = (parent, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [parent]: { ...prev[parent], [field]: value }
-    }));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    try {
-      await axios.put(`${API}/profile/business`, formData);
-      toast.success('Profile submitted for review!');
-      
-      // Update user context
-      const updatedUser = { ...user, profile_completed: true, approval_status: 'pending' };
-      setUser(updatedUser);
-
-      navigate('/brand-home');
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update profile');
-    } finally {
-      setLoading(false);
+    setSubmitted(true);
+    if (Object.values(errors).some(Boolean)) {
+      toast.error('Please fill in the required fields');
+      return;
     }
+    // DEMO: no backend — simulate a submit, then show the thank-you screen.
+    setSubmitting(true);
+    setTimeout(() => {
+      setUser({ ...user, profile_completed: true, approval_status: 'pending' });
+      setSubmitting(false);
+      setDone(true);
+    }, 1200);
   };
+
+  if (done) {
+    return (
+      <div className="bp-page">
+        <div className="bp-card bp-card--thanks">
+          <div className="bp-check"><CheckCircle size={56} strokeWidth={1.75} /></div>
+          <h1 className="bp-title">Thank You!</h1>
+          <p className="bp-sub bp-sub--center">
+            Your brand details have been submitted successfully. We'll tailor insights
+            and recommendations for you and your account is now under review.
+          </p>
+          <button type="button" className="bp-next" onClick={() => navigate('/brand-home')}>
+            Go to Dashboard
+          </button>
+        </div>
+        <ThemeStyles />
+      </div>
+    );
+  }
 
   return (
-    <div className="profile-setup-page">
-      <div className="profile-container fade-in">
-        <div className="profile-header">
-          <Building2 size={48} className="header-icon" />
-          <h1>Complete Your Business Profile</h1>
-          <p>Tell creators about your brand and products</p>
+    <div className="bp-page">
+      <form className="bp-card" onSubmit={handleSubmit} noValidate>
+        <h1 className="bp-title">Add your <span className="bp-accent">Brand</span> Details</h1>
+        <p className="bp-sub">
+          Provide your brand's online details so we can tailor insights and recommendations for you.
+        </p>
+
+        {/* Business name */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-name">Business name</label>
+          <input
+            id="bp-name"
+            className={`bp-input${err('businessName') ? ' bp-input--error' : ''}`}
+            placeholder="Enter business name.."
+            value={form.businessName}
+            onChange={(e) => set('businessName', e.target.value)}
+          />
+          {err('businessName') && <span className="bp-err">{err('businessName')}</span>}
         </div>
 
-        <form onSubmit={handleSubmit} className="profile-form">
-          <div className="form-section">
-            <h3>Business Information</h3>
-            <div className="form-group">
-              <label htmlFor="business_description">Business Description</label>
-              <textarea
-                id="business_description"
-                value={formData.business_description}
-                onChange={(e) => handleInputChange('business_description', e.target.value)}
-                className="textarea-field"
-                placeholder="Describe your business, products, and what makes your brand unique..."
-                required
-                data-testid="business-description-input"
-              />
-            </div>
+        {/* Facebook URL */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-fb">Facebook URL</label>
+          <input
+            id="bp-fb"
+            className="bp-input"
+            placeholder="Paste the link to your Facebook business page."
+            value={form.facebook}
+            onChange={(e) => set('facebook', e.target.value)}
+          />
+        </div>
 
-            <div className="form-group">
-              <label htmlFor="product_type">Product Type</label>
-              <input
-                id="product_type"
-                type="text"
-                value={formData.product_type}
-                onChange={(e) => handleInputChange('product_type', e.target.value)}
-                className="input-field"
-                placeholder="e.g., Clothing, Electronics, Skincare"
-                required
-                data-testid="product-type-input"
-              />
-            </div>
+        {/* Website URL */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-web">Business website URL</label>
+          <input
+            id="bp-web"
+            className={`bp-input${err('website') ? ' bp-input--error' : ''}`}
+            placeholder="www.business.com"
+            value={form.website}
+            onChange={(e) => set('website', e.target.value)}
+          />
+          {err('website') && <span className="bp-err">{err('website')}</span>}
+        </div>
 
-            <div className="form-group">
-              <label htmlFor="industry_category">Industry Category</label>
-              <select
-                id="industry_category"
-                value={formData.industry_category}
-                onChange={(e) => handleInputChange('industry_category', e.target.value)}
-                className="input-field"
-                required
-                data-testid="industry-category-select"
+        {/* Instagram */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-ig">Instagram Username</label>
+          <div className={`bp-input-group${err('instagram') ? ' bp-input--error' : ''}`}>
+            <span className="bp-prefix">@</span>
+            <input
+              id="bp-ig"
+              className="bp-input bp-input--bare"
+              placeholder="brandname"
+              value={form.instagram}
+              onChange={(e) => set('instagram', e.target.value)}
+            />
+          </div>
+          {err('instagram') && <span className="bp-err">{err('instagram')}</span>}
+        </div>
+
+        {/* Phone */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-phone">Phone Number</label>
+          <div className="bp-phone-wrap">
+            <div className={`bp-input-group${err('phone') ? ' bp-input--error' : ''}`}>
+              <button
+                type="button"
+                className="bp-dial-btn"
+                onClick={() => setDialOpen((o) => !o)}
+                aria-label="Country code"
               >
-                <option value="">Select an industry</option>
-                {industries.map(industry => (
-                  <option key={industry} value={industry}>{industry}</option>
-                ))}
-              </select>
+                <img className="bp-flag" src={flagSrc(dial.iso)} alt={dial.label} />
+                <span className="bp-dial-code">{dial.code}</span>
+                <ChevronDown size={15} className="bp-dial-caret" />
+              </button>
+              <input
+                id="bp-phone"
+                type="tel"
+                className="bp-input bp-input--bare"
+                value={form.phone}
+                onChange={(e) => set('phone', e.target.value.replace(/[^\d\s-]/g, ''))}
+              />
             </div>
+
+            {dialOpen && (
+              <>
+                <div className="bp-dial-backdrop" onClick={() => setDialOpen(false)} />
+                <ul className="bp-dial-menu" role="listbox">
+                  {DIAL_CODES.map((d, i) => (
+                    <li
+                      key={i}
+                      className={`bp-dial-opt${d.iso === dial.iso ? ' bp-dial-opt--active' : ''}`}
+                      onClick={() => { setDial(d); setDialOpen(false); }}
+                    >
+                      <img className="bp-flag" src={flagSrc(d.iso)} alt={d.label} />
+                      <span className="bp-dial-opt__label">{d.label}</span>
+                      <span className="bp-dial-opt__code">{d.code}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
+          {err('phone') && <span className="bp-err">{err('phone')}</span>}
+        </div>
 
-          <div className="form-section">
-            <h3><Globe size={20} /> Online Presence</h3>
-            <div className="form-group">
-              <label htmlFor="website">Website URL</label>
-              <input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => handleInputChange('website', e.target.value)}
-                className="input-field"
-                placeholder="https://yourbrand.com"
-                data-testid="website-input"
-              />
-            </div>
+        {/* Country */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-country">Country</label>
+          <select
+            id="bp-country"
+            className={`bp-input bp-select${err('country') ? ' bp-input--error' : ''}${!form.country ? ' bp-select--placeholder' : ''}`}
+            value={form.country}
+            onChange={(e) => set('country', e.target.value)}
+          >
+            <option value="" disabled>Select country...</option>
+            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {err('country') && <span className="bp-err">{err('country')}</span>}
+        </div>
 
-            <div className="form-group">
-              <label htmlFor="facebook">Facebook</label>
-              <input
-                id="facebook"
-                type="text"
-                value={formData.social_links.facebook}
-                onChange={(e) => handleNestedChange('social_links', 'facebook', e.target.value)}
-                className="input-field"
-                placeholder="facebook.com/yourpage"
-                data-testid="facebook-input"
-              />
-            </div>
+        {/* Industry */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-industry">Industry</label>
+          <select
+            id="bp-industry"
+            className={`bp-input bp-select${!form.industry ? ' bp-select--placeholder' : ''}`}
+            value={form.industry}
+            onChange={(e) => set('industry', e.target.value)}
+          >
+            <option value="" disabled>Select industry...</option>
+            {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </div>
 
-            <div className="form-group">
-              <label htmlFor="instagram">Instagram</label>
-              <input
-                id="instagram"
-                type="text"
-                value={formData.social_links.instagram}
-                onChange={(e) => handleNestedChange('social_links', 'instagram', e.target.value)}
-                className="input-field"
-                placeholder="@yourbrand"
-                data-testid="instagram-input"
-              />
-            </div>
+        {/* GSTIN — optional */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-gstin">GSTIN Number</label>
+          <input
+            id="bp-gstin"
+            className="bp-input"
+            placeholder="Enter GSTIN"
+            value={form.gstin}
+            onChange={(e) => set('gstin', e.target.value.toUpperCase())}
+            maxLength={15}
+          />
+        </div>
 
-            <div className="form-group">
-              <label htmlFor="linkedin">LinkedIn</label>
-              <input
-                id="linkedin"
-                type="text"
-                value={formData.social_links.linkedin}
-                onChange={(e) => handleNestedChange('social_links', 'linkedin', e.target.value)}
-                className="input-field"
-                placeholder="linkedin.com/company/yourbrand"
-                data-testid="linkedin-input"
-              />
-            </div>
-          </div>
+        <button type="submit" className="bp-next" disabled={submitting}>
+          {submitting ? 'Submitting…' : 'Submit'}
+        </button>
+      </form>
 
-          <button type="submit" className="btn-primary" disabled={loading} data-testid="submit-business-profile-btn">
-            {loading ? 'Submitting...' : 'Submit for Review'}
-          </button>
-        </form>
-      </div>
+      <ThemeStyles />
+    </div>
+  );
+}
 
-      <style jsx>{`
-        .profile-setup-page {
+function ThemeStyles() {
+  return (
+    <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        .bp-page {
+          position: relative;
           min-height: 100vh;
-          padding: 60px 20px;
-          background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
-        }
-
-        .profile-container {
-          max-width: 800px;
-          margin: 0 auto;
-          background: white;
-          border-radius: 24px;
-          padding: 48px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .profile-header {
-          text-align: center;
-          margin-bottom: 48px;
-        }
-
-        .header-icon {
-          color: #667eea;
-          margin: 0 auto 16px;
-        }
-
-        .profile-header h1 {
-          font-size: 2rem;
-          font-weight: 700;
-          color: #1a202c;
-          margin-bottom: 8px;
-        }
-
-        .profile-header p {
-          color: #718096;
-        }
-
-        .profile-form {
           display: flex;
-          flex-direction: column;
-          gap: 32px;
+          justify-content: center;
+          align-items: flex-start;
+          padding: 32px 20px;
+          background: linear-gradient(160deg, #050510 0%, #0b0a26 55%, #07074e 100%);
+          font-family: 'Inter', sans-serif;
+          overflow: hidden;
+        }
+        .bp-page::before,
+        .bp-page::after {
+          content: '';
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(90px);
+          pointer-events: none;
+          z-index: 0;
+        }
+        .bp-page::before {
+          width: 520px; height: 520px;
+          top: -12%; left: -6%;
+          background: rgba(99, 102, 241, 0.20);
+        }
+        .bp-page::after {
+          width: 460px; height: 460px;
+          bottom: -10%; right: -4%;
+          background: rgba(139, 92, 246, 0.16);
         }
 
-        .form-section {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
+        .bp-card {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          max-width: 520px;
+          background: rgba(18, 18, 26, 0.72);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.09);
+          border-radius: 18px;
+          padding: 28px 34px 30px;
+          box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
         }
 
-        .form-section h3 {
-          font-size: 1.25rem;
+        .bp-step {
+          display: block;
+          color: #A78BFA;
+          font-size: 0.85rem;
           font-weight: 600;
-          color: #2d3748;
+          margin-bottom: 6px;
+        }
+        .bp-title {
+          margin: 0 0 6px;
+          font-size: 1.35rem;
+          font-weight: 700;
+          color: #ffffff;
+          letter-spacing: -0.01em;
+        }
+        .bp-accent { color: #A78BFA; }
+        .bp-sub {
+          margin: 0 0 22px;
+          color: rgba(255, 255, 255, 0.62);
+          font-size: 0.9rem;
+          line-height: 1.5;
+        }
+
+        .bp-field { margin-bottom: 14px; }
+        .bp-label {
+          display: block;
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.85);
+          margin-bottom: 7px;
+        }
+
+        .bp-input {
+          width: 100%;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1.5px solid rgba(255, 255, 255, 0.14);
+          border-radius: 9px;
+          padding: 11px 14px;
+          font-size: 0.92rem;
+          color: #ffffff;
+          font-family: 'Inter', sans-serif;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+        .bp-input::placeholder { color: rgba(255, 255, 255, 0.38); }
+        .bp-input:focus {
+          outline: none;
+          border-color: #A78BFA;
+          background: rgba(255, 255, 255, 0.06);
+          box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+        }
+        .bp-input--error { border-color: #f87171; }
+        /* Dark dropdown lists for native selects */
+        .bp-input option, .bp-select option {
+          background-color: #14142a;
+          color: #ffffff;
+        }
+        .bp-select option:disabled { color: rgba(255, 255, 255, 0.4); }
+
+        /* Grouped inputs (prefix / dial code) */
+        .bp-input-group {
+          display: flex;
+          align-items: stretch;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1.5px solid rgba(255, 255, 255, 0.14);
+          border-radius: 9px;
+          overflow: hidden;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+        .bp-input-group:focus-within {
+          border-color: #A78BFA;
+          background: rgba(255, 255, 255, 0.06);
+          box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+        }
+        .bp-input-group.bp-input--error { border-color: #f87171; }
+        .bp-prefix {
           display: flex;
           align-items: center;
-          gap: 8px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .form-group label {
-          font-weight: 600;
-          color: #2d3748;
+          padding: 0 12px;
+          color: rgba(255, 255, 255, 0.55);
           font-size: 0.95rem;
+          border-right: 1.5px solid rgba(255, 255, 255, 0.14);
+        }
+        .bp-input--bare {
+          border: none;
+          border-radius: 0;
+          background: transparent;
+          flex: 1;
+          min-width: 0;
+        }
+        .bp-input--bare:focus { box-shadow: none; background: transparent; }
+
+        /* Custom phone country-code dropdown */
+        .bp-phone-wrap { position: relative; }
+        .bp-dial-btn {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          border: none;
+          border-right: 1.5px solid rgba(255, 255, 255, 0.14);
+          background: transparent;
+          padding: 0 10px 0 12px;
+          font-family: 'Inter', sans-serif;
+          cursor: pointer;
+          outline: none;
+          color: #ffffff;
+        }
+        .bp-flag {
+          width: 22px;
+          height: 16px;
+          object-fit: cover;
+          border-radius: 3px;
+          flex-shrink: 0;
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+        }
+        .bp-dial-code { font-size: 0.92rem; font-weight: 600; color: #ffffff; }
+        .bp-dial-caret { color: rgba(255, 255, 255, 0.55); }
+
+        .bp-dial-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 40;
+        }
+        .bp-dial-menu {
+          position: absolute;
+          z-index: 41;
+          top: calc(100% + 6px);
+          left: 0;
+          width: 200px;
+          max-height: 260px;
+          overflow-y: auto;
+          margin: 0;
+          padding: 6px;
+          list-style: none;
+          background: #14142a;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 12px;
+          box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+        }
+        .bp-dial-opt {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 9px 10px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.15s ease;
+        }
+        .bp-dial-opt:hover { background: rgba(255, 255, 255, 0.07); }
+        .bp-dial-opt--active { background: rgba(167, 139, 250, 0.18); }
+        .bp-dial-opt__label {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.55);
+          width: 24px;
+        }
+        .bp-dial-opt__code { font-size: 0.9rem; color: #ffffff; }
+
+        /* Native selects */
+        .bp-select {
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          padding-right: 40px;
+        }
+        .bp-select--placeholder { color: rgba(255, 255, 255, 0.4); }
+
+        .bp-err {
+          display: block;
+          margin-top: 6px;
+          color: #f87171;
+          font-size: 0.82rem;
         }
 
-        .profile-form .btn-primary {
-          margin-top: 16px;
+        .bp-next {
+          width: 100%;
+          margin-top: 18px;
+          padding: 14px;
+          border: none;
+          border-radius: 100px;
+          background: linear-gradient(120deg, #A78BFA, #8f6ff0);
+          color: #ffffff;
+          font-size: 1rem;
+          font-weight: 700;
+          font-family: 'Inter', sans-serif;
+          cursor: pointer;
+          box-shadow: 0 12px 30px rgba(167, 139, 250, 0.34);
+          transition: box-shadow 0.2s ease, transform 0.15s ease;
         }
+        .bp-next:hover { box-shadow: 0 16px 40px rgba(167, 139, 250, 0.48); transform: translateY(-1px); }
+        .bp-next:active { transform: translateY(0); }
 
-        @media (max-width: 640px) {
-          .profile-container {
-            padding: 32px 24px;
-          }
+        /* Thank-you screen */
+        .bp-card--thanks { text-align: center; }
+        .bp-check {
+          width: 88px;
+          height: 88px;
+          margin: 0 auto 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          color: #A78BFA;
+          background: rgba(167, 139, 250, 0.12);
+          border: 1px solid rgba(167, 139, 250, 0.3);
+        }
+        .bp-sub--center { margin-bottom: 26px; }
+        .bp-card--thanks .bp-title { margin-bottom: 10px; }
+
+        @media (max-width: 520px) {
+          .bp-card { padding: 24px 20px 26px; }
+          .bp-title { font-size: 1.2rem; }
         }
       `}</style>
-    </div>
   );
 }

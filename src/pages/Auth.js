@@ -1,65 +1,36 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { User, Building2, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [role, setRole] = useState('creator');
+  const [searchParams] = useSearchParams();
+  const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'signup');
+  const [role, setRole] = useState(searchParams.get('role') === 'business' ? 'business' : 'creator');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, setUser } = useAuth();
+  const { login } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      const endpoint = isLogin ? '/auth/login' : '/auth/signup';
-      const payload = isLogin ? { email, password } : { email, password, role };
-
-      const response = await axios.post(`${API}${endpoint}`, payload);
-      const { token, ...userData } = response.data;
-
-      login(token, userData);
+    // DEMO: no backend — set a local session and route by role.
+    setTimeout(() => {
+      login('demo-token', { email, role, profile_completed: isLogin });
       toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
 
       if (!isLogin) {
-        if (role === 'creator') {
-          navigate('/profile-setup/creator');
-        } else if (role === 'business') {
-          navigate('/profile-setup/business');
-        }
+        navigate(role === 'creator' ? '/profile-setup/creator' : '/profile-setup/business');
       } else {
-        if (!userData.profile_completed) {
-          if (userData.role === 'creator') {
-            navigate('/profile-setup/creator');
-          } else if (userData.role === 'business') {
-            navigate('/profile-setup/business');
-          }
-        } else {
-          if (userData.role === 'creator') {
-            navigate('/dashboard/creator');
-          } else if (userData.role === 'business') {
-            navigate('/brand-home');
-          } else if (userData.role === 'admin') {
-            navigate('/dashboard/admin');
-          }
-        }
+        navigate(role === 'creator' ? '/dashboard/creator' : '/brand-home');
       }
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Authentication failed');
-    } finally {
       setLoading(false);
-    }
+    }, 600);
   };
 
   return (

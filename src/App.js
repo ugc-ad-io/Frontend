@@ -48,6 +48,32 @@ export const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+// ── Global site theme (light default) ──────────────────────────────────────
+export const ThemeContext = createContext();
+export const useTheme = () => useContext(ThemeContext);
+
+function ThemeProvider({ children }) {
+  // Default DARK during the light-theme rollout so half-converted pages don't load
+  // looking broken. Flip this to 'light' once every page is fully themed.
+  const [theme, setThemeState] = useState(() => localStorage.getItem('site-theme') || 'dark');
+
+  useEffect(() => {
+    localStorage.setItem('site-theme', theme);
+    // Drive every page via a single attribute on <html>; pages style off
+    // [data-theme="light"|"dark"] (or read useTheme()).
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const setTheme = (t) => setThemeState(t);
+  const toggleTheme = () => setThemeState((t) => (t === 'light' ? 'dark' : 'light'));
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -125,6 +151,7 @@ function App() {
   return (
     <div className="App">
       <BrowserRouter>
+        <ThemeProvider>
         <AuthProvider>
           <ScrollToTop />
           <Toaster position="top-right" richColors />
@@ -465,6 +492,7 @@ function App() {
             />
           </Routes>
         </AuthProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </div>
   );

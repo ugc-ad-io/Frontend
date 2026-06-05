@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth, useTheme } from '../App';
 import {
   ArrowRight,
   ChevronRight,
@@ -42,6 +42,8 @@ import {
   LayoutGrid,
   LogIn,
   Menu,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent } from 'framer-motion';
 
@@ -76,32 +78,53 @@ const LOGO3D_ITEM_VH = 10;
 // Fraction of the section scroll over which all leaderboard rows pass the centre.
 const LOGO3D_SCROLL_END = 0.78;
 
-// One leaderboard row. `p` is the scroll-progress point where this row sits at the
-// centre; it stays hidden until the scroll approaches that point, then fades in —
-// so rows appear one-by-one at the centre as the track scrolls them upward.
-function LeaderboardRow({ progress, p, rank, name, metric }) {
-  // Spotlight: this row is brightest exactly when it sits at the centre (progress = p),
-  // and dims as it moves away above/below. Breakpoints kept inside [0,1] and strictly
-  // increasing (framer requires monotonic, non-negative input offsets).
-  const c1 = Math.min(0.999, Math.max(0.001, p));
-  const c0 = Math.max(0, c1 - 0.06);
-  const c2 = Math.min(1, c1 + 0.06);
-  const opacity = useTransform(progress, [c0, c1, c2], [0.5, 1, 0.5]);
-  // the widest (centre) line stays pure white across a band; off-centre lines are grey.
-  const cInL = (c0 + c1) / 2;
-  const cInR = (c1 + c2) / 2;
-  const color = useTransform(progress, [c0, cInL, cInR, c2], ['#7c818b', '#ffffff', '#ffffff', '#7c818b']);
-  // tilt on the Y axis (from the right): off-centre lines — already scrolled (above)
-  // and not-yet-scrolled (below) — tilt right; the centred line is flat.
-  const rotateY = useTransform(progress, [c0, c1, c2], [-22, 0, -22]);
-  // the line at the centre is largest; lines above/below shrink.
-  const scale = useTransform(progress, [c0, c1, c2], [0.62, 1, 0.62]);
+// Pre-scroll offset. 0 = the 1st row is already centred/focused when the section
+// begins (no empty pre-roll); raise it to make rows start lower and rise into focus.
+const LB_PRE = 0;
+
+// One leaderboard row, animated measured.site-style. The whole list shares one
+// scroll value; each row's `offset` = its index minus the (fractional) focused
+// index, and every visual property is a pure function of that offset:
+//   fontSize 60→10px · opacity 1→0.03 · translateY = offset×160 · 2D rotate
+//   (entry below = +cw clamped 24°, exit above = −ccw clamped −24°) · white→grey
+//   colour · weight 500/400/300 · hidden past ±3.
+function LeaderboardRow({ progress, index, count }) {
+  const total = count - 1 + LB_PRE;                 // full focus travel
+  // Spread the whole list across [0 → LOGO3D_SCROLL_END] of the section's scroll so
+  // every row passes focus before the board fades out (~0.8).
+  const off = useTransform(progress, (v) => index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE));
+
+  const fontSize = useTransform(off, (o) => `${Math.max(10, 60 - Math.abs(o) * 14)}px`);
+  const opacity = useTransform(off, (o) => Math.max(0.03, 1 - Math.abs(o) * 0.38));
+  const fontWeight = useTransform(off, (o) => (Math.abs(o) < 0.22 ? 500 : Math.abs(o) < 1.3 ? 400 : 300));
+  const display = useTransform(off, (o) => (Math.abs(o) > 3 ? 'none' : 'flex'));
+  const pointerEvents = useTransform(off, (o) => (Math.abs(o) < 0.5 ? 'auto' : 'none'));
+  // White at the focus, fading to grey as it moves away (dark-stage variant of the
+  // measured.site black→light-grey ramp).
+  const color = useTransform(off, (o) => {
+    const a = Math.abs(o);
+    if (a < 0.12) return '#ffffff';
+    const lum = Math.round(Math.max(70, 235 - a * 60));
+    return `rgb(${lum},${lum},${lum})`;
+  });
+  // translate(-50%,-50%) centres the row; +offset×160 spaces it; 2D rotate tilts it.
+  const transform = useTransform(off, (o) => {
+    const ty = o * 160;
+    const rot = o > 0 ? Math.min(o * 8, 24) : Math.max(o * 8, -24);
+    return `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg)`;
+  });
+
   return (
-    <motion.div className="lp-logo3d__boardItem" style={{ opacity, rotateY, scale, color }}>
-      <span className="lp-logo3d__rank">{rank}</span>
-      <span className="lp-logo3d__creator">{name}</span>
-      <span className="lp-logo3d__metric">{metric}</span>
-    </motion.div>
+    <motion.a
+      className="lp-logo3d__boardItem"
+      href="#"
+      onClick={(e) => e.preventDefault()}
+      style={{ opacity, color, fontWeight, fontSize, display, pointerEvents, transform }}
+    >
+      <span className="lp-logo3d__rank">{ordinal(index + 1)}</span>
+      <span className="lp-logo3d__creator">{TOP_CREATORS[index].name}</span>
+      <span className="lp-logo3d__metric">{TOP_CREATORS[index].metric}</span>
+    </motion.a>
   );
 }
 
@@ -369,6 +392,7 @@ function CountUp({ value }) {
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState(null);
@@ -416,31 +440,47 @@ export default function Landing() {
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
   const logoX = '-32vw';
-  const logoY = '-12vh';
+  const logoY = '-6vh';
 
-  // ── Hero — scroll-driven PNG logo sequence ──────────────────────────────────
-  // Pinned hero plays in three phases as you scroll through its tall section:
-  //   P1 (0–0.30): logo nudges down.  P2 (0.30–0.62): grows + glides to centre,
-  //   copy + brand strip fade.  P3 (0.62–1): bg light→dark, navy mark crossfades
-  //   to white with a glow, navbar flips to its dark-friendly theme.
+  // ── Hero — pinned marketing copy ────────────────────────────────────────────
+  // The hero no longer owns a logo: the 3D mark is a single fixed overlay that
+  // flies across BOTH the hero and the 3D section (see `journeyP` below). Here we
+  // only track the hero's own scroll to fade the brand strip out mid-section.
   const heroRef = useRef(null);
   const { scrollYProgress: heroP } = useScroll({
     target: heroRef,
     offset: ['start start', 'end end'],
   });
-  // Logo stays on the RIGHT: dips down a bit on the 1st scroll, then grows in
-  // place on the 2nd scroll (anchored to its right edge so it never clips off).
-  const heroLogoY = useTransform(heroP, [0, 0.3], ['0vh', '7vh']);
-  const heroLogoScale = useTransform(heroP, [0.3, 0.6], [1, 1.5]);
-  // State-driven CSS classes (reliable plain-CSS opacity — motion-value opacity
-  // didn't apply consistently here): hide the brand strip past the 2nd scroll,
-  // and recolour the logo white → navy blue on the 3rd scroll.
   const [heroCollapsed, setHeroCollapsed] = useState(false);
-  const [heroNavy, setHeroNavy] = useState(false);
   useMotionValueEvent(heroP, 'change', (v) => {
-    setHeroCollapsed(v > 0.42);
-    setHeroNavy(v > 0.62);
+    setHeroCollapsed(v > 0.5);
   });
+
+  // ── 3D logo "fly" — one continuous journey across hero + 3D section ──────────
+  // `journeyRef` wraps BOTH sections, so journeyP (0→1) spans the whole pinned
+  // run: hero pins over P≈0→0.35, the 3D section over P≈0.35→1. A single fixed
+  // overlay (.lp-logo-fly) is driven by it in three phases:
+  //   GROW   (0   → 0.08): small → full size, parked on the right (old PNG spot).
+  //   TRAVEL (0.20 → 0.42): glides left + up across the hero→section seam, landing
+  //                         in the 3D section's resting spot (matches logoX/logoY).
+  //   ROTATE (0.42 → 0.95): tips upright→landscape then spins in place (the GLB's
+  //                         own internal animation, fed by `logoSpinP`).
+  const journeyRef = useRef(null);
+  const { scrollYProgress: journeyP } = useScroll({
+    target: journeyRef,
+    offset: ['start start', 'end end'],
+  });
+  // Starts already large (image-1 size), pops to full FAST so it doesn't eat scroll.
+  const flyScale = useTransform(journeyP, [0, 0.05], [0.78, 1]);
+  // Parks on the RIGHT through the whole hero (no copy there), then — only AFTER the
+  // hero copy has scrolled away (~0.31) — slides to its resting spot, DIPPING DOWN on
+  // the way so it travels BELOW the text instead of sweeping straight across it.
+  const flyX = useTransform(journeyP, [0.36, 0.56], ['30vw', logoX]);
+  const flyY = useTransform(journeyP, [0.36, 0.46, 0.56], ['0vh', '12vh', logoY]);
+  const flyOpacity = useTransform(journeyP, [0.94, 1], [1, 0]);
+  // Hold at 0 through GROW/TRAVEL, then ramp 0→1 so the GLB tips + spins only once
+  // it has landed. (HeroLogo3D holds its settled pose past its own SPIN_END.)
+  const logoSpinP = useTransform(journeyP, [0.56, 0.95], [0, 1]);
   // On small screens, skip the pinned scroll choreography and fall back to a
   // clean stacked static hero (inline motion styles are dropped). Reduced-motion
   // is intentionally NOT a trigger — the scroll sequence is core to this hero.
@@ -473,7 +513,7 @@ export default function Landing() {
   // const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
 
   return (
-    <div className="lp-root">
+    <div className="lp-root" data-theme={theme}>
 
       {/* ── Animated background blobs ───────────────────────────────────── */}
       <div className="lp-bg-animations" aria-hidden="true">
@@ -514,6 +554,17 @@ export default function Landing() {
           </nav>
 
           <div className="lp-navbar__actions">
+            <button
+              type="button"
+              className={`lp-theme${theme === 'dark' ? ' lp-theme--dark' : ''}`}
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              <span className="lp-theme__knob">{theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}</span>
+              <span className="lp-theme__ic lp-theme__ic--sun"><Sun size={13} /></span>
+              <span className="lp-theme__ic lp-theme__ic--moon"><Moon size={13} /></span>
+            </button>
             <a className="lp-nav-join" href="/creator" onClick={(e) => { e.preventDefault(); navigate('/creator'); }}>
               Join as <em>Creator</em>
             </a>
@@ -564,9 +615,26 @@ export default function Landing() {
         </div>
       </motion.header>
 
-      {/* ── Hero — scroll-driven PNG logo sequence ─────────────────────────── */}
+      {/* ── Journey wrapper — drives the one continuous 3D-logo fly-through ──── */}
+      <div className="lp-journey" ref={journeyRef}>
+
+      {/* Fixed 3D mark that flies across the hero + 3D section (desktop only).
+          On mobile we fall back to a static 3D inside the section (see below). */}
+      {!heroStatic && (
+        <motion.div
+          className="lp-logo-fly"
+          style={{ x: flyX, y: flyY, scale: flyScale, opacity: flyOpacity }}
+          aria-hidden="true"
+        >
+          <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
+            <HeroLogo3D progress={logoSpinP} />
+          </Suspense>
+        </motion.div>
+      )}
+
+      {/* ── Hero — pinned marketing copy (logo lives in the fly overlay) ─────── */}
       <section
-        className={`lp-hero${heroStatic ? ' lp-hero--static' : ''}${!heroStatic && heroCollapsed ? ' lp-hero--collapsed' : ''}${!heroStatic && heroNavy ? ' lp-hero--navy' : ''}`}
+        className={`lp-hero${heroStatic ? ' lp-hero--static' : ''}${!heroStatic && heroCollapsed ? ' lp-hero--collapsed' : ''}`}
         ref={heroRef}
       >
         <motion.div className="lp-hero__sticky">
@@ -649,23 +717,8 @@ export default function Landing() {
           </motion.div>
           </div>
 
-          {/* Right: the UGC logo mark — grows in place on the right; recolours later */}
-          <motion.div
-            className="lp-hero__logo"
-            style={heroStatic ? undefined : { y: heroLogoY, scale: heroLogoScale }}
-          >
-            <img
-              src="/edited-image-preview_-_Edited-removebg-preview.png"
-              alt="UGCad"
-              className="lp-hero__logo-img lp-hero__logo-img--white"
-            />
-            <img
-              src="/ugcad-logo_-_Edited-removebg-preview.png"
-              alt=""
-              aria-hidden="true"
-              className="lp-hero__logo-img lp-hero__logo-img--navy"
-            />
-          </motion.div>
+          {/* The logo mark now lives in the fixed .lp-logo-fly overlay above —
+              it flies in from here and continues into the 3D section below. */}
 
           {/* Bottom strip — scrolling brand logos (hidden once past the 2nd scroll) */}
           <div className="lp-hero__strip">
@@ -747,36 +800,39 @@ export default function Landing() {
       </section>
 
       {/* ── 3D glass logo (left) + center copy — scroll-driven ──────────────── */}
-      <section className="lp-logo3d" ref={logo3dRef}>
+      <section className={`lp-logo3d${logo3dInView ? ' is-in' : ''}`} ref={logo3dRef}>
         <div className="lp-logo3d__sticky">
-          {/* 3D logo — top-left while lines scroll, then glides to centre */}
-          <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoY }}>
-            {logo3dInView ? (
-              <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
-                <HeroLogo3D progress={logo3dProgress} />
-              </Suspense>
-            ) : (
-              <div className="lp-logo3d__placeholder" aria-hidden="true" />
-            )}
-          </motion.div>
+          {/* 3D logo — top-left resting spot. On desktop the fixed .lp-logo-fly
+              overlay flies in and occupies this position, so the stage here is a
+              MOBILE-ONLY fallback (no fly-through on small screens). */}
+          {heroStatic && (
+            <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoY }}>
+              {logo3dInView ? (
+                <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
+                  <HeroLogo3D progress={logo3dProgress} />
+                </Suspense>
+              ) : (
+                <div className="lp-logo3d__placeholder" aria-hidden="true" />
+              )}
+            </motion.div>
+          )}
 
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
           <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity }}>
-            <motion.div className="lp-logo3d__boardTrack" style={{ y: logoBoardY }}>
+            <div className="lp-logo3d__boardTrack">
               {TOP_CREATORS.map((c, i) => (
                 <LeaderboardRow
                   key={c.name}
                   progress={logo3dProgress}
-                  p={(i / (TOP_CREATORS.length - 1)) * LOGO3D_SCROLL_END}
-                  rank={ordinal(i + 1)}
-                  name={c.name}
-                  metric={c.metric}
+                  index={i}
+                  count={TOP_CREATORS.length}
                 />
               ))}
-            </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
+      </div>{/* /lp-journey */}
 
       {/* connector 1: hero → hook — joined U-bridge with center drop into badge */}
       <div className="lp-connector" style={{ height: 380, marginBottom: -110 }}>
@@ -1057,9 +1113,6 @@ export default function Landing() {
                   <span className={`lp-showcase-card__tier lp-showcase-card__tier--${v.tier.toLowerCase()}`}>
                     {v.tier}
                   </span>
-                </div>
-                <div className="lp-showcase-meta">
-                  <div className="lp-showcase-meta__brand">{v.brand}</div>
                 </div>
               </div>
             );
@@ -1493,8 +1546,8 @@ export default function Landing() {
       {/* ── Styles ─────────────────────────────────────────────────────────── */}
       <style>{`
         :root {
-          --lp-purple-50:  rgba(255,255,255,0.06);
-          --lp-purple-100: rgba(255,255,255,0.08);
+          --lp-purple-50:  rgba(var(--lp-fg),0.06);
+          --lp-purple-100: rgba(var(--lp-fg),0.08);
           --lp-purple-200: #BBBBC8;
           --lp-purple-300: #8888A0;
           --lp-purple-500: #3A3A66;
@@ -1503,7 +1556,7 @@ export default function Landing() {
           --lp-purple-900: #050538;
           --lp-ink:        #0A0A0A;
           --lp-text:       #ffffff;
-          --lp-text-muted: rgba(255, 255, 255, 0.7);
+          --lp-text-muted: rgba(var(--lp-fg), 0.7);
           --lp-text-soft:  #9CA3AF;
           --lp-bg:         #0a0a0a;
           --lp-bg-soft:    #0a0a0a;
@@ -1512,12 +1565,30 @@ export default function Landing() {
 
         /* ── Root ─────────────────────────────────────────────────────────── */
         .lp-root {
+          /* Dark is the base; [data-theme="light"] overrides below. --lp-fg is an
+             RGB triplet used as rgba(var(--lp-fg),a) for theme-flippable whites. */
+          --lp-fg: 255, 255, 255;
+          --lp-page-bg: #0a0a0a;
+          --lp-text: #ffffff;
           min-height: 100vh;
           font-family: 'Instrument Sans', 'Inter', sans-serif;
-          background: #0a0a0a;
-          color: #ffffff;
+          background: var(--lp-page-bg);
+          color: var(--lp-text);
           position: relative;
+          transition: background 0.3s ease, color 0.3s ease;
         }
+        .lp-root[data-theme="light"] {
+          --lp-fg: 28, 27, 75;          /* navy text/borders/surfaces */
+          --lp-page-bg: #ecebf8;        /* light lavender */
+          --lp-text: #1c1b4b;
+          --lp-bg: #ecebf8;
+          --lp-bg-soft: #f4f3fc;
+          --lp-text-muted: rgba(28,27,75,0.66);
+          --lp-text-soft: #5b5a7e;
+          --lp-section: #ffffff;        /* light card/section surface */
+        }
+        /* Dark base also exposes a section-surface token so both themes share it. */
+        .lp-root { --lp-section: #07074e; }
 
         /* ── Animated purple background blobs ──────────────────────────── */
         .lp-bg-animations {
@@ -1534,6 +1605,12 @@ export default function Landing() {
           filter: blur(80px);
           opacity: 0.5;
           will-change: transform, opacity;
+        }
+        /* On the light theme, recolour the ambient blobs to a soft purple and fade
+           them so they read as a gentle glow, not dark smudges on the lavender bg. */
+        .lp-root[data-theme="light"] .lp-bg-blob {
+          background: linear-gradient(135deg, #c9bdff 0%, #b7a8ff 100%);
+          opacity: 0.45;
         }
         .lp-bg-blob--1 {
           width: 480px; height: 480px;
@@ -1588,7 +1665,7 @@ export default function Landing() {
         .lp-root label, .lp-root td, .lp-root th, .lp-root strong, .lp-root em,
         .lp-root blockquote, .lp-root figcaption, .lp-root input, .lp-root textarea,
         .lp-root select, .lp-root button {
-          color: #ffffff;
+          color: var(--lp-text);
           color: var(--lp-text);
         }
 
@@ -1634,13 +1711,13 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.95rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.88);
+          color: rgba(var(--lp-fg), 0.88);
           text-decoration: none;
           cursor: pointer;
           transition: color 0.2s ease;
         }
         .lp-root .lp-navlink:hover { color: #ffffff; }
-        .lp-navlink svg { color: rgba(255, 255, 255, 0.6); }
+        .lp-navlink svg { color: rgba(var(--lp-fg), 0.6); }
 
         .lp-navbar__actions {
           margin-left: auto;
@@ -1669,16 +1746,31 @@ export default function Landing() {
           gap: 7px;
           padding: 8px 18px;
           border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.25);
+          border: 1px solid rgba(var(--lp-fg), 0.25);
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
           font-size: 0.92rem;
           cursor: pointer;
           transition: all 0.2s ease;
         }
-        .lp-btn-login:hover { border-color: rgba(255, 255, 255, 0.55); }
+        .lp-btn-login:hover { border-color: rgba(var(--lp-fg), 0.55); }
+
+        /* Theme toggle (sun/moon pill switch) */
+        .lp-root .lp-theme { position: relative; width: 64px; height: 30px; border-radius: 999px; cursor: pointer;
+          border: 1px solid rgba(var(--lp-fg,255,255,255),0.2); background: rgba(var(--lp-fg,255,255,255),0.08);
+          padding: 0; flex-shrink: 0; transition: background 0.25s ease; }
+        .lp-theme__knob { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; color: #fff;
+          background: linear-gradient(135deg, #4f7cff, #2f5be6); box-shadow: 0 2px 8px rgba(47,91,230,0.5);
+          transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); z-index: 2; }
+        .lp-theme--dark .lp-theme__knob { transform: translateX(34px);
+          background: linear-gradient(135deg, #3a3a55, #20202f); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .lp-theme__ic { position: absolute; top: 50%; transform: translateY(-50%); display: flex; align-items: center;
+          justify-content: center; color: rgba(var(--lp-fg,255,255,255),0.5); z-index: 1; }
+        .lp-theme__ic--sun { left: 8px; }
+        .lp-theme__ic--moon { right: 8px; }
 
         /* Sign Up — filled purple button */
         .lp-root .lp-btn-signup {
@@ -1686,7 +1778,7 @@ export default function Landing() {
           border-radius: 10px;
           border: 1px solid #A78BFA;
           background: #A78BFA;
-          color: #ffffff;
+          color: #fff;
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 600;
           font-size: 0.92rem;
@@ -1704,9 +1796,9 @@ export default function Landing() {
           width: 42px;
           height: 42px;
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(255, 255, 255, 0.06);
-          color: #ffffff;
+          border: 1px solid rgba(var(--lp-fg), 0.2);
+          background: rgba(var(--lp-fg), 0.06);
+          color: var(--lp-text);
           cursor: pointer;
         }
         .lp-navbar__mobile {
@@ -1717,34 +1809,54 @@ export default function Landing() {
           padding: 12px;
           border-radius: 16px;
           background: rgba(18, 18, 22, 0.96);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(var(--lp-fg), 0.12);
           box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
           backdrop-filter: blur(12px);
         }
         .lp-navbar__mobile .lp-navlink {
           padding: 12px 12px;
           border-radius: 10px;
-          color: rgba(255, 255, 255, 0.9);
+          color: rgba(var(--lp-fg), 0.9);
         }
-        .lp-navbar__mobile .lp-navlink:active { background: rgba(255, 255, 255, 0.08); }
+        .lp-navbar__mobile .lp-navlink:active { background: rgba(var(--lp-fg), 0.08); }
         .lp-navbar__mobile-actions {
           display: flex;
           gap: 10px;
           margin-top: 8px;
           padding-top: 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          border-top: 1px solid rgba(var(--lp-fg), 0.1);
         }
         .lp-navbar__mobile-actions .lp-btn-login,
         .lp-navbar__mobile-actions .lp-btn-signup { flex: 1; justify-content: center; }
 
         /* ── Hero (dark constellation) ─────────────────────────────────────── */
         /* Tall scroll track that drives the pinned hero sequence */
+        .lp-journey { position: relative; }
+
         .lp-hero {
           position: relative;
-          height: 420vh;
-          color: #ffffff;
+          height: 200vh;
+          color: var(--lp-text);
           isolation: isolate;
           z-index: 3;
+        }
+
+        /* The single 3D mark that flies across the hero + 3D section. Fixed to the
+           viewport (so it floats above the hero→section seam, never clipped), base-
+           centred via negative margins; scroll-driven translate/scale do the rest.
+           Sized to match the 3D section's resting stage so scale:1 == landed size. */
+        .lp-logo-fly {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          width: clamp(200px, 27vw, 400px);
+          height: clamp(200px, 40vh, 440px);
+          margin-top: calc(clamp(200px, 40vh, 440px) * -0.5);
+          margin-left: calc(clamp(200px, 27vw, 400px) * -0.5);
+          transform-origin: center center;
+          z-index: 4;
+          pointer-events: none;
+          will-change: transform, opacity;
         }
 
         /* Pinned stage — stays dark throughout; bottom padding reserves room for the strip */
@@ -1753,9 +1865,13 @@ export default function Landing() {
           top: 0;
           height: 100vh;
           overflow: hidden;
-          background: #0a0a0a;
+          background: var(--lp-page-bg);
           padding: 120px 6% 210px;
         }
+        /* In light mode show the navy/blue logo mark (the white one would vanish on
+           the light hero), regardless of the scroll-driven crossfade state. */
+        .lp-root[data-theme="light"] .lp-hero__logo-img--white { opacity: 0 !important; }
+        .lp-root[data-theme="light"] .lp-hero__logo-img--navy { opacity: 1 !important; }
 
         /* Left: marketing copy (left-aligned, upper zone) */
         .lp-hero__inner {
@@ -1804,7 +1920,7 @@ export default function Landing() {
         /* Start state — clean white mark with a soft glow (visible by default) */
         .lp-hero__logo-img--white {
           opacity: 1;
-          filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.28));
+          filter: drop-shadow(0 0 40px rgba(var(--lp-fg), 0.28));
         }
         /* 3rd-scroll state — navy-blue mark; brightened + blue glow so it reads clearly
            on the dark stage. Hidden until the .lp-hero--navy class is applied. */
@@ -1822,8 +1938,8 @@ export default function Landing() {
           gap: 8px;
           padding: 6px 14px;
           border-radius: 100px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(var(--lp-fg), 0.04);
+          border: 1px solid rgba(var(--lp-fg), 0.12);
           color: #C8F23A;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.8rem;
@@ -1837,7 +1953,7 @@ export default function Landing() {
           font-size: clamp(2rem, 4.5vw, 3.6rem);
           font-weight: 500;
           line-height: 1.1;
-          color: #ffffff;
+          color: var(--lp-text);
           margin: 0 0 24px 0;
           letter-spacing: -0.04em;
           max-width: 20ch;
@@ -1846,7 +1962,7 @@ export default function Landing() {
         .lp-hero__mark {
           display: inline-block;
           background: #A78BFA;
-          color: #ffffff;
+          color: var(--lp-text);
           padding: 0.04em 0.28em;
           border-radius: 10px;
           white-space: nowrap;
@@ -1854,7 +1970,7 @@ export default function Landing() {
 
         .lp-hero__subtitle {
           font-family: 'Instrument Sans', sans-serif;
-          color: rgba(255, 255, 255, 0.65);
+          color: rgba(var(--lp-fg), 0.65);
           font-size: 1rem;
           line-height: 1.55;
           max-width: 520px;
@@ -1884,7 +2000,7 @@ export default function Landing() {
           padding: 14px 28px;
           border-radius: 100px;
           background: #A78BFA;
-          color: #ffffff;
+          color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 700;
           font-size: 0.98rem;
@@ -1903,19 +2019,19 @@ export default function Landing() {
           gap: 6px;
           padding: 13px 24px;
           border-radius: 100px;
-          background: rgba(255, 255, 255, 0.06);
-          color: #ffffff;
+          background: rgba(var(--lp-fg), 0.06);
+          color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
           font-size: 0.98rem;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(var(--lp-fg), 0.2);
           cursor: pointer;
           transition: background 0.22s ease, border-color 0.22s ease;
           backdrop-filter: blur(8px);
         }
         .lp-hero .lp-btn-ghost:hover {
-          background: rgba(255, 255, 255, 0.12);
-          border-color: rgba(255, 255, 255, 0.32);
+          background: rgba(var(--lp-fg), 0.12);
+          border-color: rgba(var(--lp-fg), 0.32);
         }
 
         .lp-hero__badges {
@@ -1930,13 +2046,13 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 7px 14px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(var(--lp-fg), 0.05);
+          border: 1px solid rgba(var(--lp-fg), 0.1);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.75);
+          color: rgba(var(--lp-fg), 0.75);
           backdrop-filter: blur(8px);
         }
         .lp-proof-badge__icon {
@@ -1947,7 +2063,7 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: #ffffff;
+          color: var(--lp-text);
         }
 
         /* Layer 4: shrunk phone tucked bottom-right */
@@ -1959,7 +2075,7 @@ export default function Landing() {
           height: 360px;
           border-radius: 26px;
           overflow: hidden;
-          border: 2px solid rgba(255, 255, 255, 0.1);
+          border: 2px solid rgba(var(--lp-fg), 0.1);
           box-shadow:
             0 30px 70px rgba(0, 0, 0, 0.55),
             0 0 0 1px rgba(167, 139, 250, 0.15);
@@ -1997,12 +2113,12 @@ export default function Landing() {
         .lp-hero__strip-counter strong {
           font-size: 1.7rem;
           font-weight: 600;
-          color: #ffffff;
+          color: var(--lp-text);
           letter-spacing: -0.02em;
         }
         .lp-hero__strip-counter span {
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.55);
+          color: rgba(var(--lp-fg), 0.55);
           font-weight: 500;
         }
 
@@ -2046,9 +2162,9 @@ export default function Landing() {
           height: 96px;
           border-radius: 24px;
           background: #131316;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(var(--lp-fg), 0.09);
           /* soft highlight from the top-left for a subtly raised tile (like the ref) */
-          box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.10);
+          box-shadow: inset 1px 1px 0 rgba(var(--lp-fg), 0.10);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2062,7 +2178,7 @@ export default function Landing() {
         .lp-brand-item__name {
           font-size: 0.78rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.55);
+          color: rgba(var(--lp-fg), 0.55);
           white-space: nowrap;
           transition: color 0.3s ease;
         }
@@ -2079,7 +2195,7 @@ export default function Landing() {
           height: 140px;
           border-radius: 28px;
           background: #1f1f1f;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(var(--lp-fg), 0.1);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2093,6 +2209,8 @@ export default function Landing() {
           width: 108px;
           height: 108px;
           object-fit: contain;
+          /* The PNG's mark sits a touch high within its transparent box — nudge it down to optically centre */
+          transform: translateY(6px);
         }
 
         /* Left track moves right→left (brands flow toward center from right) */
@@ -2120,10 +2238,36 @@ export default function Landing() {
         /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
         .lp-logo3d {
           position: relative;
-          height: 300vh;                 /* scroll travel that drives the animation */
+          height: 220vh;                 /* scroll travel that drives the animation */
           background: transparent;       /* show the shared animated page background */
           z-index: 2;
         }
+        /* Smooth the hard hero(black)→section(navy) seam: a tall gradient at the top
+           of this section starts at the hero's #0a0a0a and melts into the navy bg. */
+        .lp-logo3d::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 130vh;
+          background: linear-gradient(180deg, #0a0a0a 0%, rgba(10,10,16,0.55) 38%, transparent 100%);
+          z-index: 0;
+          pointer-events: none;
+        }
+        /* Soft glow that eases in when the section enters view, so the transition
+           feels intentional rather than an abrupt cut. */
+        .lp-logo3d::after {
+          content: '';
+          position: absolute;
+          top: 6vh; left: 50%;
+          width: min(900px, 90vw); height: 70vh;
+          transform: translateX(-50%);
+          background: radial-gradient(50% 50% at 50% 50%, rgba(99,102,241,0.18), transparent 70%);
+          opacity: 0;
+          z-index: 0;
+          pointer-events: none;
+          transition: opacity 1.1s ease;
+        }
+        .lp-logo3d.is-in::after { opacity: 1; }
         .lp-logo3d__sticky {
           position: sticky;
           top: 0;
@@ -2161,32 +2305,29 @@ export default function Landing() {
           height: 100vh;
           z-index: 2;
           overflow: hidden;
-          perspective: 700px;            /* 3D depth for the per-row X tilt */
+          perspective: 600px;            /* 3D depth for the per-row X tilt (lower = more dramatic drum) */
           perspective-origin: center center;
           -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
                   mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
         }
         .lp-logo3d__boardTrack {
           position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          will-change: transform;
-          transform-style: preserve-3d;  /* let each row's rotateX use the perspective */
+          inset: 0;                      /* full stage; rows position themselves */
         }
         .lp-logo3d__boardItem {
-          height: 10vh;                  /* matches LOGO3D_ITEM_VH */
-          transform-origin: center center;  /* pivot from centre so text stays centred */
+          position: absolute;
+          left: 50%; top: 50%;           /* centred; JS transform adds offset + rotate */
+          transform-origin: center center;
           display: flex;
-          align-items: center;
+          align-items: baseline;
           justify-content: center;
-          gap: 0.6em;
+          gap: 0.4em;
           white-space: nowrap;
+          text-decoration: none;
           font-family: 'Instrument Sans', 'Inter', sans-serif;
-          font-size: clamp(1.2rem, 2.6vw, 2.3rem);
-          font-weight: 600;
-          letter-spacing: -0.02em;
-          color: #ffffff;
+          letter-spacing: -0.03em;
+          line-height: 1;
+          will-change: transform, opacity, font-size;
         }
         /* colour is driven per-row (grey → white at the centre); spans inherit it */
         .lp-logo3d__rank { color: inherit; font-weight: 500; }
@@ -2216,7 +2357,7 @@ export default function Landing() {
         /* ── The Problem section ──────────────────────────────────────────── */
         .lp-problem {
           padding: 100px 8% 60px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
         }
         .lp-problem__inner {
           max-width: 1200px;
@@ -2229,7 +2370,7 @@ export default function Landing() {
           gap: 6px;
           padding: 6px 14px;
           border-radius: 100px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text-muted);
           font-family: 'Instrument Sans', sans-serif;
@@ -2275,7 +2416,7 @@ export default function Landing() {
         }
 
         .lp-pcard {
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 24px;
           padding: 22px;
@@ -2321,7 +2462,7 @@ export default function Landing() {
           width: 50px;
           height: 50px;
           border-radius: 12px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           display: flex;
           align-items: center;
@@ -2348,7 +2489,7 @@ export default function Landing() {
           bottom: 8%;
           left: 22%;
           background: #25D366;
-          color: #fff;
+          color: var(--lp-text);
           border-color: #25D366;
           border-radius: 50%;
         }
@@ -2356,7 +2497,7 @@ export default function Landing() {
           top: 52%;
           left: 32%;
           width: 40px; height: 40px;
-          color: rgba(255, 255, 255, 0.7);
+          color: rgba(var(--lp-fg), 0.7);
           font-size: 0.9rem;
           background: #FAFAFA;
           border-radius: 8px;
@@ -2367,7 +2508,7 @@ export default function Landing() {
           right: 14%;
           width: 38px; height: 38px;
           font-size: 1rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(var(--lp-fg), 0.6);
           background: #FAFAFA;
           transform: rotate(8deg);
         }
@@ -2384,7 +2525,7 @@ export default function Landing() {
           top: -6px;
           right: -6px;
           background: #ef4444;
-          color: #fff;
+          color: var(--lp-text);
           font-size: 0.6rem;
           padding: 1px 5px;
           border-radius: 8px;
@@ -2433,7 +2574,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.72rem;
           font-weight: 500;
-          background: rgba(255,255,255,0.06);
+          background: rgba(var(--lp-fg),0.06);
           border: 1px solid #FCA5A5;
           color: #FCA5A5;
           box-shadow: 0 4px 12px rgba(0,0,0,0.06);
@@ -2483,7 +2624,7 @@ export default function Landing() {
           width: 90px;
           height: 90px;
           border-radius: 50%;
-          background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+          background: linear-gradient(135deg, rgba(var(--lp-fg),0.1), rgba(var(--lp-fg),0.05));
           color: var(--lp-purple-700);
           display: flex;
           align-items: center;
@@ -2538,7 +2679,7 @@ export default function Landing() {
           width: 32px; height: 32px;
           border-radius: 8px;
           background: #111;
-          color: #fff;
+          color: var(--lp-text);
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
@@ -2603,7 +2744,7 @@ export default function Landing() {
         .lp-showcase {
           padding: 80px 8% 100px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
         }
         .lp-showcase__inner {
           max-width: 1200px;
@@ -2650,7 +2791,7 @@ export default function Landing() {
           gap: 8px;
           padding: 10px 20px;
           border-radius: 100px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
@@ -2675,12 +2816,12 @@ export default function Landing() {
 
         .lp-filter--reset {
           background: var(--lp-ink);
-          color: #ffffff;
+          color: var(--lp-text);
           border-color: var(--lp-ink);
         }
         .lp-filter--reset:hover {
           background: var(--lp-purple-700);
-          color: #ffffff;
+          color: var(--lp-text);
           border-color: var(--lp-purple-700);
         }
 
@@ -2738,7 +2879,7 @@ export default function Landing() {
 
         .lp-showcase-card {
           position: relative;
-          aspect-ratio: 9 / 13;
+          aspect-ratio: 9 / 15;
           border-radius: 18px;
           overflow: hidden;
           background: #111;
@@ -2770,8 +2911,8 @@ export default function Landing() {
           background: rgba(10, 10, 20, 0.55);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.14);
-          color: #fff;
+          border: 1px solid rgba(var(--lp-fg),0.14);
+          color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 700;
@@ -2790,7 +2931,7 @@ export default function Landing() {
           font-size: 0.66rem;
           font-weight: 800;
           letter-spacing: 0.06em;
-          color: #fff;
+          color: var(--lp-text);
           text-transform: uppercase;
           box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
@@ -2830,7 +2971,7 @@ export default function Landing() {
         .lp-compare {
           padding: 100px 8% 100px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
         }
         .lp-compare__inner {
           max-width: 1200px;
@@ -2856,7 +2997,7 @@ export default function Landing() {
         }
 
         .lp-compare__table {
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border-radius: 24px;
           border: 1px solid var(--lp-border);
           overflow: hidden;
@@ -2938,7 +3079,7 @@ export default function Landing() {
         }
         .lp-compare__check--filled {
           background: var(--lp-purple-600);
-          color: #ffffff;
+          color: var(--lp-text);
           box-shadow: 0 4px 12px rgba(7, 7, 78, 0.32);
         }
 
@@ -2975,7 +3116,7 @@ export default function Landing() {
         .lp-features {
           padding: 60px 8% 120px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
           position: relative;
         }
         .lp-features__inner {
@@ -3017,7 +3158,7 @@ export default function Landing() {
         }
 
         .lp-card {
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           padding: 32px 26px 26px;
           border-radius: 20px;
           border: 1.5px solid var(--lp-border);
@@ -3102,7 +3243,7 @@ export default function Landing() {
           position: relative;
           padding: 70px 8% 100px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
           overflow: hidden;
           text-align: center;
         }
@@ -3140,7 +3281,7 @@ export default function Landing() {
           align-items: center;
           gap: 8px;
           padding: 7px 18px;
-          background: rgba(255,255,255,0.85);
+          background: rgba(var(--lp-fg),0.85);
           backdrop-filter: blur(8px);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
@@ -3290,7 +3431,7 @@ export default function Landing() {
           gap: 8px;
           padding: 15px 32px;
           border-radius: 100px;
-          background: rgba(255,255,255,0.8);
+          background: rgba(var(--lp-fg),0.8);
           backdrop-filter: blur(6px);
           color: #07074e;
           font-family: 'Instrument Sans', sans-serif;
@@ -3301,7 +3442,7 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-btn-outline:hover {
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border-color: #A78BFA;
           color: #A78BFA;
         }
@@ -3329,7 +3470,7 @@ export default function Landing() {
           align-items: center;
           gap: 28px;
           padding: 20px 32px;
-          background: rgba(255,255,255,0.7);
+          background: rgba(var(--lp-fg),0.7);
           backdrop-filter: blur(12px);
           border: 1px solid var(--lp-border);
           border-radius: 18px;
@@ -3426,10 +3567,27 @@ export default function Landing() {
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
           .lp-hero__badges { gap: 6px; }
           .lp-proof-badge { font-size: 0.7rem; padding: 5px 10px; }
+          /* The hero logo's 220px floor made it fill ~60% of a phone screen as a
+             giant white→navy bar. Shrink it to a tasteful top-right accent. */
+          .lp-hero__logo {
+            width: clamp(110px, 30vw, 180px);
+            height: clamp(110px, 30vw, 180px);
+            margin-top: calc(clamp(110px, 30vw, 180px) * -0.5);
+            right: 4vw;
+          }
+          .lp-hero__logo-img--white { filter: drop-shadow(0 0 22px rgba(var(--lp-fg),0.22)); }
+          .lp-hero__logo-img--navy { filter: brightness(3.2) saturate(1.6) drop-shadow(0 0 20px rgba(80,100,255,0.7)); }
         }
 
         @media (max-width: 480px) {
           .lp-hero__divider { height: 50px; }
+          /* Even smaller on phones, and nudged to the top so it clears the copy. */
+          .lp-hero__logo {
+            top: 26%;
+            width: clamp(92px, 32vw, 130px);
+            height: clamp(92px, 32vw, 130px);
+            margin-top: calc(clamp(92px, 32vw, 130px) * -0.5);
+          }
         }
 
         /* ── Whole-page mobile polish ─────────────────────────────────────── */
@@ -3601,7 +3759,7 @@ export default function Landing() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text-muted);
           display: inline-flex;
@@ -3612,7 +3770,7 @@ export default function Landing() {
         }
         .lp-footer__social-btn:hover {
           background: rgba(167, 139, 250, 0.15);
-          color: #ffffff;
+          color: var(--lp-text);
           border-color: #A78BFA;
           transform: translateY(-2px);
         }
@@ -3672,7 +3830,7 @@ export default function Landing() {
           border-radius: 10px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.92rem;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           color: var(--lp-text);
           width: 100%;
         }
@@ -3686,7 +3844,7 @@ export default function Landing() {
           margin-top: 12px;
           padding: 14px 22px;
           background: var(--lp-ink);
-          color: #ffffff;
+          color: var(--lp-text);
           border: none;
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
@@ -3828,7 +3986,7 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 8px 14px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 100px;
           color: var(--lp-text);
@@ -3841,7 +3999,7 @@ export default function Landing() {
         }
         .lp-footer__top-link:hover {
           background: rgba(167, 139, 250, 0.15);
-          color: #ffffff;
+          color: var(--lp-text);
           border-color: #A78BFA;
         }
 
@@ -3888,7 +4046,7 @@ export default function Landing() {
           position: relative;
           padding: 120px 8% 110px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
           text-align: center;
           overflow: hidden;
         }
@@ -3925,7 +4083,7 @@ export default function Landing() {
           align-items: center;
           gap: 8px;
           padding: 7px 16px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
@@ -3979,7 +4137,7 @@ export default function Landing() {
         .lp-hook__quote-card {
           position: relative;
           max-width: 640px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
           padding: 38px 40px 32px;
@@ -4044,7 +4202,7 @@ export default function Landing() {
         .lp-steps {
           padding: 100px 8% 120px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
           position: relative;
         }
         .lp-steps__inner {
@@ -4093,7 +4251,7 @@ export default function Landing() {
 
         .lp-step-card {
           position: relative;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 24px;
           padding: 32px 28px 28px;
@@ -4151,7 +4309,7 @@ export default function Landing() {
           height: 54px;
           border-radius: 16px;
           background: linear-gradient(135deg, #07074e 0%, #050538 100%);
-          color: #ffffff;
+          color: var(--lp-text);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -4194,7 +4352,7 @@ export default function Landing() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.06);
+          background: rgba(var(--lp-fg),0.06);
           color: #A78BFA;
           display: inline-flex;
           align-items: center;
@@ -4203,7 +4361,7 @@ export default function Landing() {
         }
         .lp-step-card:hover .lp-step-card__arrow {
           background: rgba(167, 139, 250, 0.15);
-          color: #ffffff;
+          color: var(--lp-text);
           transform: translateX(4px);
         }
 
@@ -4216,7 +4374,7 @@ export default function Landing() {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           color: var(--lp-purple-300);
           display: flex;
           align-items: center;
@@ -4230,7 +4388,7 @@ export default function Landing() {
           position: relative;
           padding: 120px 8%;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
           overflow: visible;
           min-height: 280vh;
         }
@@ -4264,7 +4422,7 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 7px 16px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
@@ -4327,7 +4485,7 @@ export default function Landing() {
           width: 100%;
           max-width: 380px;
           background: #A78BFA;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(var(--lp-fg), 0.2);
           border-radius: 22px;
           padding: 36px 30px 26px;
           min-height: 280px;
@@ -4359,11 +4517,11 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 700;
-          color: #ffffff;
+          color: var(--lp-text);
           letter-spacing: 0.1em;
           padding: 5px 12px;
           background: #A78BFA;
-          border: 1px solid rgba(255, 255, 255, 0.6);
+          border: 1px solid rgba(var(--lp-fg), 0.6);
           border-radius: 100px;
         }
         .lp-root .lp-audit-card__qmark {
@@ -4422,7 +4580,7 @@ export default function Landing() {
           align-items: center;
           gap: 16px;
           padding: 18px 28px 18px 18px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           box-shadow: 0 10px 30px rgba(7, 7, 78, 0.08);
@@ -4433,7 +4591,7 @@ export default function Landing() {
           height: 40px;
           border-radius: 50%;
           background: linear-gradient(135deg, #07074e, #050538);
-          color: #ffffff;
+          color: var(--lp-text);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -4453,7 +4611,7 @@ export default function Landing() {
         .lp-proof {
           padding: 120px 8% 60px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
         }
         .lp-proof__inner {
           max-width: 1200px;
@@ -4562,7 +4720,7 @@ export default function Landing() {
           position: relative;
           padding: 60px 8% 60px;
           background: transparent;
-          color: #ffffff;
+          color: var(--lp-text);
           overflow: hidden;
         }
         .lp-testimonial__bg-orb {
@@ -4595,7 +4753,7 @@ export default function Landing() {
           align-items: center;
           gap: 6px;
           padding: 7px 16px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
@@ -4652,7 +4810,7 @@ export default function Landing() {
 
         .lp-tcard {
           position: relative;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
           padding: 28px 26px 24px;
@@ -4749,7 +4907,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.85rem;
           font-weight: 700;
-          color: #ffffff;
+          color: var(--lp-text);
           letter-spacing: -0.01em;
           z-index: 1;
         }

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard — scroll animation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; background: #ffffff; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      letter-spacing: -0.025em;
+      color: #111111;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Top nav bar ─────────────────────────────────────────────── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center; gap: 56px;
+      padding: 22px 6%;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .nav a {
+      font-size: 0.95rem; font-weight: 500; color: #6b7280; text-decoration: none;
+      letter-spacing: -0.01em; transition: color 0.2s;
+    }
+    .nav a:hover { color: #111; }
+    .nav a.is-active { color: #111; }
+    .nav a.is-active::after {
+      content: ''; display: block; height: 2px; margin-top: 4px;
+      background: #111; border-radius: 2px;
+    }
+
+    /* ── Scroll container (no visible scrollbar) ─────────────────── */
+    .scroller {
+      height: 100vh;
+      overflow-y: scroll;
+      cursor: ns-resize;
+      scrollbar-width: none;            /* Firefox */
+      -ms-overflow-style: none;         /* IE/Edge */
+    }
+    .scroller::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+    /* tall invisible runway gives the scroll its travel */
+    .runway { position: relative; width: 100%; }
+
+    /* sticky stage fills the viewport and clips the items */
+    .stage {
+      position: sticky; top: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* absolutely-positioned text items, centred; JS drives the transform */
+    .item {
+      position: absolute; top: 50%; left: 50%;
+      white-space: nowrap;
+      will-change: transform, opacity, font-size, color;
+      transform-origin: center center;
+      display: flex; align-items: baseline; gap: 0.5em;
+      line-height: 1;
+    }
+    .item .rank { font-style: italic; opacity: 0.85; }
+    .item .name { font-weight: 600; }
+    .item .metric { opacity: 0.9; }
+
+    /* ── Progress bar at the bottom ──────────────────────────────── */
+    .progress {
+      position: fixed; left: 0; bottom: 0; height: 3px; z-index: 10;
+      width: 0%;
+      background: #111;
+      transition: width 0.08s linear;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="#" class="is-active">Measured</a>
+    <a href="#">Analytics</a>
+    <a href="#">Leaderboard</a>
+  </nav>
+
+  <div class="scroller" id="scroller">
+    <div class="runway" id="runway">
+      <div class="stage">
+        <div id="list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress" id="progress"></div>
+
+  <script>
+    const ITEMS = [
+      { rank: '1st',  name: 'aanya.creates',  metric: '1.2M views' },
+      { rank: '2nd',  name: 'marcus.lee',     metric: '980K views' },
+      { rank: '3rd',  name: 'thefoodiekai',   metric: '845K views' },
+      { rank: '4th',  name: 'priya.shoots',   metric: '712K views' },
+      { rank: '5th',  name: 'devon.makes',    metric: '690K views' },
+      { rank: '6th',  name: 'lina.studio',    metric: '604K views' },
+      { rank: '7th',  name: 'theo.films',     metric: '520K views' },
+      { rank: '8th',  name: 'reels.by.sam',   metric: '498K views' },
+      { rank: '9th',  name: 'mira.edits',     metric: '455K views' },
+      { rank: '10th', name: 'jaywalks',       metric: '410K views' },
+    ];
+
+    const N = ITEMS.length;
+    const scroller = document.getElementById('scroller');
+    const runway   = document.getElementById('runway');
+    const listEl   = document.getElementById('list');
+    const progress = document.getElementById('progress');
+
+    // Give the runway enough height for one "screen" of travel per item.
+    runway.style.height = (N * 60) + 'vh';
+
+    // Build the item elements once.
+    const els = ITEMS.map((it) => {
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.innerHTML =
+        `<span class="rank">${it.rank}</span>` +
+        `<span class="name">${it.name}</span>` +
+        `<span class="metric">${it.metric}</span>`;
+      listEl.appendChild(el);
+      return el;
+    });
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function render() {
+      const total = scroller.scrollHeight - scroller.clientHeight;
+      const focused = total > 0 ? (scroller.scrollTop / total) * (N - 1) : 0;
+
+      for (let i = 0; i < N; i++) {
+        const el = els[i];
+        const offset = i - focused;
+        const ao = Math.abs(offset);
+
+        // Hide far-away items entirely.
+        if (ao > 5) { el.style.opacity = '0'; el.style.visibility = 'hidden'; continue; }
+        el.style.visibility = 'visible';
+
+        const fontSize = Math.max(11, 54 - ao * 9.5);
+        const opacity  = Math.max(0.04, 1 - ao * 0.26);
+        const translateY = offset * 94;
+        // Below the focus → clockwise; above → counter-clockwise.
+        const rotation = offset > 0
+          ? Math.min(offset * 7.5, 30)
+          : Math.max(offset * 5.5, -22);
+
+        // Near-black at focus, fading to light gray as it moves away.
+        let color;
+        if (ao < 0.1) {
+          color = '#111111';
+        } else {
+          const t = Math.min(ao / 4, 1);
+          const g = Math.round(lerp(17, 200, t));
+          color = `rgb(${g},${g},${g})`;
+        }
+
+        const fontWeight = ao < 0.5 ? 500 : (ao < 2 ? 400 : 300);
+
+        el.style.fontSize   = fontSize + 'px';
+        el.style.opacity    = opacity.toFixed(3);
+        el.style.color      = color;
+        el.style.fontWeight = fontWeight;
+        el.style.transform  =
+          `translate(-50%, -50%) translateY(${translateY}px) rotate(${rotation}deg)`;
+      }
+
+      progress.style.width = (total > 0 ? (scroller.scrollTop / total) * 100 : 0) + '%';
+    }
+
+    // Throttle scroll handling to one render per frame.
+    let ticking = false;
+    scroller.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(() => { render(); ticking = false; });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', render);
+    render();
+  </script>
+</body>
+</html>

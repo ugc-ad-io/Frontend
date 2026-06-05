@@ -116,12 +116,12 @@ const badgeFor = (label) => ({
 const LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi', 'Bhojpuri'];
 const WEEKLY = ['1–5 hrs / week', '6–10 hrs / week', '11–20 hrs / week', '20+ hrs / week'];
 const TOPICS = ['None', 'Alcohol', 'Gambling', 'Adult products'];
-const PAYOUT_PERIODS = ['Per Month', 'Per Video', 'Per Hour'];
+const PAYOUT_PERIODS = ['Per Video'];
 // Step 5 — Recording Setup & Equipment
 const CORE_SETUP = [
   { label: 'DSLR Camera', icon: '📷' },
-  { label: 'Iphone', icon: '🍎' },
-  { label: 'Android Phone', icon: '🤖' },
+  { label: 'Iphone', icon: <img src="https://cdn.simpleicons.org/apple/ffffff" alt="" width={15} height={15} /> },
+  { label: 'Android Phone', icon: <img src="https://cdn.simpleicons.org/android/3DDC84" alt="" width={16} height={16} /> },
   { label: 'Tripod / Stable mount', icon: '🎥' },
   { label: 'External microphone', icon: '🎙️' },
   { label: 'Quiet / noise-controlled room', icon: '💤' },
@@ -273,7 +273,7 @@ export default function CreatorProfileSetup() {
     bring: '',
     weekly: '',
     flexible: false,
-    lastSalary: '', expectedPayout: '', payoutPeriod: 'Per Month',
+    lastSalary: '', expectedPayout: '', payoutPeriod: 'Per Video',
     topics: ['None'],
   });
   const pfFileRef = useRef(null);
@@ -357,9 +357,6 @@ export default function CreatorProfileSetup() {
     if (s === 3) return {
       skills: data.skills.length > 0,
       profileLink: PLATFORMS.some((p) => isFilled(data.links[p.key])) || data.extraLinks.some((l) => isFilled(l.url)),
-      ownAccount: isFilled(data.ownAccount),
-      runAds: isFilled(data.runAds),
-      newAccount: isFilled(data.newAccount),
       portfolio: data.portfolio.length > 0,
       languages: data.languages.length > 0,
       expectedPayout: isFilled(data.expectedPayout),
@@ -370,7 +367,7 @@ export default function CreatorProfileSetup() {
   // Completion includes optional fields too (e.g. the skippable final step), so the
   // ring can still reach 100% — kept separate from the required checks above.
   const completionFor = (s) => (s === TOTAL_STEPS
-    ? { coreSetup: data.coreSetup.length > 0, appearIn: data.appearIn.length > 0, bring: isFilled(data.bring) }
+    ? { coreSetup: data.coreSetup.length > 0, appearIn: data.appearIn.length > 0 }
     : checksFor(s));
 
   // Field-granular completion: Sign Up counts as 1 done step; every other step adds
@@ -400,9 +397,15 @@ export default function CreatorProfileSetup() {
   const back = () => { setShowErrors(false); setStep((s) => Math.max(1, s - 1)); };
   const proceed = () => {
     if (!stepComplete) {
-      // Reveal "This field is required" under every empty field and scroll up to them.
+      // Reveal "This field is required" under every empty field, then scroll to the
+      // FIRST incomplete one (not the top) so the user lands right on what to fix.
       setShowErrors(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        const el = document.querySelector(
+          '.ps-card .ps-input--error, .ps-card .ps-chips--error, .ps-card .ps-perm--error, .ps-card .ps-error'
+        );
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 60);
       return;
     }
     setShowErrors(false);
@@ -780,27 +783,6 @@ export default function CreatorProfileSetup() {
             {err('profileLink') && <span className="ps-error">Add at least one profile link</span>}
           </div>
 
-          {/* Add-ons & permissions */}
-          <div className="ps-section">
-            <h3 className="ps-h3">Creator Add-ons &amp; Permissions</h3>
-            <p className="ps-hinttext">Some brands may need extra support beyond content creation. Select what you're open to offering.</p>
-            <p className="ps-label" style={{ marginTop: '6px' }}>What are you comfortable with?</p>
-            {ADDONS.map((a) => (
-              <div key={a.key} className={`ps-perm${err(a.key) ? ' ps-perm--error' : ''}`}>
-                <div className="ps-perm__title">{a.title}</div>
-                <div className="ps-perm__note">ⓘ {a.note}</div>
-                <label className="ps-radio">
-                  <input type="radio" name={a.key} checked={data[a.key] === 'yes'} onChange={() => set(a.key, 'yes')} />
-                  <span className="ps-radio__dot" /> {a.yes}
-                </label>
-                <label className="ps-radio">
-                  <input type="radio" name={a.key} checked={data[a.key] === 'no'} onChange={() => set(a.key, 'no')} />
-                  <span className="ps-radio__dot" /> Not available
-                </label>
-              </div>
-            ))}
-          </div>
-
           {/* Portfolio videos */}
           <div className="ps-section">
             <h3 className="ps-h3">Upload your Portfolio videos</h3>
@@ -987,17 +969,6 @@ export default function CreatorProfileSetup() {
             </div>
           </div>
 
-          {/* What you bring */}
-          <div className="ps-field">
-            <label className="ps-label">Tell us what you can bring to your video</label>
-            <input
-              className="ps-input"
-              placeholder="e.g. Professional lighting, acting experience, props, creative ideas…"
-              value={data.bring}
-              onChange={(e) => set('bring', e.target.value)}
-            />
-          </div>
-
           <div className="ps-note">😉 You can edit this anytime. Only relevant brands see your details.</div>
         </>
       );
@@ -1053,10 +1024,9 @@ export default function CreatorProfileSetup() {
               you within <strong>48 hours</strong>. Keep an eye on your inbox!
             </p>
             <div className="ps-thanks__actions">
-              <button className="ps-btn-primary" onClick={() => navigate('/dashboard/creator')}>
-                Go to Dashboard <ArrowRight size={18} />
+              <button className="ps-btn-primary ps-thanks__home" onClick={() => navigate('/')}>
+                Back to Home <ArrowRight size={18} />
               </button>
-              <button className="ps-btn-ghost ps-thanks__home" onClick={() => navigate('/')}>Back to Home</button>
             </div>
           </motion.div>
         ) : (

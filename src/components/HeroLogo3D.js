@@ -23,7 +23,7 @@ const FACE_ROT = { x: -0.2, y: -0.61, z: 0 };
 // Colour journey (exact spec hex): Frosted Lilac → Periwinkle Pulse → Velvet Mist.
 const COL_START = new THREE.Color('#FFFFFF'); // 0.0 white
 const COL_MID = new THREE.Color('#7367FF');   // 0.5 light periwinkle (brand)
-const COL_END = new THREE.Color('#15153F');   // 1.0 dark navy
+const COL_END = new THREE.Color('#2C2C92');   // 1.0 royal-blue / indigo (final stop)
 const _col = new THREE.Color();
 
 // `progress` is the JOURNEY scroll value (journeyP). The component splits it into the

@@ -1,4 +1,4 @@
-import { Suspense, useRef, useMemo } from 'react';
+import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, Environment, Center, Bounds, OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -29,26 +29,6 @@ function LogoModel({ progress }) {
   const { scene } = useGLTF('/model-compressed.glb');
   const tipRef = useRef();
   const spinRef = useRef();
-  const matsRef = useRef([]);
-
-  // Swap the (dark, laggy) glass material for an opaque one and keep a handle on the
-  // materials so we can keep their look enforced every frame (HMR-robust).
-  useMemo(() => {
-    const mats = [];
-    scene.traverse((o) => {
-      if (o.isMesh) {
-        o.material = new THREE.MeshStandardMaterial({
-          color: LOGO_COLOR.clone(),
-          metalness: 0.1,
-          roughness: 0.6,
-          envMapIntensity: 1.0,
-          emissive: LOGO_EMISSIVE.clone(),
-        });
-        mats.push(o.material);
-      }
-    });
-    matsRef.current = mats;
-  }, [scene]);
 
   useFrame(() => {
     const p = progress ? progress.get() : 0;
@@ -59,16 +39,23 @@ function LogoModel({ progress }) {
     const spin = Math.min(Math.max((p - TIP_END) / (1 - TIP_END), 0), 1);
     if (spinRef.current) spinRef.current.rotation.y = spin * Math.PI * 2 * SPIN_TURNS;
 
-    // STRONG self-illumination enforced every frame: the mark glows its own bright
-    // silver so it stays fully visible at EVERY angle/position — independent of lights,
-    // reflections or how it's turned. This is what kills the scroll-up dimming, and
-    // setting it here (not just at creation) means hot-reload picks it up live.
-    for (let i = 0; i < matsRef.current.length; i++) {
-      const m = matsRef.current[i];
-      m.emissive.copy(LOGO_EMISSIVE);
-      m.emissiveIntensity = 0.9;
-      if (m.color) m.color.copy(LOGO_COLOR);
-    }
+    // Replace the cached GLTF's dark/laggy GLASS material with a BRIGHT self-lit one.
+    // Done here (guarded per mesh) rather than in a one-time effect because useGLTF
+    // caches the scene, so a one-time swap doesn't re-apply after hot-reload — this
+    // guarantees the live scene gets the bright material whatever its prior state.
+    scene.traverse((o) => {
+      if (o.isMesh && !o.userData._logoLit) {
+        o.material = new THREE.MeshStandardMaterial({
+          color: LOGO_COLOR.clone(),
+          metalness: 0.1,
+          roughness: 0.6,
+          envMapIntensity: 1.0,
+          emissive: LOGO_EMISSIVE.clone(),
+          emissiveIntensity: 0.9,
+        });
+        o.userData._logoLit = true;
+      }
+    });
   });
 
   return (

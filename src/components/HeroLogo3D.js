@@ -8,9 +8,11 @@ import * as THREE from 'three';
 // PHASE 2 (cross):  HERO_END → LB_START — logo travels right→left (handled in Landing).
 // PHASE 3 (board): LB_START → LB_END    — tip to LANDSCAPE, then barrel-roll spin.
 const HERO_END = 0.5;
-const LB_START = 0.72;
+// Logo holds UPRIGHT after the colour finishes (0.5 → 0.56), then the tilt begins as the
+// CROSS starts (0.56) and runs through it, arriving landscape at the leaderboard (~0.74).
+const LB_START = 0.56;
 const LB_END = 0.92;
-const TIP_END = 0.12;   // fraction of phase-3 spent tipping to landscape
+const TIP_END = 0.5;    // tilt spans the cross (LB_START→~0.74)
 const SPIN_TURNS = 2;   // barrel-roll revolutions in phase 3
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
@@ -18,7 +20,7 @@ const ease = (t) => t * t * (3 - 2 * t);
 const clamp01 = (t) => Math.min(Math.max(t, 0), 1);
 
 // Face-on correction so the mark faces the camera at progress 0.
-const FACE_ROT = { x: -0.2, y: -0.61, z: 0 };
+const FACE_ROT = { x: 0, y: -0.61, z: 0 };
 
 // Colour journey (exact spec hex): Frosted Lilac → Periwinkle Pulse → Velvet Mist.
 const COL_START = new THREE.Color('#FFFFFF'); // 0.0 white
@@ -45,7 +47,8 @@ function LogoModel({ progress }) {
     const tip = ease(Math.min(lbP / TIP_END, 1));
     const barrel = clamp01((lbP - TIP_END) / (1 - TIP_END)) * Math.PI * 2 * SPIN_TURNS;
 
-    if (tipRef.current) tipRef.current.rotation.z = tip * (Math.PI / 2);
+    // Tip exactly 90° (clean landscape), negative direction so the point faces the text.
+    if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
     // The hero 360° ends face-on (whole turn), so the barrel-roll continues from there.
     if (spinRef.current) spinRef.current.rotation.y = heroSpin + barrel;
 

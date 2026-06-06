@@ -455,7 +455,7 @@ export default function Landing() {
   const logoX = '-32vw';
   // Resting spot sits BELOW the hero content zone (copy/buttons/badges live in the
   // upper ~30%), so the logo can glide straight to it without ever crossing the text.
-  const logoY = '2vh';
+  const logoY = '-7vh';
 
   // ── Hero — pinned marketing copy ────────────────────────────────────────────
   // The hero no longer owns a logo: the 3D mark is a single fixed overlay that
@@ -504,8 +504,8 @@ export default function Landing() {
   // STRAIGHT, SLOW cross that starts only AFTER the colour finishes AND the hero copy
   // has cleared (~0.5) — so it glides through empty space, no dip (no bounce) and never
   // over the text. Wide range (0.52→0.72) = a slow, smooth glide.
-  const flyX = useTransform(journeyP, [0.52, 0.72], ['30vw', logoX]);
-  const flyY = useTransform(journeyP, [0.52, 0.72], ['-7vh', logoY]);
+  const flyX = useTransform(journeyP, [0.56, 0.74], ['30vw', logoX]);
+  const flyY = useTransform(journeyP, [0.56, 0.74], ['-7vh', logoY]);
   // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
   // exits cleanly with the text — no lingering dim logo over the empty section after.
   // Logo fades out TOGETHER with the leaderboard text (same range as logoBoardOpacity).

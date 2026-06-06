@@ -497,12 +497,15 @@ export default function Landing() {
   // (journeyP 0.3), then holds — so the landscape leaderboard size is the largest it gets.
   // Grows during the hero spin and STOPS at its max (1.1) by the end of the hero phase
   // (journeyP 0.2, where the colour finishes), then holds — doesn't grow any bigger.
-  const flyScale = useTransform(journeyP, [0, 0.2], [0.85, 1.0]);
+  const flyScale = useTransform(journeyP, [0, 0.35], [0.85, 1.0]);
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
-  const flyX = useTransform(journeyP, [0.2, 0.3], ['30vw', logoX]);
-  const flyY = useTransform(journeyP, [0.2, 0.3], ['-7vh', logoY]);
+  // Cross AFTER the colour finishes (journeyP 0.35) and route it DOWN through the empty
+  // lower area so it passes BELOW the copy/buttons instead of over them, landing as the
+  // hero copy clears (~0.5).
+  const flyX = useTransform(journeyP, [0.35, 0.5], ['30vw', logoX]);
+  const flyY = useTransform(journeyP, [0.35, 0.43, 0.5], ['-7vh', '30vh', logoY]);
   // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
   // exits cleanly with the text — no lingering dim logo over the empty section after.
   // Logo fades out TOGETHER with the leaderboard text (same range as logoBoardOpacity).
@@ -2309,7 +2312,7 @@ export default function Landing() {
         /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
         .lp-logo3d {
           position: relative;
-          height: 175vh;                 /* scroll travel that drives the animation */
+          height: 145vh;                 /* scroll travel that drives the animation */
           background: transparent;       /* show the shared animated page background */
           z-index: 2;
         }

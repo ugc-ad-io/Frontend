@@ -45,7 +45,7 @@ function LogoModel({ progress }) {
     const tip = ease(Math.min(lbP / TIP_END, 1));
     const barrel = clamp01((lbP - TIP_END) / (1 - TIP_END)) * Math.PI * 2 * SPIN_TURNS;
 
-    if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
+    if (tipRef.current) tipRef.current.rotation.z = tip * (Math.PI / 2);
     // The hero 360° ends face-on (whole turn), so the barrel-roll continues from there.
     if (spinRef.current) spinRef.current.rotation.y = heroSpin + barrel;
 

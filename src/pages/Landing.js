@@ -513,7 +513,9 @@ export default function Landing() {
   // logo's position) rather than logo3dProgress — whose sticky/overlap measurement let
   // the logo linger into the brand strip and got "stuck" on scroll up. Full until the
   // last row (~journeyP 0.87), then fully gone by ~0.94, before the brand strip shows.
-  const flyOpacity = useTransform(journeyP, [0.87, 0.94], [1, 0]);
+  // Stays full through ALL the rows (last one finishes ~journeyP 0.9), then fades only
+  // at the very end (0.92→0.97) — just before the brand strip appears.
+  const flyOpacity = useTransform(journeyP, [0.92, 0.97], [1, 0]);
   // Tip + spin are driven by the SECTION's own scroll (logo3dProgress), NOT the
   // journey scroll — so the logo rotates continuously and IN SYNC with the leaderboard
   // rows. Lands ~logo3dProgress 0.43 as row 1 focuses, so the spin starts right there

@@ -33,9 +33,14 @@ function LogoModel({ progress }) {
       if (o.isMesh) {
         o.material = new THREE.MeshStandardMaterial({
           color: LOGO_COLOR.clone(),
-          metalness: 0.55,
-          roughness: 0.3,
-          envMapIntensity: 1.15,
+          metalness: 0.2,
+          roughness: 0.45,
+          envMapIntensity: 1.4,
+          // Self-illumination so the mark stays clearly visible at EVERY angle —
+          // including face-on at the hero, where a metallic surface would just reflect
+          // the dark HDR and look like a grey outline.
+          emissive: new THREE.Color('#6f6f86'),
+          emissiveIntensity: 0.6,
         });
       }
     });
@@ -75,7 +80,7 @@ export default function HeroLogo3D({ progress }) {
       camera={{ position: [0, 0, 6], fov: 15 }}
       frameloop="always"
     >
-      <ambientLight intensity={0.7} />
+      <ambientLight intensity={1.0} />
       <directionalLight position={[5, 5, 5]} intensity={1.4} />
       <directionalLight position={[-5, -3, -5]} intensity={0.6} />
       <Suspense

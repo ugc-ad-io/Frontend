@@ -493,7 +493,11 @@ export default function Landing() {
   // Starts already large (image-1 size), pops to full FAST so it doesn't eat scroll.
   // GROWS during the HERO phase (0→0.2) while it does its 360° spin + colour journey,
   // then holds that size through the cross + leaderboard. (Matches HERO_END in HeroLogo3D.)
-  const flyScale = useTransform(journeyP, [0, 0.2], [0.7, 1.2]);
+  // Grows from small in the hero up to its MAX (0.8) right as it lands in the leaderboard
+  // (journeyP 0.3), then holds — so the landscape leaderboard size is the largest it gets.
+  // Grows during the hero spin and STOPS at its max (1.1) by the end of the hero phase
+  // (journeyP 0.2, where the colour finishes), then holds — doesn't grow any bigger.
+  const flyScale = useTransform(journeyP, [0, 0.2], [0.85, 1.0]);
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).

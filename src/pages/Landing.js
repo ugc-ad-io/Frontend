@@ -452,7 +452,7 @@ export default function Landing() {
   const logoBoardOpacity = useTransform(logo3dProgress, [0.8, 0.9], [1, 0]);
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
-  const logoX = '-32vw';
+  const logoX = '-42vw';
   // Resting spot sits BELOW the hero content zone (copy/buttons/badges live in the
   // upper ~30%), so the logo can glide straight to it without ever crossing the text.
   const logoY = '-7vh';
@@ -497,15 +497,17 @@ export default function Landing() {
   // (journeyP 0.3), then holds — so the landscape leaderboard size is the largest it gets.
   // Grows during the hero spin and STOPS at its max (1.1) by the end of the hero phase
   // (journeyP 0.2, where the colour finishes), then holds — doesn't grow any bigger.
-  const flyScale = useTransform(journeyP, [0, 0.5], [0.85, 1.0]);
+  const flyScale = useTransform(journeyP, [0, 0.5, 0.9, 1.0], [0.85, 1.0, 1.0, 0.5]);
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
   // STRAIGHT, SLOW cross that starts only AFTER the colour finishes AND the hero copy
   // has cleared (~0.5) — so it glides through empty space, no dip (no bounce) and never
   // over the text. Wide range (0.52→0.72) = a slow, smooth glide.
-  const flyX = useTransform(journeyP, [0.56, 0.74], ['30vw', logoX]);
-  const flyY = useTransform(journeyP, [0.56, 0.74], ['-7vh', logoY]);
+  // Cross in (0.56→0.74), hold at the board spot, then at the very end (0.9→1.0) DRIFT
+  // down-right to CENTER + far DOWN so it dissolves into the brand strip's centre UG card.
+  const flyX = useTransform(journeyP, [0.56, 0.74, 0.9, 1.0], ['30vw', logoX, logoX, '0vw']);
+  const flyY = useTransform(journeyP, [0.56, 0.74, 0.9, 1.0], ['-7vh', logoY, logoY, '46vh']);
   // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
   // exits cleanly with the text — no lingering dim logo over the empty section after.
   // Logo fades out TOGETHER with the leaderboard text (same range as logoBoardOpacity).
@@ -515,7 +517,9 @@ export default function Landing() {
   // last row (~journeyP 0.87), then fully gone by ~0.94, before the brand strip shows.
   // Stays full through ALL the rows (last one finishes ~journeyP 0.9), then fades only
   // at the very end (0.92→0.97) — just before the brand strip appears.
-  const flyOpacity = useTransform(journeyP, [0.92, 0.97], [1, 0]);
+  // Stay OPAQUE through most of the down-right drift, dissolve only at the very end
+  // (0.94→1.0) — so the travel reads, then it melts into the brand-strip card.
+  const flyOpacity = useTransform(journeyP, [0.94, 1.0], [1, 0]);
   // Tip + spin are driven by the SECTION's own scroll (logo3dProgress), NOT the
   // journey scroll — so the logo rotates continuously and IN SYNC with the leaderboard
   // rows. Lands ~logo3dProgress 0.43 as row 1 focuses, so the spin starts right there

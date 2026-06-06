@@ -21,9 +21,9 @@ const clamp01 = (t) => Math.min(Math.max(t, 0), 1);
 const FACE_ROT = { x: -0.2, y: -0.61, z: 0 };
 
 // Colour journey (exact spec hex): Frosted Lilac → Periwinkle Pulse → Velvet Mist.
-const COL_START = new THREE.Color('#F3F3F9'); // 0.0 silver-white
-const COL_MID = new THREE.Color('#9191D1');   // 0.5 lavender
-const COL_END = new THREE.Color('#7367FF');   // 1.0 vivid brand purple (coloured FINAL)
+const COL_START = new THREE.Color('#FFFFFF'); // 0.0 white
+const COL_MID = new THREE.Color('#7367FF');   // 0.5 light periwinkle (brand)
+const COL_END = new THREE.Color('#15153F');   // 1.0 dark navy
 const _col = new THREE.Color();
 
 // `progress` is the JOURNEY scroll value (journeyP). The component splits it into the

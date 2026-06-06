@@ -64,7 +64,10 @@ function LogoModel({ progress }) {
     // reflections or how it's turned. This is what kills the scroll-up dimming, and
     // setting it here (not just at creation) means hot-reload picks it up live.
     for (let i = 0; i < matsRef.current.length; i++) {
-      matsRef.current[i].emissiveIntensity = 0.9;
+      const m = matsRef.current[i];
+      m.emissive.copy(LOGO_EMISSIVE);
+      m.emissiveIntensity = 0.9;
+      if (m.color) m.color.copy(LOGO_COLOR);
     }
   });
 

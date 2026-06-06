@@ -2,45 +2,52 @@ import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, Environment, Center, Bounds, OrbitControls, Html } from '@react-three/drei';
 
-// How far through the scroll the "tip to landscape" phase lasts. Up to here the
-// logo tips from upright to flat; after here it spins in place.
-const TIP_END = 0.18;
-// Spin finishes here (a whole number of turns → face-on), then the logo HOLDS that
-// flat, face-on pose to the end so it always rests settled, never mid-spin.
-const SPIN_END = 0.85;
+// How far through the spin-progress the "tip to landscape" lasts: it lays the logo
+// on its side (long axis horizontal → pointing at the leaderboard text) quickly, then
+// barrel-rolls for the rest. Kept small so the landscape spin starts early.
+const TIP_END = 0.05;
+// Number of full barrel-roll revolutions. WHOLE number → ends settled face-flat.
+const SPIN_TURNS = 2;
 // smoothstep ease so the tip eases in and lands softly instead of being linear.
 const ease = (t) => t * t * (3 - 2 * t);
 
-// Drives the logo purely from scroll progress (0..1) in two deliberate phases:
-//   Phase 1 (0 → TIP_END):  tip from upright (portrait) to landscape, laying it on
-//                           its side so the long axis points toward the content (right).
-//   Phase 2 (TIP_END → 1):  spin in place around its long axis, staying landscape.
-// Outer group = tip, inner group = spin — nesting keeps the two motions independent
-// (the spin always tracks the logo's own long axis, whatever the tip).
+// Resting/face-on correction for the GLB. The authored model is turned + pitched
+// (we see its top and left side faces), so we counter-rotate it to sit flat and
+// face the camera at progress 0. Tune if still off:
+//   y = turn left/right (more negative = turn its face toward us / hide left side)
+//   x = pitch up/down   (more negative = drop the top back so we stop seeing the top)
+//   z = roll (lean)
+const FACE_ROT = { x: -0.2, y: -0.61, z: 0 };
+
+// Two phases, both driven by scroll progress (0..1):
+//   Phase 1 (0 → TIP_END): tip upright → LANDSCAPE (-90° about Z), long axis pointing
+//                          right toward the leaderboard text.
+//   Phase 2 (TIP_END → 1): barrel-roll around that long axis for the WHOLE remaining
+//                          scroll, so it spins continuously and never freezes early.
+// Outer group = tip, inner group = spin (nested so the roll tracks the long axis).
 function LogoModel({ progress }) {
   const { scene } = useGLTF('/model-compressed.glb'); // keeps the authored glass material
   const tipRef = useRef();
   const spinRef = useRef();
 
   useFrame(() => {
-    const p = progress ? progress.get() : 0;        // scroll progress through the section
+    const p = progress ? progress.get() : 0;          // scroll progress through the section
 
-    // Phase 1 — tip upright → landscape (-90° around Z sends the top to the right).
     const tip = ease(Math.min(p / TIP_END, 1));
     if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
 
-    // Phase 2 — once flat, spin around the long axis: 2 full turns, completing by
-    // SPIN_END and clamped to 1 so it lands (and holds) exactly face-on like the target.
-    const spin = Math.min(Math.max((p - TIP_END) / (SPIN_END - TIP_END), 0), 1);
-    if (spinRef.current) spinRef.current.rotation.y = spin * Math.PI * 4;
+    const spin = Math.min(Math.max((p - TIP_END) / (1 - TIP_END), 0), 1);
+    if (spinRef.current) spinRef.current.rotation.y = spin * Math.PI * 2 * SPIN_TURNS;
   });
 
   return (
     <group ref={tipRef}>
       <group ref={spinRef}>
-        <Center>
-          <primitive object={scene} />
-        </Center>
+        <group rotation={[FACE_ROT.x, FACE_ROT.y, FACE_ROT.z]}>
+          <Center>
+            <primitive object={scene} />
+          </Center>
+        </group>
       </group>
     </group>
   );
@@ -52,9 +59,9 @@ export default function HeroLogo3D({ progress }) {
   return (
     <Canvas
       className="lp-logo3d__canvas"
-      dpr={[1, 1.5]}
+      dpr={[1, 1.25]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      camera={{ position: [0, 0, 6], fov: 35 }}
+      camera={{ position: [0, 0, 6], fov: 15 }}
       frameloop="always"
     >
       <ambientLight intensity={0.6} />
@@ -67,7 +74,10 @@ export default function HeroLogo3D({ progress }) {
           </Html>
         }
       >
-        <Bounds fit clip observe margin={1.2}>
+        {/* fit ONCE on mount — no `observe`, so the camera does NOT re-fit as the
+            logo spins (re-fitting made it drift/resize). `clip` dropped too so the
+            extruded depth isn't clipped when it rotates toward the camera. */}
+        <Bounds fit margin={1.2}>
           <LogoModel progress={progress} />
         </Bounds>
         {/* Self-hosted from /public to avoid the cross-origin HDR fetch drei's

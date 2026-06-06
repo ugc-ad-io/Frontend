@@ -45,7 +45,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent } from 'framer-motion';
+import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent, useSpring } from 'framer-motion';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
@@ -76,11 +76,14 @@ const ordinal = (n) => {
 // Height of one leaderboard row, in vh (also used to compute the scroll range).
 const LOGO3D_ITEM_VH = 10;
 // Fraction of the section scroll over which all leaderboard rows pass the centre.
-const LOGO3D_SCROLL_END = 0.78;
+// Pushed late (0.9) so the rows keep moving almost to the section end — no big frozen
+// dead-zone after the last row, and the logo spin stays in sync the whole way down.
+const LOGO3D_SCROLL_END = 0.9;
 
-// Pre-scroll offset. 0 = the 1st row is already centred/focused when the section
-// begins (no empty pre-roll); raise it to make rows start lower and rise into focus.
-const LB_PRE = 0;
+// Pre-scroll offset. Minimal — the leaderboard's first rows are essentially present as
+// the section begins (no empty gap where the logo sits alone), rising into focus right
+// as the logo glides in and lands.
+const LB_PRE = 1;
 
 // One leaderboard row, animated measured.site-style. The whole list shares one
 // scroll value; each row's `offset` = its index minus the (fractional) focused
@@ -424,10 +427,13 @@ export default function Landing() {
   // 3D glass logo — scroll-driven pinned scene under the hero
   const logo3dRef = useRef(null);
   const logo3dInView = useInView(logo3dRef, { once: true, margin: '200px' });
-  const { scrollYProgress: logo3dProgress } = useScroll({
+  const { scrollYProgress: logo3dRaw } = useScroll({
     target: logo3dRef,
     offset: ['start start', 'end end'],
   });
+  // Spring-smoothed so the leaderboard rows glide rather than jitter per scroll tick.
+  // Tight/overdamped: tracks scroll closely with almost no settle (no bounce-back).
+  const logo3dProgress = useSpring(logo3dRaw, { stiffness: 220, damping: 48, mass: 0.22 });
   // Leaderboard scrolls vertically: 1st row centered at the start, last row
   // centered at the end — each rank passes through the centre one-by-one.
   const logoBoardStart = 50 - LOGO3D_ITEM_VH / 2;
@@ -436,11 +442,13 @@ export default function Landing() {
   const logoBoardY = useTransform(logo3dProgress, [0, LOGO3D_SCROLL_END], [`${logoBoardStart}vh`, `${logoBoardEnd}vh`]);
   // Lines finish scrolling (~0.78), then fully fade out (~0.86) BEFORE the logo moves —
   // so the logo never overlaps the still-visible text.
-  const logoBoardOpacity = useTransform(logo3dProgress, [0.8, 0.86], [1, 0]);
+  const logoBoardOpacity = useTransform(logo3dProgress, [0.9, 0.97], [1, 0]);
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
   const logoX = '-32vw';
-  const logoY = '-6vh';
+  // Resting spot sits BELOW the hero content zone (copy/buttons/badges live in the
+  // upper ~30%), so the logo can glide straight to it without ever crossing the text.
+  const logoY = '2vh';
 
   // ── Hero — pinned marketing copy ────────────────────────────────────────────
   // The hero no longer owns a logo: the 3D mark is a single fixed overlay that
@@ -453,7 +461,9 @@ export default function Landing() {
   });
   const [heroCollapsed, setHeroCollapsed] = useState(false);
   useMotionValueEvent(heroP, 'change', (v) => {
-    setHeroCollapsed(v > 0.5);
+    // Keep the brand strip on screen for almost the whole hero so it gets its full
+    // moment; it then scrolls away as the hero unpins, right before the logo travels.
+    setHeroCollapsed(v > 0.9);
   });
 
   // ── 3D logo "fly" — one continuous journey across hero + 3D section ──────────
@@ -466,21 +476,28 @@ export default function Landing() {
   //   ROTATE (0.42 → 0.95): tips upright→landscape then spins in place (the GLB's
   //                         own internal animation, fed by `logoSpinP`).
   const journeyRef = useRef(null);
-  const { scrollYProgress: journeyP } = useScroll({
+  const { scrollYProgress: journeyRaw } = useScroll({
     target: journeyRef,
     offset: ['start start', 'end end'],
   });
+  // Smooth the raw scroll value through a spring so the fly + spin glide instead of
+  // snapping to every scroll tick (kills the per-frame jank on the heavy 3D canvas).
+  const journeyP = useSpring(journeyRaw, { stiffness: 220, damping: 48, mass: 0.22 });
   // Starts already large (image-1 size), pops to full FAST so it doesn't eat scroll.
-  const flyScale = useTransform(journeyP, [0, 0.05], [0.78, 1]);
-  // Parks on the RIGHT through the whole hero (no copy there), then — only AFTER the
-  // hero copy has scrolled away (~0.31) — slides to its resting spot, DIPPING DOWN on
-  // the way so it travels BELOW the text instead of sweeping straight across it.
-  const flyX = useTransform(journeyP, [0.36, 0.56], ['30vw', logoX]);
-  const flyY = useTransform(journeyP, [0.36, 0.46, 0.56], ['0vh', '12vh', logoY]);
-  const flyOpacity = useTransform(journeyP, [0.94, 1], [1, 0]);
-  // Hold at 0 through GROW/TRAVEL, then ramp 0→1 so the GLB tips + spins only once
-  // it has landed. (HeroLogo3D holds its settled pose past its own SPIN_END.)
-  const logoSpinP = useTransform(journeyP, [0.56, 0.95], [0, 1]);
+  const flyScale = useTransform(journeyP, [0, 0.05], [0.92, 1]);
+  // Glide left through the middle as the hero clears — quick enough that there's no
+  // long empty-black scroll, landing at the low-left spot (clear of the upper text)
+  // just as the leaderboard's first rows rise into focus (see LB_PRE).
+  const flyX = useTransform(journeyP, [0.2, 0.3], ['30vw', logoX]);
+  const flyY = useTransform(journeyP, [0.2, 0.3], ['-7vh', logoY]);
+  // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
+  // exits cleanly with the text — no lingering dim logo over the empty section after.
+  const flyOpacity = useTransform(logo3dProgress, [0.9, 0.97], [1, 0]);
+  // Tip + spin are driven by the SECTION's own scroll (logo3dProgress), NOT the
+  // journey scroll — so the logo rotates continuously and IN SYNC with the leaderboard
+  // rows. Lands ~logo3dProgress 0.43 as row 1 focuses, so the spin starts right there
+  // and runs to FULL by 0.9 — spinning across the whole row list, never freezing early.
+  const logoSpinP = useTransform(logo3dProgress, [0.14, 0.9], [0, 1]);
   // On small screens, skip the pinned scroll choreography and fall back to a
   // clean stacked static hero (inline motion styles are dropped). Reduced-motion
   // is intentionally NOT a trigger — the scroll sequence is core to this hero.
@@ -1835,7 +1852,7 @@ export default function Landing() {
 
         .lp-hero {
           position: relative;
-          height: 200vh;
+          height: 150vh;
           color: var(--lp-text);
           isolation: isolate;
           z-index: 3;
@@ -1849,10 +1866,10 @@ export default function Landing() {
           position: fixed;
           top: 50%;
           left: 50%;
-          width: clamp(200px, 27vw, 400px);
-          height: clamp(200px, 40vh, 440px);
-          margin-top: calc(clamp(200px, 40vh, 440px) * -0.5);
-          margin-left: calc(clamp(200px, 27vw, 400px) * -0.5);
+          width: clamp(170px, 22vw, 330px);
+          height: clamp(170px, 33vh, 360px);
+          margin-top: calc(clamp(170px, 33vh, 360px) * -0.5);
+          margin-left: calc(clamp(170px, 22vw, 330px) * -0.5);
           transform-origin: center center;
           z-index: 4;
           pointer-events: none;

@@ -19,6 +19,8 @@ const FACE_ROT = { x: -0.2, y: -0.61, z: 0 };
 
 // Bright silver-white so the mark reads clearly on the dark stage.
 const LOGO_COLOR = new THREE.Color('#EDEDF4');
+// Self-illumination colour — keeps the mark glowing bright at every angle.
+const LOGO_EMISSIVE = new THREE.Color('#E6E6F2');
 
 // Tip → landscape, then barrel-roll (unchanged choreography). The GLASS material is
 // replaced with a BRIGHT opaque metallic one: it's clearly visible on the dark bg and
@@ -27,23 +29,25 @@ function LogoModel({ progress }) {
   const { scene } = useGLTF('/model-compressed.glb');
   const tipRef = useRef();
   const spinRef = useRef();
+  const matsRef = useRef([]);
 
+  // Swap the (dark, laggy) glass material for an opaque one and keep a handle on the
+  // materials so we can keep their look enforced every frame (HMR-robust).
   useMemo(() => {
+    const mats = [];
     scene.traverse((o) => {
       if (o.isMesh) {
         o.material = new THREE.MeshStandardMaterial({
           color: LOGO_COLOR.clone(),
-          metalness: 0.2,
-          roughness: 0.45,
-          envMapIntensity: 1.4,
-          // Self-illumination so the mark stays clearly visible at EVERY angle —
-          // including face-on at the hero, where a metallic surface would just reflect
-          // the dark HDR and look like a grey outline.
-          emissive: new THREE.Color('#6f6f86'),
-          emissiveIntensity: 0.6,
+          metalness: 0.1,
+          roughness: 0.6,
+          envMapIntensity: 1.0,
+          emissive: LOGO_EMISSIVE.clone(),
         });
+        mats.push(o.material);
       }
     });
+    matsRef.current = mats;
   }, [scene]);
 
   useFrame(() => {
@@ -54,6 +58,14 @@ function LogoModel({ progress }) {
 
     const spin = Math.min(Math.max((p - TIP_END) / (1 - TIP_END), 0), 1);
     if (spinRef.current) spinRef.current.rotation.y = spin * Math.PI * 2 * SPIN_TURNS;
+
+    // STRONG self-illumination enforced every frame: the mark glows its own bright
+    // silver so it stays fully visible at EVERY angle/position — independent of lights,
+    // reflections or how it's turned. This is what kills the scroll-up dimming, and
+    // setting it here (not just at creation) means hot-reload picks it up live.
+    for (let i = 0; i < matsRef.current.length; i++) {
+      matsRef.current[i].emissiveIntensity = 0.9;
+    }
   });
 
   return (

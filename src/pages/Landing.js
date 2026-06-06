@@ -491,7 +491,9 @@ export default function Landing() {
   // snapping to every scroll tick (kills the per-frame jank on the heavy 3D canvas).
   const journeyP = useSpring(journeyRaw, { stiffness: 220, damping: 48, mass: 0.22 });
   // Starts already large (image-1 size), pops to full FAST so it doesn't eat scroll.
-  const flyScale = useTransform(journeyP, [0, 0.05], [0.92, 1]);
+  // GROWS while it spins (same journeyP range as logoSpinP) — the logo enlarges as it
+  // does its 360° turn, rather than just popping to size up front.
+  const flyScale = useTransform(journeyP, [0.41, 0.86], [0.85, 1.3]);
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
@@ -500,7 +502,11 @@ export default function Landing() {
   // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
   // exits cleanly with the text — no lingering dim logo over the empty section after.
   // Logo fades out TOGETHER with the leaderboard text (same range as logoBoardOpacity).
-  const flyOpacity = useTransform(logo3dProgress, [0.8, 0.9], [1, 0]);
+  // Fade driven by journeyP (the SAME reliable, symmetric scroll value that drives the
+  // logo's position) rather than logo3dProgress — whose sticky/overlap measurement let
+  // the logo linger into the brand strip and got "stuck" on scroll up. Full until the
+  // last row (~journeyP 0.87), then fully gone by ~0.94, before the brand strip shows.
+  const flyOpacity = useTransform(journeyP, [0.87, 0.94], [1, 0]);
   // Tip + spin are driven by the SECTION's own scroll (logo3dProgress), NOT the
   // journey scroll — so the logo rotates continuously and IN SYNC with the leaderboard
   // rows. Lands ~logo3dProgress 0.43 as row 1 focuses, so the spin starts right there
@@ -645,9 +651,13 @@ export default function Landing() {
 
       {/* Fixed 3D mark that flies across the hero + 3D section (desktop only).
           On mobile we fall back to a static 3D inside the section (see below). */}
-      {!heroStatic && !pastBoard && (
+      {!heroStatic && (
         <motion.div
           className="lp-logo-fly"
+          // Stay MOUNTED the whole time and drive visibility PURELY by scroll position
+          // (flyOpacity). No state-based gate (pastBoard) — that got "stuck" after you
+          // hit the bottom and never let the logo come back on the way up. flyOpacity is
+          // symmetric, so scroll up behaves identically to scroll down.
           style={{ x: flyX, y: flyY, scale: flyScale, opacity: flyOpacity }}
           aria-hidden="true"
         >

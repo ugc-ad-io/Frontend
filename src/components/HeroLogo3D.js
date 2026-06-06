@@ -3,69 +3,64 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, Environment, Center, Bounds, OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
-// How far through the spin-progress the "tip to landscape" lasts: it lays the logo
-// on its side (long axis horizontal → pointing at the leaderboard text) quickly, then
-// barrel-rolls for the rest. Kept small so the landscape spin starts early.
-const TIP_END = 0.05;
-// Number of full barrel-roll revolutions. WHOLE number → ends settled face-flat.
-const SPIN_TURNS = 2;
-// smoothstep ease so the tip eases in and lands softly instead of being linear.
-const ease = (t) => t * t * (3 - 2 * t);
+// ease-in-out so the 360° spin / colour accelerate in then settle out.
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
-// Resting/face-on correction for the GLB. The authored model is turned + pitched
-// (we see its top and left side faces), so we counter-rotate it to sit flat and
-// face the camera at progress 0.
+// Resting/face-on correction for the GLB so it faces the camera at progress 0; the
+// 360° Y spin is applied on top of this base orientation.
 const FACE_ROT = { x: -0.2, y: -0.61, z: 0 };
 
-// Bright silver-white so the mark reads clearly on the dark stage.
-const LOGO_COLOR = new THREE.Color('#EDEDF4');
-// Self-illumination colour — keeps the mark glowing bright at every angle.
-const LOGO_EMISSIVE = new THREE.Color('#E6E6F2');
+// Colour journey (exact spec hex): Frosted Lilac → Periwinkle Pulse → Velvet Mist.
+const COL_START = new THREE.Color('#F3F3F9'); // 0.0 silver-white
+const COL_MID = new THREE.Color('#7367FF');   // 0.5 brand purple
+const COL_END = new THREE.Color('#9191D1');   // 1.0 muted lavender
+const _col = new THREE.Color();
 
-// Tip → landscape, then barrel-roll (unchanged choreography). The GLASS material is
-// replaced with a BRIGHT opaque metallic one: it's clearly visible on the dark bg and
-// far cheaper to render (no per-frame transmission pass → no lag).
+// Single scroll gesture: a 360° Y-rotation and the colour transition update together
+// from the same eased progress (the logo also GROWS via CSS scale on the overlay).
 function LogoModel({ progress }) {
   const { scene } = useGLTF('/model-compressed.glb');
-  const tipRef = useRef();
   const spinRef = useRef();
 
   useFrame(() => {
-    const p = progress ? progress.get() : 0;
+    const p = progress ? Math.min(Math.max(progress.get(), 0), 1) : 0;
+    const e = easeInOut(p);
 
-    const tip = ease(Math.min(p / TIP_END, 1));
-    if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
+    // ONE full 360° turntable spin (not a tip / vertical motion).
+    if (spinRef.current) spinRef.current.rotation.y = e * Math.PI * 2;
 
-    const spin = Math.min(Math.max((p - TIP_END) / (1 - TIP_END), 0), 1);
-    if (spinRef.current) spinRef.current.rotation.y = spin * Math.PI * 2 * SPIN_TURNS;
+    // Colour: silver-white → purple → lavender across the two halves.
+    if (e < 0.5) _col.lerpColors(COL_START, COL_MID, e * 2);
+    else _col.lerpColors(COL_MID, COL_END, (e - 0.5) * 2);
 
-    // Replace the cached GLTF's dark/laggy GLASS material with a BRIGHT self-lit one.
-    // Done here (guarded per mesh) rather than in a one-time effect because useGLTF
-    // caches the scene, so a one-time swap doesn't re-apply after hot-reload — this
-    // guarantees the live scene gets the bright material whatever its prior state.
+    // Replace the cached GLTF's dark/laggy GLASS material with a bright self-lit one
+    // (guarded per mesh — useGLTF caches the scene, so a one-time swap wouldn't re-apply
+    // after hot-reload). Then drive colour + emissive every frame so the mark stays
+    // clearly visible at every angle AND shifts through the colour journey.
     scene.traverse((o) => {
-      if (o.isMesh && !o.userData._logoLit) {
-        o.material = new THREE.MeshStandardMaterial({
-          color: LOGO_COLOR.clone(),
-          metalness: 0.1,
-          roughness: 0.6,
-          envMapIntensity: 1.0,
-          emissive: LOGO_EMISSIVE.clone(),
-          emissiveIntensity: 0.9,
-        });
-        o.userData._logoLit = true;
+      if (o.isMesh) {
+        if (!o.userData._logoLit) {
+          o.material = new THREE.MeshStandardMaterial({
+            metalness: 0.1,
+            roughness: 0.6,
+            envMapIntensity: 1.0,
+          });
+          o.userData._logoLit = true;
+        }
+        const m = o.material;
+        if (m.color) m.color.copy(_col);
+        m.emissive.copy(_col);
+        m.emissiveIntensity = 0.55;
       }
     });
   });
 
   return (
-    <group ref={tipRef}>
-      <group ref={spinRef}>
-        <group rotation={[FACE_ROT.x, FACE_ROT.y, FACE_ROT.z]}>
-          <Center>
-            <primitive object={scene} />
-          </Center>
-        </group>
+    <group ref={spinRef}>
+      <group rotation={[FACE_ROT.x, FACE_ROT.y, FACE_ROT.z]}>
+        <Center>
+          <primitive object={scene} />
+        </Center>
       </group>
     </group>
   );

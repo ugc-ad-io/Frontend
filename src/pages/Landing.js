@@ -491,9 +491,9 @@ export default function Landing() {
   // snapping to every scroll tick (kills the per-frame jank on the heavy 3D canvas).
   const journeyP = useSpring(journeyRaw, { stiffness: 220, damping: 48, mass: 0.22 });
   // Starts already large (image-1 size), pops to full FAST so it doesn't eat scroll.
-  // GROWS while it spins (same journeyP range as logoSpinP) — the logo enlarges as it
-  // does its 360° turn, rather than just popping to size up front.
-  const flyScale = useTransform(journeyP, [0.41, 0.86], [0.85, 1.3]);
+  // GROWS during the HERO phase (0→0.2) while it does its 360° spin + colour journey,
+  // then holds that size through the cross + leaderboard. (Matches HERO_END in HeroLogo3D.)
+  const flyScale = useTransform(journeyP, [0, 0.2], [0.7, 1.2]);
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
@@ -662,7 +662,9 @@ export default function Landing() {
           aria-hidden="true"
         >
           <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
-            <HeroLogo3D progress={logoSpinP} />
+            {/* journeyP drives BOTH phases inside HeroLogo3D: hero 360°+colour, then
+                the leaderboard landscape tip + barrel-roll. */}
+            <HeroLogo3D progress={journeyP} />
           </Suspense>
         </motion.div>
       )}

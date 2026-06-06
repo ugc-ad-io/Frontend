@@ -76,9 +76,9 @@ const ordinal = (n) => {
 // Height of one leaderboard row, in vh (also used to compute the scroll range).
 const LOGO3D_ITEM_VH = 10;
 // Fraction of the section scroll over which all leaderboard rows pass the centre.
-// Pushed late (0.9) so the rows keep moving almost to the section end — no big frozen
-// dead-zone after the last row, and the logo spin stays in sync the whole way down.
-const LOGO3D_SCROLL_END = 0.9;
+// Pushed right to the end (0.96) so the rows stay until the section unpins — almost no
+// empty pinned navy after the fade, in EITHER scroll direction.
+const LOGO3D_SCROLL_END = 0.8;
 
 // Pre-scroll offset. Minimal — the leaderboard's first rows are essentially present as
 // the section begins (no empty gap where the logo sits alone), rising into focus right
@@ -427,13 +427,18 @@ export default function Landing() {
   // 3D glass logo — scroll-driven pinned scene under the hero
   const logo3dRef = useRef(null);
   const logo3dInView = useInView(logo3dRef, { once: true, margin: '200px' });
-  const { scrollYProgress: logo3dRaw } = useScroll({
+  // Once the brand strip is well into view we're PAST the leaderboard — used to
+  // unmount the fixed fly logo so it can't bleed into later sections (the sections
+  // overlap via negative margins, so logo3dProgress doesn't reliably hit 1.0 here).
+  const brandStripRef = useRef(null);
+  const pastBoard = useInView(brandStripRef, { amount: 0.6 });
+  // NO spring here: the rows/fade track raw scroll EXACTLY, so the leaderboard looks
+  // identical scrolling up or down (a spring lags by direction, which left an empty
+  // navy gap when scrolling back UP from the brand strip before the rows re-appeared).
+  const { scrollYProgress: logo3dProgress } = useScroll({
     target: logo3dRef,
     offset: ['start start', 'end end'],
   });
-  // Spring-smoothed so the leaderboard rows glide rather than jitter per scroll tick.
-  // Tight/overdamped: tracks scroll closely with almost no settle (no bounce-back).
-  const logo3dProgress = useSpring(logo3dRaw, { stiffness: 220, damping: 48, mass: 0.22 });
   // Leaderboard scrolls vertically: 1st row centered at the start, last row
   // centered at the end — each rank passes through the centre one-by-one.
   const logoBoardStart = 50 - LOGO3D_ITEM_VH / 2;
@@ -442,7 +447,9 @@ export default function Landing() {
   const logoBoardY = useTransform(logo3dProgress, [0, LOGO3D_SCROLL_END], [`${logoBoardStart}vh`, `${logoBoardEnd}vh`]);
   // Lines finish scrolling (~0.78), then fully fade out (~0.86) BEFORE the logo moves —
   // so the logo never overlaps the still-visible text.
-  const logoBoardOpacity = useTransform(logo3dProgress, [0.9, 0.97], [1, 0]);
+  // Rows finish centering by 0.8, THEN text + logo fade out together over 0.8→0.9
+  // (fully gone before the brand strip appears) — so the fade is clearly visible.
+  const logoBoardOpacity = useTransform(logo3dProgress, [0.8, 0.9], [1, 0]);
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
   const logoX = '-32vw';
@@ -492,12 +499,13 @@ export default function Landing() {
   const flyY = useTransform(journeyP, [0.2, 0.3], ['-7vh', logoY]);
   // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
   // exits cleanly with the text — no lingering dim logo over the empty section after.
-  const flyOpacity = useTransform(logo3dProgress, [0.9, 0.97], [1, 0]);
+  // Logo fades out TOGETHER with the leaderboard text (same range as logoBoardOpacity).
+  const flyOpacity = useTransform(logo3dProgress, [0.8, 0.9], [1, 0]);
   // Tip + spin are driven by the SECTION's own scroll (logo3dProgress), NOT the
   // journey scroll — so the logo rotates continuously and IN SYNC with the leaderboard
   // rows. Lands ~logo3dProgress 0.43 as row 1 focuses, so the spin starts right there
   // and runs to FULL by 0.9 — spinning across the whole row list, never freezing early.
-  const logoSpinP = useTransform(logo3dProgress, [0.14, 0.9], [0, 1]);
+  const logoSpinP = useTransform(logo3dProgress, [0.14, 0.8], [0, 1]);
   // On small screens, skip the pinned scroll choreography and fall back to a
   // clean stacked static hero (inline motion styles are dropped). Reduced-motion
   // is intentionally NOT a trigger — the scroll sequence is core to this hero.
@@ -637,7 +645,7 @@ export default function Landing() {
 
       {/* Fixed 3D mark that flies across the hero + 3D section (desktop only).
           On mobile we fall back to a static 3D inside the section (see below). */}
-      {!heroStatic && (
+      {!heroStatic && !pastBoard && (
         <motion.div
           className="lp-logo-fly"
           style={{ x: flyX, y: flyY, scale: flyScale, opacity: flyOpacity }}
@@ -737,8 +745,59 @@ export default function Landing() {
           {/* The logo mark now lives in the fixed .lp-logo-fly overlay above —
               it flies in from here and continues into the 3D section below. */}
 
-          {/* Bottom strip — scrolling brand logos (hidden once past the 2nd scroll) */}
-          <div className="lp-hero__strip">
+          {/* Brand strip moved out — it's now its own persistent section AFTER the
+              leaderboard (see .lp-brandstrip below). */}
+        </motion.div>
+
+        {/* curved divider into the next section */}
+        <svg
+          className="lp-hero__divider"
+          viewBox="0 0 1440 80"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0,0 C480,80 960,80 1440,0 L1440,80 L0,80 Z" fill="#0a0a0a" />
+        </svg>
+      </section>
+
+      {/* ── 3D glass logo (left) + center copy — scroll-driven ──────────────── */}
+      <section className={`lp-logo3d${logo3dInView ? ' is-in' : ''}`} ref={logo3dRef}>
+        <div className="lp-logo3d__sticky">
+          {/* 3D logo — top-left resting spot. On desktop the fixed .lp-logo-fly
+              overlay flies in and occupies this position, so the stage here is a
+              MOBILE-ONLY fallback (no fly-through on small screens). */}
+          {heroStatic && (
+            <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoY }}>
+              {logo3dInView ? (
+                <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
+                  <HeroLogo3D progress={logo3dProgress} />
+                </Suspense>
+              ) : (
+                <div className="lp-logo3d__placeholder" aria-hidden="true" />
+              )}
+            </motion.div>
+          )}
+
+          {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
+          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity }}>
+            <div className="lp-logo3d__boardTrack">
+              {TOP_CREATORS.map((c, i) => (
+                <LeaderboardRow
+                  key={c.name}
+                  progress={logo3dProgress}
+                  index={i}
+                  count={TOP_CREATORS.length}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+      </div>{/* /lp-journey */}
+
+      {/* ── Brand strip — moved here, AFTER the leaderboard; stays put (no fade) ── */}
+      <section className="lp-brandstrip" ref={brandStripRef}>
+        <div className="lp-hero__strip">
           <div className="lp-hero__brands-side lp-hero__brands-side--left">
             <div className="lp-brands__track lp-brands__track--left">
               {(() => {
@@ -802,54 +861,8 @@ export default function Landing() {
               ))}
             </div>
           </div>
-          </div>
-        </motion.div>
-
-        {/* curved divider into the next section */}
-        <svg
-          className="lp-hero__divider"
-          viewBox="0 0 1440 80"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <path d="M0,0 C480,80 960,80 1440,0 L1440,80 L0,80 Z" fill="#0a0a0a" />
-        </svg>
-      </section>
-
-      {/* ── 3D glass logo (left) + center copy — scroll-driven ──────────────── */}
-      <section className={`lp-logo3d${logo3dInView ? ' is-in' : ''}`} ref={logo3dRef}>
-        <div className="lp-logo3d__sticky">
-          {/* 3D logo — top-left resting spot. On desktop the fixed .lp-logo-fly
-              overlay flies in and occupies this position, so the stage here is a
-              MOBILE-ONLY fallback (no fly-through on small screens). */}
-          {heroStatic && (
-            <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoY }}>
-              {logo3dInView ? (
-                <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
-                  <HeroLogo3D progress={logo3dProgress} />
-                </Suspense>
-              ) : (
-                <div className="lp-logo3d__placeholder" aria-hidden="true" />
-              )}
-            </motion.div>
-          )}
-
-          {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
-          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity }}>
-            <div className="lp-logo3d__boardTrack">
-              {TOP_CREATORS.map((c, i) => (
-                <LeaderboardRow
-                  key={c.name}
-                  progress={logo3dProgress}
-                  index={i}
-                  count={TOP_CREATORS.length}
-                />
-              ))}
-            </div>
-          </motion.div>
         </div>
       </section>
-      </div>{/* /lp-journey */}
 
       {/* connector 1: hero → hook — joined U-bridge with center drop into badge */}
       <div className="lp-connector" style={{ height: 380, marginBottom: -110 }}>
@@ -1876,14 +1889,17 @@ export default function Landing() {
           will-change: transform, opacity;
         }
 
-        /* Pinned stage — stays dark throughout; bottom padding reserves room for the strip */
+        /* Pinned stage — stays dark throughout. The copy is vertically centred now that
+           the brand strip no longer reserves the bottom; the 3D mark balances it right. */
         .lp-hero__sticky {
           position: sticky;
           top: 0;
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          padding: 120px 6% 210px;
+          padding: 96px 6%;
+          display: flex;
+          align-items: center;
         }
         /* In light mode show the navy/blue logo mark (the white one would vanish on
            the light hero), regardless of the scroll-driven crossfade state. */
@@ -2106,7 +2122,29 @@ export default function Landing() {
           display: block;
         }
 
-        /* Bottom strip — scrolling brand logos, pinned to the base of the stage */
+        /* Brand strip — its OWN persistent section, appearing AFTER the leaderboard has
+           fully faded (margin-top:0 → it enters as the leaderboard sticky releases, so
+           no overlap with the still-visible rows). No black block: a soft navy radial
+           glow keeps it on-theme while the rest stays transparent. */
+        .lp-brandstrip {
+          position: relative;
+          z-index: 3;
+          margin-top: -8vh;
+          padding: 60px 0;
+          background: radial-gradient(75% 150% at 50% 55%, rgba(48,48,135,0.22), transparent 72%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        /* In the standalone section the strip flows normally (not pinned absolute). */
+        .lp-brandstrip .lp-hero__strip {
+          position: relative;
+          left: auto;
+          bottom: auto;
+          padding: 0;
+        }
+
+        /* Bottom strip — scrolling brand logos */
         .lp-hero__strip {
           position: absolute;
           left: 0;
@@ -2255,7 +2293,7 @@ export default function Landing() {
         /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
         .lp-logo3d {
           position: relative;
-          height: 220vh;                 /* scroll travel that drives the animation */
+          height: 175vh;                 /* scroll travel that drives the animation */
           background: transparent;       /* show the shared animated page background */
           z-index: 2;
         }

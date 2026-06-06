@@ -7,9 +7,9 @@ import * as THREE from 'three';
 // PHASE 1 (hero):        0 → HERO_END   — 360° turntable spin + colour journey + grow.
 // PHASE 2 (cross):  HERO_END → LB_START — logo travels right→left (handled in Landing).
 // PHASE 3 (board): LB_START → LB_END    — tip to LANDSCAPE, then barrel-roll spin.
-const HERO_END = 0.35;
-const LB_START = 0.5;
-const LB_END = 0.9;
+const HERO_END = 0.5;
+const LB_START = 0.72;
+const LB_END = 0.92;
 const TIP_END = 0.12;   // fraction of phase-3 spent tipping to landscape
 const SPIN_TURNS = 2;   // barrel-roll revolutions in phase 3
 

@@ -11,9 +11,9 @@ const HERO_END = 0.5;
 // Logo holds UPRIGHT after the colour finishes (0.5 → 0.56), then the tilt begins as the
 // CROSS starts (0.56) and runs through it, arriving landscape at the leaderboard (~0.74).
 const LB_START = 0.56;
-const LB_END = 0.92;
-const TIP_END = 0.5;    // tilt spans the cross (LB_START→~0.74)
-const SPIN_TURNS = 2;   // barrel-roll revolutions in phase 3
+const LB_END = 1.0;     // spin runs all the way to the end so it KEEPS spinning while dissolving
+const TIP_END = 0.5;    // (unused now — logo stays upright)
+const SPIN_TURNS = 3;   // turntable revolutions across the board + dissolve
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const ease = (t) => t * t * (3 - 2 * t);

@@ -452,7 +452,7 @@ export default function Landing() {
   const logoBoardOpacity = useTransform(logo3dProgress, [0.8, 0.9], [1, 0]);
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
-  const logoX = '-42vw';
+  const logoX = '-36vw';
   // Resting spot sits BELOW the hero content zone (copy/buttons/badges live in the
   // upper ~30%), so the logo can glide straight to it without ever crossing the text.
   const logoY = '-7vh';
@@ -497,7 +497,7 @@ export default function Landing() {
   // (journeyP 0.3), then holds — so the landscape leaderboard size is the largest it gets.
   // Grows during the hero spin and STOPS at its max (1.1) by the end of the hero phase
   // (journeyP 0.2, where the colour finishes), then holds — doesn't grow any bigger.
-  const flyScale = useTransform(journeyP, [0, 0.5, 0.9, 1.0], [0.85, 1.0, 1.0, 0.5]);
+  const flyScale = useTransform(journeyP, [0, 0.5, 0.9, 1.0], [0.85, 1.0, 1.0, 0.78]);
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
@@ -889,8 +889,79 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 1: hero → hook — joined U-bridge with center drop into badge */}
-      <div className="lp-connector" style={{ height: 380, marginBottom: -110 }}>
+      {/* ── Showcase — Best UGC on the internet (moved here, right after the brand strip) ── */}
+      <section className="lp-showcase">
+        <div className="lp-showcase__inner">
+          <h2 className="lp-showcase__heading">
+            We create the{' '}
+            <span className="lp-showcase__heading--accent">best UGC</span>{' '}
+            on the internet
+          </h2>
+
+
+          <div className="lp-showcase__viewport">
+          {(() => {
+            const items = visibleShowcase.length ? visibleShowcase : showcaseVideos;
+            const mid = Math.ceil(items.length / 2);
+            const row1 = items.slice(0, mid);
+            const row2 = items.slice(mid).length ? items.slice(mid) : items.slice(0, mid);
+            const renderItem = (v, idx, prefix) => (
+              <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
+                <div className="lp-showcase-card">
+                  {v.isVideo ? (
+                    <video
+                      src={v.src}
+                      className="lp-showcase-card__media"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={v.src}
+                      alt={v.brand}
+                      className="lp-showcase-card__media"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentNode.style.background = v.logoBg;
+                      }}
+                    />
+                  )}
+                  <div className="lp-showcase-card__rating">
+                    <Star size={12} fill="#FBBF24" stroke="#FBBF24" />
+                    {v.rating.toFixed(1)}
+                  </div>
+                  <span className={`lp-showcase-card__tier lp-showcase-card__tier--${v.tier.toLowerCase()}`}>
+                    {v.tier}
+                  </span>
+                </div>
+              </div>
+            );
+            return (
+              <>
+                <div className="lp-showcase__row">
+                  <div className="lp-showcase__track lp-showcase__track--left">
+                    {Array.from({ length: 8 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
+                  </div>
+                </div>
+                <div className="lp-showcase__row">
+                  <div className="lp-showcase__track lp-showcase__track--right">
+                    {Array.from({ length: 8 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+          </div>
+        </div>
+      </section>
+
+      {/* connector 1: hero → hook — joined U-bridge with center drop into badge.
+          Negative marginTop pulls the dashed verticals up so they touch the
+          showcase video-card row above (no black gap between cards and line). */}
+      <div className="lp-connector" style={{ height: 380, marginTop: -24, marginBottom: -110 }}>
         <svg viewBox="0 0 1400 380" width="100%" height="100%" preserveAspectRatio="none">
           <path d="M 80 0 L 80 80 L 480 80 L 480 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
           <path d="M 1320 0 L 1320 80 L 920 80 L 920 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
@@ -1112,88 +1183,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 3: steps → showcase — L-bends from outer cards + center straight line */}
+      {/* connector: steps → audit — center straight line into the cards */}
       <div className="lp-connector" style={{ height: 270, marginTop: -100, marginBottom: -80 }}>
         <svg viewBox="0 0 1400 270" width="100%" height="100%" preserveAspectRatio="none">
-          <path d="M 300 0 L 300 100 L 500 100 L 500 270" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 1100 0 L 1100 100 L 900 100 L 900 270" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
           <path d="M 700 0 L 700 270" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-        </svg>
-      </div>
-
-      {/* ── Showcase — Best UGC on the internet ────────────────────────────── */}
-      <section className="lp-showcase">
-        <div className="lp-showcase__inner">
-          <h2 className="lp-showcase__heading">
-            We create the{' '}
-            <span className="lp-showcase__heading--accent">best UGC</span>{' '}
-            on the internet
-          </h2>
-
-
-          <div className="lp-showcase__viewport">
-          {(() => {
-            const items = visibleShowcase.length ? visibleShowcase : showcaseVideos;
-            const mid = Math.ceil(items.length / 2);
-            const row1 = items.slice(0, mid);
-            const row2 = items.slice(mid).length ? items.slice(mid) : items.slice(0, mid);
-            const renderItem = (v, idx, prefix) => (
-              <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
-                <div className="lp-showcase-card">
-                  {v.isVideo ? (
-                    <video
-                      src={v.src}
-                      className="lp-showcase-card__media"
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={v.src}
-                      alt={v.brand}
-                      className="lp-showcase-card__media"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentNode.style.background = v.logoBg;
-                      }}
-                    />
-                  )}
-                  <div className="lp-showcase-card__rating">
-                    <Star size={12} fill="#FBBF24" stroke="#FBBF24" />
-                    {v.rating.toFixed(1)}
-                  </div>
-                  <span className={`lp-showcase-card__tier lp-showcase-card__tier--${v.tier.toLowerCase()}`}>
-                    {v.tier}
-                  </span>
-                </div>
-              </div>
-            );
-            return (
-              <>
-                <div className="lp-showcase__row">
-                  <div className="lp-showcase__track lp-showcase__track--left">
-                    {Array.from({ length: 8 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
-                  </div>
-                </div>
-                <div className="lp-showcase__row">
-                  <div className="lp-showcase__track lp-showcase__track--right">
-                    {Array.from({ length: 8 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-          </div>
-        </div>
-      </section>
-
-      {/* connector 4: showcase → audit — extends up into carousel, U-shape, drops to cards */}
-      <div className="lp-connector" style={{ height: 720, marginTop: -120, marginBottom: -480, position: 'relative', zIndex: 5 }}>
-        <svg viewBox="0 0 1400 720" width="100%" height="100%" preserveAspectRatio="none">
-          <path d="M 200 0 L 200 160 L 1200 160 L 1200 600 L 900 600 L 900 720" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -1922,7 +1915,7 @@ export default function Landing() {
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          padding: 96px 6%;
+          padding: 96px 8%;
           display: flex;
           align-items: center;
         }
@@ -1935,7 +1928,7 @@ export default function Landing() {
         .lp-hero__inner {
           position: relative;
           z-index: 3;
-          max-width: 560px;
+          max-width: 640px;
           width: 100%;
           text-align: left;
           display: flex;
@@ -2000,19 +1993,19 @@ export default function Landing() {
           border: 1px solid rgba(var(--lp-fg), 0.12);
           color: #C8F23A;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.8rem;
+          font-size: 0.9rem;
           font-weight: 600;
-          margin-bottom: 18px;
+          margin-bottom: 48px;
           backdrop-filter: blur(8px);
         }
 
         .lp-hero__title {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.5vw, 3.6rem);
+          font-size: clamp(2.4rem, 5.4vw, 4.4rem);
           font-weight: 500;
-          line-height: 1.1;
+          line-height: 1.3;
           color: var(--lp-text);
-          margin: 0 0 24px 0;
+          margin: 0 0 48px 0;
           letter-spacing: -0.04em;
           max-width: 20ch;
         }
@@ -2029,10 +2022,10 @@ export default function Landing() {
         .lp-hero__subtitle {
           font-family: 'Instrument Sans', sans-serif;
           color: rgba(var(--lp-fg), 0.65);
-          font-size: 1rem;
-          line-height: 1.55;
-          max-width: 520px;
-          margin: 0 0 28px;
+          font-size: 1.22rem;
+          line-height: 1.7;
+          max-width: 560px;
+          margin: 0 0 52px;
           text-align: left;
         }
 
@@ -2047,7 +2040,7 @@ export default function Landing() {
           align-items: center;
           justify-content: flex-start;
           flex-wrap: wrap;
-          margin-bottom: 16px;
+          margin-bottom: 48px;
         }
 
         /* Scoped button overrides inside the dark hero only */
@@ -2055,13 +2048,13 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 14px 28px;
+          padding: 16px 32px;
           border-radius: 100px;
           background: #A78BFA;
           color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 700;
-          font-size: 0.98rem;
+          font-size: 1.05rem;
           border: none;
           cursor: pointer;
           transition: transform 0.25s ease, filter 0.25s ease;
@@ -2075,13 +2068,13 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 13px 24px;
+          padding: 15px 28px;
           border-radius: 100px;
           background: rgba(var(--lp-fg), 0.06);
           color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
-          font-size: 0.98rem;
+          font-size: 1.05rem;
           border: 1px solid rgba(var(--lp-fg), 0.2);
           cursor: pointer;
           transition: background 0.22s ease, border-color 0.22s ease;
@@ -2094,7 +2087,7 @@ export default function Landing() {
 
         .lp-hero__badges {
           display: flex;
-          gap: 10px;
+          gap: 12px;
           flex-wrap: wrap;
           justify-content: flex-start;
         }
@@ -2103,12 +2096,12 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 7px 14px;
+          padding: 9px 16px;
           background: rgba(var(--lp-fg), 0.05);
           border: 1px solid rgba(var(--lp-fg), 0.1);
           border-radius: 100px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.78rem;
+          font-size: 0.85rem;
           font-weight: 500;
           color: rgba(var(--lp-fg), 0.75);
           backdrop-filter: blur(8px);
@@ -2318,7 +2311,7 @@ export default function Landing() {
         /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
         .lp-logo3d {
           position: relative;
-          height: 145vh;                 /* scroll travel that drives the animation */
+          height: 175vh;                 /* scroll travel that drives the animation */
           background: transparent;       /* show the shared animated page background */
           z-index: 2;
         }
@@ -2822,7 +2815,7 @@ export default function Landing() {
 
         /* ── Showcase / Best UGC ──────────────────────────────────────────── */
         .lp-showcase {
-          padding: 80px 8% 100px;
+          padding: 80px 8% 24px;
           background: transparent;
           color: var(--lp-text);
         }
@@ -3605,9 +3598,9 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: center;
           gap: 32px;
-          padding: 120px 6% 140px;
+          padding: 110px 6%;
         }
         .lp-hero--static .lp-hero__inner {
           min-height: 0;

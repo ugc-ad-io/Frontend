@@ -50,6 +50,46 @@ import { motion, useInView, animate, useMotionValue, useTransform, useScroll, us
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 
+// Only decode a showcase video while it's on (or near) screen. The showcase holds 6 vertical
+// 4K clips rendered across two rows — decoding all of them at once exhausts the tab's memory
+// ("Out of Memory"). This mounts the <source> only when in view and drops it when out, so at
+// most a few clips ever decode simultaneously.
+function LazyVideo({ src, className }) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  // Observe visibility only — don't touch the element here (the <src> isn't applied yet
+  // at this point, so calling play() now would no-op and leave the card black).
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { rootMargin: '300px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  // Play/pause AFTER render, i.e. once the src has actually been attached.
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    if (inView) v.play?.().catch(() => {});
+    else v.pause?.();
+  }, [inView]);
+  return (
+    <video
+      ref={ref}
+      className={className}
+      muted
+      loop
+      playsInline
+      autoPlay
+      preload="metadata"
+      {...(inView ? { src } : {})}
+    />
+  );
+}
+
 // Top-creator leaderboard shown under the hero — rows reveal one-by-one on scroll.
 // Edit / add / remove freely; the reveal stagger recomputes from the item count.
 const TOP_CREATORS = [
@@ -85,6 +125,20 @@ const LOGO3D_SCROLL_END = 0.8;
 // as the logo glides in and lands.
 const LB_PRE = 1;
 
+// Tracks phone-width viewports so the leaderboard can shrink its type to fit — the
+// desktop 60px focus size overflows a ~400px screen and the long names get clipped.
+function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 600px)');
+    const update = () => setPhone(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return phone;
+}
+
 // One leaderboard row, animated measured.site-style. The whole list shares one
 // scroll value; each row's `offset` = its index minus the (fractional) focused
 // index, and every visual property is a pure function of that offset:
@@ -92,12 +146,17 @@ const LB_PRE = 1;
 //   (entry below = +cw clamped 24°, exit above = −ccw clamped −24°) · white→grey
 //   colour · weight 500/400/300 · hidden past ±3.
 function LeaderboardRow({ progress, index, count }) {
+  const phone = useIsPhone();
   const total = count - 1 + LB_PRE;                 // full focus travel
   // Spread the whole list across [0 → LOGO3D_SCROLL_END] of the section's scroll so
   // every row passes focus before the board fades out (~0.8).
   const off = useTransform(progress, (v) => index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE));
 
-  const fontSize = useTransform(off, (o) => `${Math.max(10, 60 - Math.abs(o) * 14)}px`);
+  // Phone: smaller focus size + gentler falloff so rows fit a narrow screen.
+  const peak = phone ? 24 : 60;
+  const step = phone ? 6 : 14;
+  const floor = phone ? 8 : 10;
+  const fontSize = useTransform(off, (o) => `${Math.max(floor, peak - Math.abs(o) * step)}px`);
   const opacity = useTransform(off, (o) => Math.max(0.03, 1 - Math.abs(o) * 0.38));
   const fontWeight = useTransform(off, (o) => (Math.abs(o) < 0.22 ? 500 : Math.abs(o) < 1.3 ? 400 : 300));
   const display = useTransform(off, (o) => (Math.abs(o) > 3 ? 'none' : 'flex'));
@@ -909,13 +968,9 @@ export default function Landing() {
               <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
                 <div className="lp-showcase-card">
                   {v.isVideo ? (
-                    <video
+                    <LazyVideo
                       src={v.src}
                       className="lp-showcase-card__media"
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
                     />
                   ) : (
                     <img
@@ -1915,9 +1970,12 @@ export default function Landing() {
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          padding: 96px 8%;
+          /* Top-anchor the copy (not centre) with padding that clears the fixed navbar,
+             so the first item — the "For Creators & Brands" badge — always sits below
+             the logo regardless of viewport height (centring let it ride up on short ones). */
+          padding: 120px 6% 72px;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
         }
         /* In light mode show the navy/blue logo mark (the white one would vanish on
            the light hero), regardless of the scroll-driven crossfade state. */
@@ -2149,7 +2207,9 @@ export default function Landing() {
           z-index: 3;
           margin-top: -8vh;
           padding: 60px 0;
-          background: radial-gradient(75% 150% at 50% 55%, rgba(48,48,135,0.22), transparent 72%);
+          /* Match the "Most Ads Fail…" (.lp-hook) section — transparent, so it shows the
+             shared animated page background instead of its own radial glow. */
+          background: transparent;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2347,9 +2407,12 @@ export default function Landing() {
           height: 100vh;
           width: 100%;
           overflow: hidden;
-          display: flex;                 /* centers the copy */
+          display: flex;
           align-items: center;
-          justify-content: center;
+          /* Push the leaderboard into the right half so the landed logo (resting at the
+             left, ~-36vw) never overlaps the centred rows. Reset to centre on mobile. */
+          justify-content: flex-end;
+          padding-right: 8%;
           /* transparent — shows the shared animated page background (.lp-bg-animations) */
           background: transparent;
         }
@@ -2828,14 +2891,21 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: clamp(2rem, 4.2vw, 3.4rem);
           font-weight: 500;
-          color: var(--lp-ink);
+          color: #ffffff;
           line-height: 1.2;
           letter-spacing: -0.04em;
           margin: 0 0 14px 0;
         }
+        /* Whole heading white on the dark stage (accent included). */
         .lp-showcase__heading--accent {
-          color: #A78BFA;
+          color: #ffffff;
           background: none;
+          -webkit-text-fill-color: #ffffff;
+        }
+        /* Light theme: white would vanish on the lavender bg, so keep it readable. */
+        .lp-root[data-theme="light"] .lp-showcase__heading { color: var(--lp-ink); }
+        .lp-root[data-theme="light"] .lp-showcase__heading--accent {
+          color: #A78BFA;
           -webkit-text-fill-color: #A78BFA;
         }
         .lp-showcase__subtitle {
@@ -3225,9 +3295,17 @@ export default function Landing() {
 
         .lp-features__grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          /* Exactly 4 features → 4 even columns (no orphaned 4th card the way auto-fit
+             left it). Collapses to 2×2 on tablet and a single column on phones. */
+          grid-template-columns: repeat(4, 1fr);
           gap: 20px;
           text-align: left;
+        }
+        @media (max-width: 1024px) {
+          .lp-features__grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+          .lp-features__grid { grid-template-columns: 1fr; }
         }
 
         .lp-card {
@@ -3256,6 +3334,19 @@ export default function Landing() {
         }
         .lp-card:hover::after { opacity: 1; }
 
+        /* Light mode polish: solid white cards (not faint translucent navy) with a clearer
+           shadow/border so they pop on the lavender bg; soften the near-invisible numbers. */
+        .lp-root[data-theme="light"] .lp-card {
+          background: #ffffff;
+          border-color: rgba(28,27,75,0.10);
+          box-shadow: 0 12px 30px rgba(7,7,78,0.08);
+        }
+        .lp-root[data-theme="light"] .lp-card:hover {
+          border-color: rgba(167,139,250,0.55);
+          box-shadow: 0 18px 44px rgba(124,58,237,0.16);
+        }
+        .lp-root[data-theme="light"] .lp-card__num { color: rgba(28,27,75,0.22); }
+
         .lp-card__num {
           position: absolute;
           top: 20px;
@@ -3282,6 +3373,9 @@ export default function Landing() {
         .lp-card:hover .lp-card__icon {
           transform: scale(1.08) rotate(-3deg);
         }
+        /* Light mode: keep the icon glyph crisp white on the blue/navy tile. */
+        .lp-root[data-theme="light"] .lp-card__icon,
+        .lp-root[data-theme="light"] .lp-card__icon svg { color: #ffffff; }
 
         .lp-card__title {
           font-family: 'Instrument Sans', sans-serif;
@@ -3492,6 +3586,9 @@ export default function Landing() {
           transition: all 0.25s ease;
           box-shadow: 0 12px 32px rgba(7, 7, 78, 0.32);
         }
+        /* Beat the global .lp-root button rule (color: var(--lp-text)) so the label stays
+           white on the dark button in BOTH themes (it was navy-on-navy in light mode). */
+        .lp-root .lp-btn-join { color: #ffffff; }
         .lp-btn-join:hover {
           transform: translateY(-3px);
           background: rgba(167, 139, 250, 0.15);
@@ -3514,6 +3611,14 @@ export default function Landing() {
           cursor: pointer;
           transition: all 0.22s ease;
         }
+        /* Light mode only: these two sit on a dark (var(--lp-fg)-tinted) surface, so the
+           dark default text would be navy-on-navy. White only here; dark mode keeps it dark. */
+        .lp-root[data-theme="light"] .lp-cta__pill,
+        .lp-root[data-theme="light"] .lp-btn-outline { color: #ffffff; }
+        /* On hover both buttons turn to a LIGHT background in light mode, so flip the
+           label back to dark for contrast. */
+        .lp-root[data-theme="light"] .lp-btn-join:hover,
+        .lp-root[data-theme="light"] .lp-btn-outline:hover { color: #07074e; }
         .lp-btn-outline:hover {
           background: rgba(var(--lp-fg), 0.06);
           border-color: #A78BFA;
@@ -3569,6 +3674,10 @@ export default function Landing() {
           color: #07074e;
           letter-spacing: -0.01em;
         }
+        /* Light mode only: the signals bar background is dark (var(--lp-fg)-tinted),
+           so flip the stats + labels to white for contrast. Dark mode keeps them navy. */
+        .lp-root[data-theme="light"] .lp-cta__signal-num,
+        .lp-root[data-theme="light"] .lp-cta__signal-label { color: #ffffff; }
         .lp-cta__signal-divider {
           width: 1px;
           height: 38px;
@@ -4103,6 +4212,12 @@ export default function Landing() {
         .lp-connector svg path {
           animation: connectorFlow 1.2s linear infinite;
         }
+        /* Light mode: the dashed connector lines (stroke set inline to a light grey) are
+           too faint on the lavender bg — CSS overrides the inline stroke with a dark navy. */
+        .lp-root[data-theme="light"] .lp-connector svg path {
+          stroke: #1c1b4b;
+          stroke-opacity: 0.6;
+        }
         @keyframes connectorFlow {
           0% { stroke-dashoffset: 0; }
           100% { stroke-dashoffset: -12; }
@@ -4247,6 +4362,14 @@ export default function Landing() {
           font-weight: 600;
           font-style: italic;
         }
+        /* Light mode polish: solid white quote card (not faint translucent) with a clearer
+           shadow, and a slightly deeper accent so the italic line reads well. */
+        .lp-root[data-theme="light"] .lp-hook__quote-card {
+          background: #ffffff;
+          border-color: rgba(28,27,75,0.10);
+          box-shadow: 0 18px 46px rgba(7,7,78,0.10);
+        }
+        .lp-root[data-theme="light"] .lp-hook__quote-text em { color: #7c3aed; }
 
         .lp-hook__cta-row {
           display: flex;
@@ -4393,6 +4516,10 @@ export default function Landing() {
         .lp-step-card:hover .lp-step-card__icon {
           transform: scale(1.08) rotate(-3deg);
         }
+        /* Light mode: the tile is dark navy but the glyph inherited navy text (invisible).
+           Force it white for contrast. */
+        .lp-root[data-theme="light"] .lp-step-card__icon,
+        .lp-root[data-theme="light"] .lp-step-card__icon svg { color: #ffffff; }
 
         .lp-step-card__title {
           font-family: 'Instrument Sans', sans-serif;
@@ -4670,6 +4797,9 @@ export default function Landing() {
           justify-content: center;
           flex-shrink: 0;
         }
+        /* Light mode: dark navy circle but the arrow inherited navy text (invisible) — white it. */
+        .lp-root[data-theme="light"] .lp-audit__footer-icon,
+        .lp-root[data-theme="light"] .lp-audit__footer-icon svg { color: #ffffff; }
         .lp-audit__footer-text {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 1rem;
@@ -4715,6 +4845,13 @@ export default function Landing() {
           line-height: 1.1;
           margin: 0;
           text-align: center;
+        }
+        /* Light mode: render the heading as a solid, strong navy (no muted/translucent
+           look) so it reads clearly on the lavender bg. */
+        .lp-root[data-theme="light"] .lp-proof__heading {
+          color: #1c1b4b;
+          -webkit-text-fill-color: #1c1b4b;
+          font-weight: 600;
         }
 
         .lp-proof__divider {
@@ -5024,6 +5161,26 @@ export default function Landing() {
           margin-top: 2px;
         }
 
+        /* Light mode polish: the translucent navy-tinted cards looked washed out on the
+           lavender bg. Give them solid white surfaces, a clearer shadow/border, and a
+           slightly deeper purple accent so quotes + metrics read well. Dark mode unchanged. */
+        .lp-root[data-theme="light"] .lp-tcard {
+          background: #ffffff;
+          border-color: rgba(28,27,75,0.10);
+          box-shadow: 0 14px 36px rgba(7,7,78,0.10);
+        }
+        .lp-root[data-theme="light"] .lp-tcard--featured {
+          background: linear-gradient(180deg, #ffffff 0%, #f3f1fe 100%);
+          border-color: rgba(167,139,250,0.45);
+          box-shadow: 0 22px 52px rgba(124,58,237,0.16);
+        }
+        .lp-root[data-theme="light"] .lp-tcard__quote em,
+        .lp-root[data-theme="light"] .lp-tcard__metric-val { color: #7c3aed; }
+        .lp-root[data-theme="light"] .lp-tcard__metric {
+          background: #f1ecfe;
+          border-color: rgba(167,139,250,0.5);
+        }
+
         @media (max-width: 1024px) {
           .lp-testimonial__grid { grid-template-columns: 1fr; max-width: 560px; margin-left: auto; margin-right: auto; margin-bottom: 56px; }
         }
@@ -5077,9 +5234,37 @@ export default function Landing() {
         }
 
         @media (max-width: 900px) {
-          .lp-steps__grid, .lp-audit__grid { grid-template-columns: 1fr; }
+          .lp-steps__grid { grid-template-columns: 1fr; }
+          /* Leaderboard: widen the viewport so the (now smaller) rows fit without clipping,
+             and re-centre it (the desktop right-shift isn't needed on a stacked mobile view). */
+          .lp-logo3d__board { width: 92%; }
+          .lp-logo3d__sticky { justify-content: center; padding-right: 0; }
           .lp-step-card__connector { display: none; }
           .lp-step-card { min-height: auto; }
+
+          /* ── Audit section: the desktop scroll-peel deck (280vh tall, sticky inner,
+             absolutely-stacked cards moved by scroll) collapses to a plain vertical
+             stack on mobile so it doesn't render as a huge empty area with the cards
+             pushed off-screen. !important overrides framer-motion's inline transforms. */
+          .lp-audit { min-height: auto; padding: 80px 6%; }
+          .lp-audit__inner { position: static; top: auto; }
+          .lp-audit__grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            min-height: auto;
+            margin: 40px auto;
+            max-width: 100%;
+            perspective: none;
+          }
+          .lp-audit-card {
+            position: static !important;
+            transform: none !important;
+            width: 100%;
+            max-width: 420px;
+            min-height: auto;
+          }
           .lp-proof { padding: 80px 5%; }
           .lp-proof__top { flex-direction: column; align-items: flex-start; }
           .lp-proof__heading { text-align: left; }

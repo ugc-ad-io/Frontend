@@ -1,6 +1,9 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Instagram, Check, Trash2, Pencil } from 'lucide-react';
+import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Instagram, Check, Trash2, Pencil,
+  PersonStanding, Dumbbell, Circle, Palette, PenLine, Mic, Drama, Video, Clapperboard, Sparkles, Camera,
+  Aperture, VolumeX, Lightbulb, Square, Image as ImageIcon, Users, UsersRound, PawPrint, Globe, Info,
+  PartyPopper, Upload, Music2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ── Step config ────────────────────────────────────────────────────────────
@@ -76,34 +79,36 @@ const CITIES_BY_STATE = {
 const GENDERS = ['Male', 'Female', 'Other'];
 
 const BODY_TYPES = [
-  { label: 'Average', icon: '🧍' },
-  { label: 'Slim', icon: '🧍' },
-  { label: 'Athletic', icon: '🏃' },
-  { label: 'Plus Size', icon: '🧍' },
+  { label: 'Average', icon: <PersonStanding size={16} /> },
+  { label: 'Slim', icon: <PersonStanding size={16} /> },
+  { label: 'Athletic', icon: <Dumbbell size={16} /> },
+  { label: 'Plus Size', icon: <PersonStanding size={16} /> },
   { label: 'No Preference', none: true },
 ];
 
+// Skin tone uses coloured swatches (lucide is monochrome, so a filled Circle
+// communicates the tone where a person glyph couldn't).
 const SKIN_TONES = [
-  { label: 'Fair', icon: '👩🏻' },
-  { label: 'Brown', icon: '👩🏽' },
-  { label: 'Dark', icon: '👩🏿' },
-  { label: 'No preference', icon: '👩' },
+  { label: 'Fair', icon: <Circle size={15} fill="#F2D2BD" color="#F2D2BD" /> },
+  { label: 'Brown', icon: <Circle size={15} fill="#A56A43" color="#A56A43" /> },
+  { label: 'Dark', icon: <Circle size={15} fill="#5C3A21" color="#5C3A21" /> },
+  { label: 'No preference', icon: <Palette size={16} /> },
 ];
 
 // ── Step 4 — Build Your Creator Portfolio ──────────────────────────────────
 const SKILLS = [
-  { label: 'Script Writing', icon: '🖊️' },
-  { label: 'Voiceovers', icon: '🎤' },
-  { label: 'Acting', icon: '🎭' },
-  { label: 'Videography (DOP)', icon: '🎥' },
-  { label: 'Video Editing', icon: '🎬' },
-  { label: 'Modelling', icon: '🕺' },
+  { label: 'Script Writing', icon: <PenLine size={16} /> },
+  { label: 'Voiceovers', icon: <Mic size={16} /> },
+  { label: 'Acting', icon: <Drama size={16} /> },
+  { label: 'Videography (DOP)', icon: <Video size={16} /> },
+  { label: 'Video Editing', icon: <Clapperboard size={16} /> },
+  { label: 'Modelling', icon: <Sparkles size={16} /> },
 ];
 const PLATFORMS = [
   { key: 'youtube', label: 'YouTube', badge: '▶', color: '#FF0000' },
   { key: 'linkedin', label: 'LinkedIn', badge: 'in', color: '#0A66C2' },
   { key: 'instagram', label: 'Instagram', Icon: Instagram, color: 'linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)' },
-  { key: 'tiktok', label: 'TikTok', badge: '♪', color: '#111111' },
+  { key: 'tiktok', label: 'TikTok', Icon: Music2, color: '#111111' },
 ];
 // Picker options for "Add another social link".
 const ADD_PLATFORMS = ['YouTube', 'Facebook', 'X (Twitter)', 'Website', 'Custom'];
@@ -111,7 +116,7 @@ const badgeFor = (label) => ({
   'YouTube': { c: '▶', bg: '#FF0000' },
   'Facebook': { c: 'f', bg: '#1877F2' },
   'X (Twitter)': { c: '𝕏', bg: '#111111' },
-  'Website': { c: '🌐', bg: '#6d28d9' },
+  'Website': { c: <Globe size={15} color="#fff" />, bg: '#6d28d9' },
 }[label] || { c: (label || '?').charAt(0).toUpperCase(), bg: '#7c3aed' });
 const LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi', 'Bhojpuri'];
 const WEEKLY = ['1–5 hrs / week', '6–10 hrs / week', '11–20 hrs / week', '20+ hrs / week'];
@@ -119,21 +124,21 @@ const TOPICS = ['None', 'Alcohol', 'Gambling', 'Adult products'];
 const PAYOUT_PERIODS = ['Per Video'];
 // Step 5 — Recording Setup & Equipment
 const CORE_SETUP = [
-  { label: 'DSLR Camera', icon: '📷' },
+  { label: 'DSLR Camera', icon: <Camera size={16} /> },
   { label: 'Iphone', icon: <img src="https://cdn.simpleicons.org/apple/ffffff" alt="" width={15} height={15} /> },
   { label: 'Android Phone', icon: <img src="https://cdn.simpleicons.org/android/3DDC84" alt="" width={16} height={16} /> },
-  { label: 'Tripod / Stable mount', icon: '🎥' },
-  { label: 'External microphone', icon: '🎙️' },
-  { label: 'Quiet / noise-controlled room', icon: '💤' },
-  { label: 'Artificial lighting', icon: '☀️' },
-  { label: 'Green screen', icon: '🟩' },
-  { label: 'Aesthetic background', icon: '🖼️' },
+  { label: 'Tripod / Stable mount', icon: <Aperture size={16} /> },
+  { label: 'External microphone', icon: <Mic size={16} /> },
+  { label: 'Quiet / noise-controlled room', icon: <VolumeX size={16} /> },
+  { label: 'Artificial lighting', icon: <Lightbulb size={16} /> },
+  { label: 'Green screen', icon: <Square size={16} fill="#22C55E" color="#22C55E" /> },
+  { label: 'Aesthetic background', icon: <ImageIcon size={16} /> },
 ];
 const APPEAR_IN = [
-  { label: 'Solo only', icon: '🧑' },
-  { label: 'Friends / peers', icon: '👥' },
-  { label: 'Family members', icon: '👨‍👩‍👧' },
-  { label: 'Pets / animals', icon: '🐾' },
+  { label: 'Solo only', icon: <User size={16} /> },
+  { label: 'Friends / peers', icon: <Users size={16} /> },
+  { label: 'Family members', icon: <UsersRound size={16} /> },
+  { label: 'Pets / animals', icon: <PawPrint size={16} /> },
 ];
 const ADDONS = [
   { key: 'ownAccount', title: 'Post content from your own account', note: 'Includes organic posts or collab posts.', yes: 'Yes, I can post from my account' },
@@ -708,7 +713,7 @@ export default function CreatorProfileSetup() {
           {/* Profile links */}
           <div className="ps-field">
             <label className="ps-label">Profile links</label>
-            <p className="ps-hinttext">Add at least one profile link. Brands shortlist creators by skills, not followers. 😎</p>
+            <p className="ps-hinttext">Add at least one profile link. Brands shortlist creators by skills, not followers.</p>
             <div className="ps-links">
               {PLATFORMS.map((p) => (
                 <div key={p.key} className="ps-link">
@@ -804,7 +809,7 @@ export default function CreatorProfileSetup() {
                       <img src="/uplaod.png" alt="Upload a video" className="ps-pf__thumbimg" />
                     </div>
                     <button type="button" className="ps-pf__upload" onClick={() => pfFileRef.current?.click()}>
-                      ⬇ Upload <span className="ps-muted">(max 200 MB)</span>
+                      <Upload size={15} /> Upload <span className="ps-muted">(max 200 MB)</span>
                     </button>
                     <div className="ps-pf__or">OR</div>
                     <input className="ps-input" placeholder="Add link" value={data.pfLink} onChange={(e) => set('pfLink', e.target.value)} />
@@ -969,7 +974,7 @@ export default function CreatorProfileSetup() {
             </div>
           </div>
 
-          <div className="ps-note">😉 You can edit this anytime. Only relevant brands see your details.</div>
+          <div className="ps-note"><Info size={15} /> You can edit this anytime. Only relevant brands see your details.</div>
         </>
       );
     }
@@ -1018,7 +1023,7 @@ export default function CreatorProfileSetup() {
             >
               <Check size={40} strokeWidth={3} />
             </motion.div>
-            <h1 className="ps-thanks__title">Application Submitted 🎉</h1>
+            <h1 className="ps-thanks__title">Application Submitted <PartyPopper size={24} /></h1>
             <p className="ps-thanks__text">
               Thanks for submitting your creator profile. Our team will review it and get back to
               you within <strong>48 hours</strong>. Keep an eye on your inbox!
@@ -1154,8 +1159,7 @@ export default function CreatorProfileSetup() {
           background: linear-gradient(90deg, transparent, rgba(167,139,250,0.7), transparent); }
         .ps-card__head { margin-bottom: 18px; }
         .ps-step { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 0.68rem; font-weight: 700;
-          background: linear-gradient(120deg, #A78BFA, #8f6ff0); color: #fff;
-          box-shadow: 0 6px 18px rgba(167,139,250,0.45); }
+          background: linear-gradient(120deg, #A78BFA, #8f6ff0); color: #fff; }
         .ps-title { font-size: 1.35rem; font-weight: 700; margin: 11px 0 0; color: #fff; letter-spacing: -0.01em; }
         .ps-sub { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 5px 0 0; }
         .ps-body { display: flex; flex-direction: column; gap: 16px; }
@@ -1266,8 +1270,8 @@ export default function CreatorProfileSetup() {
         .ps-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 10px 26px; border-radius: 999px;
           font-size: 0.9rem; font-weight: 600; color: #fff; cursor: pointer; border: none; font-family: inherit;
           background: linear-gradient(120deg, #A78BFA, #8f6ff0);
-          box-shadow: 0 12px 30px rgba(167,139,250,0.45); transition: all 0.2s; }
-        .ps-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(167,139,250,0.6); }
+          transition: all 0.2s; }
+        .ps-btn-primary:hover { transform: translateY(-2px); }
         .ps-btn-primary:disabled, .ps-btn-ghost:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .ps-spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4);
           border-top-color: #fff; animation: psSpin 0.7s linear infinite; }
@@ -1278,7 +1282,7 @@ export default function CreatorProfileSetup() {
         .ps-thanks__icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center;
           justify-content: center; color: #fff; margin-bottom: 22px;
           background: linear-gradient(135deg, #A78BFA, #7c3aed); box-shadow: 0 0 0 10px rgba(167,139,250,0.14), 0 16px 40px rgba(124,58,237,0.5); }
-        .ps-thanks__title { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0 0 12px; }
+        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0 0 12px; }
         .ps-thanks__text { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.65); max-width: 420px; margin: 0 0 28px; }
         .ps-thanks__text strong { color: #fff; }
         .ps-thanks__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
@@ -1372,7 +1376,8 @@ export default function CreatorProfileSetup() {
         .ps-pf__change { padding: 8px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.82rem;
           font-weight: 600; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); }
         .ps-pf__change:hover { border-color: var(--ps-purple); }
-        .ps-pf__upload { padding: 9px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.85rem;
+        .ps-pf__upload { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+          padding: 9px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.85rem;
           font-weight: 600; color: #fff; background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.22); }
         .ps-pf__or { text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.4); }
         .ps-pf__right { display: flex; flex-direction: column; gap: 10px; }
@@ -1408,8 +1413,10 @@ export default function CreatorProfileSetup() {
         .ps-vid__added { display: inline-flex; align-items: center; gap: 5px; font-size: 0.83rem; font-weight: 600; color: #4ade80; }
 
         /* Info note (final step) */
-        .ps-note { font-size: 0.82rem; line-height: 1.5; color: rgba(255,255,255,0.6); padding: 12px 14px;
+        .ps-note { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; line-height: 1.5;
+          color: rgba(255,255,255,0.6); padding: 12px 14px;
           border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+        .ps-note svg { flex-shrink: 0; }
 
         /* Checkbox */
         .ps-check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.92rem;
@@ -1466,6 +1473,23 @@ export default function CreatorProfileSetup() {
           .ps-row { grid-template-columns: 1fr; }
           .ps-title { font-size: 1.5rem; }
           .ps-upload__cta { display: none; }
+          /* Portfolio upload: stack the upload box above the brand/description
+             fields instead of forcing them side-by-side (which overflowed). */
+          .ps-pf { grid-template-columns: 1fr; }
+          .ps-pf__thumb { height: 150px; }
+          .ps-pf__right .ps-textarea { min-height: 90px; }
+          /* Saved-video rows: keep a small thumb but let the body wrap cleanly. */
+          .ps-vid { grid-template-columns: 84px 1fr; gap: 12px; }
+          .ps-vid__actions { flex-wrap: wrap; }
+          /* Footer nav buttons: stack full-width so "Submit Application" stops
+             wrapping onto two lines and both buttons are easy to tap. */
+          .ps-actions { flex-direction: column; align-items: stretch; gap: 12px; }
+          .ps-btn-ghost, .ps-btn-primary {
+            width: 100%;
+            justify-content: center;
+            margin-right: 0;
+            padding: 13px 20px;
+          }
         }
       `}</style>
     </div>

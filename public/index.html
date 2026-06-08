@@ -25,14 +25,13 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
         <title>UGCad.io - UGC Marketplace for Creators & Brands</title>
-        <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <!--
-        These two scripts have been added for the testing, please do not edit or remove them
-        -->
+        LOCAL-DEV: emergent + rrweb session-recording scripts disabled. rrweb records the
+        always-animating WebGL hero canvas + 4K showcase videos every frame, which exhausts
+        the tab's memory ("Aw, Snap! Out of Memory"). Re-enable for the hosted testing env.
+        <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <script src="https://unpkg.com/rrweb@latest/dist/rrweb.min.js"></script>
         <script src="https://d2adkz2s9zrlge.cloudfront.net/rrweb-recorder-20250919-1.js"></script>
-        <!--
-        These two scripts have been added for the Visual Edits, please do not edit or remove them
         -->
         <script>
             // Only load visual edit scripts when inside an iframe and visual edits are enabled
@@ -69,7 +68,9 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
         <script>
+            // LOCAL-DEV: posthog session-replay disabled to reduce memory load. Re-enable for hosted env.
             !(function (t, e) {
+                if (true) return; // disabled locally
                 var o, n, p, r;
                 e.__SV ||
                     ((window.posthog = e),

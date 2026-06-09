@@ -1,6 +1,6 @@
 import { Suspense, useRef, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Environment, Center, Bounds, OrbitControls, Html } from '@react-three/drei';
+import { useGLTF, Environment, Center, Bounds, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 // ── Phase boundaries, in JOURNEY progress (0 = top of hero, 1 = end of leaderboard) ──
@@ -139,7 +139,7 @@ export default function HeroLogo3D({ progress }) {
     <Canvas
       className="lp-logo3d__canvas"
       dpr={1}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 0, 6], fov: 15 }}
       frameloop="demand"
     >
@@ -159,7 +159,6 @@ export default function HeroLogo3D({ progress }) {
         </Bounds>
         <Environment files="/hdri/potsdamer_platz_1k.hdr" />
       </Suspense>
-      <OrbitControls enableZoom={false} enablePan={false} />
     </Canvas>
   );
 }

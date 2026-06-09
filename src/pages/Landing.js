@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../App';
 import {
@@ -46,7 +46,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
+import { motion, AnimatePresence, useAnimationControls, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
@@ -369,6 +369,16 @@ const compareRows = [
   { label: 'Control over content',             us: CHECK, inhouse: CHECK, agencies: CROSS, platforms: CHECK },
 ];
 
+// "US vs Others" — two-column comparison (us vs marketplaces).
+const vsRows = [
+  { label: 'SERVICE',           us: 'Done-For-You Monthly Retainer', them: 'Marketplace Pay-per-Video + hidden fees' },
+  { label: 'PRICE',             us: 'Transparent Pricing',           them: 'Pay-per-Video + Creator Fees' },
+  { label: 'CREATIVE STRATEGY', us: 'Done-For-You',                  them: 'Do-It-Yourself' },
+  { label: 'CREATORS',          us: 'Highly-Vetted Roster',          them: 'Hit-or-Miss Quality' },
+  { label: 'SCRIPTING',         us: CHECK,                           them: CROSS },
+  { label: 'UNLIMITED EDITS',   us: CHECK,                           them: CROSS },
+];
+
 // Six showcase video slots — all unique local UGC videos from /public folder.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
@@ -507,17 +517,71 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState(null);
-  const [faqOpen, setFaqOpen] = useState(0);
+  const [faqOpen, setFaqOpen] = useState(-1);
 
-  // Testimonial carousel — arrows rotate the SAME 5 cards in place (merry-go-round):
-  // each press shifts the running order by one, so a different card lands in the
-  // featured centre slot. framer's `layout` animates each card sliding to its new spot.
-  const [tOffset, setTOffset] = useState(0);
-  const rotateTestimonials = (dir) =>
-    setTOffset((o) => (o + dir + testimonials.length) % testimonials.length);
-  const orderedTestimonials = testimonials.map(
-    (_, i) => testimonials[(i + tOffset) % testimonials.length]
+  // Testimonial carousel — ONE sliding track (not per-card animation), so motion is
+  // perfectly smooth: the whole row of cards translates by exactly one card-width and
+  // the data quietly re-centres at the end (infinite loop, no jump). `tOrder` is a
+  // window of virtual indices with one off-screen buffer card on each side; sliding
+  // reveals a buffer and pushes an edge card out, then we rebuild the window + reset
+  // the track instantly so it's seamless.
+  const T_LEN = testimonials.length;
+  const T_GAP = 28; // must match the flex gap in .lp-testimonial__grid CSS
+  const testimonialAt = (v) => testimonials[((v % T_LEN) + T_LEN) % T_LEN];
+
+  const tViewportRef = useRef(null);
+  const tControls = useAnimationControls();
+  const tBusy = useRef(false);
+  const [tMetrics, setTMetrics] = useState({ pitch: 0, cardW: 0, visible: T_LEN });
+  // Window of virtual indices: [leftBuffer, ...visible, rightBuffer].
+  const [tOrder, setTOrder] = useState(() =>
+    Array.from({ length: T_LEN + 2 }, (_, i) => i - 1)
   );
+
+  // Measure the viewport and derive card width + pitch for the current breakpoint.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = tViewportRef.current;
+      if (!el) return;
+      const vw = window.innerWidth;
+      const visible = vw <= 1024 ? 1 : vw <= 1280 ? 3 : T_LEN;
+      const avail = el.clientWidth - 8; // minus the viewport's 4px side padding
+      const cardW = (avail - (visible - 1) * T_GAP) / visible;
+      setTMetrics((m) =>
+        m.visible === visible && Math.abs(m.cardW - cardW) < 0.5
+          ? m
+          : { pitch: cardW + T_GAP, cardW, visible }
+      );
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  // Rebuild the window when the visible count changes, and park the track on its base
+  // offset (one card to the left, so the left buffer sits just off-screen).
+  useLayoutEffect(() => {
+    setTOrder(Array.from({ length: tMetrics.visible + 2 }, (_, i) => i - 1));
+    tControls.set({ x: -tMetrics.pitch });
+  }, [tMetrics.visible, tMetrics.pitch, tControls]);
+
+  const rotateTestimonials = async (dir) => {
+    const { pitch } = tMetrics;
+    if (tBusy.current || !pitch) return;
+    tBusy.current = true;
+    if (dir >= 0) {
+      // Right arrow: slide the track right → a card appears from the LEFT, the
+      // right-edge card slides off to the right.
+      await tControls.start({ x: 0, transition: { duration: 0.5, ease: easeInOut } });
+      setTOrder((o) => [o[0] - 1, ...o.slice(0, -1)]);
+    } else {
+      // Left arrow: slide left → a card appears from the right, left-edge card exits left.
+      await tControls.start({ x: -2 * pitch, transition: { duration: 0.5, ease: easeInOut } });
+      setTOrder((o) => [...o.slice(1), o[o.length - 1] + 1]);
+    }
+    tControls.set({ x: -pitch }); // instant re-centre — content is identical, so seamless
+    tBusy.current = false;
+  };
 
   const visibleShowcase = selectedIndustry
     ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
@@ -533,14 +597,23 @@ export default function Landing() {
     target: auditRef,
     offset: ['start start', 'end end'],
   });
-  // Q1 (back-left, z=1) peels last; Q2 (front, z=3) peels first; Q3 (right, z=2) peels middle
-  // Order of peeling: Q2 → Q3 → Q1 (in stack-front-to-back order)
-  const card2Y = useTransform(auditProgress, [0.1, 0.35], [0, -800]);
-  const card2Opacity = useTransform(auditProgress, [0.1, 0.32], [1, 0]);
-  const card3Y = useTransform(auditProgress, [0.4, 0.65], [35, -800]);
-  const card3Opacity = useTransform(auditProgress, [0.4, 0.62], [1, 0]);
-  const card1Y = useTransform(auditProgress, [0.7, 0.95], [-35, -800]);
-  const card1Opacity = useTransform(auditProgress, [0.7, 0.92], [1, 0]);
+  // Three cards peel UP, evenly spread across the WHOLE scroll range so there's no dead
+  // progress after the last card. The 3rd card (card1Y) is still exiting right up to ~0.99,
+  // so the runway never sits idle/blank — the section ends the moment the last card clears,
+  // and the next section (pulled up below) is already sliding in. No gap.
+  const card2Y = useTransform(auditProgress, [0.04, 0.33], [0, -800]);
+  const card2Opacity = useTransform(auditProgress, [0.04, 0.30], [1, 0]);
+  const card3Y = useTransform(auditProgress, [0.36, 0.65], [35, -800]);
+  const card3Opacity = useTransform(auditProgress, [0.36, 0.62], [1, 0]);
+  const card1Y = useTransform(auditProgress, [0.68, 0.99], [-35, -800]);
+  const card1Opacity = useTransform(auditProgress, [0.68, 0.95], [1, 0]);
+  // The next section (proof) is pulled UP in lockstep with the last card's peel: while Q3
+  // rises [0.68 → 0.99], the proof block slides up from below (700px → 0) so it's "stuck"
+  // to the card — as the card goes above, the next section is dragged up into view behind it.
+  // easeInOut + a spring smooth the motion so it glides in instead of snapping to raw scroll.
+  const proofRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
+  const proofRiseY = useSpring(proofRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
+  const proofOpacity = useTransform(auditProgress, [0.68, 0.9], [0, 1]);
   const ctaInView = useInView(ctaRef, { once: true, margin: '-80px' });
 
   // 3D glass logo — scroll-driven pinned scene under the hero
@@ -608,6 +681,11 @@ export default function Landing() {
     target: journeyRef,
     offset: ['start start', 'end end'],
   });
+  // Unmount the heavy fixed full-screen WebGL canvas once the journey is well out
+  // of view, so the rest of the page (showcase, pricing, FAQ, footer) doesn't pay
+  // full-screen WebGL compositing on every scroll. GLB + HDRI stay cached by the
+  // browser, so scrolling back up re-mounts it quickly.
+  const journeyActive = useInView(journeyRef, { margin: '600px 0px 600px 0px' });
   // Smooth the raw scroll value through a spring so the fly + spin glide instead of
   // snapping to every scroll tick (kills the per-frame jank on the heavy 3D canvas).
   // NOTE: keep this near-CRITICALLY damped (ζ≈1.1), NOT over-damped. An over-damped
@@ -815,7 +893,7 @@ export default function Landing() {
 
       {/* Fixed 3D mark that flies across the hero + 3D section (desktop only).
           On mobile we fall back to a static 3D inside the section (see below). */}
-      {!heroStatic && (
+      {!heroStatic && journeyActive && (
         <motion.div
           className="lp-logo-fly"
           // Stay MOUNTED the whole time and drive visibility PURELY by scroll position
@@ -860,9 +938,10 @@ export default function Landing() {
             initial="hidden"
             animate="visible"
           >
-            Your Ads Aren't Being Ignored.
-            <br />
-            <span className="lp-hero__mark">They're Being Doubted.</span>
+            The{' '}
+            <span className="lp-hero__title-accent">Performance System</span>{' '}
+            Behind The{' '}
+            <span className="lp-hero__title-accent">Top 1% D2C Brands</span>
           </motion.h1>
 
           <motion.p
@@ -872,9 +951,10 @@ export default function Landing() {
             initial="hidden"
             animate="visible"
           >
-            People don't scroll because they're bored.
+            Top-notch UGC video ads in just a few clicks.
             <br />
-            They scroll because they don't trust what they see.
+            Unlock serious growth with{' '}
+            <span style={{ color: '#A78BFA', fontWeight: 600 }}>high-performing UGC ads</span>.
           </motion.p>
 
           <motion.div
@@ -886,17 +966,17 @@ export default function Landing() {
           >
             <button
               className="lp-btn-primary"
-              onClick={handleGetStarted}
+              onClick={() => navigate('/creator')}
               data-testid="get-started-btn"
             >
-              Find My Creator Match <ArrowRight size={18} />
+              Join as Creator <ArrowRight size={18} />
             </button>
             <button
               className="lp-btn-ghost"
-              onClick={() => navigate('/auth?role=business')}
+              onClick={() => navigate('/auth?role=business&mode=signup')}
               data-testid="learn-more-btn"
             >
-              Join the Creator Network
+              Sign up as Brand
             </button>
           </motion.div>
 
@@ -1360,13 +1440,13 @@ export default function Landing() {
 
           <div className="lp-audit__grid">
             {auditQuestions.map((q, i) => {
-              // Peel order Q1 → Q2 → Q3: Q1 is the FRONT card (peels first), Q2 middle/right
-              // (peels second), Q3 back-left (peels last). Each slot keeps its matching
-              // y-transform (start offset + scroll timing): card2Y first, card3Y second, card1Y last.
+              // Peel order: Q1 (front) first, Q2 (right) second, Q3 (back-left) last.
+              // Q3 peels quickly and finishes at the section release so the page scrolls
+              // to the next section the instant the last card goes up.
               const positions = [
                 { x:   0, rotate:  -4, z: 3, y: card2Y },  // Q1 — front, peels first
                 { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
-                { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last
+                { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
               ];
               const p = positions[i] || positions[0];
               return (
@@ -1407,12 +1487,56 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 5+6: audit footer pill → SERVICES badge — straight center line, reaches up to audit pill */}
-      <div className="lp-connector" style={{ height: 360, marginTop: -120, marginBottom: -60, position: 'relative', zIndex: 5, pointerEvents: 'none' }}>
-        <svg viewBox="0 0 1400 360" width="100%" height="100%" preserveAspectRatio="none">
-          <path d="M 700 0 L 700 360" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* US vs Others is "stuck" to Q3's peel — dragged UP by proofRiseY in lockstep with
+          the last audit card, so it rises into view as the card goes above. */}
+      <motion.div style={{ y: proofRiseY, opacity: proofOpacity, marginTop: -300, position: 'relative', zIndex: 4 }}>
+      <div className="lp-connector" style={{ height: 120, marginTop: 0, marginBottom: -40, position: 'relative', zIndex: 5, pointerEvents: 'none' }}>
+        <svg viewBox="0 0 1400 120" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 700 0 L 700 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
+
+      {/* ── US vs Others — two-column comparison table ─────────────────────── */}
+      <section className="lp-vs">
+        <div className="lp-vs__inner">
+          <h2 className="lp-vs__heading">US VS OTHERS</h2>
+          <div className="lp-vs__table">
+            {/* header */}
+            <div className="lp-vs__row lp-vs__row--head">
+              <div className="lp-vs__cell lp-vs__cell--label" />
+              <div className="lp-vs__cell lp-vs__cell--us">
+                <span className="lp-vs__brand">UGCad.io</span>
+              </div>
+              <div className="lp-vs__cell lp-vs__cell--them">
+                <span className="lp-vs__them-label">MARKETPLACES</span>
+              </div>
+            </div>
+
+            {vsRows.map((r) => (
+              <div className="lp-vs__row" key={r.label}>
+                <div className="lp-vs__cell lp-vs__cell--label">{r.label}</div>
+
+                <div className="lp-vs__cell lp-vs__cell--us">
+                  {r.us === CHECK ? (
+                    <span className="lp-vs__icon lp-vs__icon--yes"><Check size={18} strokeWidth={3} /></span>
+                  ) : (
+                    <span className="lp-vs__pill lp-vs__pill--us">{r.us}</span>
+                  )}
+                </div>
+
+                <div className="lp-vs__cell lp-vs__cell--them">
+                  {r.them === CROSS ? (
+                    <span className="lp-vs__icon lp-vs__icon--no"><X size={18} strokeWidth={3} /></span>
+                  ) : (
+                    <span className="lp-vs__pill lp-vs__pill--them">{r.them}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      </motion.div>
 
       {/* ── Features (removed) ─────────────────────────────────────────────── */}
       <section className="lp-features" ref={featuresRef} style={{ display: 'none' }}>
@@ -1473,15 +1597,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* connector 7: features → proof — 4 drops from service cards, merge to center drop into proof text */}
-      <div className="lp-connector" style={{ height: 380, marginTop: -120, marginBottom: -120, position: 'relative', zIndex: 5 }}>
-        <svg viewBox="0 0 1400 380" width="100%" height="100%" preserveAspectRatio="none">
-          <path d="M 350 0 L 350 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 583 0 L 583 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 817 0 L 817 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 1050 0 L 1050 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 350 130 L 1050 130" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
-          <path d="M 700 130 L 700 380" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
+      {/* connector 7: audit → proof — features section is hidden, so this is a short
+          single center line. Big negative marginTop pulls the proof section up to fill the
+          blank left by the (removed) cards/features so it appears right as the cards exit. */}
+      {/* Proof now flows normally AFTER the US-vs-Others block (which is the section
+          stuck to Q3's peel). */}
+      <div style={{ position: 'relative', zIndex: 3 }}>
+      <div className="lp-connector" style={{ height: 120, marginTop: 0, marginBottom: -60, position: 'relative', zIndex: 5 }}>
+        <svg viewBox="0 0 1400 120" width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 700 0 L 700 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
@@ -1510,6 +1634,7 @@ export default function Landing() {
           <p className="lp-proof__micro">— Not louder ads. Better ones. —</p>
         </div>
       </section>
+      </div>
 
       {/* connector 8: proof → testimonial — straight center line, reduced spacing */}
       <div className="lp-connector" style={{ height: 220, marginTop: -60, marginBottom: -60, position: 'relative', zIndex: 5 }}>
@@ -1548,17 +1673,18 @@ export default function Landing() {
               <ChevronLeft size={22} />
             </button>
 
-            <div className="lp-testimonial__grid">
-              {orderedTestimonials.map((t, i) => {
+            <div className="lp-testimonial__viewport" ref={tViewportRef}>
+            <motion.div className="lp-testimonial__grid" animate={tControls}>
+              {tOrder.map((v, i) => {
+                const t = testimonialAt(v);
                 const [before, after] = t.accent && t.quote.includes(t.accent)
                   ? [t.quote.split(t.accent)[0], t.quote.split(t.accent)[1]]
                   : [t.quote, ''];
                 return (
-                  <motion.article
-                    key={t.name}
-                    layout
-                    transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-                    className={`lp-tcard${i === Math.floor(orderedTestimonials.length / 2) ? ' lp-tcard--featured' : ''}`}
+                  <article
+                    key={v}
+                    style={{ flex: `0 0 ${tMetrics.cardW}px` }}
+                    className="lp-tcard"
                   >
                     <div className="lp-tcard__rating">
                       {[1, 2, 3, 4, 5].map((s) => (
@@ -1596,9 +1722,10 @@ export default function Landing() {
                       <span className="lp-tcard__metric-val">{t.metric}</span>
                       <span className="lp-tcard__metric-label">{t.metricLabel}</span>
                     </div>
-                  </motion.article>
+                  </article>
                 );
               })}
+            </motion.div>
             </div>
 
             <button
@@ -1855,67 +1982,28 @@ export default function Landing() {
           z-index: 0;
           overflow: hidden;
         }
+        /* Static soft glow via a radial-gradient instead of filter: blur(80px).
+           A large blur filter makes the GPU rasterize a huge blurred texture; with
+           these fixed + animated forever, that ran every frame and was a primary
+           cause of the constant whole-page lag. A gradient paints once = ~free. */
         .lp-bg-blob {
           position: absolute;
           border-radius: 50%;
-          background: linear-gradient(135deg, #07074e 0%, #07074e 100%);
-          filter: blur(80px);
+          /* Subtle ambient haze — soft centre + early fade so it reads like the old
+             blurred blob, not a hard, bright blue disc behind the content. */
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.32) 0%, rgba(7, 7, 78, 0) 58%);
           opacity: 0.5;
-          will-change: transform, opacity;
         }
-        /* On the light theme, recolour the ambient blobs to a soft purple and fade
-           them so they read as a gentle glow, not dark smudges on the lavender bg. */
         .lp-root[data-theme="light"] .lp-bg-blob {
-          background: linear-gradient(135deg, #c9bdff 0%, #b7a8ff 100%);
-          opacity: 0.45;
+          background: radial-gradient(circle, rgba(183, 168, 255, 0.3) 0%, rgba(183, 168, 255, 0) 58%);
+          opacity: 0.4;
         }
-        .lp-bg-blob--1 {
-          width: 480px; height: 480px;
-          top: 10%; left: 15%;
-          animation: blobFloat1 20s ease-in-out infinite, blobPulse 6s ease-in-out infinite;
-        }
-        .lp-bg-blob--2 {
-          width: 520px; height: 520px;
-          top: 60%; right: 12%;
-          animation: blobFloat2 25s ease-in-out infinite, blobPulse 8s ease-in-out infinite 2s;
-        }
-        .lp-bg-blob--3 {
-          width: 380px; height: 380px;
-          top: 40%; left: 50%;
-          animation: blobFloat3 18s ease-in-out infinite, blobPulse 7s ease-in-out infinite 3s;
-        }
-        .lp-bg-blob--4 {
-          width: 440px; height: 440px;
-          bottom: 5%; left: 25%;
-          animation: blobFloat4 22s ease-in-out infinite, blobPulse 9s ease-in-out infinite 1s;
-        }
-        @keyframes blobFloat1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33%      { transform: translate(80px, -60px) scale(1.1); }
-          66%      { transform: translate(-50px, 70px) scale(0.95); }
-        }
-        @keyframes blobFloat2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%      { transform: translate(-100px, -40px) scale(1.15); }
-        }
-        @keyframes blobFloat3 {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); }
-          50%      { transform: translate(-30%, -70%) scale(1.2); }
-        }
-        @keyframes blobFloat4 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          40%      { transform: translate(120px, -80px) scale(1.1); }
-          70%      { transform: translate(-60px, 40px) scale(0.9); }
-        }
-        @keyframes blobPulse {
-          0%, 100% { opacity: 0.35; }
-          50%      { opacity: 0.65; }
-        }
+        .lp-bg-blob--1 { width: 480px; height: 480px; top: 10%; left: 15%; }
+        .lp-bg-blob--2 { width: 520px; height: 520px; top: 60%; right: 12%; }
+        .lp-bg-blob--3 { width: 380px; height: 380px; top: 40%; left: 50%; transform: translate(-50%, -50%); }
+        .lp-bg-blob--4 { width: 440px; height: 440px; bottom: 5%; left: 25%; }
         @media (max-width: 768px) {
-          .lp-bg-blob { width: 280px !important; height: 280px !important; filter: blur(60px); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .lp-bg-blob { animation: none !important; }
+          .lp-bg-blob { width: 280px !important; height: 280px !important; }
         }
         .lp-root h1, .lp-root h2, .lp-root h3, .lp-root h4, .lp-root h5, .lp-root h6,
         .lp-root p, .lp-root span, .lp-root div, .lp-root li, .lp-root a,
@@ -2124,12 +2212,9 @@ export default function Landing() {
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          /* Top-anchor the copy (not centre) with padding that clears the fixed navbar,
-             so the first item — the "For Creators & Brands" badge — always sits below
-             the logo regardless of viewport height (centring let it ride up on short ones). */
-          padding: 120px 6% 72px;
+          padding: 300px 8% 56px;
           display: flex;
-          align-items: flex-start;
+          align-items: stretch;
         }
         /* In light mode show the navy/blue logo mark (the white one would vanish on
            the light hero), regardless of the scroll-driven crossfade state. */
@@ -2146,7 +2231,12 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          justify-content: center;
+          /* Spread the copy over the full hero height so the lower band isn't empty.
+             The badge sits up top, the trust pills sit near the bottom, and the
+             title/subtitle/CTAs get even breathing room between. Caps keep the
+             distribution from looking disconnected on very tall viewports. */
+          justify-content: space-between;
+          gap: clamp(16px, 3vh, 44px);
           min-height: 0;
           transition: opacity 0.45s ease;
         }
@@ -2207,8 +2297,9 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.9rem;
           font-weight: 600;
-          margin-top: 56px;
-          margin-bottom: 48px;
+          /* Guaranteed clearance below the fixed navbar — applies in every layout
+             (works regardless of the section padding overrides per breakpoint). */
+          margin: clamp(40px, 9vh, 96px) 0 0;
           backdrop-filter: blur(8px);
         }
 
@@ -2218,7 +2309,7 @@ export default function Landing() {
           font-weight: 500;
           line-height: 1.3;
           color: var(--lp-text);
-          margin: 0 0 48px 0;
+          margin: 0;
           letter-spacing: -0.04em;
           max-width: 20ch;
         }
@@ -2231,14 +2322,21 @@ export default function Landing() {
           border-radius: 10px;
           white-space: nowrap;
         }
+        .lp-hero__title-accent {
+          display: inline-block;
+          background: #A78BFA;
+          color: var(--lp-text);
+          padding: 0.04em 0.28em;
+          border-radius: 10px;
+        }
 
         .lp-hero__subtitle {
           font-family: 'Instrument Sans', sans-serif;
           color: rgba(var(--lp-fg), 0.65);
-          font-size: 1.22rem;
+          font-size: 1.4rem;
           line-height: 1.7;
           max-width: 560px;
-          margin: 0 0 52px;
+          margin: 0;
           text-align: left;
         }
 
@@ -2253,7 +2351,7 @@ export default function Landing() {
           align-items: center;
           justify-content: flex-start;
           flex-wrap: wrap;
-          margin-bottom: 48px;
+          margin-bottom: 0;
         }
 
         /* Scoped button overrides inside the dark hero only */
@@ -3210,9 +3308,7 @@ export default function Landing() {
           gap: 4px;
           padding: 4px 9px;
           border-radius: 100px;
-          background: rgba(10, 10, 20, 0.55);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          background: rgba(10, 10, 20, 0.78);
           border: 1px solid rgba(var(--lp-fg),0.14);
           color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
@@ -3267,6 +3363,129 @@ export default function Landing() {
           .lp-showcase { padding: 60px 5%; }
           .lp-showcase__grid { grid-template-columns: 1fr; }
           .lp-filter { padding: 8px 14px; font-size: 0.82rem; }
+        }
+
+        /* ── US vs Others — two-column comparison ─────────────────────────── */
+        .lp-vs {
+          padding: 90px 8% 100px;
+          color: var(--lp-text);
+        }
+        .lp-vs__inner {
+          max-width: 1080px;
+          margin: 0 auto;
+        }
+        .lp-vs__table {
+          background: rgba(var(--lp-fg), 0.04);
+          border: 1px solid rgba(var(--lp-fg), 0.10);
+          border-radius: 28px;
+          padding: 8px 28px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+        .lp-vs__row {
+          display: grid;
+          grid-template-columns: 1.15fr 1fr 1fr;
+          align-items: center;
+          column-gap: 24px;
+          padding: 18px 0;
+          border-top: 1px solid rgba(var(--lp-fg), 0.08);
+        }
+        .lp-vs__row--head {
+          border-top: none;
+          padding: 24px 0 22px;
+        }
+        .lp-vs__cell {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+        .lp-vs__cell--label {
+          justify-content: flex-start;
+          text-align: left;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.92rem;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          color: var(--lp-text);
+        }
+        /* highlighted "us" column — subtle purple wash running down the middle */
+        .lp-vs__cell--us {
+          position: relative;
+        }
+        .lp-vs__brand {
+          font-family: 'Instrument Sans', sans-serif;
+          font-weight: 700;
+          font-size: 1.15rem;
+          color: #A78BFA;
+          letter-spacing: -0.01em;
+        }
+        .lp-vs__them-label {
+          font-family: 'Instrument Sans', sans-serif;
+          font-weight: 600;
+          font-size: 0.8rem;
+          letter-spacing: 0.12em;
+          color: rgba(var(--lp-fg), 0.5);
+        }
+        /* value pills */
+        .lp-vs__pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          max-width: 280px;
+          min-height: 40px;
+          padding: 9px 18px;
+          border-radius: 100px;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.9rem;
+          font-weight: 600;
+          line-height: 1.25;
+          text-align: center;
+        }
+        .lp-vs__pill--us {
+          background: rgba(167, 139, 250, 0.14);
+          border: 1px solid rgba(167, 139, 250, 0.35);
+          color: #C4B5FD;
+        }
+        .lp-vs__pill--them {
+          background: rgba(var(--lp-fg), 0.05);
+          border: 1px solid rgba(var(--lp-fg), 0.10);
+          color: rgba(var(--lp-fg), 0.55);
+          font-weight: 500;
+        }
+        /* check / cross icons */
+        .lp-vs__icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .lp-vs__icon--yes {
+          background: rgba(52, 211, 153, 0.18);
+          color: #34D399;
+        }
+        .lp-vs__icon--no {
+          background: rgba(248, 113, 113, 0.16);
+          color: #F87171;
+        }
+        .lp-vs__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(2rem, 4.4vw, 3.2rem);
+          font-weight: 600;
+          letter-spacing: -0.03em;
+          color: var(--lp-text);
+          margin: 0 0 36px;
+          text-align: center;
+        }
+        @media (max-width: 768px) {
+          .lp-vs { padding: 60px 5% 70px; }
+          .lp-vs__table { padding: 4px 14px; }
+          .lp-vs__row { grid-template-columns: 1fr; row-gap: 10px; padding: 16px 0; text-align: center; }
+          .lp-vs__cell--label { justify-content: center; text-align: center; }
+          .lp-vs__pill { max-width: 100%; }
+          .lp-vs__heading { text-align: center; }
         }
 
         /* ── Comparison Table ─────────────────────────────────────────────── */
@@ -3579,16 +3798,15 @@ export default function Landing() {
           position: absolute;
           border-radius: 50%;
           pointer-events: none;
-          filter: blur(110px);
         }
         .lp-cta::before {
           width: 500px; height: 500px;
-          background: rgba(7, 7, 78, 0.30);
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.30) 0%, rgba(7, 7, 78, 0) 70%);
           top: -180px; left: -120px;
         }
         .lp-cta::after {
           width: 420px; height: 420px;
-          background: rgba(7, 7, 78, 0.22);
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.22) 0%, rgba(7, 7, 78, 0) 70%);
           bottom: -160px; right: -120px;
         }
 
@@ -3853,7 +4071,10 @@ export default function Landing() {
 
         /* ── Responsive ───────────────────────────────────────────────────── */
         @media (max-width: 1024px) {
-          .lp-hero__sticky { padding: 130px 5% 0; }
+          /* Keep a clear gap between the fixed navbar (logo) and the first hero
+             element. Kept below the 300px desktop value since these viewports are
+             shorter — enough to breathe without pushing the trust pills off-screen. */
+          .lp-hero__sticky { padding: 210px 5% 72px; }
         }
 
         /* Static fallback — small screens & reduced-motion: no pinning, stacked layout.
@@ -4046,21 +4267,27 @@ export default function Landing() {
         .lp-faq__answer-wrap {
           display: grid;
           grid-template-rows: 0fr;
-          transition: grid-template-rows 0.32s ease;
+          transition: grid-template-rows 0.38s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .lp-faq__item.is-open .lp-faq__answer-wrap {
           grid-template-rows: 1fr;
         }
         .lp-faq__answer {
           overflow: hidden;
+          min-height: 0;
+          /* Padding stays on the element (clipped while collapsed) so it animates
+             together with the height instead of popping in — keeps the reveal smooth. */
           margin: 0;
+          padding: 0 4px 24px;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 1rem;
           line-height: 1.7;
           color: var(--lp-text-muted);
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
         .lp-faq__item.is-open .lp-faq__answer {
-          padding: 0 4px 24px;
+          opacity: 1;
         }
         @media (max-width: 600px) {
           .lp-faq { padding: 70px 5% 56px; }
@@ -4081,15 +4308,14 @@ export default function Landing() {
           position: absolute;
           border-radius: 50%;
           pointer-events: none;
-          filter: blur(140px);
           width: 520px;
           height: 520px;
-          background: rgba(154, 154, 191, 0.32);
+          background: radial-gradient(circle, rgba(154, 154, 191, 0.32) 0%, rgba(154, 154, 191, 0) 70%);
           top: -200px;
           left: -120px;
         }
         .lp-footer__glow--2 {
-          background: rgba(7, 7, 78, 0.18);
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.18) 0%, rgba(7, 7, 78, 0) 70%);
           width: 420px;
           height: 420px;
           top: auto;
@@ -4839,7 +5065,7 @@ export default function Landing() {
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
-          min-height: 280vh;
+          min-height: 130vh;
         }
         .lp-audit__bg-orb {
           position: absolute;
@@ -4923,6 +5149,8 @@ export default function Landing() {
           display: flex;
           justify-content: center;
           align-items: center;
+          /* Shorter than the viewport so the inner pins cleanly to the section end (no
+             early-release blank) and there's no empty space below the centered card. */
           min-height: 440px;
           margin: 60px auto;
           max-width: 600px;
@@ -5264,12 +5492,24 @@ export default function Landing() {
           position: relative;
           margin-bottom: 56px;
         }
+        /* Clips the horizontal slide so the off-screen row never spills out, while
+           leaving vertical room for card hover-lift + drop shadows. */
+        .lp-testimonial__viewport {
+          overflow: hidden;
+          padding: 10px 4px 34px;
+          margin: -10px -4px -34px;
+        }
+        /* One flexible track that holds every card; JS sets each card's width and
+           translates the whole track by exactly one card so the slide is seamless. */
         .lp-testimonial__grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
+          position: relative;
+          display: flex;
+          flex-wrap: nowrap;
           gap: 28px;
           text-align: left;
+          will-change: transform;
         }
+        .lp-testimonial__grid > .lp-tcard { box-sizing: border-box; }
         .lp-testimonial__arrow {
           position: absolute;
           top: 44%;
@@ -5298,12 +5538,38 @@ export default function Landing() {
         .lp-testimonial__arrow:active {
           transform: translateY(-50%) scale(0.96);
         }
-        .lp-testimonial__arrow--left { left: -22px; }
-        .lp-testimonial__arrow--right { right: -22px; }
+        .lp-testimonial__arrow--left { left: -62px; }
+        .lp-testimonial__arrow--right { right: -62px; }
+
+        /* Sliding chevron — eases back to centre at rest, runs a gentle looping
+           nudge in its pointing direction while hovered. */
+        .lp-testimonial__arrow svg {
+          transition: transform 0.25s ease;
+        }
+        .lp-testimonial__arrow--left:hover svg {
+          animation: lp-arrow-slide-left 0.7s ease-in-out infinite;
+        }
+        .lp-testimonial__arrow--right:hover svg {
+          animation: lp-arrow-slide-right 0.7s ease-in-out infinite;
+        }
+        @keyframes lp-arrow-slide-left {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(-5px); }
+        }
+        @keyframes lp-arrow-slide-right {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(5px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-testimonial__arrow--left:hover svg,
+          .lp-testimonial__arrow--right:hover svg { animation: none; }
+        }
 
         .lp-tcard {
           position: relative;
-          background: rgba(var(--lp-fg), 0.06);
+          /* Opaque panel: same tint as before, but over a solid page-bg base so a
+             card sliding over its neighbour cleanly covers it (no see-through bleed). */
+          background: linear-gradient(rgba(var(--lp-fg), 0.06), rgba(var(--lp-fg), 0.06)), var(--lp-page-bg);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
           padding: 26px 22px 22px;
@@ -5329,7 +5595,7 @@ export default function Landing() {
         .lp-tcard:hover::before { opacity: 1; }
 
         .lp-tcard--featured {
-          background: linear-gradient(180deg, rgba(7,7,78,0.2) 0%, rgba(7,7,78,0.1) 100%);
+          background: linear-gradient(180deg, rgba(7,7,78,0.2) 0%, rgba(7,7,78,0.1) 100%), var(--lp-page-bg);
           border-color: var(--lp-border);
           box-shadow: 0 20px 50px rgba(7, 7, 78, 0.12);
         }
@@ -5464,12 +5730,23 @@ export default function Landing() {
           border-color: rgba(167,139,250,0.5);
         }
 
-        /* Mid-size screens: step the 5-up row down to 3 before it collapses to 1. */
+        /* Mid-size screens: step the 5-up row down to 3 before it collapses to 1.
+           The max-width lives on the carousel (not the grid) so the flanking arrows
+           always sit just outside the cards instead of drifting into the gutter. */
         @media (max-width: 1280px) {
-          .lp-testimonial__grid { grid-template-columns: repeat(3, 1fr); max-width: 860px; margin-left: auto; margin-right: auto; }
+          .lp-testimonial__carousel { max-width: 860px; margin-left: auto; margin-right: auto; }
+          .lp-testimonial__grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (max-width: 1024px) {
-          .lp-testimonial__grid { grid-template-columns: 1fr; max-width: 560px; margin-left: auto; margin-right: auto; margin-bottom: 56px; }
+          .lp-testimonial__carousel { max-width: 560px; }
+          .lp-testimonial__grid { grid-template-columns: 1fr; }
+        }
+        /* Phones: shrink the arrows and pull them to the edges so they never run off
+           the viewport in the tight side padding. */
+        @media (max-width: 640px) {
+          .lp-testimonial__arrow { width: 40px; height: 40px; }
+          .lp-testimonial__arrow--left { left: -8px; }
+          .lp-testimonial__arrow--right { right: -8px; }
         }
 
         .lp-testimonial__more {

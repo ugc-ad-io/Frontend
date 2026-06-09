@@ -4,6 +4,7 @@ import { useAuth, useTheme } from '../App';
 import {
   ArrowRight,
   ChevronRight,
+  ChevronLeft,
   Star,
   Users,
   Briefcase,
@@ -45,7 +46,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent, useSpring } from 'framer-motion';
+import { motion, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
@@ -118,7 +119,7 @@ const LOGO3D_ITEM_VH = 10;
 // Fraction of the section scroll over which all leaderboard rows pass the centre.
 // Pushed right to the end (0.96) so the rows stay until the section unpins — almost no
 // empty pinned navy after the fade, in EITHER scroll direction.
-const LOGO3D_SCROLL_END = 0.8;
+const LOGO3D_SCROLL_END = 0.62;
 
 // Pre-scroll offset. Minimal — the leaderboard's first rows are essentially present as
 // the section begins (no empty gap where the logo sits alone), rising into focus right
@@ -263,6 +264,16 @@ const howItWorksSteps = [
 
 const testimonials = [
   {
+    quote: 'We stopped guessing. Every creative now ships with a reason behind it.',
+    accent: 'a reason behind it',
+    name: 'Priya Nair',
+    role: 'Head of Growth, Lumen Skincare',
+    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=faces',
+    initials: 'PN',
+    metric: '+38%',
+    metricLabel: 'CTR uplift',
+  },
+  {
     quote: 'Our ads stopped feeling like ads. That\'s when ROAS stabilized.',
     accent: 'ROAS stabilized',
     name: 'Rohan Kapoor',
@@ -292,12 +303,22 @@ const testimonials = [
     metric: '2×',
     metricLabel: 'Revenue growth',
   },
+  {
+    quote: 'Our team finally ships ads weekly without burning out the designers.',
+    accent: 'without burning out',
+    name: 'Daniel Cho',
+    role: 'Founder, NorthPeak',
+    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=faces',
+    initials: 'DC',
+    metric: '3×',
+    metricLabel: 'Faster turnaround',
+  },
 ];
 
 const auditQuestions = [
   {
-    title: 'Do People Watch Your Ads —',
-    sub: 'Or Tolerate Them Until They Can Skip?',
+    title: 'Would Your Current Ad —',
+    sub: 'Convince You To Purchase?',
     Icon: SkipForward,
   },
   {
@@ -306,8 +327,8 @@ const auditQuestions = [
     Icon: BellOff,
   },
   {
-    title: 'Is Your Content Building Familiarity —',
-    sub: 'Or Just Filling Space?',
+    title: 'Would You Click this —',
+    sub: "the Ad Wasn't Yours?",
     Icon: Repeat,
   },
 ];
@@ -451,6 +472,34 @@ function CountUp({ value }) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
+// FAQ — accordion below the testimonials, before the footer.
+const FAQ_ITEMS = [
+  {
+    q: 'Who owns the content created through ugcad.io?',
+    a: 'You do. Full usage rights transfer to your brand automatically once you approve and the deal completes — handled on-platform, no separate paperwork, no chasing creators for permissions.',
+  },
+  {
+    q: 'How quickly will I receive my content?',
+    a: 'Most campaigns go from brief to final delivery in under 14 days. You’ll see the exact due date in your deal room, and the creator is held to it — late delivery triggers automatic penalties.',
+  },
+  {
+    q: 'Can I communicate with creators?',
+    a: 'Yes — directly, inside the platform. Brief, chat, share feedback, and approve in one thread. Everything stays on-platform so payments, shipping, and revisions are all protected. Going off-platform means losing escrow and support.',
+  },
+  {
+    q: 'How do payments work?',
+    a: 'You load your wallet, and funds are held in escrow the moment you accept a creator. The creator is only paid after you approve the final video. Your money is protected at every stage.',
+  },
+  {
+    q: 'Is my shipping address shared with creators?',
+    a: 'Never. Products ship through masked Shiprocket delivery — your warehouse address, phone, and name stay private on every order.',
+  },
+  {
+    q: 'What if I’m not happy with the content?',
+    a: 'Every deal includes two free revisions. If something goes wrong, our built-in dispute resolution steps in — you’re never stuck with content you can’t use.',
+  },
+];
+
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -458,6 +507,17 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState(null);
+  const [faqOpen, setFaqOpen] = useState(0);
+
+  // Testimonial carousel — arrows rotate the SAME 5 cards in place (merry-go-round):
+  // each press shifts the running order by one, so a different card lands in the
+  // featured centre slot. framer's `layout` animates each card sliding to its new spot.
+  const [tOffset, setTOffset] = useState(0);
+  const rotateTestimonials = (dir) =>
+    setTOffset((o) => (o + dir + testimonials.length) % testimonials.length);
+  const orderedTestimonials = testimonials.map(
+    (_, i) => testimonials[(i + tOffset) % testimonials.length]
+  );
 
   const visibleShowcase = selectedIndustry
     ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
@@ -508,13 +568,15 @@ export default function Landing() {
   // so the logo never overlaps the still-visible text.
   // Rows finish centering by 0.8, THEN text + logo fade out together over 0.8→0.9
   // (fully gone before the brand strip appears) — so the fade is clearly visible.
-  const logoBoardOpacity = useTransform(logo3dProgress, [0.8, 0.9], [1, 0]);
+  // Rows finish by LOGO3D_SCROLL_END (0.62); the 11th sits at the 50% focus, then fades over
+  // 0.62→0.72 — melting away as the logo crosses (which starts from that same moment).
+  const logoBoardOpacity = useTransform(logo3dProgress, [0.62, 0.72], [1, 0]);
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
   const logoX = '-36vw';
   // Resting spot sits BELOW the hero content zone (copy/buttons/badges live in the
   // upper ~30%), so the logo can glide straight to it without ever crossing the text.
-  const logoY = '-7vh';
+  const logoY = '12vh';
 
   // ── Hero — pinned marketing copy ────────────────────────────────────────────
   // The hero no longer owns a logo: the 3D mark is a single fixed overlay that
@@ -548,7 +610,19 @@ export default function Landing() {
   });
   // Smooth the raw scroll value through a spring so the fly + spin glide instead of
   // snapping to every scroll tick (kills the per-frame jank on the heavy 3D canvas).
-  const journeyP = useSpring(journeyRaw, { stiffness: 220, damping: 48, mass: 0.22 });
+  // NOTE: keep this near-CRITICALLY damped (ζ≈1.1), NOT over-damped. An over-damped
+  // spring (the old 220/48/0.22, ζ≈3.5) lags badly on a fast flick-scroll: the logo's
+  // flyX/flyY trail the page then slowly drift in to catch up — that read as the logo
+  // swinging "side to side" and lagging. These values track scroll tightly (low lag,
+  // no overshoot) while still filtering per-frame jitter.
+  const journeyP = useSpring(journeyRaw, {
+    // Snappier (ωn↑, still ζ≈1.1) so a FAST flick-scroll lags far less — the logo reaches
+    // its centred dissolve spot in time instead of fading while still mid-cross (off to one side).
+    stiffness: 550,
+    damping: 22,
+    mass: 0.18,
+    restDelta: 0.0004,
+  });
   // Starts already large (image-1 size), pops to full FAST so it doesn't eat scroll.
   // GROWS during the HERO phase (0→0.2) while it does its 360° spin + colour journey,
   // then holds that size through the cross + leaderboard. (Matches HERO_END in HeroLogo3D.)
@@ -556,17 +630,31 @@ export default function Landing() {
   // (journeyP 0.3), then holds — so the landscape leaderboard size is the largest it gets.
   // Grows during the hero spin and STOPS at its max (1.1) by the end of the hero phase
   // (journeyP 0.2, where the colour finishes), then holds — doesn't grow any bigger.
-  const flyScale = useTransform(journeyP, [0, 0.5, 0.9, 1.0], [0.85, 1.0, 1.0, 0.78]);
+  // easeInOut on every segment so the grow (top) and the shrink (dissolve) ramp velocity
+  // in/out smoothly instead of the hard, linear, "instant" size jumps at each keyframe.
+  // Decrease size DURING the cross + landscape→vertical un-tilt (0.86→0.96), eased — so the
+  // shrink is part of that motion, reaching small as it goes upright, not an instant pop.
+  const flyScale = useTransform(journeyP, [0, 0.55, 0.86, 0.96], [0.85, 1.0, 1.0, 0.5], { ease: easeInOut });
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
   // STRAIGHT, SLOW cross that starts only AFTER the colour finishes AND the hero copy
   // has cleared (~0.5) — so it glides through empty space, no dip (no bounce) and never
   // over the text. Wide range (0.52→0.72) = a slow, smooth glide.
-  // Cross in (0.56→0.74), hold at the board spot, then at the very end (0.9→1.0) DRIFT
-  // down-right to CENTER + far DOWN so it dissolves into the brand strip's centre UG card.
-  const flyX = useTransform(journeyP, [0.56, 0.74, 0.9, 1.0], ['30vw', logoX, logoX, '0vw']);
-  const flyY = useTransform(journeyP, [0.56, 0.74, 0.9, 1.0], ['-7vh', logoY, logoY, '46vh']);
+  // The single 360° spin completes by 0.3; the logo then crosses left (together with the
+  // landscape tilt) SLOWLY, landing at the board spot by ~0.67 — which is when the 3D
+  // section pins and the first leaderboard row scrolls up to meet it (the section's own
+  // scroll, and thus the rows, doesn't begin until ~journeyP 0.67). It then holds, and over
+  // the dissolve (0.78→0.9, matching the fade + shrink) it drifts to the SCREEN CENTRE and
+  // melts away there.
+  // Cross starts the moment the 11th (last) row hits the 50% focus (~0.86): glide left→centre
+  // over 0.86→0.96 while the row melts away, then dissolve.
+  // Centre horizontally FIRST (by 0.92) — above the brand card — so the final move is a
+  // straight DROP, not a diagonal swoop from the side.
+  const flyX = useTransform(journeyP, [0.3, 0.67, 0.86, 0.92], ['30vw', logoX, logoX, '2.4vw']);
+  // Hold the height until centred, THEN descend straight down to TOUCH the brand strip's
+  // centre card logo (0.92→1.0) — landing on the elevated middle card, not the icon line.
+  const flyY = useTransform(journeyP, [0.3, 0.67, 0.92, 1.0], ['2vh', logoY, logoY, '36vh']);
   // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
   // exits cleanly with the text — no lingering dim logo over the empty section after.
   // Logo fades out TOGETHER with the leaderboard text (same range as logoBoardOpacity).
@@ -576,9 +664,13 @@ export default function Landing() {
   // last row (~journeyP 0.87), then fully gone by ~0.94, before the brand strip shows.
   // Stays full through ALL the rows (last one finishes ~journeyP 0.9), then fades only
   // at the very end (0.92→0.97) — just before the brand strip appears.
-  // Stay OPAQUE through most of the down-right drift, dissolve only at the very end
-  // (0.94→1.0) — so the travel reads, then it melts into the brand-strip card.
-  const flyOpacity = useTransform(journeyP, [0.94, 1.0], [1, 0]);
+  // Fade out together WITH the leaderboard text (the rows fade ~0.93→0.97), so as the logo
+  // drifts to centre it melts away exactly as the text vanishes — no bright logo on the rows.
+  // Fade once it reaches the centre (0.96→1.0) — travels visible, then dissolves in the
+  // middle, right after the text clears (no late trailing gap).
+  // Fade right as it LANDS on the centre card logo (0.95→1.0) — visible until it touches,
+  // then dissolves onto the middle card.
+  const flyOpacity = useTransform(journeyP, [0.95, 1.0], [1, 0]);
   // Tip + spin are driven by the SECTION's own scroll (logo3dProgress), NOT the
   // journey scroll — so the logo rotates continuously and IN SYNC with the leaderboard
   // rows. Lands ~logo3dProgress 0.43 as row 1 focuses, so the spin starts right there
@@ -952,9 +1044,11 @@ export default function Landing() {
       <section className="lp-showcase">
         <div className="lp-showcase__inner">
           <h2 className="lp-showcase__heading">
-            We create the{' '}
-            <span className="lp-showcase__heading--accent">best UGC</span>{' '}
-            on the internet
+            We created{' '}
+            <span className="lp-showcase__heading--accent">7,000+</span>{' '}
+            UGC ads that resulted in{' '}
+            <span className="lp-showcase__heading--accent">100cr+</span>{' '}
+            in sales
           </h2>
 
 
@@ -1025,8 +1119,8 @@ export default function Landing() {
         </svg>
       </div>
 
-      {/* ── Scroll Hook ───────────────────────────────────────────────────── */}
-      <section className="lp-hook">
+      {/* ── Scroll Hook (removed) ──────────────────────────────────────────── */}
+      <section className="lp-hook" style={{ display: 'none' }}>
         <div className="lp-hook__bg-orb lp-hook__bg-orb--1" aria-hidden="true" />
         <div className="lp-hook__bg-orb lp-hook__bg-orb--2" aria-hidden="true" />
 
@@ -1066,8 +1160,8 @@ export default function Landing() {
         </svg>
       </div>
 
-      {/* ── How It Works (3 Steps) ────────────────────────────────────────── */}
-      <section className="lp-steps">
+      {/* ── How It Works (3 Steps) (removed) ───────────────────────────────── */}
+      <section className="lp-steps" style={{ display: 'none' }}>
         <div className="lp-steps__inner">
           <span className="lp-steps__eyebrow">How it works</span>
           <h2 className="lp-steps__heading">Less Noise. Better Voices.</h2>
@@ -1266,11 +1360,13 @@ export default function Landing() {
 
           <div className="lp-audit__grid">
             {auditQuestions.map((q, i) => {
-              // i=0 → Q1 (back-left, peels last), i=1 → Q2 (front, peels first), i=2 → Q3 (right, peels middle)
+              // Peel order Q1 → Q2 → Q3: Q1 is the FRONT card (peels first), Q2 middle/right
+              // (peels second), Q3 back-left (peels last). Each slot keeps its matching
+              // y-transform (start offset + scroll timing): card2Y first, card3Y second, card1Y last.
               const positions = [
-                { x: -90, rotate: -20, z: 1, y: card1Y },
-                { x:   0, rotate:  -4, z: 3, y: card2Y },
-                { x:  90, rotate:  12, z: 2, y: card3Y },
+                { x:   0, rotate:  -4, z: 3, y: card2Y },  // Q1 — front, peels first
+                { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
+                { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last
               ];
               const p = positions[i] || positions[0];
               return (
@@ -1299,7 +1395,8 @@ export default function Landing() {
             })}
           </div>
 
-          <div className="lp-audit__footer-card">
+          {/* footer pill removed */}
+          <div className="lp-audit__footer-card" style={{ display: 'none' }}>
             <div className="lp-audit__footer-icon">
               <ArrowRight size={18} />
             </div>
@@ -1317,8 +1414,8 @@ export default function Landing() {
         </svg>
       </div>
 
-      {/* ── Features ───────────────────────────────────────────────────────── */}
-      <section className="lp-features" ref={featuresRef}>
+      {/* ── Features (removed) ─────────────────────────────────────────────── */}
+      <section className="lp-features" ref={featuresRef} style={{ display: 'none' }}>
         <div className="lp-features__inner">
           <motion.span
             className="lp-eyebrow"
@@ -1441,52 +1538,77 @@ export default function Landing() {
             Real founders. Real numbers. Same shift in how their ads land.
           </p>
 
-          <div className="lp-testimonial__grid">
-            {testimonials.map((t, i) => {
-              const [before, after] = t.accent && t.quote.includes(t.accent)
-                ? [t.quote.split(t.accent)[0], t.quote.split(t.accent)[1]]
-                : [t.quote, ''];
-              return (
-                <article key={i} className={`lp-tcard${i === 0 ? ' lp-tcard--featured' : ''}`}>
-                  <div className="lp-tcard__rating">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
-                    ))}
-                  </div>
+          <div className="lp-testimonial__carousel">
+            <button
+              type="button"
+              className="lp-testimonial__arrow lp-testimonial__arrow--left"
+              onClick={() => rotateTestimonials(-1)}
+              aria-label="Previous testimonials"
+            >
+              <ChevronLeft size={22} />
+            </button>
 
-                  <span className="lp-tcard__mark">"</span>
-
-                  <blockquote className="lp-tcard__quote">
-                    {before}
-                    {t.accent && <em>{t.accent}</em>}
-                    {after}
-                  </blockquote>
-
-                  <div className="lp-tcard__author">
-                    <div className="lp-tcard__photo">
-                      <img
-                        src={t.photo}
-                        alt={t.name}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentNode.classList.add('lp-tcard__photo--fallback');
-                        }}
-                      />
-                      <span className="lp-tcard__initials">{t.initials}</span>
+            <div className="lp-testimonial__grid">
+              {orderedTestimonials.map((t, i) => {
+                const [before, after] = t.accent && t.quote.includes(t.accent)
+                  ? [t.quote.split(t.accent)[0], t.quote.split(t.accent)[1]]
+                  : [t.quote, ''];
+                return (
+                  <motion.article
+                    key={t.name}
+                    layout
+                    transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+                    className={`lp-tcard${i === Math.floor(orderedTestimonials.length / 2) ? ' lp-tcard--featured' : ''}`}
+                  >
+                    <div className="lp-tcard__rating">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
+                      ))}
                     </div>
-                    <div className="lp-tcard__author-info">
-                      <div className="lp-tcard__name">{t.name}</div>
-                      <div className="lp-tcard__role">{t.role}</div>
-                    </div>
-                  </div>
 
-                  <div className="lp-tcard__metric">
-                    <span className="lp-tcard__metric-val">{t.metric}</span>
-                    <span className="lp-tcard__metric-label">{t.metricLabel}</span>
-                  </div>
-                </article>
-              );
-            })}
+                    <span className="lp-tcard__mark">"</span>
+
+                    <blockquote className="lp-tcard__quote">
+                      {before}
+                      {t.accent && <em>{t.accent}</em>}
+                      {after}
+                    </blockquote>
+
+                    <div className="lp-tcard__author">
+                      <div className="lp-tcard__photo">
+                        <img
+                          src={t.photo}
+                          alt={t.name}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentNode.classList.add('lp-tcard__photo--fallback');
+                          }}
+                        />
+                        <span className="lp-tcard__initials">{t.initials}</span>
+                      </div>
+                      <div className="lp-tcard__author-info">
+                        <div className="lp-tcard__name">{t.name}</div>
+                        <div className="lp-tcard__role">{t.role}</div>
+                      </div>
+                    </div>
+
+                    <div className="lp-tcard__metric">
+                      <span className="lp-tcard__metric-val">{t.metric}</span>
+                      <span className="lp-tcard__metric-label">{t.metricLabel}</span>
+                    </div>
+                  </motion.article>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              className="lp-testimonial__arrow lp-testimonial__arrow--right"
+              onClick={() => rotateTestimonials(1)}
+              aria-label="Next testimonials"
+            >
+              <ChevronRight size={22} />
+            </button>
           </div>
 
           <div className="lp-testimonial__more">
@@ -1506,8 +1628,8 @@ export default function Landing() {
         </svg>
       </div>
 
-      {/* ── CTA ────────────────────────────────────────────────────────────── */}
-      <section className="lp-cta" ref={ctaRef}>
+      {/* ── CTA (removed) ──────────────────────────────────────────────────── */}
+      <section className="lp-cta" ref={ctaRef} style={{ display: 'none' }}>
         <motion.div
           className="lp-cta__inner"
           variants={containerVariants}
@@ -1568,6 +1690,38 @@ export default function Landing() {
             </div>
           </motion.div>
         </motion.div>
+      </section>
+
+      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
+      <section className="lp-faq">
+        <div className="lp-faq__inner">
+          <h2 className="lp-faq__heading">Frequently Asked Questions</h2>
+
+          <div className="lp-faq__list">
+            {FAQ_ITEMS.map((item, i) => {
+              const isOpen = faqOpen === i;
+              return (
+                <div
+                  key={item.q}
+                  className={`lp-faq__item${isOpen ? ' is-open' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="lp-faq__q"
+                    aria-expanded={isOpen}
+                    onClick={() => setFaqOpen(isOpen ? -1 : i)}
+                  >
+                    <span>{item.q}</span>
+                    <ChevronDown size={20} className="lp-faq__chevron" aria-hidden="true" />
+                  </button>
+                  <div className="lp-faq__answer-wrap">
+                    <p className="lp-faq__answer">{item.a}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
@@ -2053,6 +2207,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.9rem;
           font-weight: 600;
+          margin-top: 56px;
           margin-bottom: 48px;
           backdrop-filter: blur(8px);
         }
@@ -2205,7 +2360,9 @@ export default function Landing() {
         .lp-brandstrip {
           position: relative;
           z-index: 3;
-          margin-top: -8vh;
+          /* Pulled up so the strip rises into view as the LAST leaderboard rows fade out,
+             closing the empty navy tail after the board finishes (~logo3dProgress 0.8). */
+          margin-top: -34vh;
           padding: 60px 0;
           /* Match the "Most Ads Fail…" (.lp-hook) section — transparent, so it shows the
              shared animated page background instead of its own radial glow. */
@@ -2452,7 +2609,7 @@ export default function Landing() {
         }
         .lp-logo3d__boardItem {
           position: absolute;
-          left: 50%; top: 50%;           /* centred; JS transform adds offset + rotate */
+          left: 50%; top: 44%;           /* shifted a bit up; JS transform adds offset + rotate */
           transform-origin: center center;
           display: flex;
           align-items: baseline;
@@ -2889,12 +3046,14 @@ export default function Landing() {
         }
         .lp-showcase__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.4rem);
+          /* vw-scaled so the whole sentence stays on ONE line across widths */
+          font-size: clamp(1rem, 2.9vw, 2.6rem);
           font-weight: 500;
           color: #ffffff;
           line-height: 1.2;
           letter-spacing: -0.04em;
           margin: 0 0 14px 0;
+          white-space: nowrap;
         }
         /* Whole heading white on the dark stage (accent included). */
         .lp-showcase__heading--accent {
@@ -3823,6 +3982,92 @@ export default function Landing() {
           .lp-hero__brands-side .lp-brands__track { animation: none !important; }
         }
 
+        /* ── FAQ ──────────────────────────────────────────────────────────── */
+        .lp-faq {
+          position: relative;
+          padding: 100px 6% 80px;
+          z-index: 2;
+        }
+        .lp-faq__inner {
+          max-width: 820px;
+          margin: 0 auto;
+        }
+        .lp-faq__eyebrow {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.8rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          color: var(--lp-purple-700);
+          margin: 0 0 10px;
+        }
+        .lp-faq__heading {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1.9rem, 4vw, 2.8rem);
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          color: rgba(var(--lp-fg), 0.96);
+          margin: 0 0 44px;
+        }
+        .lp-faq__list {
+          display: flex;
+          flex-direction: column;
+        }
+        .lp-faq__item {
+          border-bottom: 1px solid rgba(var(--lp-fg), 0.12);
+        }
+        .lp-faq__item:first-child {
+          border-top: 1px solid rgba(var(--lp-fg), 0.12);
+        }
+        .lp-faq__q {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 22px 4px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: clamp(1rem, 1.6vw, 1.12rem);
+          font-weight: 600;
+          color: rgba(var(--lp-fg), 0.92);
+          transition: color 0.2s ease;
+        }
+        .lp-faq__q:hover { color: var(--lp-purple-700); }
+        .lp-faq__item.is-open .lp-faq__q { color: var(--lp-purple-700); }
+        .lp-faq__chevron {
+          flex-shrink: 0;
+          color: var(--lp-purple-700);
+          transition: transform 0.3s ease;
+        }
+        .lp-faq__item.is-open .lp-faq__chevron { transform: rotate(180deg); }
+        .lp-faq__answer-wrap {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.32s ease;
+        }
+        .lp-faq__item.is-open .lp-faq__answer-wrap {
+          grid-template-rows: 1fr;
+        }
+        .lp-faq__answer {
+          overflow: hidden;
+          margin: 0;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1rem;
+          line-height: 1.7;
+          color: var(--lp-text-muted);
+        }
+        .lp-faq__item.is-open .lp-faq__answer {
+          padding: 0 4px 24px;
+        }
+        @media (max-width: 600px) {
+          .lp-faq { padding: 70px 5% 56px; }
+          .lp-faq__heading { margin-bottom: 32px; }
+          .lp-faq__q { padding: 18px 2px; }
+        }
+
         /* ── Footer ─────────────────────────────────────────────────────────── */
         .lp-footer {
           position: relative;
@@ -4202,13 +4447,17 @@ export default function Landing() {
 
         /* ── Section connectors ─────────────────────────────────────────── */
         .lp-connector {
+          /* connectors removed site-wide (dashed lines + their spacer divs) */
+          display: none;
           position: relative;
           width: 100%;
           pointer-events: none;
           overflow: visible;
           background: transparent;
         }
-        .lp-connector svg { display: block; }
+        /* Dashed connector lines removed site-wide — keep the wrapper divs so the section
+           spacing (their height + negative margins) is preserved, just hide the SVG. */
+        .lp-connector svg { display: none; }
         .lp-connector svg path {
           animation: connectorFlow 1.2s linear infinite;
         }
@@ -4953,7 +5202,7 @@ export default function Landing() {
         .lp-testimonial__inner {
           position: relative;
           z-index: 2;
-          max-width: 900px;
+          max-width: 1320px;
           margin: 0 auto;
           text-align: center;
         }
@@ -5010,20 +5259,54 @@ export default function Landing() {
           max-width: 600px;
         }
 
+        /* Carousel wrapper: grid of cards flanked by rotate arrows. */
+        .lp-testimonial__carousel {
+          position: relative;
+          margin-bottom: 56px;
+        }
         .lp-testimonial__grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 22px;
-          margin-bottom: 56px;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 28px;
           text-align: left;
         }
+        .lp-testimonial__arrow {
+          position: absolute;
+          top: 44%;
+          transform: translateY(-50%);
+          z-index: 6;
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          background: rgba(var(--lp-fg), 0.08);
+          border: 1px solid var(--lp-border);
+          color: var(--lp-text);
+          cursor: pointer;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          box-shadow: 0 8px 24px rgba(7, 7, 78, 0.18);
+          transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+        }
+        .lp-testimonial__arrow:hover {
+          background: #A78BFA;
+          color: #fff;
+          transform: translateY(-50%) scale(1.08);
+        }
+        .lp-testimonial__arrow:active {
+          transform: translateY(-50%) scale(0.96);
+        }
+        .lp-testimonial__arrow--left { left: -22px; }
+        .lp-testimonial__arrow--right { right: -22px; }
 
         .lp-tcard {
           position: relative;
           background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
-          padding: 28px 26px 24px;
+          padding: 26px 22px 22px;
           box-shadow: 0 12px 30px rgba(7, 7, 78, 0.06);
           display: flex;
           flex-direction: column;
@@ -5181,6 +5464,10 @@ export default function Landing() {
           border-color: rgba(167,139,250,0.5);
         }
 
+        /* Mid-size screens: step the 5-up row down to 3 before it collapses to 1. */
+        @media (max-width: 1280px) {
+          .lp-testimonial__grid { grid-template-columns: repeat(3, 1fr); max-width: 860px; margin-left: auto; margin-right: auto; }
+        }
         @media (max-width: 1024px) {
           .lp-testimonial__grid { grid-template-columns: 1fr; max-width: 560px; margin-left: auto; margin-right: auto; margin-bottom: 56px; }
         }

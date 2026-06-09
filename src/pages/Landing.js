@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Star,
+  Sparkle,
   Users,
   Briefcase,
   Shield,
@@ -45,6 +46,8 @@ import {
   Menu,
   Sun,
   Moon,
+  Search,
+  Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimationControls, useInView, animate, useMotionValue, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
 
@@ -233,9 +236,9 @@ const featureData = [
 ];
 
 const stats = [
-  { value: '50,000+', label: 'UGC Videos Produced' },
-  { value: '$100M+', label: 'Attributed Revenue' },
-  { value: '300+', label: 'D2C Brands Scaled' },
+  { value: '10,000+', label: 'UGC Videos Produced' },
+  { value: '100cr+', label: 'Attributed Revenue' },
+  { value: '1000+', label: 'D2C Brands Scaled' },
 ];
 
 const howItWorksSteps = [
@@ -303,16 +306,6 @@ const testimonials = [
     metric: '2×',
     metricLabel: 'Revenue growth',
   },
-  {
-    quote: 'Our team finally ships ads weekly without burning out the designers.',
-    accent: 'without burning out',
-    name: 'Daniel Cho',
-    role: 'Founder, NorthPeak',
-    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=faces',
-    initials: 'DC',
-    metric: '3×',
-    metricLabel: 'Faster turnaround',
-  },
 ];
 
 const auditQuestions = [
@@ -371,12 +364,46 @@ const compareRows = [
 
 // "US vs Others" — two-column comparison (us vs marketplaces).
 const vsRows = [
-  { label: 'SERVICE',           us: 'Done-For-You Monthly Retainer', them: 'Marketplace Pay-per-Video + hidden fees' },
-  { label: 'PRICE',             us: 'Transparent Pricing',           them: 'Pay-per-Video + Creator Fees' },
-  { label: 'CREATIVE STRATEGY', us: 'Done-For-You',                  them: 'Do-It-Yourself' },
-  { label: 'CREATORS',          us: 'Highly-Vetted Roster',          them: 'Hit-or-Miss Quality' },
-  { label: 'SCRIPTING',         us: CHECK,                           them: CROSS },
-  { label: 'UNLIMITED EDITS',   us: CHECK,                           them: CROSS },
+  { label: 'Creator vetting',     us: 'Every creator is manually reviewed before briefs', them: 'Open sign-up, anyone can apply' },
+  { label: 'Payment safety',      us: 'The platform holds funds until you approve',       them: 'Pay upfront or chase refunds' },
+  { label: 'Contact protection',  us: 'Names & contacts stay on-platform',                them: 'Creators poached after first deal' },
+  { label: 'Delivery speed',      us: 'Under 10 days, tracked',                           them: 'Agencies: 4–6 weeks' },
+  { label: 'Cost',                us: 'Commission only, no hidden cost',                  them: '3–5× agency markup + retainer' },
+];
+
+// "What you can achieve" — cards scroll over a big sticky headline (alternating sides).
+// Copy is easy to swap; edit titles/descs here.
+const achieveItems = [
+  {
+    icon: Search,
+    title: 'Discover Creators in Every Niche',
+    desc: 'Beauty, fitness, tech, food, home, fashion, parenting, and more. Each one is manually reviewed before they ever touch a brief.',
+  },
+  {
+    icon: Users,
+    title: 'You’re Never Matching Alone',
+    desc: 'Get hands-on support from our team while you find your match, so you always have a guide through the process.',
+  },
+  {
+    icon: Shield,
+    title: 'Identity Protected, Quality Proven',
+    desc: 'You see an anonymous handle and the real brands they’ve worked with — never their personal contact details. Quality, proven. Identity, protected.',
+  },
+  {
+    icon: MessageCircle,
+    title: 'Hire and Chat Securely',
+    desc: 'Brief, message, revise, and approve — all in one thread, inside the platform. No scattered DMs, no lost context, no off-platform risk.',
+  },
+  {
+    icon: DollarSign,
+    title: 'Your Campaign, Your Budget',
+    desc: 'Post your own brief and set your own budget. You decide the spend, the deliverables, and who you work with.',
+  },
+  {
+    icon: Lock,
+    title: 'Payments Held Safe in Escrow',
+    desc: 'Your money is locked in escrow the moment you hire, and only released when you approve the final video. The creator knows they’ll be paid. You know you’ll get what you approved.',
+  },
 ];
 
 // Six showcase video slots — all unique local UGC videos from /public folder.
@@ -480,6 +507,48 @@ function CountUp({ value }) {
   return <motion.span ref={ref}>{display}</motion.span>;
 }
 
+// Fanned, side-by-side cards. One card is "active" (raised, straightened, purple);
+// the rest fan out with a slight tilt. Auto-cycles, and hovering a card activates it.
+function AchieveFan({ items }) {
+  // No card is lifted/highlighted by default — only while actually hovered.
+  const [active, setActive] = useState(-1);
+  const n = items.length;
+
+  const SPACING = 196; // horizontal step between card centres
+  const TILT = 4;      // degrees of fan tilt per step
+
+  return (
+    <div className="lp-achieve__fan" onMouseLeave={() => setActive(-1)}>
+      {items.map((item, i) => {
+        const offset = i - (n - 1) / 2;
+        const isActive = i === active;
+        // Active card only lifts (no zoom/scale) and sits straight; the rest fan out.
+        const transform = isActive
+          ? `translateX(${offset * SPACING}px) translateY(-26px) rotate(0deg)`
+          : `translateX(${offset * SPACING}px) translateY(${Math.abs(offset) * 9}px) rotate(${offset * TILT}deg)`;
+        const Icon = item.icon;
+        return (
+          <article
+            key={item.title}
+            className={`lp-achieve-card${isActive ? ' is-active' : ''}`}
+            style={{ transform, zIndex: isActive ? 30 : 10 - Math.round(Math.abs(offset)) }}
+            onMouseEnter={() => setActive(i)}
+          >
+            <div className="lp-achieve-card__top">
+              {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
+              <span className="lp-achieve-card__num">0{i + 1}</span>
+            </div>
+            <div className="lp-achieve-card__body">
+              <h3 className="lp-achieve-card__title">{item.title}</h3>
+              <p className="lp-achieve-card__desc">{item.desc}</p>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 // FAQ — accordion below the testimonials, before the footer.
@@ -544,7 +613,9 @@ export default function Landing() {
       const el = tViewportRef.current;
       if (!el) return;
       const vw = window.innerWidth;
-      const visible = vw <= 1024 ? 1 : vw <= 1280 ? 3 : T_LEN;
+      // Desktop shows all 4 cards across (wider, filling the full carousel width);
+      // tablet shows 2; phones show 1.
+      const visible = vw <= 768 ? 1 : vw <= 1024 ? 2 : T_LEN;
       const avail = el.clientWidth - 8; // minus the viewport's 4px side padding
       const cardW = (avail - (visible - 1) * T_GAP) / visible;
       setTMetrics((m) =>
@@ -556,7 +627,9 @@ export default function Landing() {
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, []);
+    // T_LEN in deps so the card width recomputes if the number of testimonials
+    // changes (e.g. via hot-reload), instead of staying sized for the old count.
+  }, [T_LEN]);
 
   // Rebuild the window when the visible count changes, and park the track on its base
   // offset (one card to the left, so the left buffer sits just off-screen).
@@ -1487,9 +1560,17 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* US vs Others is "stuck" to Q3's peel — dragged UP by proofRiseY in lockstep with
-          the last audit card, so it rises into view as the card goes above. */}
-      <motion.div style={{ y: proofRiseY, opacity: proofOpacity, marginTop: -300, position: 'relative', zIndex: 4 }}>
+      {/* ── Find & Hire Creators — fanned, side-by-side cards (one active, auto-cycles) ── */}
+      <section className="lp-achieve">
+        <h2 className="lp-achieve__title">
+          Find &amp; <em className="lp-achieve__hl">Hire</em> <em className="lp-achieve__hl">Creators</em> Instantly
+        </h2>
+        <AchieveFan items={achieveItems} />
+      </section>
+
+      {/* US vs Others now follows the "What you can achieve" section in normal flow,
+          so it scrolls up into view right behind the last achieve card. */}
+      <div style={{ position: 'relative', zIndex: 4 }}>
       <div className="lp-connector" style={{ height: 120, marginTop: 0, marginBottom: -40, position: 'relative', zIndex: 5, pointerEvents: 'none' }}>
         <svg viewBox="0 0 1400 120" width="100%" height="100%" preserveAspectRatio="none">
           <path d="M 700 0 L 700 120" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
@@ -1499,16 +1580,16 @@ export default function Landing() {
       {/* ── US vs Others — two-column comparison table ─────────────────────── */}
       <section className="lp-vs">
         <div className="lp-vs__inner">
-          <h2 className="lp-vs__heading">US VS OTHERS</h2>
+          <h2 className="lp-vs__heading">US <span className="lp-vs__heading-vs">VS</span> OTHERS</h2>
           <div className="lp-vs__table">
-            {/* header */}
+            {/* header — labels col, then "Others" (middle), then highlighted UGCad.io (right) */}
             <div className="lp-vs__row lp-vs__row--head">
               <div className="lp-vs__cell lp-vs__cell--label" />
+              <div className="lp-vs__cell lp-vs__cell--them">
+                <span className="lp-vs__them-label">Others (Marketplaces / Agencies)</span>
+              </div>
               <div className="lp-vs__cell lp-vs__cell--us">
                 <span className="lp-vs__brand">UGCad.io</span>
-              </div>
-              <div className="lp-vs__cell lp-vs__cell--them">
-                <span className="lp-vs__them-label">MARKETPLACES</span>
               </div>
             </div>
 
@@ -1516,27 +1597,21 @@ export default function Landing() {
               <div className="lp-vs__row" key={r.label}>
                 <div className="lp-vs__cell lp-vs__cell--label">{r.label}</div>
 
-                <div className="lp-vs__cell lp-vs__cell--us">
-                  {r.us === CHECK ? (
-                    <span className="lp-vs__icon lp-vs__icon--yes"><Check size={18} strokeWidth={3} /></span>
-                  ) : (
-                    <span className="lp-vs__pill lp-vs__pill--us">{r.us}</span>
-                  )}
+                <div className="lp-vs__cell lp-vs__cell--them">
+                  <Sparkle size={18} className="lp-vs__star lp-vs__star--them" aria-hidden="true" />
+                  <span className="lp-vs__pill lp-vs__pill--them">{r.them}</span>
                 </div>
 
-                <div className="lp-vs__cell lp-vs__cell--them">
-                  {r.them === CROSS ? (
-                    <span className="lp-vs__icon lp-vs__icon--no"><X size={18} strokeWidth={3} /></span>
-                  ) : (
-                    <span className="lp-vs__pill lp-vs__pill--them">{r.them}</span>
-                  )}
+                <div className="lp-vs__cell lp-vs__cell--us">
+                  <Sparkle size={18} className="lp-vs__star lp-vs__star--us" aria-hidden="true" />
+                  <span className="lp-vs__pill lp-vs__pill--us">{r.us}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </section>
-      </motion.div>
+      </div>
 
       {/* ── Features (removed) ─────────────────────────────────────────────── */}
       <section className="lp-features" ref={featuresRef} style={{ display: 'none' }}>
@@ -1621,13 +1696,20 @@ export default function Landing() {
 
           <div className="lp-proof__row">
             {stats.map((s, i) => (
-              <div key={s.label} className="lp-proof-num">
+              <motion.div
+                key={s.label}
+                className="lp-proof-num"
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.6, delay: i * 0.14, ease: [0.16, 1, 0.3, 1] }}
+              >
                 <span className="lp-proof-num__index">0{i + 1}</span>
                 <span className="lp-proof-num__value">
                   <CountUp value={s.value} />
                 </span>
                 <span className="lp-proof-num__label">{s.label}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -1822,9 +1904,24 @@ export default function Landing() {
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
       <section className="lp-faq">
         <div className="lp-faq__inner">
-          <h2 className="lp-faq__heading">Frequently Asked Questions</h2>
+          <h2 className="lp-faq__heading">Frequently <em>Asked</em> Questions</h2>
 
-          <div className="lp-faq__list">
+          <div className="lp-faq__head">
+            <p className="lp-faq__intro">
+              Here are the answers to the most frequently asked questions we encounter
+              with regards to our services. For further assistance, feel free to reach
+              out directly to our team.
+            </p>
+            <button
+              type="button"
+              className="lp-faq__contact"
+              onClick={() => navigate('/auth?role=business&mode=signup')}
+            >
+              Contact the team
+            </button>
+          </div>
+
+          <div className="lp-faq__grid">
             {FAQ_ITEMS.map((item, i) => {
               const isOpen = faqOpen === i;
               return (
@@ -3365,6 +3462,141 @@ export default function Landing() {
           .lp-filter { padding: 8px 14px; font-size: 0.82rem; }
         }
 
+        /* ── Find & Hire Creators — fanned, side-by-side cards ── */
+        .lp-achieve {
+          position: relative;
+          padding: 90px 8% 36px;
+          background: transparent;
+          color: var(--lp-text);
+          text-align: center;
+        }
+        .lp-achieve__title {
+          margin: 0 auto;
+          max-width: 16ch;
+          text-align: center;
+          font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+          font-weight: 400;
+          font-size: clamp(2.2rem, 6vw, 4.6rem);
+          line-height: 1.05;
+          letter-spacing: -0.02em;
+          color: var(--lp-text);
+        }
+        .lp-achieve__title em { font-style: italic; }
+        .lp-achieve__title .lp-achieve__hl { color: #A78BFA !important; }
+
+        /* Fan container — cards are absolutely placed and fanned via inline transform. */
+        .lp-achieve__fan {
+          position: relative;
+          height: 430px;
+          margin-top: 48px;
+        }
+        .lp-achieve-card {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          width: 332px;
+          height: 400px;
+          margin-left: -166px;
+          display: flex;
+          flex-direction: column;
+          border-radius: 24px;
+          overflow: hidden;
+          background: rgba(22, 22, 28, 0.97);
+          border: 1px solid rgba(var(--lp-fg), 0.08);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+          transform-origin: center bottom;
+          transition: transform 0.55s cubic-bezier(.16,1,.3,1), box-shadow 0.4s ease;
+          cursor: pointer;
+        }
+        .lp-achieve-card__top {
+          position: relative;
+          height: 110px;
+          flex: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: transparent;
+        }
+        .lp-achieve-card__icon {
+          width: 60px;
+          height: 60px;
+          color: rgba(var(--lp-fg), 0.85);
+          transition: color 0.4s ease;
+        }
+        .lp-achieve-card__num {
+          position: absolute;
+          top: 18px;
+          left: 20px;
+          font-family: 'Instrument Serif', Georgia, serif;
+          font-size: 1.7rem;
+          line-height: 1;
+          color: rgba(var(--lp-fg), 0.4);
+          transition: color 0.4s ease;
+        }
+        .lp-achieve-card__body {
+          padding: 6px 30px 32px;
+          text-align: left;
+        }
+        .lp-achieve-card .lp-achieve-card__title {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.28rem;
+          font-weight: 700;
+          color: var(--lp-text);
+          margin: 0 0 18px;
+          padding-bottom: 18px;
+          letter-spacing: -0.01em;
+          /* Divider line between the headline and the body copy. */
+          border-bottom: 1px solid rgba(var(--lp-fg), 0.14);
+          transition: color 0.4s ease, border-color 0.4s ease;
+        }
+        .lp-achieve-card__desc {
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 1.02rem;
+          line-height: 1.55;
+          color: rgba(var(--lp-fg), 0.62);
+          margin: 0;
+        }
+        /* Active card — purple icon + title (no band, no zoom), stronger shadow. */
+        .lp-achieve-card.is-active {
+          box-shadow: 0 44px 100px rgba(0, 0, 0, 0.62);
+        }
+        .lp-achieve-card.is-active .lp-achieve-card__icon { color: #A78BFA; }
+        .lp-achieve-card.is-active .lp-achieve-card__num { color: #A78BFA; }
+        .lp-achieve-card.is-active .lp-achieve-card__title { color: #A78BFA; }
+        .lp-achieve-card.is-active .lp-achieve-card__title { border-bottom-color: rgba(167, 139, 250, 0.4); }
+
+        /* Light theme surfaces. */
+        .lp-root[data-theme="light"] .lp-achieve-card {
+          background: rgba(255, 255, 255, 0.96);
+          border-color: rgba(0, 0, 0, 0.06);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Mobile: drop the fan, stack the cards vertically (neutralise inline transforms). */
+        @media (max-width: 900px) {
+          .lp-achieve__title { font-size: clamp(2rem, 9vw, 3.2rem); }
+          .lp-achieve__fan {
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin-top: 40px;
+          }
+          .lp-achieve-card {
+            position: relative !important;
+            top: auto;
+            left: auto;
+            margin-left: 0;
+            transform: none !important;
+            z-index: auto !important;
+            width: 100%;
+            max-width: 360px;
+            height: auto;
+          }
+          .lp-achieve-card__top { height: 120px; }
+        }
+
         /* ── US vs Others — two-column comparison ─────────────────────────── */
         .lp-vs {
           padding: 90px 8% 100px;
@@ -3374,118 +3606,151 @@ export default function Landing() {
           max-width: 1080px;
           margin: 0 auto;
         }
+        /* Borderless table — the only framed element is the highlighted UGCad.io panel. */
         .lp-vs__table {
-          background: rgba(var(--lp-fg), 0.04);
-          border: 1px solid rgba(var(--lp-fg), 0.10);
-          border-radius: 28px;
-          padding: 8px 28px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+          position: relative;
+          background: transparent;
+          border: none;
+          padding: 0;
         }
         .lp-vs__row {
           display: grid;
-          grid-template-columns: 1.15fr 1fr 1fr;
-          align-items: center;
-          column-gap: 24px;
-          padding: 18px 0;
-          border-top: 1px solid rgba(var(--lp-fg), 0.08);
-        }
-        .lp-vs__row--head {
-          border-top: none;
-          padding: 24px 0 22px;
+          grid-template-columns: 0.82fr 1fr 1.04fr;
+          align-items: stretch;
+          column-gap: 0;
         }
         .lp-vs__cell {
           display: flex;
           align-items: center;
-          justify-content: center;
-          text-align: center;
+          justify-content: flex-start;
+          gap: 12px;
+          text-align: left;
+          padding: 18px 0;
         }
         .lp-vs__cell--label {
-          justify-content: flex-start;
-          text-align: left;
+          padding-right: 26px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.92rem;
-          font-weight: 700;
-          letter-spacing: 0.02em;
-          color: var(--lp-text);
+          font-size: 0.96rem;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          color: rgba(var(--lp-fg), 0.6);
         }
-        /* highlighted "us" column — subtle purple wash running down the middle */
+        .lp-vs__cell--them {
+          padding-left: 30px;
+          padding-right: 24px;
+        }
+        /* Axis dividers: a full-height VERTICAL rule after the label column and a
+           HORIZONTAL rule under the header that runs all the way across, including
+           through the highlighted UGCad.io panel. */
+        .lp-vs__cell--label {
+          border-right: 1px solid rgba(var(--lp-fg), 0.12);
+        }
+        .lp-vs__row--head .lp-vs__cell--label,
+        .lp-vs__row--head .lp-vs__cell--them {
+          border-bottom: 1px solid rgba(var(--lp-fg), 0.12);
+        }
+        /* the line continues across the panel — a brighter purple so it reads on it */
+        .lp-vs__row--head .lp-vs__cell--us {
+          border-bottom: 1px solid rgba(167, 139, 250, 0.28);
+        }
+
+        /* ── Featured UGCad.io column — brand purple panel down the right side ──
+           Flat, uniform fill so consecutive cells blend into ONE seamless panel;
+           a per-cell gradient created a visible seam (line) at every row boundary. */
         .lp-vs__cell--us {
           position: relative;
+          padding: 18px 28px;
+          background: rgba(48, 41, 80, 0.55);
+          border-left: 1px solid rgba(167, 139, 250, 0.22);
+          border-right: 1px solid rgba(167, 139, 250, 0.22);
+        }
+        .lp-vs__row--head .lp-vs__cell--us {
+          border-top: 1px solid rgba(167, 139, 250, 0.30);
+          border-top-left-radius: 22px;
+          border-top-right-radius: 22px;
+          padding-top: 26px;
+        }
+        .lp-vs__row:last-child .lp-vs__cell--us {
+          border-bottom: 1px solid rgba(167, 139, 250, 0.30);
+          border-bottom-left-radius: 22px;
+          border-bottom-right-radius: 22px;
+          padding-bottom: 26px;
         }
         .lp-vs__brand {
           font-family: 'Instrument Sans', sans-serif;
-          font-weight: 700;
-          font-size: 1.15rem;
-          color: #A78BFA;
+          font-weight: 800;
+          font-size: 1.25rem;
+          color: #ffffff;
           letter-spacing: -0.01em;
         }
         .lp-vs__them-label {
           font-family: 'Instrument Sans', sans-serif;
-          font-weight: 600;
-          font-size: 0.8rem;
-          letter-spacing: 0.12em;
-          color: rgba(var(--lp-fg), 0.5);
+          font-weight: 800;
+          font-size: 1.25rem;
+          letter-spacing: -0.01em;
+          line-height: 1.3;
+          color: #ffffff;
         }
-        /* value pills */
+        /* sparkle icon before each value */
+        .lp-vs__star { flex-shrink: 0; }
+        .lp-vs__star--them {
+          color: rgba(var(--lp-fg), 0.42);
+          fill: rgba(var(--lp-fg), 0.16);
+        }
+        .lp-vs__star--us {
+          color: #A78BFA;
+          fill: rgba(167, 139, 250, 0.9);
+        }
+        /* value text */
         .lp-vs__pill {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          max-width: 280px;
-          min-height: 40px;
-          padding: 9px 18px;
-          border-radius: 100px;
+          flex: 1;
+          min-width: 0;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.9rem;
-          font-weight: 600;
-          line-height: 1.25;
-          text-align: center;
-        }
-        .lp-vs__pill--us {
-          background: rgba(167, 139, 250, 0.14);
-          border: 1px solid rgba(167, 139, 250, 0.35);
-          color: #C4B5FD;
-        }
-        .lp-vs__pill--them {
-          background: rgba(var(--lp-fg), 0.05);
-          border: 1px solid rgba(var(--lp-fg), 0.10);
-          color: rgba(var(--lp-fg), 0.55);
+          font-size: 0.96rem;
           font-weight: 500;
+          line-height: 1.4;
+          text-align: left;
         }
-        /* check / cross icons */
-        .lp-vs__icon {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .lp-vs__icon--yes {
-          background: rgba(52, 211, 153, 0.18);
-          color: #34D399;
-        }
-        .lp-vs__icon--no {
-          background: rgba(248, 113, 113, 0.16);
-          color: #F87171;
-        }
+        .lp-vs__pill--us { color: #ffffff; }
+        .lp-vs__pill--them { color: rgba(var(--lp-fg), 0.55); }
+
         .lp-vs__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.4vw, 3.2rem);
-          font-weight: 600;
-          letter-spacing: -0.03em;
-          color: var(--lp-text);
+          font-family: 'Instrument Serif', Georgia, serif;
+          font-size: clamp(2.4rem, 5vw, 3.9rem);
+          font-weight: 400;
+          letter-spacing: 0.015em;
+          word-spacing: 0.18em;
           margin: 0 0 36px;
           text-align: center;
+          transform: translateX(48px);
+          color: #ffffff;
+        }
+        /* VS in brand purple + italic. Selector is specific enough (0,2,1) to beat the
+           global ".lp-root span { color }" rule that was overriding it. */
+        .lp-vs__heading span.lp-vs__heading-vs {
+          color: #A78BFA;
+          font-style: italic;
         }
         @media (max-width: 768px) {
           .lp-vs { padding: 60px 5% 70px; }
-          .lp-vs__table { padding: 4px 14px; }
-          .lp-vs__row { grid-template-columns: 1fr; row-gap: 10px; padding: 16px 0; text-align: center; }
-          .lp-vs__cell--label { justify-content: center; text-align: center; }
-          .lp-vs__pill { max-width: 100%; }
-          .lp-vs__heading { text-align: center; }
+          .lp-vs__heading { transform: none; }
+          .lp-vs__row { grid-template-columns: 1fr; row-gap: 4px; }
+          .lp-vs__cell { padding: 7px 0; }
+          .lp-vs__cell--label {
+            padding-right: 0;
+            padding-top: 18px;
+            font-weight: 700;
+            color: rgba(var(--lp-fg), 0.78);
+            border-right: none;
+          }
+          .lp-vs__cell--them { padding-left: 0; padding-right: 0; }
+          .lp-vs__row--head .lp-vs__cell--label,
+          .lp-vs__row--head .lp-vs__cell--them { border-bottom: none; }
+          .lp-vs__cell--us {
+            padding: 12px 16px;
+            border: 1px solid rgba(167, 139, 250, 0.30) !important;
+            border-radius: 14px !important;
+          }
         }
 
         /* ── Comparison Table ─────────────────────────────────────────────── */
@@ -4206,64 +4471,102 @@ export default function Landing() {
         /* ── FAQ ──────────────────────────────────────────────────────────── */
         .lp-faq {
           position: relative;
-          padding: 100px 6% 80px;
+          padding: 110px 6% 90px;
           z-index: 2;
         }
         .lp-faq__inner {
-          max-width: 820px;
+          max-width: 1160px;
           margin: 0 auto;
-        }
-        .lp-faq__eyebrow {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.8rem;
-          font-weight: 600;
-          letter-spacing: 0.02em;
-          color: var(--lp-purple-700);
-          margin: 0 0 10px;
         }
         .lp-faq__heading {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.9rem, 4vw, 2.8rem);
+          font-size: clamp(2rem, 4.6vw, 3.4rem);
           font-weight: 600;
-          letter-spacing: -0.01em;
+          letter-spacing: -0.02em;
           color: rgba(var(--lp-fg), 0.96);
-          margin: 0 0 44px;
+          margin: 0 0 26px;
         }
-        .lp-faq__list {
+        /* Elegant italic-serif accent word, mirroring the reference design. */
+        .lp-faq__heading em {
+          font-family: Georgia, 'Times New Roman', serif;
+          font-style: italic;
+          font-weight: 400;
+        }
+        /* Header row: intro copy on the left, contact button on the right. */
+        .lp-faq__head {
           display: flex;
-          flex-direction: column;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 40px;
+          margin-bottom: 46px;
+        }
+        .lp-faq__intro {
+          max-width: 560px;
+          margin: 0;
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.96rem;
+          line-height: 1.7;
+          color: var(--lp-text-muted);
+        }
+        .lp-faq__contact {
+          flex-shrink: 0;
+          padding: 14px 26px;
+          border-radius: 4px;
+          background: transparent;
+          border: 1px solid rgba(var(--lp-fg), 0.30);
+          color: rgba(var(--lp-fg), 0.90);
+          font-family: 'Instrument Sans', sans-serif;
+          font-size: 0.74rem;
+          font-weight: 600;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .lp-faq__contact:hover {
+          background: rgba(var(--lp-fg), 0.08);
+          border-color: rgba(var(--lp-fg), 0.50);
+        }
+        /* Two-column card grid — each card expands independently. */
+        .lp-faq__grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
         }
         .lp-faq__item {
-          border-bottom: 1px solid rgba(var(--lp-fg), 0.12);
+          align-self: start;
+          background: rgba(var(--lp-fg), 0.04);
+          border: 1px solid rgba(var(--lp-fg), 0.08);
+          border-radius: 10px;
+          overflow: hidden;
+          transition: background 0.2s ease, border-color 0.2s ease;
         }
-        .lp-faq__item:first-child {
-          border-top: 1px solid rgba(var(--lp-fg), 0.12);
-        }
+        .lp-faq__item:hover { background: rgba(var(--lp-fg), 0.06); }
+        .lp-faq__item.is-open { border-color: rgba(167, 139, 250, 0.30); }
         .lp-faq__q {
           width: 100%;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 18px;
-          padding: 22px 4px;
+          padding: 20px 22px;
           background: none;
           border: none;
           cursor: pointer;
           text-align: left;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1rem, 1.6vw, 1.12rem);
-          font-weight: 600;
-          color: rgba(var(--lp-fg), 0.92);
+          font-size: clamp(0.9rem, 1.3vw, 1rem);
+          font-weight: 500;
+          color: rgba(var(--lp-fg), 0.90);
           transition: color 0.2s ease;
         }
-        .lp-faq__q:hover { color: var(--lp-purple-700); }
-        .lp-faq__item.is-open .lp-faq__q { color: var(--lp-purple-700); }
+        .lp-faq__q:hover { color: rgba(var(--lp-fg), 1); }
         .lp-faq__chevron {
           flex-shrink: 0;
-          color: var(--lp-purple-700);
-          transition: transform 0.3s ease;
+          color: rgba(var(--lp-fg), 0.55);
+          transition: transform 0.3s ease, color 0.3s ease;
         }
-        .lp-faq__item.is-open .lp-faq__chevron { transform: rotate(180deg); }
+        .lp-faq__item.is-open .lp-faq__chevron { transform: rotate(180deg); color: #A78BFA; }
         .lp-faq__answer-wrap {
           display: grid;
           grid-template-rows: 0fr;
@@ -4275,12 +4578,10 @@ export default function Landing() {
         .lp-faq__answer {
           overflow: hidden;
           min-height: 0;
-          /* Padding stays on the element (clipped while collapsed) so it animates
-             together with the height instead of popping in — keeps the reveal smooth. */
           margin: 0;
-          padding: 0 4px 24px;
+          padding: 0 22px 20px;
           font-family: 'Instrument Sans', sans-serif;
-          font-size: 1rem;
+          font-size: 0.92rem;
           line-height: 1.7;
           color: var(--lp-text-muted);
           opacity: 0;
@@ -4289,10 +4590,10 @@ export default function Landing() {
         .lp-faq__item.is-open .lp-faq__answer {
           opacity: 1;
         }
-        @media (max-width: 600px) {
-          .lp-faq { padding: 70px 5% 56px; }
-          .lp-faq__heading { margin-bottom: 32px; }
-          .lp-faq__q { padding: 18px 2px; }
+        @media (max-width: 760px) {
+          .lp-faq { padding: 70px 5% 60px; }
+          .lp-faq__head { flex-direction: column; gap: 20px; margin-bottom: 32px; }
+          .lp-faq__grid { grid-template-columns: 1fr; }
         }
 
         /* ── Footer ─────────────────────────────────────────────────────────── */
@@ -5572,7 +5873,8 @@ export default function Landing() {
           background: linear-gradient(rgba(var(--lp-fg), 0.06), rgba(var(--lp-fg), 0.06)), var(--lp-page-bg);
           border: 1px solid var(--lp-border);
           border-radius: 22px;
-          padding: 26px 22px 22px;
+          padding: 40px 24px 36px;
+          min-height: 300px;
           box-shadow: 0 12px 30px rgba(7, 7, 78, 0.06);
           display: flex;
           flex-direction: column;

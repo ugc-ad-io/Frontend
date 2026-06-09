@@ -54,56 +54,37 @@ import { motion, AnimatePresence, useAnimationControls, useInView, animate, useM
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 
-// Stagger showcase video loads so the marquee doesn't attach + decode ~20 clips in a
-// single frame as it enters view (the freeze right after the leaderboard). At most a few
-// load concurrently; the rest queue and start as each finishes loading.
-const VIDEO_MAX_CONCURRENT_LOADS = 3;
-let _vidActive = 0;
-const _vidQueue = [];
-function _pumpVidQueue() {
-  while (_vidActive < VIDEO_MAX_CONCURRENT_LOADS && _vidQueue.length) {
-    _vidActive++;
-    _vidQueue.shift()();
-  }
-}
-function acquireVidSlot(grant) {
-  _vidQueue.push(grant);
-  _pumpVidQueue();
-}
-function releaseVidSlot() {
-  if (_vidActive > 0) _vidActive -= 1;
-  _pumpVidQueue();
-}
-
-// Showcase video: requests a load slot the first time it nears the viewport (staggered),
-// attaches its src once granted, then KEEPS it attached (latched) so scrolling back in
-// just resumes playback instead of reloading. Visible clips play; off-screen ones pause
-// (cheap) but stay loaded. (Clips are 720p, so keeping them resident is light.)
+// Spread the FIRST load of each showcase clip over a short window (ticket-based delay) so
+// the marquee doesn't attach + decode ~20 clips in one frame as it enters view (the freeze
+// after the leaderboard) — but with no slot/release bookkeeping (which stalled under React
+// StrictMode's double-mount and left most cards black). The ticket only counts up, wraps,
+// and maps to a small delay, so loads simply fan out over ~0.8s and never stall.
+let _vidTicket = 0;
+// Showcase video: on first nearing the viewport it schedules its load (staggered), attaches
+// the src, then KEEPS it (latched) so scrolling back in just resumes instead of reloading.
+// Visible clips play; off-screen ones pause (cheap) but stay loaded. (720p → light.)
 function LazyVideo({ src, className }) {
   const ref = useRef(null);
-  const [loaded, setLoaded] = useState(false); // latched once a slot is granted
+  const [loaded, setLoaded] = useState(false);
   const [inView, setInView] = useState(false);
   const requestedRef = useRef(false);
-  const releasedRef = useRef(false);
-  const releaseSlot = () => {
-    if (!releasedRef.current) { releasedRef.current = true; releaseVidSlot(); }
-  };
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let timer;
     const io = new IntersectionObserver(
       ([entry]) => {
         setInView(entry.isIntersecting);
         if (entry.isIntersecting && !requestedRef.current) {
           requestedRef.current = true;
-          acquireVidSlot(() => setLoaded(true)); // wait for a load slot, then attach src
+          const delay = Math.min((_vidTicket++ % 14) * 55, 760); // fan out over ~0.8s
+          timer = setTimeout(() => setLoaded(true), delay);
         }
       },
-      { rootMargin: '120px' }
+      { rootMargin: '300px' }
     );
     io.observe(el);
-    return () => { io.disconnect(); releaseSlot(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { io.disconnect(); clearTimeout(timer); };
   }, []);
   // Play only while visible; pause (don't unload) when out of view.
   useEffect(() => {
@@ -120,11 +101,9 @@ function LazyVideo({ src, className }) {
       loop
       playsInline
       autoPlay
-      preload="none"
+      preload="auto"
       webkit-playsinline="true"
       disablePictureInPicture
-      onLoadedData={releaseSlot}
-      onError={releaseSlot}
       {...(loaded ? { src } : {})}
     />
   );
@@ -209,7 +188,13 @@ function LeaderboardRow({ progress, index, count }) {
   const color = useTransform(off, (o) => {
     const a = Math.abs(o);
     if (a < 0.12) return '#ffffff';
-    const lum = Math.round(Math.max(70, 235 - a * 60));
+    // Quantize the grey to discrete steps so each row's text RE-RASTERS only when it
+    // crosses a step (a handful of times as it travels) instead of on every scroll
+    // frame. A per-frame colour change repaints the text on every visible row every
+    // frame — the real cost behind the leaderboard jank (transform/opacity are already
+    // GPU-composited and free; colour is not).
+    const raw = Math.max(70, 235 - a * 60);
+    const lum = Math.round(raw / 24) * 24;
     return `rgb(${lum},${lum},${lum})`;
   });
   // translate(-50%,-50%) centres the row; +offset×160 spaces it; 2D rotate tilts it;
@@ -2171,6 +2156,23 @@ export default function Landing() {
           z-index: 1000;
           padding: 0 8%;
           transition: top 0.3s ease;
+        }
+        /* Top mask: a page-bg gradient that sits BEHIND the nav links but ABOVE the
+           scrolling page content, so hero copy (and anything else) fades out and
+           disappears at the navbar line instead of showing through / overlapping it. */
+        .lp-navbar::before {
+          content: '';
+          position: absolute;
+          top: -20px;            /* navbar sits at top:20px → reach the viewport top */
+          left: 0;
+          right: 0;
+          height: 124px;
+          background: linear-gradient(180deg,
+            var(--lp-page-bg) 0%,
+            var(--lp-page-bg) 68%,
+            transparent 100%);
+          z-index: -1;           /* behind the links, in front of page content */
+          pointer-events: none;
         }
 
         .lp-navbar__inner {
@@ -5431,21 +5433,23 @@ export default function Landing() {
           /* Taller runway = the peel is spread over more scroll = slower, calmer. */
           min-height: 220vh;
         }
+        /* Soft glow via radial-gradient instead of filter: blur(90px) — a blur filter
+           forces the browser to re-rasterize a large layer as this (scroll-heavy)
+           section moves; a gradient just paints, so scrolling stays smooth. */
         .lp-audit__bg-orb {
           position: absolute;
           border-radius: 50%;
           pointer-events: none;
-          filter: blur(90px);
         }
         .lp-audit__bg-orb--1 {
-          width: 340px; height: 340px;
-          background: rgba(154, 154, 191, 0.30);
-          top: -80px; right: -80px;
+          width: 520px; height: 520px;
+          background: radial-gradient(circle, rgba(154, 154, 191, 0.30) 0%, transparent 68%);
+          top: -190px; right: -190px;
         }
         .lp-audit__bg-orb--2 {
-          width: 280px; height: 280px;
-          background: rgba(7, 7, 78, 0.18);
-          bottom: -60px; left: -40px;
+          width: 460px; height: 460px;
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.20) 0%, transparent 68%);
+          bottom: -170px; left: -150px;
         }
         .lp-audit__inner {
           position: sticky;
@@ -5779,21 +5783,21 @@ export default function Landing() {
           color: var(--lp-text);
           overflow: hidden;
         }
+        /* radial-gradient glow instead of filter: blur(110px) — cheaper to composite. */
         .lp-testimonial__bg-orb {
           position: absolute;
           border-radius: 50%;
           pointer-events: none;
-          filter: blur(110px);
         }
         .lp-testimonial__bg-orb--1 {
-          width: 360px; height: 360px;
-          background: rgba(154, 154, 191, 0.30);
-          top: -100px; left: -80px;
+          width: 560px; height: 560px;
+          background: radial-gradient(circle, rgba(154, 154, 191, 0.30) 0%, transparent 68%);
+          top: -200px; left: -180px;
         }
         .lp-testimonial__bg-orb--2 {
-          width: 300px; height: 300px;
-          background: rgba(7, 7, 78, 0.18);
-          bottom: -80px; right: -60px;
+          width: 500px; height: 500px;
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.20) 0%, transparent 68%);
+          bottom: -180px; right: -160px;
         }
 
         .lp-testimonial__inner {

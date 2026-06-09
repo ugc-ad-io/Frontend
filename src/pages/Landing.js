@@ -522,10 +522,14 @@ function AchieveFan({ items }) {
       {items.map((item, i) => {
         const offset = i - (n - 1) / 2;
         const isActive = i === active;
+        // When a card is hovered, slide the cards on either side AWAY from it so they
+        // don't crowd/overlap the raised card (left ones shift left, right ones right).
+        const PUSH = 70;
+        const push = active >= 0 && !isActive ? (i < active ? -PUSH : PUSH) : 0;
         // Active card only lifts (no zoom/scale) and sits straight; the rest fan out.
         const transform = isActive
           ? `translateX(${offset * SPACING}px) translateY(-26px) rotate(0deg)`
-          : `translateX(${offset * SPACING}px) translateY(${Math.abs(offset) * 9}px) rotate(${offset * TILT}deg)`;
+          : `translateX(${offset * SPACING + push}px) translateY(${Math.abs(offset) * 9}px) rotate(${offset * TILT}deg)`;
         const Icon = item.icon;
         return (
           <article
@@ -1912,13 +1916,6 @@ export default function Landing() {
               with regards to our services. For further assistance, feel free to reach
               out directly to our team.
             </p>
-            <button
-              type="button"
-              className="lp-faq__contact"
-              onClick={() => navigate('/auth?role=business&mode=signup')}
-            >
-              Contact the team
-            </button>
           </div>
 
           <div className="lp-faq__grid">

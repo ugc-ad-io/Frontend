@@ -54,32 +54,64 @@ import { motion, AnimatePresence, useAnimationControls, useInView, animate, useM
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 
-// Only decode a showcase video while it's on (or near) screen. The showcase holds 6 vertical
-// 4K clips rendered across two rows — decoding all of them at once exhausts the tab's memory
-// ("Out of Memory"). This mounts the <source> only when in view and drops it when out, so at
-// most a few clips ever decode simultaneously.
+// Stagger showcase video loads so the marquee doesn't attach + decode ~20 clips in a
+// single frame as it enters view (the freeze right after the leaderboard). At most a few
+// load concurrently; the rest queue and start as each finishes loading.
+const VIDEO_MAX_CONCURRENT_LOADS = 3;
+let _vidActive = 0;
+const _vidQueue = [];
+function _pumpVidQueue() {
+  while (_vidActive < VIDEO_MAX_CONCURRENT_LOADS && _vidQueue.length) {
+    _vidActive++;
+    _vidQueue.shift()();
+  }
+}
+function acquireVidSlot(grant) {
+  _vidQueue.push(grant);
+  _pumpVidQueue();
+}
+function releaseVidSlot() {
+  if (_vidActive > 0) _vidActive -= 1;
+  _pumpVidQueue();
+}
+
+// Showcase video: requests a load slot the first time it nears the viewport (staggered),
+// attaches its src once granted, then KEEPS it attached (latched) so scrolling back in
+// just resumes playback instead of reloading. Visible clips play; off-screen ones pause
+// (cheap) but stay loaded. (Clips are 720p, so keeping them resident is light.)
 function LazyVideo({ src, className }) {
   const ref = useRef(null);
+  const [loaded, setLoaded] = useState(false); // latched once a slot is granted
   const [inView, setInView] = useState(false);
-  // Observe visibility only — don't touch the element here (the <src> isn't applied yet
-  // at this point, so calling play() now would no-op and leave the card black).
+  const requestedRef = useRef(false);
+  const releasedRef = useRef(false);
+  const releaseSlot = () => {
+    if (!releasedRef.current) { releasedRef.current = true; releaseVidSlot(); }
+  };
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { rootMargin: '300px' }
+      ([entry]) => {
+        setInView(entry.isIntersecting);
+        if (entry.isIntersecting && !requestedRef.current) {
+          requestedRef.current = true;
+          acquireVidSlot(() => setLoaded(true)); // wait for a load slot, then attach src
+        }
+      },
+      { rootMargin: '120px' }
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => { io.disconnect(); releaseSlot(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Play/pause AFTER render, i.e. once the src has actually been attached.
+  // Play only while visible; pause (don't unload) when out of view.
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    if (inView) v.play?.().catch(() => {});
+    if (inView && loaded) v.play?.().catch(() => {});
     else v.pause?.();
-  }, [inView]);
+  }, [inView, loaded]);
   return (
     <video
       ref={ref}
@@ -88,8 +120,12 @@ function LazyVideo({ src, className }) {
       loop
       playsInline
       autoPlay
-      preload="metadata"
-      {...(inView ? { src } : {})}
+      preload="none"
+      webkit-playsinline="true"
+      disablePictureInPicture
+      onLoadedData={releaseSlot}
+      onError={releaseSlot}
+      {...(loaded ? { src } : {})}
     />
   );
 }
@@ -157,10 +193,13 @@ function LeaderboardRow({ progress, index, count }) {
   const off = useTransform(progress, (v) => index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE));
 
   // Phone: smaller focus size + gentler falloff so rows fit a narrow screen.
+  // The base font-size is fixed in CSS (= peak); size is driven by a transform: scale()
+  // instead of animating font-size, which would force a layout reflow on every scroll
+  // frame for every row (the main cause of the leaderboard scroll jank). scale() is a
+  // GPU-composited transform — no reflow.
   const peak = phone ? 24 : 60;
   const step = phone ? 6 : 14;
   const floor = phone ? 8 : 10;
-  const fontSize = useTransform(off, (o) => `${Math.max(floor, peak - Math.abs(o) * step)}px`);
   const opacity = useTransform(off, (o) => Math.max(0.03, 1 - Math.abs(o) * 0.38));
   const fontWeight = useTransform(off, (o) => (Math.abs(o) < 0.22 ? 500 : Math.abs(o) < 1.3 ? 400 : 300));
   const display = useTransform(off, (o) => (Math.abs(o) > 3 ? 'none' : 'flex'));
@@ -173,11 +212,13 @@ function LeaderboardRow({ progress, index, count }) {
     const lum = Math.round(Math.max(70, 235 - a * 60));
     return `rgb(${lum},${lum},${lum})`;
   });
-  // translate(-50%,-50%) centres the row; +offset×160 spaces it; 2D rotate tilts it.
+  // translate(-50%,-50%) centres the row; +offset×160 spaces it; 2D rotate tilts it;
+  // scale() does the size falloff (replaces the old per-frame font-size animation).
   const transform = useTransform(off, (o) => {
     const ty = o * 160;
     const rot = o > 0 ? Math.min(o * 8, 24) : Math.max(o * 8, -24);
-    return `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg)`;
+    const s = Math.max(floor, peak - Math.abs(o) * step) / peak;
+    return `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg) scale(${s})`;
   });
 
   return (
@@ -185,7 +226,7 @@ function LeaderboardRow({ progress, index, count }) {
       className="lp-logo3d__boardItem"
       href="#"
       onClick={(e) => e.preventDefault()}
-      style={{ opacity, color, fontWeight, fontSize, display, pointerEvents, transform }}
+      style={{ opacity, color, fontWeight, display, pointerEvents, transform }}
     >
       <span className="lp-logo3d__rank">{ordinal(index + 1)}</span>
       <span className="lp-logo3d__creator">{TOP_CREATORS[index].name}</span>
@@ -409,22 +450,22 @@ const achieveItems = [
 // Six showcase video slots — all unique local UGC videos from /public folder.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: '/17811912-uhd_2160_3840_24fps.mp4',
+    src: '/17811912-uhd_2160_3840_24fps-sm.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8 },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: '/6944288-uhd_2160_3840_24fps.mp4',
+    src: '/6944288-uhd_2160_3840_24fps-sm.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9 },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
-    src: '/6951180-uhd_2160_3840_24fps.mp4',
+    src: '/6951180-uhd_2160_3840_24fps-sm.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0 },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/7690504-hd_1080_1920_30fps.mp4',
+    src: '/7690504-hd_1080_1920_30fps-sm.mp4',
     brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7 },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/13929852-uhd_2160_3840_24fps.mp4',
+    src: '/13929852-uhd_2160_3840_24fps-sm.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9 },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/6948556-uhd_2160_3840_24fps.mp4',
+    src: '/6948556-uhd_2160_3840_24fps-sm.mp4',
     brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8 },
 ];
 
@@ -678,19 +719,19 @@ export default function Landing() {
   // progress after the last card. The 3rd card (card1Y) is still exiting right up to ~0.99,
   // so the runway never sits idle/blank — the section ends the moment the last card clears,
   // and the next section (pulled up below) is already sliding in. No gap.
-  const card2Y = useTransform(auditProgress, [0.04, 0.33], [0, -800]);
-  const card2Opacity = useTransform(auditProgress, [0.04, 0.30], [1, 0]);
-  const card3Y = useTransform(auditProgress, [0.36, 0.65], [35, -800]);
-  const card3Opacity = useTransform(auditProgress, [0.36, 0.62], [1, 0]);
-  const card1Y = useTransform(auditProgress, [0.68, 0.99], [-35, -800]);
-  const card1Opacity = useTransform(auditProgress, [0.68, 0.95], [1, 0]);
-  // The next section (proof) is pulled UP in lockstep with the last card's peel: while Q3
-  // rises [0.68 → 0.99], the proof block slides up from below (700px → 0) so it's "stuck"
-  // to the card — as the card goes above, the next section is dragged up into view behind it.
-  // easeInOut + a spring smooth the motion so it glides in instead of snapping to raw scroll.
-  const proofRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
-  const proofRiseY = useSpring(proofRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
-  const proofOpacity = useTransform(auditProgress, [0.68, 0.9], [0, 1]);
+  // Gentle spring + easeInOut so each card GLIDES off (accelerate → decelerate)
+  // instead of tracking raw scroll 1:1. Paired with the taller section below, the
+  // whole peel reads slow and smooth.
+  const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
+  const card2Y = useSpring(useTransform(auditProgress, [0.04, 0.33], [0, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card3Y = useSpring(useTransform(auditProgress, [0.36, 0.65], [35, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card1Y = useSpring(useTransform(auditProgress, [0.68, 0.99], [-35, -800], { ease: easeInOut }), PEEL_SPRING);
+  // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
+  // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
+  // "stuck" to the card — as the card goes above, the section is dragged up into view
+  // behind it. easeInOut + a spring smooth the motion so it glides in, not snaps to scroll.
+  const achieveRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
+  const achieveRiseY = useSpring(achieveRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
   const ctaInView = useInView(ctaRef, { once: true, margin: '-80px' });
 
   // 3D glass logo — scroll-driven pinned scene under the hero
@@ -721,6 +762,12 @@ export default function Landing() {
   // Rows finish by LOGO3D_SCROLL_END (0.62); the 11th sits at the 50% focus, then fades over
   // 0.62→0.72 — melting away as the logo crosses (which starts from that same moment).
   const logoBoardOpacity = useTransform(logo3dProgress, [0.62, 0.72], [1, 0]);
+  // Brand strip is "stuck" to the leaderboard's last row: as the rows finish and the
+  // last text rises + fades out (logo3dProgress 0.6 → 0.85), the brand strip is dragged
+  // UP from below in lockstep — it rises with the text instead of waiting below. The
+  // spring smooths it so it glides rather than snapping to raw scroll.
+  const brandRiseRaw = useTransform(logo3dProgress, [0.58, 0.85], [380, 0], { ease: easeInOut });
+  const brandRiseY = useSpring(brandRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
   const logoX = '-36vw';
@@ -1128,7 +1175,9 @@ export default function Landing() {
       </section>
       </div>{/* /lp-journey */}
 
-      {/* ── Brand strip — moved here, AFTER the leaderboard; stays put (no fade) ── */}
+      {/* ── Brand strip — stuck to the leaderboard's last row: rises UP in lockstep
+          (brandRiseY) as the final rows fade, instead of waiting below. ── */}
+      <motion.div style={{ y: brandRiseY, position: 'relative', zIndex: 3 }}>
       <section className="lp-brandstrip" ref={brandStripRef}>
         <div className="lp-hero__strip">
           <div className="lp-hero__brands-side lp-hero__brands-side--left">
@@ -1196,6 +1245,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      </motion.div>
 
       {/* ── Showcase — Best UGC on the internet (moved here, right after the brand strip) ── */}
       <section className="lp-showcase">
@@ -1564,13 +1614,17 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Find & Hire Creators — fanned, side-by-side cards (one active, auto-cycles) ── */}
-      <section className="lp-achieve">
-        <h2 className="lp-achieve__title">
-          Find &amp; <em className="lp-achieve__hl">Hire</em> <em className="lp-achieve__hl">Creators</em> Instantly
-        </h2>
-        <AchieveFan items={achieveItems} />
-      </section>
+      {/* ── Find & Hire Creators — fanned cards. Dragged UP by achieveRiseY in lockstep
+          with Q3's peel, so it rises into view "stuck" to the last audit card. (No
+          opacity gate — the rise alone gives the effect and can't hide the section.) ── */}
+      <motion.div style={{ y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }}>
+        <section className="lp-achieve">
+          <h2 className="lp-achieve__title">
+            <em className="lp-achieve__hl">Find</em> &amp; Hire Creators <em className="lp-achieve__hl">Instantly</em>
+          </h2>
+          <AchieveFan items={achieveItems} />
+        </section>
+      </motion.div>
 
       {/* US vs Others now follows the "What you can achieve" section in normal flow,
           so it scrolls up into view right behind the last achieve card. */}
@@ -1586,14 +1640,14 @@ export default function Landing() {
         <div className="lp-vs__inner">
           <h2 className="lp-vs__heading">US <span className="lp-vs__heading-vs">VS</span> OTHERS</h2>
           <div className="lp-vs__table">
-            {/* header — labels col, then "Others" (middle), then highlighted UGCad.io (right) */}
+            {/* header — labels col, then highlighted UGCad.io (middle), then "Others" (right) */}
             <div className="lp-vs__row lp-vs__row--head">
               <div className="lp-vs__cell lp-vs__cell--label" />
-              <div className="lp-vs__cell lp-vs__cell--them">
-                <span className="lp-vs__them-label">Others (Marketplaces / Agencies)</span>
-              </div>
               <div className="lp-vs__cell lp-vs__cell--us">
                 <span className="lp-vs__brand">UGCad.io</span>
+              </div>
+              <div className="lp-vs__cell lp-vs__cell--them">
+                <span className="lp-vs__them-label">Others (Marketplaces / Agencies)</span>
               </div>
             </div>
 
@@ -1601,14 +1655,14 @@ export default function Landing() {
               <div className="lp-vs__row" key={r.label}>
                 <div className="lp-vs__cell lp-vs__cell--label">{r.label}</div>
 
-                <div className="lp-vs__cell lp-vs__cell--them">
-                  <Sparkle size={18} className="lp-vs__star lp-vs__star--them" aria-hidden="true" />
-                  <span className="lp-vs__pill lp-vs__pill--them">{r.them}</span>
-                </div>
-
                 <div className="lp-vs__cell lp-vs__cell--us">
                   <Sparkle size={18} className="lp-vs__star lp-vs__star--us" aria-hidden="true" />
                   <span className="lp-vs__pill lp-vs__pill--us">{r.us}</span>
+                </div>
+
+                <div className="lp-vs__cell lp-vs__cell--them">
+                  <Sparkle size={18} className="lp-vs__star lp-vs__star--them" aria-hidden="true" />
+                  <span className="lp-vs__pill lp-vs__pill--them">{r.them}</span>
                 </div>
               </div>
             ))}
@@ -2427,9 +2481,9 @@ export default function Landing() {
         .lp-hero__subtitle {
           font-family: 'Instrument Sans', sans-serif;
           color: rgba(var(--lp-fg), 0.65);
-          font-size: 1.4rem;
-          line-height: 1.7;
-          max-width: 560px;
+          font-size: 1.78rem;
+          line-height: 1.6;
+          max-width: 640px;
           margin: 0;
           text-align: left;
         }
@@ -2552,9 +2606,10 @@ export default function Landing() {
         .lp-brandstrip {
           position: relative;
           z-index: 3;
-          /* Pulled up so the strip rises into view as the LAST leaderboard rows fade out,
-             closing the empty navy tail after the board finishes (~logo3dProgress 0.8). */
-          margin-top: -34vh;
+          /* Pulled up far enough that the strip is already on-screen (just below the
+             centred leaderboard text) while the last rows fade — so the scroll-linked
+             brandRiseY lift is actually visible as the text rises out. */
+          margin-top: -55vh;
           padding: 60px 0;
           /* Match the "Most Ads Fail…" (.lp-hook) section — transparent, so it shows the
              shared animated page background instead of its own radial glow. */
@@ -2623,6 +2678,8 @@ export default function Landing() {
           width: max-content;
           padding: 0 20px;
           align-items: center;
+          will-change: transform;
+          backface-visibility: hidden;
         }
         .lp-brands__track--left {
           animation: scrollBrandsRight 30s linear infinite;
@@ -2780,6 +2837,10 @@ export default function Landing() {
           width: 100% !important;
           height: 100% !important;
           display: block;
+          /* Promote the canvas to its own GPU compositor layer so scroll-driven
+             repaints don't thrash the main thread. */
+          will-change: transform;
+          transform: translateZ(0);
         }
 
         /* leaderboard viewport — fixed 100vh window, fades at top + bottom edges */
@@ -2812,7 +2873,10 @@ export default function Landing() {
           font-family: 'Instrument Sans', 'Inter', sans-serif;
           letter-spacing: -0.03em;
           line-height: 1;
-          will-change: transform, opacity, font-size;
+          /* Fixed base size = JS peak; the per-row scale() does the size falloff so
+             font-size never animates (no reflow per scroll frame). */
+          font-size: 60px;
+          will-change: transform, opacity;
         }
         /* colour is driven per-row (grey → white at the centre); spans inherit it */
         .lp-logo3d__rank { color: inherit; font-weight: 500; }
@@ -2836,7 +2900,7 @@ export default function Landing() {
             margin-left: calc(clamp(120px, 34vw, 200px) * -0.5);
           }
           .lp-logo3d__board { width: 92%; }
-          .lp-logo3d__boardItem { font-size: clamp(0.85rem, 4vw, 1.4rem); }
+          .lp-logo3d__boardItem { font-size: 24px; }  /* = phone peak; scale() handles falloff */
         }
 
         /* ── The Problem section ──────────────────────────────────────────── */
@@ -3249,9 +3313,9 @@ export default function Landing() {
         }
         /* Whole heading white on the dark stage (accent included). */
         .lp-showcase__heading--accent {
-          color: #ffffff;
+          color: #A78BFA;
           background: none;
-          -webkit-text-fill-color: #ffffff;
+          -webkit-text-fill-color: #A78BFA;
         }
         /* Light theme: white would vanish on the lavender bg, so keep it readable. */
         .lp-root[data-theme="light"] .lp-showcase__heading { color: var(--lp-ink); }
@@ -3348,7 +3412,8 @@ export default function Landing() {
         .lp-showcase__track--right {
           animation: showcaseScrollRight 55s linear infinite;
         }
-        .lp-showcase__viewport:hover .lp-showcase__track {
+        /* Pause only the row being hovered, not both rows. */
+        .lp-showcase__row:hover .lp-showcase__track {
           animation-play-state: paused;
         }
         @keyframes showcaseScrollLeft {
@@ -3500,10 +3565,14 @@ export default function Landing() {
           overflow: hidden;
           background: rgba(22, 22, 28, 0.97);
           border: 1px solid rgba(var(--lp-fg), 0.08);
-          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 20px 44px rgba(0, 0, 0, 0.5);
           transform-origin: center bottom;
           transition: transform 0.55s cubic-bezier(.16,1,.3,1), box-shadow 0.4s ease;
           cursor: pointer;
+          /* Promote each card to its own GPU layer so scrolling composites a cached
+             bitmap instead of repainting the big blur shadow every frame. */
+          will-change: transform;
+          backface-visibility: hidden;
         }
         .lp-achieve-card__top {
           position: relative;
@@ -3555,7 +3624,7 @@ export default function Landing() {
         }
         /* Active card — purple icon + title (no band, no zoom), stronger shadow. */
         .lp-achieve-card.is-active {
-          box-shadow: 0 44px 100px rgba(0, 0, 0, 0.62);
+          box-shadow: 0 32px 70px rgba(0, 0, 0, 0.6);
         }
         .lp-achieve-card.is-active .lp-achieve-card__icon { color: #A78BFA; }
         .lp-achieve-card.is-active .lp-achieve-card__num { color: #A78BFA; }
@@ -3612,7 +3681,7 @@ export default function Landing() {
         }
         .lp-vs__row {
           display: grid;
-          grid-template-columns: 0.82fr 1fr 1.04fr;
+          grid-template-columns: 0.82fr 1.08fr 1fr;
           align-items: stretch;
           column-gap: 0;
         }
@@ -3636,12 +3705,8 @@ export default function Landing() {
           padding-left: 30px;
           padding-right: 24px;
         }
-        /* Axis dividers: a full-height VERTICAL rule after the label column and a
-           HORIZONTAL rule under the header that runs all the way across, including
-           through the highlighted UGCad.io panel. */
-        .lp-vs__cell--label {
-          border-right: 1px solid rgba(var(--lp-fg), 0.12);
-        }
+        /* Axis divider: a HORIZONTAL rule under the header that runs all the way
+           across, including through the highlighted UGCad.io panel. */
         .lp-vs__row--head .lp-vs__cell--label,
         .lp-vs__row--head .lp-vs__cell--them {
           border-bottom: 1px solid rgba(var(--lp-fg), 0.12);
@@ -5363,7 +5428,8 @@ export default function Landing() {
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
-          min-height: 130vh;
+          /* Taller runway = the peel is spread over more scroll = slower, calmer. */
+          min-height: 220vh;
         }
         .lp-audit__bg-orb {
           position: absolute;
@@ -5466,9 +5532,14 @@ export default function Landing() {
           min-height: 280px;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 12px 40px rgba(7, 7, 78, 0.4);
+          box-shadow: 0 10px 28px rgba(7, 7, 78, 0.4);
           overflow: hidden;
           transform-origin: center center;
+          /* Keep each card on its own GPU layer for the whole peel so it composites
+             instead of repainting the shadow each scroll frame (and so framer isn't
+             promoting/de-promoting it on every spring start/settle). */
+          will-change: transform;
+          backface-visibility: hidden;
         }
         .lp-audit-card::before {
           content: '';

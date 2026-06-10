@@ -168,18 +168,23 @@ const FOOTER_COLS = [
   ],
 ];
 
-// Hero marquee card -- muted autoplay clip. Force play() once data is ready so no card
-// is left showing the bare gradient when the browser skips the autoplay attribute.
+// Hero marquee card -- muted autoplay clip. Only decode/play while the card is actually
+// in the viewport; pause off-screen copies so we never run all ~12 clips at once (perf).
 function GalleryCard({ av, src, hidden }) {
   const ref = useRef(null);
 
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    const tryPlay = () => v.play?.().catch(() => {});
-    if (v.readyState >= 2) tryPlay();
-    else v.addEventListener('loadeddata', tryPlay, { once: true });
-    return () => v.removeEventListener('loadeddata', tryPlay);
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) v.play?.().catch(() => {});
+        else v.pause?.();
+      },
+      { threshold: 0.01 },
+    );
+    io.observe(v);
+    return () => io.disconnect();
   }, []);
 
   return (
@@ -195,8 +200,7 @@ function GalleryCard({ av, src, hidden }) {
         muted
         loop
         playsInline
-        autoPlay
-        preload="auto"
+        preload="metadata"
         disablePictureInPicture
       />
     </div>
@@ -222,6 +226,23 @@ function TestimonialCard({ name, handle, likes, comments, av, src, hidden }) {
     }
   };
 
+  // Stop playback (and audio) when the card scrolls out of view.
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting && !v.paused) {
+          v.pause();
+          setPlaying(false);
+        }
+      },
+      { threshold: 0 },
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <button
       type="button"
@@ -234,10 +255,10 @@ function TestimonialCard({ name, handle, likes, comments, av, src, hidden }) {
       <video
         ref={ref}
         className="cl-tcard__media"
-        src={`${src}#t=0.1`}
+        src={src}
         loop
         playsInline
-        preload="metadata"
+        preload="none"
         onPause={() => setPlaying(false)}
         onPlay={() => setPlaying(true)}
       />

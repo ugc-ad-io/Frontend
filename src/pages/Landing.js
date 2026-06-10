@@ -2775,6 +2775,9 @@ export default function Landing() {
           z-index: 4;
           display: block;
         }
+        /* The path is hardcoded fill="#0a0a0a" for the dark seam; in light mode the
+           section below shows the lavender page bg, so the curve must match it. */
+        .lp-root[data-theme="light"] .lp-hero__divider path { fill: var(--lp-page-bg); }
 
         /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
         .lp-logo3d {
@@ -2793,6 +2796,10 @@ export default function Landing() {
           background: linear-gradient(180deg, #0a0a0a 0%, rgba(10,10,16,0.55) 38%, transparent 100%);
           z-index: 0;
           pointer-events: none;
+        }
+        /* Light mode: melt the lavender hero into the lavender section, not black. */
+        .lp-root[data-theme="light"] .lp-logo3d::before {
+          background: linear-gradient(180deg, var(--lp-page-bg) 0%, rgba(236,235,248,0.55) 38%, transparent 100%);
         }
         /* Soft glow that eases in when the section enters view, so the transition
            feels intentional rather than an abrupt cut. */

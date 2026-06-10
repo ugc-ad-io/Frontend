@@ -1,29 +1,67 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../App';
 import {
   ArrowRight,
   Sparkles,
   Play,
-  Plus,
-  Minus,
   LogIn,
   Menu,
   X,
   Linkedin,
   Instagram,
   ChevronDown,
-  Clock,
+  Heart,
+  Plus,
+  MessageCircle,
+  Wifi,
+  SignalHigh,
+  BatteryFull,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// ── Static content (edit freely) ──────────────────────────────────────────
+// -- Static content (edit freely) ------------------------------------------
 
-const BRANDS = ['perfora', 'GABIT', 'P·TAL', 'Mudrex', 'Glossier', 'Diabexy'];
+// Brand "logo wall" -- wordmarks rendered with distinct typographic treatments
+// so the strip reads like a row of real logos (monochrome, neatly aligned).
+const BRANDS = [
+  { name: 'YouTube', slug: 'youtube' },
+  { name: 'Instagram', slug: 'instagram' },
+  { name: 'Spotify', slug: 'spotify' },
+  { name: 'Meta', slug: 'meta' },
+  { name: 'Pinterest', slug: 'pinterest' },
+  { name: 'Snapchat', slug: 'snapchat' },
+  { name: 'Twitch', slug: 'twitch' },
+  { name: 'Discord', slug: 'discord' },
+  { name: 'Figma', slug: 'figma' },
+  { name: 'Vimeo', slug: 'vimeo' },
+  { name: 'Reddit', slug: 'reddit' },
+  { name: 'Stripe', slug: 'stripe' },
+  { name: 'Shopify', slug: 'shopify' },
+  { name: 'Dribbble', slug: 'dribbble' },
+  { name: 'Patreon', slug: 'patreon' },
+  { name: 'Behance', slug: 'behance' },
+];
+
+// Portrait thumbs for the hero gallery row -- same local UGC clips used on the homepage (/public).
+const GALLERY = [
+  { name: 'Abigail', av: ['#a78bfa', '#5b21b6'], src: '/17811912-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Chelsea', av: ['#818cf8', '#4338ca'], src: '/6944288-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Becki', av: ['#fca5a5', '#9d174d'], src: '/6951180-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Maya', av: ['#fb7185', '#f43f5e'], src: '/7690504-hd_1080_1920_30fps-sm.mp4' },
+  { name: 'Lara', av: ['#7dd3fc', '#1d4ed8'], src: '/13929852-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Priya', av: ['#a5b4fc', '#4c1d95'], src: '/6948556-uhd_2160_3840_24fps-sm.mp4' },
+];
+
+const CATEGORIES = [
+  'Instagram Reels', 'YouTube Shorts', 'B-Rolls', 'Product Launches',
+  'TikTok Shop Affiliates', 'TikTok Creators', 'Instagram Influencers',
+  'Amazon Influencers', 'YouTube Influencers', 'Social Media Managers',
+];
 
 const WHY = [
   {
-    emoji: '💼',
+    emoji: '\u{1F4BC}',
     title: (
       <>
         Get <span className="cl-hi">discovered</span> by top tier brands
@@ -33,7 +71,7 @@ const WHY = [
       'From fast-growing D2C startups to category-leading apps, on UGCad, brands actively search for creators like you.',
   },
   {
-    emoji: '💰',
+    emoji: '\u{1F4B0}',
     title: (
       <>
         <span className="cl-hi">Paid</span> Projects
@@ -43,7 +81,7 @@ const WHY = [
       "Forget the back-and-forth. You'll receive clear briefs, deadlines, and guaranteed payouts for every project. You just focus on creating.",
   },
   {
-    emoji: '👍',
+    emoji: '\u{1F44D}',
     title: (
       <>
         Work that <span className="cl-hi">fits your style</span>
@@ -53,7 +91,7 @@ const WHY = [
       'Whether you excel at unboxing, storytelling, or product demos, we match you with brands looking for exactly your kind of content.',
   },
   {
-    emoji: '📈',
+    emoji: '\u{1F4C8}',
     title: (
       <>
         Build your <span className="cl-hi">portfolio</span> as you earn
@@ -64,31 +102,39 @@ const WHY = [
   },
 ];
 
-const COMMUNITY = [
-  { name: 'Astha', av: ['#a78bfa', '#5b21b6'] },
-  { name: 'Ishita', av: ['#f0abfc', '#7c3aed'] },
-  { name: 'Chirag', av: ['#818cf8', '#4338ca'] },
-  { name: 'Aishwarya', av: ['#c4b5fd', '#6d28d9'] },
-  { name: 'Jaspreet', av: ['#a78bfa', '#4c1d95'] },
-  { name: 'Aishwarya', av: ['#ddd6fe', '#7c3aed'] },
+// Creator testimonial videos -- same local UGC clips used on the homepage (/public).
+const TESTIMONIALS = [
+  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#a78bfa', '#5b21b6'], src: '/17811912-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Chelsea', handle: '@chelsea.ugc',    likes: '124.2K', comments: '341', av: ['#818cf8', '#4338ca'], src: '/6944288-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Maya',    handle: '@maya.makes',     likes: '512.9K', comments: '1.2K', av: ['#fb7185', '#f43f5e'], src: '/7690504-hd_1080_1920_30fps-sm.mp4' },
+  { name: 'Priya',   handle: '@priya.shoots',   likes: '88.4K',  comments: '212', av: ['#a5b4fc', '#4c1d95'], src: '/6948556-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Lara',    handle: '@laralovesugc',   likes: '263.1K', comments: '904', av: ['#7dd3fc', '#1d4ed8'], src: '/13929852-uhd_2160_3840_24fps-sm.mp4' },
 ];
 
 const FAQS = [
   {
-    q: 'Do I need a big following to get brand deals?',
-    a: 'No. Brands here care about content quality and audience fit, not vanity metrics. Micro and nano creators win projects every day.',
+    q: 'Who owns the content created through ugcad.io?',
+    a: 'You retain full commercial rights to every piece of content delivered. Once a project is completed and paid, the brand is free to use it across all of its marketing channels.',
   },
   {
-    q: 'What kinds of videos will I be creating?',
-    a: 'Short-form UGC — unboxings, product demos, reviews, and storytelling reels — across beauty, tech, food, fashion, fitness and dozens of other niches.',
+    q: 'How quickly will I receive my content?',
+    a: 'Most projects are delivered within 5-7 days of the creator receiving the product. Turnaround times are agreed upfront in each brief so there are no surprises.',
   },
   {
-    q: 'Is there a fee to join UGCad?',
-    a: 'Joining is completely free. A small service fee applies only on completed, paid collaborations — we succeed when you do.',
+    q: 'Can I communicate with creators?',
+    a: 'Yes. Our built-in messaging lets you share briefs, give feedback, and align on direction with creators directly -- all in one place.',
   },
   {
-    q: 'Do I need professional equipment?',
-    a: 'No. A good smartphone camera and natural light are enough to start. Brands value authentic content over studio production.',
+    q: 'How do payments work?',
+    a: 'Payments are held securely and released to the creator only once you approve the delivered content. Joining is free; a small service fee applies on completed collaborations.',
+  },
+  {
+    q: 'Is my shipping address shared with creators?',
+    a: 'Only when a campaign requires the product to be shipped. Your address is shared solely for fulfilment and is never used for any other purpose.',
+  },
+  {
+    q: "What if I'm not happy with the content?",
+    a: 'You can request revisions within the agreed scope of the project. If the content still does not meet the brief, our team steps in to make it right.',
   },
 ];
 
@@ -122,122 +168,120 @@ const FOOTER_COLS = [
   ],
 ];
 
-// ── Mini UI mockups for the "How this works?" steps ────────────────────────
-function Bar({ pct }) {
+// Hero marquee card -- muted autoplay clip. Force play() once data is ready so no card
+// is left showing the bare gradient when the browser skips the autoplay attribute.
+function GalleryCard({ av, src, hidden }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const tryPlay = () => v.play?.().catch(() => {});
+    if (v.readyState >= 2) tryPlay();
+    else v.addEventListener('loadeddata', tryPlay, { once: true });
+    return () => v.removeEventListener('loadeddata', tryPlay);
+  }, []);
+
   return (
-    <div className="cl-mock__bar">
-      <span style={{ width: `${pct}%` }} />
+    <div
+      className="cl-gallery__card"
+      style={{ background: `linear-gradient(160deg, ${av[0]}, ${av[1]})` }}
+      aria-hidden={hidden}
+    >
+      <video
+        ref={ref}
+        className="cl-gallery__media"
+        src={src}
+        muted
+        loop
+        playsInline
+        autoPlay
+        preload="auto"
+        disablePictureInPicture
+      />
     </div>
   );
 }
 
-const STEPS = [
-  {
-    n: 1,
-    title: 'Sign Up',
-    sub: 'Create your free UGCad creator account.',
-    mock: (
-      <div className="cl-mock">
-        <div className="cl-mock__steps">
-          {['Create Account', 'Verify account', 'Fill the details'].map((s, i) => (
-            <div key={s} className="cl-mock__step">
-              <span className={`cl-mock__dot${i === 0 ? ' cl-mock__dot--on' : ''}`}>{i + 1}</span>
-              <span className="cl-mock__steptxt">{s}</span>
-            </div>
-          ))}
-        </div>
-        <div className="cl-mock__panel cl-mock__panel--center">
-          <div className="cl-mock__h">Create an account as a freelancer</div>
-          <div className="cl-mock__muted">Get Started for free</div>
-          <div className="cl-mock__field" />
-        </div>
+// Testimonial card -- styled like a TikTok phone screen; click to play with sound.
+// Rendered inside an auto-scrolling marquee, so no scroll-triggered fade (off-screen
+// copies must stay visible).
+function TestimonialCard({ name, handle, likes, comments, av, src, hidden }) {
+  const ref = useRef(null);
+  const [playing, setPlaying] = useState(false);
+
+  const toggle = () => {
+    const v = ref.current;
+    if (!v) return;
+    if (v.paused) {
+      v.muted = false;
+      v.play?.().then(() => setPlaying(true)).catch(() => {});
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className={`cl-tcard${playing ? ' cl-tcard--playing' : ''}`}
+      onClick={toggle}
+      style={{ background: `linear-gradient(160deg, ${av[0]}, ${av[1]})` }}
+      aria-label={`${playing ? 'Pause' : 'Play'} ${name}'s video`}
+      aria-hidden={hidden}
+    >
+      <video
+        ref={ref}
+        className="cl-tcard__media"
+        src={`${src}#t=0.1`}
+        loop
+        playsInline
+        preload="metadata"
+        onPause={() => setPlaying(false)}
+        onPlay={() => setPlaying(true)}
+      />
+
+      {/* Phone status bar */}
+      <div className="cl-tcard__status">
+        <span className="cl-tcard__time">9:41</span>
+        <span className="cl-tcard__statusicons">
+          <SignalHigh size={13} /><Wifi size={13} /><BatteryFull size={17} />
+        </span>
       </div>
-    ),
-  },
-  {
-    n: 2,
-    title: 'Get Verified ✅',
-    sub: 'We review your profile.',
-    mock: (
-      <div className="cl-mock">
-        <div className="cl-mock__label">Dashboard</div>
-        <div className="cl-mock__panel">
-          <div className="cl-mock__h">Complete the Profile</div>
-          <div className="cl-mock__muted">Build the Profile to access more opportunities</div>
-          <Bar pct={98} />
-          <div className="cl-mock__rowend cl-mock__pct">98%</div>
-          <div className="cl-mock__btn">Complete Profile</div>
-        </div>
+
+      {/* TikTok-style feed tabs */}
+      <div className="cl-tcard__tabs">
+        <span>Following</span>
+        <span className="cl-tcard__tab--active">For You</span>
       </div>
-    ),
-  },
-  {
-    n: 3,
-    title: 'Build Your Profile 📊',
-    sub: 'Add your skills, sample videos, and niche.',
-    mock: (
-      <div className="cl-mock">
-        <span className="cl-mock__pill">● INCOMPLETE</span>
-        <div className="cl-mock__panel">
-          <div className="cl-mock__h">Complete Profile to Launch Portfolio</div>
-          <Bar pct={98} />
-          <div className="cl-mock__rowend cl-mock__pct">98%</div>
-          <div className="cl-mock__kv">
-            <span>Personal Details</span><span className="cl-mock__pct">88%</span>
-          </div>
-          <div className="cl-mock__kv">
-            <span>Professional Details</span><span className="cl-mock__pct cl-mock__pct--ok">100%</span>
-          </div>
-        </div>
+
+      {/* Center play button */}
+      {!playing && (
+        <span className="cl-tcard__play"><Play size={22} fill="#1f2937" stroke="none" /></span>
+      )}
+
+      {/* Right action rail */}
+      <div className="cl-tcard__rail">
+        <span className="cl-tcard__avatar" style={{ background: `linear-gradient(135deg, ${av[0]}, ${av[1]})` }}>
+          <span className="cl-tcard__follow"><Plus size={11} /></span>
+        </span>
+        <span className="cl-tcard__action"><Heart size={26} fill="#fff" stroke="none" /><b>{likes}</b></span>
+        <span className="cl-tcard__action"><MessageCircle size={26} fill="#fff" stroke="none" /><b>{comments}</b></span>
       </div>
-    ),
-  },
-  {
-    n: 4,
-    title: 'Apply to Jobs 🚀',
-    sub: 'We review your profile.',
-    mock: (
-      <div className="cl-mock">
-        <div className="cl-mock__h">21 Jobs</div>
-        <div className="cl-mock__muted">Available Jobs for you</div>
-        <span className="cl-mock__chip">Available Projects</span>
-        <div className="cl-mock__card">
-          <div className="cl-mock__cardtop">
-            <span className="cl-mock__chip cl-mock__chip--accent">Creator Canvas</span>
-            <span className="cl-mock__muted cl-mock__muted--sm"><Clock size={11} /> Posted 3 hours ago</span>
-          </div>
-          <div className="cl-mock__h2">Smartwatch Promo AD</div>
-          <div className="cl-mock__muted cl-mock__muted--sm">Technology &nbsp;|&nbsp; Villgro</div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    n: 5,
-    title: 'Start Creating 🌟',
-    sub: 'Receive briefs, create content, and get paid',
-    mock: (
-      <div className="cl-mock">
-        <div className="cl-mock__line"><Play size={11} /> Raw Edited video - 1</div>
-        <div className="cl-mock__muted cl-mock__muted--sm">✓ Color Grade : Enhance the colors</div>
-        <div className="cl-mock__card">
-          <div className="cl-mock__cardtop">
-            <span className="cl-mock__h2">Final Edited Video</span>
-            <span className="cl-mock__approved">Approved</span>
-          </div>
-          <div className="cl-mock__thumb"><Play size={20} /></div>
-        </div>
-      </div>
-    ),
-  },
-];
+
+      {/* Handle */}
+      <span className="cl-tcard__handle">{handle}</span>
+    </button>
+  );
+}
 
 export default function CreatorLanding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState(0);
+  const [openFaq, setOpenFaq] = useState(-1);
   // Theme is global now (controlled from the home page); this page just follows it.
   const { theme } = useTheme();
 
@@ -269,14 +313,14 @@ export default function CreatorLanding() {
 
   return (
     <div className="cl-root" data-theme={theme}>
-      {/* ── Animated background blobs ──────────────────────────────────── */}
+      {/* -- Animated background blobs ------------------------------------ */}
       <div className="cl-bg" aria-hidden="true">
         <div className="cl-blob cl-blob--1" />
         <div className="cl-blob cl-blob--2" />
         <div className="cl-blob cl-blob--3" />
       </div>
 
-      {/* ── Navbar ─────────────────────────────────────────────────────── */}
+      {/* -- Navbar ------------------------------------------------------- */}
       <motion.header
         className={`cl-nav${scrolled ? ' cl-nav--scrolled' : ''}`}
         initial={{ opacity: 0, y: -16 }}
@@ -326,22 +370,22 @@ export default function CreatorLanding() {
         </div>
       </motion.header>
 
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      {/* -- Hero --------------------------------------------------------- */}
       <section className="cl-hero">
         <div className="cl-hero__main">
           <motion.h1
             className="cl-hero__title"
             variants={fadeUp} initial="hidden" animate="visible" custom={0}
           >
-            Become a Paid <span className="cl-hi">UGC Creator</span>
+            Love <span className="cl-hero__pill">creating</span> content?<br />
+            Get paid for it
           </motion.h1>
 
           <motion.p
             className="cl-hero__sub"
             variants={fadeUp} initial="hidden" animate="visible" custom={1}
           >
-            Turn your content skills into income. Create videos for brands, get
-            paid, and grow your personal brand.
+            Earn for shooting authentic images and videos for brands looking for real people.
           </motion.p>
 
           <motion.div
@@ -349,33 +393,66 @@ export default function CreatorLanding() {
             variants={fadeUp} initial="hidden" animate="visible" custom={2}
           >
             <button className="cl-btn-primary cl-btn-primary--lg" onClick={handleJoin}>
-              Get Started <ArrowRight size={18} />
+              Get started &mdash; <em>it&apos;s free</em>
             </button>
           </motion.div>
-
-          <motion.p
-            className="cl-hero__login"
-            variants={fadeUp} initial="hidden" animate="visible" custom={3}
-          >
-            Already signed up?{' '}
-            <button className="cl-hero__login-link" onClick={() => navigate('/auth?role=creator')}>Login</button>
-          </motion.p>
         </div>
 
-        {/* ── Brand strip — pinned to the bottom of the hero ──────────────── */}
+        {/* -- Creator gallery row ------------------------------------------- */}
+        <motion.div
+          className="cl-gallery"
+          variants={fadeUp} initial="hidden" animate="visible" custom={3}
+        >
+          <div className="cl-gallery__track">
+            {[...GALLERY, ...GALLERY].map(({ av, src }, i) => (
+              <GalleryCard key={i} av={av} src={src} hidden={i >= GALLERY.length} />
+            ))}
+          </div>
+        </motion.div>
+
+      </section>
+
+      {/* -- Categories + brands -- sit just below the hero fold ------------ */}
+      <section className="cl-belowfold">
+        {/* -- Category pills ------------------------------------------------ */}
+        <motion.div
+          className="cl-cats"
+          variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.4 }} custom={0}
+        >
+          <div className="cl-cats__track">
+            {[...CATEGORIES, ...CATEGORIES].map((c, i) => (
+              <span key={i} className="cl-cat" aria-hidden={i >= CATEGORIES.length}>{c}</span>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* -- Brand strip --------------------------------------------------- */}
         <motion.div
           className="cl-brands"
-          variants={fadeUp} initial="hidden" animate="visible" custom={4}
+          variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.4 }} custom={1}
         >
           <div className="cl-brands__row">
-            {BRANDS.slice(0, 3).map((b) => <span key={b} className="cl-brands__logo">{b}</span>)}
-            <span className="cl-brands__trust">Trusted by <strong>100+</strong><br />growing brands</span>
-            {BRANDS.slice(3).map((b) => <span key={b} className="cl-brands__logo">{b}</span>)}
+            {[BRANDS.slice(0, 8), BRANDS.slice(8)].map((line, li) => (
+              <div key={li} className={`cl-brands__line${li === 0 ? ' cl-brands__line--top' : ' cl-brands__line--bottom'}`}>
+                {line.map(({ name, slug }) => (
+                  <span key={name} className="cl-brands__logo">
+                    <img
+                      className="cl-brands__icon"
+                      src={`https://cdn.simpleicons.org/${slug}`}
+                      alt={name}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                    />
+                    <span className="cl-brands__name">{name}</span>
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
         </motion.div>
       </section>
 
-      {/* ── Why Join UGCad ───────────────────────────────────────── */}
+      {/* -- Why Join UGCad ----------------------------------------- */}
       <section id="why" className="cl-section">
         <motion.div
           className="cl-section__head"
@@ -409,68 +486,128 @@ export default function CreatorLanding() {
         </div>
       </section>
 
-      {/* ── Connect with a Global Community ────────────────────────────── */}
-      <section className="cl-section">
-        <motion.div
-          className="cl-section__head"
-          variants={fadeUp} initial="hidden" animate="visible"
-        >
-          <span className="cl-joinpill">Community</span>
-          <h2 className="cl-section__title">Connect with a <span className="cl-hi">Global</span> Community</h2>
-        </motion.div>
-
-        <div className="cl-community">
-          {COMMUNITY.map(({ name, av }, i) => (
-            <motion.div
-              key={i}
-              className="cl-vid"
-              variants={fadeUp} initial="hidden" animate="visible" custom={i % 6}
-            >
-              <div className="cl-vid__thumb" style={{ background: `linear-gradient(160deg, ${av[0]}, ${av[1]})` }}>
-                <span className="cl-vid__play"><Play size={20} fill="#fff" /></span>
-              </div>
-              <div className="cl-vid__meta">
-                <span className="cl-vid__avatar" style={{ background: `linear-gradient(135deg, ${av[0]}, ${av[1]})` }} />
-                <span className="cl-vid__name">{name}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── How this works ─────────────────────────────────────────────── */}
+      {/* -- How it works ------------------------------------------------- */}
       <section id="how" className="cl-section">
         <motion.div
           className="cl-section__head"
           variants={fadeUp} initial="hidden" animate="visible"
         >
-          <span className="cl-joinpill">Community</span>
-          <h2 className="cl-section__title">How this <span className="cl-hi">works?</span></h2>
+          <span className="cl-joinpill">How it works</span>
+          <h2 className="cl-section__title">Start earning in <span className="cl-hi">3 simple steps</span></h2>
         </motion.div>
 
-        <div className="cl-steps2">
-          {STEPS.map(({ n, title, sub, mock }, i) => (
-            <motion.div
-              key={n}
-              className="cl-step2"
-              variants={fadeUp} initial="hidden" animate="visible" custom={i % 3}
-            >
-              <span className="cl-step2__num">{n}</span>
-              <h3 className="cl-step2__title">{title}</h3>
-              <p className="cl-step2__sub">{sub}</p>
-              {mock}
-            </motion.div>
-          ))}
+        <div className="cl-hiw">
+          {/* Step 01 -- Pick a job */}
+          <motion.div
+            className="cl-hiw__card cl-hiw__card--accent"
+            variants={fadeUp} initial="hidden" animate="visible" custom={0}
+          >
+            <span className="cl-hiw__num">01</span>
+            <h3 className="cl-hiw__title">Pick a job</h3>
+            <p className="cl-hiw__text">
+              Choose brands and products that really <em className="cl-hiw__hi">align</em> with
+              your personality and preferences.
+            </p>
+            <div className="cl-hiw__visual">
+              <div className="cl-hiw__tile">
+                <div className="cl-hiw__tilehead">Choose brand</div>
+                <div className="cl-hiw__product">&#127911;</div>
+                <div className="cl-hiw__brands">
+                  <span>Bowers &amp; Wilkins</span>
+                  <span>LELO</span>
+                  <span>MaryRuth&apos;s</span>
+                </div>
+              </div>
+              <span className="cl-hiw__sticker cl-hiw__sticker--gift">&#127873;</span>
+            </div>
+          </motion.div>
+
+          {/* Step 02 -- Create content */}
+          <motion.div
+            className="cl-hiw__card cl-hiw__card--accent"
+            variants={fadeUp} initial="hidden" animate="visible" custom={1}
+          >
+            <span className="cl-hiw__num">02</span>
+            <h3 className="cl-hiw__title">Create content</h3>
+            <p className="cl-hiw__text">
+              Show off your <em className="cl-hiw__hi cl-hiw__hi--alt">creativity</em> while creating
+              content. Feeling ambitious? Add extra photos or videos for higher potential earnings.
+            </p>
+            <div className="cl-hiw__visual">
+              <div className="cl-hiw__thumb">
+                <span className="cl-hiw__play"><Play size={20} fill="#fff" /></span>
+                <span className="cl-hiw__sticker cl-hiw__sticker--spark">&#10024;</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Step 03 -- Get paid (wide) */}
+          <motion.div
+            className="cl-hiw__card cl-hiw__card--wide"
+            variants={fadeUp} initial="hidden" animate="visible" custom={2}
+          >
+            <div className="cl-hiw__wideleft">
+              <span className="cl-hiw__num cl-hiw__num--static">03</span>
+              <h3 className="cl-hiw__title">Get paid</h3>
+              <p className="cl-hiw__text">
+                By adhering to strict timelines and minimizing revisions, you can efficiently{' '}
+                <em className="cl-hiw__hi cl-hiw__hi--alt2">scale your growth</em> as a creator.
+              </p>
+              <button className="cl-btn-primary cl-hiw__cta" onClick={handleJoin}>
+                Get started &mdash; it&apos;s free
+              </button>
+            </div>
+            <div className="cl-hiw__visual cl-hiw__visual--paid">
+              <div className="cl-hiw__paid">
+                <div className="cl-hiw__check">&#10003;</div>
+                <div className="cl-hiw__paidh">WooHoo! Job Completed</div>
+                <div className="cl-hiw__paidrow cl-hiw__paidrow--prod">
+                  <span className="cl-hiw__paidemoji">&#127911;</span>
+                  <span>Noise Canceling Headphones</span>
+                </div>
+                <div className="cl-hiw__paidrow"><span>Product value</span><b>$299.99</b></div>
+                <div className="cl-hiw__paidrow"><span>Earn on content</span><b>$100.00</b></div>
+                <div className="cl-hiw__bags">&#128176;&#128176;&#128176;</div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ── FAQ ────────────────────────────────────────────────────────── */}
-      <section id="faq" className="cl-section cl-section--narrow">
+      {/* -- Hear from Our Creators --------------------------------------- */}
+      <section className="cl-section">
         <motion.div
           className="cl-section__head"
           variants={fadeUp} initial="hidden" animate="visible"
         >
-          <h2 className="cl-section__title">Frequently Asked Questions</h2>
+          <h2 className="cl-section__title">Hear from Our <span className="cl-hi">Creators</span></h2>
+          <p className="cl-section__sub">
+            Discover how UGCad has transformed the journey of our creators, helping them
+            achieve success and grow their influence.
+          </p>
+        </motion.div>
+
+        <div className="cl-testimarq">
+          <div className="cl-testimarq__track">
+            {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
+              <TestimonialCard key={i} {...t} hidden={i >= TESTIMONIALS.length} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* -- FAQ ---------------------------------------------------------- */}
+      <section id="faq" className="cl-section">
+        <motion.div
+          className="cl-faq__head"
+          variants={fadeUp} initial="hidden" animate="visible"
+        >
+          <h2 className="cl-faq__title">Frequently <em>Asked</em> Questions</h2>
+          <p className="cl-faq__intro">
+            Here are the answers to the most frequently asked questions we encounter with
+            regards to our services. For further assistance, feel free to reach out directly to
+            our team.
+          </p>
         </motion.div>
 
         <div className="cl-faq">
@@ -480,16 +617,22 @@ export default function CreatorLanding() {
               <div key={q} className={`cl-faq__item${open ? ' cl-faq__item--open' : ''}`}>
                 <button className="cl-faq__q" onClick={() => setOpenFaq(open ? -1 : i)}>
                   <span>{q}</span>
-                  {open ? <Minus size={18} /> : <Plus size={18} />}
+                  <ChevronDown size={18} className="cl-faq__chev" />
                 </button>
                 {open && <p className="cl-faq__a">{a}</p>}
               </div>
             );
           })}
         </div>
+
+        <div className="cl-faq__cta">
+          <button className="cl-btn-primary" onClick={handleJoin}>
+            Get started &mdash; it&apos;s free <ArrowRight size={16} />
+          </button>
+        </div>
       </section>
 
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
+      {/* -- Footer ------------------------------------------------------- */}
       <footer className="cl-footer">
         <div className="cl-footer__inner">
           <div className="cl-footer__brandcol">
@@ -504,7 +647,7 @@ export default function CreatorLanding() {
             <button className="cl-btn-primary cl-footer__cta" onClick={handleJoin}>
               Sign up Now <ArrowRight size={16} />
             </button>
-            <p className="cl-footer__copy">UGCad © {new Date().getFullYear()}. All rights reserved.</p>
+            <p className="cl-footer__copy">UGCad &copy; {new Date().getFullYear()}. All rights reserved.</p>
           </div>
 
           <div className="cl-footer__cols">
@@ -524,13 +667,13 @@ export default function CreatorLanding() {
         </div>
       </footer>
 
-      {/* ── Styles ─────────────────────────────────────────────────────── */}
+      {/* -- Styles ------------------------------------------------------- */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
         .cl-root {
-          /* ── LIGHT theme (default) ── */
-          --cl-purple: #6d4af0;          /* accent — deepened so it reads on light */
+          /* -- LIGHT theme (default) -- */
+          --cl-purple: #6d4af0;          /* accent -- deepened so it reads on light */
           --cl-purple-deep: #5b37e0;
           --cl-fg: 28, 27, 75;           /* foreground RGB (navy) for text/borders/surfaces */
           --cl-bg: #ecebf8;              /* page background (light lavender) */
@@ -547,7 +690,7 @@ export default function CreatorLanding() {
           overflow-x: hidden;
           transition: background 0.3s ease, color 0.3s ease;
         }
-        /* ── DARK theme ── */
+        /* -- DARK theme -- */
         .cl-root[data-theme="dark"] {
           --cl-purple: #A78BFA;
           --cl-purple-deep: #9170f0;
@@ -566,8 +709,8 @@ export default function CreatorLanding() {
           -webkit-background-clip: text; background-clip: text;
           -webkit-text-fill-color: transparent; color: transparent !important; }
         /* Text that always sits on a purple fill stays white in both themes. */
-        .cl-btn-primary, .cl-btn-signup, .cl-joinpill, .cl-step2__num,
-        .cl-mock__btn, .cl-mock__dot--on, .cl-vid__play { color: #fff !important; }
+        .cl-btn-primary, .cl-btn-signup, .cl-joinpill,
+        .cl-hiw__hi, .cl-vid__play { color: #fff !important; }
 
         /* Background blobs */
         .cl-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
@@ -649,34 +792,85 @@ export default function CreatorLanding() {
 
         /* Hero */
         .cl-hero { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto;
-          min-height: 100vh; display: flex; flex-direction: column; padding: 120px 6% 36px; }
-        .cl-hero__main { flex: 1; display: flex; flex-direction: column; justify-content: center;
-          align-items: center; text-align: center; }
-        .cl-hero__title { font-size: clamp(2.4rem, 6vw, 4.4rem); font-weight: 700; line-height: 1.06;
-          letter-spacing: -0.02em; margin: 0 0 22px; }
-        .cl-hero__sub { font-size: clamp(1.05rem, 2vw, 1.25rem); line-height: 1.6;
-          color: rgba(var(--cl-fg),0.68) !important; max-width: 600px; margin: 0 auto 34px; }
-        .cl-hero__ctas { display: flex; justify-content: center; }
-        .cl-hero__login { margin: 18px 0 0; font-size: 0.98rem; color: rgba(var(--cl-fg),0.6) !important; }
+          height: 100vh; min-height: 620px; display: flex; flex-direction: column; justify-content: flex-start;
+          gap: clamp(10px, 2vh, 22px); padding: clamp(120px, 16vh, 180px) 6% 0; }
+        .cl-hero__main { display: flex; flex-direction: column; justify-content: center;
+          align-items: center; text-align: center; flex-shrink: 0; }
+        .cl-hero__title { font-size: clamp(2rem, 4.8vw, 3.4rem); font-weight: 700; line-height: 1.06;
+          letter-spacing: -0.02em; margin: 0 0 clamp(8px, 1.3vh, 16px); }
+        .cl-hero__sub { font-size: clamp(0.98rem, 1.6vw, 1.16rem); line-height: 1.55;
+          color: rgba(var(--cl-fg),0.68) !important; max-width: 560px; margin: 0 auto clamp(36px, 6vh, 64px); }
+        .cl-hero__ctas { display: flex; justify-content: center; margin-bottom: clamp(20px, 4vh, 48px); }
+        .cl-hero__login { margin: clamp(7px, 1.2vh, 14px) 0 0; font-size: 0.93rem; color: rgba(var(--cl-fg),0.6) !important; }
         .cl-hero__login-link { background: none; border: none; padding: 0; cursor: pointer; font-size: inherit;
           font-weight: 600; color: var(--cl-purple) !important; }
         .cl-hero__login-link:hover { color: #c4b3ff !important; }
-        .cl-btn-primary { display: inline-flex; align-items: center; gap: 9px; padding: 14px 28px; border-radius: 12px;
+        .cl-btn-primary { display: inline-flex; align-items: center; gap: 9px; padding: 14px 28px; border-radius: 20px;
           border: none; background: linear-gradient(120deg, #A78BFA, #8f6ff0); font-size: 1rem; font-weight: 600;
-          cursor: pointer; box-shadow: 0 12px 34px rgba(167,139,250,0.35); transition: all 0.2s; }
-        .cl-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 42px rgba(167,139,250,0.5); }
-        .cl-btn-primary--lg { padding: 16px 40px; font-size: 1.08rem; }
+          cursor: pointer; box-shadow: none; transition: all 0.2s; }
+        .cl-btn-primary:hover { transform: translateY(-2px); box-shadow: none; }
+        .cl-btn-primary--lg { padding: 16px 40px; font-size: 1.08rem; border-radius: 999px; }
 
-        /* Brand strip — sits at the bottom of the full-height hero */
-        .cl-brands { position: relative; z-index: 1; margin-top: auto; padding: 20px 0 4px; }
-        .cl-brands__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 44px; }
-        .cl-brands__logo { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.02em;
-          color: rgba(var(--cl-fg),0.5) !important; font-family: Georgia, 'Times New Roman', serif; }
-        .cl-brands__trust { font-size: 0.92rem; line-height: 1.3; text-align: center;
-          color: rgba(var(--cl-fg),0.65) !important; }
-        .cl-brands__trust strong { color: var(--cl-purple) !important; }
+        /* Below-the-fold band -- categories + brand logos under the hero */
+        .cl-belowfold { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto;
+          display: flex; flex-direction: column; gap: 30px; padding: 48px 6% 24px; }
 
-        /* Why join — horizontal feature cards */
+        /* Brand strip -- full grid of brand names */
+        .cl-brands { position: relative; z-index: 1; padding: 4px 0;
+          width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+        .cl-brands__row { display: flex; flex-direction: column; align-items: center; gap: 48px;
+          max-width: 1500px; margin: 0 auto; padding: 110px 3% 40px; }
+        .cl-brands__line { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-evenly; gap: 20px; width: 100%; }
+        .cl-brands__line--bottom { justify-content: center; gap: 52px; }
+        .cl-brands__logo { display: inline-flex; align-items: center; gap: 11px;
+          line-height: 1; white-space: nowrap; opacity: 0.92;
+          color: rgba(var(--cl-fg),0.82) !important;
+          transition: color 0.2s, opacity 0.2s, transform 0.25s ease; }
+        .cl-brands__icon { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
+        .cl-brands__name { font-size: 1.2rem; font-weight: 600; color: inherit !important; }
+        .cl-brands__logo:hover { color: rgba(var(--cl-fg),0.98) !important; opacity: 1; transform: translateY(-3px); }
+
+        /* Hero -- highlighted word pill */
+        .cl-hero__pill { display: inline-block; padding: 0.05em 0.4em; border-radius: 16px;
+          background: linear-gradient(120deg, var(--cl-purple), var(--cl-purple-deep));
+          color: #fff !important; transform: rotate(-1.5deg); box-shadow: 0 10px 28px rgba(167,139,250,0.4); }
+        .cl-btn-primary em { font-style: italic; font-weight: 500; opacity: 0.92; }
+
+        /* Hero -- auto-scrolling creator gallery (full-bleed to viewport edges) */
+        .cl-gallery { position: relative; z-index: 1; overflow: hidden; align-self: stretch;
+          flex: 0 0 auto; height: clamp(260px, 44vh, 440px); padding-bottom: clamp(16px, 3vh, 34px);
+          width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+        .cl-gallery__track { display: flex; align-items: stretch; gap: 14px; height: 100%; width: max-content;
+          animation: clMarquee 38s linear infinite; will-change: transform; }
+        .cl-gallery:hover .cl-gallery__track { animation-play-state: paused; }
+        .cl-gallery__card { position: relative; flex-shrink: 0; height: 100%; width: auto;
+          aspect-ratio: 10 / 16; border-radius: 18px; overflow: hidden; display: flex; align-items: flex-end;
+          justify-content: center; padding: 16px; box-shadow: 0 14px 36px rgba(7,7,78,0.32); }
+        .cl-gallery__media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .cl-gallery__name { position: relative; font-size: 0.74rem; font-weight: 600; color: #fff !important;
+          text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+        @keyframes clMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @media (prefers-reduced-motion: reduce) { .cl-gallery__track { animation: none; } }
+
+        /* Hero -- category pills (single-line marquee scrolling right, full-bleed) */
+        .cl-cats { position: relative; z-index: 1; overflow: hidden; align-self: stretch;
+          width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+        .cl-cats__track { display: flex; flex-wrap: nowrap; gap: 8px; width: max-content;
+          animation: clMarqueeRight 34s linear infinite; will-change: transform; }
+        .cl-cats:hover .cl-cats__track { animation-play-state: paused; }
+        .cl-cat { flex-shrink: 0; white-space: nowrap; padding: 6px 14px; border-radius: 999px;
+          font-size: 0.82rem; font-weight: 500; color: rgba(var(--cl-fg),0.72) !important;
+          border: 1px solid rgba(var(--cl-fg),0.16); background: rgba(var(--cl-fg),0.04); transition: all 0.2s; }
+        .cl-cat:hover { border-color: rgba(167,139,250,0.45); color: var(--cl-purple) !important;
+          background: rgba(167,139,250,0.08); }
+        @keyframes clMarqueeRight { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+        @media (prefers-reduced-motion: reduce) { .cl-cats__track { animation: none; } }
+
+        /* Why join -- horizontal feature cards */
         .cl-why { display: flex; flex-direction: column; gap: 22px; }
         .cl-whycard { display: flex; align-items: center; gap: 36px; padding: 30px 38px; border-radius: 22px;
           border: 1px solid rgba(var(--cl-fg),0.08); background: rgba(var(--cl-fg),0.025); transition: all 0.25s; }
@@ -693,82 +887,148 @@ export default function CreatorLanding() {
 
         /* Community videos */
         .cl-community { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
-        .cl-vid { display: flex; flex-direction: column; gap: 12px; }
-        .cl-vid__thumb { position: relative; aspect-ratio: 9 / 16; border-radius: 16px; overflow: hidden;
-          display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 36px rgba(7,7,78,0.4); }
-        .cl-vid__play { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center;
-          justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px);
-          border: 1px solid rgba(var(--cl-fg),0.35); }
-        .cl-vid__meta { display: flex; align-items: center; gap: 9px; }
-        .cl-vid__avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; }
-        .cl-vid__name { font-size: 0.95rem; font-weight: 500; }
 
-        /* How this works — step cards */
-        .cl-steps2 { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; }
-        .cl-step2 { position: relative; flex: 0 1 330px; padding: 24px; border-radius: 20px;
-          border: 1px solid rgba(var(--cl-fg),0.08); background: rgba(var(--cl-fg),0.025); text-align: center; }
-        .cl-step2__num { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center;
-          justify-content: center; font-weight: 700; font-size: 0.9rem; background: var(--cl-purple);
-          box-shadow: 0 6px 16px rgba(167,139,250,0.4); }
-        .cl-step2__title { font-size: 1.2rem; font-weight: 700; margin: 12px 0 6px; }
-        .cl-step2__sub { font-size: 0.95rem; line-height: 1.5; color: rgba(var(--cl-fg),0.6) !important; margin: 0 0 20px; }
+        /* Testimonials -- slow auto-scrolling marquee of TikTok phone-screen cards */
+        .cl-testimarq { position: relative; width: 100vw; left: 50%; margin-left: -50vw; overflow: hidden;
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+        .cl-testimarq__track { display: flex; width: max-content; gap: 26px; padding: 8px 13px;
+          animation: clMarquee 80s linear infinite; will-change: transform; }
+        .cl-testimarq:hover .cl-testimarq__track { animation-play-state: paused; }
+        .cl-tcard { position: relative; flex-shrink: 0; height: clamp(480px, 64vh, 660px); width: auto;
+          aspect-ratio: 9 / 19.5; border-radius: 26px; overflow: hidden;
+          padding: 0; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; display: block;
+          box-shadow: 0 18px 44px rgba(7,7,78,0.45); color: #fff; }
+        .cl-tcard__media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* Top + bottom scrims so the white chrome stays legible over any frame */
+        .cl-tcard::before, .cl-tcard::after { content: ''; position: absolute; left: 0; right: 0; z-index: 1;
+          pointer-events: none; }
+        .cl-tcard::before { top: 0; height: 30%; background: linear-gradient(180deg, rgba(0,0,0,0.45), transparent); }
+        .cl-tcard::after { bottom: 0; height: 38%; background: linear-gradient(0deg, rgba(0,0,0,0.5), transparent); }
 
-        /* Step mockups */
-        .cl-mock { text-align: left; border-radius: 14px; border: 1px solid rgba(var(--cl-fg),0.1);
-          background: var(--cl-panel); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 190px; }
-        .cl-mock__steps { display: flex; align-items: center; justify-content: space-between; gap: 6px;
-          padding-bottom: 10px; border-bottom: 1px solid rgba(var(--cl-fg),0.08); }
-        .cl-mock__step { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; }
-        .cl-mock__dot { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center;
-          justify-content: center; font-size: 0.72rem; font-weight: 700; background: rgba(var(--cl-fg),0.1);
-          color: rgba(var(--cl-fg),0.6) !important; }
-        .cl-mock__dot--on { background: var(--cl-purple); color: #fff !important; }
-        .cl-mock__steptxt { font-size: 0.62rem; color: rgba(var(--cl-fg),0.55) !important; text-align: center; }
-        .cl-mock__panel { border-radius: 10px; border: 1px solid rgba(var(--cl-fg),0.08);
-          background: rgba(var(--cl-fg),0.03); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-        .cl-mock__panel--center { align-items: center; text-align: center; }
-        .cl-mock__label { font-size: 0.7rem; font-weight: 600; color: rgba(var(--cl-fg),0.55) !important; }
-        .cl-mock__h { font-size: 0.92rem; font-weight: 600; }
-        .cl-mock__h2 { font-size: 0.85rem; font-weight: 600; }
-        .cl-mock__muted { font-size: 0.72rem; color: rgba(var(--cl-fg),0.5) !important; }
-        .cl-mock__muted--sm { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; }
-        .cl-mock__field { width: 100%; height: 26px; border-radius: 7px; background: rgba(var(--cl-fg),0.06);
-          border: 1px solid rgba(var(--cl-fg),0.08); }
-        .cl-mock__bar { width: 100%; height: 6px; border-radius: 999px; background: rgba(var(--cl-fg),0.1); overflow: hidden; }
-        .cl-mock__bar span { display: block; height: 100%; border-radius: 999px;
-          background: linear-gradient(90deg, #A78BFA, #7c3aed); }
-        .cl-mock__rowend { text-align: right; }
-        .cl-mock__pct { font-size: 0.72rem; font-weight: 700; color: var(--cl-purple) !important; }
-        .cl-mock__pct--ok { color: #4ade80 !important; }
-        .cl-mock__kv { display: flex; align-items: center; justify-content: space-between; font-size: 0.74rem;
+        .cl-tcard__status { position: absolute; top: 11px; left: 14px; right: 14px; z-index: 2;
+          display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; font-weight: 700; }
+        .cl-tcard__statusicons { display: flex; align-items: center; gap: 4px; }
+        .cl-tcard__tabs { position: absolute; top: 34px; left: 0; right: 0; z-index: 2;
+          display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 0.8rem; font-weight: 600;
+          color: rgba(255,255,255,0.6); }
+        .cl-tcard__tab--active { color: #fff; position: relative; }
+        .cl-tcard__tab--active::after { content: ''; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
+          width: 18px; height: 2px; border-radius: 2px; background: #fff; }
+
+        .cl-tcard__play { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 2;
+          width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          background: rgba(255,255,255,0.92); box-shadow: 0 4px 14px rgba(0,0,0,0.25); padding-left: 3px;
+          transition: transform 0.2s, opacity 0.2s; }
+        .cl-tcard:hover .cl-tcard__play { transform: translate(-50%,-50%) scale(1.06); }
+
+        .cl-tcard__rail { position: absolute; right: 9px; bottom: 16px; z-index: 2; display: flex;
+          flex-direction: column; align-items: center; gap: 16px; }
+        .cl-tcard__avatar { position: relative; width: 34px; height: 34px; border-radius: 50%;
+          border: 1.5px solid #fff; margin-bottom: 4px; }
+        .cl-tcard__follow { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
+          width: 17px; height: 17px; border-radius: 50%; background: #fe2c55; color: #fff;
+          display: flex; align-items: center; justify-content: center; }
+        .cl-tcard__action { display: flex; flex-direction: column; align-items: center; gap: 3px;
+          font-size: 0.68rem; font-weight: 700; color: #fff !important;
+          filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4)); }
+        .cl-tcard__handle { position: absolute; left: 14px; bottom: 18px; z-index: 2; font-size: 0.78rem;
+          font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+
+        /* How it works -- bento steps */
+        .cl-hiw { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 1000px; margin: 0 auto; }
+        .cl-hiw__card { position: relative; overflow: hidden; border-radius: 24px; padding: 32px 32px 0;
+          min-height: 360px; display: flex; flex-direction: column;
+          border: 1px solid rgba(var(--cl-fg),0.1); background: rgba(var(--cl-fg),0.03); }
+        .cl-hiw__card--accent { border-color: rgba(109,74,240,0.28);
+          background: linear-gradient(155deg, rgba(109,74,240,0.16), rgba(109,74,240,0.03)); }
+        .cl-root[data-theme="dark"] .cl-hiw__card--accent { border-color: rgba(167,139,250,0.3);
+          background: linear-gradient(155deg, rgba(167,139,250,0.16), rgba(167,139,250,0.03)); }
+        .cl-hiw__card--wide { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 32px;
+          padding: 36px 40px; min-height: auto; }
+
+        .cl-hiw__num { position: absolute; top: 26px; right: 28px; font-size: 0.82rem; font-weight: 800;
+          letter-spacing: 0.08em; color: var(--cl-purple) !important; opacity: 0.9; }
+        .cl-hiw__num--static { position: static; display: inline-block; margin-bottom: 6px; }
+        .cl-hiw__title { font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 700; margin: 0 0 10px; }
+        .cl-hiw__text { font-size: 0.98rem; line-height: 1.6; color: rgba(var(--cl-fg),0.62) !important;
+          margin: 0; max-width: 380px; }
+        .cl-hiw__hi { font-style: normal; font-weight: 600; padding: 1px 8px; border-radius: 7px;
+          background: var(--cl-purple); color: #fff !important; white-space: nowrap; }
+        .cl-hiw__hi--alt { background: #2f6df0; }
+        .cl-hiw__hi--alt2 { background: #ff2d78; }
+
+        /* visuals */
+        .cl-hiw__visual { position: relative; flex: 1; margin-top: 22px; min-height: 150px;
+          display: flex; align-items: flex-end; justify-content: center; }
+
+        .cl-hiw__tile { position: relative; z-index: 1; width: 86%; border-radius: 16px 16px 0 0;
+          padding: 16px 16px 22px; border: 1px solid rgba(var(--cl-fg),0.1); border-bottom: none;
+          background: var(--cl-panel); box-shadow: 0 -10px 40px rgba(7,7,78,0.18);
+          display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .cl-hiw__tilehead { align-self: flex-start; font-size: 0.82rem; font-weight: 700; }
+        .cl-hiw__product { font-size: 3.4rem; line-height: 1; }
+        .cl-hiw__brands { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+        .cl-hiw__brands span { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.04em;
+          padding: 4px 9px; border-radius: 6px; background: rgba(var(--cl-fg),0.06);
           color: rgba(var(--cl-fg),0.7) !important; }
-        .cl-mock__btn { align-self: flex-start; padding: 7px 14px; border-radius: 8px; font-size: 0.74rem;
-          font-weight: 600; background: var(--cl-purple); }
-        .cl-mock__pill { align-self: flex-start; padding: 4px 11px; border-radius: 999px; font-size: 0.62rem;
-          font-weight: 700; letter-spacing: 0.04em; background: rgba(167,139,250,0.18); color: #d6c8ff !important; }
-        .cl-mock__chip { align-self: flex-start; padding: 5px 12px; border-radius: 999px; font-size: 0.7rem;
-          font-weight: 600; background: rgba(var(--cl-fg),0.08); color: rgba(var(--cl-fg),0.75) !important; }
-        .cl-mock__chip--accent { background: rgba(167,139,250,0.18); color: #d6c8ff !important; }
-        .cl-mock__card { border-radius: 10px; border: 1px solid rgba(var(--cl-fg),0.08);
-          background: rgba(var(--cl-fg),0.03); padding: 12px; display: flex; flex-direction: column; gap: 7px; }
-        .cl-mock__cardtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .cl-mock__line { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 600; }
-        .cl-mock__approved { padding: 3px 9px; border-radius: 6px; font-size: 0.62rem; font-weight: 700;
-          background: rgba(74,222,128,0.18); color: #4ade80 !important; }
-        .cl-mock__thumb { width: 100%; height: 64px; border-radius: 8px; display: flex; align-items: center;
-          justify-content: center; background: linear-gradient(135deg, #2d1b69, #4c1d95); }
+
+        .cl-hiw__thumb { position: relative; z-index: 1; width: 86%; aspect-ratio: 16 / 10;
+          border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, #2d1b69, #4c1d95); box-shadow: 0 -10px 40px rgba(7,7,78,0.2); }
+        .cl-hiw__play { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center;
+          justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px);
+          border: 1px solid rgba(255,255,255,0.35); }
+
+        .cl-hiw__sticker { position: absolute; z-index: 3; font-size: 1.8rem; line-height: 1;
+          filter: drop-shadow(0 6px 12px rgba(0,0,0,0.25)); }
+        .cl-hiw__sticker--gift { left: 5%; bottom: 28px; }
+        .cl-hiw__sticker--spark { right: 8%; top: 8px; font-size: 1.5rem; }
+
+        /* wide / get paid */
+        .cl-hiw__wideleft { flex: 1; }
+        .cl-hiw__cta { margin-top: 20px; }
+        .cl-hiw__visual--paid { flex: 1.05; margin-top: 0; align-items: center; min-height: auto; }
+        .cl-hiw__paid { position: relative; z-index: 1; width: 100%; max-width: 340px; border-radius: 18px;
+          padding: 20px; border: 1px solid rgba(var(--cl-fg),0.1); background: var(--cl-panel);
+          box-shadow: 0 18px 50px rgba(7,7,78,0.22); display: flex; flex-direction: column; gap: 9px; }
+        .cl-hiw__check { width: 34px; height: 34px; border-radius: 50%; align-self: center;
+          display: flex; align-items: center; justify-content: center; font-weight: 800;
+          color: #22c55e !important; border: 2px solid #22c55e; }
+        .cl-hiw__paidh { text-align: center; font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+        .cl-hiw__paidrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          font-size: 0.8rem; color: rgba(var(--cl-fg),0.62) !important; }
+        .cl-hiw__paidrow b { color: var(--cl-text) !important; font-weight: 700; }
+        .cl-hiw__paidrow--prod { font-weight: 600; }
+        .cl-hiw__paidemoji { font-size: 1.4rem; }
+        .cl-hiw__bags { text-align: center; font-size: 1.6rem; letter-spacing: 2px; margin-top: 2px; }
+
+        @media (max-width: 720px) {
+          .cl-hiw { grid-template-columns: 1fr; }
+          .cl-hiw__card { min-height: auto; padding-bottom: 0; }
+          .cl-hiw__card--wide { flex-direction: column; align-items: stretch; padding: 30px 26px; }
+          .cl-hiw__visual--paid { margin-top: 26px; }
+        }
 
         /* FAQ */
-        .cl-faq { display: flex; flex-direction: column; gap: 12px; }
+        .cl-faq__head { max-width: 640px; margin: 0 0 44px; text-align: left; }
+        .cl-faq__title { font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 700; line-height: 1.08;
+          letter-spacing: -0.02em; margin: 0 0 22px; }
+        .cl-faq__title em { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500; }
+        .cl-faq__intro { font-size: 1.05rem; line-height: 1.6; margin: 0; max-width: 540px;
+          color: rgba(var(--cl-fg),0.62) !important; }
+        .cl-faq { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; align-items: start; }
         .cl-faq__item { border-radius: 14px; border: 1px solid rgba(var(--cl-fg),0.1);
-          background: rgba(var(--cl-fg),0.025); overflow: hidden; transition: all 0.2s; }
-        .cl-faq__item--open { border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.05); }
+          background: rgba(var(--cl-fg),0.03); overflow: hidden; transition: border-color 0.2s, background 0.2s; }
+        .cl-faq__item--open { border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.06); }
         .cl-faq__q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding: 20px 24px; background: transparent; border: none; cursor: pointer; font-size: 1.02rem;
-          font-weight: 600; text-align: left; }
-        .cl-faq__q svg { color: var(--cl-purple); flex-shrink: 0; }
-        .cl-faq__a { padding: 0 24px 22px; margin: 0; font-size: 0.97rem; line-height: 1.65;
-          color: rgba(var(--cl-fg),0.66) !important; }
+          padding: 26px 28px; background: transparent; border: none; cursor: pointer; font-size: 1.08rem;
+          font-weight: 600; text-align: left; color: inherit; }
+        .cl-faq__chev { color: rgba(var(--cl-fg),0.55); flex-shrink: 0; transition: transform 0.25s; }
+        .cl-faq__item--open .cl-faq__chev { transform: rotate(180deg); color: var(--cl-purple); }
+        .cl-faq__a { padding: 0 28px 26px; margin: 0; font-size: 0.97rem; line-height: 1.65;
+          color: rgba(var(--cl-fg),0.62) !important; }
+        .cl-faq__cta { display: flex; justify-content: center; margin-top: 44px; }
 
         /* Footer */
         .cl-footer { position: relative; z-index: 1; border-top: 1px solid rgba(var(--cl-fg),0.08); padding: 56px 6% 48px; }
@@ -792,6 +1052,7 @@ export default function CreatorLanding() {
         /* Responsive */
         @media (max-width: 1080px) {
           .cl-community { grid-template-columns: repeat(3, 1fr); }
+          .cl-brands__line { flex-wrap: wrap; justify-content: center; gap: 28px 36px; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); gap: 28px 40px; }
           .cl-footer__inner { grid-template-columns: 1fr; gap: 36px; }
         }
@@ -804,6 +1065,9 @@ export default function CreatorLanding() {
           .cl-whycard__icon { width: 110px; height: 110px; }
           .cl-whycard__emoji { font-size: 2.6rem; }
           .cl-community { grid-template-columns: repeat(2, 1fr); }
+          .cl-tcard { height: clamp(420px, 70vh, 560px); }
+          .cl-brands__line { gap: 24px 28px; }
+          .cl-faq { grid-template-columns: 1fr; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); }
         }
       `}</style>

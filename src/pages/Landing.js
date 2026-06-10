@@ -60,21 +60,71 @@ const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 // StrictMode's double-mount and left most cards black). The ticket only counts up, wraps,
 // and maps to a small delay, so loads simply fan out over ~0.8s and never stall.
 let _vidTicket = 0;
+
+// ── Global play budget: only MAX_PLAYING showcase clips DECODE at once ──────────
+// The marquee duplicates 6 clips into dozens of <video> tags; letting every on-screen
+// one play means a dozen-plus simultaneous 720p decodes — the real cause of the jank in
+// this section. We cap concurrent playback: a card that wants to play takes a slot if one
+// is free, otherwise it queues and meanwhile sits on its first frame (still looks like
+// content). Slots free as cards scroll off, so the wall keeps refreshing without ever
+// decoding more than MAX_PLAYING videos at a time.
+const MAX_PLAYING = 8;
+const START_PER_FRAME = 2;     // begin at most N decoders per frame (avoids the burst)
+const _playing = new Set();    // holds a slot (granted) — may not have called play() yet
+const _waiting = [];           // wants to play but no slot free
+const _toStart = [];           // has a slot, queued to actually play() (staggered)
+let _rafScheduled = false;
+function _pump() {
+  _rafScheduled = false;
+  let budget = START_PER_FRAME;
+  while (budget-- > 0 && _toStart.length) {
+    const v = _toStart.shift();
+    if (_playing.has(v) && v.isConnected) v.play?.().catch(() => {});
+  }
+  if (_toStart.length) _schedule();
+}
+function _schedule() {
+  if (!_rafScheduled) { _rafScheduled = true; requestAnimationFrame(_pump); }
+}
+function _grant(v) { _playing.add(v); _toStart.push(v); _schedule(); }
+function requestPlay(v) {
+  if (_playing.has(v) || _waiting.includes(v)) return;
+  if (_playing.size < MAX_PLAYING) _grant(v);
+  else _waiting.push(v);
+}
+function releasePlay(v) {
+  if (_playing.delete(v)) {
+    v.pause?.();
+    const si = _toStart.indexOf(v);          // cancel a pending (not-yet-started) play
+    if (si !== -1) _toStart.splice(si, 1);
+    // hand the freed slot to the next queued (still-mounted) card
+    let next = _waiting.shift();
+    while (next && !next.isConnected) next = _waiting.shift();
+    if (next) _grant(next);
+  } else {
+    const wi = _waiting.indexOf(v);
+    if (wi !== -1) _waiting.splice(wi, 1);
+    const si = _toStart.indexOf(v);
+    if (si !== -1) _toStart.splice(si, 1);
+  }
+}
+
 // Showcase video: on first nearing the viewport it schedules its load (staggered), attaches
 // the src, then KEEPS it (latched) so scrolling back in just resumes instead of reloading.
-// Visible clips play; off-screen ones pause (cheap) but stay loaded. (720p → light.)
+// Playback is gated by the global budget above (no `autoPlay` — we call play() ourselves),
+// and only cards ACTUALLY on screen claim a slot. (720p → light.)
 function LazyVideo({ src, className }) {
   const ref = useRef(null);
   const [loaded, setLoaded] = useState(false);
-  const [inView, setInView] = useState(false);
+  const [onScreen, setOnScreen] = useState(false);
   const requestedRef = useRef(false);
+  // LOAD — schedule (staggered) the first time the card nears the viewport, then latch.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     let timer;
     const io = new IntersectionObserver(
       ([entry]) => {
-        setInView(entry.isIntersecting);
         if (entry.isIntersecting && !requestedRef.current) {
           requestedRef.current = true;
           const delay = Math.min((_vidTicket++ % 14) * 55, 760); // fan out over ~0.8s
@@ -86,13 +136,25 @@ function LazyVideo({ src, className }) {
     io.observe(el);
     return () => { io.disconnect(); clearTimeout(timer); };
   }, []);
-  // Play only while visible; pause (don't unload) when out of view.
+  // PLAY visibility — strict (no margin) so only cards genuinely on screen claim a slot.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setOnScreen(entry.isIntersecting),
+      { rootMargin: '0px', threshold: 0.1 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  // Claim / release a slot from the global play budget.
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    if (inView && loaded) v.play?.().catch(() => {});
-    else v.pause?.();
-  }, [inView, loaded]);
+    if (onScreen && loaded) requestPlay(v);
+    else releasePlay(v);
+    return () => releasePlay(v);
+  }, [onScreen, loaded]);
   return (
     <video
       ref={ref}
@@ -100,7 +162,6 @@ function LazyVideo({ src, className }) {
       muted
       loop
       playsInline
-      autoPlay
       preload="auto"
       webkit-playsinline="true"
       disablePictureInPicture
@@ -158,65 +219,115 @@ function useIsPhone() {
   return phone;
 }
 
-// One leaderboard row, animated measured.site-style. The whole list shares one
-// scroll value; each row's `offset` = its index minus the (fractional) focused
-// index, and every visual property is a pure function of that offset:
-//   fontSize 60→10px · opacity 1→0.03 · translateY = offset×160 · 2D rotate
-//   (entry below = +cw clamped 24°, exit above = −ccw clamped −24°) · white→grey
-//   colour · weight 500/400/300 · hidden past ±3.
+// Full visual state for a row at focus-offset `o` — a pure function used both for the
+// first paint (inline style) and inside the imperative scroll updater below.
+//   fontSize 60→10px (via scale) · opacity 1→0.03 · translateY = offset×160 · 2D rotate
+//   (entry below = +cw clamped 24°, exit above = −ccw clamped −24°) · white→grey colour
+//   (quantized) · weight 500/400/300 · hidden past ±3.
+function rowVisualAt(v, index, total, peak, step, floor) {
+  const o = index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE);
+  const a = o < 0 ? -o : o;
+  if (a > 3) return { display: 'none' };
+  const ty = o * 160;
+  const rot = o > 0 ? Math.min(o * 8, 24) : Math.max(o * 8, -24);
+  const sc = Math.max(floor, peak - a * step) / peak;
+  // Quantize the grey to discrete steps so text re-rasters only when it crosses a step.
+  const colorKey = a < 0.12 ? 1000 : Math.round(Math.max(70, 235 - a * 60) / 24);
+  const lum = colorKey * 24;
+  return {
+    display: 'flex',
+    transform: `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg) scale(${sc})`,
+    opacity: a < 2.55 ? 1 - a * 0.38 : 0.03,
+    color: colorKey === 1000 ? '#ffffff' : `rgb(${lum},${lum},${lum})`,
+    fontWeight: a < 0.22 ? 500 : a < 1.3 ? 400 : 300,
+    pointerEvents: a < 0.5 ? 'auto' : 'none',
+  };
+}
+
+// One leaderboard row, animated measured.site-style. The whole list shares one scroll
+// value. Rather than 6 separate MotionValues per row (≈66 reactive chains for the list,
+// each writing a style every scroll frame), we drive every property IMPERATIVELY from a
+// SINGLE subscription and only touch the expensive ones — colour, font-weight, display,
+// pointer-events — when their DISCRETE value actually changes. Most frames therefore
+// write just transform + opacity (both GPU-composited), which is what removes the
+// mid-scroll leaderboard jank.
 function LeaderboardRow({ progress, index, count }) {
   const phone = useIsPhone();
+  const ref = useRef(null);
   const total = count - 1 + LB_PRE;                 // full focus travel
-  // Spread the whole list across [0 → LOGO3D_SCROLL_END] of the section's scroll so
-  // every row passes focus before the board fades out (~0.8).
-  const off = useTransform(progress, (v) => index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE));
-
-  // Phone: smaller focus size + gentler falloff so rows fit a narrow screen.
-  // The base font-size is fixed in CSS (= peak); size is driven by a transform: scale()
-  // instead of animating font-size, which would force a layout reflow on every scroll
-  // frame for every row (the main cause of the leaderboard scroll jank). scale() is a
-  // GPU-composited transform — no reflow.
+  // Phone: smaller focus size + gentler falloff so rows fit a narrow screen. The base
+  // font-size is fixed in CSS (= peak); size is driven by scale() (GPU-composited, no
+  // reflow) instead of animating font-size.
   const peak = phone ? 24 : 60;
   const step = phone ? 6 : 14;
   const floor = phone ? 8 : 10;
-  const opacity = useTransform(off, (o) => Math.max(0.03, 1 - Math.abs(o) * 0.38));
-  const fontWeight = useTransform(off, (o) => (Math.abs(o) < 0.22 ? 500 : Math.abs(o) < 1.3 ? 400 : 300));
-  const display = useTransform(off, (o) => (Math.abs(o) > 3 ? 'none' : 'flex'));
-  const pointerEvents = useTransform(off, (o) => (Math.abs(o) < 0.5 ? 'auto' : 'none'));
-  // White at the focus, fading to grey as it moves away (dark-stage variant of the
-  // measured.site black→light-grey ramp).
-  const color = useTransform(off, (o) => {
-    const a = Math.abs(o);
-    if (a < 0.12) return '#ffffff';
-    // Quantize the grey to discrete steps so each row's text RE-RASTERS only when it
-    // crosses a step (a handful of times as it travels) instead of on every scroll
-    // frame. A per-frame colour change repaints the text on every visible row every
-    // frame — the real cost behind the leaderboard jank (transform/opacity are already
-    // GPU-composited and free; colour is not).
-    const raw = Math.max(70, 235 - a * 60);
-    const lum = Math.round(raw / 24) * 24;
-    return `rgb(${lum},${lum},${lum})`;
-  });
-  // translate(-50%,-50%) centres the row; +offset×160 spaces it; 2D rotate tilts it;
-  // scale() does the size falloff (replaces the old per-frame font-size animation).
-  const transform = useTransform(off, (o) => {
-    const ty = o * 160;
-    const rot = o > 0 ? Math.min(o * 8, 24) : Math.max(o * 8, -24);
-    const s = Math.max(floor, peak - Math.abs(o) * step) / peak;
-    return `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg) scale(${s})`;
-  });
+
+  // First paint matches the current scroll position so rows never flash at centre.
+  const initial = rowVisualAt(progress ? progress.get() : 0, index, total, peak, step, floor);
+
+  useEffect(() => {
+    if (!progress) return;
+    const el = ref.current;
+    if (!el) return;
+    // Seed trackers to -1 so the first apply() writes every property once, then skips.
+    let lastColor = -1;
+    let lastWeight = -1;
+    let lastShown = -1;
+    let lastPe = -1;
+
+    const apply = (v) => {
+      const o = index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE);
+      const a = o < 0 ? -o : o;
+
+      // show/hide past ±3 — toggled only on change (avoids per-frame reflow)
+      const shown = a > 3 ? 0 : 1;
+      if (shown !== lastShown) {
+        lastShown = shown;
+        el.style.display = shown ? 'flex' : 'none';
+      }
+      if (!shown) return;                            // fully hidden — skip all paint work
+
+      // transform + opacity — cheap, GPU-composited, every frame
+      const ty = o * 160;
+      const rot = o > 0 ? (o * 8 > 24 ? 24 : o * 8) : (o * 8 < -24 ? -24 : o * 8);
+      const sc = Math.max(floor, peak - a * step) / peak;
+      el.style.transform = `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg) scale(${sc})`;
+      el.style.opacity = a < 2.55 ? 1 - a * 0.38 : 0.03;
+
+      // pointer-events — only near focus, toggled on change
+      const pe = a < 0.5 ? 1 : 0;
+      if (pe !== lastPe) { lastPe = pe; el.style.pointerEvents = pe ? 'auto' : 'none'; }
+
+      // colour — quantized; re-rasters only when it steps
+      const colorKey = a < 0.12 ? 1000 : Math.round(Math.max(70, 235 - a * 60) / 24);
+      if (colorKey !== lastColor) {
+        lastColor = colorKey;
+        if (colorKey === 1000) el.style.color = '#ffffff';
+        else { const lum = colorKey * 24; el.style.color = `rgb(${lum},${lum},${lum})`; }
+      }
+
+      // weight — 3 discrete states; changes a handful of times per pass
+      const weight = a < 0.22 ? 500 : a < 1.3 ? 400 : 300;
+      if (weight !== lastWeight) { lastWeight = weight; el.style.fontWeight = weight; }
+    };
+
+    apply(progress.get());
+    return progress.on('change', apply);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress, index, total, peak, step, floor]);
 
   return (
-    <motion.a
+    <a
+      ref={ref}
       className="lp-logo3d__boardItem"
       href="#"
       onClick={(e) => e.preventDefault()}
-      style={{ opacity, color, fontWeight, display, pointerEvents, transform }}
+      style={initial}
     >
       <span className="lp-logo3d__rank">{ordinal(index + 1)}</span>
       <span className="lp-logo3d__creator">{TOP_CREATORS[index].name}</span>
       <span className="lp-logo3d__metric">{TOP_CREATORS[index].metric}</span>
-    </motion.a>
+    </a>
   );
 }
 
@@ -747,12 +858,14 @@ export default function Landing() {
   // Rows finish by LOGO3D_SCROLL_END (0.62); the 11th sits at the 50% focus, then fades over
   // 0.62→0.72 — melting away as the logo crosses (which starts from that same moment).
   const logoBoardOpacity = useTransform(logo3dProgress, [0.62, 0.72], [1, 0]);
-  // Brand strip is "stuck" to the leaderboard's last row: as the rows finish and the
-  // last text rises + fades out (logo3dProgress 0.6 → 0.85), the brand strip is dragged
-  // UP from below in lockstep — it rises with the text instead of waiting below. The
-  // spring smooths it so it glides rather than snapping to raw scroll.
-  const brandRiseRaw = useTransform(logo3dProgress, [0.58, 0.85], [380, 0], { ease: easeInOut });
-  const brandRiseY = useSpring(brandRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
+  // Brand strip is "stuck" to the leaderboard's last row: it rises UP from below over the
+  // EXACT same window the last text rises out of focus and fades (logo3dProgress 0.62→0.72,
+  // matching logoBoardOpacity) — so the brand glides up WITH the text and lands right as the
+  // text vanishes, instead of starting early / crawling up alone after the text is gone.
+  // Spring stiffened a touch so it tracks this shorter, faster window tightly (sprung arrival
+  // lands ~with the fade end); still over-damped (ζ≈1.2) so there's no bounce gap below.
+  const brandRiseRaw = useTransform(logo3dProgress, [0.62, 0.72], [380, 0], { ease: easeInOut });
+  const brandRiseY = useSpring(brandRiseRaw, { stiffness: 120, damping: 22, mass: 0.6 });
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
   const logoX = '-36vw';
@@ -810,18 +923,23 @@ export default function Landing() {
     mass: 0.18,
     restDelta: 0.0004,
   });
-  // Starts already large (image-1 size), pops to full FAST so it doesn't eat scroll.
-  // GROWS during the HERO phase (0→0.2) while it does its 360° spin + colour journey,
-  // then holds that size through the cross + leaderboard. (Matches HERO_END in HeroLogo3D.)
-  // Grows from small in the hero up to its MAX (0.8) right as it lands in the leaderboard
-  // (journeyP 0.3), then holds — so the landscape leaderboard size is the largest it gets.
-  // Grows during the hero spin and STOPS at its max (1.1) by the end of the hero phase
-  // (journeyP 0.2, where the colour finishes), then holds — doesn't grow any bigger.
-  // easeInOut on every segment so the grow (top) and the shrink (dissolve) ramp velocity
-  // in/out smoothly instead of the hard, linear, "instant" size jumps at each keyframe.
-  // Decrease size DURING the cross + landscape→vertical un-tilt (0.86→0.96), eased — so the
-  // shrink is part of that motion, reaching small as it goes upright, not an instant pop.
-  const flyScale = useTransform(journeyP, [0, 0.55, 0.86, 0.96], [0.85, 1.0, 1.0, 0.5], { ease: easeInOut });
+  // SHRINK gradually from 1.1 down to 0.9 by the time the leaderboard spin starts (0.67),
+  // then HOLD 0.9 CONSTANT through the whole leaderboard spin window (0.67→0.86) so the
+  // spinning logo sits at a steady size (~215 × 235px on a ~1086px-wide viewport — 0.9 of
+  // the 22vw × 33vh box), then shrink into the dissolve. The decrease is spread over 0→0.67
+  // (not the fast 0→0.3 spin) so each frame's size delta is tiny = smooth, not a janky jump;
+  // holding 0.9 across the spin keeps the leaderboard rotation perfectly steady. Start 1.1
+  // stays under the ~1.2 clip threshold (the mark is fit with ~20% canvas padding via
+  // <Bounds margin={1.2}>).
+  const flyScale = useTransform(journeyP, [0, 0.67, 0.86, 0.96], [1.1, 0.9, 0.9, 0.5], { ease: easeInOut });
+  // Leaderboard is "stuck" to the hero buttons: as they scroll up and off when the hero
+  // un-pins (journeyP ~0.35) through to when this section pins (~0.67), the board rises UP
+  // from below in lockstep to take their place — the same brandRiseY trick, but at the TOP
+  // seam so there's no dead gap between the buttons leaving and the rows arriving. It starts
+  // pushed DOWN (+220px) while the buttons are still pinned, then eases to its resting spot
+  // (0) right as the section pins, after which it holds.
+  const boardRiseRaw = useTransform(journeyP, [0.35, 0.67], [220, 0], { ease: easeInOut });
+  const boardRiseY = useSpring(boardRiseRaw, { stiffness: 120, damping: 22, mass: 0.6 });
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
@@ -836,28 +954,17 @@ export default function Landing() {
   // melts away there.
   // Cross starts the moment the 11th (last) row hits the 50% focus (~0.86): glide left→centre
   // over 0.86→0.96 while the row melts away, then dissolve.
-  // Centre horizontally FIRST (by 0.92) — above the brand card — so the final move is a
-  // straight DROP, not a diagonal swoop from the side.
+  // Centre horizontally (by 0.92) so the mark dissolves onto the brand strip's centre logo.
   const flyX = useTransform(journeyP, [0.3, 0.67, 0.86, 0.92], ['30vw', logoX, logoX, '2.4vw']);
-  // Hold the height until centred, THEN descend straight down to TOUCH the brand strip's
-  // centre card logo (0.92→1.0) — landing on the elevated middle card, not the icon line.
+  // Drift down toward the brand strip's centre logo (0.92→1.0) — but the fade below now
+  // completes by ~0.95, so the mark dissolves around the CENTRE-logo level and is gone long
+  // before it would reach the showcase heading (that low, lingering drop was the bleed).
   const flyY = useTransform(journeyP, [0.3, 0.67, 0.92, 1.0], ['2vh', logoY, logoY, '36vh']);
-  // Fade the logo out exactly WITH the leaderboard rows (board fades 0.9→0.97), so it
-  // exits cleanly with the text — no lingering dim logo over the empty section after.
-  // Logo fades out TOGETHER with the leaderboard text (same range as logoBoardOpacity).
-  // Fade driven by journeyP (the SAME reliable, symmetric scroll value that drives the
-  // logo's position) rather than logo3dProgress — whose sticky/overlap measurement let
-  // the logo linger into the brand strip and got "stuck" on scroll up. Full until the
-  // last row (~journeyP 0.87), then fully gone by ~0.94, before the brand strip shows.
-  // Stays full through ALL the rows (last one finishes ~journeyP 0.9), then fades only
-  // at the very end (0.92→0.97) — just before the brand strip appears.
-  // Fade out together WITH the leaderboard text (the rows fade ~0.93→0.97), so as the logo
-  // drifts to centre it melts away exactly as the text vanishes — no bright logo on the rows.
-  // Fade once it reaches the centre (0.96→1.0) — travels visible, then dissolves in the
-  // middle, right after the text clears (no late trailing gap).
-  // Fade right as it LANDS on the centre card logo (0.95→1.0) — visible until it touches,
-  // then dissolves onto the middle card.
-  const flyOpacity = useTransform(journeyP, [0.95, 1.0], [1, 0]);
+  // Fade out as it reaches the CENTRE logo (0.89→0.95), driven by journeyP (symmetric on
+  // scroll up/down). It travels to centre and starts its downward drift, but is fully gone
+  // by ~0.95 — dissolving at the centre-logo level, before the drop would carry a still-
+  // visible logo down into the showcase heading (that lingering low drop was the bleed).
+  const flyOpacity = useTransform(journeyP, [0.89, 0.95], [1, 0]);
   // Tip + spin are driven by the SECTION's own scroll (logo3dProgress), NOT the
   // journey scroll — so the logo rotates continuously and IN SYNC with the leaderboard
   // rows. Lands ~logo3dProgress 0.43 as row 1 focuses, so the spin starts right there
@@ -1144,7 +1251,7 @@ export default function Landing() {
           )}
 
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
-          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity }}>
+          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity, y: boardRiseY }}>
             <div className="lp-logo3d__boardTrack">
               {TOP_CREATORS.map((c, i) => (
                 <LeaderboardRow
@@ -2886,6 +2993,9 @@ export default function Landing() {
              font-size never animates (no reflow per scroll frame). */
           font-size: 60px;
           will-change: transform, opacity;
+          /* Scope layout/paint recalcs to each row so one row re-rastering (colour /
+             weight step) can't invalidate the whole board. */
+          contain: layout paint;
         }
         /* colour is driven per-row (grey → white at the centre); spans inherit it */
         .lp-logo3d__rank { color: inherit; font-weight: 500; }
@@ -3545,9 +3655,9 @@ export default function Landing() {
           margin: 0 auto;
           max-width: 16ch;
           text-align: center;
-          font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-          font-weight: 400;
-          font-size: clamp(2.2rem, 6vw, 4.6rem);
+          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-weight: 700;
+          font-size: clamp(1.8rem, 4.6vw, 3.5rem);
           line-height: 1.05;
           letter-spacing: -0.02em;
           color: var(--lp-text);
@@ -3786,14 +3896,14 @@ export default function Landing() {
         .lp-vs__pill--them { color: rgba(var(--lp-fg), 0.55); }
 
         .lp-vs__heading {
-          font-family: 'Instrument Serif', Georgia, serif;
-          font-size: clamp(2.4rem, 5vw, 3.9rem);
-          font-weight: 400;
+          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-size: clamp(2rem, 4vw, 3.1rem);
+          font-weight: 700;
           letter-spacing: 0.015em;
           word-spacing: 0.18em;
           margin: 0 0 36px;
           text-align: center;
-          transform: translateX(48px);
+          transform: translateX(-20px);
           color: #ffffff;
         }
         /* VS in brand purple + italic. Selector is specific enough (0,2,1) to beat the

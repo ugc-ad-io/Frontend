@@ -55,13 +55,37 @@ function LogoModel({ progress }) {
   const colourKeyRef = useRef(-1);  // last applied colour step — skips redundant recolours
 
   // On-demand rendering: only render a frame when the scroll value actually changes (i.e.
-  // while scrolling), instead of burning a full-screen WebGL render every frame forever.
+  // while scrolling), instead of burning a WebGL render every frame forever.
   const invalidate = useThree((s) => s.invalidate);
   useEffect(() => {
     if (!progress) return;
-    const unsub = progress.on('change', invalidate);
+    // Throttle scroll-driven renders to ~40fps. The mark is small + decorative, so 40fps
+    // is visually fine, but capping it leaves the GPU + main thread more headroom for the
+    // leaderboard, which animates over the SAME scroll — the mid-scroll jank was the two
+    // competing at 60fps. A trailing rAF guarantees the final resting frame still lands.
+    const MIN_MS = 25; // ~40fps
+    let lastT = 0;
+    let trailing = 0;
+    const onChange = () => {
+      const now = performance.now();
+      if (now - lastT >= MIN_MS) {
+        lastT = now;
+        if (trailing) { cancelAnimationFrame(trailing); trailing = 0; }
+        invalidate();
+      } else if (!trailing) {
+        trailing = requestAnimationFrame(() => {
+          trailing = 0;
+          lastT = performance.now();
+          invalidate();
+        });
+      }
+    };
+    const unsub = progress.on('change', onChange);
     invalidate(); // first paint
-    return unsub;
+    return () => {
+      unsub();
+      if (trailing) cancelAnimationFrame(trailing);
+    };
   }, [progress, invalidate]);
 
   useFrame(() => {

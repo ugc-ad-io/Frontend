@@ -690,9 +690,14 @@ export default function CreatorLanding() {
 
       {/* -- Styles ------------------------------------------------------- */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600;700&display=swap');
 
         .cl-root {
+          /* Brand type: Readex Pro (Medium/Bold) for headings, Just Sans for body.
+             Just Sans is a licensed font — self-host it or load an Adobe Fonts kit and
+             it takes over automatically; until then it falls back to Instrument Sans. */
+          --cl-font-head: 'Readex Pro', 'Instrument Sans', system-ui, sans-serif;
+          --cl-font-body: 'Just Sans', 'Instrument Sans', 'Inter', system-ui, sans-serif;
           /* -- LIGHT theme (default) -- */
           --cl-purple: #6d4af0;          /* accent -- deepened so it reads on light */
           --cl-purple-deep: #5b37e0;
@@ -706,10 +711,16 @@ export default function CreatorLanding() {
           min-height: 100vh;
           background: var(--cl-bg);
           color: var(--cl-text);
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--cl-font-body);
           position: relative;
           overflow-x: hidden;
           transition: background 0.3s ease, color 0.3s ease;
+        }
+        /* Headings use the primary typeface (Readex Pro). */
+        .cl-root h1, .cl-root h2, .cl-root h3, .cl-root h4,
+        .cl-root .cl-hero__title, .cl-root .cl-section__title, .cl-root .cl-faq__title,
+        .cl-root .cl-whycard__title, .cl-root .cl-hiw__title {
+          font-family: var(--cl-font-head);
         }
         /* -- DARK theme -- */
         .cl-root[data-theme="dark"] {

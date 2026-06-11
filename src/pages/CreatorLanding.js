@@ -1155,6 +1155,29 @@ export default function CreatorLanding() {
           .cl-faq { grid-template-columns: 1fr; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); }
         }
+        /* Small phones — tighter padding, smaller type, single-column stacks. */
+        @media (max-width: 480px) {
+          .cl-nav { padding: 14px 5%; }
+          .cl-hero { padding: clamp(92px, 13vh, 130px) 5% 0; }
+          .cl-hero__title { font-size: clamp(1.7rem, 7.4vw, 2.4rem); line-height: 1.12; }
+          .cl-hero__sub { font-size: 1rem; }
+          .cl-section { padding: 46px 5%; }
+          .cl-belowfold { padding: 30px 5%; }
+          .cl-hiw__card { padding: 24px 20px 0; }
+          .cl-hiw__card--wide { padding: 24px 20px; }
+          .cl-hiw__title { font-size: 1.5rem; }
+          .cl-hiw__text { font-size: 0.95rem; }
+          .cl-hiw__chip { font-size: 0.7rem; padding: 6px 10px; }
+          .cl-hiw__chip--likes { left: 4%; top: 5%; }
+          .cl-hiw__chip--comments { right: 4%; top: 60%; }
+          .cl-community { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+          .cl-tcard { height: clamp(360px, 62vh, 480px); }
+          .cl-faq__title { font-size: clamp(1.7rem, 7.4vw, 2.4rem); }
+          .cl-faq__q { padding: 20px; font-size: 1rem; }
+          .cl-faq__a { padding: 0 20px 20px; }
+          .cl-footer { padding: 40px 5% 32px; }
+          .cl-footer__cols { grid-template-columns: 1fr; gap: 22px; }
+        }
       `}</style>
     </div>
   );

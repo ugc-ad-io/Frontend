@@ -646,6 +646,7 @@ function CountUp({ value }) {
 
 // Fanned, side-by-side cards. One card is "active" (raised, straightened, purple);
 // the rest fan out with a slight tilt. Auto-cycles, and hovering a card activates it.
+// Desktop: fanned, side-by-side cards with hover lift.
 function AchieveFan({ items }) {
   // No card is lifted/highlighted by default — only while actually hovered.
   const [active, setActive] = useState(-1);
@@ -674,6 +675,36 @@ function AchieveFan({ items }) {
             className={`lp-achieve-card${isActive ? ' is-active' : ''}`}
             style={{ transform, zIndex: isActive ? 30 : 10 - Math.round(Math.abs(offset)) }}
             onMouseEnter={() => setActive(i)}
+          >
+            <div className="lp-achieve-card__top">
+              {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
+              <span className="lp-achieve-card__num">0{i + 1}</span>
+            </div>
+            <div className="lp-achieve-card__body">
+              <h3 className="lp-achieve-card__title">{item.title}</h3>
+              <p className="lp-achieve-card__desc">{item.desc}</p>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+// Colour palette for the stacked deck — each card a distinct solid colour with a
+// Mobile: the SAME card design as the desktop fan (.lp-achieve-card), but laid out as a
+// sticky stacked deck — each card pins one-by-one as you scroll, the next sliding up over
+// it. Pure CSS via position:sticky + a staggered top offset per card (.lp-achieve-stackcard).
+function AchieveStack({ items }) {
+  return (
+    <div className="lp-achieve__stack">
+      {items.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <article
+            key={item.title}
+            className="lp-achieve-card lp-achieve-stackcard"
+            style={{ '--i': i, zIndex: i + 1 }}
           >
             <div className="lp-achieve-card__top">
               {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
@@ -822,6 +853,11 @@ export default function Landing() {
   const card2Y = useSpring(useTransform(auditProgress, [0.04, 0.33], [0, -800], { ease: easeInOut }), PEEL_SPRING);
   const card3Y = useSpring(useTransform(auditProgress, [0.36, 0.65], [35, -800], { ease: easeInOut }), PEEL_SPRING);
   const card1Y = useSpring(useTransform(auditProgress, [0.68, 0.99], [-35, -800], { ease: easeInOut }), PEEL_SPRING);
+  // Mobile assemble (scroll-driven, the reverse of the desktop peel): Q1 sits in place from
+  // the start, then Q2, then Q3 RISE IN from below one-by-one as you scroll the section.
+  const mAuditQ1Y = useSpring(useTransform(auditProgress, [0.0, 0.08], [40, 0], { ease: easeInOut }), PEEL_SPRING);
+  const mAuditQ2Y = useSpring(useTransform(auditProgress, [0.16, 0.46], [520, 0], { ease: easeInOut }), PEEL_SPRING);
+  const mAuditQ3Y = useSpring(useTransform(auditProgress, [0.5, 0.82], [520, 0], { ease: easeInOut }), PEEL_SPRING);
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -975,7 +1011,12 @@ export default function Landing() {
   // On small screens, skip the pinned scroll choreography and fall back to a
   // clean stacked static hero (inline motion styles are dropped). Reduced-motion
   // is intentionally NOT a trigger — the scroll sequence is core to this hero.
-  const [heroStatic, setHeroStatic] = useState(false);
+  // Lazy-init from matchMedia so the FIRST render already knows mobile vs desktop — otherwise
+  // mobile mounts the desktop branch, then flips after mount, and framer-motion's `initial`
+  // (which only runs on mount) never plays the audit cards' scroll-in animation.
+  const [heroStatic, setHeroStatic] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)');
     const update = () => setHeroStatic(mq.matches);
@@ -1187,7 +1228,7 @@ export default function Landing() {
               onClick={() => navigate('/creator')}
               data-testid="get-started-btn"
             >
-              Join as Creator <ArrowRight size={18} />
+              Join as Creator <span className="lp-btn-arrow"><ArrowRight size={15} /></span>
             </button>
             <button
               className="lp-btn-ghost"
@@ -1222,6 +1263,13 @@ export default function Landing() {
           {/* Brand strip moved out — it's now its own persistent section AFTER the
               leaderboard (see .lp-brandstrip below). */}
         </motion.div>
+
+        {/* scroll-cue dots (mobile) — hint that there's more below the hero */}
+        {heroStatic && (
+          <div className="lp-hero__scrollcue" aria-hidden="true">
+            <span /><span /><span />
+          </div>
+        )}
 
         {/* curved divider into the next section */}
         <svg
@@ -1669,17 +1717,20 @@ export default function Landing() {
                 { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
                 { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
               ];
-              const p = positions[i] || positions[0];
+              // Mobile: a tighter fan, assembled by SCROLL (reverse of the desktop peel).
+              // Q1 is present from the start at the BACK; each later card rises in and lands
+              // ON TOP (in front), so the newest card is always frontmost — Q3 ends centred.
+              const mobilePositions = [
+                { x:  46, rotate:  10, z: 1, y: mAuditQ1Y },  // Q1 — back-right, already there
+                { x: -46, rotate: -10, z: 2, y: mAuditQ2Y },  // Q2 — rises in 2nd, in front of Q1
+                { x:   0, rotate:  -2, z: 3, y: mAuditQ3Y },  // Q3 — rises in last, front & centre
+              ];
+              const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
               return (
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  style={{
-                    x: p.x,
-                    y: p.y,
-                    rotate: p.rotate,
-                    zIndex: p.z,
-                  }}
+                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -1711,12 +1762,13 @@ export default function Landing() {
       {/* ── Find & Hire Creators — fanned cards. Dragged UP by achieveRiseY in lockstep
           with Q3's peel, so it rises into view "stuck" to the last audit card. (No
           opacity gate — the rise alone gives the effect and can't hide the section.) ── */}
-      <motion.div style={{ y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }}>
+      <motion.div className="lp-achieve-rise" style={{ y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }}>
         <section className="lp-achieve">
           <h2 className="lp-achieve__title">
             <em className="lp-achieve__hl">Find</em> &amp; Hire Creators <em className="lp-achieve__hl">Instantly</em>
           </h2>
           <AchieveFan items={achieveItems} />
+          <AchieveStack items={achieveItems} />
         </section>
       </motion.div>
 
@@ -1732,7 +1784,7 @@ export default function Landing() {
       {/* ── US vs Others — two-column comparison table ─────────────────────── */}
       <section className="lp-vs">
         <div className="lp-vs__inner">
-          <h2 className="lp-vs__heading">US <span className="lp-vs__heading-vs">VS</span> OTHERS</h2>
+          <h2 className="lp-vs__heading">WHY CHOOSE <span className="lp-vs__heading-vs">US</span></h2>
           <div className="lp-vs__table">
             {/* header — labels col, then highlighted UGCad.io (middle), then "Others" (right) */}
             <div className="lp-vs__row lp-vs__row--head">
@@ -2201,6 +2253,9 @@ export default function Landing() {
           background: var(--lp-page-bg);
           color: var(--lp-text);
           position: relative;
+          overflow-x: clip; /* clip full-bleed (100vw) marquees so phones don't scroll sideways.
+                               'clip' (not 'hidden') so it doesn't become a scroll container and
+                               break position:sticky descendants (leaderboard + achieve stack). */
           transition: background 0.3s ease, color 0.3s ease;
         }
         .lp-root[data-theme="light"] {
@@ -2551,7 +2606,7 @@ export default function Landing() {
           padding: 6px 14px;
           border-radius: 100px;
           background: rgba(var(--lp-fg), 0.04);
-          border: 1px solid rgba(var(--lp-fg), 0.12);
+          border: 1px solid rgba(109, 74, 232, 0.35);   /* brand-purple tint instead of plain white */
           color: #C8F23A;
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.9rem;
@@ -2582,7 +2637,11 @@ export default function Landing() {
           white-space: nowrap;
         }
         .lp-hero__title-accent {
-          display: inline-block;
+          /* inline (not inline-block) + clone so a highlight that wraps to a second
+             line keeps the same purple padding/radius on every line. */
+          display: inline;
+          box-decoration-break: clone;
+          -webkit-box-decoration-break: clone;
           background: #A78BFA;
           color: var(--lp-text);
           padding: 0.04em 0.28em;
@@ -2617,7 +2676,8 @@ export default function Landing() {
         .lp-hero .lp-btn-primary {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          justify-content: center;
+          gap: 10px;
           padding: 16px 32px;
           border-radius: 100px;
           background: #A78BFA;
@@ -2627,11 +2687,27 @@ export default function Landing() {
           font-size: 1.05rem;
           border: none;
           cursor: pointer;
-          transition: transform 0.25s ease, filter 0.25s ease;
+          /* subtle inner top highlight + soft brand glow */
+          box-shadow: 0 10px 26px rgba(167, 139, 250, 0.45),
+                      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+          transition: transform 0.25s ease, filter 0.25s ease, box-shadow 0.25s ease;
         }
         .lp-hero .lp-btn-primary:hover {
           transform: translateY(-2px);
           filter: brightness(1.08);
+          box-shadow: 0 14px 32px rgba(167, 139, 250, 0.55),
+                      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+        }
+        /* arrow rendered as a small circular badge inside the primary button */
+        .lp-btn-arrow {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.28);
+          flex-shrink: 0;
         }
 
         .lp-hero .lp-btn-ghost {
@@ -2640,7 +2716,7 @@ export default function Landing() {
           gap: 6px;
           padding: 15px 28px;
           border-radius: 100px;
-          background: rgba(var(--lp-fg), 0.06);
+          background: rgba(var(--lp-fg), 0.09);   /* lifted off pure black — less flat */
           color: var(--lp-text);
           font-family: 'Instrument Sans', sans-serif;
           font-weight: 500;
@@ -3667,6 +3743,67 @@ export default function Landing() {
         .lp-achieve__title em { font-style: italic; }
         .lp-achieve__title .lp-achieve__hl { color: #A78BFA !important; }
 
+        /* ── Stacked-card scroll deck (mobile only) ────────────────────────────
+           Reuses the SAME .lp-achieve-card design as the desktop fan; only overrides
+           the fan's absolute layout into a sticky stack. Each card pins at a staggered
+           top (base + index*step), so they peek as a deck and reveal one-by-one. */
+        .lp-achieve__stack {
+          --stk-top: 96px;    /* where the first card pins (clears the fixed navbar) */
+          --stk-step: 22px;   /* extra offset per card → the visible "peek" of each */
+          max-width: 380px;
+          margin: 40px auto 0;
+          padding: 0 0 16vh;
+          display: none;      /* desktop keeps the fan; the deck is mobile-only */
+          flex-direction: column;
+          gap: 22px;
+        }
+        .lp-achieve__stack .lp-achieve-stackcard {
+          position: sticky;
+          top: calc(var(--stk-top) + var(--i) * var(--stk-step));
+          left: auto;
+          width: 100%;
+          height: auto;
+          min-height: 360px;
+          margin-left: 0;
+          transform: none;
+          /* Lighter surface + a clear top edge & shadow so each peeking card reads
+             distinctly when stacked, instead of blending into dark bars. */
+          background: #23232c;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.55);
+        }
+        .lp-root[data-theme="light"] .lp-achieve__stack .lp-achieve-stackcard {
+          background: #ffffff;
+          border-color: rgba(0, 0, 0, 0.1);
+          box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.14);
+        }
+        /* Mobile: hide the desktop fan, show the stacked deck.
+           !important on the fan: its own max-width:900px block (later in this stylesheet)
+           re-sets display:flex, which would otherwise win over this and show BOTH stacks. */
+        @media (max-width: 768px) {
+          .lp-achieve__fan { display: none !important; }
+          .lp-achieve__stack { display: flex; --stk-top: 204px; --stk-step: 52px; margin-top: 14px; }
+          /* Kill the desktop "stick to the last audit card" entrance (negative margin +
+             scroll-driven y) so the title no longer overlaps the previous section. */
+          .lp-achieve-rise { margin-top: 0 !important; transform: none !important; }
+          /* Keep the "Find & Hire Creators" heading visible while the deck animates:
+             pin it BELOW the navbar (top:84) so it never slips behind it; cards pin lower. */
+          .lp-achieve { padding-top: 96px; }
+          .lp-achieve__title {
+            position: sticky;
+            top: 84px;
+            z-index: 20;
+            max-width: 100%;
+            margin: 0;
+            padding: 14px 0 16px;
+            background: var(--lp-page-bg);
+          }
+        }
+        @media (max-width: 600px) {
+          .lp-achieve__stack { --stk-top: 196px; --stk-step: 46px; max-width: 100%; }
+          .lp-achieve__stack .lp-achieve-stackcard { min-height: 320px; }
+        }
+
         /* Fan container — cards are absolutely placed and fanned via inline transform. */
         .lp-achieve__fan {
           position: relative;
@@ -3759,7 +3896,9 @@ export default function Landing() {
           box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
         }
 
-        /* Mobile: drop the fan, stack the cards vertically (neutralise inline transforms). */
+        /* Mobile: drop the fan, stack the cards vertically (neutralise inline transforms).
+           Scoped to .lp-achieve__fan so it never touches the mobile sticky deck, which
+           reuses .lp-achieve-card but needs position:sticky. */
         @media (max-width: 900px) {
           .lp-achieve__title { font-size: clamp(2rem, 9vw, 3.2rem); }
           .lp-achieve__fan {
@@ -3770,7 +3909,7 @@ export default function Landing() {
             gap: 20px;
             margin-top: 40px;
           }
-          .lp-achieve-card {
+          .lp-achieve__fan .lp-achieve-card {
             position: relative !important;
             top: auto;
             left: auto;
@@ -3781,7 +3920,7 @@ export default function Landing() {
             max-width: 360px;
             height: auto;
           }
-          .lp-achieve-card__top { height: 120px; }
+          .lp-achieve__fan .lp-achieve-card__top { height: 120px; }
         }
 
         /* ── US vs Others — two-column comparison ─────────────────────────── */
@@ -4538,6 +4677,9 @@ export default function Landing() {
           justify-content: center;
           gap: 32px;
           padding: 110px 6%;
+          /* subtle radial purple glow behind the hero copy */
+          background: radial-gradient(circle at 50% 36%, rgba(167, 139, 250, 0.16),
+                      rgba(167, 139, 250, 0) 60%), var(--lp-page-bg);
         }
         .lp-hero--static .lp-hero__inner {
           min-height: 0;
@@ -4564,7 +4706,12 @@ export default function Landing() {
         }
 
         @media (max-width: 768px) {
-          .lp-hero__title { max-width: 100%; }
+          .lp-hero__title { max-width: 100%; font-size: clamp(2.4rem, 8vw, 3.6rem); }
+          .lp-hero__subtitle { font-size: clamp(1rem, 3.6vw, 1.4rem); }
+          .lp-brand-item__icon { width: 72px; height: 72px; }
+          .lp-brand-item__icon img { width: 36px; height: 36px; }
+          .lp-hero__brand-center { width: 104px; height: 104px; }
+          .lp-hero__brand-center img { width: 78px; height: 78px; }
           .lp-navbar__inner { padding: 10px 5%; gap: 16px; }
           .lp-navbar__links { display: none; }
           .lp-nav-join { display: none; }
@@ -4591,6 +4738,12 @@ export default function Landing() {
 
         @media (max-width: 480px) {
           .lp-hero__divider { height: 50px; }
+          .lp-hero__title { font-size: clamp(2rem, 9vw, 2.8rem); }
+          .lp-hero__subtitle { font-size: 1rem; line-height: 1.5; }
+          .lp-brand-item__icon { width: 58px; height: 58px; border-radius: 16px; }
+          .lp-brand-item__icon img { width: 30px; height: 30px; }
+          .lp-hero__brand-center { width: 82px; height: 82px; border-radius: 20px; }
+          .lp-hero__brand-center img { width: 60px; height: 60px; }
           /* Even smaller on phones, and nudged to the top so it clears the copy. */
           .lp-hero__logo {
             top: 26%;
@@ -4598,6 +4751,71 @@ export default function Landing() {
             height: clamp(92px, 32vw, 130px);
             margin-top: calc(clamp(92px, 32vw, 130px) * -0.5);
           }
+        }
+
+        /* scroll-cue dots at the bottom of the hero (mobile) */
+        .lp-hero__scrollcue {
+          position: absolute;
+          bottom: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: none;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          z-index: 4;
+          pointer-events: none;
+        }
+        .lp-hero__scrollcue span {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(var(--lp-fg), 0.5);
+          animation: lpScrollCue 1.4s ease-in-out infinite;
+        }
+        .lp-hero__scrollcue span:nth-child(2) { animation-delay: 0.18s; }
+        .lp-hero__scrollcue span:nth-child(3) { animation-delay: 0.36s; }
+        @keyframes lpScrollCue {
+          0%, 100% { opacity: 0.25; transform: translateY(0); }
+          50%      { opacity: 1;    transform: translateY(3px); }
+        }
+
+        /* ── Hero mobile polish — spacing, type & tap targets ──────────────── */
+        @media (max-width: 768px) {
+          .lp-hero__scrollcue { display: flex; }
+          /* 22px side padding (thumb-reach zone) */
+          .lp-hero--static .lp-hero__sticky { padding-left: 22px; padding-right: 22px; }
+          /* badge↔headline (and even rhythm between copy blocks) = 22px */
+          .lp-hero--static .lp-hero__inner { gap: 22px; }
+          /* subtext↔buttons = 22 + 10 = 32px */
+          .lp-hero--static .lp-hero__ctas { margin-top: 10px; }
+          /* headline: 38px, tighter tracking. Generous line-height so the purple
+             highlight blocks get clear vertical space between wrapped lines
+             (instead of touching / overlapping). */
+          .lp-hero__title {
+            font-size: 38px;
+            line-height: 1.5;
+            letter-spacing: -0.02em;
+          }
+          /* taller, easier-to-tap buttons (54px) */
+          .lp-hero .lp-btn-primary,
+          .lp-hero .lp-btn-ghost {
+            min-height: 54px;
+            padding-top: 0;
+            padding-bottom: 0;
+          }
+          /* stats: one clean wrapping row, centred (no awkward 2-row split) */
+          .lp-hero__badges {
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+          }
+          .lp-proof-badge { font-size: 0.72rem; padding: 7px 12px; }
+        }
+
+        /* very small phones — keep the 38px headline from overflowing */
+        @media (max-width: 360px) {
+          .lp-hero__title { font-size: 32px; }
         }
 
         /* ── Whole-page mobile polish ─────────────────────────────────────── */
@@ -6290,6 +6508,39 @@ export default function Landing() {
           font-weight: 500;
         }
 
+        /* Audit cards on TABLET (769–900px): simple vertical stack (the desktop 220vh
+           scroll-peel needs a tall pinned runway that's awkward at this width). */
+        @media (min-width: 769px) and (max-width: 900px) {
+          .lp-audit { min-height: auto; padding: 80px 6%; }
+          .lp-audit__inner { position: static; top: auto; }
+          .lp-audit__grid {
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+            min-height: auto; margin: 40px auto; max-width: 100%; perspective: none;
+          }
+          .lp-audit-card {
+            position: static !important; transform: none !important;
+            width: 100%; max-width: 420px; min-height: auto;
+          }
+        }
+        /* Audit cards on MOBILE (≤768px): keep the absolute FAN (centred via flex
+           static-position), sized for a phone, and give the section a SHORT sticky runway so
+           the cards assemble by SCROLL (Q1 present, then Q2, then Q3 rise in — heroStatic
+           branch in the JSX). No position:static / transform:none here (kills the fan). */
+        @media (max-width: 768px) {
+          .lp-audit { min-height: 190vh; padding: 0 6%; }
+          .lp-audit__inner { position: sticky; top: 60px; padding-top: 22px; }
+          .lp-audit__grid {
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: row; gap: 0;
+            min-height: clamp(360px, 54vh, 460px); margin: 14px auto 0; max-width: 100%;
+            perspective: 1000px;
+          }
+          .lp-audit-card {
+            width: 82%; max-width: 300px; min-height: 244px; padding: 26px 24px 22px;
+          }
+        }
+
         @media (max-width: 900px) {
           .lp-steps__grid { grid-template-columns: 1fr; }
           /* Leaderboard: widen the viewport so the (now smaller) rows fit without clipping,
@@ -6298,46 +6549,46 @@ export default function Landing() {
           .lp-logo3d__sticky { justify-content: center; padding-right: 0; }
           .lp-step-card__connector { display: none; }
           .lp-step-card { min-height: auto; }
-
-          /* ── Audit section: the desktop scroll-peel deck (280vh tall, sticky inner,
-             absolutely-stacked cards moved by scroll) collapses to a plain vertical
-             stack on mobile so it doesn't render as a huge empty area with the cards
-             pushed off-screen. !important overrides framer-motion's inline transforms. */
-          .lp-audit { min-height: auto; padding: 80px 6%; }
-          .lp-audit__inner { position: static; top: auto; }
-          .lp-audit__grid {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            min-height: auto;
-            margin: 40px auto;
-            max-width: 100%;
-            perspective: none;
-          }
-          .lp-audit-card {
-            position: static !important;
-            transform: none !important;
-            width: 100%;
-            max-width: 420px;
-            min-height: auto;
-          }
+          /* Audit section mobile/tablet handling is in dedicated blocks just above. */
           .lp-proof { padding: 80px 5%; }
           .lp-proof__top { flex-direction: column; align-items: flex-start; }
           .lp-proof__heading { text-align: left; }
           .lp-proof__row {
             grid-template-columns: 1fr;
-            gap: 28px;
-            border-top: 1px solid var(--lp-border);
-            padding-top: 28px;
+            gap: 0;
           }
           .lp-proof__row::before, .lp-proof__row::after { display: none; }
+          /* Editorial row: [index] · [value over label]. No side line, no arrow. */
           .lp-proof__row > .lp-proof-num {
             grid-column: 1 !important;
-            padding: 0 0 28px 0;
-            border-bottom: 1px solid var(--lp-border);
+            display: grid;
+            grid-template-columns: 30px 1fr;
+            grid-template-areas:
+              "idx value"
+              "idx label";
+            column-gap: 16px;
+            row-gap: 2px;
+            align-items: center;
+            text-align: left;
+            padding: 34px 0;
           }
-          .lp-proof__row > .lp-proof-num:last-child { border-bottom: none; padding-bottom: 0; }
+          /* Divider between rows: the SAME soft fade-to-transparent gradient line as the
+             header divider (replaces the desktop vertical line + the old arrow). */
+          .lp-proof__row > .lp-proof-num:not(:last-child)::after {
+            content: '' !important;
+            display: block !important;
+            position: absolute !important;
+            top: auto !important; bottom: 0 !important;
+            left: 0 !important; right: 0 !important;
+            width: auto !important; height: 1px !important;
+            background: linear-gradient(90deg, transparent, var(--lp-border), transparent) !important;
+          }
+          .lp-proof-num__index { grid-area: idx; align-self: center; }
+          .lp-proof-num__value {
+            grid-area: value; align-self: end;
+            font-size: clamp(2.2rem, 12vw, 3.4rem);
+          }
+          .lp-proof-num__label { grid-area: label; align-self: start; }
         }
       `}</style>
     </div>

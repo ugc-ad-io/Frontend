@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { ChevronDown, CheckCircle } from 'lucide-react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 // iso = flagcdn country code (flags are image-based so they render on Windows too).
 const DIAL_CODES = [
@@ -61,20 +65,33 @@ export default function BusinessProfileSetup() {
   };
   const err = (field) => (submitted ? errors[field] : '');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true);
     if (Object.values(errors).some(Boolean)) {
       toast.error('Please fill in the required fields');
       return;
     }
-    // DEMO: no backend — simulate a submit, then show the thank-you screen.
     setSubmitting(true);
-    setTimeout(() => {
+    // Persist the business profile to the backend, then show the thank-you screen.
+    const payload = {
+      business_name: form.businessName,
+      website: form.website,
+      social_links: { facebook: form.facebook, instagram: form.instagram, linkedin: '' },
+      industry_category: form.industry,
+      country: form.country,
+      phone: `${dial.code} ${form.phone}`.trim(),
+      gstin: form.gstin,
+    };
+    try {
+      await axios.put(`${API}/profile/business`, payload);
       setUser({ ...user, profile_completed: true, approval_status: 'pending' });
-      setSubmitting(false);
       setDone(true);
-    }, 1200);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Failed to submit profile');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (done) {

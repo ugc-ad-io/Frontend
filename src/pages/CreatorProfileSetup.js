@@ -1,10 +1,16 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { useAuth } from '../App';
 import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Instagram, Check, Trash2, Pencil,
   PersonStanding, Dumbbell, Circle, Palette, PenLine, Mic, Drama, Video, Clapperboard, Sparkles, Camera,
   Aperture, VolumeX, Lightbulb, Square, Image as ImageIcon, Users, UsersRound, PawPrint, Globe, Info,
   PartyPopper, Upload, Music2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 // ── Step config ────────────────────────────────────────────────────────────
 // Sign Up is the (already-done) step 1, so these display as steps 2..N+1.
@@ -226,6 +232,7 @@ function FluencyMenu({ value, onPick }) {
 
 export default function CreatorProfileSetup() {
   const navigate = useNavigate();
+  const { user, setUser } = useAuth();
   const fileRef = useRef(null);
   const linkRefs = useRef({}); // per-platform input refs, to focus on "+Add social link"
   const [step, setStep] = useState(1);
@@ -418,13 +425,20 @@ export default function CreatorProfileSetup() {
       setStep((s) => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Final step → submit. TODO: persist profile to backend here, then show success.
+      // Final step → persist the creator profile to the backend, then show success.
       setSubmitting(true);
-      setTimeout(() => {
-        setSubmitting(false);
-        setSubmitted(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 1600);
+      (async () => {
+        try {
+          await axios.put(`${API}/profile/creator`, data);
+          setUser({ ...user, profile_completed: true, approval_status: 'pending' });
+          setSubmitted(true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+          toast.error(error.response?.data?.detail || error.response?.data?.message || 'Failed to submit profile');
+        } finally {
+          setSubmitting(false);
+        }
+      })();
     }
   };
 

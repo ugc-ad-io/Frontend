@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
+import Loader from './components/Loader';
 import Landing from './pages/Landing';
 import CreatorLanding from './pages/CreatorLanding';
 import Auth from './pages/Auth';
@@ -113,7 +114,7 @@ function AuthProvider({ children }) {
   };
 
   if (loading) {
-    return <div className="loading-screen">Loading...</div>;
+    return <Loader />;
   }
 
   return (

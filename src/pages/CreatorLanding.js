@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../App';
 import {
   ArrowRight,
-  Sparkles,
   Play,
   LogIn,
   Menu,
@@ -17,6 +16,8 @@ import {
   Wifi,
   SignalHigh,
   BatteryFull,
+  Bell,
+  Check,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -57,49 +58,6 @@ const CATEGORIES = [
   'Instagram Reels', 'YouTube Shorts', 'B-Rolls', 'Product Launches',
   'TikTok Shop Affiliates', 'TikTok Creators', 'Instagram Influencers',
   'Amazon Influencers', 'YouTube Influencers', 'Social Media Managers',
-];
-
-const WHY = [
-  {
-    emoji: '\u{1F4BC}',
-    title: (
-      <>
-        Get <span className="cl-hi">discovered</span> by top tier brands
-      </>
-    ),
-    body:
-      'From fast-growing D2C startups to category-leading apps, on UGCad, brands actively search for creators like you.',
-  },
-  {
-    emoji: '\u{1F4B0}',
-    title: (
-      <>
-        <span className="cl-hi">Paid</span> Projects
-      </>
-    ),
-    body:
-      "Forget the back-and-forth. You'll receive clear briefs, deadlines, and guaranteed payouts for every project. You just focus on creating.",
-  },
-  {
-    emoji: '\u{1F44D}',
-    title: (
-      <>
-        Work that <span className="cl-hi">fits your style</span>
-      </>
-    ),
-    body:
-      'Whether you excel at unboxing, storytelling, or product demos, we match you with brands looking for exactly your kind of content.',
-  },
-  {
-    emoji: '\u{1F4C8}',
-    title: (
-      <>
-        Build your <span className="cl-hi">portfolio</span> as you earn
-      </>
-    ),
-    body:
-      'Every project adds to your creator profile, helping you land higher-paying gigs over time.',
-  },
 ];
 
 // Creator testimonial videos -- same local UGC clips used on the homepage (/public).
@@ -473,40 +431,6 @@ export default function CreatorLanding() {
         </motion.div>
       </section>
 
-      {/* -- Why Join UGCad ----------------------------------------- */}
-      <section id="why" className="cl-section">
-        <motion.div
-          className="cl-section__head"
-          variants={fadeUp} initial="hidden" animate="visible"
-        >
-          <span className="cl-joinpill">Join us</span>
-          <h2 className="cl-section__title">Why Join UGCad?</h2>
-          <p className="cl-section__sub">
-            Forget cold DMs, endless pitching, and waiting months for a reply. At UGCad, brands
-            come to you, ready with briefs, budgets, and timelines. You focus on creating, we handle the rest.
-          </p>
-        </motion.div>
-
-        <div className="cl-why">
-          {WHY.map(({ emoji, title, body }, i) => (
-            <motion.div
-              key={i}
-              className="cl-whycard"
-              variants={fadeUp} initial="hidden" animate="visible" custom={i % 2}
-            >
-              <div className="cl-whycard__icon">
-                <span className="cl-whycard__emoji">{emoji}</span>
-                <Sparkles className="cl-whycard__spark" size={18} />
-              </div>
-              <div className="cl-whycard__text">
-                <h3 className="cl-whycard__title">{title}</h3>
-                <p className="cl-whycard__body">{body}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
       {/* -- How it works ------------------------------------------------- */}
       <section id="how" className="cl-section">
         <motion.div
@@ -520,7 +444,7 @@ export default function CreatorLanding() {
         <div className="cl-hiw">
           {/* Step 01 -- Pick a job */}
           <motion.div
-            className="cl-hiw__card cl-hiw__card--accent"
+            className="cl-hiw__card cl-hiw__card--filled"
             variants={fadeUp} initial="hidden" animate="visible" custom={0}
           >
             <span className="cl-hiw__num">01</span>
@@ -529,23 +453,51 @@ export default function CreatorLanding() {
               Choose brands and products that really <em className="cl-hiw__hi">align</em> with
               your personality and preferences.
             </p>
-            <div className="cl-hiw__visual">
-              <div className="cl-hiw__tile">
-                <div className="cl-hiw__tilehead">Choose brand</div>
-                <div className="cl-hiw__product">&#127911;</div>
-                <div className="cl-hiw__brands">
-                  <span>Bowers &amp; Wilkins</span>
-                  <span>LELO</span>
-                  <span>MaryRuth&apos;s</span>
+            <div className="cl-hiw__visual cl-hiw__visual--phone">
+              <div className="cl-hiw__phone">
+                <div className="cl-hiw__phonebar">
+                  <span className="cl-hiw__time">9:41</span>
+                  <span className="cl-hiw__phoneicons">
+                    <MessageCircle size={17} />
+                    <Bell size={17} />
+                    <span className="cl-hiw__avatar">W</span>
+                  </span>
+                </div>
+                <div className="cl-hiw__phonepanel">
+                  <div className="cl-hiw__choosehead">Choose brand</div>
+                  <div className="cl-hiw__brandgrid">
+                    <span className="cl-hiw__brandcard cl-hiw__brandcard--on cl-bc cl-bc--boat">boAt<Check size={11} /></span>
+                    <span className="cl-hiw__brandcard cl-bc cl-bc--mivi">Mivi</span>
+                    <span className="cl-hiw__brandcard cl-bc cl-bc--noise">noise</span>
+                    <span className="cl-hiw__brandcard cl-bc cl-bc--ptron">pTron</span>
+                  </div>
                 </div>
               </div>
-              <span className="cl-hiw__sticker cl-hiw__sticker--gift">&#127873;</span>
+              {/* Card 2 â€” normal product card */}
+              <div
+                className="cl-hiw__prodfront"
+                onMouseEnter={(e) => { const v = e.currentTarget.querySelector('video'); if (v) v.play(); }}
+                onMouseLeave={(e) => { const v = e.currentTarget.querySelector('video'); if (v) { v.pause(); v.currentTime = 0; } }}
+              >
+                <div className="cl-hiw__prodfront-img">
+                  <video
+                    className="cl-hiw__prodfront-video"
+                    src="/head.mp4"
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+                <span className="cl-hiw__prodfront-cap">Brand Name</span>
+                <span className="cl-hiw__prodfront-brand">boAt</span>
+              </div>
             </div>
           </motion.div>
 
           {/* Step 02 -- Create content */}
           <motion.div
-            className="cl-hiw__card cl-hiw__card--accent"
+            className="cl-hiw__card cl-hiw__card--light"
             variants={fadeUp} initial="hidden" animate="visible" custom={1}
           >
             <span className="cl-hiw__num">02</span>
@@ -554,21 +506,24 @@ export default function CreatorLanding() {
               Show off your <em className="cl-hiw__hi cl-hiw__hi--alt">creativity</em> while creating
               content. Feeling ambitious? Add extra photos or videos for higher potential earnings.
             </p>
-            <div className="cl-hiw__visual">
-              <div className="cl-hiw__thumb">
-                <span className="cl-hiw__play"><Play size={20} fill="#fff" /></span>
-                <span className="cl-hiw__sticker cl-hiw__sticker--spark">&#10024;</span>
+            <div className="cl-hiw__visual cl-hiw__visual--create">
+              <div className="cl-hiw__chip cl-hiw__chip--likes">
+                <Heart size={13} fill="currentColor" /> 12.4K
               </div>
+              <div className="cl-hiw__chip cl-hiw__chip--comments">
+                <MessageCircle size={13} /> 578
+              </div>
+              <div className="cl-hiw__thumb" />
             </div>
           </motion.div>
 
           {/* Step 03 -- Get paid (wide) */}
           <motion.div
-            className="cl-hiw__card cl-hiw__card--wide"
+            className="cl-hiw__card cl-hiw__card--wide cl-hiw__card--light"
             variants={fadeUp} initial="hidden" animate="visible" custom={2}
           >
             <div className="cl-hiw__wideleft">
-              <span className="cl-hiw__num cl-hiw__num--static">03</span>
+              <span className="cl-hiw__num">03</span>
               <h3 className="cl-hiw__title">Get paid</h3>
               <p className="cl-hiw__text">
                 By adhering to strict timelines and minimizing revisions, you can efficiently{' '}
@@ -583,12 +538,12 @@ export default function CreatorLanding() {
                 <div className="cl-hiw__check">&#10003;</div>
                 <div className="cl-hiw__paidh">WooHoo! Job Completed</div>
                 <div className="cl-hiw__paidrow cl-hiw__paidrow--prod">
-                  <span className="cl-hiw__paidemoji">&#127911;</span>
-                  <span>Noise Canceling Headphones</span>
+                  <img className="cl-hiw__paidimg" src="/ear.webp" alt="Earbuds" />
+                  <span>Noise Canceling<br />Earbuds</span>
                 </div>
-                <div className="cl-hiw__paidrow"><span>Product value</span><b>$299.99</b></div>
-                <div className="cl-hiw__paidrow"><span>Earn on content</span><b>$100.00</b></div>
-                <div className="cl-hiw__bags">&#128176;&#128176;&#128176;</div>
+                <div className="cl-hiw__paidrow cl-hiw__paidrow--bold"><span>Product value</span><b>&#8377;2699</b></div>
+                <div className="cl-hiw__paidline" />
+                <div className="cl-hiw__paidrow"><span style={{ color: '#000000' }}>Earn on content</span><b>&#8377;1000</b></div>
               </div>
             </div>
           </motion.div>
@@ -694,7 +649,7 @@ export default function CreatorLanding() {
 
         .cl-root {
           /* Brand type: Readex Pro (Medium/Bold) for headings, Just Sans for body.
-             Just Sans is a licensed font — self-host it or load an Adobe Fonts kit and
+             Just Sans is a licensed font â€” self-host it or load an Adobe Fonts kit and
              it takes over automatically; until then it falls back to Instrument Sans. */
           --cl-font-head: 'Readex Pro', 'Instrument Sans', system-ui, sans-serif;
           --cl-font-body: 'Just Sans', 'Instrument Sans', 'Inter', system-ui, sans-serif;
@@ -719,7 +674,7 @@ export default function CreatorLanding() {
         /* Headings use the primary typeface (Readex Pro). */
         .cl-root h1, .cl-root h2, .cl-root h3, .cl-root h4,
         .cl-root .cl-hero__title, .cl-root .cl-section__title, .cl-root .cl-faq__title,
-        .cl-root .cl-whycard__title, .cl-root .cl-hiw__title {
+        .cl-root .cl-hiw__title {
           font-family: var(--cl-font-head);
         }
         /* -- DARK theme -- */
@@ -760,6 +715,11 @@ export default function CreatorLanding() {
         .cl-brand { display: inline-flex; align-items: center; gap: 9px; background: none;
           border: none; cursor: pointer; padding: 0; }
         .cl-brand__logo { height: 34px; width: auto; display: block; }
+        /* Light theme: recolour the navy logo to the brand purple (dark theme unchanged). */
+        .cl-root:not([data-theme="dark"]) .cl-brand__logo {
+          filter: brightness(0) saturate(100%) invert(29%) sepia(95%) saturate(2462%)
+            hue-rotate(249deg) brightness(97%) contrast(94%);
+        }
         .cl-brand__mark { width: 22px; height: 22px; border-radius: 6px;
           background: linear-gradient(135deg, #A78BFA, #7c3aed);
           box-shadow: 0 4px 14px rgba(167,139,250,0.5); }
@@ -775,7 +735,7 @@ export default function CreatorLanding() {
         .cl-navlink { display: inline-flex; align-items: center; gap: 4px; font-size: 0.94rem; font-weight: 500;
           color: rgba(var(--cl-fg),0.82) !important; text-decoration: none; background: none; border: none;
           cursor: pointer; transition: color 0.2s; }
-        .cl-navlink:hover { color: #fff !important; }
+        .cl-navlink:hover { color: var(--cl-purple) !important; }
         .cl-nav__actions { margin-left: auto; display: flex; gap: 14px; align-items: center; }
         .cl-navlink--accent { color: var(--cl-purple) !important; }
         .cl-navlink--accent em { font-style: italic; }
@@ -814,11 +774,13 @@ export default function CreatorLanding() {
 
         /* Layout helpers */
         .cl-section { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 80px 6%; }
+        /* "How it works" section runs wider so the two step cards are large like the reference. */
+        #how.cl-section { max-width: 1440px; }
         .cl-section--narrow { max-width: 920px; }
         .cl-section__head { text-align: center; max-width: 760px; margin: 0 auto 52px; }
-        .cl-joinpill { display: inline-block; padding: 7px 18px; border-radius: 999px; font-size: 0.84rem;
+        .cl-joinpill { display: inline-block; padding: 12px 30px; border-radius: 999px; font-size: 1.2rem;
           font-weight: 600; margin-bottom: 18px; background: var(--cl-purple);
-          box-shadow: 0 8px 22px rgba(167,139,250,0.4); }
+          box-shadow: none; }
         .cl-section__title { font-size: clamp(1.9rem, 4vw, 2.7rem); font-weight: 700; line-height: 1.12; margin: 0 0 16px; }
         .cl-section__sub { font-size: 1.05rem; line-height: 1.65; color: rgba(var(--cl-fg),0.62) !important; margin: 0; }
 
@@ -902,20 +864,6 @@ export default function CreatorLanding() {
         @keyframes clMarqueeRight { from { transform: translateX(-50%); } to { transform: translateX(0); } }
         @media (prefers-reduced-motion: reduce) { .cl-cats__track { animation: none; } }
 
-        /* Why join -- horizontal feature cards */
-        .cl-why { display: flex; flex-direction: column; gap: 22px; }
-        .cl-whycard { display: flex; align-items: center; gap: 36px; padding: 30px 38px; border-radius: 22px;
-          border: 1px solid rgba(var(--cl-fg),0.08); background: rgba(var(--cl-fg),0.025); transition: all 0.25s; }
-        .cl-whycard:hover { border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.06); transform: translateY(-3px); }
-        .cl-whycard__icon { position: relative; flex-shrink: 0; width: 150px; height: 150px; border-radius: 18px;
-          display: flex; align-items: center; justify-content: center; border: 1px solid rgba(167,139,250,0.3);
-          background: rgba(167,139,250,0.08); }
-        .cl-whycard__emoji { font-size: 3.4rem; line-height: 1; }
-        .cl-whycard__spark { position: absolute; top: 16px; right: 18px; color: var(--cl-purple) !important; }
-        .cl-whycard__text { flex: 1; text-align: center; }
-        .cl-whycard__title { font-size: clamp(1.4rem, 2.5vw, 1.9rem); font-weight: 700; margin: 0 0 12px; }
-        .cl-whycard__body { font-size: 1.02rem; line-height: 1.6; color: rgba(var(--cl-fg),0.62) !important;
-          margin: 0 auto; max-width: 560px; }
 
         /* Community videos */
         .cl-community { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
@@ -968,72 +916,180 @@ export default function CreatorLanding() {
           font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
 
         /* How it works -- bento steps */
-        .cl-hiw { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 1000px; margin: 0 auto; }
+        .cl-hiw { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; max-width: 1640px; margin: 0 auto; }
         .cl-hiw__card { position: relative; overflow: hidden; border-radius: 24px; padding: 32px 32px 0;
-          min-height: 360px; display: flex; flex-direction: column;
+          min-height: 500px; display: flex; flex-direction: column;
           border: 1px solid rgba(var(--cl-fg),0.1); background: rgba(var(--cl-fg),0.03); }
-        .cl-hiw__card--accent { border-color: rgba(109,74,240,0.28);
-          background: linear-gradient(155deg, rgba(109,74,240,0.16), rgba(109,74,240,0.03)); }
-        .cl-root[data-theme="dark"] .cl-hiw__card--accent { border-color: rgba(167,139,250,0.3);
-          background: linear-gradient(155deg, rgba(167,139,250,0.16), rgba(167,139,250,0.03)); }
+        /* Card 1 — solid brand-purple fill with white text. */
+        .cl-hiw__card--filled { background: #9b83f6; border-color: transparent; }
+        .cl-hiw__card--filled .cl-hiw__title { color: #fff !important; }
+        .cl-hiw__card--filled .cl-hiw__num { color: #fff !important; opacity: 0.85; }
+        .cl-hiw__card--filled .cl-hiw__text { color: rgba(255,255,255,0.85) !important; }
+        .cl-hiw__card--filled .cl-hiw__hi { background: #fff; color: var(--cl-purple) !important; }
+        /* Soften the heavy navy drop-shadows so they don't read as a dark patch on the purple fill. */
+        .cl-hiw__card--filled .cl-hiw__prodfront { box-shadow: 0 20px 40px rgba(60,35,120,0.30); }
+        .cl-hiw__card--filled .cl-hiw__phone { box-shadow: 0 -10px 34px rgba(60,35,120,0.16);
+          background: #ffffff; border-color: rgba(0,0,0,0.06); }
+        /* The card-1 phone is a light surface in EVERY theme, so keep its text/controls dark
+           (otherwise dark theme flips --cl-fg to white → invisible white-on-white text). */
+        .cl-hiw__card--filled .cl-hiw__phone,
+        .cl-hiw__card--filled .cl-hiw__choosehead,
+        .cl-hiw__card--filled .cl-hiw__time { color: #1c1b4b !important; }
+        .cl-hiw__card--filled .cl-hiw__phoneicons { color: rgba(28,27,75,0.6) !important; }
+        .cl-hiw__card--filled .cl-hiw__brandcard { color: rgba(28,27,75,0.82) !important;
+          background: rgba(28,27,75,0.05); border-color: #ffffff; }
+        .cl-hiw__card--filled .cl-hiw__brandcard--on { color: rgba(28,27,75,0.95) !important;
+          background: rgba(133,104,243,0.14); border-color: #ffffff; }
+        /* Cards 2 & 3 — clean white with dark text. */
+        .cl-hiw__card--light { background: #ffffff; border-color: rgba(0,0,0,0.06); }
+        .cl-hiw__card--light .cl-hiw__title { color: #15151c !important; }
+        .cl-hiw__card--light .cl-hiw__text { color: #6a6a75 !important; }
+        .cl-hiw__card--light .cl-hiw__num { color: var(--cl-purple) !important; }
+        /* Dark theme: cards 2 & 3 use a dark surface instead of white. */
+        .cl-root[data-theme="dark"] .cl-hiw__card--light { background: rgba(255,255,255,0.045);
+          border-color: rgba(255,255,255,0.1); }
+        .cl-root[data-theme="dark"] .cl-hiw__card--light .cl-hiw__title { color: #fff !important; }
+        .cl-root[data-theme="dark"] .cl-hiw__card--light .cl-hiw__text { color: rgba(255,255,255,0.62) !important; }
         .cl-hiw__card--wide { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 32px;
-          padding: 36px 40px; min-height: auto; }
+          padding: 36px 40px; min-height: 410px; }
 
-        .cl-hiw__num { position: absolute; top: 26px; right: 28px; font-size: 0.82rem; font-weight: 800;
+        .cl-hiw__num { position: absolute; top: 26px; right: 28px; font-size: 1.5rem; font-weight: 800;
           letter-spacing: 0.08em; color: var(--cl-purple) !important; opacity: 0.9; }
         .cl-hiw__num--static { position: static; display: inline-block; margin-bottom: 6px; }
-        .cl-hiw__title { font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 700; margin: 0 0 10px; }
-        .cl-hiw__text { font-size: 0.98rem; line-height: 1.6; color: rgba(var(--cl-fg),0.62) !important;
-          margin: 0; max-width: 380px; }
+        .cl-hiw__title { font-size: clamp(1.7rem, 3vw, 2.3rem); font-weight: 700; margin: 0 0 12px; }
+        .cl-hiw__text { font-size: 1.1rem; line-height: 1.6; color: rgba(var(--cl-fg),0.62) !important;
+          margin: 0; max-width: 440px; }
         .cl-hiw__hi { font-style: normal; font-weight: 600; padding: 1px 8px; border-radius: 7px;
           background: var(--cl-purple); color: #fff !important; white-space: nowrap; }
-        .cl-hiw__hi--alt { background: #2f6df0; }
-        .cl-hiw__hi--alt2 { background: #ff2d78; }
+        .cl-hiw__hi--alt { background: var(--cl-purple); }
+        .cl-hiw__hi--alt2 { background: var(--cl-purple); }
 
         /* visuals */
-        .cl-hiw__visual { position: relative; flex: 1; margin-top: 22px; min-height: 150px;
+        .cl-hiw__visual { position: relative; flex: 1; margin-top: 54px; min-height: 150px;
           display: flex; align-items: flex-end; justify-content: center; }
 
-        .cl-hiw__tile { position: relative; z-index: 1; width: 86%; border-radius: 16px 16px 0 0;
-          padding: 16px 16px 22px; border: 1px solid rgba(var(--cl-fg),0.1); border-bottom: none;
-          background: var(--cl-panel); box-shadow: 0 -10px 40px rgba(7,7,78,0.18);
-          display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .cl-hiw__tilehead { align-self: flex-start; font-size: 0.82rem; font-weight: 700; }
-        .cl-hiw__product { font-size: 3.4rem; line-height: 1; }
-        .cl-hiw__brands { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-        .cl-hiw__brands span { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.04em;
-          padding: 4px 9px; border-radius: 6px; background: rgba(var(--cl-fg),0.06);
-          color: rgba(var(--cl-fg),0.7) !important; }
+        /* Pick a job â€” phone "Choose brand" mockup */
+        .cl-hiw__visual--phone { flex-direction: column; align-items: center; justify-content: flex-end;
+          gap: 14px; min-height: 240px; }
+        .cl-hiw__phone { position: relative; z-index: 1; width: 50%; transform: translate(140px, 0);
+          min-height: 360px; border-radius: 20px 20px 0 0;
+          padding: 14px 16px 22px; border: 1px solid rgba(var(--cl-fg),0.12); border-bottom: none;
+          background: var(--cl-panel); box-shadow: 0 -12px 46px rgba(7,7,78,0.24);
+          display: flex; flex-direction: column; gap: 13px; }
+        .cl-hiw__phonebar { display: flex; align-items: center; justify-content: space-between; }
+        .cl-hiw__time { font-size: 1rem; font-weight: 700; margin-left: 8px; }
+        .cl-hiw__phoneicons { display: inline-flex; align-items: center; gap: 11px;
+          color: rgba(var(--cl-fg),0.6) !important; }
+        .cl-hiw__avatar { width: 27px; height: 27px; border-radius: 50%; background: var(--cl-purple);
+          color: #fff !important; font-size: 0.74rem; font-weight: 700; display: inline-flex;
+          align-items: center; justify-content: center; }
+        .cl-hiw__prodcard { border-radius: 14px; padding: 16px;
+          border: 1px solid rgba(var(--cl-fg),0.08); display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(160deg, rgba(var(--cl-fg),0.09), rgba(var(--cl-fg),0.02)); }
+        .cl-hiw__prodemoji { font-size: 3rem; line-height: 1; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35)); }
+        .cl-hiw__choosehead { font-size: 1.6rem; font-weight: 700; }
+        .cl-hiw__brandgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px;
+          flex: 1; grid-auto-rows: 1fr; }
+        .cl-hiw__brandcard { position: relative; display: flex; align-items: center; justify-content: center;
+          gap: 6px; padding: 14px 10px; border-radius: 12px; font-size: 0.86rem; font-weight: 600; text-align: center;
+          background: rgba(var(--cl-fg),0.05); border: 1px solid rgba(var(--cl-fg),0.08);
+          color: rgba(var(--cl-fg),0.78) !important; }
+        .cl-hiw__brandcard svg { flex-shrink: 0; color: var(--cl-purple); width: 15px; height: 15px; }
+        .cl-hiw__brandcard--on { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.13);
+          color: rgba(var(--cl-fg),0.95) !important; }
+        /* Per-brand wordmark styling (approximating each brand's logo type). */
+        .cl-bc { font-size: 1.02rem; }
+        .cl-bc--boat { font-family: 'Poppins','Montserrat',sans-serif; font-weight: 800;
+          letter-spacing: -0.01em; text-transform: none; }
+        .cl-bc--mivi { font-family: 'Montserrat','Poppins',sans-serif; font-weight: 700;
+          letter-spacing: 0.04em; }
+        .cl-bc--noise { font-family: 'Poppins','Montserrat',sans-serif; font-weight: 700;
+          letter-spacing: 0.16em; text-transform: lowercase; }
+        .cl-bc--ptron { font-family: 'Montserrat','Poppins',sans-serif; font-weight: 800;
+          letter-spacing: -0.01em; }
+        /* Inner panel — lavender card holding the "Choose brand" content, from below the time bar to the bottom. */
+        .cl-hiw__phonepanel { flex: 1; border-radius: 14px; padding: 13px; margin-top: 2px;
+          display: flex; flex-direction: column; gap: 13px;
+          background: rgba(149,131,246,0.16); border: 1px solid rgba(109,74,240,0.12); }
 
-        .cl-hiw__thumb { position: relative; z-index: 1; width: 86%; aspect-ratio: 16 / 10;
+        /* Front "brand accessory" product card â€” large, white, tilted, layered over the phone
+           (ref: two-card hero). White product shot so the headphone pops, like the mockup. */
+        .cl-hiw__prodfront { position: absolute; left: 12%; bottom: 98px; z-index: 2; width: 58%; max-width: 256px;
+          transform: rotate(-7deg); transform-origin: bottom left; border-radius: 24px; padding: 13px 13px 15px;
+          background: #ffffff; border: 1px solid rgba(0,0,0,0.05);
+          box-shadow: 0 28px 56px rgba(7,7,78,0.55); display: flex; flex-direction: column; gap: 9px; }
+        .cl-hiw__prodfront-img { border-radius: 16px; aspect-ratio: 9 / 10; display: flex; align-items: center;
+          justify-content: center; background: #f3f3f6; overflow: hidden; }
+        .cl-hiw__prodfront-video { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
+        .cl-hiw__prodfront-emoji { font-size: 3.1rem; line-height: 1; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.22)); }
+        .cl-hiw__prodfront-cap { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+          color: #8a8a93 !important; }
+        .cl-hiw__prodfront-brand { font-size: 1.15rem; font-weight: 700; margin-top: -4px; line-height: 1.1;
+          color: #15151c !important; }
+        .cl-hiw__squiggle { position: absolute; left: 0; top: 14%; width: 66px; height: 38px; z-index: 1;
+          opacity: 0.95; pointer-events: none; }
+
+        .cl-hiw__thumb { position: relative; z-index: 1; width: 86%; aspect-ratio: 4 / 3.6;
           border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: center;
-          background: linear-gradient(135deg, #2d1b69, #4c1d95); box-shadow: 0 -10px 40px rgba(7,7,78,0.2); }
+          background: url(/card.jpeg) center top / cover no-repeat, linear-gradient(135deg, #2d1b69, #4c1d95);
+          box-shadow: 0 -10px 40px rgba(7,7,78,0.2); overflow: hidden; }
         .cl-hiw__play { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center;
           justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px);
           border: 1px solid rgba(255,255,255,0.35); }
 
         .cl-hiw__sticker { position: absolute; z-index: 3; font-size: 1.8rem; line-height: 1;
           filter: drop-shadow(0 6px 12px rgba(0,0,0,0.25)); }
-        .cl-hiw__sticker--gift { left: 5%; bottom: 28px; }
+        .cl-hiw__sticker--gift { left: -5%; bottom: 14%; font-size: 2rem; }
+        .cl-hiw__sticker--dyn { right: 4%; top: -6px; font-size: 1.7rem; }
         .cl-hiw__sticker--spark { right: 8%; top: 8px; font-size: 1.5rem; }
 
+        /* Create content -- floating engagement chips over the clip */
+        .cl-hiw__visual--create { min-height: 270px; }
+        .cl-hiw__chip { position: absolute; z-index: 4; display: inline-flex; align-items: center; gap: 6px;
+          padding: 7px 12px; border-radius: 999px; font-size: 0.76rem; font-weight: 600;
+          background: var(--cl-panel); border: 1px solid rgba(var(--cl-fg),0.12);
+          box-shadow: 0 12px 28px rgba(7,7,78,0.3); backdrop-filter: blur(8px); white-space: nowrap; }
+        .cl-hiw__chip svg { flex-shrink: 0; }
+        .cl-hiw__chip--likes { left: 2%; top: 2%; color: #fb5d7a !important; }
+        .cl-hiw__chip--comments { right: 2%; top: 58%; }
+        .cl-hiw__chip--user { left: 8%; top: 30%; }
+        .cl-hiw__chipav { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+        .cl-hiw__rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3b5c; flex-shrink: 0;
+          box-shadow: 0 0 0 0 rgba(255,59,92,0.6); animation: clRec 1.4s ease-out infinite; }
+        @keyframes clRec { 0% { box-shadow: 0 0 0 0 rgba(255,59,92,0.55); } 70%,100% { box-shadow: 0 0 0 7px rgba(255,59,92,0); } }
+        @media (prefers-reduced-motion: reduce) { .cl-hiw__rec { animation: none; } }
+
         /* wide / get paid */
-        .cl-hiw__wideleft { flex: 1; }
-        .cl-hiw__cta { margin-top: 20px; }
+        .cl-hiw__card--wide .cl-hiw__title { font-size: clamp(2rem, 3.6vw, 2.9rem); font-weight: 600; }
+        .cl-hiw__wideleft { flex: 1; align-self: stretch; display: flex; flex-direction: column; }
+        .cl-hiw__cta { margin-top: auto; margin-bottom: 30px; align-self: flex-start; }
         .cl-hiw__visual--paid { flex: 1.05; margin-top: 0; align-items: center; min-height: auto; }
-        .cl-hiw__paid { position: relative; z-index: 1; width: 100%; max-width: 340px; border-radius: 18px;
-          padding: 20px; border: 1px solid rgba(var(--cl-fg),0.1); background: var(--cl-panel);
-          box-shadow: 0 18px 50px rgba(7,7,78,0.22); display: flex; flex-direction: column; gap: 9px; }
-        .cl-hiw__check { width: 34px; height: 34px; border-radius: 50%; align-self: center;
+        .cl-hiw__paid { position: relative; z-index: 1; width: 100%; max-width: 430px; border-radius: 24px;
+          padding: 34px 36px; border: 1px solid rgba(124,58,237,0.18); background: #e2ddf5; color: #1c1730 !important;
+          box-shadow: 0 22px 60px rgba(7,7,78,0.24); display: flex; flex-direction: column; gap: 14px;
+          transform: rotate(4deg) translate(-30px, 20px); }
+        /* Lavender card: force dark text on all rows (overrides the theme's light fg vars). */
+        .cl-hiw__paid .cl-hiw__paidh { color: #1c1730 !important; }
+        .cl-hiw__paid .cl-hiw__paidrow { color: #000000 !important; }
+        .cl-hiw__paid .cl-hiw__paidrow b,
+        .cl-hiw__paid .cl-hiw__paidrow--bold span,
+        .cl-hiw__paid .cl-hiw__paidrow--prod span { color: #1c1730 !important; }
+        .cl-hiw__paid .cl-hiw__paidline { background: rgba(28,23,48,0.12); }
+        .cl-hiw__check { width: 46px; height: 46px; border-radius: 50%; align-self: center; font-size: 1.2rem;
           display: flex; align-items: center; justify-content: center; font-weight: 800;
-          color: #22c55e !important; border: 2px solid #22c55e; }
-        .cl-hiw__paidh { text-align: center; font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-        .cl-hiw__paidrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
-          font-size: 0.8rem; color: rgba(var(--cl-fg),0.62) !important; }
+          color: #22c55e !important; border: 2.5px solid #22c55e; }
+        .cl-hiw__paidh { text-align: center; font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+        .cl-hiw__paidrow { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+          font-size: 1.05rem; color: rgba(var(--cl-fg),0.62) !important; }
         .cl-hiw__paidrow b { color: var(--cl-text) !important; font-weight: 700; }
-        .cl-hiw__paidrow--prod { font-weight: 600; }
+        .cl-hiw__paidrow--bold span { font-weight: 700; color: rgba(var(--cl-fg),0.9) !important; }
+        .cl-hiw__paidline { height: 1px; background: rgba(var(--cl-fg),0.12); margin: 4px 0; }
+        .cl-hiw__paidrow--prod { font-weight: 600; font-size: 1.3rem; line-height: 1.25;
+          justify-content: flex-start; gap: 56px; }
+        .cl-hiw__paidrow--prod span { display: inline-block; text-align: center; }
         .cl-hiw__paidemoji { font-size: 1.4rem; }
-        .cl-hiw__bags { text-align: center; font-size: 1.6rem; letter-spacing: 2px; margin-top: 2px; }
+        .cl-hiw__paidimg { width: 108px; height: 108px; object-fit: contain; border-radius: 12px; flex-shrink: 0; }
+        .cl-hiw__bags { text-align: center; font-size: 2.2rem; letter-spacing: 4px; margin-top: 4px; }
 
         @media (max-width: 720px) {
           .cl-hiw { grid-template-columns: 1fr; }
@@ -1093,9 +1149,6 @@ export default function CreatorLanding() {
           .cl-nav__burger { display: inline-flex; }
           .cl-blob { width: 300px !important; height: 300px !important; filter: blur(70px); }
           .cl-section { padding: 60px 6%; }
-          .cl-whycard { flex-direction: column; gap: 18px; padding: 26px 22px; text-align: center; }
-          .cl-whycard__icon { width: 110px; height: 110px; }
-          .cl-whycard__emoji { font-size: 2.6rem; }
           .cl-community { grid-template-columns: repeat(2, 1fr); }
           .cl-tcard { height: clamp(420px, 70vh, 560px); }
           .cl-brands__line { gap: 24px 28px; }

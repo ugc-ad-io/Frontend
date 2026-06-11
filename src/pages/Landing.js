@@ -931,7 +931,9 @@ export default function Landing() {
   // holding 0.9 across the spin keeps the leaderboard rotation perfectly steady. Start 1.1
   // stays under the ~1.2 clip threshold (the mark is fit with ~20% canvas padding via
   // <Bounds margin={1.2}>).
-  const flyScale = useTransform(journeyP, [0, 0.67, 0.86, 0.96], [1.1, 0.9, 0.9, 0.5], { ease: easeInOut });
+  // Linear (constant-rate) scaling so the size changes at a STEADY pace — easeInOut sped up
+  // through the middle of each segment, which read as the logo "jumping" size at one point.
+  const flyScale = useTransform(journeyP, [0, 0.67, 0.86, 0.96], [1.1, 0.9, 0.9, 0.5]);
   // Leaderboard is "stuck" to the hero buttons: as they scroll up and off when the hero
   // un-pins (journeyP ~0.35) through to when this section pins (~0.67), the board rises UP
   // from below in lockstep to take their place — the same brandRiseY trick, but at the TOP
@@ -1122,7 +1124,7 @@ export default function Landing() {
           <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
             {/* journeyP drives BOTH phases inside HeroLogo3D: hero 360°+colour, then
                 the leaderboard landscape tip + barrel-roll. */}
-            <HeroLogo3D progress={journeyP} />
+            <HeroLogo3D progress={journeyP} theme={theme} />
           </Suspense>
         </motion.div>
       )}
@@ -1242,7 +1244,7 @@ export default function Landing() {
             <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoY }}>
               {logo3dInView ? (
                 <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
-                  <HeroLogo3D progress={logo3dProgress} />
+                  <HeroLogo3D progress={logo3dProgress} theme={theme} />
                 </Suspense>
               ) : (
                 <div className="lp-logo3d__placeholder" aria-hidden="true" />
@@ -2562,9 +2564,9 @@ export default function Landing() {
 
         .lp-hero__title {
           font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2.4rem, 5.4vw, 4.4rem);
+          font-size: clamp(4.2rem, 9.6vw, 8.4rem);
           font-weight: 500;
-          line-height: 1.3;
+          line-height: 1.14;
           color: var(--lp-text);
           margin: 0;
           letter-spacing: -0.04em;
@@ -4631,8 +4633,8 @@ export default function Landing() {
            copy, logo and the brand strip all fit without overlapping. */
         @media (min-width: 769px) and (max-height: 800px) {
           .lp-hero__sticky { padding: 100px 6% 170px; }
-          .lp-hero__title { font-size: clamp(1.7rem, 3.6vw, 2.8rem); }
-          .lp-hero__subtitle { font-size: 0.92rem; margin-bottom: 18px; }
+          .lp-hero__title { font-size: clamp(2.1rem, 4.3vw, 3.5rem); }
+          .lp-hero__subtitle { font-size: 1.08rem; margin-bottom: 18px; }
           .lp-hero__logo {
             margin-top: calc(clamp(180px, 22vw, 320px) * -0.5);
             width: clamp(180px, 22vw, 320px);

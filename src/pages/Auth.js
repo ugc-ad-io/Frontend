@@ -1,9 +1,25 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { User, Building2, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+// Route a freshly-authenticated user by role + onboarding state.
+function routeForUser(navigate, role, profileCompleted) {
+  if (!profileCompleted) {
+    if (role === 'creator') return navigate('/profile-setup/creator');
+    if (role === 'business') return navigate('/profile-setup/business');
+  }
+  if (role === 'creator') return navigate('/dashboard/creator');
+  if (role === 'business') return navigate('/dashboard/business');
+  if (role === 'admin') return navigate('/dashboard/admin');
+  return navigate('/');
+}
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -15,22 +31,31 @@ export default function Auth() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // DEMO: no backend — set a local session and route by role.
-    setTimeout(() => {
-      login('demo-token', { email, role, profile_completed: isLogin });
+    try {
+      const endpoint = isLogin ? '/auth/login' : '/auth/signup';
+      const payload = isLogin ? { email, password } : { email, password, role };
+
+      const { data } = await axios.post(`${API}${endpoint}`, payload);
+      const { token, ...userData } = data;
+
+      login(token, userData);
       toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
 
       if (!isLogin) {
+        // New signups always go straight to onboarding for their role.
         navigate(role === 'creator' ? '/profile-setup/creator' : '/profile-setup/business');
       } else {
-        navigate(role === 'creator' ? '/dashboard/creator' : '/brand-home');
+        routeForUser(navigate, userData.role, userData.profile_completed);
       }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Authentication failed');
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (

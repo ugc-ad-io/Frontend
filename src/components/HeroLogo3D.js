@@ -23,6 +23,11 @@ const SPIN_TURNS = 2;
 const DISSOLVE_START = 0.86;
 const DISSOLVE_END = 0.96;
 
+// Continuous decorative auto-spin while the logo sits at the hero (top of page). One full
+// turn every ~10s. It's faded out as you scroll into the choreographed journey so it never
+// fights the scroll-driven spin/tip/barrel below.
+const AUTO_SPIN_SPEED = (Math.PI * 2) / 24; // rad per second (one turn / 24s)
+
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const ease = (t) => t * t * (3 - 2 * t);
 const clamp01 = (t) => Math.min(Math.max(t, 0), 1);
@@ -40,23 +45,35 @@ const spinProfile = (t) => clamp01(t);
 const FACE_ROT = { x: 0, y: -0.61, z: 0 };
 
 // Colour journey (exact spec hex): Frosted Lilac → Periwinkle Pulse → Velvet Mist.
-const COL_START = new THREE.Color('#FFFFFF'); // 0.0 white
+// The start colour is theme-aware: white reads on the dark theme, but is invisible on the
+// light (lavender) background, so light theme starts at the brand purple instead.
+const COL_START_DARK = new THREE.Color('#FFFFFF');  // 0.0 white (dark theme)
+const COL_START_LIGHT = new THREE.Color('#9b7df5'); // 0.0 brand purple, lightened (light theme)
 const COL_MID = new THREE.Color('#7367FF');   // 0.5 light periwinkle (brand)
 const COL_END = new THREE.Color('#2C2C92');   // 1.0 royal-blue / indigo (final stop)
 const _col = new THREE.Color();
 
 // `progress` is the JOURNEY scroll value (journeyP). The component splits it into the
 // hero phase (360° spin + colour) and the leaderboard phase (landscape tip + barrel-roll).
-function LogoModel({ progress }) {
+function LogoModel({ progress, theme }) {
   const { scene } = useGLTF('/model-compressed.glb');
   const tipRef = useRef();
   const spinRef = useRef();
   const meshesRef = useRef(null);   // lit meshes, cached once (no per-frame scene.traverse)
   const colourKeyRef = useRef(-1);  // last applied colour step — skips redundant recolours
+  const colStart = theme === 'light' ? COL_START_LIGHT : COL_START_DARK;
 
   // On-demand rendering: only render a frame when the scroll value actually changes (i.e.
   // while scrolling), instead of burning a WebGL render every frame forever.
   const invalidate = useThree((s) => s.invalidate);
+
+  // Re-apply the colour whenever the theme (and thus start colour) changes. Because the
+  // canvas is frameloop="demand", we must also invalidate() to force a render — otherwise
+  // the recolour never runs until the next scroll (theme switch while idle showed no change).
+  useEffect(() => {
+    colourKeyRef.current = -1;
+    invalidate();
+  }, [theme, invalidate]);
   useEffect(() => {
     if (!progress) return;
     // Throttle scroll-driven renders to ~40fps. The mark is small + decorative, so 40fps
@@ -88,12 +105,32 @@ function LogoModel({ progress }) {
     };
   }, [progress, invalidate]);
 
-  useFrame(() => {
+  // Drive the continuous auto-spin: while the logo is at/near the hero (jp < HERO_END) keep
+  // requesting frames so the time-based rotation in useFrame animates even without scrolling.
+  // Once scrolled past the hero we stop invalidating, so the GPU stays idle as before.
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const jp = progress ? clamp01(progress.get()) : 0;
+      if (jp < HERO_END) invalidate();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [progress, invalidate]);
+
+  useFrame((state) => {
     const jp = progress ? clamp01(progress.get()) : 0;
 
     // PHASE 1 — hero: one full 360° turntable spin, eased.
     const heroP = clamp01(jp / HERO_END);
     const heroSpin = easeInOut(heroP) * Math.PI * 2;
+
+    // Continuous decorative spin, ONLY while parked at the very top of the hero. The instant
+    // the user scrolls (jp leaves 0) we drop it to 0, so the mark snaps to face-on (front) and
+    // the scroll-driven choreography (heroSpin → tip → barrel) runs from the front, NOT from
+    // wherever the idle spin happened to be.
+    const autoSpin = jp <= 0.0005 ? state.clock.elapsedTime * AUTO_SPIN_SPEED : 0;
 
     // Tilt to landscape (Z) — leans over after the spin (TIP_START→TIP_FINISH), HOLDS
     // landscape across the board, then UN-TILTS back to straight during the dissolve so it
@@ -111,7 +148,8 @@ function LogoModel({ progress }) {
     // Tip exactly 90° (clean landscape), negative direction so the point faces the text.
     if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
     // The hero 360° caps at a full turn (face-on); the barrel-roll continues from there.
-    if (spinRef.current) spinRef.current.rotation.y = heroSpin + barrel;
+    // autoSpin adds the continuous idle rotation at the hero (zero once scrolled in).
+    if (spinRef.current) spinRef.current.rotation.y = heroSpin + barrel + autoSpin;
 
     // Set up the bright self-lit material + cache the mesh list ONCE — no per-frame
     // scene.traverse (that ran on every scroll frame and was a big chunk of the jank).
@@ -133,7 +171,7 @@ function LogoModel({ progress }) {
     const colourKey = heroP >= 1 ? 1000 : Math.round(heroP * 120);
     if (colourKey !== colourKeyRef.current) {
       colourKeyRef.current = colourKey;
-      if (heroP < 0.5) _col.lerpColors(COL_START, COL_MID, heroP * 2);
+      if (heroP < 0.5) _col.lerpColors(colStart, COL_MID, heroP * 2);
       else _col.lerpColors(COL_MID, COL_END, (heroP - 0.5) * 2);
       for (let i = 0; i < meshesRef.current.length; i++) {
         const m = meshesRef.current[i].material;
@@ -158,7 +196,7 @@ function LogoModel({ progress }) {
 
 useGLTF.preload('/model-compressed.glb');
 
-export default function HeroLogo3D({ progress }) {
+export default function HeroLogo3D({ progress, theme }) {
   return (
     <Canvas
       className="lp-logo3d__canvas"
@@ -183,7 +221,7 @@ export default function HeroLogo3D({ progress }) {
       >
         {/* fit ONCE on mount — no `observe`, so the camera doesn't re-fit as it spins. */}
         <Bounds fit margin={1.2}>
-          <LogoModel progress={progress} />
+          <LogoModel progress={progress} theme={theme} />
         </Bounds>
         <Environment files="/hdri/potsdamer_platz_1k.hdr" />
       </Suspense>

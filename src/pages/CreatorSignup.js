@@ -1,8 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 // Multicolour Google "G" mark (inline so it matches the screenshot exactly).
 function GoogleIcon() {
@@ -16,72 +20,33 @@ function GoogleIcon() {
   );
 }
 
-// Demo email verification — UI only, no backend. Accepts this fixed code.
-const DEMO_OTP = '1234';
-const OTP_LENGTH = DEMO_OTP.length;
-
 export default function CreatorSignup() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [step, setStep] = useState('form');          // 'form' | 'verify'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
-  const otpRefs = useRef([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Step 1 → move to email verification (the real account is created after the OTP).
-  const handleSubmit = (e) => {
+  // Email + password → create the real creator account, then go to profile setup.
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters');
       return;
     }
-    setOtp(Array(OTP_LENGTH).fill(''));
-    setStep('verify');
-    toast.success(`Verification code sent (demo code: ${DEMO_OTP})`);
-    setTimeout(() => otpRefs.current[0]?.focus(), 50);
-  };
-
-  const handleOtpChange = (i, val) => {
-    const digit = val.replace(/\D/g, '').slice(-1);
-    const next = [...otp];
-    next[i] = digit;
-    setOtp(next);
-    if (digit && i < OTP_LENGTH - 1) otpRefs.current[i + 1]?.focus();
-  };
-
-  const handleOtpKeyDown = (i, e) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
-  };
-
-  const handleOtpPaste = (e) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
-    if (!text) return;
-    const next = Array(OTP_LENGTH).fill('');
-    text.split('').forEach((d, idx) => { next[idx] = d; });
-    setOtp(next);
-    otpRefs.current[Math.min(text.length, OTP_LENGTH - 1)]?.focus();
-  };
-
-  const handleResend = () => {
-    setOtp(Array(OTP_LENGTH).fill(''));
-    otpRefs.current[0]?.focus();
-    toast.success(`Code resent (demo code: ${DEMO_OTP})`);
-  };
-
-  // Step 2 → verify the OTP. UI-only demo: no backend call, just set a local
-  // creator session so the protected profile-setup route lets us through.
-  const handleVerify = (e) => {
-    e.preventDefault();
-    if (otp.join('') !== DEMO_OTP) {
-      toast.error('Incorrect code. Try again.');
-      return;
+    setSubmitting(true);
+    try {
+      const { data } = await axios.post(`${API}/auth/signup`, { email, password, role: 'creator' });
+      const { token, ...userData } = data;
+      login(token, userData);
+      toast.success('Account created!');
+      navigate('/profile-setup/creator');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Signup failed');
+    } finally {
+      setSubmitting(false);
     }
-    login('demo-token', { email, role: 'creator', profile_completed: false });
-    toast.success('Email verified — account created!');
-    navigate('/profile-setup/creator');
   };
 
   const handleGoogle = () => {
@@ -100,13 +65,12 @@ export default function CreatorSignup() {
       <button
         className="cs-back"
         type="button"
-        onClick={() => (step === 'verify' ? setStep('form') : navigate('/creator'))}
+        onClick={() => navigate('/creator')}
       >
         <ArrowLeft size={16} />
         Back
       </button>
 
-      {step === 'form' ? (
       <form className="cs-card" onSubmit={handleSubmit}>
         {/* Heading row */}
         <div className="cs-head">
@@ -159,8 +123,8 @@ export default function CreatorSignup() {
         </div>
 
         {/* Submit */}
-        <button type="submit" className="cs-submit">
-          Create Account
+        <button type="submit" className="cs-submit" disabled={submitting}>
+          {submitting ? 'Creating account…' : 'Create Account'}
         </button>
 
         {/* Google */}
@@ -176,42 +140,6 @@ export default function CreatorSignup() {
           </button>
         </p>
       </form>
-      ) : (
-      <form className="cs-card cs-card--verify" onSubmit={handleVerify}>
-        <h1 className="cs-title cs-verify-title">Confirm your email</h1>
-        <p className="cs-sub cs-verify-sub">
-          Enter the verification code we emailed to<br />
-          <span className="cs-verify-email">{email || 'your email'}</span>{' '}
-          <button type="button" className="cs-verify-change" onClick={() => setStep('form')}>
-            (Use a different email)
-          </button>
-        </p>
-
-        {/* OTP boxes */}
-        <div className="cs-otp" onPaste={handleOtpPaste}>
-          {otp.map((d, i) => (
-            <input
-              key={i}
-              ref={(el) => (otpRefs.current[i] = el)}
-              className="cs-otp-box"
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={d}
-              onChange={(e) => handleOtpChange(i, e.target.value)}
-              onKeyDown={(e) => handleOtpKeyDown(i, e)}
-              autoComplete="one-time-code"
-            />
-          ))}
-        </div>
-
-        <button type="button" className="cs-resend" onClick={handleResend}>Resend Code</button>
-
-        <button type="submit" className="cs-submit cs-verify-submit">
-          Verify
-        </button>
-      </form>
-      )}
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');

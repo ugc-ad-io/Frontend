@@ -883,11 +883,17 @@ export default function Landing() {
   // pinned until the whole deck is gone. y holds at 0 while the deck stacks (heading pinned via
   // CSS sticky), then ramps up over the exit window so heading + cards clear the screen together.
   const achieveRef = useRef(null);
+  // 'end start' so progress runs until the section has fully scrolled ABOVE the viewport — this
+  // captures the card EXIT (cards scrolling off the top), which 'end end' cut off. No exit runway
+  // padding needed, so there's no dead empty band below the stacked deck.
   const { scrollYProgress: achieveProgress } = useScroll({
     target: achieveRef,
-    offset: ['start start', 'end end'],
+    offset: ['start start', 'end start'],
   });
-  const achieveHeadRise = useTransform(achieveProgress, [0.6, 0.82], [0, -560]);
+  // Heading holds pinned (y=0) while the deck stacks; once the cards are all together (~0.66) it
+  // lifts up locked to them as they scroll off — so it starts going up exactly when the pile is
+  // complete, not before and not after.
+  const achieveHeadRise = useTransform(achieveProgress, [0.66, 0.82], [0, -520]);
   // Three cards peel UP, evenly spread across the WHOLE scroll range so there's no dead
   // progress after the last card. The 3rd card (card1Y) is still exiting right up to ~0.99,
   // so the runway never sits idle/blank — the section ends the moment the last card clears,
@@ -1078,7 +1084,7 @@ export default function Landing() {
   // up together) but offset so the mark rests in its own lane. The board now rests 120px lower
   // (-70 vs -190), so -120 here keeps the logo at the SAME spot it was before. Lower number =
   // logo sits HIGHER. Tune this single value to raise/lower it.
-  const LOGO_RIDE_OFFSET = -120;
+  const LOGO_RIDE_OFFSET = -280;
   // END CROSS: after the leaderboard, the mark glides from its lower-left lane to screen-centre
   // (x: logoX → 0) and rises the rest of the way to the vertical centre, landing on the brand
   // strip's centre logo, where it dissolves. logoCrossRise cancels the resting Y so the mark
@@ -4041,8 +4047,9 @@ export default function Landing() {
           --stk-step: 22px;   /* extra offset per card → the visible "peek" of each */
           max-width: 380px;
           margin: 40px auto 0;
-          /* Small tail only. A big bottom pad (was 16vh ≈ 137px) left a dead empty band between
-             the last stacked card and the next section as the deck scrolled out. */
+          /* Minimal tail — no exit runway needed (the heading-lift now rides the 'end start'
+             scroll range, so it doesn't depend on padding). Avoids a dead empty band below the
+             stacked deck. */
           padding: 0 0 28px;
           display: none;      /* desktop keeps the fan; the deck is mobile-only */
           flex-direction: column;

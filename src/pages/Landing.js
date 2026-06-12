@@ -109,6 +109,14 @@ function releasePlay(v) {
   }
 }
 
+// Inject Cloudinary delivery transforms so the marquee fetches a card-sized, auto-codec
+// clip instead of the raw UHD source — the 172px slot never needs 2160px of pixels.
+// (f_auto → webm/vp9 where supported, q_auto:eco → aggressive adaptive quality, w_320/c_limit → cap width.)
+function cldThumb(src) {
+  if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
+  return src.replace('/video/upload/', '/video/upload/f_auto,q_auto:eco,w_320,c_limit/');
+}
+
 // Showcase video: on first nearing the viewport it schedules its load (staggered), attaches
 // the src, then KEEPS it (latched) so scrolling back in just resumes instead of reloading.
 // Playback is gated by the global budget above (no `autoPlay` — we call play() ourselves),
@@ -165,7 +173,7 @@ function LazyVideo({ src, className }) {
       preload="auto"
       webkit-playsinline="true"
       disablePictureInPicture
-      {...(loaded ? { src } : {})}
+      {...(loaded ? { src: cldThumb(src) } : {})}
     />
   );
 }
@@ -173,25 +181,16 @@ function LazyVideo({ src, className }) {
 // Top-creator leaderboard shown under the hero — rows reveal one-by-one on scroll.
 // Edit / add / remove freely; the reveal stagger recomputes from the item count.
 const TOP_CREATORS = [
-  { name: 'aanya.creates', metric: '1.2M views' },
-  { name: 'marcus.lee', metric: '980K views' },
-  { name: 'thefoodiekai', metric: '845K views' },
-  { name: 'priya.shoots', metric: '712K views' },
-  { name: 'devon.makes', metric: '690K views' },
-  { name: 'lina.studio', metric: '604K views' },
-  { name: 'oncamerawithzo', metric: '558K views' },
-  { name: 'reelsbynoah', metric: '503K views' },
-  { name: 'maya.unfiltered', metric: '477K views' },
-  { name: 'thecartertwins', metric: '441K views' },
-  { name: 'sana.skincare', metric: '398K views' },
+  'We only work with brands that want to lead',
+  'Your budget, your brief, no agency',
+  'Top UGC creators across every niche',
+  'Fastest content, delivery from 24 hours',
+  'Hands-on support from UGC experts',
+  'No more lost DMs and screenshot threads',
+  'No paying till you approve the video',
+  'You own every video the moment you approve',
+  'Vetted creators, not a open marketplace',
 ];
-
-// 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 4 -> "4th" ...
-const ordinal = (n) => {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-};
 
 // Height of one leaderboard row, in vh (also used to compute the scroll range).
 const LOGO3D_ITEM_VH = 10;
@@ -199,6 +198,7 @@ const LOGO3D_ITEM_VH = 10;
 // Pushed right to the end (0.96) so the rows stay until the section unpins — almost no
 // empty pinned navy after the fade, in EITHER scroll direction.
 const LOGO3D_SCROLL_END = 0.62;
+
 
 // Pre-scroll offset. Minimal — the leaderboard's first rows are essentially present as
 // the section begins (no empty gap where the logo sits alone), rising into focus right
@@ -258,9 +258,9 @@ function LeaderboardRow({ progress, index, count }) {
   // Phone: smaller focus size + gentler falloff so rows fit a narrow screen. The base
   // font-size is fixed in CSS (= peak); size is driven by scale() (GPU-composited, no
   // reflow) instead of animating font-size.
-  const peak = phone ? 24 : 60;
-  const step = phone ? 6 : 14;
-  const floor = phone ? 8 : 10;
+  const peak = phone ? 18 : 34;
+  const step = phone ? 4 : 8;
+  const floor = phone ? 5 : 6;
 
   // First paint matches the current scroll position so rows never flash at centre.
   const initial = rowVisualAt(progress ? progress.get() : 0, index, total, peak, step, floor);
@@ -324,9 +324,7 @@ function LeaderboardRow({ progress, index, count }) {
       onClick={(e) => e.preventDefault()}
       style={initial}
     >
-      <span className="lp-logo3d__rank">{ordinal(index + 1)}</span>
-      <span className="lp-logo3d__creator">{TOP_CREATORS[index].name}</span>
-      <span className="lp-logo3d__metric">{TOP_CREATORS[index].metric}</span>
+      <span className="lp-logo3d__creator">{TOP_CREATORS[index]}</span>
     </a>
   );
 }
@@ -543,26 +541,56 @@ const achieveItems = [
   },
 ];
 
-// Six showcase video slots — all unique local UGC videos from /public folder.
+// Sixteen showcase video slots — UGC clips hosted on Cloudinary.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: '/17811912-uhd_2160_3840_24fps-sm.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255882/ugc-videos/video_29.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8 },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: '/6944288-uhd_2160_3840_24fps-sm.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255812/ugc-videos/video_28.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9 },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
-    src: '/6951180-uhd_2160_3840_24fps-sm.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255755/ugc-videos/video_26.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0 },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/7690504-hd_1080_1920_30fps-sm.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255706/ugc-videos/video_24.mp4',
     brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7 },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/13929852-uhd_2160_3840_24fps-sm.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255676/ugc-videos/video_23.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9 },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/6948556-uhd_2160_3840_24fps-sm.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255655/ugc-videos/video_22.mp4',
     brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8 },
+  { id: 7, industryId: 'pets',    label: 'Pets',             isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255502/ugc-videos/video_18.mp4',
+    brand: 'Pawfect',         creator: 'Riya',    logoBg: 'linear-gradient(135deg, #1F1F4E, #a855f7)', logoText: 'Pf', tier: 'ELITE', rating: 4.9 },
+  { id: 8, industryId: 'food',    label: 'Food/Beverage',    isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255481/ugc-videos/video_17.mp4',
+    brand: 'BrewHaus',        creator: 'Sofia',   logoBg: 'linear-gradient(135deg, #78350f, #f59e0b)', logoText: 'BH', tier: 'PRO', rating: 4.8 },
+  { id: 9, industryId: 'fitness', label: 'Fitness/Supplements', isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255425/ugc-videos/video_14.mp4',
+    brand: 'FitFuel',         creator: 'Noah',    logoBg: 'linear-gradient(135deg, #14532d, #22c55e)', logoText: 'FF', tier: 'RISING', rating: 4.7 },
+  { id: 10, industryId: 'health', label: 'Health/Wellness',  isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255273/ugc-videos/video_08.mp4',
+    brand: 'VitaGlow',        creator: 'Emma',    logoBg: 'linear-gradient(135deg, #0e7490, #06b6d4)', logoText: 'VG', tier: 'ELITE', rating: 5.0 },
+  { id: 11, industryId: 'travel', label: 'Travel',           isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255249/ugc-videos/video_07.mp4',
+    brand: 'NomadPack',       creator: 'Liam',    logoBg: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', logoText: 'NP', tier: 'PRO', rating: 4.8 },
+  { id: 12, industryId: 'finance', label: 'Finance/Insurance', isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255163/ugc-videos/video_02.mp4',
+    brand: 'CoinKeep',        creator: 'Ava',     logoBg: 'linear-gradient(135deg, #3A3A66, #fbbf24)', logoText: 'CK', tier: 'RISING', rating: 4.7 },
+  { id: 13, industryId: 'home',   label: 'Home/Household',   isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255399/ugc-videos/video_13.mp4',
+    brand: 'NestHome',        creator: 'Olivia',  logoBg: 'linear-gradient(135deg, #7c2d12, #fb7185)', logoText: 'NH', tier: 'PRO', rating: 4.9 },
+  { id: 14, industryId: 'gaming', label: 'Gaming',           isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255465/ugc-videos/video_16.mp4',
+    brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #8b5cf6)', logoText: 'PV', tier: 'ELITE', rating: 4.8 },
+  { id: 15, industryId: 'charity', label: 'Charity',         isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255357/ugc-videos/video_11.mp4',
+    brand: 'CareCircle',      creator: 'Mia',     logoBg: 'linear-gradient(135deg, #831843, #ec4899)', logoText: 'CC', tier: 'RISING', rating: 4.9 },
+  { id: 16, industryId: 'services', label: 'Consumer Services', isVideo: true,
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255304/ugc-videos/video_09.mp4',
+    brand: 'SwiftServe',      creator: 'Lucas',   logoBg: 'linear-gradient(135deg, #1F1F4E, #0ea5e9)', logoText: 'SS', tier: 'PRO', rating: 4.7 },
 ];
 
 // ─── Framer Motion variants ──────────────────────────────────────────────────
@@ -810,18 +838,18 @@ export default function Landing() {
     tControls.set({ x: -tMetrics.pitch });
   }, [tMetrics.visible, tMetrics.pitch, tControls]);
 
-  const rotateTestimonials = async (dir) => {
+  const rotateTestimonials = async (dir, duration = 0.5) => {
     const { pitch } = tMetrics;
     if (tBusy.current || !pitch) return;
     tBusy.current = true;
     if (dir >= 0) {
       // Right arrow: slide the track right → a card appears from the LEFT, the
       // right-edge card slides off to the right.
-      await tControls.start({ x: 0, transition: { duration: 0.5, ease: easeInOut } });
+      await tControls.start({ x: 0, transition: { duration, ease: easeInOut } });
       setTOrder((o) => [o[0] - 1, ...o.slice(0, -1)]);
     } else {
       // Left arrow: slide left → a card appears from the right, left-edge card exits left.
-      await tControls.start({ x: -2 * pitch, transition: { duration: 0.5, ease: easeInOut } });
+      await tControls.start({ x: -2 * pitch, transition: { duration, ease: easeInOut } });
       setTOrder((o) => [...o.slice(1), o[o.length - 1] + 1]);
     }
     tControls.set({ x: -pitch }); // instant re-centre — content is identical, so seamless
@@ -853,15 +881,19 @@ export default function Landing() {
   const card2Y = useSpring(useTransform(auditProgress, [0.04, 0.33], [0, -800], { ease: easeInOut }), PEEL_SPRING);
   const card3Y = useSpring(useTransform(auditProgress, [0.36, 0.65], [35, -800], { ease: easeInOut }), PEEL_SPRING);
   const card1Y = useSpring(useTransform(auditProgress, [0.68, 0.99], [-35, -800], { ease: easeInOut }), PEEL_SPRING);
-  // Mobile assemble (scroll-driven, the reverse of the desktop peel): Q1 sits in place from
-  // the start, then Q2, then Q3 RISE IN from below one-by-one as you scroll the section.
-  const mAuditQ1Y = useSpring(useTransform(auditProgress, [0.0, 0.08], [40, 0], { ease: easeInOut }), PEEL_SPRING);
-  const mAuditQ2Y = useSpring(useTransform(auditProgress, [0.16, 0.46], [520, 0], { ease: easeInOut }), PEEL_SPRING);
-  const mAuditQ3Y = useSpring(useTransform(auditProgress, [0.5, 0.82], [520, 0], { ease: easeInOut }), PEEL_SPRING);
+  // Mobile assemble: previously scroll-DRIVEN (cards' y tied to scroll progress). Tying
+  // continuous card paint to every scroll frame is inherently janky on phones — no amount of
+  // spring/raw/paint tuning fully removed it. So on mobile the cards now play a ONE-SHOT
+  // staggered entrance the first time the section scrolls into view (see the motion props in
+  // the JSX). That entrance runs on framer's own rAF for ~0.5s and then STOPS — there is zero
+  // per-scroll-frame work afterwards, so scrolling (up or down) through the section is smooth.
+  // Desktop still uses the scroll-linked peel (card1/2/3Y springs above).
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
   // behind it. easeInOut + a spring smooth the motion so it glides in, not snaps to scroll.
+  // (Desktop only — on mobile this drag is disabled in CSS, and the JSX below drops the
+  // motion value entirely so framer isn't writing transforms to a big subtree every frame.)
   const achieveRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
   const achieveRiseY = useSpring(achieveRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
   const ctaInView = useInView(ctaRef, { once: true, margin: '-80px' });
@@ -894,14 +926,8 @@ export default function Landing() {
   // Rows finish by LOGO3D_SCROLL_END (0.62); the 11th sits at the 50% focus, then fades over
   // 0.62→0.72 — melting away as the logo crosses (which starts from that same moment).
   const logoBoardOpacity = useTransform(logo3dProgress, [0.62, 0.72], [1, 0]);
-  // Brand strip is "stuck" to the leaderboard's last row: it rises UP from below over the
-  // EXACT same window the last text rises out of focus and fades (logo3dProgress 0.62→0.72,
-  // matching logoBoardOpacity) — so the brand glides up WITH the text and lands right as the
-  // text vanishes, instead of starting early / crawling up alone after the text is gone.
-  // Spring stiffened a touch so it tracks this shorter, faster window tightly (sprung arrival
-  // lands ~with the fade end); still over-damped (ζ≈1.2) so there's no bounce gap below.
-  const brandRiseRaw = useTransform(logo3dProgress, [0.62, 0.72], [380, 0], { ease: easeInOut });
-  const brandRiseY = useSpring(brandRiseRaw, { stiffness: 120, damping: 22, mass: 0.6 });
+  // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
+  // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
   // at the end of the section (it's base-centred in CSS, so x/y hold the left+up offset).
   const logoX = '-36vw';
@@ -970,14 +996,56 @@ export default function Landing() {
   // Linear (constant-rate) scaling so the size changes at a STEADY pace — easeInOut sped up
   // through the middle of each segment, which read as the logo "jumping" size at one point.
   const flyScale = useTransform(journeyP, [0, 0.67, 0.86, 0.96], [1.1, 0.9, 0.9, 0.5]);
-  // Leaderboard is "stuck" to the hero buttons: as they scroll up and off when the hero
-  // un-pins (journeyP ~0.35) through to when this section pins (~0.67), the board rises UP
-  // from below in lockstep to take their place — the same brandRiseY trick, but at the TOP
-  // seam so there's no dead gap between the buttons leaving and the rows arriving. It starts
-  // pushed DOWN (+220px) while the buttons are still pinned, then eases to its resting spot
-  // (0) right as the section pins, after which it holds.
-  const boardRiseRaw = useTransform(journeyP, [0.35, 0.67], [220, 0], { ease: easeInOut });
-  const boardRiseY = useSpring(boardRiseRaw, { stiffness: 120, damping: 22, mass: 0.6 });
+  // Leaderboard is "stuck" to the hero buttons (Join as Creator / Sign up as Brand): as they
+  // scroll up and off when the hero un-pins (journeyP ~0.22→0.66), the board is PULLED UP from
+  // below the fold to meet them, so it rises into the buttons' place instead of waiting for the
+  // section to naturally reach the top at 0.66 (which left a long dead black gap = the buttons
+  // gone, no rows yet).
+  // KEY: the pull is NEGATIVE y (translate UP). The board naturally enters from the bottom and
+  // its first row only reaches centre at section-pin (0.66). To stick it to the buttons we lift
+  // it early: y ramps 0 → -300px from 0.30→0.55 (board flies up from the bottom edge into the
+  // centre right as the buttons clear the top), then eases back -300 → 0 by 0.66 — and because
+  // the page is itself scrolling the board up over that same window, the net effect is the first
+  // row PARKS near centre, reading as the leaderboard riding up locked to the departing buttons.
+  // On mobile, rest the leaderboard HIGHER (negative) so it sits right under the hero title.
+  // Declared before its first use below (boardRiseRaw); the matchMedia listener is set up
+  // in an effect later. Lazy-init so the first render already knows mobile vs desktop.
+  const [heroStatic, setHeroStatic] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
+  // Stops are tuned per layout from the measured scroll→position map (the geometries differ:
+  // desktop hero is a pinned 150vh, mobile hero is auto-height and just scrolls). MOBILE: the
+  // button clears the top at journeyP≈0.29 while row 1 is still far below the fold, so we PULL
+  // the board up (y→-360) to land row 1 at screen-centre right as the button leaves, then settle
+  // to its -190 rest as the section pins (≈0.46). DESKTOP keeps its ORIGINAL behaviour untouched
+  // ([0.35,0.67]→[220,0] + easeInOut) — the mobile tuning is gated behind heroStatic so it never
+  // changes the web/desktop scroll.
+  const boardRiseRaw = useTransform(
+    journeyP,
+    heroStatic ? [0.15, 0.30, 0.46] : [0.35, 0.67],
+    heroStatic ? [0, -360, -190] : [220, 0],
+    heroStatic ? undefined : { ease: easeInOut }
+  );
+  const boardRiseY = useSpring(
+    boardRiseRaw,
+    heroStatic ? { stiffness: 300, damping: 34, mass: 0.35 } : { stiffness: 120, damping: 22, mass: 0.6 }
+  );
+  // Brand strip "stick" — MOBILE ONLY. On mobile the transform lifts the strip up to meet the
+  // leaderboard's fading last line and HOLDS (never releases → never sinks back), and a matching
+  // marginBottom:brandRise on the wrapper shifts the showcase + everything below up the same amount
+  // so they stay flush. DESKTOP keeps its ORIGINAL behaviour untouched ([0.62,0.72]→[380,0] +
+  // easeInOut, no margin) — gated behind heroStatic so the web scroll never changes.
+  const brandRise = -360;                 // mobile lift; 0 on desktop (no structural shift)
+  const brandRiseRaw = useTransform(
+    logo3dProgress,
+    heroStatic ? [0.42, 0.62] : [0.62, 0.72],
+    heroStatic ? [0, brandRise] : [380, 0],
+    heroStatic ? undefined : { ease: easeInOut }
+  );
+  const brandRiseY = useSpring(
+    brandRiseRaw,
+    heroStatic ? { stiffness: 240, damping: 32, mass: 0.35 } : { stiffness: 120, damping: 22, mass: 0.6 }
+  );
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
@@ -1014,9 +1082,6 @@ export default function Landing() {
   // Lazy-init from matchMedia so the FIRST render already knows mobile vs desktop — otherwise
   // mobile mounts the desktop branch, then flips after mount, and framer-motion's `initial`
   // (which only runs on mount) never plays the audit cards' scroll-in animation.
-  const [heroStatic, setHeroStatic] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
-  );
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)');
     const update = () => setHeroStatic(mq.matches);
@@ -1024,6 +1089,7 @@ export default function Landing() {
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   }, []);
+
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -1133,7 +1199,7 @@ export default function Landing() {
           <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
             <LayoutGrid size={16} /> Others
           </a>
-          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/auth?mode=signup&role=creator'); }}>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/creator'); }}>
             Join as Creator
           </a>
           <div className="lp-navbar__mobile-actions">
@@ -1190,18 +1256,35 @@ export default function Landing() {
             <Sparkles size={14} />
           </motion.div>
 
-          <motion.h1
-            className="lp-hero__title"
-            custom={1}
-            variants={heroItemVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            The{' '}
-            <span className="lp-hero__title-accent">Performance System</span>{' '}
-            Behind The{' '}
-            <span className="lp-hero__title-accent">Top 1% D2C Brands</span>
-          </motion.h1>
+          {heroStatic ? (
+            <motion.h1
+              className="lp-hero__title lp-hero__title--mobile"
+              custom={1}
+              variants={heroItemVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              The<br />
+              <span className="lp-hero__title-accent">Performance</span><br />
+              <span className="lp-hero__title-accent">System</span> Behind<br />
+              The<br />
+              <span className="lp-hero__title-accent">Top 1% D2C</span><br />
+              <span className="lp-hero__title-accent">Brands</span>
+            </motion.h1>
+          ) : (
+            <motion.h1
+              className="lp-hero__title"
+              custom={1}
+              variants={heroItemVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              The{' '}
+              <span className="lp-hero__title-accent">Performance System</span>{' '}
+              Behind The{' '}
+              <span className="lp-hero__title-accent">Top 1% D2C Brands</span>
+            </motion.h1>
+          )}
 
           <motion.p
             className="lp-hero__subtitle"
@@ -1264,13 +1347,6 @@ export default function Landing() {
               leaderboard (see .lp-brandstrip below). */}
         </motion.div>
 
-        {/* scroll-cue dots (mobile) — hint that there's more below the hero */}
-        {heroStatic && (
-          <div className="lp-hero__scrollcue" aria-hidden="true">
-            <span /><span /><span />
-          </div>
-        )}
-
         {/* curved divider into the next section */}
         <svg
           className="lp-hero__divider"
@@ -1305,7 +1381,7 @@ export default function Landing() {
             <div className="lp-logo3d__boardTrack">
               {TOP_CREATORS.map((c, i) => (
                 <LeaderboardRow
-                  key={c.name}
+                  key={c}
                   progress={logo3dProgress}
                   index={i}
                   count={TOP_CREATORS.length}
@@ -1319,7 +1395,7 @@ export default function Landing() {
 
       {/* ── Brand strip — stuck to the leaderboard's last row: rises UP in lockstep
           (brandRiseY) as the final rows fade, instead of waiting below. ── */}
-      <motion.div style={{ y: brandRiseY, position: 'relative', zIndex: 3 }}>
+      <motion.div style={{ y: brandRiseY, marginBottom: heroStatic ? brandRise : 0, position: 'relative', zIndex: 3 }}>
       <section className="lp-brandstrip" ref={brandStripRef}>
         <div className="lp-hero__strip">
           <div className="lp-hero__brands-side lp-hero__brands-side--left">
@@ -1441,12 +1517,12 @@ export default function Landing() {
               <>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--left">
-                    {Array.from({ length: 8 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
+                    {Array.from({ length: 4 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
                   </div>
                 </div>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--right">
-                    {Array.from({ length: 8 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
+                    {Array.from({ length: 4 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
                   </div>
                 </div>
               </>
@@ -1717,20 +1793,32 @@ export default function Landing() {
                 { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
                 { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
               ];
-              // Mobile: a tighter fan, assembled by SCROLL (reverse of the desktop peel).
-              // Q1 is present from the start at the BACK; each later card rises in and lands
-              // ON TOP (in front), so the newest card is always frontmost — Q3 ends centred.
+              // Mobile: a tighter fan. Q1 sits at the BACK; each later card lands ON TOP (in
+              // front), so the newest card is frontmost — Q3 ends centred. No scroll-linked y
+              // here: the fan position is static (x/rotate/z) and the rise-in is a one-shot
+              // entrance (motionProps below), so nothing animates per scroll frame on mobile.
               const mobilePositions = [
-                { x:  46, rotate:  10, z: 1, y: mAuditQ1Y },  // Q1 — back-right, already there
-                { x: -46, rotate: -10, z: 2, y: mAuditQ2Y },  // Q2 — rises in 2nd, in front of Q1
-                { x:   0, rotate:  -2, z: 3, y: mAuditQ3Y },  // Q3 — rises in last, front & centre
+                { x:  46, rotate:  10, z: 1 },  // Q1 — back-right
+                { x: -46, rotate: -10, z: 2 },  // Q2 — over Q1
+                { x:   0, rotate:  -2, z: 3 },  // Q3 — front & centre
               ];
               const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
+              // Desktop: scroll-linked y (peel). Mobile: static fan + a once-only staggered
+              // slide-up/fade-in when the section enters the viewport (zero per-frame cost).
+              const motionProps = heroStatic
+                ? {
+                    style: { x: p.x, rotate: p.rotate, zIndex: p.z },
+                    initial: { y: 70, opacity: 0 },
+                    whileInView: { y: 0, opacity: 1 },
+                    viewport: { once: true, amount: 0.35 },
+                    transition: { duration: 0.5, delay: i * 0.13, ease: 'easeOut' },
+                  }
+                : { style: { x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z } };
               return (
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
+                  {...motionProps}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -1761,8 +1849,18 @@ export default function Landing() {
 
       {/* ── Find & Hire Creators — fanned cards. Dragged UP by achieveRiseY in lockstep
           with Q3's peel, so it rises into view "stuck" to the last audit card. (No
-          opacity gate — the rise alone gives the effect and can't hide the section.) ── */}
-      <motion.div className="lp-achieve-rise" style={{ y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }}>
+          opacity gate — the rise alone gives the effect and can't hide the section.)
+          On mobile the drag is disabled (CSS sets transform:none !important), so we drop
+          the motion value here too — otherwise framer would still write a transform to this
+          large subtree on every scroll frame for no visual effect, hurting scroll perf. ── */}
+      <motion.div
+        className="lp-achieve-rise"
+        style={
+          heroStatic
+            ? { position: 'relative', zIndex: 4 }
+            : { y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }
+        }
+      >
         <section className="lp-achieve">
           <h2 className="lp-achieve__title">
             <em className="lp-achieve__hl">Find</em> &amp; Hire Creators <em className="lp-achieve__hl">Instantly</em>
@@ -1812,6 +1910,40 @@ export default function Landing() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Mobile comparison — replaces the desktop table below 768px (desktop
+              unchanged). Fixed two-column compare table that fits the viewport. */}
+          <div className="lp-vs__mobile">
+            <div className="lp-vs__viewtable">
+                <div className="lp-vs__scrollwrap">
+                  <table className="lp-vs__ctable">
+                    <colgroup>
+                      <col className="lp-vs__col--feature" />
+                      <col className="lp-vs__col--ugc" />
+                      <col className="lp-vs__col--others" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th className="lp-vs__th lp-vs__th--feature">Feature</th>
+                        <th className="lp-vs__th lp-vs__th--ugc">
+                          <Sparkle size={11} aria-hidden="true" /> UGCad.io
+                        </th>
+                        <th className="lp-vs__th lp-vs__th--others">Others</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vsRows.map((r) => (
+                        <tr key={r.label}>
+                          <td className="lp-vs__td lp-vs__td--feature">{r.label}</td>
+                          <td className="lp-vs__td lp-vs__td--ugc">{r.us}</td>
+                          <td className="lp-vs__td lp-vs__td--others">{r.them}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+            </div>
           </div>
         </div>
       </section>
@@ -2022,6 +2154,54 @@ export default function Landing() {
             >
               <ChevronRight size={22} />
             </button>
+          </div>
+
+          {/* Mobile: a continuous auto-scrolling marquee replaces the arrow carousel.
+              Cards are duplicated so the -50% loop is seamless. */}
+          <div className="lp-testimonial__marquee" aria-hidden="true">
+            <div className="lp-testimonial__marqtrack">
+              {[...testimonials, ...testimonials].map((t, i) => {
+                const [before, after] = t.accent && t.quote.includes(t.accent)
+                  ? [t.quote.split(t.accent)[0], t.quote.split(t.accent)[1]]
+                  : [t.quote, ''];
+                return (
+                  <article key={i} className="lp-tcard">
+                    <div className="lp-tcard__rating">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
+                      ))}
+                    </div>
+                    <span className="lp-tcard__mark">"</span>
+                    <blockquote className="lp-tcard__quote">
+                      {before}
+                      {t.accent && <em>{t.accent}</em>}
+                      {after}
+                    </blockquote>
+                    <div className="lp-tcard__author">
+                      <div className="lp-tcard__photo">
+                        <img
+                          src={t.photo}
+                          alt={t.name}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentNode.classList.add('lp-tcard__photo--fallback');
+                          }}
+                        />
+                        <span className="lp-tcard__initials">{t.initials}</span>
+                      </div>
+                      <div className="lp-tcard__author-info">
+                        <div className="lp-tcard__name">{t.name}</div>
+                        <div className="lp-tcard__role">{t.role}</div>
+                      </div>
+                    </div>
+                    <div className="lp-tcard__metric">
+                      <span className="lp-tcard__metric-val">{t.metric}</span>
+                      <span className="lp-tcard__metric-label">{t.metricLabel}</span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
 
           <div className="lp-testimonial__more">
@@ -2627,6 +2807,20 @@ export default function Landing() {
           letter-spacing: -0.04em;
           max-width: 20ch;
         }
+        /* Mobile hero title — custom line-by-line arrangement, centred + larger. Higher
+           specificity (0,2,0) so it beats the various single-class .lp-hero__title mobile
+           overrides regardless of source order. */
+        .lp-hero--static .lp-hero__title--mobile {
+          font-size: clamp(2.3rem, 10.5vw, 3.4rem);
+          font-weight: 600;
+          line-height: 1.3;
+          text-align: center;
+          max-width: 100%;
+          margin: 0 auto;
+        }
+        .lp-hero--static .lp-hero__title--mobile .lp-hero__title-accent {
+          margin: 2px 0;
+        }
 
         .lp-hero__mark {
           display: inline-block;
@@ -2657,6 +2851,9 @@ export default function Landing() {
           margin: 0;
           text-align: left;
         }
+        /* Mobile-only line break before "high-performing UGC ads" (own line). */
+        .lp-hero__sub-mbr { display: none; }
+        @media (max-width: 768px) { .lp-hero__sub-mbr { display: inline; } }
 
         .lp-hero__accent {
           color: #C8F23A;
@@ -2687,16 +2884,15 @@ export default function Landing() {
           font-size: 1.05rem;
           border: none;
           cursor: pointer;
-          /* subtle inner top highlight + soft brand glow */
-          box-shadow: 0 10px 26px rgba(167, 139, 250, 0.45),
+          /* subtle inner top highlight + a small soft dark shadow for a little depth */
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28),
                       inset 0 1px 0 rgba(255, 255, 255, 0.4);
           transition: transform 0.25s ease, filter 0.25s ease, box-shadow 0.25s ease;
         }
         .lp-hero .lp-btn-primary:hover {
           transform: translateY(-2px);
           filter: brightness(1.08);
-          box-shadow: 0 14px 32px rgba(167, 139, 250, 0.55),
-                      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
         }
         /* arrow rendered as a small circular badge inside the primary button */
         .lp-btn-arrow {
@@ -3009,10 +3205,10 @@ export default function Landing() {
           overflow: hidden;
           display: flex;
           align-items: center;
-          /* Push the leaderboard into the right half so the landed logo (resting at the
-             left, ~-36vw) never overlaps the centred rows. Reset to centre on mobile. */
-          justify-content: flex-end;
-          padding-right: 8%;
+          /* Centre the leaderboard rows in the viewport; the landed logo rests far
+             enough left (~-36vw) that the centred rows clear it. */
+          justify-content: center;
+          padding-right: 0;
           /* transparent — shows the shared animated page background (.lp-bg-animations) */
           background: transparent;
         }
@@ -3059,17 +3255,20 @@ export default function Landing() {
           left: 50%; top: 44%;           /* shifted a bit up; JS transform adds offset + rotate */
           transform-origin: center center;
           display: flex;
-          align-items: baseline;
+          align-items: center;
           justify-content: center;
-          gap: 0.4em;
-          white-space: nowrap;
+          text-align: center;
+          /* Statements are full sentences — allow them to wrap instead of clipping. */
+          white-space: normal;
+          width: max-content;
+          max-width: 620px;
           text-decoration: none;
           font-family: 'Instrument Sans', 'Inter', sans-serif;
           letter-spacing: -0.03em;
-          line-height: 1;
+          line-height: 1.12;
           /* Fixed base size = JS peak; the per-row scale() does the size falloff so
              font-size never animates (no reflow per scroll frame). */
-          font-size: 60px;
+          font-size: 34px;
           will-change: transform, opacity;
           /* Scope layout/paint recalcs to each row so one row re-rastering (colour /
              weight step) can't invalidate the whole board. */
@@ -3097,7 +3296,7 @@ export default function Landing() {
             margin-left: calc(clamp(120px, 34vw, 200px) * -0.5);
           }
           .lp-logo3d__board { width: 92%; }
-          .lp-logo3d__boardItem { font-size: 24px; }  /* = phone peak; scale() handles falloff */
+          .lp-logo3d__boardItem { font-size: 18px; max-width: 86vw; }  /* = phone peak; scale() handles falloff */
         }
 
         /* ── The Problem section ──────────────────────────────────────────── */
@@ -3782,16 +3981,16 @@ export default function Landing() {
            re-sets display:flex, which would otherwise win over this and show BOTH stacks. */
         @media (max-width: 768px) {
           .lp-achieve__fan { display: none !important; }
-          .lp-achieve__stack { display: flex; --stk-top: 204px; --stk-step: 52px; margin-top: 14px; }
+          .lp-achieve__stack { display: flex; --stk-top: 226px; --stk-step: 52px; margin-top: 56px; }
           /* Kill the desktop "stick to the last audit card" entrance (negative margin +
              scroll-driven y) so the title no longer overlaps the previous section. */
           .lp-achieve-rise { margin-top: 0 !important; transform: none !important; }
           /* Keep the "Find & Hire Creators" heading visible while the deck animates:
              pin it BELOW the navbar (top:84) so it never slips behind it; cards pin lower. */
-          .lp-achieve { padding-top: 96px; }
+          .lp-achieve { padding-top: 150px; }
           .lp-achieve__title {
             position: sticky;
-            top: 84px;
+            top: 104px;
             z-index: 20;
             max-width: 100%;
             margin: 0;
@@ -3800,7 +3999,7 @@ export default function Landing() {
           }
         }
         @media (max-width: 600px) {
-          .lp-achieve__stack { --stk-top: 196px; --stk-step: 46px; max-width: 100%; }
+          .lp-achieve__stack { --stk-top: 216px; --stk-step: 46px; max-width: 100%; }
           .lp-achieve__stack .lp-achieve-stackcard { min-height: 320px; }
         }
 
@@ -4053,26 +4252,86 @@ export default function Landing() {
           color: #A78BFA;
           font-style: italic;
         }
-        @media (max-width: 768px) {
+        /* ── Comparison: mobile compare table (hidden on desktop) ──────────────
+           Below 768px the side-by-side desktop table is replaced by a compact
+           fixed two-column table. Desktop table is untouched. */
+        .lp-vs__mobile { display: none; }
+
+        /* ── Mobile — fixed two-column compare table (fits screen, no scroll) ─
+           table-layout:fixed + percentage cols + wrapping cells means all three
+           columns sit inside the viewport; long values wrap to 2+ lines instead
+           of overflowing into a horizontal scroll. */
+        .lp-vs__scrollwrap {
+          position: relative;
+          border-radius: 14px;
+          border: 1px solid rgba(var(--lp-fg), 0.07);
+          overflow: hidden;
+        }
+        .lp-vs__ctable {
+          width: 100%;
+          table-layout: fixed;
+          border-collapse: collapse;
+        }
+        .lp-vs__col--feature { width: 27%; }
+        .lp-vs__col--ugc { width: 40%; }
+        .lp-vs__col--others { width: 33%; }
+        .lp-vs__ctable .lp-vs__th,
+        .lp-vs__ctable .lp-vs__td {
+          font-family: 'Instrument Sans', sans-serif;
+          overflow-wrap: break-word;
+          word-break: break-word;
+          hyphens: auto;
+        }
+        .lp-vs__th {
+          padding: 11px 9px;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          border-bottom: 1px solid rgba(var(--lp-fg), 0.08);
+          text-align: left;
+          vertical-align: middle;
+          line-height: 1.25;
+        }
+        .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.25); }
+        .lp-vs__th--ugc {
+          color: #A78BFF;
+          background: rgba(109, 74, 232, 0.1);
+        }
+        .lp-vs__th--ugc svg { vertical-align: -1px; margin-right: 2px; }
+        .lp-vs__th--others { color: rgba(var(--lp-fg), 0.25); }
+        .lp-vs__td {
+          padding: 10px 9px;
+          font-size: 11.5px;
+          border-bottom: 1px solid rgba(var(--lp-fg), 0.05);
+          vertical-align: top;
+          line-height: 1.4;
+        }
+        .lp-vs__td--feature {
+          color: rgba(var(--lp-fg), 0.45);
+          font-weight: 500;
+          font-size: 11px;
+        }
+        .lp-vs__td--ugc {
+          color: rgba(var(--lp-fg), 0.85);
+          background: rgba(109, 74, 232, 0.05);
+        }
+        .lp-vs__td--others { color: rgba(var(--lp-fg), 0.28); }
+        .lp-vs__ctable tr:last-child .lp-vs__td { border-bottom: none; }
+
+        @media (max-width: 767px) {
           .lp-vs { padding: 60px 5% 70px; }
           .lp-vs__heading { transform: none; }
-          .lp-vs__row { grid-template-columns: 1fr; row-gap: 4px; }
-          .lp-vs__cell { padding: 7px 0; }
-          .lp-vs__cell--label {
-            padding-right: 0;
-            padding-top: 18px;
-            font-weight: 700;
-            color: rgba(var(--lp-fg), 0.78);
-            border-right: none;
-          }
-          .lp-vs__cell--them { padding-left: 0; padding-right: 0; }
-          .lp-vs__row--head .lp-vs__cell--label,
-          .lp-vs__row--head .lp-vs__cell--them { border-bottom: none; }
-          .lp-vs__cell--us {
-            padding: 12px 16px;
-            border: 1px solid rgba(167, 139, 250, 0.30) !important;
-            border-radius: 14px !important;
-          }
+          .lp-vs__table { display: none; }
+          .lp-vs__mobile { display: block; }
+          /* The global ".lp-root td/th { color: var(--lp-text) }" rule (0,1,1) beats the
+             single-class colours above, so re-apply them at higher specificity here. */
+          .lp-vs__mobile .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.25); }
+          .lp-vs__mobile .lp-vs__th--ugc { color: #A78BFF; }
+          .lp-vs__mobile .lp-vs__th--others { color: rgba(var(--lp-fg), 0.25); }
+          .lp-vs__mobile .lp-vs__td--feature { color: rgba(var(--lp-fg), 0.45); }
+          .lp-vs__mobile .lp-vs__td--ugc { color: rgba(var(--lp-fg), 0.85); }
+          .lp-vs__mobile .lp-vs__td--others { color: rgba(var(--lp-fg), 0.28); }
         }
 
         /* ── Comparison Table ─────────────────────────────────────────────── */
@@ -4670,13 +4929,17 @@ export default function Landing() {
         .lp-hero--static .lp-hero__sticky {
           position: relative;
           height: auto;
-          min-height: 100vh;
+          /* Hug the content (was min-height:100vh) so there's no empty gap below the hero —
+             the leaderboard section sits right beneath the title and rises with it on scroll. */
+          min-height: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: 32px;
-          padding: 110px 6%;
+          /* Top-align (was center) so the tall stacked title can't push the pill up under
+             the navbar; content starts below the navbar and flows down. */
+          justify-content: flex-start;
+          gap: 30px;
+          padding: 112px 6% 56px;
           /* subtle radial purple glow behind the hero copy */
           background: radial-gradient(circle at 50% 36%, rgba(167, 139, 250, 0.16),
                       rgba(167, 139, 250, 0) 60%), var(--lp-page-bg);
@@ -4707,7 +4970,7 @@ export default function Landing() {
 
         @media (max-width: 768px) {
           .lp-hero__title { max-width: 100%; font-size: clamp(2.4rem, 8vw, 3.6rem); }
-          .lp-hero__subtitle { font-size: clamp(1rem, 3.6vw, 1.4rem); }
+          .lp-hero__subtitle { font-size: clamp(1.14rem, 4.4vw, 1.5rem); }
           .lp-brand-item__icon { width: 72px; height: 72px; }
           .lp-brand-item__icon img { width: 36px; height: 36px; }
           .lp-hero__brand-center { width: 104px; height: 104px; }
@@ -4724,6 +4987,9 @@ export default function Landing() {
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
           .lp-hero__badges { gap: 6px; }
           .lp-proof-badge { font-size: 0.7rem; padding: 5px 10px; }
+          /* Shift the "For Creators & Brands" pill up on mobile (negative pulls it higher
+             within the vertically-centred hero content). */
+          .lp-badge { margin-top: 0; }
           /* The hero logo's 220px floor made it fill ~60% of a phone screen as a
              giant white→navy bar. Shrink it to a tasteful top-right accent. */
           .lp-hero__logo {
@@ -4739,7 +5005,7 @@ export default function Landing() {
         @media (max-width: 480px) {
           .lp-hero__divider { height: 50px; }
           .lp-hero__title { font-size: clamp(2rem, 9vw, 2.8rem); }
-          .lp-hero__subtitle { font-size: 1rem; line-height: 1.5; }
+          .lp-hero__subtitle { font-size: 1.14rem; line-height: 1.5; }
           .lp-brand-item__icon { width: 58px; height: 58px; border-radius: 16px; }
           .lp-brand-item__icon img { width: 30px; height: 30px; }
           .lp-hero__brand-center { width: 82px; height: 82px; border-radius: 20px; }
@@ -4836,6 +5102,35 @@ export default function Landing() {
           .lp-compare__heading,
           .lp-testimonial__heading,
           .lp-proof__heading { font-size: clamp(1.5rem, 6vw, 2rem); }
+        }
+
+        /* Continuous testimonial marquee — mobile only (replaces the arrow carousel). */
+        .lp-testimonial__marquee { display: none; }
+        @media (max-width: 768px) {
+          .lp-testimonial__carousel { display: none !important; }
+          .lp-testimonial__marquee {
+            display: block;
+            position: relative;
+            width: 100vw;
+            margin-left: calc(50% - 50vw);
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+                    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+          }
+          .lp-testimonial__marqtrack {
+            display: flex;
+            width: max-content;
+            gap: 16px;
+            padding: 10px 8px;
+            animation: lp-testi-marq 32s linear infinite;
+          }
+          .lp-testimonial__marquee:hover .lp-testimonial__marqtrack,
+          .lp-testimonial__marquee:active .lp-testimonial__marqtrack { animation-play-state: paused; }
+          .lp-testimonial__marqtrack .lp-tcard { flex: 0 0 80vw; max-width: 340px; }
+          @keyframes lp-testi-marq {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
         }
 
         /* Comparison table — keep the 5 columns legible on small phones */
@@ -5234,7 +5529,7 @@ export default function Landing() {
           font-family: 'Instrument Sans', sans-serif;
           font-size: 0.78rem;
           font-weight: 600;
-          color: var(--lp-text-muted);
+          color: var(--lp-text);
           margin: 0 0 16px 0;
           letter-spacing: 0.14em;
           text-transform: uppercase;
@@ -5254,7 +5549,7 @@ export default function Landing() {
           line-height: 1.4;
         }
         .lp-footer__list a {
-          color: var(--lp-text);
+          color: rgba(var(--lp-fg), 0.5);
           text-decoration: none;
           transition: color 0.18s ease;
           letter-spacing: -0.01em;
@@ -5371,6 +5666,8 @@ export default function Landing() {
           .lp-footer__statement { padding-bottom: 36px; margin-bottom: 36px; }
           .lp-footer__links { grid-template-columns: 1fr 1fr; gap: 24px; }
           .lp-footer__strip { justify-content: center; text-align: center; }
+          /* Mobile: all footer columns left-aligned (2-column stacked layout). */
+          .lp-footer__col { text-align: left; }
         }
 
         /* ── Section connectors ─────────────────────────────────────────── */
@@ -6527,17 +6824,27 @@ export default function Landing() {
            the cards assemble by SCROLL (Q1 present, then Q2, then Q3 rise in — heroStatic
            branch in the JSX). No position:static / transform:none here (kills the fan). */
         @media (max-width: 768px) {
-          .lp-audit { min-height: 190vh; padding: 0 6%; }
-          .lp-audit__inner { position: sticky; top: 60px; padding-top: 22px; }
+          /* Normal-flow section (no 190vh pinned runway / sticky inner). The cards assemble
+             via a one-shot entrance when scrolled into view, so there's no scroll-linked
+             choreography that needs a tall runway — and no sticky element repainting per
+             scroll frame, which was the remaining source of jank. */
+          .lp-audit { min-height: auto; padding: 70px 6% 80px; }
+          .lp-audit__inner { position: static; top: auto; padding-top: 0; }
           .lp-audit__grid {
             position: relative;
             display: flex; justify-content: center; align-items: center;
             flex-direction: row; gap: 0;
-            min-height: clamp(360px, 54vh, 460px); margin: 14px auto 0; max-width: 100%;
-            perspective: 1000px;
+            min-height: clamp(360px, 54vh, 460px); margin: 30px auto 0; max-width: 100%;
+            /* No 3D perspective on phones: it forces every card into a 3D rasterization
+               context. The fan's tiny 2D rotates (±10°) look identical without it. */
+            perspective: none;
           }
           .lp-audit-card {
             width: 82%; max-width: 300px; min-height: 244px; padding: 26px 24px 22px;
+            box-shadow: 0 6px 16px rgba(7, 7, 78, 0.30);
+            /* The entrance runs once then stops; drop the layer hint afterwards isn't needed
+               but keeping will-change off the static state avoids holding a GPU layer idle. */
+            will-change: auto;
           }
         }
 

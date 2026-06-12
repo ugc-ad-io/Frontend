@@ -46,12 +46,12 @@ const BRANDS = [
 
 // Portrait thumbs for the hero gallery row -- same local UGC clips used on the homepage (/public).
 const GALLERY = [
-  { name: 'Abigail', av: ['#a78bfa', '#5b21b6'], src: '/17811912-uhd_2160_3840_24fps-sm.mp4' },
-  { name: 'Chelsea', av: ['#818cf8', '#4338ca'], src: '/6944288-uhd_2160_3840_24fps-sm.mp4' },
-  { name: 'Becki', av: ['#fca5a5', '#9d174d'], src: '/6951180-uhd_2160_3840_24fps-sm.mp4' },
-  { name: 'Maya', av: ['#fb7185', '#f43f5e'], src: '/7690504-hd_1080_1920_30fps-sm.mp4' },
-  { name: 'Lara', av: ['#7dd3fc', '#1d4ed8'], src: '/13929852-uhd_2160_3840_24fps-sm.mp4' },
-  { name: 'Priya', av: ['#a5b4fc', '#4c1d95'], src: '/6948556-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Abigail', av: ['#a78bfa', '#5b21b6'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255208/ugc-videos/video_05.mp4' },
+  { name: 'Chelsea', av: ['#818cf8', '#4338ca'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255196/ugc-videos/video_04.mp4' },
+  { name: 'Becki', av: ['#fca5a5', '#9d174d'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255180/ugc-videos/video_03.mp4' },
+  { name: 'Maya', av: ['#fb7185', '#f43f5e'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255227/ugc-videos/video_06.mp4' },
+  { name: 'Lara', av: ['#7dd3fc', '#1d4ed8'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255273/ugc-videos/video_08.mp4' },
+  { name: 'Priya', av: ['#a5b4fc', '#4c1d95'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255631/ugc-videos/video_21.mp4' },
 ];
 
 const CATEGORIES = [
@@ -60,13 +60,14 @@ const CATEGORIES = [
   'Amazon Influencers', 'YouTube Influencers', 'Social Media Managers',
 ];
 
-// Creator testimonial videos -- same local UGC clips used on the homepage (/public).
+// Creator testimonial videos -- Cloudinary-hosted (click-to-play with sound). A larger
+// width than the muted gallery thumbs since these go full phone-card when tapped.
 const TESTIMONIALS = [
-  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#a78bfa', '#5b21b6'], src: '/17811912-uhd_2160_3840_24fps-sm.mp4' },
-  { name: 'Chelsea', handle: '@chelsea.ugc',    likes: '124.2K', comments: '341', av: ['#818cf8', '#4338ca'], src: '/6944288-uhd_2160_3840_24fps-sm.mp4' },
-  { name: 'Maya',    handle: '@maya.makes',     likes: '512.9K', comments: '1.2K', av: ['#fb7185', '#f43f5e'], src: '/7690504-hd_1080_1920_30fps-sm.mp4' },
-  { name: 'Priya',   handle: '@priya.shoots',   likes: '88.4K',  comments: '212', av: ['#a5b4fc', '#4c1d95'], src: '/6948556-uhd_2160_3840_24fps-sm.mp4' },
-  { name: 'Lara',    handle: '@laralovesugc',   likes: '263.1K', comments: '904', av: ['#7dd3fc', '#1d4ed8'], src: '/13929852-uhd_2160_3840_24fps-sm.mp4' },
+  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#a78bfa', '#5b21b6'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255208/ugc-videos/video_05.mp4' },
+  { name: 'Chelsea', handle: '@chelsea.ugc',    likes: '124.2K', comments: '341', av: ['#818cf8', '#4338ca'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255196/ugc-videos/video_04.mp4' },
+  { name: 'Maya',    handle: '@maya.makes',     likes: '512.9K', comments: '1.2K', av: ['#fb7185', '#f43f5e'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255227/ugc-videos/video_06.mp4' },
+  { name: 'Priya',   handle: '@priya.shoots',   likes: '88.4K',  comments: '212', av: ['#a5b4fc', '#4c1d95'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255631/ugc-videos/video_21.mp4' },
+  { name: 'Lara',    handle: '@laralovesugc',   likes: '263.1K', comments: '904', av: ['#7dd3fc', '#1d4ed8'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255273/ugc-videos/video_08.mp4' },
 ];
 
 const FAQS = [
@@ -261,6 +262,17 @@ export default function CreatorLanding() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(-1);
+  // Mobile flag — used to auto-play the product video (no hover on touch devices).
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
   // Theme is global now (controlled from the home page); this page just follows it.
   const { theme } = useTheme();
 
@@ -383,8 +395,11 @@ export default function CreatorLanding() {
           variants={fadeUp} initial="hidden" animate="visible" custom={3}
         >
           <div className="cl-gallery__track">
-            {[...GALLERY, ...GALLERY].map(({ av, src }, i) => (
-              <GalleryCard key={i} av={av} src={src} hidden={i >= GALLERY.length} />
+            {/* Repeat the 6-card set 4x. The marquee animates translateX(-50%), so the
+                first half (2 sets) must be wider than the viewport or a gap appears at
+                the loop seam on wide screens. Second half is an aria-hidden duplicate. */}
+            {[...GALLERY, ...GALLERY, ...GALLERY, ...GALLERY].map(({ av, src }, i) => (
+              <GalleryCard key={i} av={av} src={src} hidden={i >= GALLERY.length * 2} />
             ))}
           </div>
         </motion.div>
@@ -486,6 +501,7 @@ export default function CreatorLanding() {
                     muted
                     loop
                     playsInline
+                    autoPlay={isMobile}
                     preload="metadata"
                   />
                 </div>
@@ -1158,13 +1174,25 @@ export default function CreatorLanding() {
         /* Small phones — tighter padding, smaller type, single-column stacks. */
         @media (max-width: 480px) {
           .cl-nav { padding: 14px 5%; }
-          .cl-hero { padding: clamp(92px, 13vh, 130px) 5% 0; }
-          .cl-hero__title { font-size: clamp(1.7rem, 7.4vw, 2.4rem); line-height: 1.12; }
-          .cl-hero__sub { font-size: 1rem; }
+          /* Let the hero shrink to its content instead of a full 100vh — otherwise
+             the leftover viewport space below the video cards pushes the category
+             pills far down the screen. Collapsing it brings the pills up under the cards. */
+          .cl-hero { padding: clamp(92px, 13vh, 130px) 5% 0; height: auto; min-height: 0; gap: 16px; }
+          .cl-hero__title { font-size: clamp(2.1rem, 9.2vw, 3.1rem); line-height: 1.12; }
+          .cl-hero__sub { font-size: 1.05rem; }
+          .cl-hero__ctas { margin-top: 0px; }
           .cl-section { padding: 46px 5%; }
-          .cl-belowfold { padding: 30px 5%; }
+          .cl-belowfold { padding: 14px 5% 24px; }
+          .cl-brands__row { padding-top: 36px; gap: 22px; }
           .cl-hiw__card { padding: 24px 20px 0; }
           .cl-hiw__card--wide { padding: 24px 20px; }
+          .cl-hiw__paid { transform: rotate(4deg); }
+          /* "Pick a job" phone mockup: the desktop fixed translate(140px) overflowed the
+             phone off-screen — use a scaling % shift so the phone + product card fit. */
+          /* Bottom-aligned content, so push the whole composition down with translateY. */
+          .cl-hiw__visual--phone { min-height: 300px; transform: translateY(30px); }
+          .cl-hiw__phone { width: 60%; transform: translateX(34%); min-height: 300px; }
+          .cl-hiw__prodfront { left: 0; bottom: 60px; width: 56%; max-width: 200px; }
           .cl-hiw__title { font-size: 1.5rem; }
           .cl-hiw__text { font-size: 0.95rem; }
           .cl-hiw__chip { font-size: 0.7rem; padding: 6px 10px; }
@@ -1176,7 +1204,10 @@ export default function CreatorLanding() {
           .cl-faq__q { padding: 20px; font-size: 1rem; }
           .cl-faq__a { padding: 0 20px 20px; }
           .cl-footer { padding: 40px 5% 32px; }
-          .cl-footer__cols { grid-template-columns: 1fr; gap: 22px; }
+          /* Two columns on phones: Product/Legal/US stack on the left,
+             Alternatives/Blog/India on the right (matches the reference). */
+          .cl-footer__cols { grid-template-columns: repeat(2, 1fr); gap: 28px 24px; }
+          .cl-footer__col { text-align: left; }
         }
       `}</style>
     </div>

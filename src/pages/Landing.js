@@ -1074,11 +1074,12 @@ export default function Landing() {
   // marginBottom:brandRise on the wrapper shifts the showcase + everything below up the same amount
   // so they stay flush. DESKTOP keeps its ORIGINAL behaviour untouched ([0.62,0.72]→[380,0] +
   // easeInOut, no margin) — gated behind heroStatic so the web scroll never changes.
-  // Mobile lift: bigger so the brand strip rises further UP and sticks right behind the last
-  // leaderboard rows as they fade — closing the empty tail of the (now shorter) section. The
-  // window starts as the last ~3 rows reach focus and runs through their fade, so the strip is
-  // "stuck" to them on the way up; matching marginBottom drags the showcase + rest up with it.
-  const brandRise = -480;                 // mobile lift; 0 on desktop (no structural shift)
+  // Mobile lift: the brand strip rises up to stick behind the last leaderboard rows as they
+  // fade, and a matching marginBottom drags the showcase + rest up to stay flush. Keep this
+  // MODEST — the shorter 175vh section already closes most of the gap, so too large a value
+  // over-pulls the showcase up UNDER the strip (it then overlaps / paints on top). -260 sits
+  // them flush; raise toward 0 if they still overlap, more negative if a gap reopens.
+  const brandRise = -260;                 // mobile lift; 0 on desktop (no structural shift)
   const brandRiseRaw = useTransform(
     logo3dProgress,
     heroStatic ? [0.45, 0.7] : [0.62, 0.72],

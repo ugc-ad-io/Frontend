@@ -1655,7 +1655,7 @@
 }
 
 .ps-form-group input[type="password"] {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   letter-spacing: 0.1em;
 }
 

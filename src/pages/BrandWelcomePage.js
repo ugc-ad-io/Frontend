@@ -897,19 +897,21 @@ export default function BrandWelcomePage() {
             min-height: 100vh;
             background: #f8f9ff;
             overflow-x: hidden;
-            font-family: 'Instrument Sans', sans-serif;
+            font-family: var(--font-body);
           }
           .welcome-page h1,
           .welcome-page h2,
           .welcome-page h3,
-          .welcome-page h4,
+          .welcome-page h4 {
+            font-family: var(--font-head);
+          }
           .welcome-page p,
           .welcome-page span,
           .welcome-page button,
           .welcome-page input,
           .welcome-page a,
           .welcome-page li {
-            font-family: 'Instrument Sans', sans-serif;
+            font-family: var(--font-body);
           }
 
           /* Ambient floating background orbs */
@@ -1219,8 +1221,8 @@ export default function BrandWelcomePage() {
           }
 
           .welcome-banner h1 {
-            font-size: 2.2rem;
-            font-weight: 400;
+            font-size: var(--fs-h1);
+            font-weight: var(--fw-head);
             color: #ffffff;
             letter-spacing: -0.02em;
             margin: 0 0 8px 0;
@@ -1503,8 +1505,8 @@ export default function BrandWelcomePage() {
           }
 
           .recommended-card h3 {
-            font-size: 1rem;
-            font-weight: 400;
+            font-size: var(--fs-h3);
+            font-weight: var(--fw-head);
             color: #1a202c;
             margin: 0 0 4px 0;
           }
@@ -1529,8 +1531,8 @@ export default function BrandWelcomePage() {
             text-transform: uppercase;
           }
           .explore-section h2 {
-            font-size: 1.65rem;
-            font-weight: 400;
+            font-size: var(--fs-h2);
+            font-weight: var(--fw-head);
             color: #1a202c;
             letter-spacing: -0.02em;
             margin: 0 0 6px 0;
@@ -1690,8 +1692,8 @@ export default function BrandWelcomePage() {
           }
 
           .dashboard-card h3 {
-            font-size: 1rem;
-            font-weight: 400;
+            font-size: var(--fs-h3);
+            font-weight: var(--fw-head);
             color: #1a202c;
             margin: 0 0 8px 0;
           }
@@ -1719,10 +1721,6 @@ export default function BrandWelcomePage() {
               max-width: 100%;
               flex: 1 1 100%;
               order: 3;
-            }
-
-            .welcome-banner h1 {
-              font-size: 1.75rem;
             }
 
             .recommended-cards {
@@ -1796,10 +1794,6 @@ export default function BrandWelcomePage() {
               margin-bottom: 24px;
             }
 
-            .welcome-banner h1 {
-              font-size: 1.5rem;
-            }
-
             .recommended-cards {
               grid-template-columns: 1fr;
               gap: 12px;
@@ -1817,11 +1811,6 @@ export default function BrandWelcomePage() {
               width: 40px;
               height: 40px;
               min-width: 40px;
-            }
-
-            .recommended-section h2,
-            .explore-section h2 {
-              font-size: 1.25rem;
             }
 
             .profile-menu-dropdown {

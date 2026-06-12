@@ -153,7 +153,7 @@ export default function CreatorSignup() {
           justify-content: center;
           padding: 40px 20px;
           background: #0a0a0a;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           position: relative;
           overflow: hidden;
         }
@@ -184,7 +184,7 @@ export default function CreatorSignup() {
           color: rgba(255, 255, 255, 0.78);
           font-size: 0.85rem;
           font-weight: 500;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           cursor: pointer;
           transition: all 0.22s ease;
         }
@@ -226,8 +226,9 @@ export default function CreatorSignup() {
         }
         .cs-title {
           margin: 0;
-          font-size: 1.45rem;
-          font-weight: 700;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #ffffff;
           line-height: 1.25;
           letter-spacing: -0.01em;
@@ -262,7 +263,7 @@ export default function CreatorSignup() {
           padding: 15px 16px;
           font-size: 1rem;
           color: #ffffff;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
         .cs-input-wrap .cs-input { padding-right: 52px; }
@@ -302,7 +303,7 @@ export default function CreatorSignup() {
           color: #fff;
           font-size: 1.05rem;
           font-weight: 700;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           cursor: pointer;
           box-shadow: 0 12px 34px rgba(167, 139, 250, 0.35);
           transition: transform 0.15s ease, box-shadow 0.2s ease;
@@ -323,7 +324,7 @@ export default function CreatorSignup() {
           color: #ffffff;
           font-size: 1.02rem;
           font-weight: 600;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -345,7 +346,7 @@ export default function CreatorSignup() {
           color: var(--cs-purple);
           font-weight: 700;
           font-size: 0.95rem;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           cursor: pointer;
           text-decoration: underline;
           text-underline-offset: 3px;
@@ -392,7 +393,7 @@ export default function CreatorSignup() {
           background: rgba(255, 255, 255, 0.04);
           border: 1.5px solid rgba(255, 255, 255, 0.16);
           border-radius: 12px;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
         .cs-otp-box:focus {
@@ -410,7 +411,7 @@ export default function CreatorSignup() {
           color: rgba(255, 255, 255, 0.78);
           font-size: 0.95rem;
           font-weight: 500;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           cursor: pointer;
           text-align: left;
           transition: color 0.2s ease;
@@ -420,7 +421,6 @@ export default function CreatorSignup() {
 
         @media (max-width: 560px) {
           .cs-card { padding: 28px 22px 32px; border-radius: 16px; }
-          .cs-title { font-size: 1.25rem; }
           .cs-verify-title { font-size: 1.35rem; }
           .cs-back { top: 16px; left: 16px; }
           .cs-otp { gap: 8px; }

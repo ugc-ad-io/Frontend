@@ -11,8 +11,8 @@
 }
 
 .browse-gigs-title h1 {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-head);
   color: #07074e;
   margin: 0 0 8px 0;
 }
@@ -186,8 +186,8 @@
 
 /* Gig Title */
 .gig-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
   color: #07074e;
   margin: 0;
   line-height: 1.4;

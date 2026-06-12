@@ -15,10 +15,10 @@
 }
 
 .applications-header h1 {
-  font-size: 2.8rem;
+  font-size: var(--fs-h1);
   color: #0f172a;
   margin-bottom: 30px;
-  font-weight: 800;
+  font-weight: var(--fw-head);
   letter-spacing: -0.5px;
 }
 
@@ -226,12 +226,12 @@
 
 .card-header h3 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--fs-h3);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 700;
+  font-weight: var(--fw-head);
 }
 
 .status-badge {
@@ -429,10 +429,10 @@
 }
 
 .detail-title h2 {
-  font-size: 1.6rem;
+  font-size: var(--fs-h2);
   margin: 0;
   color: #0f172a;
-  font-weight: 800;
+  font-weight: var(--fw-head);
   letter-spacing: -0.4px;
 }
 
@@ -513,10 +513,10 @@
 }
 
 .detail-section h3 {
-  font-size: 1rem;
+  font-size: var(--fs-h3);
   margin: 0 0 18px 0;
   color: #0f172a;
-  font-weight: 700;
+  font-weight: var(--fw-head);
   letter-spacing: -0.2px;
 }
 
@@ -655,10 +655,10 @@
 
 .video-title {
   padding: 10px 12px 4px;
-  font-weight: 600;
+  font-weight: var(--fw-head);
   color: #0f172a;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-h3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -700,9 +700,9 @@
 
 .kyc-header h4 {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-h3);
   color: #0f172a;
-  font-weight: 700;
+  font-weight: var(--fw-head);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
@@ -779,9 +779,9 @@
 
 .social-card h4 {
   margin: 0 0 8px 0;
-  font-size: 0.75rem;
+  font-size: var(--fs-h3);
   color: #94a3b8;
-  font-weight: 700;
+  font-weight: var(--fw-head);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -897,9 +897,9 @@
 
 .decision-section h3 {
   margin: 0 0 18px 0;
-  font-size: 1rem;
+  font-size: var(--fs-h3);
   color: #0f172a;
-  font-weight: 700;
+  font-weight: var(--fw-head);
 }
 
 .decision-buttons {
@@ -1103,9 +1103,9 @@
 
 .more-info-modal h3 {
   margin: 0 0 28px 0;
-  font-size: 1.4rem;
+  font-size: var(--fs-h2);
   color: #0f172a;
-  font-weight: 800;
+  font-weight: var(--fw-head);
 }
 
 .modal-actions {
@@ -1359,8 +1359,8 @@
 
 .apps-name-block h4 {
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
   color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
@@ -1505,8 +1505,8 @@
 
 .apps-empty h3 {
   margin: 6px 0 0;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
   color: #0f172a;
 }
 

@@ -1115,7 +1115,7 @@ export default function CreatorProfileSetup() {
           min-height: 100vh;
           background: #0a0a0a;
           color: #fff;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           position: relative;
           overflow-x: hidden;
         }
@@ -1174,7 +1174,7 @@ export default function CreatorProfileSetup() {
         .ps-card__head { margin-bottom: 18px; }
         .ps-step { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 0.68rem; font-weight: 700;
           background: linear-gradient(120deg, #A78BFA, #8f6ff0); color: #fff; }
-        .ps-title { font-size: 1.35rem; font-weight: 700; margin: 11px 0 0; color: #fff; letter-spacing: -0.01em; }
+        .ps-title { font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); margin: 11px 0 0; color: #fff; letter-spacing: -0.01em; }
         .ps-sub { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 5px 0 0; }
         .ps-body { display: flex; flex-direction: column; gap: 16px; }
 
@@ -1270,7 +1270,7 @@ export default function CreatorProfileSetup() {
         .ps-stub { text-align: center; padding: 34px 10px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
         .ps-stub__icon { width: 62px; height: 62px; border-radius: 18px; display: flex; align-items: center;
           justify-content: center; background: rgba(167,139,250,0.14); color: var(--ps-purple); }
-        .ps-stub__title { font-size: 1.3rem; font-weight: 700; margin: 0; color: #fff; }
+        .ps-stub__title { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); margin: 0; color: #fff; }
         .ps-stub__text { font-size: 0.97rem; line-height: 1.6; color: rgba(255,255,255,0.55); max-width: 420px; margin: 0; }
         .ps-stub__text strong { color: #fff; }
 
@@ -1296,7 +1296,7 @@ export default function CreatorProfileSetup() {
         .ps-thanks__icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center;
           justify-content: center; color: #fff; margin-bottom: 22px;
           background: linear-gradient(135deg, #A78BFA, #7c3aed); box-shadow: 0 0 0 10px rgba(167,139,250,0.14), 0 16px 40px rgba(124,58,237,0.5); }
-        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0 0 12px; }
+        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); color: #fff; margin: 0 0 12px; }
         .ps-thanks__text { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.65); max-width: 420px; margin: 0 0 28px; }
         .ps-thanks__text strong { color: #fff; }
         .ps-thanks__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
@@ -1314,7 +1314,7 @@ export default function CreatorProfileSetup() {
         .ps-hinttext { font-size: 0.78rem; line-height: 1.5; color: rgba(255,255,255,0.5); margin: -2px 0 3px; }
         .ps-section { display: flex; flex-direction: column; gap: 9px; padding-top: 6px;
           border-top: 1px solid rgba(255,255,255,0.07); }
-        .ps-h3 { font-size: 0.98rem; font-weight: 700; color: #fff; margin: 4px 0 0; }
+        .ps-h3 { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); color: #fff; margin: 4px 0 0; }
         .ps-chip--add { color: var(--ps-purple); border-style: dashed; }
         .ps-chip--add svg { color: var(--ps-purple); }
         .ps-chip--add-on { background: rgba(167,139,250,0.16); border-style: solid; border-color: var(--ps-purple); }
@@ -1485,7 +1485,6 @@ export default function CreatorProfileSetup() {
         @media (max-width: 560px) {
           .ps-card { padding: 26px 22px; }
           .ps-row { grid-template-columns: 1fr; }
-          .ps-title { font-size: 1.5rem; }
           .ps-upload__cta { display: none; }
           /* Portfolio upload: stack the upload box above the brand/description
              fields instead of forcing them side-by-side (which overflowed). */

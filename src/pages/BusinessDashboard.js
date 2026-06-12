@@ -917,8 +917,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           }
 
           .approval-card h1 {
-            font-size: 2.5rem;
-            font-weight: 400;
+            font-size: var(--fs-h1);
+            font-weight: var(--fw-head);
             color: #1a202c;
             margin-bottom: 12px;
           }
@@ -960,8 +960,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           }
 
           .info-item h3 {
-            font-size: 1rem;
-            font-weight: 400;
+            font-size: var(--fs-h3);
+            font-weight: var(--fw-head);
             color: #2d3748;
             margin-bottom: 4px;
           }
@@ -1002,8 +1002,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           }
 
           .footer-section h4 {
-            font-size: 1.125rem;
-            font-weight: 400;
+            font-size: var(--fs-h3);
+            font-weight: var(--fw-head);
             color: #1a202c;
             margin-bottom: 16px;
           }
@@ -2514,7 +2514,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .approval-pending h2 {
-          font-size: 2rem;
+          font-size: var(--fs-h2);
           margin-bottom: 16px;
           color: #1a202c;
         }
@@ -2545,8 +2545,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .dashboard-header h1 {
-          font-size: 2rem;
-          font-weight: 400;
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: #07074E;
           margin-bottom: 4px;
         }
@@ -2906,8 +2906,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .post-brief-head h2 {
           margin: 0 0 8px;
           color: #07074E;
-          font-size: 28px;
-          font-weight: 400;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
         }
 
         .post-brief-head p {
@@ -2958,8 +2958,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .brand-panel h2 {
           margin: 0;
           color: #07074E;
-          font-size: 20px;
-          font-weight: 400;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
         }
 
         .performance-panel {
@@ -4113,8 +4113,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .quick-actions h3 {
-          font-size: 1.5rem;
-          font-weight: 400;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin-bottom: 24px;
         }
@@ -4201,8 +4201,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .section-group h2 {
-          font-size: 1.5rem;
-          font-weight: 400;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin-bottom: 24px;
         }
@@ -4266,8 +4266,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .campaign-header h3 {
-          font-size: 1.25rem;
-          font-weight: 400;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           color: #1a202c;
           flex: 1;
         }
@@ -4359,7 +4359,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .all-campaigns-hero h2 {
           margin: 0 0 8px;
           color: #07074E;
-          font-size: 30px;
+          font-size: var(--fs-h2);
           letter-spacing: 0;
         }
 
@@ -4461,7 +4461,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .all-campaigns-empty h3 {
           margin: 8px 0 0;
           color: #07074E;
-          font-size: 24px;
+          font-size: var(--fs-h3);
         }
 
         .all-campaigns-empty p {
@@ -4509,8 +4509,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .all-campaigns-section .campaign-header h3 {
           margin: 0;
           color: #07074E;
-          font-size: 20px;
-          font-weight: 400;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           line-height: 1.3;
         }
 
@@ -4599,8 +4599,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .pending-info h4 {
-          font-size: 1.1rem;
-          font-weight: 400;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin-bottom: 8px;
         }
@@ -4674,14 +4674,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .bids-section-head h2 {
           margin: 0;
           color: #07074E;
-          font-size: 30px;
+          font-size: var(--fs-h2);
           line-height: 1.1;
         }
 
         .shipments-section-head h2 {
           margin: 0;
           color: #07074E;
-          font-size: 30px;
+          font-size: var(--fs-h2);
           line-height: 1.1;
         }
 
@@ -4764,9 +4764,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .bid-campaign-header h3,
         .shipment-header h3 {
           margin: 0;
-          font-size: 20px;
+          font-size: var(--fs-h3);
           line-height: 1.25;
-          font-weight: 400;
+          font-weight: var(--fw-head);
           color: #1a202c;
           flex: 1;
           overflow-wrap: anywhere;
@@ -4913,7 +4913,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .creator-directory-head h2 {
           margin: 0;
           color: #07074E;
-          font-size: 28px;
+          font-size: var(--fs-h2);
           line-height: 1.1;
         }
 
@@ -5062,7 +5062,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .creator-card-top h3 {
           margin: 0 0 8px;
           color: #07074E;
-          font-size: 18px;
+          font-size: var(--fs-h3);
           line-height: 1.25;
           word-break: break-word;
         }
@@ -5410,7 +5410,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .wallet-panel h2 {
           margin: 0;
           color: #07074E;
-          font-size: 22px;
+          font-size: var(--fs-h2);
         }
 
         .wallet-panel p {
@@ -5749,7 +5749,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .work-review-hero h2 {
           margin: 0;
           color: #07074E;
-          font-size: 32px;
+          font-size: var(--fs-h2);
           line-height: 1;
         }
 
@@ -5841,7 +5841,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .work-review-empty h3 {
           margin: 8px 0 0;
           color: #07074E;
-          font-size: 24px;
+          font-size: var(--fs-h3);
         }
 
         .work-review-empty p {
@@ -5890,7 +5890,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .work-review-card h3 {
           margin: 0;
           color: #07074E;
-          font-size: 20px;
+          font-size: var(--fs-h3);
         }
 
         .work-review-card-top p {
@@ -6051,8 +6051,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .modal-content h2 {
-          font-size: 1.75rem;
-          font-weight: 400;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin-bottom: 32px;
         }

@@ -2084,8 +2084,8 @@ export default function AdminDashboard() {
         }
 
         .dashboard-header h1 {
-          font-size: 2rem;
-          font-weight: 700;
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin-bottom: 4px;
         }
@@ -2160,7 +2160,7 @@ export default function AdminDashboard() {
 
         .card-value {
           font-size: 2rem;
-          font-weight: 700;
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin: 0 0 4px 0;
         }
@@ -2212,8 +2212,8 @@ export default function AdminDashboard() {
         }
 
         .tab-content h2 {
-          font-size: 1.75rem;
-          font-weight: 700;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin-bottom: 32px;
         }
@@ -2253,7 +2253,7 @@ export default function AdminDashboard() {
 
         .stat-value {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: var(--fw-head);
           color: #1a202c;
         }
 
@@ -2301,8 +2301,8 @@ export default function AdminDashboard() {
         .operator-hero h2 {
           margin: 18px 0 12px;
           color: #0f0f2e;
-          font-size: 32px;
-          font-weight: 800;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           line-height: 1.2;
         }
 
@@ -2348,8 +2348,8 @@ export default function AdminDashboard() {
         .operator-section-head h3 {
           margin: 0;
           color: #0f0f2e;
-          font-size: 22px;
-          font-weight: 800;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           letter-spacing: -0.5px;
         }
 
@@ -2404,7 +2404,7 @@ export default function AdminDashboard() {
           font-size: 36px;
           line-height: 1;
           margin-bottom: 14px;
-          font-weight: 800;
+          font-weight: var(--fw-head);
           background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -2555,8 +2555,8 @@ export default function AdminDashboard() {
         .profile-header h3,
         .campaign-header h3,
         .withdrawal-header h3 {
-          font-size: 18px;
-          font-weight: 700;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           color: #0f0f2e;
           margin-bottom: 0;
           letter-spacing: -0.3px;
@@ -2794,7 +2794,7 @@ export default function AdminDashboard() {
 
         .flagged-stat-value {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: var(--fw-head);
           color: #92400e;
         }
 
@@ -3161,9 +3161,9 @@ export default function AdminDashboard() {
         }
 
         .campaign-title-small {
-          font-weight: 600;
+          font-weight: var(--fw-head);
           color: #1a202c;
-          font-size: 0.95rem;
+          font-size: var(--fs-h3);
         }
 
         .status-badge-small {
@@ -4311,8 +4311,8 @@ export default function AdminDashboard() {
         .detail-title h2 {
           margin: 0 0 8px 0;
           color: #0f0f2e;
-          font-size: 28px;
-          font-weight: 800;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
         }
 
         .detail-title p {
@@ -4509,8 +4509,8 @@ export default function AdminDashboard() {
           padding: 12px;
           margin: 0;
           color: #0f0f2e;
-          font-size: 13px;
-          font-weight: 700;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           background: white;
         }
 
@@ -4979,8 +4979,8 @@ export default function AdminDashboard() {
 
         .page-header h1 {
           margin: 0;
-          font-size: 36px;
-          font-weight: 800;
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: #0f0f2e;
         }
 

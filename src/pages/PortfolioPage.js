@@ -506,8 +506,8 @@ export default function PortfolioPage() {
         }
 
         .portfolio-card-title {
-          font-size: 16px;
-          font-weight: 600;
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           color: #111827;
           margin: 0;
           line-height: 1.3;
@@ -606,8 +606,8 @@ export default function PortfolioPage() {
 
         .portfolio-modal-header h2 {
           margin: 0;
-          font-size: 18px;
-          font-weight: 600;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #111827;
         }
 

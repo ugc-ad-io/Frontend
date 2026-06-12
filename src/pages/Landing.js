@@ -219,17 +219,29 @@ function useIsPhone() {
   return phone;
 }
 
+// Per-layout leaderboard tuning. PHONE packs the rows tighter (gap), keeps MORE of them on
+// screen (range), and fades them out more slowly (cutoff/fade) so several statements are
+// readable at once instead of just ~3 with a big empty gap below. Desktop keeps its originals.
+//   peak/step/floor → size falloff · gap → row spacing px · range → ±rows shown ·
+//   cutoff/fade → opacity falloff.
+function lbTuning(phone) {
+  return phone
+    ? { peak: 16, step: 1.8, floor: 8, gap: 90,  range: 6, cutoff: 5.5,  fade: 0.12, rotK: 5, rotMax: 30 }
+    : { peak: 34, step: 8,   floor: 6, gap: 160, range: 3, cutoff: 2.55, fade: 0.38, rotK: 8, rotMax: 24 };
+}
+
 // Full visual state for a row at focus-offset `o` — a pure function used both for the
 // first paint (inline style) and inside the imperative scroll updater below.
-//   fontSize 60→10px (via scale) · opacity 1→0.03 · translateY = offset×160 · 2D rotate
+//   fontSize 60→10px (via scale) · opacity falloff · translateY = offset×gap · 2D rotate
 //   (entry below = +cw clamped 24°, exit above = −ccw clamped −24°) · white→grey colour
-//   (quantized) · weight 500/400/300 · hidden past ±3.
-function rowVisualAt(v, index, total, peak, step, floor) {
+//   (quantized) · weight 500/400/300 · hidden past ±range.
+function rowVisualAt(v, index, total, phone) {
+  const { peak, step, floor, gap, range, cutoff, fade, rotK, rotMax } = lbTuning(phone);
   const o = index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE);
   const a = o < 0 ? -o : o;
-  if (a > 3) return { display: 'none' };
-  const ty = o * 160;
-  const rot = o > 0 ? Math.min(o * 8, 24) : Math.max(o * 8, -24);
+  if (a > range) return { display: 'none' };
+  const ty = o * gap;
+  const rot = o > 0 ? Math.min(o * rotK, rotMax) : Math.max(o * rotK, -rotMax);
   const sc = Math.max(floor, peak - a * step) / peak;
   // Quantize the grey to discrete steps so text re-rasters only when it crosses a step.
   const colorKey = a < 0.12 ? 1000 : Math.round(Math.max(70, 235 - a * 60) / 24);
@@ -237,7 +249,7 @@ function rowVisualAt(v, index, total, peak, step, floor) {
   return {
     display: 'flex',
     transform: `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg) scale(${sc})`,
-    opacity: a < 2.55 ? 1 - a * 0.38 : 0.03,
+    opacity: a < cutoff ? 1 - a * fade : 0.03,
     color: colorKey === 1000 ? '#ffffff' : `rgb(${lum},${lum},${lum})`,
     fontWeight: a < 0.22 ? 500 : a < 1.3 ? 400 : 300,
     pointerEvents: a < 0.5 ? 'auto' : 'none',
@@ -255,20 +267,16 @@ function LeaderboardRow({ progress, index, count }) {
   const phone = useIsPhone();
   const ref = useRef(null);
   const total = count - 1 + LB_PRE;                 // full focus travel
-  // Phone: smaller focus size + gentler falloff so rows fit a narrow screen. The base
-  // font-size is fixed in CSS (= peak); size is driven by scale() (GPU-composited, no
-  // reflow) instead of animating font-size.
-  const peak = phone ? 18 : 34;
-  const step = phone ? 4 : 8;
-  const floor = phone ? 5 : 6;
 
   // First paint matches the current scroll position so rows never flash at centre.
-  const initial = rowVisualAt(progress ? progress.get() : 0, index, total, peak, step, floor);
+  const initial = rowVisualAt(progress ? progress.get() : 0, index, total, phone);
 
   useEffect(() => {
     if (!progress) return;
     const el = ref.current;
     if (!el) return;
+    // Per-layout tuning (phone packs more rows, fades slower) — shared with rowVisualAt.
+    const { peak, step, floor, gap, range, cutoff, fade, rotK, rotMax } = lbTuning(phone);
     // Seed trackers to -1 so the first apply() writes every property once, then skips.
     let lastColor = -1;
     let lastWeight = -1;
@@ -279,8 +287,8 @@ function LeaderboardRow({ progress, index, count }) {
       const o = index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE);
       const a = o < 0 ? -o : o;
 
-      // show/hide past ±3 — toggled only on change (avoids per-frame reflow)
-      const shown = a > 3 ? 0 : 1;
+      // show/hide past ±range — toggled only on change (avoids per-frame reflow)
+      const shown = a > range ? 0 : 1;
       if (shown !== lastShown) {
         lastShown = shown;
         el.style.display = shown ? 'flex' : 'none';
@@ -288,11 +296,11 @@ function LeaderboardRow({ progress, index, count }) {
       if (!shown) return;                            // fully hidden — skip all paint work
 
       // transform + opacity — cheap, GPU-composited, every frame
-      const ty = o * 160;
-      const rot = o > 0 ? (o * 8 > 24 ? 24 : o * 8) : (o * 8 < -24 ? -24 : o * 8);
+      const ty = o * gap;
+      const rot = o > 0 ? (o * rotK > rotMax ? rotMax : o * rotK) : (o * rotK < -rotMax ? -rotMax : o * rotK);
       const sc = Math.max(floor, peak - a * step) / peak;
       el.style.transform = `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg) scale(${sc})`;
-      el.style.opacity = a < 2.55 ? 1 - a * 0.38 : 0.03;
+      el.style.opacity = a < cutoff ? 1 - a * fade : 0.03;
 
       // pointer-events — only near focus, toggled on change
       const pe = a < 0.5 ? 1 : 0;
@@ -314,7 +322,7 @@ function LeaderboardRow({ progress, index, count }) {
     apply(progress.get());
     return progress.on('change', apply);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress, index, total, peak, step, floor]);
+  }, [progress, index, total, phone]);
 
   return (
     <a
@@ -881,13 +889,14 @@ export default function Landing() {
   const card2Y = useSpring(useTransform(auditProgress, [0.04, 0.33], [0, -800], { ease: easeInOut }), PEEL_SPRING);
   const card3Y = useSpring(useTransform(auditProgress, [0.36, 0.65], [35, -800], { ease: easeInOut }), PEEL_SPRING);
   const card1Y = useSpring(useTransform(auditProgress, [0.68, 0.99], [-35, -800], { ease: easeInOut }), PEEL_SPRING);
-  // Mobile assemble: previously scroll-DRIVEN (cards' y tied to scroll progress). Tying
-  // continuous card paint to every scroll frame is inherently janky on phones — no amount of
-  // spring/raw/paint tuning fully removed it. So on mobile the cards now play a ONE-SHOT
-  // staggered entrance the first time the section scrolls into view (see the motion props in
-  // the JSX). That entrance runs on framer's own rAF for ~0.5s and then STOPS — there is zero
-  // per-scroll-frame work afterwards, so scrolling (up or down) through the section is smooth.
-  // Desktop still uses the scroll-linked peel (card1/2/3Y springs above).
+  // Mobile assemble — SCROLL-DRIVEN: each card's y is tied to the section's scroll progress so
+  // the cards rise in and stack one-by-one as you scroll (the reverse of the desktop peel). Q1 is
+  // present at the back from the start; Q2 then Q3 slide up from below (520→0) and land on top.
+  // This needs the section to be tall + sticky (see the mobile .lp-audit CSS) so there's scroll
+  // room for the assemble. Desktop uses the peel (card1/2/3Y springs above).
+  const mAuditQ1Y = useSpring(useTransform(auditProgress, [0.0, 0.08], [40, 0], { ease: easeInOut }), PEEL_SPRING);
+  const mAuditQ2Y = useSpring(useTransform(auditProgress, [0.16, 0.46], [520, 0], { ease: easeInOut }), PEEL_SPRING);
+  const mAuditQ3Y = useSpring(useTransform(auditProgress, [0.5, 0.82], [520, 0], { ease: easeInOut }), PEEL_SPRING);
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -909,9 +918,16 @@ export default function Landing() {
   // NO spring here: the rows/fade track raw scroll EXACTLY, so the leaderboard looks
   // identical scrolling up or down (a spring lags by direction, which left an empty
   // navy gap when scrolling back UP from the brand strip before the rows re-appeared).
+  // Mobile starts the leaderboard timeline as the section SCROLLS INTO VIEW — offset start
+  // 'center' means progress begins the moment the section's top reaches mid-screen, so the
+  // come-up + row flow run while it's entering instead of only after it pins at the very top
+  // (which is why it used to look like nothing happened until you'd scrolled past it). Desktop
+  // keeps start-at-pin. Read once at mount via matchMedia (the offset isn't reactive to resize).
+  const lbStartInView = typeof window !== 'undefined'
+    && window.matchMedia('(max-width: 768px)').matches;
   const { scrollYProgress: logo3dProgress } = useScroll({
     target: logo3dRef,
-    offset: ['start start', 'end end'],
+    offset: lbStartInView ? ['start center', 'end end'] : ['start start', 'end end'],
   });
   // Leaderboard scrolls vertically: 1st row centered at the start, last row
   // centered at the end — each rank passes through the centre one-by-one.
@@ -926,6 +942,16 @@ export default function Landing() {
   // Rows finish by LOGO3D_SCROLL_END (0.62); the 11th sits at the 50% focus, then fades over
   // 0.62→0.72 — melting away as the logo crosses (which starts from that same moment).
   const logoBoardOpacity = useTransform(logo3dProgress, [0.62, 0.72], [1, 0]);
+  // ── Mobile 3D-logo ────────────────────────────────────────────────────────────
+  // The mark lives IN this section (no desktop fly-through). On mobile it just spins about its
+  // vertical axis tied to scroll (verticalSpin in the JSX) — no landscape tilt/barrel — so it's
+  // driven by raw logo3dProgress directly, no phase remap needed.
+  // COME-UP: the logo no longer rises on its own private timeline (that's why it lagged behind
+  // the board). In the JSX its vertical position is driven by the SAME boardRiseY spring that
+  // lifts the leaderboard, so the mark rises into place LOCKED TO the board — they come up as
+  // one. Here we only handle the dissolve: fade out as the brand strip's centre logo arrives,
+  // so the mark no longer bleeds down into the showcase.
+  const logoStageOpacity = useTransform(logo3dProgress, [0.66, 0.82], [1, 0]);
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
@@ -1021,24 +1047,41 @@ export default function Landing() {
   // ([0.35,0.67]→[220,0] + easeInOut) — the mobile tuning is gated behind heroStatic so it never
   // changes the web/desktop scroll.
   const boardRiseRaw = useTransform(
-    journeyP,
-    heroStatic ? [0.15, 0.30, 0.46] : [0.35, 0.67],
-    heroStatic ? [0, -360, -190] : [220, 0],
-    heroStatic ? undefined : { ease: easeInOut }
+    // Mobile drives the come-up off logo3dProgress (the SECTION's own scroll, 0 = section
+    // reaches the top), NOT journeyP — journeyP spans the whole hero+section, so on mobile the
+    // rise kicked in only after a lot of scroll, out of sync with the section appearing. Now it
+    // starts AS the leaderboard arrives. Desktop keeps journeyP.
+    heroStatic ? logo3dProgress : journeyP,
+    heroStatic ? [0, 0.16] : [0.35, 0.67],
+    // Mobile: rest the drum LOWER (-70) so its focus sits nearer screen-centre — the last rows
+    // no longer strand near the top with a big empty gap below. Monotonic ease to rest (no
+    // overshoot bounce), and the logo's offset below keeps the mark where it was.
+    heroStatic ? [0, -70] : [220, 0],
+    { ease: easeInOut }
   );
   const boardRiseY = useSpring(
     boardRiseRaw,
     heroStatic ? { stiffness: 300, damping: 34, mass: 0.35 } : { stiffness: 120, damping: 22, mass: 0.6 }
   );
+  // Mobile logo Y: rides boardRiseY (so it lifts in lockstep WITH the leaderboard — they come
+  // up together) but offset so the mark rests in its own lane. The board now rests 120px lower
+  // (-70 vs -190), so -120 here keeps the logo at the SAME spot it was before. Lower number =
+  // logo sits HIGHER. Tune this single value to raise/lower it.
+  const LOGO_RIDE_OFFSET = -120;
+  const logoStageY = useTransform(boardRiseY, (v) => v + LOGO_RIDE_OFFSET);
   // Brand strip "stick" — MOBILE ONLY. On mobile the transform lifts the strip up to meet the
   // leaderboard's fading last line and HOLDS (never releases → never sinks back), and a matching
   // marginBottom:brandRise on the wrapper shifts the showcase + everything below up the same amount
   // so they stay flush. DESKTOP keeps its ORIGINAL behaviour untouched ([0.62,0.72]→[380,0] +
   // easeInOut, no margin) — gated behind heroStatic so the web scroll never changes.
-  const brandRise = -360;                 // mobile lift; 0 on desktop (no structural shift)
+  // Mobile lift: bigger so the brand strip rises further UP and sticks right behind the last
+  // leaderboard rows as they fade — closing the empty tail of the (now shorter) section. The
+  // window starts as the last ~3 rows reach focus and runs through their fade, so the strip is
+  // "stuck" to them on the way up; matching marginBottom drags the showcase + rest up with it.
+  const brandRise = -480;                 // mobile lift; 0 on desktop (no structural shift)
   const brandRiseRaw = useTransform(
     logo3dProgress,
-    heroStatic ? [0.42, 0.62] : [0.62, 0.72],
+    heroStatic ? [0.45, 0.7] : [0.62, 0.72],
     heroStatic ? [0, brandRise] : [380, 0],
     heroStatic ? undefined : { ease: easeInOut }
   );
@@ -1365,10 +1408,14 @@ export default function Landing() {
               overlay flies in and occupies this position, so the stage here is a
               MOBILE-ONLY fallback (no fly-through on small screens). */}
           {heroStatic && (
-            <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoY }}>
+            // y = logoStageY (boardRiseY + offset): the SAME lift that raises the leaderboard,
+            // so the logo comes up locked to the board (in sync), just parked lower-left.
+            <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoStageY, opacity: logoStageOpacity }}>
               {logo3dInView ? (
                 <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
-                  <HeroLogo3D progress={logo3dProgress} theme={theme} />
+                  {/* Mobile: upright vertical-axis spin tied straight to scroll (no landscape
+                      tilt/barrel). idleSpin off = no continuous decorative auto-spin. */}
+                  <HeroLogo3D progress={logo3dProgress} theme={theme} idleSpin={false} verticalSpin />
                 </Suspense>
               ) : (
                 <div className="lp-logo3d__placeholder" aria-hidden="true" />
@@ -1793,32 +1840,20 @@ export default function Landing() {
                 { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
                 { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
               ];
-              // Mobile: a tighter fan. Q1 sits at the BACK; each later card lands ON TOP (in
-              // front), so the newest card is frontmost — Q3 ends centred. No scroll-linked y
-              // here: the fan position is static (x/rotate/z) and the rise-in is a one-shot
-              // entrance (motionProps below), so nothing animates per scroll frame on mobile.
+              // Mobile: a tighter fan, assembled by SCROLL (reverse of the desktop peel).
+              // Q1 is present from the start at the BACK; each later card rises in and lands
+              // ON TOP (in front), so the newest card is always frontmost — Q3 ends centred.
               const mobilePositions = [
-                { x:  46, rotate:  10, z: 1 },  // Q1 — back-right
-                { x: -46, rotate: -10, z: 2 },  // Q2 — over Q1
-                { x:   0, rotate:  -2, z: 3 },  // Q3 — front & centre
+                { x:  46, rotate:  10, z: 1, y: mAuditQ1Y },  // Q1 — back-right, already there
+                { x: -46, rotate: -10, z: 2, y: mAuditQ2Y },  // Q2 — rises in 2nd, in front of Q1
+                { x:   0, rotate:  -2, z: 3, y: mAuditQ3Y },  // Q3 — rises in last, front & centre
               ];
               const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
-              // Desktop: scroll-linked y (peel). Mobile: static fan + a once-only staggered
-              // slide-up/fade-in when the section enters the viewport (zero per-frame cost).
-              const motionProps = heroStatic
-                ? {
-                    style: { x: p.x, rotate: p.rotate, zIndex: p.z },
-                    initial: { y: 70, opacity: 0 },
-                    whileInView: { y: 0, opacity: 1 },
-                    viewport: { once: true, amount: 0.35 },
-                    transition: { duration: 0.5, delay: i * 0.13, ease: 'easeOut' },
-                  }
-                : { style: { x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z } };
               return (
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  {...motionProps}
+                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -2429,7 +2464,7 @@ export default function Landing() {
           --lp-page-bg: #0a0a0a;
           --lp-text: #ffffff;
           min-height: 100vh;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
           background: var(--lp-page-bg);
           color: var(--lp-text);
           position: relative;
@@ -2547,7 +2582,7 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           font-weight: 500;
           color: rgba(var(--lp-fg), 0.88);
@@ -2567,7 +2602,7 @@ export default function Landing() {
 
         /* Join as Creator — purple text link */
         .lp-root .lp-nav-join {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           font-weight: 600;
           color: #a78bfa;
@@ -2588,7 +2623,7 @@ export default function Landing() {
           border: 1px solid rgba(var(--lp-fg), 0.25);
           background: transparent;
           color: var(--lp-text);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 500;
           font-size: 0.92rem;
           cursor: pointer;
@@ -2618,7 +2653,7 @@ export default function Landing() {
           border: 1px solid #A78BFA;
           background: #A78BFA;
           color: #fff;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 600;
           font-size: 0.92rem;
           cursor: pointer;
@@ -2788,7 +2823,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.04);
           border: 1px solid rgba(109, 74, 232, 0.35);   /* brand-purple tint instead of plain white */
           color: #C8F23A;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.9rem;
           font-weight: 600;
           /* Guaranteed clearance below the fixed navbar — applies in every layout
@@ -2798,9 +2833,9 @@ export default function Landing() {
         }
 
         .lp-hero__title {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(4.2rem, 9.6vw, 8.4rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-hero);
+          font-weight: var(--fw-head);
           line-height: 1.14;
           color: var(--lp-text);
           margin: 0;
@@ -2843,7 +2878,7 @@ export default function Landing() {
         }
 
         .lp-hero__subtitle {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: rgba(var(--lp-fg), 0.65);
           font-size: 1.78rem;
           line-height: 1.6;
@@ -2879,7 +2914,7 @@ export default function Landing() {
           border-radius: 100px;
           background: #A78BFA;
           color: var(--lp-text);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 700;
           font-size: 1.05rem;
           border: none;
@@ -2914,7 +2949,7 @@ export default function Landing() {
           border-radius: 100px;
           background: rgba(var(--lp-fg), 0.09);   /* lifted off pure black — less flat */
           color: var(--lp-text);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 500;
           font-size: 1.05rem;
           border: 1px solid rgba(var(--lp-fg), 0.2);
@@ -2942,7 +2977,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.05);
           border: 1px solid rgba(var(--lp-fg), 0.1);
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.85rem;
           font-weight: 500;
           color: rgba(var(--lp-fg), 0.75);
@@ -3008,7 +3043,6 @@ export default function Landing() {
           bottom: auto;
           padding: 0;
         }
-
         /* Bottom strip — scrolling brand logos */
         .lp-hero__strip {
           position: absolute;
@@ -3028,7 +3062,7 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           line-height: 1.2;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
         }
         .lp-hero__strip-counter strong {
           font-size: 1.7rem;
@@ -3076,7 +3110,7 @@ export default function Landing() {
           align-items: center;
           gap: 8px;
           flex-shrink: 0;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
         }
         .lp-brand-item__icon {
           position: relative;
@@ -3258,17 +3292,17 @@ export default function Landing() {
           align-items: center;
           justify-content: center;
           text-align: center;
-          /* Statements are full sentences — allow them to wrap instead of clipping. */
-          white-space: normal;
+          /* Statements stay on ONE line — the font scales with viewport width (clamp/vw) so the
+             longest line always fits the board (≈64vw, max 760px) without wrapping or clipping. */
+          white-space: nowrap;
           width: max-content;
-          max-width: 620px;
           text-decoration: none;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-head);
           letter-spacing: -0.03em;
-          line-height: 1.12;
-          /* Fixed base size = JS peak; the per-row scale() does the size falloff so
-             font-size never animates (no reflow per scroll frame). */
-          font-size: 34px;
+          line-height: 1;
+          /* Base size = JS peak; the per-row scale() does the size falloff so font-size never
+             animates (no reflow per scroll frame). Responsive so a long line fits narrow desktops. */
+          font-size: clamp(17px, 2.8vw, 34px);
           will-change: transform, opacity;
           /* Scope layout/paint recalcs to each row so one row re-rastering (colour /
              weight step) can't invalidate the whole board. */
@@ -3285,10 +3319,13 @@ export default function Landing() {
           display: grid;
           place-items: center;
           color: var(--lp-text-soft);
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
+          font-family: var(--font-body);
         }
         @media (max-width: 900px) {
-          .lp-logo3d { height: 260vh; }
+          /* Shorter runway = less empty scroll AFTER the rows finish (the old 260vh left a long
+             dead tail before the brand strip caught up). 175vh keeps a readable flow but the
+             brand strip now rises in right behind the last rows. */
+          .lp-logo3d { height: 175vh; }
           .lp-logo3d__stage {
             width: clamp(120px, 34vw, 200px);
             height: clamp(120px, 22vh, 220px);
@@ -3296,7 +3333,10 @@ export default function Landing() {
             margin-left: calc(clamp(120px, 34vw, 200px) * -0.5);
           }
           .lp-logo3d__board { width: 92%; }
-          .lp-logo3d__boardItem { font-size: 18px; max-width: 86vw; }  /* = phone peak; scale() handles falloff */
+          /* One line on phones too: scale with vw so the longest sentence fits a ~92vw board.
+             top: shift the whole row stack UP (from the 44% default) so the text comes up
+             higher and closes the gap below the hero — independent of the logo's position. */
+          .lp-logo3d__boardItem { font-size: clamp(11px, 4.2vw, 18px); top: 22%; }
         }
 
         /* ── The Problem section ──────────────────────────────────────────── */
@@ -3318,7 +3358,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text-muted);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 500;
           margin-bottom: 18px;
@@ -3327,9 +3367,9 @@ export default function Landing() {
         .lp-problem__pill svg { color: var(--lp-purple-600); }
 
         .lp-problem__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.4rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           line-height: 1.15;
           letter-spacing: -0.04em;
@@ -3344,7 +3384,7 @@ export default function Landing() {
           -webkit-text-fill-color: #A78BFA;
         }
         .lp-problem__subtitle {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 1rem;
           line-height: 1.5;
@@ -3385,9 +3425,9 @@ export default function Landing() {
         }
 
         .lp-pcard__title {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.35rem;
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.02em;
           margin: 0;
@@ -3516,7 +3556,7 @@ export default function Landing() {
           gap: 5px;
           padding: 5px 10px;
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.72rem;
           font-weight: 500;
           background: rgba(var(--lp-fg),0.06);
@@ -3697,10 +3737,10 @@ export default function Landing() {
           text-align: center;
         }
         .lp-showcase__heading {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-head);
           /* vw-scaled so the whole sentence stays on ONE line across widths */
-          font-size: clamp(1rem, 2.9vw, 2.6rem);
-          font-weight: 500;
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: #ffffff;
           line-height: 1.2;
           letter-spacing: -0.04em;
@@ -3720,7 +3760,7 @@ export default function Landing() {
           -webkit-text-fill-color: #A78BFA;
         }
         .lp-showcase__subtitle {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 1rem;
           line-height: 1.5;
@@ -3748,7 +3788,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-border);
           color: var(--lp-text);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.92rem;
           font-weight: 500;
           cursor: pointer;
@@ -3866,7 +3906,7 @@ export default function Landing() {
           background: rgba(10, 10, 20, 0.78);
           border: 1px solid rgba(var(--lp-fg),0.14);
           color: var(--lp-text);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           font-weight: 700;
           letter-spacing: -0.01em;
@@ -3880,7 +3920,7 @@ export default function Landing() {
           right: 10px;
           padding: 4px 10px;
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.66rem;
           font-weight: 800;
           letter-spacing: 0.06em;
@@ -3904,7 +3944,7 @@ export default function Landing() {
           text-align: center;
         }
         .lp-showcase-meta__brand {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1rem;
           font-weight: 600;
           color: var(--lp-ink);
@@ -3932,9 +3972,9 @@ export default function Landing() {
           margin: 0 auto;
           max-width: 16ch;
           text-align: center;
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
-          font-weight: 700;
-          font-size: clamp(1.8rem, 4.6vw, 3.5rem);
+          font-family: var(--font-head);
+          font-weight: var(--fw-head);
+          font-size: var(--fs-h1);
           line-height: 1.05;
           letter-spacing: -0.02em;
           color: var(--lp-text);
@@ -3951,12 +3991,17 @@ export default function Landing() {
           --stk-step: 22px;   /* extra offset per card → the visible "peek" of each */
           max-width: 380px;
           margin: 40px auto 0;
-          padding: 0 0 16vh;
+          /* Small tail only. A big bottom pad (was 16vh ≈ 137px) left a dead empty band between
+             the last stacked card and the next section as the deck scrolled out. */
+          padding: 0 0 28px;
           display: none;      /* desktop keeps the fan; the deck is mobile-only */
           flex-direction: column;
           gap: 22px;
         }
         .lp-achieve__stack .lp-achieve-stackcard {
+          /* Sticky DECK — each card pins one-by-one as you scroll, the next sliding up over it.
+             The heading is NON-sticky (see below), so cards never scroll up through a pinned
+             heading — that split-the-card bug only happened when the heading was pinned. */
           position: sticky;
           top: calc(var(--stk-top) + var(--i) * var(--stk-step));
           left: auto;
@@ -3985,17 +4030,16 @@ export default function Landing() {
           /* Kill the desktop "stick to the last audit card" entrance (negative margin +
              scroll-driven y) so the title no longer overlaps the previous section. */
           .lp-achieve-rise { margin-top: 0 !important; transform: none !important; }
-          /* Keep the "Find & Hire Creators" heading visible while the deck animates:
-             pin it BELOW the navbar (top:84) so it never slips behind it; cards pin lower. */
-          .lp-achieve { padding-top: 150px; }
+          /* Heading is NON-sticky: it's visible as the deck enters, then scrolls UP with the page
+             once you start scrolling (it doesn't stay frozen at the top until the deck is gone).
+             Because it's not pinned, it sits ABOVE the cards and just scrolls off — it can't split
+             a card the way a pinned heading did. */
+          .lp-achieve { padding-top: 96px; }
           .lp-achieve__title {
-            position: sticky;
-            top: 104px;
-            z-index: 20;
+            position: static;
             max-width: 100%;
             margin: 0;
-            padding: 14px 0 16px;
-            background: var(--lp-page-bg);
+            padding: 0 0 18px;
           }
         }
         @media (max-width: 600px) {
@@ -4061,9 +4105,9 @@ export default function Landing() {
           text-align: left;
         }
         .lp-achieve-card .lp-achieve-card__title {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.28rem;
-          font-weight: 700;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: var(--lp-text);
           margin: 0 0 18px;
           padding-bottom: 18px;
@@ -4073,7 +4117,7 @@ export default function Landing() {
           transition: color 0.4s ease, border-color 0.4s ease;
         }
         .lp-achieve-card__desc {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1.02rem;
           line-height: 1.55;
           color: rgba(var(--lp-fg), 0.62);
@@ -4154,7 +4198,7 @@ export default function Landing() {
         }
         .lp-vs__cell--label {
           padding-right: 26px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.96rem;
           font-weight: 500;
           letter-spacing: 0.01em;
@@ -4198,14 +4242,14 @@ export default function Landing() {
           padding-bottom: 26px;
         }
         .lp-vs__brand {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 800;
           font-size: 1.25rem;
           color: #ffffff;
           letter-spacing: -0.01em;
         }
         .lp-vs__them-label {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 800;
           font-size: 1.25rem;
           letter-spacing: -0.01em;
@@ -4226,7 +4270,7 @@ export default function Landing() {
         .lp-vs__pill {
           flex: 1;
           min-width: 0;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.96rem;
           font-weight: 500;
           line-height: 1.4;
@@ -4236,9 +4280,9 @@ export default function Landing() {
         .lp-vs__pill--them { color: rgba(var(--lp-fg), 0.55); }
 
         .lp-vs__heading {
-          font-family: 'Instrument Sans', 'Inter', sans-serif;
-          font-size: clamp(2rem, 4vw, 3.1rem);
-          font-weight: 700;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           letter-spacing: 0.015em;
           word-spacing: 0.18em;
           margin: 0 0 36px;
@@ -4277,7 +4321,7 @@ export default function Landing() {
         .lp-vs__col--others { width: 33%; }
         .lp-vs__ctable .lp-vs__th,
         .lp-vs__ctable .lp-vs__td {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           overflow-wrap: break-word;
           word-break: break-word;
           hyphens: auto;
@@ -4346,9 +4390,9 @@ export default function Landing() {
           text-align: center;
         }
         .lp-compare__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.4rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           line-height: 1.2;
           letter-spacing: -0.04em;
@@ -4383,7 +4427,7 @@ export default function Landing() {
         }
         .lp-compare__row--head .lp-compare__cell {
           padding: 22px 16px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           font-weight: 600;
           color: var(--lp-ink);
@@ -4398,7 +4442,7 @@ export default function Landing() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           color: var(--lp-text);
           text-align: center;
@@ -4495,7 +4539,7 @@ export default function Landing() {
         .lp-eyebrow {
           display: inline-flex;
           align-items: center;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.72rem;
           font-weight: 700;
           letter-spacing: 0.18em;
@@ -4509,9 +4553,9 @@ export default function Landing() {
         }
 
         .lp-section-heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 3.5vw, 2.8rem);
-          font-weight: 600;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           margin-bottom: 60px;
           letter-spacing: -0.01em;
@@ -4575,7 +4619,7 @@ export default function Landing() {
           position: absolute;
           top: 20px;
           right: 22px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.72rem;
           font-weight: 700;
           letter-spacing: 0.06em;
@@ -4602,15 +4646,15 @@ export default function Landing() {
         .lp-root[data-theme="light"] .lp-card__icon svg { color: #ffffff; }
 
         .lp-card__title {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.12rem;
-          font-weight: 600;
+          font-family: var(--font-head);
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           margin-bottom: 10px;
         }
 
         .lp-card__body {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 0.92rem;
           line-height: 1.7;
@@ -4675,7 +4719,7 @@ export default function Landing() {
           backdrop-filter: blur(8px);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
           color: #07074e;
@@ -4693,9 +4737,9 @@ export default function Landing() {
         }
 
         .lp-cta__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2.6rem, 5.2vw, 4.4rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           margin: 0 0 18px 0;
           line-height: 1.05;
@@ -4736,7 +4780,7 @@ export default function Landing() {
         }
 
         .lp-cta__subtext {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 1.05rem;
           line-height: 1.7;
@@ -4759,14 +4803,14 @@ export default function Landing() {
         }
 
         .lp-stat__value {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-head);
           font-size: 2.2rem;
-          font-weight: 700;
+          font-weight: var(--fw-head);
           color: #A78BFA;
           line-height: 1;
         }
         .lp-stat__label {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 0.78rem;
           font-weight: 600;
@@ -4775,7 +4819,7 @@ export default function Landing() {
         }
 
         .lp-cta__subtext {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1.1rem;
           color: var(--lp-text);
           line-height: 1.5;
@@ -4801,7 +4845,7 @@ export default function Landing() {
           border-radius: 100px;
           background: var(--lp-ink);
           color: white;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 600;
           font-size: 1.05rem;
           border: none;
@@ -4827,7 +4871,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg),0.8);
           backdrop-filter: blur(6px);
           color: #07074e;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 600;
           font-size: 1rem;
           border: 1px solid var(--lp-border);
@@ -4852,7 +4896,7 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 0.9rem;
           margin: 0 0 56px 0;
@@ -4884,15 +4928,15 @@ export default function Landing() {
           gap: 4px;
         }
         .lp-root .lp-cta__signal-num {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-head);
           font-size: 1.4rem;
-          font-weight: 600;
+          font-weight: var(--fw-head);
           color: #07074e;
           letter-spacing: -0.02em;
           line-height: 1;
         }
         .lp-root .lp-cta__signal-label {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           color: #07074e;
           letter-spacing: -0.01em;
@@ -5175,9 +5219,9 @@ export default function Landing() {
           margin: 0 auto;
         }
         .lp-faq__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.6vw, 3.4rem);
-          font-weight: 600;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           letter-spacing: -0.02em;
           color: rgba(var(--lp-fg), 0.96);
           margin: 0 0 26px;
@@ -5199,7 +5243,7 @@ export default function Landing() {
         .lp-faq__intro {
           max-width: 560px;
           margin: 0;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.96rem;
           line-height: 1.7;
           color: var(--lp-text-muted);
@@ -5211,7 +5255,7 @@ export default function Landing() {
           background: transparent;
           border: 1px solid rgba(var(--lp-fg), 0.30);
           color: rgba(var(--lp-fg), 0.90);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.74rem;
           font-weight: 600;
           letter-spacing: 0.14em;
@@ -5250,7 +5294,7 @@ export default function Landing() {
           border: none;
           cursor: pointer;
           text-align: left;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: clamp(0.9rem, 1.3vw, 1rem);
           font-weight: 500;
           color: rgba(var(--lp-fg), 0.90);
@@ -5276,7 +5320,7 @@ export default function Landing() {
           min-height: 0;
           margin: 0;
           padding: 0 22px 20px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.92rem;
           line-height: 1.7;
           color: var(--lp-text-muted);
@@ -5335,7 +5379,7 @@ export default function Landing() {
           text-align: center;
         }
         .lp-footer__statement-eyebrow {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           font-weight: 500;
           color: var(--lp-text-muted);
@@ -5345,9 +5389,9 @@ export default function Landing() {
           margin: 0 0 16px 0;
         }
         .lp-footer__statement-line {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.4rem, 3vw, 2.2rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           line-height: 1.3;
           letter-spacing: -0.03em;
@@ -5393,7 +5437,7 @@ export default function Landing() {
           display: block;
         }
         .lp-footer__tagline {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           color: var(--lp-text-muted);
           line-height: 1.5;
@@ -5451,7 +5495,7 @@ export default function Landing() {
         }
 
         .lp-footer__tagline {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.92rem;
           color: var(--lp-text);
           line-height: 1.5;
@@ -5466,7 +5510,7 @@ export default function Landing() {
           max-width: 340px;
         }
         .lp-footer__label {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.85rem;
           color: var(--lp-text);
           font-weight: 500;
@@ -5478,7 +5522,7 @@ export default function Landing() {
           padding: 12px 14px;
           border: 1px solid var(--lp-border);
           border-radius: 10px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.92rem;
           background: rgba(var(--lp-fg), 0.06);
           color: var(--lp-text);
@@ -5497,7 +5541,7 @@ export default function Landing() {
           color: var(--lp-text);
           border: none;
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-weight: 600;
           font-size: 0.95rem;
           cursor: pointer;
@@ -5509,7 +5553,7 @@ export default function Landing() {
         }
 
         .lp-footer__privacy {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           color: var(--lp-text-muted);
           line-height: 1.5;
@@ -5526,9 +5570,9 @@ export default function Landing() {
         .lp-footer__col { min-width: 0; }
 
         .lp-footer__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 0.78rem;
-          font-weight: 600;
+          font-family: var(--font-head);
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
           color: var(--lp-text);
           margin: 0 0 16px 0;
           letter-spacing: 0.14em;
@@ -5544,7 +5588,7 @@ export default function Landing() {
           gap: 10px;
         }
         .lp-footer__list li {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.92rem;
           line-height: 1.4;
         }
@@ -5584,7 +5628,7 @@ export default function Landing() {
           gap: 10px;
           color: var(--lp-text);
           text-decoration: none;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.9rem;
           font-weight: 500;
           transition: color 0.18s ease;
@@ -5593,7 +5637,7 @@ export default function Landing() {
         .lp-footer__social svg { color: var(--lp-text-muted); }
 
         .lp-footer__contact {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.85rem;
           color: var(--lp-text);
           line-height: 1.6;
@@ -5609,7 +5653,7 @@ export default function Landing() {
           padding-top: 24px;
         }
         .lp-footer__copyright {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.85rem;
           color: var(--lp-text-muted);
           letter-spacing: -0.01em;
@@ -5618,7 +5662,7 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.85rem;
           color: var(--lp-text-muted);
           font-style: italic;
@@ -5640,7 +5684,7 @@ export default function Landing() {
           border: 1px solid var(--lp-border);
           border-radius: 100px;
           color: var(--lp-text);
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 500;
           letter-spacing: -0.01em;
@@ -5748,7 +5792,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
           color: #A78BFA;
@@ -5772,9 +5816,9 @@ export default function Landing() {
         }
 
         .lp-hook__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.6rem, 3vw, 2.6rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           line-height: 1.15;
           letter-spacing: -0.04em;
@@ -5816,7 +5860,7 @@ export default function Landing() {
           border-bottom-left-radius: 22px;
         }
         .lp-hook__quote-mark {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 4rem;
           line-height: 0.6;
           color: var(--lp-purple-300);
@@ -5824,7 +5868,7 @@ export default function Landing() {
           margin-bottom: 4px;
         }
         .lp-hook__quote-text {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1.15rem;
           color: var(--lp-text);
           line-height: 1.55;
@@ -5859,7 +5903,7 @@ export default function Landing() {
           background: linear-gradient(90deg, transparent, var(--lp-border), transparent);
         }
         .lp-hook__tag {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1.05rem;
           font-weight: 600;
           color: #A78BFA;
@@ -5882,7 +5926,7 @@ export default function Landing() {
         }
         .lp-steps__eyebrow {
           display: inline-block;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           font-weight: 700;
           letter-spacing: 0.18em;
@@ -5895,16 +5939,16 @@ export default function Landing() {
           margin-bottom: 20px;
         }
         .lp-steps__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.4rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
           line-height: 1.15;
           margin: 0 0 16px 0;
         }
         .lp-steps__subtitle {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 1.05rem;
           line-height: 1.5;
@@ -5955,7 +5999,7 @@ export default function Landing() {
           margin-bottom: 22px;
         }
         .lp-step-card__num {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 700;
           color: #A78BFA;
@@ -5966,7 +6010,7 @@ export default function Landing() {
           border-radius: 100px;
         }
         .lp-step-card__tag {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.72rem;
           font-weight: 600;
           color: var(--lp-text-muted);
@@ -5996,16 +6040,16 @@ export default function Landing() {
         .lp-root[data-theme="light"] .lp-step-card__icon svg { color: #ffffff; }
 
         .lp-step-card__title {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.3rem;
-          font-weight: 600;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           margin: 0 0 12px 0;
           letter-spacing: -0.02em;
           line-height: 1.25;
         }
         .lp-step-card__desc {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           color: var(--lp-text-muted);
           line-height: 1.6;
@@ -6102,7 +6146,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
           color: #A78BFA;
@@ -6112,9 +6156,9 @@ export default function Landing() {
         .lp-audit__pill svg { color: #A78BFA; }
 
         .lp-audit__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.4rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
           line-height: 1.15;
@@ -6137,7 +6181,7 @@ export default function Landing() {
           opacity: 0.55;
         }
         .lp-audit__subtitle {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 1.05rem;
           line-height: 1.5;
@@ -6198,7 +6242,7 @@ export default function Landing() {
           margin-bottom: 22px;
         }
         .lp-root .lp-audit-card__qnum {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           font-weight: 700;
           color: var(--lp-text);
@@ -6209,7 +6253,7 @@ export default function Landing() {
           border-radius: 100px;
         }
         .lp-root .lp-audit-card__qmark {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 3rem;
           font-weight: 700;
           color: #07074e;
@@ -6224,16 +6268,16 @@ export default function Landing() {
           margin-bottom: 20px;
         }
         .lp-root .lp-audit-card__title {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 1.35rem;
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #07074e;
           line-height: 1.4;
           letter-spacing: -0.015em;
           margin: 0 0 10px 0;
         }
         .lp-root .lp-audit-card__sub {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1.65rem;
           font-weight: 600;
           color: #07074e;
@@ -6252,7 +6296,7 @@ export default function Landing() {
         .lp-root .lp-audit-card__hint {
           position: relative;
           z-index: 1;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           color: rgba(7, 7, 78, 0.75);
           font-style: italic;
@@ -6285,7 +6329,7 @@ export default function Landing() {
         .lp-root[data-theme="light"] .lp-audit__footer-icon,
         .lp-root[data-theme="light"] .lp-audit__footer-icon svg { color: #ffffff; }
         .lp-audit__footer-text {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1rem;
           font-weight: 600;
           color: var(--lp-ink);
@@ -6311,7 +6355,7 @@ export default function Landing() {
         }
         .lp-proof__eyebrow {
           display: block;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           font-weight: 500;
           color: var(--lp-text-muted);
@@ -6321,9 +6365,9 @@ export default function Landing() {
           margin-bottom: 18px;
         }
         .lp-proof__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.4rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
           line-height: 1.1;
@@ -6374,16 +6418,16 @@ export default function Landing() {
           gap: 16px;
         }
         .lp-proof-num__index {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.72rem;
           font-weight: 600;
           color: var(--lp-text-soft);
           letter-spacing: 0.24em;
         }
         .lp-proof-num__value {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-head);
           font-size: clamp(2.6rem, 5.2vw, 4.4rem);
-          font-weight: 500;
+          font-weight: var(--fw-head);
           color: #A78BFA;
           letter-spacing: -0.045em;
           line-height: 1;
@@ -6391,7 +6435,7 @@ export default function Landing() {
           min-width: 0;
         }
         .lp-proof-num__label {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           font-weight: 500;
           color: var(--lp-text);
@@ -6400,7 +6444,7 @@ export default function Landing() {
         }
 
         .lp-proof__micro {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1rem;
           color: var(--lp-text-muted);
           font-style: italic;
@@ -6450,7 +6494,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.06);
           border: 1px solid var(--lp-purple-200);
           border-radius: 100px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
           color: #A78BFA;
@@ -6459,9 +6503,9 @@ export default function Landing() {
         }
 
         .lp-testimonial__heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(2rem, 4.2vw, 3.2rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h1);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
           line-height: 1.15;
@@ -6485,7 +6529,7 @@ export default function Landing() {
         }
 
         .lp-testimonial__subtitle {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 1.05rem;
           line-height: 1.5;
@@ -6615,7 +6659,7 @@ export default function Landing() {
           margin-bottom: 14px;
         }
         .lp-tcard__mark {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 3.4rem;
           line-height: 0.5;
           color: var(--lp-purple-300);
@@ -6623,7 +6667,7 @@ export default function Landing() {
           margin-bottom: 4px;
         }
         .lp-tcard__quote {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1.1rem;
           font-weight: 500;
           color: var(--lp-ink);
@@ -6671,7 +6715,7 @@ export default function Landing() {
           z-index: 2;
         }
         .lp-tcard__initials {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.85rem;
           font-weight: 700;
           color: var(--lp-text);
@@ -6680,14 +6724,14 @@ export default function Landing() {
         }
         .lp-tcard__author-info { flex: 1; min-width: 0; }
         .lp-tcard__name {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           font-weight: 600;
           color: var(--lp-ink);
           letter-spacing: -0.015em;
         }
         .lp-tcard__role {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.78rem;
           color: var(--lp-text-muted);
           margin-top: 2px;
@@ -6704,15 +6748,15 @@ export default function Landing() {
           align-self: flex-start;
         }
         .lp-tcard__metric-val {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-head);
           font-size: 1.05rem;
-          font-weight: 700;
+          font-weight: var(--fw-head);
           color: #A78BFA;
           letter-spacing: -0.02em;
           line-height: 1;
         }
         .lp-tcard__metric-label {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.68rem;
           color: var(--lp-text-muted);
           margin-top: 2px;
@@ -6771,7 +6815,7 @@ export default function Landing() {
           background: linear-gradient(90deg, transparent, var(--lp-border), transparent);
         }
         .lp-testimonial__more-text {
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.9rem;
           color: var(--lp-text-muted);
           font-style: italic;
@@ -6786,9 +6830,9 @@ export default function Landing() {
 
         /* ── Footer extras ───────────────────────────────────────────────── */
         .lp-footer__main-heading {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: clamp(1.5rem, 2.4vw, 1.9rem);
-          font-weight: 500;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.03em;
           margin: 0 0 50px 0;
@@ -6797,7 +6841,7 @@ export default function Landing() {
         .lp-footer__closing {
           padding: 40px 0 24px;
           text-align: center;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: var(--font-body);
           font-size: 1.05rem;
           color: var(--lp-text);
           line-height: 1.55;
@@ -6820,31 +6864,24 @@ export default function Landing() {
           }
         }
         /* Audit cards on MOBILE (≤768px): keep the absolute FAN (centred via flex
-           static-position), sized for a phone, and give the section a SHORT sticky runway so
-           the cards assemble by SCROLL (Q1 present, then Q2, then Q3 rise in — heroStatic
-           branch in the JSX). No position:static / transform:none here (kills the fan). */
+           static-position), sized for a phone, and give the section a TALL sticky runway so the
+           cards assemble by SCROLL (Q1 present, then Q2, then Q3 rise in — heroStatic branch in
+           the JSX). No position:static / transform:none here (kills the fan). */
         @media (max-width: 768px) {
-          /* Normal-flow section (no 190vh pinned runway / sticky inner). The cards assemble
-             via a one-shot entrance when scrolled into view, so there's no scroll-linked
-             choreography that needs a tall runway — and no sticky element repainting per
-             scroll frame, which was the remaining source of jank. */
-          .lp-audit { min-height: auto; padding: 70px 6% 80px; }
-          .lp-audit__inner { position: static; top: auto; padding-top: 0; }
+          /* 190vh section + sticky inner = the scroll runway the assemble needs: the inner pins
+             while you scroll the extra height, and auditProgress drives the cards' y up over it. */
+          .lp-audit { min-height: 190vh; padding: 0 6%; }
+          .lp-audit__inner { position: sticky; top: 60px; padding-top: 22px; }
           .lp-audit__grid {
             position: relative;
             display: flex; justify-content: center; align-items: center;
             flex-direction: row; gap: 0;
-            min-height: clamp(360px, 54vh, 460px); margin: 30px auto 0; max-width: 100%;
-            /* No 3D perspective on phones: it forces every card into a 3D rasterization
-               context. The fan's tiny 2D rotates (±10°) look identical without it. */
-            perspective: none;
+            min-height: clamp(360px, 54vh, 460px); margin: 14px auto 0; max-width: 100%;
+            perspective: 1000px;
           }
           .lp-audit-card {
             width: 82%; max-width: 300px; min-height: 244px; padding: 26px 24px 22px;
             box-shadow: 0 6px 16px rgba(7, 7, 78, 0.30);
-            /* The entrance runs once then stops; drop the layer hint afterwards isn't needed
-               but keeping will-change off the static state avoids holding a GPU layer idle. */
-            will-change: auto;
           }
         }
 

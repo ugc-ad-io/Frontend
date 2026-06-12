@@ -7,7 +7,7 @@
   display: flex;
   background: #F3F3FF;
   color: #07074e;
-  font-family: 'Instrument Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
 }
 
@@ -23,7 +23,19 @@
 .pcd-shell div,
 .pcd-shell label,
 .pcd-shell a {
-  font-family: 'Instrument Sans', sans-serif;
+  font-family: var(--font-body);
+}
+
+/* Headings inside the dashboard use the brand display face */
+.pcd-shell h1,
+.pcd-shell h2,
+.pcd-shell h3,
+.pcd-shell h4,
+.pcd-shell h5,
+.pcd-shell h6,
+.pcd-shell [class*="title"],
+.pcd-shell [class*="heading"] {
+  font-family: var(--font-head);
 }
 
 /* Flatten all default heading and strong-tag boldness across the dashboard */
@@ -256,8 +268,8 @@
 .pcd-topbar h1 {
   margin: 0 0 4px;
   color: #1a1d3f;
-  font-size: 28px;
-  font-weight: 400;
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-head);
   line-height: 1.15;
 }
 
@@ -523,8 +535,8 @@
 .pcd-level-title h2 {
   margin: 0;
   color: #fff;
-  font-size: 28px;
-  font-weight: 400;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
 }
 
 .pcd-progress-block {
@@ -637,8 +649,8 @@
 .pcd-rate-card h2 {
   margin: 0;
   color: #1a1d3f;
-  font-size: 18px;
-  font-weight: 400;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
 }
 
 .pcd-section-header button,
@@ -820,8 +832,8 @@
 .pcd-update h3 {
   margin: 0 0 3px;
   color: #07074e;
-  font-size: 14px;
-  font-weight: 400;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
 }
 
 .pcd-update p {
@@ -881,8 +893,8 @@
 .pcd-badge-card h3 {
   margin: 0 0 5px;
   color: #07074e;
-  font-size: 13px;
-  font-weight: 400;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
 }
 
 .pcd-badge-card p {
@@ -1063,8 +1075,8 @@
 .pcd-campaign-card h3 {
   margin: 0 0 4px;
   color: #07074e;
-  font-size: 14px;
-  font-weight: 400;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
   line-height: 1.2;
 }
 
@@ -1275,8 +1287,8 @@
 }
 
 .campaign-title {
-  font-size: 1.05rem;
-  font-weight: 400;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
   color: #1a202c;
   margin: 0 0 4px;
   line-height: 1.4;
@@ -1333,8 +1345,8 @@
 }
 
 .pcd-portfolio-head h2 {
-  font-size: 2rem;
-  font-weight: 400;
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-head);
   color: #1a202c;
   margin: 0;
 }
@@ -1492,8 +1504,8 @@
 .pcd-brief-filter-head h2 {
   margin: 0;
   color: #07074e;
-  font-size: 16px;
-  font-weight: 400;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
 }
 
 .pcd-brief-filter-head > button {
@@ -1918,8 +1930,8 @@
   background: transparent;
   color: #07074e;
   padding: 0;
-  font-size: 16px;
-  font-weight: 400;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
   line-height: 1.32;
   text-align: left;
   -webkit-box-orient: vertical;
@@ -2073,7 +2085,7 @@
 .pcd-modal h2 {
   margin: 0;
   color: #07074e;
-  font-size: 24px;
+  font-size: var(--fs-h2);
 }
 
 .pcd-modal p {
@@ -2144,7 +2156,7 @@
 
 .pcd-status-card h1 {
   margin: 0 0 12px;
-  font-size: 34px;
+  font-size: var(--fs-h1);
   color: #07074e;
 }
 

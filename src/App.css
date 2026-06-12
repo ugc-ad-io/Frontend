@@ -1,4 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Readex+Pro:wght@200;300;400;500;600;700&display=swap');
+
+/* ── Brand typography (single source of truth) ───────────────────────────────
+   Display / headlines  → Readex Pro (500 medium, 600 bold) — loaded from Google Fonts.
+   Body / UI / labels   → Just Sans, with Inter as the loaded web fallback.
+   Just Sans is not on a free CDN, so per the brand spec Inter is the web fallback:
+   devices that have Just Sans installed use it; everyone else gets Inter. If we later
+   license Just Sans .woff2 files, add an @font-face here and they slot in automatically.
+   Use var(--font-head) / var(--font-body) everywhere instead of hardcoding. */
+:root {
+  --font-head: 'Readex Pro', 'Instrument Sans', system-ui, sans-serif;
+  --font-body: 'Just Sans', 'Inter', system-ui, sans-serif;
+
+  /* Type scale (brand spec, pt→responsive clamp). Every heading maps to one of these. */
+  --fs-hero:      clamp(2.5rem, 7vw, 5.25rem);      /* Hero title      72–84pt, homepage hero only */
+  --fs-h1:        clamp(2rem, 4vw, 3rem);           /* Page title      36–48pt, screen H1 / section headlines */
+  --fs-h2:        clamp(1.6rem, 3vw, 2rem);         /* Section title   28–32pt, card titles / sub-section headers */
+  --fs-h3:        clamp(1.125rem, 2vw, 1.375rem);   /* Component title 18–22pt, card H3 / sidebar labels */
+  --fs-body:      clamp(0.9375rem, 1.2vw, 1rem);    /* Body            14–16pt */
+  --fs-label:     0.8125rem;                        /* UI label        12–13pt */
+  --fs-caption:   0.75rem;                          /* Caption / hint  11–12pt */
+  --fs-badge:     0.6875rem;                        /* Badge / tag     10–11pt */
+
+  /* Weights — headings are Medium (500) across the whole scale; 600 for bold emphasis. */
+  --fw-head: 500;
+  --fw-head-bold: 600;
+  --fw-body: 400;
+  --fw-label: 500;
+}
 
 * {
   margin: 0;
@@ -7,15 +35,33 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
+  font-weight: var(--fw-body);
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   color: #1a202c;
   overflow-x: hidden;
 }
 
+/* All headings: Readex Pro, weight 500, sized by tier. Pages should map their own
+   title classes to the --fs-* tokens; these element rules cover bare/un-classed headings. */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-head);
+  font-weight: var(--fw-head);
+  line-height: 1.15;
 }
+h1 { font-size: var(--fs-h1); }
+h2 { font-size: var(--fs-h2); }
+h3 { font-size: var(--fs-h3); }
+
+/* Optional semantic utilities for explicit use in markup. */
+.t-hero    { font-family: var(--font-head); font-weight: var(--fw-head); font-size: var(--fs-hero); line-height: 1.05; }
+.t-h1      { font-family: var(--font-head); font-weight: var(--fw-head); font-size: var(--fs-h1); line-height: 1.12; }
+.t-h2      { font-family: var(--font-head); font-weight: var(--fw-head); font-size: var(--fs-h2); line-height: 1.18; }
+.t-h3      { font-family: var(--font-head); font-weight: var(--fw-head); font-size: var(--fs-h3); line-height: 1.25; }
+.t-body    { font-family: var(--font-body); font-weight: var(--fw-body); font-size: var(--fs-body); }
+.t-label   { font-family: var(--font-body); font-weight: var(--fw-label); font-size: var(--fs-label); }
+.t-caption { font-family: var(--font-body); font-weight: var(--fw-body); font-size: var(--fs-caption); }
+.t-badge   { font-family: var(--font-body); font-weight: var(--fw-label); font-size: var(--fs-badge); }
 
 .App {
   min-height: 100vh;
@@ -142,7 +188,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 12px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .input-field:focus {
@@ -208,7 +254,7 @@ h1, h2, h3, h4, h5, h6 {
   border: 2px solid #e2e8f0;
   border-radius: 12px;
   font-size: 1rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   resize: vertical;
   min-height: 120px;
   transition: all 0.3s ease;

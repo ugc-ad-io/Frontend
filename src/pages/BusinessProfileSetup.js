@@ -286,7 +286,7 @@ function ThemeStyles() {
           align-items: flex-start;
           padding: 32px 20px;
           background: linear-gradient(160deg, #050510 0%, #0b0a26 55%, #07074e 100%);
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           overflow: hidden;
         }
         .bp-page::before,
@@ -331,8 +331,9 @@ function ThemeStyles() {
         }
         .bp-title {
           margin: 0 0 6px;
-          font-size: 1.35rem;
-          font-weight: 700;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #ffffff;
           letter-spacing: -0.01em;
         }
@@ -361,7 +362,7 @@ function ThemeStyles() {
           padding: 11px 14px;
           font-size: 0.92rem;
           color: #ffffff;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
         }
         .bp-input::placeholder { color: rgba(255, 255, 255, 0.38); }
@@ -422,7 +423,7 @@ function ThemeStyles() {
           border-right: 1.5px solid rgba(255, 255, 255, 0.14);
           background: transparent;
           padding: 0 10px 0 12px;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           cursor: pointer;
           outline: none;
           color: #ffffff;
@@ -506,7 +507,7 @@ function ThemeStyles() {
           color: #ffffff;
           font-size: 1rem;
           font-weight: 700;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           cursor: pointer;
           box-shadow: 0 12px 30px rgba(167, 139, 250, 0.34);
           transition: box-shadow 0.2s ease, transform 0.15s ease;
@@ -533,7 +534,6 @@ function ThemeStyles() {
 
         @media (max-width: 520px) {
           .bp-card { padding: 24px 20px 26px; }
-          .bp-title { font-size: 1.2rem; }
         }
       `}</style>
   );

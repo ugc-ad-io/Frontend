@@ -256,8 +256,8 @@ export default function ChatPage() {
         }
 
         .chat-user-info h2 {
-          font-size: 1.25rem;
-          font-weight: 600;
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #1a202c;
           margin-bottom: 4px;
         }
@@ -429,7 +429,7 @@ export default function ChatPage() {
           border: 2px solid #e2e8f0;
           border-radius: 12px;
           font-size: 1rem;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           transition: all 0.3s ease;
         }
 

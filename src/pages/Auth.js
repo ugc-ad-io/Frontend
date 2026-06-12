@@ -244,7 +244,7 @@ export default function Auth() {
           background: linear-gradient(160deg, #050510 0%, #0D0B26 100%);
           position: relative;
           overflow: hidden;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
         }
 
         /* ── Orbs ────────────────────────────────────────────────── */
@@ -305,7 +305,7 @@ export default function Auth() {
           cursor: pointer;
           transition: all 0.25s ease;
           z-index: 10;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           backdrop-filter: blur(8px);
         }
         .ap-back:hover {
@@ -344,9 +344,9 @@ export default function Auth() {
           margin-bottom: 32px;
         }
         .ap-title {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 1.75rem;
-          font-weight: 700;
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
           color: #0F172A;
           margin-bottom: 8px;
         }
@@ -383,7 +383,7 @@ export default function Auth() {
           border: 1.5px solid #E2E8F0;
           background: #F8FAFC;
           color: #64748B;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
@@ -441,7 +441,7 @@ export default function Auth() {
           border: 1.5px solid #E2E8F0 !important;
           border-radius: 12px !important;
           color: #0F172A !important;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           font-size: 0.95rem;
           padding: 13px 16px;
           transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
@@ -509,7 +509,7 @@ export default function Auth() {
           cursor: pointer;
           margin-left: 4px;
           font-size: 0.88rem;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-body);
           transition: color 0.2s ease;
           text-decoration: underline;
           text-underline-offset: 3px;
@@ -522,9 +522,6 @@ export default function Auth() {
         @media (max-width: 480px) {
           .ap-card {
             padding: 36px 24px;
-          }
-          .ap-title {
-            font-size: 1.5rem;
           }
           .ap-back {
             top: 16px;

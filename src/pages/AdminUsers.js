@@ -193,7 +193,7 @@ export default function AdminUsers() {
       <style jsx>{`
         .au-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .au-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
-        .au-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }
+        .au-header h1 { display: flex; align-items: center; gap: 12px; font-size: var(--fs-h1); font-weight: var(--fw-head); color: #07074e; margin: 0 0 6px; }
         .au-header h1 :global(svg) { color: #07074e; }
         .au-header p { color: #718096; margin: 0; font-size: 0.95rem; }
         .au-stats { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -235,7 +235,7 @@ export default function AdminUsers() {
         .au-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .au-modal { background: white; border-radius: 16px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; }
         .au-modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1.5px solid #e8ecff; }
-        .au-modal-head h2 { margin: 0; font-size: 1.25rem; color: #07074e; }
+        .au-modal-head h2 { margin: 0; font-size: var(--fs-h2); color: #07074e; }
         .au-modal-head button { background: none; border: none; cursor: pointer; color: #4a5568; }
         .au-modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
         .au-modal-body label { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #2d3748; }

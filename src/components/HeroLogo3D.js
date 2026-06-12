@@ -18,6 +18,10 @@ const TIP_FINISH = 0.67;
 const LB_SPIN_START = 0.67;
 const LB_SPIN_END = 0.86;
 const SPIN_TURNS = 2;
+// Mobile "verticalSpin" mode: the logo stays UPRIGHT (no landscape tilt / barrel) and simply
+// spins about its vertical (Y) axis, tied straight to scroll. This many full turns across the
+// section's scroll range.
+const VS_TURNS = 3;
 // The moment the 11th (last) row hits the 50% focus (~0.86) the logo crosses to centre and
 // UN-TILTS back to STRAIGHT over DISSOLVE_START→END, arriving upright at the middle to dissolve.
 const DISSOLVE_START = 0.86;
@@ -55,7 +59,7 @@ const _col = new THREE.Color();
 
 // `progress` is the JOURNEY scroll value (journeyP). The component splits it into the
 // hero phase (360° spin + colour) and the leaderboard phase (landscape tip + barrel-roll).
-function LogoModel({ progress, theme }) {
+function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
   const { scene } = useGLTF('/model-compressed.glb');
   const tipRef = useRef();
   const spinRef = useRef();
@@ -109,6 +113,7 @@ function LogoModel({ progress, theme }) {
   // requesting frames so the time-based rotation in useFrame animates even without scrolling.
   // Once scrolled past the hero we stop invalidating, so the GPU stays idle as before.
   useEffect(() => {
+    if (!idleSpin) return; // mobile: no decorative idle spin, so no need to keep rendering at rest
     let raf;
     const tick = () => {
       const jp = progress ? clamp01(progress.get()) : 0;
@@ -117,7 +122,7 @@ function LogoModel({ progress, theme }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [progress, invalidate]);
+  }, [progress, invalidate, idleSpin]);
 
   useFrame((state) => {
     const jp = progress ? clamp01(progress.get()) : 0;
@@ -130,7 +135,7 @@ function LogoModel({ progress, theme }) {
     // the user scrolls (jp leaves 0) we drop it to 0, so the mark snaps to face-on (front) and
     // the scroll-driven choreography (heroSpin → tip → barrel) runs from the front, NOT from
     // wherever the idle spin happened to be.
-    const autoSpin = jp <= 0.0005 ? state.clock.elapsedTime * AUTO_SPIN_SPEED : 0;
+    const autoSpin = idleSpin && jp <= 0.0005 ? state.clock.elapsedTime * AUTO_SPIN_SPEED : 0;
 
     // Tilt to landscape (Z) — leans over after the spin (TIP_START→TIP_FINISH), HOLDS
     // landscape across the board, then UN-TILTS back to straight during the dissolve so it
@@ -145,11 +150,18 @@ function LogoModel({ progress, theme }) {
     // ends, so rotate → hold → spin → dissolve reads as one continuous, smooth motion.
     const barrel = spinProfile(clamp01((jp - LB_SPIN_START) / (LB_SPIN_END - LB_SPIN_START))) * Math.PI * 2 * SPIN_TURNS;
 
-    // Tip exactly 90° (clean landscape), negative direction so the point faces the text.
-    if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
-    // The hero 360° caps at a full turn (face-on); the barrel-roll continues from there.
-    // autoSpin adds the continuous idle rotation at the hero (zero once scrolled in).
-    if (spinRef.current) spinRef.current.rotation.y = heroSpin + barrel + autoSpin;
+    if (verticalSpin) {
+      // Mobile: stay UPRIGHT (no landscape tilt) and spin about the vertical (Y) axis,
+      // tied straight to scroll — VS_TURNS full turns across the section. autoSpin is 0 here.
+      if (tipRef.current) tipRef.current.rotation.z = 0;
+      if (spinRef.current) spinRef.current.rotation.y = jp * Math.PI * 2 * VS_TURNS + autoSpin;
+    } else {
+      // Tip exactly 90° (clean landscape), negative direction so the point faces the text.
+      if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
+      // The hero 360° caps at a full turn (face-on); the barrel-roll continues from there.
+      // autoSpin adds the continuous idle rotation at the hero (zero once scrolled in).
+      if (spinRef.current) spinRef.current.rotation.y = heroSpin + barrel + autoSpin;
+    }
 
     // Set up the bright self-lit material + cache the mesh list ONCE — no per-frame
     // scene.traverse (that ran on every scroll frame and was a big chunk of the jank).
@@ -196,7 +208,7 @@ function LogoModel({ progress, theme }) {
 
 useGLTF.preload('/model-compressed.glb');
 
-export default function HeroLogo3D({ progress, theme }) {
+export default function HeroLogo3D({ progress, theme, idleSpin = true, verticalSpin = false }) {
   return (
     <Canvas
       className="lp-logo3d__canvas"
@@ -221,7 +233,7 @@ export default function HeroLogo3D({ progress, theme }) {
       >
         {/* fit ONCE on mount — no `observe`, so the camera doesn't re-fit as it spins. */}
         <Bounds fit margin={1.2}>
-          <LogoModel progress={progress} theme={theme} />
+          <LogoModel progress={progress} theme={theme} idleSpin={idleSpin} verticalSpin={verticalSpin} />
         </Bounds>
         <Environment files="/hdri/potsdamer_platz_1k.hdr" />
       </Suspense>

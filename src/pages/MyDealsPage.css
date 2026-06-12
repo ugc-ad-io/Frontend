@@ -119,7 +119,7 @@
 
 .deal-status-copy h2 {
   color: #07074e;
-  font-size: 22px;
+  font-size: var(--fs-h2);
   line-height: 1.15;
   word-break: break-word;
 }
@@ -337,8 +337,8 @@
   background: #f8f9ff;
   color: #07074e;
   padding: 10px 12px;
-  font-size: 13px;
-  font-weight: 950;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -448,7 +448,7 @@
 
 .deal-section-title h2 {
   color: #07074e;
-  font-size: 19px;
+  font-size: var(--fs-h2);
   letter-spacing: 0;
 }
 
@@ -526,7 +526,7 @@
 
 .deal-brief-body h3 {
   color: #07074e;
-  font-size: 14px;
+  font-size: var(--fs-h3);
 }
 
 .deal-brief-body p {
@@ -1000,7 +1000,7 @@
 .deal-action-section-title h3 {
   margin: 0;
   color: #07074e;
-  font-size: 16px;
+  font-size: var(--fs-h3);
 }
 
 .deal-action-section-title span {
@@ -1271,7 +1271,7 @@
 .deal-deadline h2 {
   margin: 5px 0;
   color: #07074e;
-  font-size: 20px;
+  font-size: var(--fs-h2);
   line-height: 1.2;
 }
 

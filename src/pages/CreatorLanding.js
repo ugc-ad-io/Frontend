@@ -797,17 +797,25 @@ export default function CreatorLanding() {
         .cl-joinpill { display: inline-block; padding: 12px 30px; border-radius: 999px; font-size: 1.2rem;
           font-weight: 600; margin-bottom: 18px; background: var(--cl-purple);
           box-shadow: none; }
-        .cl-section__title { font-size: clamp(1.9rem, 4vw, 2.7rem); font-weight: 700; line-height: 1.12; margin: 0 0 16px; }
+        .cl-section__title { font-size: var(--fs-h1); font-weight: var(--fw-head); line-height: 1.12; margin: 0 0 16px; }
         .cl-section__sub { font-size: 1.05rem; line-height: 1.65; color: rgba(var(--cl-fg),0.62) !important; margin: 0; }
 
         /* Hero */
         .cl-hero { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto;
-          height: 100vh; min-height: 620px; display: flex; flex-direction: column; justify-content: flex-start;
+          /* min-height (not a hard height) so on shorter web screens the hero grows to fit the
+             tall video gallery instead of overflowing — which kept the below-fold category pills
+             from overlapping the videos. Phones (≤480px) override this to height:auto below. */
+          min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start;
           gap: clamp(10px, 2vh, 22px); padding: clamp(120px, 16vh, 180px) 6% 0; }
         .cl-hero__main { display: flex; flex-direction: column; justify-content: center;
           align-items: center; text-align: center; flex-shrink: 0; }
-        .cl-hero__title { font-size: clamp(2rem, 4.8vw, 3.4rem); font-weight: 700; line-height: 1.06;
+        .cl-hero__title { font-size: var(--fs-hero); font-weight: var(--fw-head); line-height: 1.06;
           letter-spacing: -0.02em; margin: 0 0 clamp(8px, 1.3vh, 16px); }
+        /* Web only: smaller hero than the full --fs-hero display size. Phones (≤480px) keep
+           the token size; everything above the phone breakpoint gets the reduced clamp. */
+        @media (min-width: 481px) {
+          .cl-hero__title { font-size: clamp(2.6rem, 4.5vw, 3.6rem); }
+        }
         .cl-hero__sub { font-size: clamp(0.98rem, 1.6vw, 1.16rem); line-height: 1.55;
           color: rgba(var(--cl-fg),0.68) !important; max-width: 560px; margin: 0 auto clamp(36px, 6vh, 64px); }
         .cl-hero__ctas { display: flex; justify-content: center; margin-bottom: clamp(20px, 4vh, 48px); }
@@ -972,7 +980,7 @@ export default function CreatorLanding() {
         .cl-hiw__num { position: absolute; top: 26px; right: 28px; font-size: 1.5rem; font-weight: 800;
           letter-spacing: 0.08em; color: var(--cl-purple) !important; opacity: 0.9; }
         .cl-hiw__num--static { position: static; display: inline-block; margin-bottom: 6px; }
-        .cl-hiw__title { font-size: clamp(1.7rem, 3vw, 2.3rem); font-weight: 700; margin: 0 0 12px; }
+        .cl-hiw__title { font-size: var(--fs-h2); font-weight: var(--fw-head); margin: 0 0 12px; }
         .cl-hiw__text { font-size: 1.1rem; line-height: 1.6; color: rgba(var(--cl-fg),0.62) !important;
           margin: 0; max-width: 440px; }
         .cl-hiw__hi { font-style: normal; font-weight: 600; padding: 1px 8px; border-radius: 7px;
@@ -1076,7 +1084,7 @@ export default function CreatorLanding() {
         @media (prefers-reduced-motion: reduce) { .cl-hiw__rec { animation: none; } }
 
         /* wide / get paid */
-        .cl-hiw__card--wide .cl-hiw__title { font-size: clamp(2rem, 3.6vw, 2.9rem); font-weight: 600; }
+        .cl-hiw__card--wide .cl-hiw__title { font-size: var(--fs-h1); font-weight: var(--fw-head); }
         .cl-hiw__wideleft { flex: 1; align-self: stretch; display: flex; flex-direction: column; }
         .cl-hiw__cta { margin-top: auto; margin-bottom: 30px; align-self: flex-start; }
         .cl-hiw__visual--paid { flex: 1.05; margin-top: 0; align-items: center; min-height: auto; }
@@ -1116,7 +1124,7 @@ export default function CreatorLanding() {
 
         /* FAQ */
         .cl-faq__head { max-width: 640px; margin: 0 0 44px; text-align: left; }
-        .cl-faq__title { font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 700; line-height: 1.08;
+        .cl-faq__title { font-size: var(--fs-h1); font-weight: var(--fw-head); line-height: 1.08;
           letter-spacing: -0.02em; margin: 0 0 22px; }
         .cl-faq__title em { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500; }
         .cl-faq__intro { font-size: 1.05rem; line-height: 1.6; margin: 0; max-width: 540px;
@@ -1178,7 +1186,7 @@ export default function CreatorLanding() {
              the leftover viewport space below the video cards pushes the category
              pills far down the screen. Collapsing it brings the pills up under the cards. */
           .cl-hero { padding: clamp(92px, 13vh, 130px) 5% 0; height: auto; min-height: 0; gap: 16px; }
-          .cl-hero__title { font-size: clamp(2.1rem, 9.2vw, 3.1rem); line-height: 1.12; }
+          .cl-hero__title { line-height: 1.12; }
           .cl-hero__sub { font-size: 1.05rem; }
           .cl-hero__ctas { margin-top: 0px; }
           .cl-section { padding: 46px 5%; }
@@ -1193,14 +1201,12 @@ export default function CreatorLanding() {
           .cl-hiw__visual--phone { min-height: 300px; transform: translateY(30px); }
           .cl-hiw__phone { width: 60%; transform: translateX(34%); min-height: 300px; }
           .cl-hiw__prodfront { left: 0; bottom: 60px; width: 56%; max-width: 200px; }
-          .cl-hiw__title { font-size: 1.5rem; }
           .cl-hiw__text { font-size: 0.95rem; }
           .cl-hiw__chip { font-size: 0.7rem; padding: 6px 10px; }
           .cl-hiw__chip--likes { left: 4%; top: 5%; }
           .cl-hiw__chip--comments { right: 4%; top: 60%; }
           .cl-community { grid-template-columns: repeat(2, 1fr); gap: 12px; }
           .cl-tcard { height: clamp(360px, 62vh, 480px); }
-          .cl-faq__title { font-size: clamp(1.7rem, 7.4vw, 2.4rem); }
           .cl-faq__q { padding: 20px; font-size: 1rem; }
           .cl-faq__a { padding: 0 20px 20px; }
           .cl-footer { padding: 40px 5% 32px; }

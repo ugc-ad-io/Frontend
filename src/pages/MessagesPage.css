@@ -75,7 +75,7 @@
 
 .pcd-shell.pcd-business-match-sidebar .pcd-topbar h1 {
   color: #07074E;
-  font-size: 38px;
+  font-size: var(--fs-h1);
   line-height: 1;
 }
 
@@ -186,17 +186,17 @@
 }
 
 .msg-list-header h2 {
-  font-size: 1.5rem;
-  font-weight: 400;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
   color: #1a202c;
   margin: 0 0 6px 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-head);
 }
 
 .msg-list-header p {
   color: #9F9FD1;
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-search {
@@ -219,7 +219,7 @@
   font-size: 14px;
   padding: 0;
   color: #07074E;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-search input::placeholder {
@@ -256,7 +256,7 @@
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   font-weight: 400;
 }
 
@@ -333,7 +333,7 @@
   font-weight: 400;
   color: #fff;
   font-size: 0.875rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-online-dot {
@@ -380,7 +380,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-time-ago {
@@ -397,7 +397,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.4;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-deal-status {
@@ -421,7 +421,7 @@
   font-size: 0.75rem;
   font-weight: 400;
   flex-shrink: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 /* Center Panel: Chat */
@@ -468,14 +468,14 @@
   font-size: 1.05rem;
   font-weight: 400;
   color: #1a202c;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-online {
   font-size: 0.8rem;
   color: #48bb78;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-chat-actions {
@@ -494,7 +494,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-chat-actions button:hover {
@@ -546,7 +546,7 @@
   border-radius: 20px;
   word-wrap: break-word;
   line-height: 1.5;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-bubble-row:not(.is-own) .msg-bubble {
@@ -565,7 +565,7 @@
 .msg-bubble p {
   margin: 0 0 6px 0;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-bubble p:last-child {
@@ -609,7 +609,7 @@
   opacity: 0.7;
   display: block;
   margin-top: 4px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-time em {
@@ -860,7 +860,7 @@
   border-radius: 12px;
   background: #f7f7ff;
   color: #07074E;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 400;
   padding: 10px 12px;
@@ -927,7 +927,7 @@
   max-width: 85%;
   border: 1px solid rgba(115, 135, 255, 0.15);
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-quick-chips {
@@ -957,7 +957,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   flex-shrink: 0;
 }
 
@@ -1039,7 +1039,7 @@
   color: #07074E;
   font-size: 12px;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-attachment-preview span button {
@@ -1065,7 +1065,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .msg-input-icon:hover {
@@ -1080,7 +1080,7 @@
   border-radius: 16px;
   font-size: 14px;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   color: #07074E;
   transition: all 0.3s ease;
   background: transparent;
@@ -1113,7 +1113,7 @@
   justify-content: center;
   font-weight: 400;
   flex-shrink: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   box-shadow: 0 4px 12px rgba(115, 135, 255, 0.3);
 }
 

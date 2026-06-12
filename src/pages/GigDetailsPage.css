@@ -117,8 +117,8 @@
 }
 
 .gdp-title {
-  font-size: 2.1rem;
-  font-weight: 700;
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-head);
   color: #07074E;
   letter-spacing: -0.02em;
   margin: 0 0 24px 0;
@@ -348,8 +348,8 @@
 }
 
 .gdp-section-title {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
   color: #222325;
   margin: 0 0 16px 0;
 }
@@ -460,8 +460,8 @@
 }
 
 .gdp-profile-name-row h3 {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-head);
   color: #222325;
   margin: 0;
 }
@@ -599,8 +599,8 @@
 }
 
 .gdp-portfolio-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
   color: #222325;
   margin: 0;
   line-height: 1.3;
@@ -924,8 +924,8 @@
 }
 
 .gdp-pm-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
   color: #222325;
   margin: 0;
   line-height: 1.2;
@@ -1171,8 +1171,8 @@
 }
 
 .gdp-package-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-head);
   color: #07074E;
   margin: 0 0 10px 0;
   letter-spacing: -0.01em;

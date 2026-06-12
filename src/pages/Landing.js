@@ -878,6 +878,16 @@ export default function Landing() {
     target: auditRef,
     offset: ['start start', 'end end'],
   });
+  // "Find & Hire" achieve section scroll — used (mobile) to lift the pinned heading UP in sync
+  // with the card deck as it scrolls off, so the heading leaves WITH the cards instead of staying
+  // pinned until the whole deck is gone. y holds at 0 while the deck stacks (heading pinned via
+  // CSS sticky), then ramps up over the exit window so heading + cards clear the screen together.
+  const achieveRef = useRef(null);
+  const { scrollYProgress: achieveProgress } = useScroll({
+    target: achieveRef,
+    offset: ['start start', 'end end'],
+  });
+  const achieveHeadRise = useTransform(achieveProgress, [0.6, 0.82], [0, -560]);
   // Three cards peel UP, evenly spread across the WHOLE scroll range so there's no dead
   // progress after the last card. The 3rd card (card1Y) is still exiting right up to ~0.99,
   // so the runway never sits idle/blank — the section ends the moment the last card clears,
@@ -949,9 +959,10 @@ export default function Landing() {
   // COME-UP: the logo no longer rises on its own private timeline (that's why it lagged behind
   // the board). In the JSX its vertical position is driven by the SAME boardRiseY spring that
   // lifts the leaderboard, so the mark rises into place LOCKED TO the board — they come up as
-  // one. Here we only handle the dissolve: fade out as the brand strip's centre logo arrives,
-  // so the mark no longer bleeds down into the showcase.
-  const logoStageOpacity = useTransform(logo3dProgress, [0.66, 0.82], [1, 0]);
+  // one. At the END the mark CROSSES to screen-centre (logoStageX/logoCrossRise below) and
+  // dissolves THERE — onto the brand strip's centre logo — instead of fading in its lane. So the
+  // dissolve waits until it has arrived at centre.
+  const logoStageOpacity = useTransform(logo3dProgress, [0.66, 0.8], [1, 0]);
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
@@ -1068,7 +1079,17 @@ export default function Landing() {
   // (-70 vs -190), so -120 here keeps the logo at the SAME spot it was before. Lower number =
   // logo sits HIGHER. Tune this single value to raise/lower it.
   const LOGO_RIDE_OFFSET = -120;
-  const logoStageY = useTransform(boardRiseY, (v) => v + LOGO_RIDE_OFFSET);
+  // END CROSS: after the leaderboard, the mark glides from its lower-left lane to screen-centre
+  // (x: logoX → 0) and rises the rest of the way to the vertical centre, landing on the brand
+  // strip's centre logo, where it dissolves. logoCrossRise cancels the resting Y so the mark
+  // ends at the stage's base-centre (top:50%/left:50% in CSS). Tune the [0.6,0.82] window for
+  // when the cross happens, and the end X ('0vw') / the +offset cancel for where it lands.
+  const logoStageX = useTransform(logo3dProgress, [0.48, 0.68], [logoX, '0vw']);
+  const logoCrossRise = useTransform(logo3dProgress, [0.48, 0.68], [0, 70 - LOGO_RIDE_OFFSET]);
+  const logoStageY = useTransform(
+    [boardRiseY, logoCrossRise],
+    ([b, cross]) => b + LOGO_RIDE_OFFSET + cross
+  );
   // Brand strip "stick" — MOBILE ONLY. On mobile the transform lifts the strip up to meet the
   // leaderboard's fading last line and HOLDS (never releases → never sinks back), and a matching
   // marginBottom:brandRise on the wrapper shifts the showcase + everything below up the same amount
@@ -1246,6 +1267,20 @@ export default function Landing() {
           <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/creator'); }}>
             Join as Creator
           </a>
+          <div className="lp-navbar__mobile-theme">
+            <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+            <button
+              type="button"
+              className={`lp-theme${theme === 'dark' ? ' lp-theme--dark' : ''}`}
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              <span className="lp-theme__knob">{theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}</span>
+              <span className="lp-theme__ic lp-theme__ic--sun"><Sun size={13} /></span>
+              <span className="lp-theme__ic lp-theme__ic--moon"><Moon size={13} /></span>
+            </button>
+          </div>
           <div className="lp-navbar__mobile-actions">
             <button className="lp-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth?role=business'); }}>
               <LogIn size={16} /> Log in
@@ -1411,7 +1446,7 @@ export default function Landing() {
           {heroStatic && (
             // y = logoStageY (boardRiseY + offset): the SAME lift that raises the leaderboard,
             // so the logo comes up locked to the board (in sync), just parked lower-left.
-            <motion.div className="lp-logo3d__stage" style={{ x: logoX, y: logoStageY, opacity: logoStageOpacity }}>
+            <motion.div className="lp-logo3d__stage" style={{ x: logoStageX, y: logoStageY, opacity: logoStageOpacity }}>
               {logo3dInView ? (
                 <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
                   {/* Mobile: upright vertical-axis spin tied straight to scroll (no landscape
@@ -1897,10 +1932,10 @@ export default function Landing() {
             : { y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }
         }
       >
-        <section className="lp-achieve">
-          <h2 className="lp-achieve__title">
+        <section className="lp-achieve" ref={achieveRef}>
+          <motion.h2 className="lp-achieve__title" style={heroStatic ? { y: achieveHeadRise } : undefined}>
             <em className="lp-achieve__hl">Find</em> &amp; Hire Creators <em className="lp-achieve__hl">Instantly</em>
-          </h2>
+          </motion.h2>
           <AchieveFan items={achieveItems} />
           <AchieveStack items={achieveItems} />
         </section>
@@ -2688,12 +2723,26 @@ export default function Landing() {
           box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
           backdrop-filter: blur(12px);
         }
+        /* Light theme: white menu surface to match the page (instead of the dark panel). */
+        .lp-root[data-theme="light"] .lp-navbar__mobile {
+          background: rgba(255, 255, 255, 0.97);
+          box-shadow: 0 24px 60px rgba(28, 27, 75, 0.18);
+        }
         .lp-navbar__mobile .lp-navlink {
           padding: 12px 12px;
           border-radius: 10px;
           color: rgba(var(--lp-fg), 0.9);
         }
         .lp-navbar__mobile .lp-navlink:active { background: rgba(var(--lp-fg), 0.08); }
+        .lp-navbar__mobile-theme {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 12px 12px;
+          color: rgba(var(--lp-fg), 0.9);
+          font-size: 0.94rem;
+          font-weight: 500;
+        }
         .lp-navbar__mobile-actions {
           display: flex;
           gap: 10px;
@@ -4031,16 +4080,27 @@ export default function Landing() {
           /* Kill the desktop "stick to the last audit card" entrance (negative margin +
              scroll-driven y) so the title no longer overlaps the previous section. */
           .lp-achieve-rise { margin-top: 0 !important; transform: none !important; }
-          /* Heading is NON-sticky: it's visible as the deck enters, then scrolls UP with the page
-             once you start scrolling (it doesn't stay frozen at the top until the deck is gone).
-             Because it's not pinned, it sits ABOVE the cards and just scrolls off — it can't split
-             a card the way a pinned heading did. */
-          .lp-achieve { padding-top: 96px; }
+          /* Heading PINS (visible) while the deck stacks, then the scroll-linked y transform
+             (achieveHeadRise, applied in the JSX) lifts it UP in sync with the cards as they
+             scroll off — so it leaves WITH the deck, not after it. Opaque bg + ::before keep a
+             peeling card hidden behind it instead of splitting it. */
+          .lp-achieve { padding-top: 132px; }
           .lp-achieve__title {
-            position: static;
+            position: sticky;
+            top: 96px;
+            z-index: 20;
             max-width: 100%;
             margin: 0;
-            padding: 0 0 18px;
+            padding: 14px 0 18px;
+            background: var(--lp-page-bg);
+          }
+          .lp-achieve__title::before {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; bottom: 100%;
+            height: 120px;
+            background: var(--lp-page-bg);
+            pointer-events: none;
           }
         }
         @media (max-width: 600px) {

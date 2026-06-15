@@ -226,22 +226,28 @@ function useIsPhone() {
 //   cutoff/fade → opacity falloff.
 function lbTuning(phone) {
   return phone
-    ? { peak: 16, step: 1.8, floor: 8, gap: 90,  range: 6, cutoff: 5.5,  fade: 0.12, rotK: 5, rotMax: 30 }
-    : { peak: 34, step: 8,   floor: 6, gap: 160, range: 3, cutoff: 2.55, fade: 0.38, rotK: 8, rotMax: 24 };
+    // PHONE → web's centre-scale falloff, but a SUBTLE tilt and roomier spacing so the lines
+    // never overlap: top lines lean gently left, the middle stays straight, bottom lines lean
+    // gently right (~6° per row, max ~9°). Fewer rows (range 2) + steeper fade keep it clean.
+    ? { peak: 34, step: 8, floor: 6, gap: 92,  range: 2, cutoff: 2.2,  fade: 0.46, rotK: 6,  rotMax: 9 }
+    : { peak: 34, step: 8, floor: 6, gap: 160, range: 3, cutoff: 2.55, fade: 0.38, rotK: 8, rotMax: 24 };
 }
 
 // Full visual state for a row at focus-offset `o` — a pure function used both for the
-// first paint (inline style) and inside the imperative scroll updater below.
-//   fontSize 60→10px (via scale) · opacity falloff · translateY = offset×gap · 2D rotate
-//   (entry below = +cw clamped 24°, exit above = −ccw clamped −24°) · white→grey colour
-//   (quantized) · weight 500/400/300 · hidden past ±range.
+// first paint (inline style) and inside the imperative scroll updater below. Phone and
+// desktop share the SAME animation (translateY stack + 2D rotate + scale falloff) — only
+// the tuning differs (lbTuning packs the rows tighter on phones). Both: fontSize via scale
+// · opacity falloff · white→grey colour (quantized) · weight 500/400/300 · hidden past ±range.
 function rowVisualAt(v, index, total, phone) {
   const { peak, step, floor, gap, range, cutoff, fade, rotK, rotMax } = lbTuning(phone);
   const o = index - ((v / LOGO3D_SCROLL_END) * total - LB_PRE);
   const a = o < 0 ? -o : o;
   if (a > range) return { display: 'none' };
   const ty = o * gap;
-  const rot = o > 0 ? Math.min(o * rotK, rotMax) : Math.max(o * rotK, -rotMax);
+  // PHONE flips the tilt sign so a line travels left-tilt (top) → straight (middle) →
+  // right-tilt (bottom) → gone. Desktop keeps its original direction.
+  const rotRaw = o > 0 ? Math.min(o * rotK, rotMax) : Math.max(o * rotK, -rotMax);
+  const rot = phone ? -rotRaw : rotRaw;
   const sc = Math.max(floor, peak - a * step) / peak;
   // Quantize the grey to discrete steps so text re-rasters only when it crosses a step.
   const colorKey = a < 0.12 ? 1000 : Math.round(Math.max(70, 235 - a * 60) / 24);
@@ -295,9 +301,11 @@ function LeaderboardRow({ progress, index, count }) {
       }
       if (!shown) return;                            // fully hidden — skip all paint work
 
-      // transform + opacity — cheap, GPU-composited, every frame
+      // transform + opacity — cheap, GPU-composited, every frame.
+      // PHONE flips the tilt sign (top → left, bottom → right); desktop keeps its direction.
       const ty = o * gap;
-      const rot = o > 0 ? (o * rotK > rotMax ? rotMax : o * rotK) : (o * rotK < -rotMax ? -rotMax : o * rotK);
+      const rotRaw = o > 0 ? (o * rotK > rotMax ? rotMax : o * rotK) : (o * rotK < -rotMax ? -rotMax : o * rotK);
+      const rot = phone ? -rotRaw : rotRaw;
       const sc = Math.max(floor, peak - a * step) / peak;
       el.style.transform = `translate(-50%, -50%) translateY(${ty}px) rotate(${rot}deg) scale(${sc})`;
       el.style.opacity = a < cutoff ? 1 - a * fade : 0.03;
@@ -958,17 +966,11 @@ export default function Landing() {
   // Rows finish by LOGO3D_SCROLL_END (0.62); the 11th sits at the 50% focus, then fades over
   // 0.62→0.72 — melting away as the logo crosses (which starts from that same moment).
   const logoBoardOpacity = useTransform(logo3dProgress, [0.62, 0.72], [1, 0]);
-  // ── Mobile 3D-logo ────────────────────────────────────────────────────────────
-  // The mark lives IN this section (no desktop fly-through). On mobile it just spins about its
-  // vertical axis tied to scroll (verticalSpin in the JSX) — no landscape tilt/barrel — so it's
-  // driven by raw logo3dProgress directly, no phase remap needed.
-  // COME-UP: the logo no longer rises on its own private timeline (that's why it lagged behind
-  // the board). In the JSX its vertical position is driven by the SAME boardRiseY spring that
-  // lifts the leaderboard, so the mark rises into place LOCKED TO the board — they come up as
-  // one. At the END the mark CROSSES to screen-centre (logoStageX/logoCrossRise below) and
-  // dissolves THERE — onto the brand strip's centre logo — instead of fading in its lane. So the
-  // dissolve waits until it has arrived at centre.
-  const logoStageOpacity = useTransform(logo3dProgress, [0.66, 0.8], [1, 0]);
+  // Mobile: a 3D logo fills the empty space AFTER the leaderboard text — fades in once the rows
+  // have scrolled through (text gone by ~0.72), holds through the empty stretch, then fades out
+  // before the brand strip arrives. mobileStageSpin gives it a controlled spin while visible.
+  const mobileStageOpacity = useTransform(logo3dProgress, [0.66, 0.78, 0.95, 1.0], [0, 1, 1, 0]);
+  const mobileStageSpin = useTransform(logo3dProgress, [0.66, 1.0], [0, 1]);
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
@@ -1080,22 +1082,8 @@ export default function Landing() {
     boardRiseRaw,
     heroStatic ? { stiffness: 300, damping: 34, mass: 0.35 } : { stiffness: 120, damping: 22, mass: 0.6 }
   );
-  // Mobile logo Y: rides boardRiseY (so it lifts in lockstep WITH the leaderboard — they come
-  // up together) but offset so the mark rests in its own lane. The board now rests 120px lower
-  // (-70 vs -190), so -120 here keeps the logo at the SAME spot it was before. Lower number =
-  // logo sits HIGHER. Tune this single value to raise/lower it.
-  const LOGO_RIDE_OFFSET = -280;
-  // END CROSS: after the leaderboard, the mark glides from its lower-left lane to screen-centre
-  // (x: logoX → 0) and rises the rest of the way to the vertical centre, landing on the brand
-  // strip's centre logo, where it dissolves. logoCrossRise cancels the resting Y so the mark
-  // ends at the stage's base-centre (top:50%/left:50% in CSS). Tune the [0.6,0.82] window for
-  // when the cross happens, and the end X ('0vw') / the +offset cancel for where it lands.
-  const logoStageX = useTransform(logo3dProgress, [0.48, 0.68], [logoX, '0vw']);
-  const logoCrossRise = useTransform(logo3dProgress, [0.48, 0.68], [0, 70 - LOGO_RIDE_OFFSET]);
-  const logoStageY = useTransform(
-    [boardRiseY, logoCrossRise],
-    ([b, cross]) => b + LOGO_RIDE_OFFSET + cross
-  );
+  // Mobile no longer renders a 3D logo in this section — the leaderboard carries the
+  // moment on its own (spotlight pill on the centred line + a climax ping on the last).
   // Brand strip "stick" — MOBILE ONLY. On mobile the transform lifts the strip up to meet the
   // leaderboard's fading last line and HOLDS (never releases → never sinks back), and a matching
   // marginBottom:brandRise on the wrapper shifts the showcase + everything below up the same amount
@@ -1211,15 +1199,6 @@ export default function Landing() {
             <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
               Explore Creators
             </a>
-            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
-              <DollarSign size={16} /> Pricing
-            </a>
-            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
-              <Sparkles size={16} /> Intelligence
-            </a>
-            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
-              <LayoutGrid size={16} /> Others <ChevronDown size={15} />
-            </a>
           </nav>
 
           <div className="lp-navbar__actions">
@@ -1260,15 +1239,6 @@ export default function Landing() {
         <div className={`lp-navbar__mobile${menuOpen ? ' lp-navbar__mobile--open' : ''}`}>
           <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
             Explore Creators
-          </a>
-          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
-            <DollarSign size={16} /> Pricing
-          </a>
-          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
-            <Sparkles size={16} /> Intelligence
-          </a>
-          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
-            <LayoutGrid size={16} /> Others
           </a>
           <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/creator'); }}>
             Join as Creator
@@ -1329,18 +1299,6 @@ export default function Landing() {
         <motion.div className="lp-hero__sticky">
           {/* Left: marketing copy — hides once the logo grows (2nd scroll) */}
           <div className="lp-hero__inner">
-          <motion.div
-            className="lp-badge"
-            custom={0}
-            variants={heroItemVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <Sparkles size={14} />
-            <span>For Creators &amp; Brands</span>
-            <Sparkles size={14} />
-          </motion.div>
-
           {heroStatic ? (
             <motion.h1
               className="lp-hero__title lp-hero__title--mobile"
@@ -1407,22 +1365,6 @@ export default function Landing() {
             </button>
           </motion.div>
 
-          <motion.div
-            className="lp-hero__badges"
-            custom={4}
-            variants={heroItemVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {proofBadges.map(({ Icon, label }) => (
-              <div key={label} className="lp-proof-badge">
-                <span className="lp-proof-badge__icon">
-                  <Icon size={14} />
-                </span>
-                <span>{label}</span>
-              </div>
-            ))}
-          </motion.div>
           </div>
 
           {/* The logo mark now lives in the fixed .lp-logo-fly overlay above —
@@ -1446,22 +1388,15 @@ export default function Landing() {
       {/* ── 3D glass logo (left) + center copy — scroll-driven ──────────────── */}
       <section className={`lp-logo3d${logo3dInView ? ' is-in' : ''}`} ref={logo3dRef}>
         <div className="lp-logo3d__sticky">
-          {/* 3D logo — top-left resting spot. On desktop the fixed .lp-logo-fly
-              overlay flies in and occupies this position, so the stage here is a
-              MOBILE-ONLY fallback (no fly-through on small screens). */}
-          {heroStatic && (
-            // y = logoStageY (boardRiseY + offset): the SAME lift that raises the leaderboard,
-            // so the logo comes up locked to the board (in sync), just parked lower-left.
-            <motion.div className="lp-logo3d__stage" style={{ x: logoStageX, y: logoStageY, opacity: logoStageOpacity }}>
-              {logo3dInView ? (
-                <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
-                  {/* Mobile: upright vertical-axis spin tied straight to scroll (no landscape
-                      tilt/barrel). idleSpin off = no continuous decorative auto-spin. */}
-                  <HeroLogo3D progress={logo3dProgress} theme={theme} idleSpin={false} verticalSpin />
-                </Suspense>
-              ) : (
-                <div className="lp-logo3d__placeholder" aria-hidden="true" />
-              )}
+          {/* Desktop: the fixed .lp-logo-fly overlay flies the 3D mark into this section.
+              Mobile: no 3D logo here — the leaderboard carries the moment on its own. */}
+
+          {/* Mobile: 3D logo fills the space below the leaderboard text (desktop uses the fly overlay). */}
+          {heroStatic && logo3dInView && (
+            <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity }}>
+              <Suspense fallback={<div className="lp-logo3d__placeholder" aria-hidden="true" />}>
+                <HeroLogo3D progress={mobileStageSpin} theme={theme} verticalSpin idleSpin={false} />
+              </Suspense>
             </motion.div>
           )}
 
@@ -2820,8 +2755,8 @@ export default function Landing() {
              The badge sits up top, the trust pills sit near the bottom, and the
              title/subtitle/CTAs get even breathing room between. Caps keep the
              distribution from looking disconnected on very tall viewports. */
-          justify-content: space-between;
-          gap: clamp(16px, 3vh, 44px);
+          justify-content: center;
+          gap: clamp(18px, 2.6vh, 30px);
           min-height: 0;
           transition: opacity 0.45s ease;
         }
@@ -2892,7 +2827,7 @@ export default function Landing() {
           font-family: var(--font-head);
           font-size: var(--fs-hero);
           font-weight: var(--fw-head);
-          line-height: 1.14;
+          line-height: 1.4;
           color: var(--lp-text);
           margin: 0;
           letter-spacing: -0.04em;

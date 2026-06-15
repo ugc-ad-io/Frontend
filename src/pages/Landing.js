@@ -111,10 +111,12 @@ function releasePlay(v) {
 
 // Inject Cloudinary delivery transforms so the marquee fetches a card-sized, auto-codec
 // clip instead of the raw UHD source — the 172px slot never needs 2160px of pixels.
-// (f_auto → webm/vp9 where supported, q_auto:eco → aggressive adaptive quality, w_320/c_limit → cap width.)
+// (f_auto → webm/vp9 where supported, q_auto:good → adaptive quality, w_480/c_limit → cap width.)
+// w_480 covers the 172px card on DPR-2/3 displays (172×2.8); q_auto:good (not :eco) avoids the
+// over-compressed, blurry render the aggressive eco tier produced at the old 320px cap.
 function cldThumb(src) {
   if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
-  return src.replace('/video/upload/', '/video/upload/f_auto,q_auto:eco,w_320,c_limit/');
+  return src.replace('/video/upload/', '/video/upload/f_auto,q_auto:good,w_480,c_limit/');
 }
 
 // Showcase video: on first nearing the viewport it schedules its load (staggered), attaches
@@ -717,7 +719,10 @@ function AchieveFan({ items }) {
           <article
             key={item.title}
             className={`lp-achieve-card${isActive ? ' is-active' : ''}`}
-            style={{ transform, zIndex: isActive ? 30 : 10 - Math.round(Math.abs(offset)) }}
+            // Cascade left→right (each card on top of the previous one) so every card's
+            // top-left number stays uncovered. A center-on-top order hid 05/06, because the
+            // card to their LEFT (higher z) overlapped the corner where the number sits.
+            style={{ transform, zIndex: isActive ? 30 : 10 + i }}
             onMouseEnter={() => setActive(i)}
           >
             <div className="lp-achieve-card__top">
@@ -966,11 +971,17 @@ export default function Landing() {
   // Rows finish by LOGO3D_SCROLL_END (0.62); the 11th sits at the 50% focus, then fades over
   // 0.62→0.72 — melting away as the logo crosses (which starts from that same moment).
   const logoBoardOpacity = useTransform(logo3dProgress, [0.62, 0.72], [1, 0]);
-  // Mobile: a 3D logo fills the empty space AFTER the leaderboard text — fades in once the rows
-  // have scrolled through (text gone by ~0.72), holds through the empty stretch, then fades out
-  // before the brand strip arrives. mobileStageSpin gives it a controlled spin while visible.
-  const mobileStageOpacity = useTransform(logo3dProgress, [0.66, 0.78, 0.95, 1.0], [0, 1, 1, 0]);
-  const mobileStageSpin = useTransform(logo3dProgress, [0.66, 1.0], [0, 1]);
+  // Mobile: a 3D logo fills the empty space BELOW the leaderboard text (text sits in the upper
+  // third, this fills the lower gap). It's visible from the START of the leaderboard, then TRAVELS
+  // DOWN and DISSOLVES onto the brand strip's centre logo as the strip rises (~0.45) — a hand-off.
+  const mobileStageOpacity = useTransform(logo3dProgress, [0.0, 0.03, 0.58, 0.72], [0, 1, 1, 0]);
+  // y descent that carries the mark down toward the rising brand-strip centre logo while it fades.
+  const mobileStageDown = useTransform(logo3dProgress, [0.45, 0.72], [0, -120]);
+  // Shrink as it dissolves so the mark looks like it's merging INTO the small brand-strip logo.
+  const mobileStageScale = useTransform(logo3dProgress, [0.56, 0.72], [1, 0.4]);
+  // Spin runs through the WHOLE visible window (incl. the dissolve) so the mark keeps rotating as
+  // it shrinks/fades, instead of freezing straight once it stops at 0.5.
+  const mobileStageRotate = useTransform(logo3dProgress, [0.0, 0.72], [0, 360]);
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
@@ -1398,9 +1409,9 @@ export default function Landing() {
 
           {/* Mobile: 3D logo fills the space below the leaderboard text (desktop uses the fly overlay). */}
           {heroStatic && logo3dInView && (
-            <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity }}>
+            <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity, y: mobileStageDown, scale: mobileStageScale, rotate: mobileStageRotate }}>
               <Suspense fallback={<div className="lp-logo3d__placeholder" aria-hidden="true" />}>
-                <HeroLogo3D progress={mobileStageSpin} theme={theme} verticalSpin idleSpin={false} />
+                <HeroLogo3D theme={theme} verticalSpin idleSpin={false} />
               </Suspense>
             </motion.div>
           )}
@@ -3326,10 +3337,11 @@ export default function Landing() {
              brand strip now rises in right behind the last rows. */
           .lp-logo3d { height: 175vh; }
           .lp-logo3d__stage {
-            width: clamp(120px, 34vw, 200px);
-            height: clamp(120px, 22vh, 220px);
-            margin-top: calc(clamp(120px, 22vh, 220px) * -0.5);
-            margin-left: calc(clamp(120px, 34vw, 200px) * -0.5);
+            top: 60%;          /* sit lower — down in the empty space below the leaderboard text */
+            width: clamp(170px, 46vw, 280px);
+            height: clamp(170px, 30vh, 300px);
+            margin-top: calc(clamp(170px, 30vh, 300px) * -0.5);
+            margin-left: calc(clamp(170px, 46vw, 280px) * -0.5);
           }
           .lp-logo3d__board { width: 92%; }
           /* One line on phones too: scale with vw so the longest sentence fits a ~92vw board.
@@ -4108,7 +4120,7 @@ export default function Landing() {
           font-family: 'Instrument Serif', Georgia, serif;
           font-size: 1.7rem;
           line-height: 1;
-          color: rgba(var(--lp-fg), 0.4);
+          color: rgba(var(--lp-fg), 0.6);
           transition: color 0.4s ease;
         }
         .lp-achieve-card__body {
@@ -5144,7 +5156,9 @@ export default function Landing() {
           /* Tighter horizontal gutters + trimmed vertical padding on phones */
           .lp-hook { padding: 72px 6% 60px; }
           .lp-steps { padding: 56px 6%; }
-          .lp-showcase { padding: 48px 4% 56px; }
+          /* Extra top padding so "We created…" clears the brand strip above it (the strip is
+             pulled up over the showcase via brandRise, so a small top pad left them overlapping). */
+          .lp-showcase { padding: 140px 4% 56px; }
           .lp-compare { padding: 48px 5%; }
           .lp-features { padding: 56px 6% 72px; }
           .lp-proof { padding: 64px 6%; }
@@ -6908,42 +6922,39 @@ export default function Landing() {
           .lp-proof { padding: 80px 5%; }
           .lp-proof__top { flex-direction: column; align-items: flex-start; }
           .lp-proof__heading { text-align: left; }
+          /* All three stats on ONE line: keep the 3-column row, just shrink to fit phones. */
           .lp-proof__row {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 0;
           }
-          .lp-proof__row::before, .lp-proof__row::after { display: none; }
-          /* Editorial row: [index] · [value over label]. No side line, no arrow. */
           .lp-proof__row > .lp-proof-num {
-            grid-column: 1 !important;
-            display: grid;
-            grid-template-columns: 30px 1fr;
-            grid-template-areas:
-              "idx value"
-              "idx label";
-            column-gap: 16px;
-            row-gap: 2px;
+            grid-column: auto !important;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            text-align: left;
-            padding: 34px 0;
+            text-align: center;
+            gap: 6px;
+            padding: 8px 6px;
           }
-          /* Divider between rows: the SAME soft fade-to-transparent gradient line as the
-             header divider (replaces the desktop vertical line + the old arrow). */
+          /* Thin vertical divider between the columns (matches the desktop look). */
           .lp-proof__row > .lp-proof-num:not(:last-child)::after {
             content: '' !important;
             display: block !important;
             position: absolute !important;
-            top: auto !important; bottom: 0 !important;
-            left: 0 !important; right: 0 !important;
-            width: auto !important; height: 1px !important;
-            background: linear-gradient(90deg, transparent, var(--lp-border), transparent) !important;
+            top: 10% !important; bottom: auto !important;
+            right: 0 !important; left: auto !important;
+            width: 1px !important; height: 80% !important;
+            background: var(--lp-border) !important;
           }
-          .lp-proof-num__index { grid-area: idx; align-self: center; }
+          .lp-proof-num__index { font-size: 0.58rem; letter-spacing: 0.18em; }
           .lp-proof-num__value {
-            grid-area: value; align-self: end;
-            font-size: clamp(2.2rem, 12vw, 3.4rem);
+            white-space: nowrap;
+            font-size: clamp(1.05rem, 5.4vw, 1.7rem);
           }
-          .lp-proof-num__label { grid-area: label; align-self: start; }
+          .lp-proof-num__label {
+            font-size: 0.66rem;
+            line-height: 1.25;
+          }
         }
       `}</style>
     </div>

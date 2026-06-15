@@ -1040,7 +1040,12 @@ export default function Landing() {
   // <Bounds margin={1.2}>).
   // Linear (constant-rate) scaling so the size changes at a STEADY pace — easeInOut sped up
   // through the middle of each segment, which read as the logo "jumping" size at one point.
-  const flyScale = useTransform(journeyP, [0, 0.67, 0.86, 0.96], [1.1, 0.9, 0.9, 0.5]);
+  // Keep the mark a CONSTANT size through the whole hero + leaderboard — NO shrink-on-scroll
+  // (that read as the size "jumping" small the instant you scrolled / when you stopped). It only
+  // melts down at the very end (dissolve, 0.86→0.96). A gentle DEDICATED spring eases even that
+  // and is decoupled from the snappy position spring, so size never snaps when scrolling stops.
+  const flyScaleRaw = useTransform(journeyP, [0, 0.86, 0.96], [1.0, 1.0, 0.5]);
+  const flyScale = useSpring(flyScaleRaw, { stiffness: 55, damping: 20, mass: 0.5 });
   // Leaderboard is "stuck" to the hero buttons (Join as Creator / Sign up as Brand): as they
   // scroll up and off when the hero un-pins (journeyP ~0.22→0.66), the board is PULLED UP from
   // below the fold to meet them, so it rises into the buttons' place instead of waiting for the
@@ -1283,7 +1288,7 @@ export default function Landing() {
           style={{ x: flyX, y: flyY, scale: flyScale, opacity: flyOpacity }}
           aria-hidden="true"
         >
-          <Suspense fallback={<div className="lp-logo3d__loading">Loading…</div>}>
+          <Suspense fallback={null}>
             {/* journeyP drives BOTH phases inside HeroLogo3D: hero 360°+colour, then
                 the leaderboard landscape tip + barrel-roll. */}
             <HeroLogo3D progress={journeyP} theme={theme} />
@@ -2440,6 +2445,9 @@ export default function Landing() {
           --lp-fg: 255, 255, 255;
           --lp-page-bg: #0a0a0a;
           --lp-text: #ffffff;
+          /* ── ONE content container width for every section, so content edges
+                line up vertically down the whole page (equal L/R gutters). ──── */
+          --lp-maxw: 1200px;
           min-height: 100vh;
           font-family: var(--font-body);
           background: var(--lp-page-bg);
@@ -2535,7 +2543,7 @@ export default function Landing() {
           display: flex;
           align-items: center;
           gap: 32px;
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           background: transparent;       /* no white container */
           padding: 10px 4px;
@@ -2714,10 +2722,10 @@ export default function Landing() {
           position: fixed;
           top: 50%;
           left: 50%;
-          width: clamp(170px, 22vw, 330px);
-          height: clamp(170px, 33vh, 360px);
-          margin-top: calc(clamp(170px, 33vh, 360px) * -0.5);
-          margin-left: calc(clamp(170px, 22vw, 330px) * -0.5);
+          width: clamp(260px, 30vw, 480px);
+          height: clamp(260px, 44vh, 520px);
+          margin-top: calc(clamp(260px, 44vh, 520px) * -0.5);
+          margin-left: calc(clamp(260px, 30vw, 480px) * -0.5);
           transform-origin: center center;
           z-index: 4;
           pointer-events: none;
@@ -2732,7 +2740,7 @@ export default function Landing() {
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          padding: 300px 8% 56px;
+          padding: 132px 8% 72px;
           display: flex;
           align-items: stretch;
         }
@@ -2825,13 +2833,13 @@ export default function Landing() {
 
         .lp-hero__title {
           font-family: var(--font-head);
-          font-size: var(--fs-hero);
+          font-size: clamp(2.3rem, 4.4vw, 3.9rem);
           font-weight: var(--fw-head);
-          line-height: 1.4;
+          line-height: 1.18;
           color: var(--lp-text);
           margin: 0;
-          letter-spacing: -0.04em;
-          max-width: 20ch;
+          letter-spacing: -0.03em;
+          max-width: 18ch;
         }
         /* Mobile hero title — custom line-by-line arrangement, centred + larger. Higher
            specificity (0,2,0) so it beats the various single-class .lp-hero__title mobile
@@ -2871,9 +2879,9 @@ export default function Landing() {
         .lp-hero__subtitle {
           font-family: var(--font-body);
           color: rgba(var(--lp-fg), 0.65);
-          font-size: 1.78rem;
-          line-height: 1.6;
-          max-width: 640px;
+          font-size: 1.55rem;
+          line-height: 1.55;
+          max-width: 600px;
           margin: 0;
           text-align: left;
         }
@@ -4175,7 +4183,7 @@ export default function Landing() {
           color: var(--lp-text);
         }
         .lp-vs__inner {
-          max-width: 1080px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
         }
         /* Borderless table — the only framed element is the highlighted UGCad.io panel. */
@@ -5218,7 +5226,7 @@ export default function Landing() {
           z-index: 2;
         }
         .lp-faq__inner {
-          max-width: 1160px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
         }
         .lp-faq__heading {
@@ -5370,7 +5378,7 @@ export default function Landing() {
         .lp-footer__inner {
           position: relative;
           z-index: 2;
-          max-width: 1300px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
         }
 
@@ -5783,7 +5791,7 @@ export default function Landing() {
         .lp-hook__inner {
           position: relative;
           z-index: 2;
-          max-width: 1100px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
         }
 
@@ -6484,7 +6492,7 @@ export default function Landing() {
         .lp-testimonial__inner {
           position: relative;
           z-index: 2;
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           text-align: center;
         }

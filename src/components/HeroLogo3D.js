@@ -17,7 +17,7 @@ const TIP_FINISH = 0.67;
 // leaderboard rows scroll past, instead of sitting straight and static.
 const LB_SPIN_START = 0.67;
 const LB_SPIN_END = 0.86;
-const SPIN_TURNS = 2;
+const SPIN_TURNS = 1;
 // Mobile "verticalSpin" mode: the logo stays UPRIGHT (no landscape tilt / barrel) and simply
 // spins about its vertical (Y) axis, tied straight to scroll. This many full turns across the
 // section's scroll range.
@@ -30,7 +30,18 @@ const DISSOLVE_END = 0.96;
 // Continuous decorative auto-spin while the logo sits at the hero (top of page). One full
 // turn every ~10s. It's faded out as you scroll into the choreographed journey so it never
 // fights the scroll-driven spin/tip/barrel below.
-const AUTO_SPIN_SPEED = (Math.PI * 2) / 24; // rad per second (one turn / 24s)
+const AUTO_SPIN_SPEED = (Math.PI * 2) / 40; // rad per second (one turn / 40s — calmer idle)
+
+// ── Desktop spin (two phases) ──────────────────────────────────────────────────
+// HERO (jp 0→HERO_END): the mark only turns LEFT↔RIGHT (about the vertical Y axis) — plus a
+//   slow idle so it's alive at rest.
+// AFTER HERO (jp HERO_END→1): it breaks into a full 360° tumble in ALL directions (X, Y and Z
+//   at different rates), layered ON TOP of where the hero left it so there's no snap at the seam.
+const CALM_SPIN_SPEED = (Math.PI * 2) / 16; // rad/s idle left↔right — one gentle turn every 16s
+const HERO_TURNS = 1;     // left↔right (Y) turns driven across the hero scroll
+const POST_TURNS_Y = 3;   // after-hero tumble turns per axis — different counts = all-directions
+const POST_TURNS_X = 2;
+const POST_TURNS_Z = 1;
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const ease = (t) => t * t * (3 - 2 * t);
@@ -65,6 +76,7 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
   const spinRef = useRef();
   const meshesRef = useRef(null);   // lit meshes, cached once (no per-frame scene.traverse)
   const colourKeyRef = useRef(-1);  // last applied colour step — skips redundant recolours
+  const frozenIdleRef = useRef(0);  // idle-spin angle frozen at the moment scroll begins
   const colStart = theme === 'light' ? COL_START_LIGHT : COL_START_DARK;
 
   // On-demand rendering: only render a frame when the scroll value actually changes (i.e.
@@ -116,8 +128,10 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
     if (!idleSpin) return; // mobile: no decorative idle spin, so no need to keep rendering at rest
     let raf;
     const tick = () => {
-      const jp = progress ? clamp01(progress.get()) : 0;
-      if (jp < HERO_END) invalidate();
+      // Keep rendering while mounted so the gentle sway animates continuously (even at rest).
+      // The whole canvas is unmounted by the parent once the journey scrolls out of view, so
+      // this never runs for an off-screen scene.
+      invalidate();
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -127,40 +141,26 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
   useFrame((state) => {
     const jp = progress ? clamp01(progress.get()) : 0;
 
-    // PHASE 1 — hero: one full 360° turntable spin, eased.
+    // Colour-journey progress over the hero phase (used only for the recolour below).
     const heroP = clamp01(jp / HERO_END);
-    const heroSpin = easeInOut(heroP) * Math.PI * 2;
-
-    // Continuous decorative spin, ONLY while parked at the very top of the hero. The instant
-    // the user scrolls (jp leaves 0) we drop it to 0, so the mark snaps to face-on (front) and
-    // the scroll-driven choreography (heroSpin → tip → barrel) runs from the front, NOT from
-    // wherever the idle spin happened to be.
-    const autoSpin = idleSpin && jp <= 0.0005 ? state.clock.elapsedTime * AUTO_SPIN_SPEED : 0;
-
-    // Tilt to landscape (Z) — leans over after the spin (TIP_START→TIP_FINISH), HOLDS
-    // landscape across the board, then UN-TILTS back to straight during the dissolve so it
-    // melts into the brand-strip card upright (portrait), not landscape.
-    let tip = ease(clamp01((jp - TIP_START) / (TIP_FINISH - TIP_START)));
-    if (jp >= DISSOLVE_START) tip = 1 - ease(clamp01((jp - DISSOLVE_START) / (DISSOLVE_END - DISSOLVE_START)));
-
-    // PHASE 3 — barrel-roll while the leaderboard scrolls (keeps the landscape logo alive).
-    // EASED (not linear): the hero 360° decelerates to a hold at 0.3, so the barrel must
-    // also ramp its velocity up FROM zero at 0.67 and back DOWN to zero at 0.86 — otherwise
-    // the spin kicks in (and stops) with a hard jolt. easeInOut gives C1 continuity at both
-    // ends, so rotate → hold → spin → dissolve reads as one continuous, smooth motion.
-    const barrel = spinProfile(clamp01((jp - LB_SPIN_START) / (LB_SPIN_END - LB_SPIN_START))) * Math.PI * 2 * SPIN_TURNS;
 
     if (verticalSpin) {
-      // Mobile: stay UPRIGHT (no landscape tilt) and spin about the vertical (Y) axis,
-      // tied straight to scroll — VS_TURNS full turns across the section. autoSpin is 0 here.
+      // Mobile: UNCHANGED — upright, spins about the vertical (Y) axis tied straight to scroll.
       if (tipRef.current) tipRef.current.rotation.z = 0;
-      if (spinRef.current) spinRef.current.rotation.y = jp * Math.PI * 2 * VS_TURNS + autoSpin;
+      if (spinRef.current) spinRef.current.rotation.y = jp * Math.PI * 2 * VS_TURNS;
     } else {
-      // Tip exactly 90° (clean landscape), negative direction so the point faces the text.
-      if (tipRef.current) tipRef.current.rotation.z = -tip * (Math.PI / 2);
-      // The hero 360° caps at a full turn (face-on); the barrel-roll continues from there.
-      // autoSpin adds the continuous idle rotation at the hero (zero once scrolled in).
-      if (spinRef.current) spinRef.current.rotation.y = heroSpin + barrel + autoSpin;
+      // Desktop, two phases (continuous at the seam — post-hero rotation is LAYERED on the hero
+      // end state, and starts at 0 when postP=0, so nothing snaps):
+      //   HERO: left↔right (Y) only — idle keeps it alive at rest.
+      //   AFTER HERO: full 360° tumble in all directions (X, Y, Z at different rates).
+      const idle = state.clock.elapsedTime * CALM_SPIN_SPEED;
+      const postP = clamp01((jp - HERO_END) / (1 - HERO_END));
+      const heroY = clamp01(jp / HERO_END) * Math.PI * 2 * HERO_TURNS;
+      if (tipRef.current) tipRef.current.rotation.z = postP * Math.PI * 2 * POST_TURNS_Z;
+      if (spinRef.current) {
+        spinRef.current.rotation.y = idle + heroY + postP * Math.PI * 2 * POST_TURNS_Y;
+        spinRef.current.rotation.x = postP * Math.PI * 2 * POST_TURNS_X;
+      }
     }
 
     // Set up the bright self-lit material + cache the mesh list ONCE — no per-frame
@@ -224,13 +224,7 @@ export default function HeroLogo3D({ progress, theme, idleSpin = true, verticalS
       <ambientLight intensity={1.0} />
       <directionalLight position={[5, 5, 5]} intensity={1.4} />
       <directionalLight position={[-5, -3, -5]} intensity={0.6} />
-      <Suspense
-        fallback={
-          <Html center>
-            <div className="lp-logo3d__loading">Loading…</div>
-          </Html>
-        }
-      >
+      <Suspense fallback={null}>
         {/* fit ONCE on mount — no `observe`, so the camera doesn't re-fit as it spins. */}
         <Bounds fit margin={1.2}>
           <LogoModel progress={progress} theme={theme} idleSpin={idleSpin} verticalSpin={verticalSpin} />

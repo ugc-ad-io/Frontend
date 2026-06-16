@@ -67,7 +67,9 @@ const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 function cldThumb(src) {
   if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
   // ac_none strips the audio track (clips are muted anyway) — smaller file + lighter decode.
-  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:eco,h_360,c_scale,ac_none,du_8/');
+  // h_640 + q_auto:good (was h_360 + q_auto:eco): the cards render ~208px wide on a DPR-3 phone
+  // (~620px of real pixels), so 360px tall upscaled looked soft/blurry — 640 keeps it crisp.
+  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:good,h_640,c_scale,ac_none,du_8/');
 }
 
 // ── Global play cap (imperative, NO React state) ────────────────────────────────
@@ -75,7 +77,10 @@ function cldThumb(src) {
 // screen). Cap concurrent playback: a card that scrolls in plays if a slot is free, otherwise it
 // WAITS on its (real) poster thumbnail. When a playing card scrolls off, it hands its slot to a
 // waiting one. All imperative — never calls setState — so the non-stop marquee causes no renders.
-const MAX_PLAYING_VIDEOS = 14;
+// Cap concurrent playback far LOWER on phones — a dozen H.264 decoders at once stutter on mobile
+// GPUs (the "lag on play"). Desktop can handle many more. Evaluated once at module load.
+const MAX_PLAYING_VIDEOS =
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 5 : 14;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -111,7 +116,7 @@ function cldPoster(src) {
   // so non-playing cards show a real still instead of a black box.
   if (!src.includes('/video/upload/')) return src.replace(/\.mp4$/i, '.jpg');
   return src
-    .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto,h_360,c_scale/')
+    .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto,h_640,c_scale/')
     .replace(/\.mp4$/i, '.jpg');
 }
 
@@ -5417,7 +5422,8 @@ export default function Landing() {
             white-space: normal;
             text-align: center;
             text-wrap: balance;
-            font-size: clamp(1.05rem, 4.6vw, 1.85rem);
+            /* Match the audit ("Answer This Honestly.") heading size on mobile. */
+            font-size: var(--fs-h1);
             max-width: 94%;
             margin-left: auto;
             margin-right: auto;

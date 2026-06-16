@@ -88,9 +88,6 @@ function cldThumb(src) {
 // device stutters; raising it trades smoothness-of-start for decode load.
 const MAX_PLAYING_VIDEOS =
   typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : 14;
-// Phones can't decode multiple marquee videos during scroll without the whole page tanking, so on
-// mobile we render a STATIC poster image instead of a <video> (see LazyVideo). Evaluated once.
-const IS_MOBILE = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -209,22 +206,10 @@ function LazyVideoEl({ src, className, eager = false }) {
   );
 }
 
-// MOBILE: a plain lazy <img> of the clip's first frame — NO <video>, so zero decode load (the main
-// cause of whole-page mobile lag + fast-scroll meltdown). The marquee still scrolls; it just shows
-// crisp stills instead of playing video. DESKTOP keeps the real <video> (LazyVideoEl).
+// Videos PLAY on both mobile and desktop. On mobile they're kept light via the play-cap (3
+// concurrent), h_480 res, and only-when-visible playback (LazyVideoEl) — the rest of the mobile
+// perf comes from content-visibility + no backdrop-blur + lighter shadows, not from killing video.
 function LazyVideo(props) {
-  if (IS_MOBILE) {
-    return (
-      <img
-        src={cldPoster(props.src)}
-        alt=""
-        aria-hidden="true"
-        className={props.className}
-        loading="lazy"
-        decoding="async"
-      />
-    );
-  }
   return <LazyVideoEl {...props} />;
 }
 

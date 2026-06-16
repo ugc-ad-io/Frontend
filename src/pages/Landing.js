@@ -67,9 +67,13 @@ const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 function cldThumb(src) {
   if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
   // ac_none strips the audio track (clips are muted anyway) — smaller file + lighter decode.
-  // h_640 + q_auto:good (was h_360 + q_auto:eco): the cards render ~208px wide on a DPR-3 phone
-  // (~620px of real pixels), so 360px tall upscaled looked soft/blurry — 640 keeps it crisp.
-  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:good,h_640,c_scale,ac_none,du_8/');
+  // h_480 + q_auto:good (was h_360 + q_auto:eco). h_480 is sharper than 360 but, with the mobile
+  // play-cap at 5, the TOTAL decode load (5×480²) is LOWER than the old 14×360² — so it's smoother
+  // AND crisper. h_640 (tried before) pushed total decode above the old load → it lagged worse.
+  // h_600 (was h_480) for a sharper playing clip. With the mobile cap at 4, total decode is
+  // 4×600² ≈ 1.44M — still BELOW the old 14×360² ≈ 1.81M, so it stays smooth while looking crisper.
+  // du_3 keeps the file tiny so it buffers + starts playing almost immediately.
+  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:good,h_600,c_scale,ac_none,du_3/');
 }
 
 // ── Global play cap (imperative, NO React state) ────────────────────────────────
@@ -80,7 +84,7 @@ function cldThumb(src) {
 // Cap concurrent playback far LOWER on phones — a dozen H.264 decoders at once stutter on mobile
 // GPUs (the "lag on play"). Desktop can handle many more. Evaluated once at module load.
 const MAX_PLAYING_VIDEOS =
-  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 5 : 14;
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 4 : 14;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -115,8 +119,11 @@ function cldPoster(src) {
   // Local files (e.g. /home/video_03.mp4) have a sibling first-frame JPG (/home/video_03.jpg),
   // so non-playing cards show a real still instead of a black box.
   if (!src.includes('/video/upload/')) return src.replace(/\.mp4$/i, '.jpg');
+  // h_800 + q_auto:good — the poster is a STATIC image (no playback decode cost), so it can be
+  // high-res and stay crisp on a DPR-3 phone while the clip buffers. This is what's visible during
+  // the first couple seconds, so its sharpness is what "blurry on load" was about.
   return src
-    .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto,h_640,c_scale/')
+    .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto:good,h_800,c_scale/')
     .replace(/\.mp4$/i, '.jpg');
 }
 
@@ -138,7 +145,8 @@ function LazyVideo({ src, className }) {
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
-      { rootMargin: '300px' }
+      // Smaller look-ahead so fewer clips download at once (less bandwidth contention = less lag).
+      { rootMargin: '140px' }
     );
     io.observe(el);
     return () => io.disconnect();
@@ -1103,11 +1111,14 @@ export default function Landing() {
   // Mobile: a 3D logo fills the empty space BELOW the leaderboard text (text sits in the upper
   // third, this fills the lower gap). It's visible from the START of the leaderboard, then TRAVELS
   // DOWN and DISSOLVES onto the brand strip's centre logo as the strip rises (~0.45) — a hand-off.
-  const mobileStageOpacity = useTransform(logo3dProgress, [0.0, 0.03, 0.58, 0.72], [0, 1, 1, 0]);
+  // Fade fully BEFORE the brand strip rises in (~0.45) so the 3D mark and the strip's own
+  // centre logo never sit on screen together as an offset "duplicate". The descend + shrink
+  // complete on the same beat, so it dissolves away just as the strip takes over.
+  const mobileStageOpacity = useTransform(logo3dProgress, [0.0, 0.03, 0.34, 0.46], [0, 1, 1, 0]);
   // y descent that carries the mark down toward the rising brand-strip centre logo while it fades.
-  const mobileStageDown = useTransform(logo3dProgress, [0.45, 0.72], [0, -120]);
+  const mobileStageDown = useTransform(logo3dProgress, [0.28, 0.46], [0, -120]);
   // Shrink as it dissolves so the mark looks like it's merging INTO the small brand-strip logo.
-  const mobileStageScale = useTransform(logo3dProgress, [0.56, 0.72], [1, 0.4]);
+  const mobileStageScale = useTransform(logo3dProgress, [0.32, 0.46], [1, 0.4]);
   // Spin runs through the WHOLE visible window (incl. the dissolve) so the WebGL mark keeps
   // rotating as it shrinks/fades into the brand-strip logo, instead of freezing once it stops.
   const mobileStageSpin = useTransform(logo3dProgress, [0.0, 0.72], [0, 1]);
@@ -3521,8 +3532,8 @@ export default function Landing() {
             width: clamp(170px, 46vw, 280px);
             height: clamp(170px, 30vh, 300px);
             margin-top: calc(clamp(170px, 30vh, 300px) * -0.5);
-            /* nudge slightly right of centre (the +offset shifts it right; raise/lower it to taste) */
-            margin-left: calc(clamp(170px, 46vw, 280px) * -0.5 + 6vw);
+            /* centred so it dissolves in line with the (centred) brand-strip logo below */
+            margin-left: calc(clamp(170px, 46vw, 280px) * -0.5);
           }
           /* MOBILE perf: this board is transformed every scroll frame (the lockstep rise +
              rows). A mask-image forces the GPU to RE-RASTERISE a masked element each frame it

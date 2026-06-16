@@ -2813,6 +2813,7 @@ export default function Landing() {
         .lp-navbar__burger {
           display: none;
           margin-left: auto;
+          margin-right: -6px;
           align-items: center;
           justify-content: center;
           width: 42px;
@@ -3511,15 +3512,16 @@ export default function Landing() {
              centre, so the edge fade is preserved visually. perspective is unused here too (the
              phone rows use a 2D rotate, not rotateX/Y), so drop it to skip the 3D render context. */
           .lp-logo3d__board {
-            width: 92%;
+            width: 96%;
             -webkit-mask-image: none;
                     mask-image: none;
             perspective: none;
           }
-          /* One line on phones too: scale with vw so the longest sentence fits a ~92vw board.
-             top: shift the whole row stack UP (from the 44% default) so the text comes up
-             higher and closes the gap below the hero — independent of the logo's position. */
-          .lp-logo3d__boardItem { font-size: clamp(11px, 4.2vw, 18px); top: 36%; }
+          /* One line on phones too: scale with vw so the longest sentence ("We only work with
+             brands that want to lead") still fits the ~96vw board without wrapping/clipping.
+             5.3vw is the largest that keeps that longest line on one line across phone widths.
+             top: shift the whole row stack UP so the text comes up higher under the hero. */
+          .lp-logo3d__boardItem { font-size: clamp(13px, 5.3vw, 23px); top: 36%; }
         }
 
         /* ── The Problem section ──────────────────────────────────────────── */
@@ -5208,7 +5210,7 @@ export default function Landing() {
           gap: 30px;
           /* Top padding clears the fixed navbar; the showcase marquee row then sits in the
              space above the title (previously empty). */
-          padding: 140px 6% 48px;
+          padding: 100px 6% 48px;
           /* subtle radial purple glow behind the hero copy */
           background: radial-gradient(circle at 50% 36%, rgba(167, 139, 250, 0.16),
                       rgba(167, 139, 250, 0) 60%), var(--lp-page-bg);
@@ -7332,7 +7334,7 @@ export default function Landing() {
              empty gap above "Founder stories" — it only appeared after the proof animation fully
              finished). A larger negative margin lifts it into the tail of the proof section so it
              rises during the animation instead of after it. Web is untouched. */
-          .lp-testimonial { margin-top: -340px; padding-top: 0; }
+          .lp-testimonial { margin-top: -190px; padding-top: 0; }
           /* Vertical divider to the RIGHT of the stat content (mobile only). */
           .lp-proof-item__sep {
             display: block;

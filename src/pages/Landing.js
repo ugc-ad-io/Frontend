@@ -54,121 +54,83 @@ import { motion, AnimatePresence, useAnimationControls, useInView, animate, useM
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 
-// Spread the FIRST load of each showcase clip over a short window (ticket-based delay) so
-// the marquee doesn't attach + decode ~20 clips in one frame as it enters view (the freeze
-// after the leaderboard) — but with no slot/release bookkeeping (which stalled under React
-// StrictMode's double-mount and left most cards black). The ticket only counts up, wraps,
-// and maps to a small delay, so loads simply fan out over ~0.8s and never stall.
-let _vidTicket = 0;
-
-// ── Global play budget: only MAX_PLAYING showcase clips DECODE at once ──────────
-// The marquee duplicates 6 clips into dozens of <video> tags; letting every on-screen
-// one play means a dozen-plus simultaneous 720p decodes — the real cause of the jank in
-// this section. We cap concurrent playback: a card that wants to play takes a slot if one
-// is free, otherwise it queues and meanwhile sits on its first frame (still looks like
-// content). Slots free as cards scroll off, so the wall keeps refreshing without ever
-// decoding more than MAX_PLAYING videos at a time.
-const MAX_PLAYING = 8;
-const START_PER_FRAME = 2;     // begin at most N decoders per frame (avoids the burst)
-const _playing = new Set();    // holds a slot (granted) — may not have called play() yet
-const _waiting = [];           // wants to play but no slot free
-const _toStart = [];           // has a slot, queued to actually play() (staggered)
-let _rafScheduled = false;
-function _pump() {
-  _rafScheduled = false;
-  let budget = START_PER_FRAME;
-  while (budget-- > 0 && _toStart.length) {
-    const v = _toStart.shift();
-    if (_playing.has(v) && v.isConnected) v.play?.().catch(() => {});
-  }
-  if (_toStart.length) _schedule();
-}
-function _schedule() {
-  if (!_rafScheduled) { _rafScheduled = true; requestAnimationFrame(_pump); }
-}
-function _grant(v) { _playing.add(v); _toStart.push(v); _schedule(); }
-function requestPlay(v) {
-  if (_playing.has(v) || _waiting.includes(v)) return;
-  if (_playing.size < MAX_PLAYING) _grant(v);
-  else _waiting.push(v);
-}
-function releasePlay(v) {
-  if (_playing.delete(v)) {
-    v.pause?.();
-    const si = _toStart.indexOf(v);          // cancel a pending (not-yet-started) play
-    if (si !== -1) _toStart.splice(si, 1);
-    // hand the freed slot to the next queued (still-mounted) card
-    let next = _waiting.shift();
-    while (next && !next.isConnected) next = _waiting.shift();
-    if (next) _grant(next);
-  } else {
-    const wi = _waiting.indexOf(v);
-    if (wi !== -1) _waiting.splice(wi, 1);
-    const si = _toStart.indexOf(v);
-    if (si !== -1) _toStart.splice(si, 1);
-  }
-}
-
-// Inject Cloudinary delivery transforms so the marquee fetches a card-sized, auto-codec
-// clip instead of the raw UHD source — the 172px slot never needs 2160px of pixels.
-// (f_auto → webm/vp9 where supported, q_auto:good → adaptive quality, w_480/c_limit → cap width.)
-// w_480 covers the 172px card on DPR-2/3 displays (172×2.8); q_auto:good (not :eco) avoids the
-// over-compressed, blurry render the aggressive eco tier produced at the old 320px cap.
+// Inject Cloudinary delivery transforms so the marquee fetches a tiny card-sized clip instead
+// of the raw source. Measured against the actual files, dimension alone barely mattered — the
+// originals are ~5–6MB and h_600,c_scale only shaved them to ~5MB. The real size drivers are
+// QUALITY and DURATION (these are long ~20–30s portrait clips). So:
+//   h_360,c_scale  → downscale the tall side to ~card size (172px → 344px @DPR2; 360 is ample)
+//   q_auto:eco     → aggressive adaptive quality (fine for a small, moving thumbnail)
+//   du_8           → trim to an 8-second loop (a marquee only ever shows a short loop anyway)
+//   f_mp4,vc_h264  → real H.264 MP4 (not webm/vp9): serves byte-range requests correctly, which
+//                    fixes the intermittent 416 "Range Not Satisfiable" errors under f_auto
+// Net: every clip lands under ~450KB (verified across the set) vs the old 2–5MB.
 function cldThumb(src) {
   if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
-  return src.replace('/video/upload/', '/video/upload/f_auto,q_auto:good,w_480,c_limit/');
+  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:eco,h_360,c_scale,du_8/');
 }
 
-// Showcase video: on first nearing the viewport it schedules its load (staggered), attaches
-// the src, then KEEPS it (latched) so scrolling back in just resumes instead of reloading.
-// Playback is gated by the global budget above (no `autoPlay` — we call play() ourselves),
-// and only cards ACTUALLY on screen claim a slot. (720p → light.)
+// First-frame still (so_0) at the same card size, delivered as an auto-format image. Used as
+// the <video poster> so every card shows a real thumbnail the instant it mounts — nothing is
+// ever black while the clip is lazy-loading (src is attached only once the section scrolls in).
+function cldPoster(src) {
+  if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
+  return src
+    .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto,h_360,c_scale/')
+    .replace(/\.mp4$/i, '.jpg');
+}
+
+// Showcase video. Two observers: a one-shot LOAD latch (attaches src once, single re-render)
+// and a PLAY/PAUSE observer that calls play()/pause() IMPERATIVELY on the element. That second
+// one is the fix: the old version routed every edge-crossing through setState → re-render → a
+// global play-budget + rAF pump, which thrashed the main thread while the marquee animates
+// non-stop (the real stutter) AND capped playback at 6 so most visible cards froze on a frame.
+// Here, only cards actually near the viewport decode & play (so we never run 64 simultaneous
+// decodes), each plays continuously the whole time it's on screen, the poster shows a real
+// thumbnail so nothing is ever black, and scrolling causes no per-card re-renders.
 function LazyVideo({ src, className }) {
   const ref = useRef(null);
   const [loaded, setLoaded] = useState(false);
-  const [onScreen, setOnScreen] = useState(false);
-  const requestedRef = useRef(false);
-  // LOAD — schedule (staggered) the first time the card nears the viewport, then latch.
+  // LOAD latch — attach the real src the first time the card nears the viewport, then KEEP it.
+  // Set once and never toggled, so it triggers exactly one re-render (no churn afterwards).
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    let timer;
     const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !requestedRef.current) {
-          requestedRef.current = true;
-          const delay = Math.min((_vidTicket++ % 14) * 55, 760); // fan out over ~0.8s
-          timer = setTimeout(() => setLoaded(true), delay);
-        }
-      },
+      ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
       { rootMargin: '300px' }
-    );
-    io.observe(el);
-    return () => { io.disconnect(); clearTimeout(timer); };
-  }, []);
-  // PLAY visibility — strict (no margin) so only cards genuinely on screen claim a slot.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => setOnScreen(entry.isIntersecting),
-      { rootMargin: '0px', threshold: 0.1 }
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  // Claim / release a slot from the global play budget.
+  // PLAY on screen / PAUSE off screen — done imperatively (no setState) so the non-stop
+  // marquee motion never causes a React render. The effect re-runs when `loaded` flips, so a
+  // fresh observer fires with the current visibility right AFTER the src is attached — that's
+  // what guarantees the first play() isn't called against an empty/unloaded source (the bug
+  // that left every card stuck on its poster). preload="auto" means the src is buffered by
+  // the time the card reaches the play margin, so play() starts/resumes instantly.
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    if (onScreen && loaded) requestPlay(v);
-    else releasePlay(v);
-    return () => releasePlay(v);
-  }, [onScreen, loaded]);
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (v.src) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+        } else {
+          v.pause();
+        }
+      },
+      // Generous margin so a clip is already playing before it slides past the fade edge —
+      // no start/stop pop at the boundary; threshold ~0 so a sliver counts as visible.
+      { root: null, rootMargin: '150px', threshold: 0.01 }
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, [loaded]);
   return (
     <video
       ref={ref}
       className={className}
+      poster={cldPoster(src)}
       muted
       loop
       playsInline
@@ -391,7 +353,7 @@ const featureData = [
 const stats = [
   { value: '10,000+', label: 'UGC Videos Produced' },
   { value: '100cr+', label: 'Attributed Revenue' },
-  { value: '1000+', label: 'D2C Brands Scaled' },
+  { value: '800+', label: 'D2C Brands Scaled' },
 ];
 
 const howItWorksSteps = [
@@ -463,7 +425,7 @@ const testimonials = [
 
 const auditQuestions = [
   {
-    title: 'Would Your Current Ad —',
+    title: 'Would Your Current Ad',
     sub: 'Convince You To Purchase?',
     Icon: SkipForward,
   },
@@ -473,7 +435,7 @@ const auditQuestions = [
     Icon: BellOff,
   },
   {
-    title: 'Would You Click this —',
+    title: 'Would You Click this',
     sub: "the Ad Wasn't Yours?",
     Icon: Repeat,
   },
@@ -529,7 +491,7 @@ const vsRows = [
 const achieveItems = [
   {
     icon: Search,
-    title: 'Discover Creators in Every Niche',
+    title: 'Discover Creators\nin Every Niche',
     desc: 'Beauty, fitness, tech, food, home, fashion, parenting, and more. Each one is manually reviewed before they ever touch a brief.',
   },
   {
@@ -539,13 +501,13 @@ const achieveItems = [
   },
   {
     icon: Shield,
-    title: 'Identity Protected, Quality Proven',
-    desc: 'You see an anonymous handle and the real brands they’ve worked with — never their personal contact details. Quality, proven. Identity, protected.',
+    title: 'Identity Protected,\nQuality Proven',
+    desc: 'You see an anonymous handle and the real brands they’ve worked with, never their personal contact details. Quality, proven. Identity, protected.',
   },
   {
     icon: MessageCircle,
     title: 'Hire and Chat Securely',
-    desc: 'Brief, message, revise, and approve — all in one thread, inside the platform. No scattered DMs, no lost context, no off-platform risk.',
+    desc: 'Brief, message, revise, and approve, all in one thread, inside the platform. No scattered DMs, no lost context, no off-platform risk.',
   },
   {
     icon: DollarSign,
@@ -803,11 +765,41 @@ const FAQ_ITEMS = [
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState(null);
   const [faqOpen, setFaqOpen] = useState(-1);
+  // Proof stat carousel (MOBILE): the section pins while you scroll, and page-scroll progress
+  // slides the stats 01 → 02 → 03 (track translateX) and moves the active dot. Then the pin
+  // releases and the page continues. Desktop ignores this (it shows the static grid).
+  const proofSectionRef = useRef(null);
+  const proofDotsRef = useRef(null);
+  const proofIdxRef = useRef(0);
+  const { scrollYProgress: proofScroll } = useScroll({
+    target: proofSectionRef,
+    offset: ['start start', 'end end'],
+  });
+  // Slide one full item-width per stat across the pinned runway (with small dead-zones at the
+  // ends so the first/last stat sits still briefly before/after the cycle).
+  const proofTrackX = useTransform(
+    proofScroll,
+    [0.08, 0.92],
+    ['0%', `-${(stats.length - 1) * 100}%`]
+  );
+  // Move the active dot via DIRECT DOM (no setState) so the 1→2→3 slide never triggers a React
+  // re-render of this huge component mid-transition — that re-render was the lag/hitch.
+  useMotionValueEvent(proofScroll, 'change', (v) => {
+    const idx = Math.round(Math.min(1, Math.max(0, v)) * (stats.length - 1));
+    if (idx === proofIdxRef.current) return;
+    proofIdxRef.current = idx;
+    const dots = proofDotsRef.current && proofDotsRef.current.children;
+    if (dots) {
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].classList.toggle('lp-proof__dot--active', i === idx);
+      }
+    }
+  });
 
   // Testimonial carousel — ONE sliding track (not per-card animation), so motion is
   // perfectly smooth: the whole row of cards translates by exactly one card-width and
@@ -881,6 +873,27 @@ export default function Landing() {
     ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
     : showcaseVideos;
 
+  // Freeze the marquee scroll animation while the section is off-screen (videos pause
+  // themselves via the per-card observer in LazyVideo). One observer on the section, not one
+  // per track. '' (empty) when visible so the per-row :hover pause CSS still wins; hard
+  // 'paused' when the section is gone, so no CPU burns on an animation nobody can see.
+  const showcaseRef = useRef(null);
+  useEffect(() => {
+    const section = showcaseRef.current;
+    if (!section) return;
+    const tracks = section.querySelectorAll('.lp-showcase__track');
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        tracks.forEach((t) => {
+          t.style.animationPlayState = entry.isIntersecting ? '' : 'paused';
+        });
+      },
+      { threshold: 0, rootMargin: '200px 0px' }
+    );
+    obs.observe(section);
+    return () => obs.disconnect();
+  }, [selectedIndustry]);
+
   const featuresRef = useRef(null);
   const ctaRef = useRef(null);
   const featuresInView = useInView(featuresRef, { once: true, margin: '-80px' });
@@ -918,14 +931,15 @@ export default function Landing() {
   const card2Y = useSpring(useTransform(auditProgress, [0.04, 0.33], [0, -800], { ease: easeInOut }), PEEL_SPRING);
   const card3Y = useSpring(useTransform(auditProgress, [0.36, 0.65], [35, -800], { ease: easeInOut }), PEEL_SPRING);
   const card1Y = useSpring(useTransform(auditProgress, [0.68, 0.99], [-35, -800], { ease: easeInOut }), PEEL_SPRING);
-  // Mobile assemble — SCROLL-DRIVEN: each card's y is tied to the section's scroll progress so
-  // the cards rise in and stack one-by-one as you scroll (the reverse of the desktop peel). Q1 is
-  // present at the back from the start; Q2 then Q3 slide up from below (520→0) and land on top.
-  // This needs the section to be tall + sticky (see the mobile .lp-audit CSS) so there's scroll
-  // room for the assemble. Desktop uses the peel (card1/2/3Y springs above).
-  const mAuditQ1Y = useSpring(useTransform(auditProgress, [0.0, 0.08], [40, 0], { ease: easeInOut }), PEEL_SPRING);
-  const mAuditQ2Y = useSpring(useTransform(auditProgress, [0.16, 0.46], [520, 0], { ease: easeInOut }), PEEL_SPRING);
-  const mAuditQ3Y = useSpring(useTransform(auditProgress, [0.5, 0.82], [520, 0], { ease: easeInOut }), PEEL_SPRING);
+  // Mobile assemble — bound DIRECTLY to scroll (NO spring). On a phone the soft PEEL_SPRING
+  // made the cards trail the finger and keep drifting/settling after the scroll stopped; that
+  // overshoot + trailing is what read as "lag", and the spring also runs an extra rAF loop on
+  // the main thread every frame you scroll. A raw useTransform is a pure function of scroll
+  // position (still eased across each range), so the cards move exactly in step with the scroll
+  // — responsive, smooth, and they never drift or stutter. Desktop keeps its glide springs.
+  const mAuditQ1Y = useTransform(auditProgress, [0.0, 0.08], [40, 0], { ease: easeInOut });
+  const mAuditQ2Y = useTransform(auditProgress, [0.16, 0.46], [520, 0], { ease: easeInOut });
+  const mAuditQ3Y = useTransform(auditProgress, [0.5, 0.82], [520, 0], { ease: easeInOut });
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -981,7 +995,7 @@ export default function Landing() {
   const mobileStageScale = useTransform(logo3dProgress, [0.56, 0.72], [1, 0.4]);
   // Spin runs through the WHOLE visible window (incl. the dissolve) so the mark keeps rotating as
   // it shrinks/fades, instead of freezing straight once it stops at 0.5.
-  const mobileStageRotate = useTransform(logo3dProgress, [0.0, 0.72], [0, 360]);
+  const mobileStageSpin = useTransform(logo3dProgress, [0.0, 0.72], [0, 1]);
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
@@ -1053,10 +1067,10 @@ export default function Landing() {
   // through the middle of each segment, which read as the logo "jumping" size at one point.
   // Keep the mark a CONSTANT size through the whole hero + leaderboard — NO shrink-on-scroll
   // (that read as the size "jumping" small the instant you scrolled / when you stopped). It only
-  // melts down at the very end (dissolve, 0.86→0.96). A gentle DEDICATED spring eases even that
-  // and is decoupled from the snappy position spring, so size never snaps when scrolling stops.
-  const flyScaleRaw = useTransform(journeyP, [0, 0.86, 0.96], [1.0, 1.0, 0.5]);
-  const flyScale = useSpring(flyScaleRaw, { stiffness: 55, damping: 20, mass: 0.5 });
+  // melts down at the very end (dissolve, 0.86→0.96). Driven STRAIGHT off journeyP (which is
+  // already a spring) — a second slow spring on top double-smoothed it and made the shrink trail
+  // the scroll, which is what read as "lag" during the dissolve.
+  const flyScale = useTransform(journeyP, [0, 0.86, 0.96], [1.0, 1.0, 0.5]);
   // Leaderboard is "stuck" to the hero buttons (Join as Creator / Sign up as Brand): as they
   // scroll up and off when the hero un-pins (journeyP ~0.22→0.66), the board is PULLED UP from
   // below the fold to meet them, so it rises into the buttons' place instead of waiting for the
@@ -1087,11 +1101,11 @@ export default function Landing() {
     // rise kicked in only after a lot of scroll, out of sync with the section appearing. Now it
     // starts AS the leaderboard arrives. Desktop keeps journeyP.
     heroStatic ? logo3dProgress : journeyP,
-    heroStatic ? [0, 0.16] : [0.35, 0.67],
-    // Mobile: rest the drum LOWER (-70) so its focus sits nearer screen-centre — the last rows
-    // no longer strand near the top with a big empty gap below. Monotonic ease to rest (no
-    // overshoot bounce), and the logo's offset below keeps the mark where it was.
-    heroStatic ? [0, -70] : [220, 0],
+    heroStatic ? [0, 0.24] : [0.35, 0.67],
+    // Mobile: the board lifts -100 over a slightly longer window so it visibly "comes up with"
+    // the hero as the heading scrolls off (closes the dead gap), settling into the upper-centre.
+    // Monotonic ease to rest (no overshoot bounce), and the logo's offset below keeps it placed.
+    heroStatic ? [0, -100] : [220, 0],
     { ease: easeInOut }
   );
   const boardRiseY = useSpring(
@@ -1212,23 +1226,12 @@ export default function Landing() {
           />
 
           <nav className="lp-navbar__links">
-            <a className="lp-navlink" href="#" onClick={(e) => e.preventDefault()}>
+            <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); navigate('/auth?mode=signup&role=business'); }}>
               Explore Creators
             </a>
           </nav>
 
           <div className="lp-navbar__actions">
-            <button
-              type="button"
-              className={`lp-theme${theme === 'dark' ? ' lp-theme--dark' : ''}`}
-              onClick={toggleTheme}
-              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            >
-              <span className="lp-theme__knob">{theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}</span>
-              <span className="lp-theme__ic lp-theme__ic--sun"><Sun size={13} /></span>
-              <span className="lp-theme__ic lp-theme__ic--moon"><Moon size={13} /></span>
-            </button>
             <a className="lp-nav-join" href="/creator" onClick={(e) => { e.preventDefault(); navigate('/creator'); }}>
               Join as <em>Creator</em>
             </a>
@@ -1253,26 +1256,12 @@ export default function Landing() {
 
         {/* Mobile menu panel */}
         <div className={`lp-navbar__mobile${menuOpen ? ' lp-navbar__mobile--open' : ''}`}>
-          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); }}>
+          <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/auth?mode=signup&role=business'); }}>
             Explore Creators
           </a>
           <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/creator'); }}>
             Join as Creator
           </a>
-          <div className="lp-navbar__mobile-theme">
-            <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
-            <button
-              type="button"
-              className={`lp-theme${theme === 'dark' ? ' lp-theme--dark' : ''}`}
-              onClick={toggleTheme}
-              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            >
-              <span className="lp-theme__knob">{theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}</span>
-              <span className="lp-theme__ic lp-theme__ic--sun"><Sun size={13} /></span>
-              <span className="lp-theme__ic lp-theme__ic--moon"><Moon size={13} /></span>
-            </button>
-          </div>
           <div className="lp-navbar__mobile-actions">
             <button className="lp-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth?role=business'); }}>
               <LogIn size={16} /> Log in
@@ -1326,8 +1315,7 @@ export default function Landing() {
               The<br />
               <span className="lp-hero__title-accent">Performance</span><br />
               <span className="lp-hero__title-accent">System</span> Behind<br />
-              The<br />
-              <span className="lp-hero__title-accent">Top 1% D2C</span><br />
+              The Top <span className="lp-hero__title-accent">1% D2C</span><br />
               <span className="lp-hero__title-accent">Brands</span>
             </motion.h1>
           ) : (
@@ -1340,8 +1328,8 @@ export default function Landing() {
             >
               The{' '}
               <span className="lp-hero__title-accent">Performance System</span>{' '}
-              Behind The{' '}
-              <span className="lp-hero__title-accent">Top 1% D2C Brands</span>
+              Behind The Top{' '}
+              <span className="lp-hero__title-accent">1% D2C Brands</span>
             </motion.h1>
           )}
 
@@ -1352,10 +1340,15 @@ export default function Landing() {
             initial="hidden"
             animate="visible"
           >
-            Top-notch UGC video ads in just a few clicks.
+            Top-notch UGC video ads in just
+            <br className="lp-hero__sub-mbr" />
+            {' '}a few clicks.
             <br />
             Unlock serious growth with{' '}
-            <span style={{ color: '#A78BFA', fontWeight: 600 }}>high-performing UGC ads</span>.
+            <br className="lp-hero__sub-mbr" />
+            <span style={{ color: '#A78BFA', fontWeight: 600 }}>
+              <span style={{ whiteSpace: 'nowrap', color: '#A78BFA' }}>high-performing</span> UGC ads
+            </span>.
           </motion.p>
 
           <motion.div
@@ -1409,9 +1402,9 @@ export default function Landing() {
 
           {/* Mobile: 3D logo fills the space below the leaderboard text (desktop uses the fly overlay). */}
           {heroStatic && logo3dInView && (
-            <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity, y: mobileStageDown, scale: mobileStageScale, rotate: mobileStageRotate }}>
+            <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity, y: mobileStageDown, scale: mobileStageScale }}>
               <Suspense fallback={<div className="lp-logo3d__placeholder" aria-hidden="true" />}>
-                <HeroLogo3D theme={theme} verticalSpin idleSpin={false} />
+                <HeroLogo3D progress={mobileStageSpin} theme={theme} verticalSpin idleSpin={false} />
               </Suspense>
             </motion.div>
           )}
@@ -1506,7 +1499,7 @@ export default function Landing() {
       </motion.div>
 
       {/* ── Showcase — Best UGC on the internet (moved here, right after the brand strip) ── */}
-      <section className="lp-showcase">
+      <section className="lp-showcase" ref={showcaseRef}>
         <div className="lp-showcase__inner">
           <h2 className="lp-showcase__heading">
             We created{' '}
@@ -1891,7 +1884,7 @@ export default function Landing() {
       >
         <section className="lp-achieve" ref={achieveRef}>
           <motion.h2 className="lp-achieve__title" style={heroStatic ? { y: achieveHeadRise } : undefined}>
-            <em className="lp-achieve__hl">Find</em> &amp; Hire Creators <em className="lp-achieve__hl">Instantly</em>
+            <em className="lp-achieve__hl">Find</em> &amp; Hire <em className="lp-achieve__hl lp-achieve__word lp-achieve__word--creators">Creators</em> <em className="lp-achieve__word lp-achieve__word--instantly">Instantly</em>
           </motion.h2>
           <AchieveFan items={achieveItems} />
           <AchieveStack items={achieveItems} />
@@ -1955,7 +1948,7 @@ export default function Landing() {
                       <tr>
                         <th className="lp-vs__th lp-vs__th--feature">Feature</th>
                         <th className="lp-vs__th lp-vs__th--ugc">
-                          <Sparkle size={11} aria-hidden="true" /> UGCad.io
+                          UGCad.io
                         </th>
                         <th className="lp-vs__th lp-vs__th--others">Others</th>
                       </tr>
@@ -2049,7 +2042,7 @@ export default function Landing() {
       </div>
 
       {/* ── Value Proof (Editorial Stats) ─────────────────────────────────── */}
-      <section className="lp-proof">
+      <section className="lp-proof" ref={proofSectionRef}>
         <div className="lp-proof__inner">
           <div className="lp-proof__header">
             <span className="lp-proof__eyebrow">— proof, not promises</span>
@@ -2058,6 +2051,8 @@ export default function Landing() {
 
           <div className="lp-proof__divider" />
 
+          {/* WEB (>900px): original editorial 3-column grid with count-up numbers + dividers.
+              Hidden on mobile (the carousel below takes over). */}
           <div className="lp-proof__row">
             {stats.map((s, i) => (
               <motion.div
@@ -2074,6 +2069,34 @@ export default function Landing() {
                 </span>
                 <span className="lp-proof-num__label">{s.label}</span>
               </motion.div>
+            ))}
+          </div>
+
+          {/* MOBILE (≤900px): scroll-pinned carousel — page-scroll progress slides the track so
+              one stat shows at a time (numbered circle + value + label). Hidden on web. */}
+          <div className="lp-proof__marquee">
+            <motion.div className="lp-proof__track" style={{ x: proofTrackX }}>
+              {stats.map((s, i) => (
+                <div className="lp-proof-item" key={s.label}>
+                  <span className="lp-proof-item__icon">{`0${i + 1}`}</span>
+                  <span className="lp-proof-item__text">
+                    <span className="lp-proof-item__value">{s.value}</span>
+                    <span className="lp-proof-item__label">{s.label}</span>
+                  </span>
+                  <span className="lp-proof-item__sep" aria-hidden="true" />
+                </div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* Scrubber indicator — one dot per stat; the active class is toggled via DOM as you
+              scroll (see proofScroll handler), so no re-render hitch during the slide. */}
+          <div className="lp-proof__dots" aria-hidden="true" ref={proofDotsRef}>
+            {stats.map((s, i) => (
+              <span
+                key={s.label}
+                className={`lp-proof__dot${i === 0 ? ' lp-proof__dot--active' : ''}`}
+              />
             ))}
           </div>
 
@@ -2234,7 +2257,7 @@ export default function Landing() {
 
           <div className="lp-testimonial__more">
             <span className="lp-testimonial__more-line" aria-hidden="true" />
-            <span className="lp-testimonial__more-text">300+ founders. Same story, different brand.</span>
+            <span className="lp-testimonial__more-text">100+ founders. Same story, different brand.</span>
             <span className="lp-testimonial__more-line" aria-hidden="true" />
           </div>
         </div>
@@ -2418,9 +2441,6 @@ export default function Landing() {
           <div className="lp-footer__strip">
             <span className="lp-footer__copyright">
               © {new Date().getFullYear()} UGCad.io · All rights reserved.
-            </span>
-            <span className="lp-footer__location">
-              <span className="lp-footer__loc-dot" /> Built quietly, deliberately.
             </span>
             <a href="#top" className="lp-footer__top-link" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
               Back to top <ArrowRight size={14} style={{ transform: 'rotate(-90deg)' }} />
@@ -2881,10 +2901,11 @@ export default function Landing() {
           display: inline;
           box-decoration-break: clone;
           -webkit-box-decoration-break: clone;
-          background: #A78BFA;
-          color: var(--lp-text);
-          padding: 0.04em 0.28em;
-          border-radius: 10px;
+          background: transparent;
+          color: #A78BFA;
+          -webkit-text-fill-color: #A78BFA;
+          padding: 0;
+          border-radius: 0;
         }
 
         .lp-hero__subtitle {
@@ -3337,7 +3358,7 @@ export default function Landing() {
              brand strip now rises in right behind the last rows. */
           .lp-logo3d { height: 175vh; }
           .lp-logo3d__stage {
-            top: 60%;          /* sit lower — down in the empty space below the leaderboard text */
+            top: 80%;          /* sit lower — down in the empty space below the leaderboard text */
             width: clamp(170px, 46vw, 280px);
             height: clamp(170px, 30vh, 300px);
             margin-top: calc(clamp(170px, 30vh, 300px) * -0.5);
@@ -3347,7 +3368,7 @@ export default function Landing() {
           /* One line on phones too: scale with vw so the longest sentence fits a ~92vw board.
              top: shift the whole row stack UP (from the 44% default) so the text comes up
              higher and closes the gap below the hero — independent of the logo's position. */
-          .lp-logo3d__boardItem { font-size: clamp(11px, 4.2vw, 18px); top: 22%; }
+          .lp-logo3d__boardItem { font-size: clamp(11px, 4.2vw, 18px); top: 36%; }
         }
 
         /* ── The Problem section ──────────────────────────────────────────── */
@@ -3902,6 +3923,12 @@ export default function Landing() {
           height: 100%;
           object-fit: cover;
           display: block;
+          /* Deliberately NOT force-promoted (no translateZ here). The MOVING thing is the
+             track, which is its own GPU layer (will-change: transform on .lp-showcase__track),
+             so paused/poster-only cards just ride along inside that one cached layer. Forcing
+             every one of the ~64 cards onto its own layer instead bloated GPU memory and the
+             compositor's layer count — a stutter source of its own. Playing clips auto-promote
+             while they decode and de-promote when paused, so only the few on screen cost a layer. */
         }
 
         /* Top-left numeric rating overlay */
@@ -3981,7 +4008,8 @@ export default function Landing() {
         }
         .lp-achieve__title {
           margin: 0 auto;
-          max-width: 16ch;
+          max-width: none;
+          white-space: nowrap;
           text-align: center;
           font-family: var(--font-head);
           font-weight: var(--fw-head);
@@ -3992,6 +4020,22 @@ export default function Landing() {
         }
         .lp-achieve__title em { font-style: italic; }
         .lp-achieve__title .lp-achieve__hl { color: #A78BFA !important; }
+        /* Desktop: "Creators" is highlighted; "Instantly" stays upright/default. */
+        .lp-achieve__title .lp-achieve__word--instantly {
+          color: inherit !important;
+          font-style: normal;
+        }
+        /* Mobile: swap the highlight to "Instantly", "Creators" goes plain. */
+        @media (max-width: 900px) {
+          .lp-achieve__title .lp-achieve__word--creators {
+            color: inherit !important;
+            font-style: normal;
+          }
+          .lp-achieve__title .lp-achieve__word--instantly {
+            color: #A78BFA !important;
+            font-style: italic;
+          }
+        }
 
         /* ── Stacked-card scroll deck (mobile only) ────────────────────────────
            Reuses the SAME .lp-achieve-card design as the desktop fan; only overrides
@@ -4129,12 +4173,17 @@ export default function Landing() {
         }
         .lp-achieve-card .lp-achieve-card__title {
           font-family: var(--font-head);
-          font-size: var(--fs-h2);
+          /* Sized so the longest titles ("Identity Protected,", "Discover Creators")
+             fit on ONE line inside the 332px fan card, keeping cards 1 & 3 to two lines. */
+          font-size: clamp(1.3rem, 1.7vw, 1.5rem);
           font-weight: var(--fw-head);
           color: var(--lp-text);
           margin: 0 0 18px;
           padding-bottom: 18px;
           letter-spacing: -0.01em;
+          /* Honour the manual "\n" break point in select titles (e.g. cards 1 & 3),
+             while still allowing normal wrapping elsewhere. */
+          white-space: pre-line;
           /* Divider line between the headline and the body copy. */
           border-bottom: 1px solid rgba(var(--lp-fg), 0.14);
           transition: color 0.4s ease, border-color 0.4s ease;
@@ -4166,7 +4215,7 @@ export default function Landing() {
            Scoped to .lp-achieve__fan so it never touches the mobile sticky deck, which
            reuses .lp-achieve-card but needs position:sticky. */
         @media (max-width: 900px) {
-          .lp-achieve__title { font-size: clamp(2rem, 9vw, 3.2rem); }
+          .lp-achieve__title { font-size: clamp(2rem, 9vw, 3.2rem); white-space: normal; }
           .lp-achieve__fan {
             height: auto;
             display: flex;
@@ -5006,7 +5055,7 @@ export default function Landing() {
              the navbar; content starts below the navbar and flows down. */
           justify-content: flex-start;
           gap: 30px;
-          padding: 112px 6% 56px;
+          padding: 150px 6% 56px;
           /* subtle radial purple glow behind the hero copy */
           background: radial-gradient(circle at 50% 36%, rgba(167, 139, 250, 0.16),
                       rgba(167, 139, 250, 0) 60%), var(--lp-page-bg);
@@ -6231,12 +6280,12 @@ export default function Landing() {
         .lp-audit-card {
           position: absolute;
           width: 100%;
-          max-width: 380px;
+          max-width: 290px;
           background: #A78BFA;
           border: 1px solid rgba(var(--lp-fg), 0.2);
           border-radius: 22px;
           padding: 36px 30px 26px;
-          min-height: 280px;
+          min-height: 0;
           display: flex;
           flex-direction: column;
           box-shadow: 0 10px 28px rgba(7, 7, 78, 0.4);
@@ -6289,26 +6338,34 @@ export default function Landing() {
         .lp-audit-card__body {
           position: relative;
           z-index: 1;
-          flex: 1;
-          margin-bottom: 20px;
+          /* Don't grow to fill the card — sit tight under the heading so the divider +
+             hint follow immediately (no dead space in the middle). */
+          flex: 0 0 auto;
+          margin-bottom: 30px;
         }
         .lp-root .lp-audit-card__title {
           font-family: var(--font-head);
-          font-size: var(--fs-h2);
+          /* Sized so even the longest title (Q2 — "If Your Brand Went Silent for a Week,")
+             fits on a SINGLE line within the card, matching Q3. Reads as an eyebrow lead-in
+             above the larger punch line (.lp-audit-card__sub). */
+          font-size: clamp(0.72rem, 1.4vw, 0.8rem);
           font-weight: var(--fw-head);
           color: #07074e;
           line-height: 1.4;
           letter-spacing: -0.015em;
           margin: 0 0 10px 0;
+          white-space: nowrap;
         }
         .lp-root .lp-audit-card__sub {
           font-family: var(--font-body);
-          font-size: 1.65rem;
+          /* Trimmed so the longest sub still fits one line in the narrower card. */
+          font-size: 1.2rem;
           font-weight: 600;
           color: #07074e;
           letter-spacing: -0.025em;
           line-height: 1.3;
           margin: 0;
+          white-space: nowrap;
         }
 
         .lp-audit-card__divider {
@@ -6414,6 +6471,7 @@ export default function Landing() {
           max-width: 600px;
         }
 
+        /* WEB: original editorial 3-column grid with vertical dividers + count-up numbers. */
         .lp-proof__row {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -6434,7 +6492,6 @@ export default function Landing() {
           height: 76%;
           background: var(--lp-border);
         }
-
         .lp-proof-num {
           display: flex;
           flex-direction: column;
@@ -6467,6 +6524,105 @@ export default function Landing() {
           letter-spacing: -0.01em;
           line-height: 1.3;
         }
+
+        /* MOBILE carousel — hidden on web (the grid above is shown instead). Revealed in the
+           ≤900px media query. */
+        .lp-proof__marquee {
+          display: none;
+          position: relative;
+          width: 100%;
+          margin-bottom: 28px;
+        }
+        .lp-proof__track {
+          display: flex;
+          flex-wrap: nowrap;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 40px;
+          /* Room above so the lifted number circle (margin-top below) never clips. */
+          padding-top: 16px;
+        }
+
+        .lp-proof-item {
+          flex: 0 0 auto;
+          display: flex;
+          /* Icon sits at the top so it reads a touch ABOVE the number/label, not centred. */
+          align-items: flex-start;
+          gap: 18px;
+          padding: 8px 0;
+        }
+        /* Index number, big, inside a dotted circle. Nudged up so it sits a touch above the
+           value/label. */
+        .lp-proof-item__icon {
+          flex: 0 0 auto;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 64px;
+          height: 64px;
+          margin-top: -16px;
+          border-radius: 50%;
+          border: 2px solid rgba(167, 139, 250, 0.7);
+          color: var(--lp-ink);
+          font-family: var(--font-head);
+          font-size: 1.5rem;
+          font-weight: var(--fw-head);
+          letter-spacing: -0.04em;
+          line-height: 1;
+        }
+        .lp-proof-item__text {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+        .lp-proof-item__value {
+          font-family: var(--font-head);
+          font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+          font-weight: var(--fw-head);
+          color: var(--lp-ink);
+          letter-spacing: -0.045em;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .lp-proof-item__label {
+          font-family: var(--font-body);
+          font-size: 0.98rem;
+          font-weight: 500;
+          color: var(--lp-text-muted);
+          letter-spacing: -0.01em;
+          line-height: 1.3;
+          white-space: nowrap;
+        }
+
+        /* Scrubber indicator — MOBILE ONLY (the carousel only scrolls on small screens; on
+           web all stats show at once, so no indicator). Shown via the mobile media query. */
+        .lp-proof__dots {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          margin-bottom: 48px;
+        }
+        .lp-proof__dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          background: rgba(28, 27, 75, 0.22);
+        }
+        .lp-root[data-theme="dark"] .lp-proof__dot {
+          background: rgba(255, 255, 255, 0.22);
+        }
+        .lp-proof__dot--active {
+          width: 34px;
+          background: #0f3a44;
+        }
+        .lp-root[data-theme="dark"] .lp-proof__dot--active {
+          background: #A78BFA;
+        }
+
+        /* Vertical divider to the right of each stat — mobile only (revealed in the ≤900px block). */
+        .lp-proof-item__sep { display: none; }
 
         .lp-proof__micro {
           font-family: var(--font-body);
@@ -6905,8 +7061,20 @@ export default function Landing() {
             perspective: 1000px;
           }
           .lp-audit-card {
-            width: 82%; max-width: 300px; min-height: 244px; padding: 26px 24px 22px;
+            width: 86%; max-width: 270px; min-height: 0; padding: 26px 24px 22px;
             box-shadow: 0 6px 16px rgba(7, 7, 78, 0.30);
+          }
+          /* On the narrow phone card BOTH lines wrap (the single-line treatment is desktop-only),
+             so the card stays a proper portrait shape instead of being stretched wide to hold a
+             long line. Bump the sizes back up since wrapping gives them the room. */
+          .lp-root .lp-audit-card__title {
+            white-space: normal;
+            font-size: 1rem;
+          }
+          .lp-root .lp-audit-card__sub {
+            white-space: normal;
+            font-size: 1.5rem;
+            line-height: 1.2;
           }
         }
 
@@ -6919,41 +7087,79 @@ export default function Landing() {
           .lp-step-card__connector { display: none; }
           .lp-step-card { min-height: auto; }
           /* Audit section mobile/tablet handling is in dedicated blocks just above. */
-          .lp-proof { padding: 80px 5%; }
-          .lp-proof__top { flex-direction: column; align-items: flex-start; }
-          .lp-proof__heading { text-align: left; }
-          /* All three stats on ONE line: keep the 3-column row, just shrink to fit phones. */
-          .lp-proof__row {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0;
+          /* Scroll-pinned proof carousel: a tall runway + sticky inner. As you scroll the
+             runway, proofScroll progress (JS) slides the track and moves the dots, then the
+             pin releases and the page flows to the testimonials. */
+          .lp-proof {
+            padding: 0 5%;
+            min-height: 200vh;
           }
-          .lp-proof__row > .lp-proof-num {
-            grid-column: auto !important;
+          .lp-proof__inner {
+            position: sticky;
+            top: 0;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 6px;
-            padding: 8px 6px;
+            /* Sit a bit above centre (was centered). */
+            justify-content: flex-start;
+            padding: 16vh 0 80px;
           }
-          /* Thin vertical divider between the columns (matches the desktop look). */
-          .lp-proof__row > .lp-proof-num:not(:last-child)::after {
-            content: '' !important;
-            display: block !important;
-            position: absolute !important;
-            top: 10% !important; bottom: auto !important;
-            right: 0 !important; left: auto !important;
-            width: 1px !important; height: 80% !important;
-            background: var(--lp-border) !important;
+          .lp-proof__top { flex-direction: column; align-items: flex-start; }
+          .lp-proof__heading { text-align: left; }
+          /* Make the divider clearly visible on the dark mobile background. It's a flex item
+             now, and its auto side-margins were cancelling stretch (0 width, invisible). Give
+             it an explicit width so the line actually shows. */
+          .lp-proof__divider {
+            width: 100%;
+            margin-bottom: 28px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
           }
-          .lp-proof-num__index { font-size: 0.58rem; letter-spacing: 0.18em; }
-          .lp-proof-num__value {
-            white-space: nowrap;
-            font-size: clamp(1.05rem, 5.4vw, 1.7rem);
+          .lp-root[data-theme="light"] .lp-proof__divider {
+            background: linear-gradient(90deg, transparent, rgba(28, 27, 75, 0.35), transparent);
           }
-          .lp-proof-num__label {
-            font-size: 0.66rem;
-            line-height: 1.25;
+          /* Swap the web grid out for the carousel on mobile. */
+          .lp-proof__row { display: none; }
+          /* Viewport window — one stat wide; the track slides inside it. */
+          .lp-proof__marquee {
+            display: block;
+            overflow: hidden;
+            width: 100%;
+          }
+          .lp-proof__track {
+            width: 100%;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            gap: 0;
+            padding: 16px 0;
+            /* x is driven by framer (proofTrackX) — don't fight it with a CSS transform. */
+          }
+          /* Each stat fills the window, so a 100%-step translate shows exactly one at a time. */
+          .lp-proof-item {
+            flex: 0 0 100%;
+            width: 100%;
+            justify-content: center;
+            gap: 16px;
+          }
+          /* Carousel indicator only appears on mobile. */
+          .lp-proof__dots { display: flex; }
+          .lp-proof-item__icon { width: 54px; height: 54px; font-size: 1.25rem; }
+          .lp-proof-item__value { font-size: 1.9rem; }
+          .lp-proof-item__label { font-size: 0.82rem; }
+          /* Pull the testimonial block up on mobile (the tall connector + padding left a big
+             empty gap above "Founder stories"). Web is untouched. */
+          .lp-testimonial { margin-top: -120px; padding-top: 0; }
+          /* Vertical divider to the RIGHT of the stat content (mobile only). */
+          .lp-proof-item__sep {
+            display: block;
+            flex: 0 0 auto;
+            align-self: center;
+            width: 2px;
+            height: 64px;
+            margin-left: 56px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.5), transparent);
+          }
+          .lp-root[data-theme="light"] .lp-proof-item__sep {
+            background: linear-gradient(to bottom, transparent, rgba(28, 27, 75, 0.4), transparent);
           }
         }
       `}</style>

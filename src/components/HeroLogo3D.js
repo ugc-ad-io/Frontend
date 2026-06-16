@@ -32,16 +32,12 @@ const DISSOLVE_END = 0.96;
 // fights the scroll-driven spin/tip/barrel below.
 const AUTO_SPIN_SPEED = (Math.PI * 2) / 40; // rad per second (one turn / 40s — calmer idle)
 
-// ── Desktop spin (two phases) ──────────────────────────────────────────────────
-// HERO (jp 0→HERO_END): the mark only turns LEFT↔RIGHT (about the vertical Y axis) — plus a
-//   slow idle so it's alive at rest.
-// AFTER HERO (jp HERO_END→1): it breaks into a full 360° tumble in ALL directions (X, Y and Z
-//   at different rates), layered ON TOP of where the hero left it so there's no snap at the seam.
+// ── Desktop spin ────────────────────────────────────────────────────────────────
+// HERO (jp 0→HERO_END): the mark turns LEFT↔RIGHT (about the vertical Y axis) for one full
+//   turn, plus a slow idle so it's alive at rest. It then tips to landscape + barrel-rolls
+//   (see the TIP / BOARD / DISSOLVE phases in useFrame).
 const CALM_SPIN_SPEED = (Math.PI * 2) / 16; // rad/s idle left↔right — one gentle turn every 16s
 const HERO_TURNS = 1;     // left↔right (Y) turns driven across the hero scroll
-const POST_TURNS_Y = 3;   // after-hero tumble turns per axis — different counts = all-directions
-const POST_TURNS_X = 2;
-const POST_TURNS_Z = 1;
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const ease = (t) => t * t * (3 - 2 * t);
@@ -92,11 +88,12 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
   }, [theme, invalidate]);
   useEffect(() => {
     if (!progress) return;
-    // Throttle scroll-driven renders to ~40fps. The mark is small + decorative, so 40fps
-    // is visually fine, but capping it leaves the GPU + main thread more headroom for the
-    // leaderboard, which animates over the SAME scroll — the mid-scroll jank was the two
-    // competing at 60fps. A trailing rAF guarantees the final resting frame still lands.
-    const MIN_MS = 25; // ~40fps
+    // Throttle scroll-driven renders. Desktop caps at ~40fps to leave the GPU headroom for the
+    // HDRI-lit material + leaderboard animating over the SAME scroll. Mobile (verticalSpin) drops
+    // the HDRI and uses a cheap self-lit material, so each frame is light enough to run at ~60fps
+    // — that removes the trailing/lag where the spin couldn't keep up with the scroll.
+    // A trailing rAF guarantees the final resting frame still lands.
+    const MIN_MS = verticalSpin ? 16 : 25; // mobile ~60fps, desktop ~40fps
     let lastT = 0;
     let trailing = 0;
     const onChange = () => {
@@ -119,7 +116,7 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
       unsub();
       if (trailing) cancelAnimationFrame(trailing);
     };
-  }, [progress, invalidate]);
+  }, [progress, invalidate, verticalSpin]);
 
   // Drive the continuous auto-spin: while the logo is at/near the hero (jp < HERO_END) keep
   // requesting frames so the time-based rotation in useFrame animates even without scrolling.
@@ -149,17 +146,39 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
       if (tipRef.current) tipRef.current.rotation.z = 0;
       if (spinRef.current) spinRef.current.rotation.y = jp * Math.PI * 2 * VS_TURNS;
     } else {
-      // Desktop, two phases (continuous at the seam — post-hero rotation is LAYERED on the hero
-      // end state, and starts at 0 when postP=0, so nothing snaps):
-      //   HERO: left↔right (Y) only — idle keeps it alive at rest.
-      //   AFTER HERO: full 360° tumble in all directions (X, Y, Z at different rates).
+      // Desktop, choreographed phases — continuous at every seam (nothing snaps):
+      //   HERO (0→0.3):           single 360° Y spin + idle sway; logo stays UPRIGHT (tip z = 0).
+      //   TIP  (0.3→0.67):        rolls upright→LANDSCAPE (tip z: 0 → 90°) as it crosses to the
+      //                           board, so it lies horizontal right as it reaches the leaderboard.
+      //   BOARD(0.67→0.86):       HOLDS landscape and barrel-rolls about its now-horizontal axis.
+      //   DISSOLVE(0.86→0.96):    un-rolls landscape→upright (90°→0) as it crosses to centre.
       const idle = state.clock.elapsedTime * CALM_SPIN_SPEED;
-      const postP = clamp01((jp - HERO_END) / (1 - HERO_END));
       const heroY = clamp01(jp / HERO_END) * Math.PI * 2 * HERO_TURNS;
-      if (tipRef.current) tipRef.current.rotation.z = postP * Math.PI * 2 * POST_TURNS_Z;
+
+      // Tip (roll in the screen plane): 0 = upright, -π/2 = landscape with the open/pointed
+      // side facing the leaderboard text (rolled the OPPOSITE way to +π/2). Eased so the lean
+      // is smooth, holds flat across the whole leaderboard window, then eases back upright.
+      const LANDSCAPE = -Math.PI / 2;
+      let tipZ;
+      if (jp < TIP_START) {
+        tipZ = 0;
+      } else if (jp < TIP_FINISH) {
+        tipZ = easeInOut(clamp01((jp - TIP_START) / (TIP_FINISH - TIP_START))) * LANDSCAPE;
+      } else if (jp < DISSOLVE_START) {
+        tipZ = LANDSCAPE;                            // landscape — held across the board
+      } else {
+        tipZ = (1 - easeInOut(clamp01((jp - DISSOLVE_START) / (DISSOLVE_END - DISSOLVE_START)))) * LANDSCAPE;
+      }
+      if (tipRef.current) tipRef.current.rotation.z = tipZ;
+
+      // Barrel-roll only over the board window. spinRef sits INSIDE the tipped group, so once
+      // the logo is landscape its local Y axis points horizontally on screen → spinning Y reads
+      // as the flat mark rolling like a barrel. Constant angular velocity (spinProfile linear).
+      const boardP = clamp01((jp - LB_SPIN_START) / (LB_SPIN_END - LB_SPIN_START));
+      const barrel = spinProfile(boardP) * Math.PI * 2 * SPIN_TURNS;
       if (spinRef.current) {
-        spinRef.current.rotation.y = idle + heroY + postP * Math.PI * 2 * POST_TURNS_Y;
-        spinRef.current.rotation.x = postP * Math.PI * 2 * POST_TURNS_X;
+        spinRef.current.rotation.y = idle + heroY + barrel;
+        spinRef.current.rotation.x = 0;
       }
     }
 
@@ -169,8 +188,15 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
       const list = [];
       scene.traverse((o) => {
         if (o.isMesh) {
-          o.material = new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.6, envMapIntensity: 1.0 });
-          o.material.emissiveIntensity = 0.55;
+          // Mobile (verticalSpin) renders WITHOUT the HDRI environment for speed, so it can't
+          // rely on env reflections — drop envMapIntensity to 0 and lean on a stronger emissive
+          // so the mark stays vivid and bright. Desktop keeps the full env-lit look.
+          o.material = new THREE.MeshStandardMaterial({
+            metalness: 0.1,
+            roughness: 0.6,
+            envMapIntensity: verticalSpin ? 0 : 1.0,
+          });
+          o.material.emissiveIntensity = verticalSpin ? 0.95 : 0.55;
           list.push(o);
         }
       });
@@ -229,7 +255,10 @@ export default function HeroLogo3D({ progress, theme, idleSpin = true, verticalS
         <Bounds fit margin={1.2}>
           <LogoModel progress={progress} theme={theme} idleSpin={idleSpin} verticalSpin={verticalSpin} />
         </Bounds>
-        <Environment files="/hdri/potsdamer_platz_1k.hdr" />
+        {/* Mobile (verticalSpin) skips the HDRI entirely — it's the heaviest per-frame cost
+            (env sampling) plus a 1K HDR load. The self-lit emissive material + scene lights
+            carry the mobile look, which fixes the scroll lag. Desktop keeps the HDRI. */}
+        {!verticalSpin && <Environment files="/hdri/potsdamer_platz_1k.hdr" />}
       </Suspense>
     </Canvas>
   );

@@ -9,6 +9,8 @@ import {
   X,
   Linkedin,
   Instagram,
+  Twitter,
+  Youtube,
   ChevronDown,
   Heart,
   Plus,
@@ -56,7 +58,7 @@ const GALLERY = [
 
 const CATEGORIES = [
   'Instagram Reels', 'YouTube Shorts', 'B-Rolls', 'Product Launches',
-  'TikTok Shop Affiliates', 'TikTok Creators', 'Instagram Influencers',
+  'Shop Affiliates', 'Creators', 'Instagram Influencers',
   'Amazon Influencers', 'YouTube Influencers', 'Social Media Managers',
 ];
 
@@ -95,36 +97,6 @@ const FAQS = [
     q: "What if I'm not happy with the content?",
     a: 'You can request revisions within the agreed scope of the project. If the content still does not meet the brief, our team steps in to make it right.',
   },
-];
-
-// Each footer column can stack multiple sections (e.g. Product + Legal).
-const FOOTER_COLS = [
-  [
-    { title: 'Product', links: ['Login', 'Intelligence', 'Sign up'] },
-    { title: 'Legal', links: ['Privacy Policy', 'Terms of Service'] },
-  ],
-  [
-    {
-      title: 'Alternatives',
-      links: [
-        'UGCad vs. Billo',
-        'UGCad vs. ContentBeta',
-        'UGCad vs. Icons.com',
-        'UGCad vs. Testimonial Hero',
-      ],
-    },
-    { title: 'Blog', links: ['All Posts', 'Case Studies'] },
-  ],
-  [{ title: 'US', links: ['Austin', 'Chicago', 'Francisco', 'La', 'Miami', 'NYC'] }],
-  [
-    {
-      title: 'India',
-      links: [
-        'Bangalore', 'Delhi', 'Mumbai', 'Hyderabad', 'Jaipur',
-        'Chennai', 'Gurugram', 'Noida', 'Ahmedabad', 'Indore',
-      ],
-    },
-  ],
 ];
 
 // Hero marquee card -- muted autoplay clip. Only decode/play while the card is actually
@@ -311,56 +283,6 @@ export default function CreatorLanding() {
         <div className="cl-blob cl-blob--3" />
       </div>
 
-      {/* -- Navbar ------------------------------------------------------- */}
-      <motion.header
-        className={`cl-nav${scrolled ? ' cl-nav--scrolled' : ''}`}
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="cl-nav__inner">
-          <button className="cl-brand" onClick={() => navigate('/')}>
-            <img src="/ugcad-logo.png" alt="UGCad.io" className="cl-brand__logo" />
-          </button>
-          <nav className="cl-nav__links">
-            {NAV_LINKS.map((l) => (
-              <a key={l} className="cl-navlink" href="#why">
-                {l}{l === 'Others' && <ChevronDown size={14} />}
-              </a>
-            ))}
-          </nav>
-          <div className="cl-nav__actions">
-            <button className="cl-navlink cl-navlink--accent" onClick={handleJoin}>Join as <em>Creator</em></button>
-            <button className="cl-btn-login" onClick={() => navigate('/auth?role=creator')}>
-              <LogIn size={16} /> Log in
-            </button>
-            <button className="cl-btn-signup" onClick={handleJoin}>Sign Up</button>
-          </div>
-          <button
-            className="cl-nav__burger"
-            aria-label="Menu"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-
-        <div className={`cl-nav__mobile${menuOpen ? ' cl-nav__mobile--open' : ''}`}>
-          {NAV_LINKS.map((l) => (
-            <a key={l} className="cl-navlink" href="#why" onClick={() => setMenuOpen(false)}>{l}</a>
-          ))}
-          <div className="cl-nav__mobile-actions">
-            <button className="cl-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth?role=creator'); }}>
-              <LogIn size={16} /> Log in
-            </button>
-            <button className="cl-btn-signup" onClick={() => { setMenuOpen(false); handleJoin(); }}>
-              Sign Up
-            </button>
-          </div>
-        </div>
-      </motion.header>
-
       {/* -- Hero --------------------------------------------------------- */}
       <section className="cl-hero">
         <div className="cl-hero__main">
@@ -428,8 +350,14 @@ export default function CreatorLanding() {
           <div className="cl-brands__row">
             {[BRANDS.slice(0, 8), BRANDS.slice(8)].map((line, li) => (
               <div key={li} className={`cl-brands__line${li === 0 ? ' cl-brands__line--top' : ' cl-brands__line--bottom'}`}>
-                {line.map(({ name, slug }) => (
-                  <span key={name} className="cl-brands__logo">
+                {/* Items are duplicated so the mobile marquee loops seamlessly (translateX -50%).
+                    The second set is hidden on desktop via .cl-brands__logo--dup. */}
+                {[...line, ...line].map(({ name, slug }, i) => (
+                  <span
+                    key={`${name}-${i}`}
+                    className={`cl-brands__logo${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
+                    aria-hidden={i >= line.length}
+                  >
                     <img
                       className="cl-brands__icon"
                       src={`https://cdn.simpleicons.org/${slug}`}
@@ -624,37 +552,75 @@ export default function CreatorLanding() {
         </div>
       </section>
 
-      {/* -- Footer ------------------------------------------------------- */}
-      <footer className="cl-footer">
-        <div className="cl-footer__inner">
-          <div className="cl-footer__brandcol">
-            <button className="cl-brand" onClick={() => navigate('/')}>
-              <img src="/ugcad-logo.png" alt="UGCad.io" className="cl-brand__logo" />
-            </button>
-            <p className="cl-footer__tag">One Marketplace for All Video Production Needs</p>
-            <div className="cl-footer__social">
-              <a href="#why" aria-label="LinkedIn"><Linkedin size={18} /></a>
-              <a href="#why" aria-label="Instagram"><Instagram size={18} /></a>
-            </div>
-            <button className="cl-btn-primary cl-footer__cta" onClick={handleJoin}>
-              Sign up Now <ArrowRight size={16} />
-            </button>
-            <p className="cl-footer__copy">UGCad &copy; {new Date().getFullYear()}. All rights reserved.</p>
+      {/* -- Footer (matches home page) ----------------------------------- */}
+      <footer className="lp-footer">
+        <div className="lp-footer__glow" aria-hidden="true" />
+        <div className="lp-footer__glow lp-footer__glow--2" aria-hidden="true" />
+
+        <div className="lp-footer__inner">
+          {/* Brand statement at top */}
+          <div className="lp-footer__statement">
+            <p className="lp-footer__statement-eyebrow">— Manifesto</p>
+            <h3 className="lp-footer__statement-line">
+              We don't help brands chase attention.{' '}
+              <span className="lp-footer__statement-accent">We help them earn familiarity.</span>
+            </h3>
           </div>
 
-          <div className="cl-footer__cols">
-            {FOOTER_COLS.map((sections, ci) => (
-              <div key={ci} className="cl-footer__col">
-                {sections.map(({ title, links }) => (
-                  <div key={title} className="cl-footer__group">
-                    <div className="cl-footer__coltitle">{title}</div>
-                    {links.map((l) => (
-                      <a key={l} className="cl-footer__link" href="#why">{l}</a>
-                    ))}
-                  </div>
-                ))}
+          {/* Main row: Logo + Links */}
+          <div className="lp-footer__main">
+            <div className="lp-footer__brand">
+              <div className="lp-footer__logo-wrap">
+                <img src="/ugcad-logo.png" alt="UGCad" className="lp-footer__logo" />
               </div>
-            ))}
+              <p className="lp-footer__tagline">
+                Built for brands who think long-term.
+              </p>
+              <div className="lp-footer__socials">
+                <a href="#" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
+                <a href="#" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
+                <a href="#" aria-label="X" className="lp-footer__social-btn"><Twitter size={16} /></a>
+                <a href="#" aria-label="YouTube" className="lp-footer__social-btn"><Youtube size={16} /></a>
+              </div>
+            </div>
+
+            <div className="lp-footer__links">
+              <div className="lp-footer__col">
+                <h4 className="lp-footer__heading">Platform</h4>
+                <ul className="lp-footer__list">
+                  <li><a href="#">How It Works</a></li>
+                  <li><a href="#">Creators</a></li>
+                  <li><a href="#">Pricing</a></li>
+                  <li><a href="#">Case Studies</a></li>
+                </ul>
+              </div>
+              <div className="lp-footer__col">
+                <h4 className="lp-footer__heading">Company</h4>
+                <ul className="lp-footer__list">
+                  <li><a href="#">About</a></li>
+                  <li><a href="#">Manifesto</a></li>
+                  <li><a href="#">Contact</a></li>
+                </ul>
+              </div>
+              <div className="lp-footer__col">
+                <h4 className="lp-footer__heading">Legal</h4>
+                <ul className="lp-footer__list">
+                  <li><a href="#">Terms</a></li>
+                  <li><a href="#">Privacy</a></li>
+                  <li><a href="#">Usage Rights</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom strip */}
+          <div className="lp-footer__strip">
+            <span className="lp-footer__copyright">
+              © {new Date().getFullYear()} UGCad.io · All rights reserved.
+            </span>
+            <a href="#top" className="lp-footer__top-link" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              Back to top <ArrowRight size={14} style={{ transform: 'rotate(-90deg)' }} />
+            </a>
           </div>
         </div>
       </footer>
@@ -662,6 +628,213 @@ export default function CreatorLanding() {
       {/* -- Styles ------------------------------------------------------- */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600;700&display=swap');
+
+        /* ── Footer (ported from home page; mapped onto this page's theme tokens) ── */
+        .cl-root .lp-footer {
+          /* map the home footer's --lp-* vars onto this page's --cl-* theme so it
+             matches the home layout while blending with the creator page colours */
+          --lp-fg: var(--cl-fg);
+          --lp-ink: var(--cl-text);
+          --lp-text: var(--cl-text);
+          --lp-text-muted: rgba(var(--cl-fg), 0.6);
+          --lp-border: rgba(var(--cl-fg), 0.1);
+          --lp-maxw: 1280px;
+          position: relative;
+          background: transparent;
+          color: var(--lp-ink);
+          padding: 90px 8% 30px;
+          overflow: hidden;
+          border-top: 1px solid var(--lp-border);
+        }
+        .cl-root .lp-footer__glow {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          width: 520px;
+          height: 520px;
+          background: radial-gradient(circle, rgba(154, 154, 191, 0.32) 0%, rgba(154, 154, 191, 0) 70%);
+          top: -200px;
+          left: -120px;
+        }
+        .cl-root .lp-footer__glow--2 {
+          background: radial-gradient(circle, rgba(109, 74, 240, 0.18) 0%, rgba(109, 74, 240, 0) 70%);
+          width: 420px;
+          height: 420px;
+          top: auto;
+          left: auto;
+          bottom: -180px;
+          right: -80px;
+        }
+        .cl-root .lp-footer__inner {
+          position: relative;
+          z-index: 2;
+          max-width: var(--lp-maxw);
+          margin: 0 auto;
+        }
+        .cl-root .lp-footer__statement {
+          padding-bottom: 56px;
+          margin-bottom: 56px;
+          border-bottom: 1px solid var(--lp-border);
+          text-align: center;
+        }
+        .cl-root .lp-footer__statement-eyebrow {
+          font-family: var(--font-body);
+          font-size: 0.78rem;
+          font-weight: 500;
+          color: var(--lp-text-muted);
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          font-style: italic;
+          margin: 0 0 16px 0;
+        }
+        .cl-root .lp-footer__statement-line {
+          font-family: var(--font-head);
+          font-size: var(--fs-h2);
+          font-weight: var(--fw-head);
+          color: var(--lp-ink);
+          line-height: 1.3;
+          letter-spacing: -0.03em;
+          margin: 0 auto;
+          max-width: 820px;
+        }
+        .cl-root .lp-footer__statement-accent {
+          color: var(--cl-purple);
+          font-style: italic;
+          position: relative;
+        }
+        .cl-root .lp-footer__statement-accent::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 5px;
+          background: linear-gradient(90deg, var(--cl-purple), var(--cl-purple-deep));
+          border-radius: 4px;
+          opacity: 0.55;
+        }
+        .cl-root .lp-footer__main {
+          display: grid;
+          grid-template-columns: 1.2fr 2fr;
+          gap: 60px;
+          padding-bottom: 50px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid var(--lp-border);
+        }
+        .cl-root .lp-footer__brand { max-width: 340px; }
+        .cl-root .lp-footer__logo-wrap { display: inline-flex; margin-bottom: 18px; }
+        .cl-root .lp-footer__logo { height: 80px; width: auto; display: block; }
+        .cl-root .lp-footer__tagline {
+          font-family: var(--font-body);
+          font-size: 0.95rem;
+          color: var(--lp-text-muted);
+          line-height: 1.5;
+          letter-spacing: -0.015em;
+          margin: 0 0 24px 0;
+          max-width: 280px;
+        }
+        .cl-root .lp-footer__socials { display: flex; gap: 8px; }
+        .cl-root .lp-footer__social-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: rgba(var(--lp-fg), 0.06);
+          border: 1px solid var(--lp-border);
+          color: var(--lp-text-muted);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.22s ease;
+          text-decoration: none;
+        }
+        .cl-root .lp-footer__social-btn:hover {
+          background: rgba(109, 74, 240, 0.15);
+          color: var(--lp-text);
+          border-color: var(--cl-purple);
+          transform: translateY(-2px);
+        }
+        .cl-root .lp-footer__links {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 40px;
+        }
+        .cl-root .lp-footer__col { min-width: 0; }
+        .cl-root .lp-footer__heading {
+          font-family: var(--font-head);
+          font-size: var(--fs-h3);
+          font-weight: var(--fw-head);
+          color: var(--lp-text);
+          margin: 0 0 16px 0;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+        .cl-root .lp-footer__list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .cl-root .lp-footer__list li {
+          font-family: var(--font-body);
+          font-size: 0.92rem;
+          line-height: 1.4;
+        }
+        .cl-root .lp-footer__list a {
+          color: rgba(var(--lp-fg), 0.5);
+          text-decoration: none;
+          transition: color 0.18s ease;
+          letter-spacing: -0.01em;
+          font-weight: 500;
+        }
+        .cl-root .lp-footer__list a:hover { color: var(--cl-purple); }
+        .cl-root .lp-footer__strip {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          flex-wrap: wrap;
+          padding-top: 24px;
+        }
+        .cl-root .lp-footer__copyright {
+          font-family: var(--font-body);
+          font-size: 0.85rem;
+          color: var(--lp-text-muted);
+          letter-spacing: -0.01em;
+        }
+        .cl-root .lp-footer__top-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          background: rgba(var(--lp-fg), 0.06);
+          border: 1px solid var(--lp-border);
+          border-radius: 100px;
+          color: var(--lp-text);
+          font-family: var(--font-body);
+          font-size: 0.82rem;
+          font-weight: 500;
+          letter-spacing: -0.01em;
+          text-decoration: none;
+          transition: all 0.22s ease;
+        }
+        .cl-root .lp-footer__top-link:hover {
+          background: rgba(109, 74, 240, 0.15);
+          color: var(--lp-text);
+          border-color: var(--cl-purple);
+        }
+        @media (max-width: 880px) {
+          .cl-root .lp-footer { padding: 70px 6% 24px; }
+          .cl-root .lp-footer__main { grid-template-columns: 1fr; gap: 40px; }
+          .cl-root .lp-footer__links { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        }
+        @media (max-width: 600px) {
+          .cl-root .lp-footer__statement { padding-bottom: 36px; margin-bottom: 36px; }
+          .cl-root .lp-footer__links { grid-template-columns: 1fr 1fr; gap: 24px; }
+          .cl-root .lp-footer__strip { justify-content: center; text-align: center; }
+          .cl-root .lp-footer__col { text-align: left; }
+        }
 
         .cl-root {
           /* Brand type: Readex Pro (Medium/Bold) for headings, Just Sans for body.
@@ -816,6 +989,12 @@ export default function CreatorLanding() {
         @media (min-width: 481px) {
           .cl-hero__title { font-size: clamp(2.6rem, 4.5vw, 3.6rem); }
         }
+        /* Phones (≤480px): keep the hero to exactly two lines by stopping the
+           first line ("Love creating content?") from wrapping. */
+        @media (max-width: 480px) {
+          .cl-hero__title { font-size: clamp(1.4rem, 6.2vw, 2.3rem); white-space: nowrap;
+            margin-bottom: clamp(16px, 3vh, 28px); }
+        }
         .cl-hero__sub { font-size: clamp(0.98rem, 1.6vw, 1.16rem); line-height: 1.55;
           color: rgba(var(--cl-fg),0.68) !important; max-width: 560px; margin: 0 auto clamp(36px, 6vh, 64px); }
         .cl-hero__ctas { display: flex; justify-content: center; margin-bottom: clamp(20px, 4vh, 48px); }
@@ -847,6 +1026,9 @@ export default function CreatorLanding() {
         .cl-brands__icon { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
         .cl-brands__name { font-size: 1.2rem; font-weight: 600; color: inherit !important; }
         .cl-brands__logo:hover { color: rgba(var(--cl-fg),0.98) !important; opacity: 1; transform: translateY(-3px); }
+        /* Duplicate logos exist only to feed the mobile marquee loop -- hidden on desktop. */
+        .cl-brands__logo--dup { display: none; }
+        @media (prefers-reduced-motion: reduce) { .cl-brands__line { animation: none !important; } }
 
         /* Hero -- highlighted word pill */
         .cl-hero__pill { display: inline-block; padding: 0.05em 0.4em; border-radius: 16px;
@@ -1171,11 +1353,29 @@ export default function CreatorLanding() {
         @media (max-width: 768px) {
           .cl-nav__links, .cl-nav__actions { display: none; }
           .cl-nav__burger { display: inline-flex; }
+          /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
+          .cl-hiw__cta { display: none; }
           .cl-blob { width: 300px !important; height: 300px !important; filter: blur(70px); }
           .cl-section { padding: 60px 6%; }
           .cl-community { grid-template-columns: repeat(2, 1fr); }
           .cl-tcard { height: clamp(420px, 70vh, 560px); }
-          .cl-brands__line { gap: 24px 28px; }
+          /* Brand strip on mobile: two auto-scrolling marquee lines (top→left, bottom→right)
+             instead of a wrapped grid. Duplicate logos become visible to fill the loop. */
+          .cl-brands { overflow: hidden;
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+          .cl-brands__row { padding-left: 0; padding-right: 0; gap: 26px; overflow: hidden;
+            align-items: flex-start; }
+          .cl-brands__logo--dup { display: inline-flex; }
+          /* align-self:flex-start is critical -- a centered track would expose a gap on the
+             right when translated -50%; left-aligning keeps the loop seamless. */
+          .cl-brands__line, .cl-brands__line--bottom {
+            flex-wrap: nowrap; width: max-content; justify-content: flex-start; gap: 34px;
+            align-self: flex-start; padding-right: 34px; will-change: transform; }
+          .cl-brands__line--top { animation: clMarquee 24s linear infinite; }
+          .cl-brands__line--bottom { animation: clMarqueeRight 24s linear infinite; }
+          .cl-brands__name { font-size: 1rem; }
+          .cl-brands__icon { width: 26px; height: 26px; }
           .cl-faq { grid-template-columns: 1fr; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); }
         }

@@ -5397,16 +5397,17 @@ export default function Landing() {
           .lp-proof__heading { font-size: clamp(1.5rem, 6vw, 2rem); }
         }
 
-        /* Showcase heading: the desktop treatment forces ONE line (white-space:nowrap), which
-           on phones/tablets runs the long sentence off the right edge and clips it. Let it wrap,
-           centre it, and balance the line breaks so it reads as a tidy 2–3 line stack. */
+        /* Showcase heading on phones: wrap (not the desktop nowrap, which clipped off the edge),
+           centred + balanced. Sized to land on exactly TWO lines — the previous larger size spilled
+           the long sentence onto three. clamp keeps two lines across phone widths (the min is low
+           enough that even ~320px phones don't push to a third line). */
         @media (max-width: 768px) {
           .lp-showcase__heading {
             white-space: normal;
             text-align: center;
             text-wrap: balance;
-            font-size: clamp(1.5rem, 6vw, 2.1rem);
-            max-width: 90%;
+            font-size: clamp(1.05rem, 4.6vw, 1.85rem);
+            max-width: 94%;
             margin-left: auto;
             margin-right: auto;
           }

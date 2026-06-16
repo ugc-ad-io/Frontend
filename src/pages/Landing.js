@@ -88,6 +88,9 @@ function cldThumb(src) {
 // device stutters; raising it trades smoothness-of-start for decode load.
 const MAX_PLAYING_VIDEOS =
   typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : 14;
+// Phones can't decode multiple marquee videos during scroll without the whole page tanking, so on
+// mobile we render a STATIC poster image instead of a <video> (see LazyVideo). Evaluated once.
+const IS_MOBILE = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -141,7 +144,7 @@ function cldPoster(src) {
 // playback immediately, skipping BOTH IntersectionObserver round-trips (load-gate → re-render →
 // play-gate) that otherwise delay the first frame by ~2-3s on mobile. preload="auto" then buffers
 // the clip from page load instead of from whenever the load observer happens to fire.
-function LazyVideo({ src, className, eager = false }) {
+function LazyVideoEl({ src, className, eager = false }) {
   const ref = useRef(null);
   const [loaded, setLoaded] = useState(eager);
   // LOAD latch — attach the real src the first time the card nears the viewport, then KEEP it.
@@ -204,6 +207,25 @@ function LazyVideo({ src, className, eager = false }) {
       {...(loaded ? { src: cldThumb(src) } : {})}
     />
   );
+}
+
+// MOBILE: a plain lazy <img> of the clip's first frame — NO <video>, so zero decode load (the main
+// cause of whole-page mobile lag + fast-scroll meltdown). The marquee still scrolls; it just shows
+// crisp stills instead of playing video. DESKTOP keeps the real <video> (LazyVideoEl).
+function LazyVideo(props) {
+  if (IS_MOBILE) {
+    return (
+      <img
+        src={cldPoster(props.src)}
+        alt=""
+        aria-hidden="true"
+        className={props.className}
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
+  return <LazyVideoEl {...props} />;
 }
 
 // Top-creator leaderboard shown under the hero — rows reveal one-by-one on scroll.
@@ -7427,6 +7449,29 @@ export default function Landing() {
           }
           .lp-root[data-theme="light"] .lp-proof-item__sep {
             background: linear-gradient(to bottom, transparent, rgba(28, 27, 75, 0.4), transparent);
+          }
+        }
+
+        /* ── Mobile performance pass ─────────────────────────────────────────────
+           Phones drop frames on fast scroll when every section repaints heavy effects.
+           These cut paint cost only; layout/design are otherwise unchanged. */
+        @media (max-width: 767px) {
+          /* backdrop-filter blur is one of the most expensive things to repaint during scroll. */
+          .lp-root * {
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+          }
+          /* Cheaper shadows on the cards that SCROLL/animate (big blur radii repaint every frame). */
+          .lp-showcase-card, .lp-audit-card, .lp-achieve-card, .lp-tcard, .lp-brand-item__icon {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32) !important;
+          }
+          /* content-visibility:auto = the browser skips rendering off-screen sections entirely (the
+             single biggest fast-scroll win). ONLY static sections here — the scroll-PINNED ones
+             (hero, logo3d/leaderboard, audit, achieve, proof) need real measured heights for their
+             sticky + useScroll math, so a content-visibility placeholder would break them. */
+          .lp-testimonial, .lp-faq, .lp-cta, .lp-vs, .lp-community, .lp-steps, .lp-problem, .lp-footer {
+            content-visibility: auto;
+            contain-intrinsic-size: 1px 900px;
           }
         }
       `}</style>

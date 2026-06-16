@@ -1382,11 +1382,11 @@ export default function Landing() {
               initial="hidden"
               animate="visible"
             >
-              The<br />
-              <span className="lp-hero__title-accent">Performance</span><br />
-              <span className="lp-hero__title-accent">System</span> Behind<br />
-              The Top <span className="lp-hero__title-accent">1% D2C</span><br />
-              <span className="lp-hero__title-accent">Brands</span>
+              The <span className="lp-hero__title-accent">Performance System</span> Behind
+              <br />
+              The Top
+              <br />
+              <span className="lp-hero__title-accent">1% D2C Brands</span>
             </motion.h1>
           ) : (
             <motion.h1
@@ -2952,12 +2952,15 @@ export default function Landing() {
            specificity (0,2,0) so it beats the various single-class .lp-hero__title mobile
            overrides regardless of source order. */
         .lp-hero--static .lp-hero__title--mobile {
-          font-size: clamp(2.3rem, 10.5vw, 3.4rem);
+          /* Sized so the longest logical line ("The Performance System Behind") fits on ONE line;
+             nowrap keeps each of the two lines unwrapped (the <br> still splits them in two). */
+          font-size: clamp(1.25rem, 5.6vw, 2.2rem);
           font-weight: 600;
           line-height: 1.3;
           text-align: center;
           max-width: 100%;
           margin: 0 auto;
+          white-space: nowrap;
         }
         .lp-hero--static .lp-hero__title--mobile .lp-hero__title-accent {
           margin: 2px 0;
@@ -2994,8 +2997,9 @@ export default function Landing() {
           text-align: left;
         }
         /* Mobile-only line break before "high-performing UGC ads" (own line). */
+        /* Mid-sentence break — kept OFF everywhere now: on mobile each sentence stays on one
+           line (shrunk + nowrap below) instead of wrapping into two. */
         .lp-hero__sub-mbr { display: none; }
-        @media (max-width: 768px) { .lp-hero__sub-mbr { display: inline; } }
 
         .lp-hero__accent {
           color: #C8F23A;
@@ -5154,7 +5158,7 @@ export default function Landing() {
              the navbar; content starts below the navbar and flows down. */
           justify-content: flex-start;
           gap: 30px;
-          padding: 150px 6% 56px;
+          padding: 192px 6% 56px;
           /* subtle radial purple glow behind the hero copy */
           background: radial-gradient(circle at 50% 36%, rgba(167, 139, 250, 0.16),
                       rgba(167, 139, 250, 0) 60%), var(--lp-page-bg);
@@ -5185,7 +5189,8 @@ export default function Landing() {
 
         @media (max-width: 768px) {
           .lp-hero__title { max-width: 100%; font-size: clamp(2.4rem, 8vw, 3.6rem); }
-          .lp-hero__subtitle { font-size: clamp(1.14rem, 4.4vw, 1.5rem); }
+          /* Each sentence on ONE line (mobile only): nowrap + sized to fit the longest line. */
+          .lp-hero__subtitle { font-size: clamp(0.72rem, 3.3vw, 0.95rem); line-height: 1.5; white-space: nowrap; }
           .lp-brand-item__icon { width: 72px; height: 72px; }
           .lp-brand-item__icon img { width: 36px; height: 36px; }
           .lp-hero__brand-center { width: 104px; height: 104px; }
@@ -5220,7 +5225,7 @@ export default function Landing() {
         @media (max-width: 480px) {
           .lp-hero__divider { height: 50px; }
           .lp-hero__title { font-size: clamp(2rem, 9vw, 2.8rem); }
-          .lp-hero__subtitle { font-size: 1.14rem; line-height: 1.5; }
+          .lp-hero__subtitle { font-size: clamp(0.66rem, 3.4vw, 0.85rem); line-height: 1.5; white-space: nowrap; }
           .lp-brand-item__icon { width: 58px; height: 58px; border-radius: 16px; }
           .lp-brand-item__icon img { width: 30px; height: 30px; }
           .lp-hero__brand-center { width: 82px; height: 82px; border-radius: 20px; }

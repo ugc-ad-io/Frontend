@@ -46,14 +46,14 @@ const BRANDS = [
   { name: 'Behance', slug: 'behance' },
 ];
 
-// Portrait thumbs for the hero gallery row -- same local UGC clips used on the homepage (/public).
+// Portrait thumbs for the hero gallery row -- local UGC clips from /public/creator.
 const GALLERY = [
-  { name: 'Abigail', av: ['#a78bfa', '#5b21b6'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255208/ugc-videos/video_05.mp4' },
-  { name: 'Chelsea', av: ['#818cf8', '#4338ca'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255196/ugc-videos/video_04.mp4' },
-  { name: 'Becki', av: ['#fca5a5', '#9d174d'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255180/ugc-videos/video_03.mp4' },
-  { name: 'Maya', av: ['#fb7185', '#f43f5e'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255227/ugc-videos/video_06.mp4' },
-  { name: 'Lara', av: ['#7dd3fc', '#1d4ed8'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255273/ugc-videos/video_08.mp4' },
-  { name: 'Priya', av: ['#a5b4fc', '#4c1d95'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto:eco,w_300/v1781255631/ugc-videos/video_21.mp4' },
+  { name: 'Abigail', av: ['#a78bfa', '#5b21b6'], src: '/creator/video_01.mp4' },
+  { name: 'Chelsea', av: ['#818cf8', '#4338ca'], src: '/creator/video_08.mp4' },
+  { name: 'Becki', av: ['#fca5a5', '#9d174d'], src: '/creator/video_27.mp4' },
+  { name: 'Maya', av: ['#fb7185', '#f43f5e'], src: '/creator/video_28.mp4' },
+  { name: 'Lara', av: ['#7dd3fc', '#1d4ed8'], src: '/creator/video_29.mp4' },
+  { name: 'Priya', av: ['#a5b4fc', '#4c1d95'], src: '/creator/video_30.mp4' },
 ];
 
 const CATEGORIES = [
@@ -99,24 +99,70 @@ const FAQS = [
   },
 ];
 
-// Hero marquee card -- muted autoplay clip. Only decode/play while the card is actually
-// in the viewport; pause off-screen copies so we never run all ~12 clips at once (perf).
+// ── Global play cap (imperative, NO React state) ────────────────────────────────
+// The hero gallery renders the clips ×4 for a seamless loop (~24 <video> elements). Letting
+// every on-screen copy decode at once is what made it lag. Cap concurrent playback: a card that
+// scrolls in plays if a slot is free, else WAITS (paused, showing its gradient/first frame). When
+// a playing card scrolls off it hands its slot to a waiting one. All imperative → no re-renders.
+const MAX_PLAYING_GALLERY = 10;
+const _glPlaying = new Set();
+const _glWaiting = new Set();
+function playGalleryCapped(v) {
+  if (_glPlaying.has(v)) return;
+  if (_glPlaying.size < MAX_PLAYING_GALLERY) {
+    _glWaiting.delete(v);
+    _glPlaying.add(v);
+    const p = v.play?.();
+    if (p && p.catch) p.catch(() => {});
+  } else {
+    _glWaiting.add(v);
+  }
+}
+function releaseGallery(v) {
+  const wasPlaying = _glPlaying.delete(v);
+  _glWaiting.delete(v);
+  v.pause?.();
+  if (wasPlaying) {
+    for (const next of _glWaiting) {
+      if (next.isConnected) { playGalleryCapped(next); break; }
+      _glWaiting.delete(next);
+    }
+  }
+}
+
+// Hero marquee card -- muted autoplay clip. The src is attached only once the card nears the
+// viewport (lazy), preload="none" so nothing fetches until it actually plays, and a global cap
+// limits how many decode at once — so we never run all ~24 clips simultaneously (perf).
 function GalleryCard({ av, src, hidden }) {
   const ref = useRef(null);
+  const [loaded, setLoaded] = useState(false);
 
+  // LOAD latch — attach the real src the first time the card nears the viewport, then keep it.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
+      { rootMargin: '300px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // PLAY on screen / PAUSE off screen — capped + imperative (no setState).
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) v.play?.().catch(() => {});
-        else v.pause?.();
+        if (entry.isIntersecting) { if (v.src) playGalleryCapped(v); }
+        else releaseGallery(v);
       },
-      { threshold: 0.01 },
+      { rootMargin: '150px', threshold: 0.01 },
     );
     io.observe(v);
-    return () => io.disconnect();
-  }, []);
+    return () => { io.disconnect(); releaseGallery(v); };
+  }, [loaded]);
 
   return (
     <div
@@ -127,12 +173,12 @@ function GalleryCard({ av, src, hidden }) {
       <video
         ref={ref}
         className="cl-gallery__media"
-        src={src}
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
         disablePictureInPicture
+        {...(loaded ? { src } : {})}
       />
     </div>
   );

@@ -75,7 +75,7 @@ function cldThumb(src) {
 // screen). Cap concurrent playback: a card that scrolls in plays if a slot is free, otherwise it
 // WAITS on its (real) poster thumbnail. When a playing card scrolls off, it hands its slot to a
 // waiting one. All imperative — never calls setState — so the non-stop marquee causes no renders.
-const MAX_PLAYING_VIDEOS = 4;
+const MAX_PLAYING_VIDEOS = 14;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -106,7 +106,10 @@ function releaseVideo(v) {
 // the <video poster> so every card shows a real thumbnail the instant it mounts — nothing is
 // ever black while the clip is lazy-loading (src is attached only once the section scrolls in).
 function cldPoster(src) {
-  if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
+  if (typeof src !== 'string') return undefined;
+  // Local files (e.g. /home/video_03.mp4) have a sibling first-frame JPG (/home/video_03.jpg),
+  // so non-playing cards show a real still instead of a black box.
+  if (!src.includes('/video/upload/')) return src.replace(/\.mp4$/i, '.jpg');
   return src
     .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto,h_360,c_scale/')
     .replace(/\.mp4$/i, '.jpg');
@@ -167,7 +170,7 @@ function LazyVideo({ src, className }) {
       muted
       loop
       playsInline
-      preload="none"
+      preload="auto"
       webkit-playsinline="true"
       disablePictureInPicture
       {...(loaded ? { src: cldThumb(src) } : {})}
@@ -554,55 +557,55 @@ const achieveItems = [
   },
 ];
 
-// Sixteen showcase video slots — UGC clips hosted on Cloudinary.
+// Sixteen showcase video slots — local UGC clips from /public/home.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596767/ugc/video_16.mp4',
+    src: '/home/video_03.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8 },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596746/ugc/video_15.mp4',
+    src: '/home/video_04.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9 },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596733/ugc/video_14.mp4',
+    src: '/home/video_05.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0 },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596710/ugc/video_13.mp4',
+    src: '/home/video_06.mp4',
     brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7 },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596692/ugc/video_12.mp4',
+    src: '/home/video_07.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9 },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596671/ugc/video_11.mp4',
+    src: '/home/video_10.mp4',
     brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8 },
   { id: 7, industryId: 'pets',    label: 'Pets',             isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596651/ugc/video_10.mp4',
+    src: '/home/video_13.mp4',
     brand: 'Pawfect',         creator: 'Riya',    logoBg: 'linear-gradient(135deg, #1F1F4E, #a855f7)', logoText: 'Pf', tier: 'ELITE', rating: 4.9 },
   { id: 8, industryId: 'food',    label: 'Food/Beverage',    isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596627/ugc/video_09.mp4',
+    src: '/home/video_15.mp4',
     brand: 'BrewHaus',        creator: 'Sofia',   logoBg: 'linear-gradient(135deg, #78350f, #f59e0b)', logoText: 'BH', tier: 'PRO', rating: 4.8 },
   { id: 9, industryId: 'fitness', label: 'Fitness/Supplements', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596601/ugc/video_08.mp4',
+    src: '/home/video_16.mp4',
     brand: 'FitFuel',         creator: 'Noah',    logoBg: 'linear-gradient(135deg, #14532d, #22c55e)', logoText: 'FF', tier: 'RISING', rating: 4.7 },
   { id: 10, industryId: 'health', label: 'Health/Wellness',  isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596582/ugc/video_07.mp4',
+    src: '/home/video_19.mp4',
     brand: 'VitaGlow',        creator: 'Emma',    logoBg: 'linear-gradient(135deg, #0e7490, #06b6d4)', logoText: 'VG', tier: 'ELITE', rating: 5.0 },
   { id: 11, industryId: 'travel', label: 'Travel',           isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596566/ugc/video_06.mp4',
+    src: '/home/video_21.mp4',
     brand: 'NomadPack',       creator: 'Liam',    logoBg: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', logoText: 'NP', tier: 'PRO', rating: 4.8 },
   { id: 12, industryId: 'finance', label: 'Finance/Insurance', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596549/ugc/video_05.mp4',
+    src: '/home/video_22.mp4',
     brand: 'CoinKeep',        creator: 'Ava',     logoBg: 'linear-gradient(135deg, #3A3A66, #fbbf24)', logoText: 'CK', tier: 'RISING', rating: 4.7 },
   { id: 13, industryId: 'home',   label: 'Home/Household',   isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596536/ugc/video_04.mp4',
+    src: '/home/video_23.mp4',
     brand: 'NestHome',        creator: 'Olivia',  logoBg: 'linear-gradient(135deg, #7c2d12, #fb7185)', logoText: 'NH', tier: 'PRO', rating: 4.9 },
   { id: 14, industryId: 'gaming', label: 'Gaming',           isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596517/ugc/video_03.mp4',
+    src: '/home/video_24.mp4',
     brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #8b5cf6)', logoText: 'PV', tier: 'ELITE', rating: 4.8 },
   { id: 15, industryId: 'charity', label: 'Charity',         isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596493/ugc/video_01.mp4',
+    src: '/home/video_25.mp4',
     brand: 'CareCircle',      creator: 'Mia',     logoBg: 'linear-gradient(135deg, #831843, #ec4899)', logoText: 'CC', tier: 'RISING', rating: 4.9 },
   { id: 16, industryId: 'services', label: 'Consumer Services', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596767/ugc/video_16.mp4',
+    src: '/home/video_26.mp4',
     brand: 'SwiftServe',      creator: 'Lucas',   logoBg: 'linear-gradient(135deg, #1F1F4E, #0ea5e9)', logoText: 'SS', tier: 'PRO', rating: 4.7 },
 ];
 
@@ -960,10 +963,21 @@ export default function Landing() {
   // Gentle spring + easeInOut so each card GLIDES off (accelerate → decelerate)
   // instead of tracking raw scroll 1:1. Paired with the taller section below, the
   // whole peel reads slow and smooth.
+  // Declared here (moved up from below) so the peel-springs can be frozen on mobile.
+  // Lazy-init so the first render already knows mobile vs desktop; a matchMedia listener
+  // in an effect later keeps it in sync on resize.
+  const [heroStatic, setHeroStatic] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
   const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
-  const card2Y = useSpring(useTransform(auditProgress, [0.04, 0.33], [0, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card3Y = useSpring(useTransform(auditProgress, [0.36, 0.65], [35, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card1Y = useSpring(useTransform(auditProgress, [0.68, 0.99], [-35, -800], { ease: easeInOut }), PEEL_SPRING);
+  // These desktop glide-springs run a per-frame rAF physics loop while their source moves.
+  // On mobile the cards use the raw mAudit* transforms below instead, so freeze the spring
+  // sources to a constant (output [0,0]) when heroStatic — otherwise three idle springs
+  // would still animate during the exact scroll window the deck assembles, stealing frames
+  // and stuttering Q2/Q3 as they rise.
+  const card2Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.04, 0.33], heroStatic ? [0, 0] : [0, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card3Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.36, 0.65], heroStatic ? [0, 0] : [35, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card1Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.68, 0.99], heroStatic ? [0, 0] : [-35, -800], { ease: easeInOut }), PEEL_SPRING);
   // Mobile assemble — bound DIRECTLY to scroll (NO spring). On a phone the soft PEEL_SPRING
   // made the cards trail the finger and keep drifting/settling after the scroll stopped; that
   // overshoot + trailing is what read as "lag", and the spring also runs an extra rAF loop on
@@ -1026,9 +1040,8 @@ export default function Landing() {
   const mobileStageDown = useTransform(logo3dProgress, [0.45, 0.72], [0, -120]);
   // Shrink as it dissolves so the mark looks like it's merging INTO the small brand-strip logo.
   const mobileStageScale = useTransform(logo3dProgress, [0.56, 0.72], [1, 0.4]);
-  // Spin runs through the WHOLE visible window (incl. the dissolve) so the mark keeps rotating as
-  // it shrinks/fades, instead of freezing straight once it stops at 0.5.
-  const mobileStageSpin = useTransform(logo3dProgress, [0.0, 0.72], [0, 1]);
+  // (mobile no longer spins a WebGL mark — it's a static <img>; the stage's y/scale/opacity above
+  // still carry the descend + dissolve, so no scroll-driven spin value is needed here anymore.)
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
@@ -1115,12 +1128,6 @@ export default function Landing() {
   // centre right as the buttons clear the top), then eases back -300 → 0 by 0.66 — and because
   // the page is itself scrolling the board up over that same window, the net effect is the first
   // row PARKS near centre, reading as the leaderboard riding up locked to the departing buttons.
-  // On mobile, rest the leaderboard HIGHER (negative) so it sits right under the hero title.
-  // Declared before its first use below (boardRiseRaw); the matchMedia listener is set up
-  // in an effect later. Lazy-init so the first render already knows mobile vs desktop.
-  const [heroStatic, setHeroStatic] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
-  );
   // Stops are tuned per layout from the measured scroll→position map (the geometries differ:
   // desktop hero is a pinned 150vh, mobile hero is auto-height and just scrolls). MOBILE: the
   // button clears the top at journeyP≈0.29 while row 1 is still far below the fold, so we PULL
@@ -1168,6 +1175,14 @@ export default function Landing() {
     brandRiseRaw,
     heroStatic ? { stiffness: 240, damping: 32, mass: 0.35 } : { stiffness: 120, damping: 22, mass: 0.6 }
   );
+  // On MOBILE drive the board + brand strip DIRECTLY off scroll (the *Raw values), not the
+  // spring outputs. A spring trails the finger and keeps drifting/settling after the scroll
+  // stops — that's the "lag" on a phone — and each spring also runs its own rAF loop every
+  // scroll frame on top of the WebGL logo + 11 leaderboard rows. The raw useTransform tracks
+  // scroll 1:1 (still eased) → these big containers move exactly with the scroll, buttery and
+  // lag-free. Desktop keeps the springs (it has the GPU headroom and the glide is intentional).
+  const boardRiseYUsed = heroStatic ? boardRiseRaw : boardRiseY;
+  const brandRiseYUsed = heroStatic ? brandRiseRaw : brandRiseY;
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
@@ -1433,17 +1448,21 @@ export default function Landing() {
           {/* Desktop: the fixed .lp-logo-fly overlay flies the 3D mark into this section.
               Mobile: no 3D logo here — the leaderboard carries the moment on its own. */}
 
-          {/* Mobile: 3D logo fills the space below the leaderboard text (desktop uses the fly overlay). */}
+          {/* Mobile: a STATIC logo image fills the space below the leaderboard text — NOT the
+              WebGL 3D canvas. A scroll-driven <canvas> re-uploads its texture to the compositor
+              every frame as the page scrolls, which is the core mobile jank here; an <img> is a
+              cached layer the GPU just translates. The wrapper still applies the exact same
+              descend (y) + shrink (scale) + dissolve (opacity) — all GPU transforms on the
+              image — so the hand-off into the brand strip is unchanged, just buttery. Desktop
+              keeps the full 3D fly/spin via .lp-logo-fly above. */}
           {heroStatic && logo3dInView && (
             <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity, y: mobileStageDown, scale: mobileStageScale }}>
-              <Suspense fallback={<div className="lp-logo3d__placeholder" aria-hidden="true" />}>
-                <HeroLogo3D progress={mobileStageSpin} theme={theme} verticalSpin idleSpin={false} />
-              </Suspense>
+              <img src="/ugcad-logo.png" alt="" aria-hidden="true" className="lp-logo3d__staticmark" />
             </motion.div>
           )}
 
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
-          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity, y: boardRiseY }}>
+          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity, y: boardRiseYUsed }}>
             <div className="lp-logo3d__boardTrack">
               {TOP_CREATORS.map((c, i) => (
                 <LeaderboardRow
@@ -1461,7 +1480,7 @@ export default function Landing() {
 
       {/* ── Brand strip — stuck to the leaderboard's last row: rises UP in lockstep
           (brandRiseY) as the final rows fade, instead of waiting below. ── */}
-      <motion.div style={{ y: brandRiseY, marginBottom: heroStatic ? brandRise : 0, position: 'relative', zIndex: 3 }}>
+      <motion.div style={{ y: brandRiseYUsed, marginBottom: heroStatic ? brandRise : 0, position: 'relative', zIndex: 3 }}>
       <section className="lp-brandstrip" ref={brandStripRef}>
         <div className="lp-hero__strip">
           <div className="lp-hero__brands-side lp-hero__brands-side--left">
@@ -1549,25 +1568,16 @@ export default function Landing() {
             const mid = Math.ceil(items.length / 2);
             const row1 = items.slice(0, mid);
             const row2 = items.slice(mid).length ? items.slice(mid) : items.slice(0, mid);
-            // asVideo: only REAL <video> elements on the copies that need them. The marquee
-            // loops via translateX(-50%), so its two halves must match — we alternate
-            // video/poster per copy (0,2 = video · 1,3 = poster) to keep the loop seamless
-            // while halving the number of <video> elements. Poster copies are static <img>
-            // stills (indistinguishable while scrolling) → far fewer decodes/requests.
-            const renderItem = (v, idx, prefix, asVideo) => (
+            // Every card is a real <video> so all clips play as they scroll through. The
+            // concurrency cap (MAX_PLAYING_VIDEOS) + preload="none" keep decodes/requests bounded
+            // — only the handful actually on screen ever fetch/play; the rest sit on their poster.
+            const renderItem = (v, idx, prefix) => (
               <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
                 <div className="lp-showcase-card">
-                  {v.isVideo && asVideo ? (
+                  {v.isVideo ? (
                     <LazyVideo
                       src={v.src}
                       className="lp-showcase-card__media"
-                    />
-                  ) : v.isVideo ? (
-                    <img
-                      src={cldPoster(v.src)}
-                      alt={v.brand}
-                      className="lp-showcase-card__media"
-                      loading="lazy"
                     />
                   ) : (
                     <img
@@ -1595,16 +1605,12 @@ export default function Landing() {
               <>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--left">
-                    {Array.from({ length: 4 })
-                      .flatMap((_, copy) => row1.map((v) => ({ v, copy })))
-                      .map(({ v, copy }, idx) => renderItem(v, idx, 'R1', copy % 2 === 0))}
+                    {Array.from({ length: 4 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
                   </div>
                 </div>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--right">
-                    {Array.from({ length: 4 })
-                      .flatMap((_, copy) => row2.map((v) => ({ v, copy })))
-                      .map(({ v, copy }, idx) => renderItem(v, idx, 'R2', copy % 2 === 0))}
+                    {Array.from({ length: 4 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
                   </div>
                 </div>
               </>
@@ -3336,6 +3342,7 @@ export default function Landing() {
           width: clamp(200px, 27vw, 400px);
           height: clamp(200px, 40vh, 440px);
           z-index: 3;                    /* above the leaderboard when they overlap */
+          perspective: 850px;            /* depth for the static mark's CSS 3D turn (see __staticmark) */
         }
         .lp-logo3d__canvas {
           width: 100% !important;
@@ -3345,6 +3352,28 @@ export default function Landing() {
              repaints don't thrash the main thread. */
           will-change: transform;
           transform: translateZ(0);
+        }
+        /* Mobile static logo mark (replaces the WebGL canvas on phones). Fills the same stage box;
+           the wrapper's y/scale/opacity do the descend+dissolve. It keeps a 3D "alive" feel via a
+           pure-CSS rotateY turn under the stage's perspective — GPU-composited, so unlike the WebGL
+           canvas it never re-uploads a texture per scroll frame (that's what was lagging). It sways
+           between ±26° instead of a full 360° so the brand mark never flips to its mirrored back. */
+        .lp-logo3d__staticmark {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+          backface-visibility: hidden;
+          will-change: transform;
+          animation: lpLogoSway 5.5s ease-in-out infinite;
+        }
+        @keyframes lpLogoSway {
+          0%   { transform: rotateY(-26deg); }
+          50%  { transform: rotateY( 26deg); }
+          100% { transform: rotateY(-26deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-logo3d__staticmark { animation: none; }
         }
 
         /* leaderboard viewport — fixed 100vh window, fades at top + bottom edges */
@@ -5146,7 +5175,7 @@ export default function Landing() {
           .lp-navbar__actions { display: none; }
           .lp-navbar__burger { display: inline-flex; }
           .lp-navbar__mobile--open { display: flex; }
-          .lp-navbar__logo { height: 38px; }
+          .lp-navbar__logo { height: 38px; margin-left: -14px; }
           .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
@@ -7116,13 +7145,22 @@ export default function Landing() {
           /* 190vh section + sticky inner = the scroll runway the assemble needs: the inner pins
              while you scroll the extra height, and auditProgress drives the cards' y up over it. */
           .lp-audit { min-height: 190vh; padding: 0 6%; }
-          .lp-audit__inner { position: sticky; top: 60px; padding-top: 22px; }
+          /* Promote the sticky inner to its own GPU layer so the cards rising over it
+             composite independently instead of repainting this whole pinned area each
+             scroll frame (that repaint was the Q2 stutter). */
+          .lp-audit__inner {
+            position: sticky; top: 60px; padding-top: 22px;
+            transform: translateZ(0);
+          }
           .lp-audit__grid {
             position: relative;
             display: flex; justify-content: center; align-items: center;
             flex-direction: row; gap: 0;
             min-height: clamp(360px, 54vh, 460px); margin: 14px auto 0; max-width: 100%;
-            perspective: 1000px;
+            /* No perspective on mobile: the cards only do a flat 2D translate + rotate, so
+               perspective adds nothing visually but stops the rising cards from compositing
+               cleanly on phone GPUs — which is what made Q2 lag. */
+            perspective: none;
           }
           .lp-audit-card {
             width: 86%; max-width: 270px; min-height: 0; padding: 26px 24px 22px;

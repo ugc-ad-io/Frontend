@@ -909,6 +909,40 @@ export default function Landing() {
     ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
     : showcaseVideos;
 
+  // Showcase rows split once at component scope so the SAME row-1 data can be reused at the top
+  // of the hero on mobile (a marquee row fills the empty space above the title). The showcase
+  // section below then hides its own first row on mobile so the row isn't shown twice.
+  const showcaseItemsAll = visibleShowcase.length ? visibleShowcase : showcaseVideos;
+  const showcaseMid = Math.ceil(showcaseItemsAll.length / 2);
+  const showcaseRow1 = showcaseItemsAll.slice(0, showcaseMid);
+  const renderShowcaseCard = (v, idx, prefix) => (
+    <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
+      <div className="lp-showcase-card">
+        {v.isVideo ? (
+          <LazyVideo src={v.src} className="lp-showcase-card__media" />
+        ) : (
+          <img
+            src={v.src}
+            alt={v.brand}
+            className="lp-showcase-card__media"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentNode.style.background = v.logoBg;
+            }}
+          />
+        )}
+        <div className="lp-showcase-card__rating">
+          <Star size={12} fill="#FBBF24" stroke="#FBBF24" />
+          {v.rating.toFixed(1)}
+        </div>
+        <span className={`lp-showcase-card__tier lp-showcase-card__tier--${v.tier.toLowerCase()}`}>
+          {v.tier}
+        </span>
+      </div>
+    </div>
+  );
+
   // Freeze the marquee scroll animation while the section is off-screen (videos pause
   // themselves via the per-card observer in LazyVideo). One observer on the section, not one
   // per track. '' (empty) when visible so the per-row :hover pause CSS still wins; hard
@@ -1005,9 +1039,12 @@ export default function Landing() {
   // the main thread every frame you scroll. A raw useTransform is a pure function of scroll
   // position (still eased across each range), so the cards move exactly in step with the scroll
   // — responsive, smooth, and they never drift or stutter. Desktop keeps its glide springs.
-  const mAuditQ1Y = useTransform(auditProgress, [0.0, 0.08], [40, 0], { ease: easeInOut });
-  const mAuditQ2Y = useTransform(auditProgress, [0.16, 0.46], [520, 0], { ease: easeInOut });
-  const mAuditQ3Y = useTransform(auditProgress, [0.5, 0.82], [520, 0], { ease: easeInOut });
+  // Mobile PEEL (web-like): all three cards start STACKED together (y = 0) and then fly UP off the
+  // top one-by-one as you scroll — Q1 first, Q2, then Q3 last — mirroring the desktop peel. Raw
+  // useTransform (no spring) so they track the finger exactly without drift/lag on phones.
+  const mAuditQ1Y = useTransform(auditProgress, [0.06, 0.34], [0, -760], { ease: easeInOut });
+  const mAuditQ2Y = useTransform(auditProgress, [0.38, 0.64], [0, -760], { ease: easeInOut });
+  const mAuditQ3Y = useTransform(auditProgress, [0.68, 0.96], [0, -760], { ease: easeInOut });
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -1016,6 +1053,11 @@ export default function Landing() {
   // motion value entirely so framer isn't writing transforms to a big subtree every frame.)
   const achieveRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
   const achieveRiseY = useSpring(achieveRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
+  // Mobile: the Find & Hire section sticks to Q3 (the last card). When Q3 has peeled up to ~the
+  // middle of the screen (auditProgress ~0.7) the section STARTS scrolling up from below, and
+  // climbs into view in lockstep as Q3 continues off the top. Raw useTransform (no spring) so it
+  // tracks scroll exactly, and a negative marginTop (CSS) overlaps it onto the audit's tail.
+  const mAchieveRiseY = useTransform(auditProgress, [0.7, 1.0], [480, 0], { ease: easeInOut });
   const ctaInView = useInView(ctaRef, { once: true, margin: '-80px' });
 
   // 3D glass logo — scroll-driven pinned scene under the hero
@@ -1372,6 +1414,17 @@ export default function Landing() {
         ref={heroRef}
       >
         <motion.div className="lp-hero__sticky">
+          {/* Mobile only: one showcase marquee row fills the space at the top of the hero,
+              above the title (row 2 stays in the showcase section below). */}
+          {heroStatic && (
+            <div className="lp-showcase__viewport lp-hero__videorow" aria-hidden="true">
+              <div className="lp-showcase__row">
+                <div className="lp-showcase__track lp-showcase__track--left">
+                  {Array.from({ length: 4 }).flatMap(() => showcaseRow1).map((v, idx) => renderShowcaseCard(v, idx, 'HERO'))}
+                </div>
+              </div>
+            </div>
+          )}
           {/* Left: marketing copy — hides once the logo grows (2nd scroll) */}
           <div className="lp-hero__inner">
           {heroStatic ? (
@@ -1382,11 +1435,11 @@ export default function Landing() {
               initial="hidden"
               animate="visible"
             >
-              The <span className="lp-hero__title-accent">Performance System</span> Behind
+              The <span className="lp-hero__title-accent">Performance</span>
               <br />
-              The Top
+              <span className="lp-hero__title-accent">System</span> Behind The
               <br />
-              <span className="lp-hero__title-accent">1% D2C Brands</span>
+              Top <span className="lp-hero__title-accent">1% D2C Brands</span>
             </motion.h1>
           ) : (
             <motion.h1
@@ -1413,12 +1466,15 @@ export default function Landing() {
             Top-notch UGC video ads in just
             <br className="lp-hero__sub-mbr" />
             {' '}a few clicks.
-            <br />
-            Unlock serious growth with{' '}
-            <br className="lp-hero__sub-mbr" />
-            <span style={{ color: '#A78BFA', fontWeight: 600 }}>
-              <span style={{ whiteSpace: 'nowrap', color: '#A78BFA' }}>high-performing</span> UGC ads
-            </span>.
+            {/* Second line hidden on mobile (lp-hero__sub-line2), kept on desktop. */}
+            <span className="lp-hero__sub-line2">
+              <br />
+              Unlock serious growth with{' '}
+              <br className="lp-hero__sub-mbr" />
+              <span style={{ color: '#A78BFA', fontWeight: 600 }}>
+                <span style={{ whiteSpace: 'nowrap', color: '#A78BFA' }}>high-performing</span> UGC ads
+              </span>.
+            </span>
           </motion.p>
 
           <motion.div
@@ -1902,13 +1958,13 @@ export default function Landing() {
                 { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
                 { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
               ];
-              // Mobile: a tighter fan, assembled by SCROLL (reverse of the desktop peel).
-              // Q1 is present from the start at the BACK; each later card rises in and lands
-              // ON TOP (in front), so the newest card is always frontmost — Q3 ends centred.
+              // Mobile: a tighter fan, all three present together from the start, then PEELED UP
+              // by scroll (same as desktop). Q1 is frontmost and peels first, revealing Q2, then
+              // Q3 last — so the deck visibly empties upward as you scroll.
               const mobilePositions = [
-                { x:  46, rotate:  10, z: 1, y: mAuditQ1Y },  // Q1 — back-right, already there
-                { x: -46, rotate: -10, z: 2, y: mAuditQ2Y },  // Q2 — rises in 2nd, in front of Q1
-                { x:   0, rotate:  -2, z: 3, y: mAuditQ3Y },  // Q3 — rises in last, front & centre
+                { x:   0, rotate:  -4, z: 3, y: mAuditQ1Y },  // Q1 — front & centre, peels first
+                { x:  50, rotate:  11, z: 2, y: mAuditQ2Y },  // Q2 — right, peels second
+                { x: -50, rotate: -18, z: 1, y: mAuditQ3Y },  // Q3 — back-left, peels last
               ];
               const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
               return (
@@ -1954,12 +2010,12 @@ export default function Landing() {
         className="lp-achieve-rise"
         style={
           heroStatic
-            ? { position: 'relative', zIndex: 4 }
+            ? { y: mAchieveRiseY, marginTop: -440, position: 'relative', zIndex: 4 }
             : { y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }
         }
       >
         <section className="lp-achieve" ref={achieveRef}>
-          <motion.h2 className="lp-achieve__title" style={heroStatic ? { y: achieveHeadRise } : undefined}>
+          <motion.h2 className="lp-achieve__title">
             <em className="lp-achieve__hl">Find</em> &amp; Hire <em className="lp-achieve__hl lp-achieve__word lp-achieve__word--creators">Creators</em> <em className="lp-achieve__word lp-achieve__word--instantly">Instantly</em>
           </motion.h2>
           <AchieveFan items={achieveItems} />
@@ -2952,15 +3008,17 @@ export default function Landing() {
            specificity (0,2,0) so it beats the various single-class .lp-hero__title mobile
            overrides regardless of source order. */
         .lp-hero--static .lp-hero__title--mobile {
-          /* Sized so the longest logical line ("The Performance System Behind") fits on ONE line;
-             nowrap keeps each of the two lines unwrapped (the <br> still splits them in two). */
-          font-size: clamp(1.25rem, 5.6vw, 2.2rem);
+          /* Each logical line ("The Performance System", "Behind The Top", "1% D2C Brands") stays
+             on ONE line via nowrap + the <br>s. 7vw is the largest the longest line can be while
+             still fitting the narrowest phones — above that it overflows/clips off the right edge. */
+          font-size: clamp(1.5rem, 7vw, 3rem);
           font-weight: 600;
           line-height: 1.3;
           text-align: center;
           max-width: 100%;
           margin: 0 auto;
           white-space: nowrap;
+          letter-spacing: -0.035em;
         }
         .lp-hero--static .lp-hero__title--mobile .lp-hero__title-accent {
           margin: 2px 0;
@@ -3000,6 +3058,8 @@ export default function Landing() {
         /* Mid-sentence break — kept OFF everywhere now: on mobile each sentence stays on one
            line (shrunk + nowrap below) instead of wrapping into two. */
         .lp-hero__sub-mbr { display: none; }
+        /* Hero subtitle second line ("Unlock serious growth…") shown on desktop, hidden on mobile. */
+        @media (max-width: 768px) { .lp-hero__sub-line2 { display: none; } }
 
         .lp-hero__accent {
           color: #C8F23A;
@@ -3367,7 +3427,6 @@ export default function Landing() {
           width: clamp(200px, 27vw, 400px);
           height: clamp(200px, 40vh, 440px);
           z-index: 3;                    /* above the leaderboard when they overlap */
-          perspective: 850px;            /* depth for the static mark's CSS 3D turn (see __staticmark) */
         }
         .lp-logo3d__canvas {
           width: 100% !important;
@@ -3378,29 +3437,6 @@ export default function Landing() {
           will-change: transform;
           transform: translateZ(0);
         }
-        /* Mobile static logo mark (replaces the WebGL canvas on phones). Fills the same stage box;
-           the wrapper's y/scale/opacity do the descend+dissolve. It keeps a 3D "alive" feel via a
-           pure-CSS rotateY turn under the stage's perspective — GPU-composited, so unlike the WebGL
-           canvas it never re-uploads a texture per scroll frame (that's what was lagging). It sways
-           between ±26° instead of a full 360° so the brand mark never flips to its mirrored back. */
-        .lp-logo3d__staticmark {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          display: block;
-          backface-visibility: hidden;
-          will-change: transform;
-          animation: lpLogoSway 5.5s ease-in-out infinite;
-        }
-        @keyframes lpLogoSway {
-          0%   { transform: rotateY(-26deg); }
-          50%  { transform: rotateY( 26deg); }
-          100% { transform: rotateY(-26deg); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .lp-logo3d__staticmark { animation: none; }
-        }
-
         /* leaderboard viewport — fixed 100vh window, fades at top + bottom edges */
         .lp-logo3d__board {
           position: relative;
@@ -3465,9 +3501,21 @@ export default function Landing() {
             width: clamp(170px, 46vw, 280px);
             height: clamp(170px, 30vh, 300px);
             margin-top: calc(clamp(170px, 30vh, 300px) * -0.5);
-            margin-left: calc(clamp(170px, 46vw, 280px) * -0.5);
+            /* nudge slightly right of centre (the +offset shifts it right; raise/lower it to taste) */
+            margin-left: calc(clamp(170px, 46vw, 280px) * -0.5 + 6vw);
           }
-          .lp-logo3d__board { width: 92%; }
+          /* MOBILE perf: this board is transformed every scroll frame (the lockstep rise +
+             rows). A mask-image forces the GPU to RE-RASTERISE a masked element each frame it
+             moves instead of just translating a cached layer — that was the heavy leaderboard
+             lag. Drop it on mobile: the per-row opacity already fades rows to ~0 away from the
+             centre, so the edge fade is preserved visually. perspective is unused here too (the
+             phone rows use a 2D rotate, not rotateX/Y), so drop it to skip the 3D render context. */
+          .lp-logo3d__board {
+            width: 92%;
+            -webkit-mask-image: none;
+                    mask-image: none;
+            perspective: none;
+          }
           /* One line on phones too: scale with vw so the longest sentence fits a ~92vw board.
              top: shift the whole row stack UP (from the 44% default) so the text comes up
              higher and closes the gap below the hero — independent of the logo's position. */
@@ -3998,6 +4046,15 @@ export default function Landing() {
         @media (prefers-reduced-motion: reduce) {
           .lp-showcase__track { animation: none; }
         }
+        /* Mobile: showcase row 1 is rendered at the TOP of the hero (.lp-hero__videorow) to fill
+           the space above the title, so hide the showcase section's own first row here — only the
+           hero's copy and row 2 show, no duplication. Scoped to .lp-showcase so it never hides the
+           hero's row (which lives under .lp-hero). */
+        @media (max-width: 768px) {
+          .lp-showcase .lp-showcase__row:first-child { display: none; }
+          /* Hero's own marquee row uses slightly larger cards than the showcase below. */
+          .lp-hero__videorow .lp-showcase-item { width: 208px; }
+        }
 
         .lp-showcase-item {
           display: flex;
@@ -4186,30 +4243,21 @@ export default function Landing() {
         @media (max-width: 768px) {
           .lp-achieve__fan { display: none !important; }
           .lp-achieve__stack { display: flex; --stk-top: 226px; --stk-step: 52px; margin-top: 56px; }
-          /* Kill the desktop "stick to the last audit card" entrance (negative margin +
-             scroll-driven y) so the title no longer overlaps the previous section. */
-          .lp-achieve-rise { margin-top: 0 !important; transform: none !important; }
-          /* Heading PINS (visible) while the deck stacks, then the scroll-linked y transform
-             (achieveHeadRise, applied in the JSX) lifts it UP in sync with the cards as they
-             scroll off — so it leaves WITH the deck, not after it. Opaque bg + ::before keep a
-             peeling card hidden behind it instead of splitting it. */
+          /* "Stick to the last audit card" on mobile too: the whole section rises (scroll-driven y
+             in the JSX) up into the space the peeling Q3 leaves. Keep the negative margin so it
+             overlaps the audit's pinned tail. NOTE: do NOT force transform:none here anymore. */
+          .lp-achieve-rise { margin-top: -440px; }
+          /* Heading is STATIC so it rises WITH the section as one unit (a sticky child would break
+             under the transformed ancestor and detach from the rise). Opaque bg keeps a peeling
+             card hidden behind it instead of splitting it. */
           .lp-achieve { padding-top: 132px; }
           .lp-achieve__title {
-            position: sticky;
-            top: 96px;
+            position: static;
             z-index: 20;
             max-width: 100%;
             margin: 0;
             padding: 14px 0 18px;
             background: var(--lp-page-bg);
-          }
-          .lp-achieve__title::before {
-            content: '';
-            position: absolute;
-            left: 0; right: 0; bottom: 100%;
-            height: 120px;
-            background: var(--lp-page-bg);
-            pointer-events: none;
           }
         }
         @media (max-width: 600px) {
@@ -5158,7 +5206,9 @@ export default function Landing() {
              the navbar; content starts below the navbar and flows down. */
           justify-content: flex-start;
           gap: 30px;
-          padding: 192px 6% 56px;
+          /* Top padding clears the fixed navbar; the showcase marquee row then sits in the
+             space above the title (previously empty). */
+          padding: 140px 6% 48px;
           /* subtle radial purple glow behind the hero copy */
           background: radial-gradient(circle at 50% 36%, rgba(167, 139, 250, 0.16),
                       rgba(167, 139, 250, 0) 60%), var(--lp-page-bg);
@@ -5169,7 +5219,7 @@ export default function Landing() {
           text-align: center;
           max-width: 640px;
         }
-        .lp-hero--static .lp-hero__subtitle { margin-left: auto; margin-right: auto; text-align: center; }
+        .lp-hero--static .lp-hero__subtitle { margin-left: auto; margin-right: auto; text-align: center; text-transform: uppercase; }
         .lp-hero--static .lp-hero__ctas,
         .lp-hero--static .lp-hero__badges { justify-content: center; }
         .lp-hero--static .lp-hero__logo {
@@ -7168,9 +7218,11 @@ export default function Landing() {
            cards assemble by SCROLL (Q1 present, then Q2, then Q3 rise in — heroStatic branch in
            the JSX). No position:static / transform:none here (kills the fan). */
         @media (max-width: 768px) {
-          /* 190vh section + sticky inner = the scroll runway the assemble needs: the inner pins
-             while you scroll the extra height, and auditProgress drives the cards' y up over it. */
-          .lp-audit { min-height: 190vh; padding: 0 6%; }
+          /* Shorter runway (was 190vh): enough pinned scroll for a smooth peel, but trimmed so the
+             section unpins right as the last card leaves — no tall empty pinned tail. Combined with
+             the achieve section's -300px overlap, the Find & Hire block rises into view as the final
+             cards peel instead of after a gap. */
+          .lp-audit { min-height: 185vh; padding: 0 6%; }
           /* Promote the sticky inner to its own GPU layer so the cards rising over it
              composite independently instead of repainting this whole pinned area each
              scroll frame (that repaint was the Q2 stutter). */

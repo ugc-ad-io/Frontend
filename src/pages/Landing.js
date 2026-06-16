@@ -136,14 +136,20 @@ function cldPoster(src) {
 // Here, only cards actually near the viewport decode & play (so we never run 64 simultaneous
 // decodes), each plays continuously the whole time it's on screen, the poster shows a real
 // thumbnail so nothing is ever black, and scrolling causes no per-card re-renders.
-function LazyVideo({ src, className }) {
+// `eager` (used for the first few above-the-fold hero cards): attach the src at mount and start
+// playback immediately, skipping BOTH IntersectionObserver round-trips (load-gate → re-render →
+// play-gate) that otherwise delay the first frame by ~2-3s on mobile. preload="auto" then buffers
+// the clip from page load instead of from whenever the load observer happens to fire.
+function LazyVideo({ src, className, eager = false }) {
   const ref = useRef(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(eager);
   // LOAD latch — attach the real src the first time the card nears the viewport, then KEEP it.
   // Set once and never toggled, so it triggers exactly one re-render (no churn afterwards).
+  // Eager cards already have their src (loaded starts true), so they skip this gate entirely.
   useEffect(() => {
+    if (eager) return undefined;
     const el = ref.current;
-    if (!el) return;
+    if (!el) return undefined;
     const io = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
       // Smaller look-ahead so fewer clips download at once (less bandwidth contention = less lag).
@@ -151,7 +157,7 @@ function LazyVideo({ src, className }) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [eager]);
   // PLAY on screen / PAUSE off screen — done imperatively (no setState) so the non-stop
   // marquee motion never causes a React render. The effect re-runs when `loaded` flips, so a
   // fresh observer fires with the current visibility right AFTER the src is attached — that's
@@ -160,7 +166,10 @@ function LazyVideo({ src, className }) {
   // the time the card reaches the play margin, so play() starts/resumes instantly.
   useEffect(() => {
     const v = ref.current;
-    if (!v) return;
+    if (!v) return undefined;
+    // Eager cards: start playback NOW (src is already attached) instead of waiting for the
+    // observer's first async callback — that shaves the remaining start latency on the hero row.
+    if (eager && v.src) playVideoCapped(v);
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -175,7 +184,7 @@ function LazyVideo({ src, className }) {
     );
     io.observe(v);
     return () => { io.disconnect(); releaseVideo(v); };
-  }, [loaded]);
+  }, [loaded, eager]);
   return (
     <video
       ref={ref}
@@ -933,7 +942,9 @@ export default function Landing() {
     <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
       <div className="lp-showcase-card">
         {v.isVideo ? (
-          <LazyVideo src={v.src} className="lp-showcase-card__media" />
+          // Eager-load only the first few HERO-row cards (the ones on screen at page load) so
+          // they start instantly; the rest stay lazy to avoid many simultaneous downloads.
+          <LazyVideo src={v.src} className="lp-showcase-card__media" eager={prefix === 'HERO' && idx < 3} />
         ) : (
           <img
             src={v.src}
@@ -1115,19 +1126,20 @@ export default function Landing() {
   // Fade fully BEFORE the brand strip rises in (~0.45) so the 3D mark and the strip's own
   // centre logo never sit on screen together as an offset "duplicate". The descend + shrink
   // complete on the same beat, so it dissolves away just as the strip takes over.
-  // Fade the descending 3D logo out fully by 0.7 (held visible until ~0.6, then fades over 0.6→0.7).
-  const mobileStageOpacity = useTransform(logo3dProgress, [0.0, 0.03, 0.6, 0.7], [0, 1, 1, 0]);
+  // Dissolve IN the brand-strip rise (the strip rises 0.45→0.7): the mark fades 0.54→0.66, so it
+  // dissolves as the strip comes up and is gone just before it settles — synced to that animation,
+  // neither early (gone before the strip) nor lingering after it.
+  const mobileStageOpacity = useTransform(logo3dProgress, [0.0, 0.03, 0.54, 0.66], [0, 1, 1, 0]);
   // y descent that carries the mark down toward the rising brand-strip centre logo while it fades.
   const mobileStageDown = useTransform(logo3dProgress, [0.44, 0.62], [0, -120]);
-  // Dissolve is a PURE OPACITY FADE — no per-frame scale of the WebGL canvas. Scaling a live 3D
-  // canvas every scroll frame was the dissolve lag; a plain fade composites a static layer (cheap).
-  // Keep a near-constant scale so the mark just fades (doesn't shrink) out smoothly.
-  const mobileStageScale = useTransform(logo3dProgress, [0.6, 0.7], [1, 1]);
+  // Shrink as it dissolves [0.54→0.66] so the mark looks like it's merging INTO the small brand
+  // logo — runs together with the spin + fade over the same window.
+  const mobileStageScale = useTransform(logo3dProgress, [0.54, 0.66], [1, 0.4]);
   // Spin completes by 0.6 — the moment the shrink/fade/move (mobileStageScale/Down/Opacity) begins.
   // Holding the spin constant through the dissolve means NO WebGL re-render during that window, so
   // the shrink runs purely on cheap CSS-composited transforms (no lag). The dissolve still animates
   // (scale/opacity/y keep going) — only the expensive per-frame 3D redraw stops.
-  const mobileStageSpin = useTransform(logo3dProgress, [0.0, 0.6], [0, 1]);
+  const mobileStageSpin = useTransform(logo3dProgress, [0.0, 0.66], [0, 1]);
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre

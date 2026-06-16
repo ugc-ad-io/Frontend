@@ -930,6 +930,27 @@ export default function Landing() {
     return () => obs.disconnect();
   }, [selectedIndustry]);
 
+  // Pause every OTHER continuous CSS marquee while it's off-screen. The brand-logo strip and the
+  // (mobile) testimonial marquee both animate `infinite`, so without this they keep the compositor
+  // running — and drain battery — even when scrolled far away and nobody can see them. Each track
+  // is observed individually and toggles its own animation-play-state, so it works regardless of
+  // where it sits on the page. '' (empty) when visible lets the testimonial's :hover-pause CSS win;
+  // 'paused' when gone halts it entirely. (The showcase marquee has its own observer above.)
+  useEffect(() => {
+    const tracks = document.querySelectorAll('.lp-brands__track, .lp-testimonial__marqtrack');
+    if (!tracks.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          e.target.style.animationPlayState = e.isIntersecting ? '' : 'paused';
+        });
+      },
+      { rootMargin: '120px 0px' }
+    );
+    tracks.forEach((t) => io.observe(t));
+    return () => io.disconnect();
+  }, []);
+
   const featuresRef = useRef(null);
   const ctaRef = useRef(null);
   const featuresInView = useInView(featuresRef, { once: true, margin: '-80px' });

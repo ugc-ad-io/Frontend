@@ -1412,7 +1412,7 @@ export default function CreatorLanding() {
           .cl-nav__links, .cl-nav__actions { display: none; }
           .cl-nav__burger { display: inline-flex; }
           /* Match the Landing navbar logo size on mobile. */
-          .cl-brand__logo { height: 104px; margin-left: -10px; }
+          .cl-brand__logo { height: 140px; margin-left: -24px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
           .cl-blob { width: 300px !important; height: 300px !important; filter: blur(70px); }

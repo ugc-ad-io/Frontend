@@ -67,14 +67,11 @@ const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 function cldThumb(src) {
   if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
   // ac_none strips the audio track (clips are muted anyway) — smaller file + lighter decode.
-  // h_480 + q_auto:good (was h_360 + q_auto:eco). h_480 is sharper than 360 but, with the mobile
-  // play-cap at 5, the TOTAL decode load (5×480²) is LOWER than the old 14×360² — so it's smoother
-  // AND crisper. h_640 (tried before) pushed total decode above the old load → it lagged worse.
-  // h_600 (was h_480) for a sharper playing clip. With the mobile cap at 4, total decode is
-  // 4×600² ≈ 1.44M — still BELOW the old 14×360² ≈ 1.81M, so it stays smooth while looking crisper.
-  // du_2 (was du_3): ~1/3 smaller file so it downloads + starts faster on land and the many cards
-  // loading at once contend for less bandwidth.
-  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:good,h_600,c_scale,ac_none,du_2/');
+  // h_480 (down from h_600): video DECODE runs continuously in the background, independent of
+  // scroll, so it's the dominant cause of whole-page lag. With the mobile cap at 3, total decode is
+  // 3×480² ≈ 0.69M — well under half the h_600 load and the original 14×360² ≈ 1.81M — while h_480
+  // is still sharper than the original 360. du_2 keeps the file small so it starts fast.
+  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:good,h_480,c_scale,ac_none,du_2/');
 }
 
 // ── Global play cap (imperative, NO React state) ────────────────────────────────
@@ -90,7 +87,7 @@ function cldThumb(src) {
 // 2s, muted, downscaled) decode fine on modern phones. THIS is the knob to lower again if any
 // device stutters; raising it trades smoothness-of-start for decode load.
 const MAX_PLAYING_VIDEOS =
-  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 5 : 14;
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : 14;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -125,11 +122,10 @@ function cldPoster(src) {
   // Local files (e.g. /home/video_03.mp4) have a sibling first-frame JPG (/home/video_03.jpg),
   // so non-playing cards show a real still instead of a black box.
   if (!src.includes('/video/upload/')) return src.replace(/\.mp4$/i, '.jpg');
-  // h_600 — MATCHED to the playing clip's resolution (cldThumb h_600). The poster is the clip's
-  // first frame (so_0), so matching the size makes the poster→video handoff seamless: no sharp→soft
-  // "shift" when playback starts. A smaller poster also paints a touch faster on load.
+  // h_480 — MATCHED to the playing clip's resolution (cldThumb h_480) so the poster→video handoff
+  // is seamless (no sharp→soft "shift" when playback starts).
   return src
-    .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto:good,h_600,c_scale/')
+    .replace('/video/upload/', '/video/upload/so_0,f_auto,q_auto:good,h_480,c_scale/')
     .replace(/\.mp4$/i, '.jpg');
 }
 
@@ -503,7 +499,7 @@ const auditQuestions = [
     Icon: BellOff,
   },
   {
-    title: 'Would You Click this',
+    title: 'Would You Click',
     sub: "the Ad Wasn't Yours?",
     Icon: Repeat,
   },
@@ -1676,7 +1672,7 @@ export default function Landing() {
         <div className="lp-showcase__inner">
           <h2 className="lp-showcase__heading">
             We created{' '}
-            <span className="lp-showcase__heading--accent">7,000+</span>{' '}
+            <span className="lp-showcase__heading--accent">10,000+</span>{' '}
             UGC ads<br className="lp-showcase__brk" /> that resulted in{' '}
             <span className="lp-showcase__heading--accent">100cr+</span>{' '}
             in sales
@@ -5333,7 +5329,7 @@ export default function Landing() {
           .lp-navbar__actions { display: none; }
           .lp-navbar__burger { display: inline-flex; }
           .lp-navbar__mobile--open { display: flex; }
-          .lp-navbar__logo { height: 104px; margin-left: -14px; }
+          .lp-navbar__logo { height: 140px; margin-left: -28px; }
           .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }

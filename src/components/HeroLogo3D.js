@@ -88,11 +88,12 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
   }, [theme, invalidate]);
   useEffect(() => {
     if (!progress) return;
-    // Throttle scroll-driven renders to ~40fps. The mark is small + decorative, so 40fps
-    // is visually fine, but capping it leaves the GPU + main thread more headroom for the
-    // leaderboard, which animates over the SAME scroll — the mid-scroll jank was the two
-    // competing at 60fps. A trailing rAF guarantees the final resting frame still lands.
-    const MIN_MS = 25; // ~40fps
+    // Throttle scroll-driven renders. Desktop ~40fps. Mobile (verticalSpin) ~18fps — during a FAST
+    // scroll the GPU also has to update the 11 leaderboard rows + decode videos, and a 3D re-render
+    // on every scroll tick overwhelmed it (visible lag + occasional WebGL "context lost"). At 18fps
+    // the small decorative mark still reads as spinning but leaves the GPU plenty of headroom. A
+    // trailing rAF still guarantees the final resting frame lands.
+    const MIN_MS = verticalSpin ? 55 : 25;
     let lastT = 0;
     let trailing = 0;
     const onChange = () => {
@@ -115,7 +116,7 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
       unsub();
       if (trailing) cancelAnimationFrame(trailing);
     };
-  }, [progress, invalidate]);
+  }, [progress, invalidate, verticalSpin]);
 
   // Drive the continuous auto-spin: while the logo is at/near the hero (jp < HERO_END) keep
   // requesting frames so the time-based rotation in useFrame animates even without scrolling.

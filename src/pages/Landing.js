@@ -1639,7 +1639,7 @@ export default function Landing() {
           <h2 className="lp-showcase__heading">
             We created{' '}
             <span className="lp-showcase__heading--accent">7,000+</span>{' '}
-            UGC ads that resulted in{' '}
+            UGC ads<br className="lp-showcase__brk" /> that resulted in{' '}
             <span className="lp-showcase__heading--accent">100cr+</span>{' '}
             in sales
           </h2>
@@ -3951,6 +3951,12 @@ export default function Landing() {
           margin: 0 0 14px 0;
           white-space: nowrap;
         }
+        /* Forced line break: hidden on desktop (heading stays one nowrap line),
+           shown on mobile to split the sentence into exactly two lines. */
+        .lp-showcase__brk { display: none; }
+        @media (max-width: 768px) {
+          .lp-showcase__brk { display: inline; }
+        }
         /* Whole heading white on the dark stage (accent included). */
         .lp-showcase__heading--accent {
           color: #A78BFA;
@@ -4403,7 +4409,8 @@ export default function Landing() {
            Scoped to .lp-achieve__fan so it never touches the mobile sticky deck, which
            reuses .lp-achieve-card but needs position:sticky. */
         @media (max-width: 900px) {
-          .lp-achieve__title { font-size: clamp(2rem, 9vw, 3.2rem); white-space: normal; }
+          /* Match the audit heading ("Answer This Honestly.") exactly — same --fs-h1 token. */
+          .lp-achieve__title { font-size: var(--fs-h1); white-space: normal; }
           .lp-achieve__fan {
             height: auto;
             display: flex;
@@ -5421,10 +5428,12 @@ export default function Landing() {
           .lp-showcase__heading {
             white-space: normal;
             text-align: center;
-            text-wrap: balance;
-            /* Match the audit ("Answer This Honestly.") heading size on mobile. */
-            font-size: var(--fs-h1);
-            max-width: 94%;
+            /* Manual <br> controls the split into two lines, so no balance. */
+            text-wrap: wrap;
+            /* Sized to land on exactly TWO lines via the mobile-only <br>; slightly under
+               the audit heading so the longer second line fits without a third wrap. */
+            font-size: clamp(1.4rem, 5.6vw, 2.05rem);
+            max-width: 100%;
             margin-left: auto;
             margin-right: auto;
           }

@@ -1061,8 +1061,9 @@ export default function Landing() {
   const mobileStageDown = useTransform(logo3dProgress, [0.45, 0.72], [0, -120]);
   // Shrink as it dissolves so the mark looks like it's merging INTO the small brand-strip logo.
   const mobileStageScale = useTransform(logo3dProgress, [0.56, 0.72], [1, 0.4]);
-  // (mobile no longer spins a WebGL mark — it's a static <img>; the stage's y/scale/opacity above
-  // still carry the descend + dissolve, so no scroll-driven spin value is needed here anymore.)
+  // Spin runs through the WHOLE visible window (incl. the dissolve) so the WebGL mark keeps
+  // rotating as it shrinks/fades into the brand-strip logo, instead of freezing once it stops.
+  const mobileStageSpin = useTransform(logo3dProgress, [0.0, 0.72], [0, 1]);
   // Brand strip is "stuck" to the leaderboard's LAST line — defined below, after heroStatic, so
   // the lift can be tuned per layout (mobile needs a big lift, desktop almost none). See brandRise.
   // Logo sits at the top-LEFT and STAYS there — it no longer glides to the centre
@@ -1469,16 +1470,15 @@ export default function Landing() {
           {/* Desktop: the fixed .lp-logo-fly overlay flies the 3D mark into this section.
               Mobile: no 3D logo here — the leaderboard carries the moment on its own. */}
 
-          {/* Mobile: a STATIC logo image fills the space below the leaderboard text — NOT the
-              WebGL 3D canvas. A scroll-driven <canvas> re-uploads its texture to the compositor
-              every frame as the page scrolls, which is the core mobile jank here; an <img> is a
-              cached layer the GPU just translates. The wrapper still applies the exact same
-              descend (y) + shrink (scale) + dissolve (opacity) — all GPU transforms on the
-              image — so the hand-off into the brand strip is unchanged, just buttery. Desktop
-              keeps the full 3D fly/spin via .lp-logo-fly above. */}
+          {/* Mobile: the 3D WebGL logo fills the space below the leaderboard text. The wrapper
+              applies the descend (y) + shrink (scale) + dissolve (opacity) and the canvas spins
+              about its vertical axis (mobileStageSpin), handing off into the brand strip below.
+              Desktop keeps the full 3D fly/spin via .lp-logo-fly above. */}
           {heroStatic && logo3dInView && (
             <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity, y: mobileStageDown, scale: mobileStageScale }}>
-              <img src="/ugcad-logo.png" alt="" aria-hidden="true" className="lp-logo3d__staticmark" />
+              <Suspense fallback={<div className="lp-logo3d__placeholder" aria-hidden="true" />}>
+                <HeroLogo3D progress={mobileStageSpin} theme={theme} verticalSpin idleSpin={false} />
+              </Suspense>
             </motion.div>
           )}
 

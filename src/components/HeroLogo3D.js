@@ -88,12 +88,11 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
   }, [theme, invalidate]);
   useEffect(() => {
     if (!progress) return;
-    // Throttle scroll-driven renders. Desktop caps at ~40fps to leave the GPU headroom for the
-    // HDRI-lit material + leaderboard animating over the SAME scroll. Mobile (verticalSpin) drops
-    // the HDRI and uses a cheap self-lit material, so each frame is light enough to run at ~60fps
-    // — that removes the trailing/lag where the spin couldn't keep up with the scroll.
-    // A trailing rAF guarantees the final resting frame still lands.
-    const MIN_MS = verticalSpin ? 16 : 25; // mobile ~60fps, desktop ~40fps
+    // Throttle scroll-driven renders to ~40fps. The mark is small + decorative, so 40fps
+    // is visually fine, but capping it leaves the GPU + main thread more headroom for the
+    // leaderboard, which animates over the SAME scroll — the mid-scroll jank was the two
+    // competing at 60fps. A trailing rAF guarantees the final resting frame still lands.
+    const MIN_MS = 25; // ~40fps
     let lastT = 0;
     let trailing = 0;
     const onChange = () => {
@@ -116,7 +115,7 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
       unsub();
       if (trailing) cancelAnimationFrame(trailing);
     };
-  }, [progress, invalidate, verticalSpin]);
+  }, [progress, invalidate]);
 
   // Drive the continuous auto-spin: while the logo is at/near the hero (jp < HERO_END) keep
   // requesting frames so the time-based rotation in useFrame animates even without scrolling.
@@ -188,15 +187,8 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
       const list = [];
       scene.traverse((o) => {
         if (o.isMesh) {
-          // Mobile (verticalSpin) renders WITHOUT the HDRI environment for speed, so it can't
-          // rely on env reflections — drop envMapIntensity to 0 and lean on a stronger emissive
-          // so the mark stays vivid and bright. Desktop keeps the full env-lit look.
-          o.material = new THREE.MeshStandardMaterial({
-            metalness: 0.1,
-            roughness: 0.6,
-            envMapIntensity: verticalSpin ? 0 : 1.0,
-          });
-          o.material.emissiveIntensity = verticalSpin ? 0.95 : 0.55;
+          o.material = new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.6, envMapIntensity: 1.0 });
+          o.material.emissiveIntensity = 0.55;
           list.push(o);
         }
       });
@@ -255,10 +247,7 @@ export default function HeroLogo3D({ progress, theme, idleSpin = true, verticalS
         <Bounds fit margin={1.2}>
           <LogoModel progress={progress} theme={theme} idleSpin={idleSpin} verticalSpin={verticalSpin} />
         </Bounds>
-        {/* Mobile (verticalSpin) skips the HDRI entirely — it's the heaviest per-frame cost
-            (env sampling) plus a 1K HDR load. The self-lit emissive material + scene lights
-            carry the mobile look, which fixes the scroll lag. Desktop keeps the HDRI. */}
-        {!verticalSpin && <Environment files="/hdri/potsdamer_platz_1k.hdr" />}
+        <Environment files="/hdri/potsdamer_platz_1k.hdr" />
       </Suspense>
     </Canvas>
   );

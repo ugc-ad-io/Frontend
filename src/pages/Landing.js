@@ -84,8 +84,13 @@ function cldThumb(src) {
 // waiting one. All imperative — never calls setState — so the non-stop marquee causes no renders.
 // Cap concurrent playback far LOWER on phones — a dozen H.264 decoders at once stutter on mobile
 // GPUs (the "lag on play"). Desktop can handle many more. Evaluated once at module load.
+// Mobile cap raised 4→5: with the per-card imperative play (no rAF thrash) the old GPU lag is
+// gone, so the real bottleneck is STARVATION — an entering marquee card had to wait for a leaving
+// card to free a slot, which is why a clip "popped" into motion mid-screen. 5 small clips (h_600,
+// 2s, muted, downscaled) decode fine on modern phones. THIS is the knob to lower again if any
+// device stutters; raising it trades smoothness-of-start for decode load.
 const MAX_PLAYING_VIDEOS =
-  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 4 : 14;
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 5 : 14;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -152,8 +157,11 @@ function LazyVideo({ src, className, eager = false }) {
     if (!el) return undefined;
     const io = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
-      // Smaller look-ahead so fewer clips download at once (less bandwidth contention = less lag).
-      { rootMargin: '140px' }
+      // Load-ahead is MUCH larger than the play-ahead margin below (450 vs 240) on purpose: the
+      // src attaches — and preload="auto" starts buffering — long before the card needs to play,
+      // so the clip is ready when play() fires instead of stalling. (Attaching src ≠ playing, so
+      // this costs bandwidth, not GPU/decode.)
+      { rootMargin: '450px' }
     );
     io.observe(el);
     return () => io.disconnect();
@@ -178,9 +186,10 @@ function LazyVideo({ src, className, eager = false }) {
           releaseVideo(v);
         }
       },
-      // Generous margin so a clip is already playing before it slides past the fade edge —
-      // no start/stop pop at the boundary; threshold ~0 so a sliver counts as visible.
-      { root: null, rootMargin: '150px', threshold: 0.01 }
+      // Generous margin so a clip is already playing BEFORE it slides on screen (no pop at the
+      // boundary). Smaller than the load margin above, so by the time a card hits this play line
+      // its src has already been buffering. threshold ~0 so a sliver counts as visible.
+      { root: null, rootMargin: '240px', threshold: 0.01 }
     );
     io.observe(v);
     return () => { io.disconnect(); releaseVideo(v); };

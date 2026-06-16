@@ -2813,7 +2813,7 @@ export default function Landing() {
         .lp-navbar__burger {
           display: none;
           margin-left: auto;
-          margin-right: -6px;
+          margin-right: -14px;
           align-items: center;
           justify-content: center;
           width: 42px;
@@ -4254,12 +4254,28 @@ export default function Landing() {
              card hidden behind it instead of splitting it. */
           .lp-achieve { padding-top: 132px; }
           .lp-achieve__title {
-            position: static;
+            /* STICKY (not static): pin the heading below the navbar so it stays on
+               screen while the whole card deck scrolls past, instead of scrolling off
+               the top early while the sticky cards are still pinned. Sticks relative to
+               the transformed .lp-achieve-rise (same as the cards), so it unpins only
+               once the entire section has scrolled past — i.e. it leaves WITH the cards.
+               Opaque bg + high z-index keep peeling cards hidden behind it (no split). */
+            position: sticky;
+            top: 88px;
             z-index: 20;
             max-width: 100%;
             margin: 0;
             padding: 14px 0 18px;
             background: var(--lp-page-bg);
+          }
+          /* Card titles on ONE line on mobile: collapse the manual "\n" break (white-space
+             normal) and shrink to fit, so e.g. "Discover Creators in Every Niche" sits on a
+             single line instead of wrapping. Extra class (.lp-achieve__stack) raises specificity
+             so this beats the base .lp-achieve-card__title rule that appears later in the sheet.
+             Web fan keeps its two-line \n layout. */
+          .lp-achieve__stack .lp-achieve-card .lp-achieve-card__title {
+            white-space: normal;
+            font-size: clamp(0.85rem, 3.1vw, 1.02rem);
           }
         }
         @media (max-width: 600px) {
@@ -4597,10 +4613,10 @@ export default function Landing() {
              single-class colours above, so re-apply them at higher specificity here. */
           .lp-vs__mobile .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.25); }
           .lp-vs__mobile .lp-vs__th--ugc { color: #A78BFF; }
-          .lp-vs__mobile .lp-vs__th--others { color: rgba(var(--lp-fg), 0.25); }
+          .lp-vs__mobile .lp-vs__th--others { color: rgba(var(--lp-fg), 0.6); }
           .lp-vs__mobile .lp-vs__td--feature { color: rgba(var(--lp-fg), 0.45); }
           .lp-vs__mobile .lp-vs__td--ugc { color: rgba(var(--lp-fg), 0.85); }
-          .lp-vs__mobile .lp-vs__td--others { color: rgba(var(--lp-fg), 0.28); }
+          .lp-vs__mobile .lp-vs__td--others { color: rgba(var(--lp-fg), 0.62); }
         }
 
         /* ── Comparison Table ─────────────────────────────────────────────── */

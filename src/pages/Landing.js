@@ -1053,11 +1053,9 @@ export default function Landing() {
   // motion value entirely so framer isn't writing transforms to a big subtree every frame.)
   const achieveRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
   const achieveRiseY = useSpring(achieveRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
-  // Mobile: the Find & Hire section sticks to Q3 (the last card). When Q3 has peeled up to ~the
-  // middle of the screen (auditProgress ~0.7) the section STARTS scrolling up from below, and
-  // climbs into view in lockstep as Q3 continues off the top. Raw useTransform (no spring) so it
-  // tracks scroll exactly, and a negative marginTop (CSS) overlaps it onto the audit's tail.
-  const mAchieveRiseY = useTransform(auditProgress, [0.7, 1.0], [480, 0], { ease: easeInOut });
+  // Mobile: the Find & Hire section is pulled up via a STATIC negative margin (CSS) to follow the
+  // peeled audit cards — NOT a scroll-driven transform, which would break the section's sticky
+  // heading + sticky card stack (transformed ancestor detaches sticky descendants → overlap).
   const ctaInView = useInView(ctaRef, { once: true, margin: '-80px' });
 
   // 3D glass logo — scroll-driven pinned scene under the hero
@@ -1175,12 +1173,13 @@ export default function Landing() {
   // <Bounds margin={1.2}>).
   // Linear (constant-rate) scaling so the size changes at a STEADY pace — easeInOut sped up
   // through the middle of each segment, which read as the logo "jumping" size at one point.
-  // Keep the mark a CONSTANT size through the whole hero + leaderboard — NO shrink-on-scroll
-  // (that read as the size "jumping" small the instant you scrolled / when you stopped). It only
-  // melts down at the very end (dissolve, 0.86→0.96). Driven STRAIGHT off journeyP (which is
-  // already a spring) — a second slow spring on top double-smoothed it and made the shrink trail
-  // the scroll, which is what read as "lag" during the dissolve.
-  const flyScale = useTransform(journeyP, [0, 0.86, 0.96], [1.0, 1.0, 0.5]);
+  // Keep the mark a CONSTANT size through the whole hero + leaderboard, then melt it down at the
+  // dissolve. The shrink window is small in scroll terms, so a raw transform jumped 1→0.5 in a
+  // couple of frames on a flick (read as an INSTANT size pop). A MODERATE spring (stiffness 120 —
+  // NOT the old laggy 55) eases the size change over ~200ms so it visibly, smoothly decreases,
+  // while tracking tightly enough it never trails the scroll. Window widened slightly (0.82→0.97).
+  const flyScaleRaw = useTransform(journeyP, [0, 0.82, 0.97], [1.0, 1.0, 0.42]);
+  const flyScale = useSpring(flyScaleRaw, { stiffness: 120, damping: 24, mass: 0.45 });
   // Leaderboard is "stuck" to the hero buttons (Join as Creator / Sign up as Brand): as they
   // scroll up and off when the hero un-pins (journeyP ~0.22→0.66), the board is PULLED UP from
   // below the fold to meet them, so it rises into the buttons' place instead of waiting for the
@@ -2010,7 +2009,11 @@ export default function Landing() {
         className="lp-achieve-rise"
         style={
           heroStatic
-            ? { y: mAchieveRiseY, marginTop: -440, position: 'relative', zIndex: 4 }
+            ? // Mobile: NO transform here — the section contains position:sticky cards (and a
+              // sticky heading), and a transformed ancestor breaks sticky (cards mispositioned /
+              // overlapping the heading). Instead a STATIC negative margin pulls the section up to
+              // follow the peeled audit cards, which doesn't break sticky.
+              { marginTop: -150, position: 'relative', zIndex: 4 }
             : { y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }
         }
       >
@@ -4245,10 +4248,10 @@ export default function Landing() {
         @media (max-width: 768px) {
           .lp-achieve__fan { display: none !important; }
           .lp-achieve__stack { display: flex; --stk-top: 226px; --stk-step: 52px; margin-top: 56px; }
-          /* "Stick to the last audit card" on mobile too: the whole section rises (scroll-driven y
-             in the JSX) up into the space the peeling Q3 leaves. Keep the negative margin so it
-             overlaps the audit's pinned tail. NOTE: do NOT force transform:none here anymore. */
-          .lp-achieve-rise { margin-top: -440px; }
+          /* Pull the section up (STATIC margin, NOT a transform) so it follows close behind the
+             peeled audit cards. A transform here would break the sticky heading + sticky card
+             stack inside (they'd detach and overlap), so the lift must be a plain margin. */
+          .lp-achieve-rise { margin-top: -150px; transform: none; }
           /* Heading is STATIC so it rises WITH the section as one unit (a sticky child would break
              under the transformed ancestor and detach from the rise). Opaque bg keeps a peeling
              card hidden behind it instead of splitting it. */

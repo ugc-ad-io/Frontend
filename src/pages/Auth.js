@@ -85,7 +85,7 @@ export default function Auth() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.4 }}
         >
-          <img src="/ugcad-logo.png" alt="UGCad.io" className="ap-logo" />
+          <img src="/newlogo.png" alt="UGCad.io" className="ap-logo" />
         </motion.div>
 
         {/* Header */}

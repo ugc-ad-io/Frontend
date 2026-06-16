@@ -1016,7 +1016,7 @@ export default function CreatorProfileSetup() {
 
       <header className="ps-topbar">
         <button className="ps-brand" onClick={() => navigate('/')}>
-          <img src="/ugcad-logo.png" alt="UGCad.io" className="ps-brand__logo" />
+          <img src="/newlogo.png" alt="UGCad.io" className="ps-brand__logo" />
         </button>
         <span className="ps-topbar__tag">Creator onboarding</span>
       </header>

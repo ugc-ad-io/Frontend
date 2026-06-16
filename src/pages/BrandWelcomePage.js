@@ -566,7 +566,7 @@ export default function BrandWelcomePage() {
       <header className="welcome-header">
         <div className="welcome-header-left">
           <img
-            src="/ugcad-logo.png"
+            src="/newlogo.png"
             alt="UGCad.io"
             className="brand-logo-img"
             onClick={() => navigate('/brand-home')}

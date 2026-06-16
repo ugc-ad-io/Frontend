@@ -617,7 +617,7 @@ export default function CreatorLanding() {
           <div className="lp-footer__main">
             <div className="lp-footer__brand">
               <div className="lp-footer__logo-wrap">
-                <img src="/ugcad-logo.png" alt="UGCad" className="lp-footer__logo" />
+                <img src="/newlogo.png" alt="UGCad" className="lp-footer__logo" />
               </div>
               <p className="lp-footer__tagline">
                 Built for brands who think long-term.

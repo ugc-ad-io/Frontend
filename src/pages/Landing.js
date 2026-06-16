@@ -1042,9 +1042,11 @@ export default function Landing() {
   // Mobile PEEL (web-like): all three cards start STACKED together (y = 0) and then fly UP off the
   // top one-by-one as you scroll — Q1 first, Q2, then Q3 last — mirroring the desktop peel. Raw
   // useTransform (no spring) so they track the finger exactly without drift/lag on phones.
-  const mAuditQ1Y = useTransform(auditProgress, [0.06, 0.34], [0, -760], { ease: easeInOut });
-  const mAuditQ2Y = useTransform(auditProgress, [0.38, 0.64], [0, -760], { ease: easeInOut });
-  const mAuditQ3Y = useTransform(auditProgress, [0.68, 0.96], [0, -760], { ease: easeInOut });
+  // Peel spans the FULL runway (last card finishes at ~0.99, right as the section unpins) so a card
+  // is always moving — no dead stretch where you scroll but nothing happens before the next section.
+  const mAuditQ1Y = useTransform(auditProgress, [0.05, 0.36], [0, -760], { ease: easeInOut });
+  const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [0, -760], { ease: easeInOut });
+  const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [0, -760], { ease: easeInOut });
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -1330,7 +1332,7 @@ export default function Landing() {
       >
         <div className="lp-navbar__inner">
           <img
-            src="/ugcad-logo.png"
+            src="/newlogo.png"
             alt="UGCad.io"
             className="lp-navbar__logo"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -2011,9 +2013,10 @@ export default function Landing() {
           heroStatic
             ? // Mobile: NO transform here — the section contains position:sticky cards (and a
               // sticky heading), and a transformed ancestor breaks sticky (cards mispositioned /
-              // overlapping the heading). Instead a STATIC negative margin pulls the section up to
-              // follow the peeled audit cards, which doesn't break sticky.
-              { marginTop: -150, position: 'relative', zIndex: 4 }
+              // overlapping the heading). Instead a LARGE STATIC negative margin parks the section
+              // just below the fold while the audit cards are stacked, so as they peel up it rides
+              // up into view WITH them via natural scroll — no transform, sticky stays intact.
+              { marginTop: -250, position: 'relative', zIndex: 4 }
             : { y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }
         }
       >
@@ -2530,7 +2533,7 @@ export default function Landing() {
           <div className="lp-footer__main">
             <div className="lp-footer__brand">
               <div className="lp-footer__logo-wrap">
-                <img src="/ugcad-logo.png" alt="UGCad" className="lp-footer__logo" />
+                <img src="/newlogo.png" alt="UGCad" className="lp-footer__logo" />
               </div>
               <p className="lp-footer__tagline">
                 Built for brands who think long-term.
@@ -2712,12 +2715,20 @@ export default function Landing() {
           max-width: var(--lp-maxw);
           margin: 0 auto;
           background: transparent;       /* no white container */
-          padding: 10px 4px;
+          /* FIXED bar height so a bigger logo overflows it instead of growing the bar. */
+          height: 56px;
+          padding: 0 4px;
         }
 
         .lp-navbar__logo {
-          height: 44px;
+          /* Bigger than the bar — overflows top/bottom (bar height is fixed above) so it reads
+             large without pushing the navbar down. */
+          height: 132px;
           width: auto;
+          flex: none;
+          margin-left: -92px;   /* nudged further left on web (mobile keeps its own value below) */
+          /* The logo PNG is a tall stacked lockup — nudge it to line up with the nav links. */
+          transform: translateY(-4px);
           cursor: pointer;
           transition: opacity 0.2s;
         }
@@ -4251,7 +4262,7 @@ export default function Landing() {
           /* Pull the section up (STATIC margin, NOT a transform) so it follows close behind the
              peeled audit cards. A transform here would break the sticky heading + sticky card
              stack inside (they'd detach and overlap), so the lift must be a plain margin. */
-          .lp-achieve-rise { margin-top: -150px; transform: none; }
+          .lp-achieve-rise { margin-top: -250px; transform: none; }
           /* Heading is STATIC so it rises WITH the section as one unit (a sticky child would break
              under the transformed ancestor and detach from the rise). Opaque bg keeps a peeling
              card hidden behind it instead of splitting it. */
@@ -4581,7 +4592,7 @@ export default function Landing() {
           vertical-align: middle;
           line-height: 1.25;
         }
-        .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.25); }
+        .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.6); }
         .lp-vs__th--ugc {
           color: #A78BFF;
           background: rgba(109, 74, 232, 0.1);
@@ -4614,10 +4625,10 @@ export default function Landing() {
           .lp-vs__mobile { display: block; }
           /* The global ".lp-root td/th { color: var(--lp-text) }" rule (0,1,1) beats the
              single-class colours above, so re-apply them at higher specificity here. */
-          .lp-vs__mobile .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.25); }
+          .lp-vs__mobile .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.8); }
           .lp-vs__mobile .lp-vs__th--ugc { color: #A78BFF; }
           .lp-vs__mobile .lp-vs__th--others { color: rgba(var(--lp-fg), 0.6); }
-          .lp-vs__mobile .lp-vs__td--feature { color: rgba(var(--lp-fg), 0.45); }
+          .lp-vs__mobile .lp-vs__td--feature { color: rgba(var(--lp-fg), 0.72); }
           .lp-vs__mobile .lp-vs__td--ugc { color: rgba(var(--lp-fg), 0.85); }
           .lp-vs__mobile .lp-vs__td--others { color: rgba(var(--lp-fg), 0.62); }
         }
@@ -5266,13 +5277,13 @@ export default function Landing() {
           .lp-brand-item__icon img { width: 36px; height: 36px; }
           .lp-hero__brand-center { width: 104px; height: 104px; }
           .lp-hero__brand-center img { width: 78px; height: 78px; }
-          .lp-navbar__inner { padding: 10px 5%; gap: 16px; }
+          .lp-navbar__inner { height: 48px; padding: 0 5%; gap: 16px; }
           .lp-navbar__links { display: none; }
           .lp-nav-join { display: none; }
           .lp-navbar__actions { display: none; }
           .lp-navbar__burger { display: inline-flex; }
           .lp-navbar__mobile--open { display: flex; }
-          .lp-navbar__logo { height: 38px; margin-left: -14px; }
+          .lp-navbar__logo { height: 104px; margin-left: -14px; }
           .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }

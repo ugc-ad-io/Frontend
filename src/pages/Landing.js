@@ -66,7 +66,40 @@ const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
 // Net: every clip lands under ~450KB (verified across the set) vs the old 2–5MB.
 function cldThumb(src) {
   if (typeof src !== 'string' || !src.includes('/video/upload/')) return src;
-  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:eco,h_360,c_scale,du_8/');
+  // ac_none strips the audio track (clips are muted anyway) — smaller file + lighter decode.
+  return src.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:eco,h_360,c_scale,ac_none,du_8/');
+}
+
+// ── Global play cap (imperative, NO React state) ────────────────────────────────
+// Mobile GPUs choke when a dozen <video> elements decode at once (the marquee can have many on
+// screen). Cap concurrent playback: a card that scrolls in plays if a slot is free, otherwise it
+// WAITS on its (real) poster thumbnail. When a playing card scrolls off, it hands its slot to a
+// waiting one. All imperative — never calls setState — so the non-stop marquee causes no renders.
+const MAX_PLAYING_VIDEOS = 4;
+const _playingVideos = new Set();
+const _waitingVideos = new Set();
+function playVideoCapped(v) {
+  if (_playingVideos.has(v)) return;
+  if (_playingVideos.size < MAX_PLAYING_VIDEOS) {
+    _waitingVideos.delete(v);
+    _playingVideos.add(v);
+    const p = v.play();
+    if (p && p.catch) p.catch(() => {});
+  } else {
+    _waitingVideos.add(v);
+  }
+}
+function releaseVideo(v) {
+  const wasPlaying = _playingVideos.delete(v);
+  _waitingVideos.delete(v);
+  v.pause();
+  // Free slot → start the next waiting clip (skip any that are no longer mounted/visible).
+  if (wasPlaying) {
+    for (const next of _waitingVideos) {
+      if (next.isConnected) { playVideoCapped(next); break; }
+      _waitingVideos.delete(next);
+    }
+  }
 }
 
 // First-frame still (so_0) at the same card size, delivered as an auto-format image. Used as
@@ -114,9 +147,9 @@ function LazyVideo({ src, className }) {
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          if (v.src) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+          if (v.src) playVideoCapped(v);
         } else {
-          v.pause();
+          releaseVideo(v);
         }
       },
       // Generous margin so a clip is already playing before it slides past the fade edge —
@@ -124,7 +157,7 @@ function LazyVideo({ src, className }) {
       { root: null, rootMargin: '150px', threshold: 0.01 }
     );
     io.observe(v);
-    return () => io.disconnect();
+    return () => { io.disconnect(); releaseVideo(v); };
   }, [loaded]);
   return (
     <video
@@ -134,7 +167,7 @@ function LazyVideo({ src, className }) {
       muted
       loop
       playsInline
-      preload="auto"
+      preload="none"
       webkit-playsinline="true"
       disablePictureInPicture
       {...(loaded ? { src: cldThumb(src) } : {})}
@@ -524,52 +557,52 @@ const achieveItems = [
 // Sixteen showcase video slots — UGC clips hosted on Cloudinary.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255882/ugc-videos/video_29.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596767/ugc/video_16.mp4',
     brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8 },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255812/ugc-videos/video_28.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596746/ugc/video_15.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9 },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255755/ugc-videos/video_26.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596733/ugc/video_14.mp4',
     brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0 },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255706/ugc-videos/video_24.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596710/ugc/video_13.mp4',
     brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7 },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255676/ugc-videos/video_23.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596692/ugc/video_12.mp4',
     brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9 },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255655/ugc-videos/video_22.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596671/ugc/video_11.mp4',
     brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8 },
   { id: 7, industryId: 'pets',    label: 'Pets',             isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255502/ugc-videos/video_18.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596651/ugc/video_10.mp4',
     brand: 'Pawfect',         creator: 'Riya',    logoBg: 'linear-gradient(135deg, #1F1F4E, #a855f7)', logoText: 'Pf', tier: 'ELITE', rating: 4.9 },
   { id: 8, industryId: 'food',    label: 'Food/Beverage',    isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255481/ugc-videos/video_17.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596627/ugc/video_09.mp4',
     brand: 'BrewHaus',        creator: 'Sofia',   logoBg: 'linear-gradient(135deg, #78350f, #f59e0b)', logoText: 'BH', tier: 'PRO', rating: 4.8 },
   { id: 9, industryId: 'fitness', label: 'Fitness/Supplements', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255425/ugc-videos/video_14.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596601/ugc/video_08.mp4',
     brand: 'FitFuel',         creator: 'Noah',    logoBg: 'linear-gradient(135deg, #14532d, #22c55e)', logoText: 'FF', tier: 'RISING', rating: 4.7 },
   { id: 10, industryId: 'health', label: 'Health/Wellness',  isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255273/ugc-videos/video_08.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596582/ugc/video_07.mp4',
     brand: 'VitaGlow',        creator: 'Emma',    logoBg: 'linear-gradient(135deg, #0e7490, #06b6d4)', logoText: 'VG', tier: 'ELITE', rating: 5.0 },
   { id: 11, industryId: 'travel', label: 'Travel',           isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255249/ugc-videos/video_07.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596566/ugc/video_06.mp4',
     brand: 'NomadPack',       creator: 'Liam',    logoBg: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', logoText: 'NP', tier: 'PRO', rating: 4.8 },
   { id: 12, industryId: 'finance', label: 'Finance/Insurance', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255163/ugc-videos/video_02.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596549/ugc/video_05.mp4',
     brand: 'CoinKeep',        creator: 'Ava',     logoBg: 'linear-gradient(135deg, #3A3A66, #fbbf24)', logoText: 'CK', tier: 'RISING', rating: 4.7 },
   { id: 13, industryId: 'home',   label: 'Home/Household',   isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255399/ugc-videos/video_13.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596536/ugc/video_04.mp4',
     brand: 'NestHome',        creator: 'Olivia',  logoBg: 'linear-gradient(135deg, #7c2d12, #fb7185)', logoText: 'NH', tier: 'PRO', rating: 4.9 },
   { id: 14, industryId: 'gaming', label: 'Gaming',           isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255465/ugc-videos/video_16.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596517/ugc/video_03.mp4',
     brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #8b5cf6)', logoText: 'PV', tier: 'ELITE', rating: 4.8 },
   { id: 15, industryId: 'charity', label: 'Charity',         isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255357/ugc-videos/video_11.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596493/ugc/video_01.mp4',
     brand: 'CareCircle',      creator: 'Mia',     logoBg: 'linear-gradient(135deg, #831843, #ec4899)', logoText: 'CC', tier: 'RISING', rating: 4.9 },
   { id: 16, industryId: 'services', label: 'Consumer Services', isVideo: true,
-    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781255304/ugc-videos/video_09.mp4',
+    src: 'https://res.cloudinary.com/ddagggsua/video/upload/v1781596767/ugc/video_16.mp4',
     brand: 'SwiftServe',      creator: 'Lucas',   logoBg: 'linear-gradient(135deg, #1F1F4E, #0ea5e9)', logoText: 'SS', tier: 'PRO', rating: 4.7 },
 ];
 
@@ -1516,13 +1549,25 @@ export default function Landing() {
             const mid = Math.ceil(items.length / 2);
             const row1 = items.slice(0, mid);
             const row2 = items.slice(mid).length ? items.slice(mid) : items.slice(0, mid);
-            const renderItem = (v, idx, prefix) => (
+            // asVideo: only REAL <video> elements on the copies that need them. The marquee
+            // loops via translateX(-50%), so its two halves must match — we alternate
+            // video/poster per copy (0,2 = video · 1,3 = poster) to keep the loop seamless
+            // while halving the number of <video> elements. Poster copies are static <img>
+            // stills (indistinguishable while scrolling) → far fewer decodes/requests.
+            const renderItem = (v, idx, prefix, asVideo) => (
               <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
                 <div className="lp-showcase-card">
-                  {v.isVideo ? (
+                  {v.isVideo && asVideo ? (
                     <LazyVideo
                       src={v.src}
                       className="lp-showcase-card__media"
+                    />
+                  ) : v.isVideo ? (
+                    <img
+                      src={cldPoster(v.src)}
+                      alt={v.brand}
+                      className="lp-showcase-card__media"
+                      loading="lazy"
                     />
                   ) : (
                     <img
@@ -1550,12 +1595,16 @@ export default function Landing() {
               <>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--left">
-                    {Array.from({ length: 4 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
+                    {Array.from({ length: 4 })
+                      .flatMap((_, copy) => row1.map((v) => ({ v, copy })))
+                      .map(({ v, copy }, idx) => renderItem(v, idx, 'R1', copy % 2 === 0))}
                   </div>
                 </div>
                 <div className="lp-showcase__row">
                   <div className="lp-showcase__track lp-showcase__track--right">
-                    {Array.from({ length: 4 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
+                    {Array.from({ length: 4 })
+                      .flatMap((_, copy) => row2.map((v) => ({ v, copy })))
+                      .map(({ v, copy }, idx) => renderItem(v, idx, 'R2', copy % 2 === 0))}
                   </div>
                 </div>
               </>
@@ -5222,6 +5271,21 @@ export default function Landing() {
           .lp-proof__heading { font-size: clamp(1.5rem, 6vw, 2rem); }
         }
 
+        /* Showcase heading: the desktop treatment forces ONE line (white-space:nowrap), which
+           on phones/tablets runs the long sentence off the right edge and clips it. Let it wrap,
+           centre it, and balance the line breaks so it reads as a tidy 2–3 line stack. */
+        @media (max-width: 768px) {
+          .lp-showcase__heading {
+            white-space: normal;
+            text-align: center;
+            text-wrap: balance;
+            font-size: clamp(1.5rem, 6vw, 2.1rem);
+            max-width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+          }
+        }
+
         /* Continuous testimonial marquee — mobile only (replaces the arrow carousel). */
         .lp-testimonial__marquee { display: none; }
         @media (max-width: 768px) {
@@ -7092,7 +7156,10 @@ export default function Landing() {
              pin releases and the page flows to the testimonials. */
           .lp-proof {
             padding: 0 5%;
-            min-height: 200vh;
+            /* Shorter pinned runway (was 200vh): the carousel still scrubs over [0.08,0.92] of
+               the section scroll, but the leftover dead-scroll tail after the last stat — the big
+               empty gap below "Not louder ads…" — is trimmed, so the testimonial comes up sooner. */
+            min-height: 150vh;
           }
           .lp-proof__inner {
             position: sticky;
@@ -7146,8 +7213,10 @@ export default function Landing() {
           .lp-proof-item__value { font-size: 1.9rem; }
           .lp-proof-item__label { font-size: 0.82rem; }
           /* Pull the testimonial block up on mobile (the tall connector + padding left a big
-             empty gap above "Founder stories"). Web is untouched. */
-          .lp-testimonial { margin-top: -120px; padding-top: 0; }
+             empty gap above "Founder stories" — it only appeared after the proof animation fully
+             finished). A larger negative margin lifts it into the tail of the proof section so it
+             rises during the animation instead of after it. Web is untouched. */
+          .lp-testimonial { margin-top: -340px; padding-top: 0; }
           /* Vertical divider to the RIGHT of the stat content (mobile only). */
           .lp-proof-item__sep {
             display: block;

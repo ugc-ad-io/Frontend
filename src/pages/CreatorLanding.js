@@ -329,6 +329,15 @@ export default function CreatorLanding() {
         <div className="cl-blob cl-blob--3" />
       </div>
 
+      {/* -- Top bar: brand logo ----------------------------------------- */}
+      <header className={`cl-nav${scrolled ? ' cl-nav--scrolled' : ''}`}>
+        <div className="cl-nav__inner">
+          <button className="cl-brand" onClick={() => navigate('/')} aria-label="UGCad.io home">
+            <img src="/newlogo.png" alt="UGCad.io" className="cl-brand__logo" />
+          </button>
+        </div>
+      </header>
+
       {/* -- Hero --------------------------------------------------------- */}
       <section className="cl-hero">
         <div className="cl-hero__main">
@@ -949,7 +958,9 @@ export default function CreatorLanding() {
         /* Brand mark */
         .cl-brand { display: inline-flex; align-items: center; gap: 9px; background: none;
           border: none; cursor: pointer; padding: 0; }
-        .cl-brand__logo { height: 34px; width: auto; display: block; }
+        /* Match the Landing navbar logo size: a tall stacked lockup that overflows the fixed bar. */
+        .cl-brand__logo { height: 132px; width: auto; flex: none; display: block;
+          margin-left: -24px; transform: translateY(-4px); }
         /* Light theme: recolour the navy logo to the brand purple (dark theme unchanged). */
         .cl-root:not([data-theme="dark"]) .cl-brand__logo {
           filter: brightness(0) saturate(100%) invert(29%) sepia(95%) saturate(2462%)
@@ -965,7 +976,8 @@ export default function CreatorLanding() {
         .cl-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 18px 6%; transition: all 0.3s ease; }
         .cl-nav--scrolled { padding: 12px 6%; background: var(--cl-nav-bg);
           backdrop-filter: blur(14px); border-bottom: 1px solid rgba(var(--cl-fg),0.07); }
-        .cl-nav__inner { display: flex; align-items: center; gap: 30px; max-width: 1320px; margin: 0 auto; }
+        /* FIXED bar height so the bigger logo overflows it instead of growing the bar (matches Landing). */
+        .cl-nav__inner { display: flex; align-items: center; gap: 30px; max-width: 1320px; margin: 0 auto; height: 56px; }
         .cl-nav__links { display: flex; align-items: center; gap: 26px; }
         .cl-navlink { display: inline-flex; align-items: center; gap: 4px; font-size: 0.94rem; font-weight: 500;
           color: rgba(var(--cl-fg),0.82) !important; text-decoration: none; background: none; border: none;
@@ -1399,6 +1411,8 @@ export default function CreatorLanding() {
         @media (max-width: 768px) {
           .cl-nav__links, .cl-nav__actions { display: none; }
           .cl-nav__burger { display: inline-flex; }
+          /* Match the Landing navbar logo size on mobile. */
+          .cl-brand__logo { height: 104px; margin-left: -10px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
           .cl-blob { width: 300px !important; height: 300px !important; filter: blur(70px); }

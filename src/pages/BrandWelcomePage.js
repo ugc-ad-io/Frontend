@@ -226,7 +226,7 @@ export default function BrandWelcomePage() {
         <header className="approval-header">
           <div className="header-container">
             <div className="logo-section">
-              <div className="logo-icon">UGC</div>
+              <img src="/ugcad-logo.png" alt="UGCad.io" className="logo-img" />
               <span className="logo-text">Business Platform</span>
             </div>
             <button className="header-logout-btn" onClick={handleLogout} data-testid="logout-btn">
@@ -343,6 +343,12 @@ export default function BrandWelcomePage() {
             justify-content: center;
             font-weight: 400;
             font-size: 1rem;
+          }
+
+          .logo-img {
+            height: 44px;
+            width: auto;
+            display: block;
           }
 
           .logo-text {

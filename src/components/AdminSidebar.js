@@ -21,6 +21,7 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
         <div className="admin-sidebar-brand">
           <div className="admin-sidebar-mark">A</div>
           <span>UGCad.io</span>
+          <span className="admin-sidebar-pill">Admin</span>
         </div>
         <nav className="admin-sidebar-nav" aria-label="Admin dashboard">
           <span className="admin-nav-label">Admin</span>
@@ -41,14 +42,10 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
           })}
         </nav>
       </div>
-      <div className="admin-sidebar-profile">
-        <div className="admin-avatar">
-          {(user?.nickname || user?.full_name || 'A').trim().charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <strong>{user?.nickname || 'Admin'}</strong>
-          <span>{user?.role}</span>
-        </div>
+      <div className="admin-sidebar-note">
+        UGCad.io Admin Console
+        <br />
+        Internal — authorised staff only
       </div>
     </aside>
   );

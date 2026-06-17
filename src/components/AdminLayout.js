@@ -1,16 +1,11 @@
-import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import AdminSidebar from './AdminSidebar';
+import AdminTopbar from './AdminTopbar';
 
 function AdminLayout({ children }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   const currentPath = window.location.pathname;
   const pathToTab = {
@@ -47,36 +42,32 @@ function AdminLayout({ children }) {
       <AdminSidebar activeTab={activeTab} onTabClick={handleTabClick} user={user} />
 
       <main className="admin-main">
-        <div className="dashboard-header">
-          <div className="header-content">
-            <div>
-              {(() => {
-                const titles = {
-                  applications: ['Applications Management', 'Manage creator and brand applications'],
-                  profiles: ['Profile Approvals', 'Review and approve newly submitted profiles'],
-                  campaigns: ['Campaign Approvals', 'Review and approve brand campaigns'],
-                  gigs: ['Gig Management', 'Review and approve creator gigs'],
-                  withdrawals: ['Withdrawal Requests', 'Review pending withdrawals'],
-                  allcampaigns: ['All Campaigns', 'View every campaign on the platform'],
-                  users: ['User Management', 'Search, edit, and ban users'],
-                  assignments: ['Campaign Assignments', 'Assign campaigns to managers'],
-                  flagged: ['Flagged Messages', 'Review reported chat messages'],
-                  analytics: ['Platform Analytics', 'Revenue, growth, and performance metrics'],
-                };
-                const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', `Welcome, ${user?.nickname || ''} - ${user?.role || ''}`];
-                return (<>
-                  <h1>{title}</h1>
-                  <p>{subtitle}</p>
-                </>);
-              })()}
-            </div>
-            <button className="btn-secondary" onClick={handleLogout}>
-              <LogOut size={20} /> Logout
-            </button>
-          </div>
-        </div>
+        <AdminTopbar />
 
         <div className="dashboard-content">
+          {(() => {
+            const titles = {
+              applications: ['Applications Management', 'Manage creator and brand applications'],
+              profiles: ['Profile Approvals', 'Review and approve newly submitted profiles'],
+              campaigns: ['Campaign Approvals', 'Review and approve brand campaigns'],
+              gigs: ['Gig Management', 'Review and approve creator gigs'],
+              withdrawals: ['Withdrawal Requests', 'Review pending withdrawals'],
+              allcampaigns: ['All Campaigns', 'View every campaign on the platform'],
+              users: ['User Management', 'Search, edit, and ban users'],
+              assignments: ['Campaign Assignments', 'Assign campaigns to managers'],
+              flagged: ['Flagged Messages', 'Review reported chat messages'],
+              analytics: ['Platform Analytics', 'Revenue, growth, and performance metrics'],
+            };
+            const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', 'Manage the platform'];
+            return (
+              <div className="page-head">
+                <div>
+                  <h1>{title}</h1>
+                  <p>{subtitle}</p>
+                </div>
+              </div>
+            );
+          })()}
           <div className="tab-content">
             {children}
           </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, lazy, Suspense } from '
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
+import './styles/admin-theme.css';
 import Loader from './components/Loader';
 import AdminLayout from './components/AdminLayout';
 import { Toaster } from 'sonner';

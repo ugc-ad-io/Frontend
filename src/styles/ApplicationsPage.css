@@ -563,6 +563,71 @@
   gap: 12px;
 }
 
+/* ---- Generic "All Submitted Details" (shows every form field) ---- */
+.all-details-grid {
+  grid-template-columns: 1fr;
+}
+
+.all-details-value {
+  color: #0f172a;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.all-details-value a {
+  color: #2563eb;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.all-details-value a:hover {
+  text-decoration: underline;
+}
+
+.ad-nested,
+.ad-nested-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ad-nested-group {
+  padding: 8px 0;
+}
+
+.ad-nested-group + .ad-nested-group {
+  border-top: 1px dashed #e2e8f0;
+}
+
+.ad-nested-title {
+  margin: 2px 0;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.ad-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ad-k {
+  flex: 0 0 150px;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.ad-v {
+  flex: 1;
+  min-width: 0;
+  color: #0f172a;
+  word-break: break-word;
+}
+
 .rate-item {
   background: #f8fafc;
   padding: 14px 16px;

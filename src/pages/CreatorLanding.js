@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, useTheme } from '../App';
+import { useTheme } from '../App';
 import {
   ArrowRight,
   Play,
@@ -52,7 +52,7 @@ const BRANDS = [
 
 // Portrait thumbs for the hero gallery row -- local UGC clips from /public/creator.
 const GALLERY = [
-  { name: 'Abigail', av: ['#a78bfa', '#5b21b6'], src: '/creator/video_01.mp4' },
+  { name: 'Abigail', av: ['#7387FF', '#5b21b6'], src: '/creator/video_01.mp4' },
   { name: 'Chelsea', av: ['#818cf8', '#4338ca'], src: '/creator/video_08.mp4' },
   { name: 'Becki', av: ['#fca5a5', '#9d174d'], src: '/creator/video_27.mp4' },
   { name: 'Maya', av: ['#fb7185', '#f43f5e'], src: '/creator/video_28.mp4' },
@@ -69,7 +69,7 @@ const CATEGORIES = [
 // Creator testimonial videos -- Cloudinary-hosted (click-to-play with sound). A larger
 // width than the muted gallery thumbs since these go full phone-card when tapped.
 const TESTIMONIALS = [
-  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#a78bfa', '#5b21b6'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255208/ugc-videos/video_05.mp4' },
+  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#7387FF', '#5b21b6'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255208/ugc-videos/video_05.mp4' },
   { name: 'Chelsea', handle: '@chelsea.ugc',    likes: '124.2K', comments: '341', av: ['#818cf8', '#4338ca'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255196/ugc-videos/video_04.mp4' },
   { name: 'Maya',    handle: '@maya.makes',     likes: '512.9K', comments: '1.2K', av: ['#fb7185', '#f43f5e'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255227/ugc-videos/video_06.mp4' },
   { name: 'Priya',   handle: '@priya.shoots',   likes: '88.4K',  comments: '212', av: ['#a5b4fc', '#4c1d95'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255631/ugc-videos/video_21.mp4' },
@@ -108,7 +108,10 @@ const FAQS = [
 // every on-screen copy decode at once is what made it lag. Cap concurrent playback: a card that
 // scrolls in plays if a slot is free, else WAITS (paused, showing its gradient/first frame). When
 // a playing card scrolls off it hands its slot to a waiting one. All imperative → no re-renders.
-const MAX_PLAYING_GALLERY = 10;
+// Far fewer concurrent decodes on phones — 10 simultaneous video decodes is the main hero lag
+// on mobile. Desktop keeps the higher cap for a livelier wall.
+const MAX_PLAYING_GALLERY =
+  (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 768px)').matches) ? 3 : 10;
 const _glPlaying = new Set();
 const _glWaiting = new Set();
 function playGalleryCapped(v) {
@@ -116,8 +119,9 @@ function playGalleryCapped(v) {
   if (_glPlaying.size < MAX_PLAYING_GALLERY) {
     _glWaiting.delete(v);
     _glPlaying.add(v);
+    v.muted = true; // guarantee muted so the autoplay policy never rejects play()
     const p = v.play?.();
-    if (p && p.catch) p.catch(() => {});
+    if (p && p.catch) p.catch(() => { _glPlaying.delete(v); });
   } else {
     _glWaiting.add(v);
   }
@@ -145,6 +149,12 @@ function GalleryCard({ av, src, hidden }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // React's `muted` JSX prop is unreliable at setting the DOM property, so the browser
+    // can treat these as un-muted autoplay and BLOCK them (the card then shows only its
+    // gradient — the "broken on reload" symptom). Force the property imperatively so muted
+    // autoplay is always permitted.
+    el.muted = true;
+    el.defaultMuted = true;
     const io = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
       { rootMargin: '300px' },
@@ -280,7 +290,6 @@ function TestimonialCard({ name, handle, likes, comments, av, src, hidden }) {
 
 export default function CreatorLanding() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(-1);
@@ -304,13 +313,9 @@ export default function CreatorLanding() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Every CTA on this page drives the visitor to the main signup form (creator role).
   const handleJoin = () => {
-    if (user) {
-      if (user.role === 'creator') navigate('/dashboard/creator');
-      else navigate('/');
-    } else {
-      navigate('/auth?mode=signup&role=creator');
-    }
+    navigate('/auth?mode=signup&role=creator');
   };
 
   const fadeUp = {
@@ -901,8 +906,8 @@ export default function CreatorLanding() {
           --cl-font-head: 'Readex Pro', 'Instrument Sans', system-ui, sans-serif;
           --cl-font-body: 'Just Sans', 'Instrument Sans', 'Inter', system-ui, sans-serif;
           /* -- LIGHT theme (default) -- */
-          --cl-purple: #6d4af0;          /* accent -- deepened so it reads on light */
-          --cl-purple-deep: #5b37e0;
+          --cl-purple: #4f63e6;          /* accent -- deepened so it reads on light */
+          --cl-purple-deep: #3d51d6;
           --cl-fg: 28, 27, 75;           /* foreground RGB (navy) for text/borders/surfaces */
           --cl-bg: #ecebf8;              /* page background (light lavender) */
           --cl-text: #1c1b4b;            /* solid headings/body text */
@@ -926,8 +931,8 @@ export default function CreatorLanding() {
         }
         /* -- DARK theme -- */
         .cl-root[data-theme="dark"] {
-          --cl-purple: #A78BFA;
-          --cl-purple-deep: #9170f0;
+          --cl-purple: #7387FF;
+          --cl-purple-deep: #7387FF;
           --cl-fg: 255, 255, 255;
           --cl-bg: #0a0a0a;
           --cl-text: #ffffff;
@@ -970,8 +975,8 @@ export default function CreatorLanding() {
             hue-rotate(249deg) brightness(97%) contrast(94%);
         }
         .cl-brand__mark { width: 22px; height: 22px; border-radius: 6px;
-          background: linear-gradient(135deg, #A78BFA, #7c3aed);
-          box-shadow: 0 4px 14px rgba(167,139,250,0.5); }
+          background: linear-gradient(135deg, #7387FF, #7387FF);
+          box-shadow: 0 4px 14px rgba(115,135,255,0.5); }
         .cl-brand__name { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
         .cl-brand__name-2 { font-weight: 500; color: rgba(var(--cl-fg),0.7) !important; }
 
@@ -1062,9 +1067,9 @@ export default function CreatorLanding() {
         .cl-hero__login { margin: clamp(7px, 1.2vh, 14px) 0 0; font-size: 0.93rem; color: rgba(var(--cl-fg),0.6) !important; }
         .cl-hero__login-link { background: none; border: none; padding: 0; cursor: pointer; font-size: inherit;
           font-weight: 600; color: var(--cl-purple) !important; }
-        .cl-hero__login-link:hover { color: #c4b3ff !important; }
+        .cl-hero__login-link:hover { color: #aeb9ff !important; }
         .cl-btn-primary { display: inline-flex; align-items: center; gap: 9px; padding: 14px 28px; border-radius: 20px;
-          border: none; background: linear-gradient(120deg, #A78BFA, #8f6ff0); font-size: 1rem; font-weight: 600;
+          border: none; background: linear-gradient(120deg, #7387FF, #4f63e6); font-size: 1rem; font-weight: 600;
           cursor: pointer; box-shadow: none; transition: all 0.2s; }
         .cl-btn-primary:hover { transform: translateY(-2px); box-shadow: none; }
         .cl-btn-primary--lg { padding: 16px 40px; font-size: 1.08rem; border-radius: 999px; }
@@ -1100,7 +1105,7 @@ export default function CreatorLanding() {
         /* Hero -- highlighted word pill */
         .cl-hero__pill { display: inline-block; padding: 0.05em 0.4em; border-radius: 16px;
           background: linear-gradient(120deg, var(--cl-purple), var(--cl-purple-deep));
-          color: #fff !important; transform: rotate(-1.5deg); box-shadow: 0 10px 28px rgba(167,139,250,0.4); }
+          color: #fff !important; transform: rotate(-1.5deg); box-shadow: 0 10px 28px rgba(115,135,255,0.4); }
         .cl-btn-primary em { font-style: italic; font-weight: 500; opacity: 0.92; }
 
         /* Hero -- auto-scrolling creator gallery (full-bleed to viewport edges) */
@@ -1132,8 +1137,8 @@ export default function CreatorLanding() {
         .cl-cat { flex-shrink: 0; white-space: nowrap; padding: 6px 14px; border-radius: 999px;
           font-size: 0.82rem; font-weight: 500; color: rgba(var(--cl-fg),0.72) !important;
           border: 1px solid rgba(var(--cl-fg),0.16); background: rgba(var(--cl-fg),0.04); transition: all 0.2s; }
-        .cl-cat:hover { border-color: rgba(167,139,250,0.45); color: var(--cl-purple) !important;
-          background: rgba(167,139,250,0.08); }
+        .cl-cat:hover { border-color: rgba(115,135,255,0.45); color: var(--cl-purple) !important;
+          background: rgba(115,135,255,0.08); }
         @keyframes clMarqueeRight { from { transform: translateX(-50%); } to { transform: translateX(0); } }
         @media (prefers-reduced-motion: reduce) { .cl-cats__track { animation: none; } }
 
@@ -1268,7 +1273,7 @@ export default function CreatorLanding() {
           background: rgba(var(--cl-fg),0.05); border: 1px solid rgba(var(--cl-fg),0.08);
           color: rgba(var(--cl-fg),0.78) !important; }
         .cl-hiw__brandcard svg { flex-shrink: 0; color: var(--cl-purple); width: 15px; height: 15px; }
-        .cl-hiw__brandcard--on { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.13);
+        .cl-hiw__brandcard--on { border-color: rgba(115,135,255,0.5); background: rgba(115,135,255,0.13);
           color: rgba(var(--cl-fg),0.95) !important; }
         /* Per-brand wordmark styling (approximating each brand's logo type). */
         .cl-bc { font-size: 1.02rem; }
@@ -1338,7 +1343,7 @@ export default function CreatorLanding() {
         .cl-hiw__cta { margin-top: auto; margin-bottom: 30px; align-self: flex-start; }
         .cl-hiw__visual--paid { flex: 1.05; margin-top: 0; align-items: center; min-height: auto; }
         .cl-hiw__paid { position: relative; z-index: 1; width: 100%; max-width: 430px; border-radius: 24px;
-          padding: 34px 36px; border: 1px solid rgba(124,58,237,0.18); background: #e2ddf5; color: #1c1730 !important;
+          padding: 34px 36px; border: 1px solid rgba(115,135,255,0.18); background: #e2ddf5; color: #1c1730 !important;
           box-shadow: 0 22px 60px rgba(7,7,78,0.24); display: flex; flex-direction: column; gap: 14px;
           transform: rotate(4deg) translate(-30px, 20px); }
         /* Lavender card: force dark text on all rows (overrides the theme's light fg vars). */
@@ -1381,7 +1386,7 @@ export default function CreatorLanding() {
         .cl-faq { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; align-items: start; }
         .cl-faq__item { border-radius: 14px; border: 1px solid rgba(var(--cl-fg),0.1);
           background: rgba(var(--cl-fg),0.03); overflow: hidden; transition: border-color 0.2s, background 0.2s; }
-        .cl-faq__item--open { border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.06); }
+        .cl-faq__item--open { border-color: rgba(115,135,255,0.4); background: rgba(115,135,255,0.06); }
         .cl-faq__q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
           padding: 26px 28px; background: transparent; border: none; cursor: pointer; font-size: 1.08rem;
           font-weight: 600; text-align: left; color: inherit; }
@@ -1424,7 +1429,16 @@ export default function CreatorLanding() {
           .cl-brand__logo { height: 184px; margin-left: -34px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
-          .cl-blob { width: 300px !important; height: 300px !important; filter: blur(70px); }
+          /* PERF: a blurred blob that animates re-rasterizes the whole blur every frame — the
+             single biggest jank source on phones. Freeze them (static, no animation) and shrink
+             the blur radius so the one-time raster is cheap. Visual is unchanged at rest. */
+          .cl-blob { width: 300px !important; height: 300px !important; filter: blur(60px);
+            animation: none !important; will-change: auto; }
+          /* PERF: a FIXED bar with backdrop-filter re-samples everything behind it on every
+             scroll frame. Drop the blur on mobile and use a near-opaque bar instead. */
+          .cl-nav--scrolled { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+          .cl-root[data-theme="dark"] .cl-nav--scrolled { background: rgba(10,10,10,0.96); }
+          .cl-root:not([data-theme="dark"]) .cl-nav--scrolled { background: rgba(255,255,255,0.96); }
           .cl-section { padding: 60px 6%; }
           .cl-community { grid-template-columns: repeat(2, 1fr); }
           .cl-tcard { height: clamp(420px, 70vh, 560px); }
@@ -1447,6 +1461,12 @@ export default function CreatorLanding() {
           .cl-brands__icon { height: 32px; width: auto; max-width: 130px; }
           .cl-faq { grid-template-columns: 1fr; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); }
+          /* PERF: drop the small decorative backdrop-blurs — cheap to lose, costly on mobile GPUs. */
+          .cl-hiw__play, .cl-hiw__chip { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+          /* PERF: skip rendering+layout for the static below-fold sections until they scroll near
+             the viewport, so the long page scrolls smoothly. contain-intrinsic-size reserves space
+             so the scrollbar doesn't jump. */
+          .cl-faq, .cl-footer { content-visibility: auto; contain-intrinsic-size: auto 600px; }
         }
         /* Small phones — tighter padding, smaller type, single-column stacks. */
         @media (max-width: 480px) {

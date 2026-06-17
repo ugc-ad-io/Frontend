@@ -4,33 +4,15 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { motion } from 'framer-motion';
-import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
+import { Users, Briefcase, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
-
-const adminCardStagger = {
-  hidden: { opacity: 0, y: 20, scale: 0.97 },
-  visible: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.45, delay: 0.1 + i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] },
-  }),
-};
-const adminSectionVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, delay: 0.25 + i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] },
-  }),
-};
+import AdminTopbar from '../components/AdminTopbar';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { adminPage } = useParams();
   const tabSlugToId = {
@@ -788,11 +770,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
   const adminTabs = [
     { id: 'stats', label: 'Admin Dashboard', icon: TrendingUp, testId: 'tab-stats', slug: 'overview' },
     { id: 'applications', label: 'Applications', icon: FileText, testId: 'tab-applications', slug: 'applications' },
@@ -830,122 +807,99 @@ export default function AdminDashboard() {
       <AdminSidebar activeTab={activeTab} onTabClick={handleAdminTabClick} user={user} />
 
       <main className="admin-main">
-      <div className="dashboard-header">
-        <div className="header-content">
-          <div>
-            <h1>Admin Dashboard</h1>
-            <p>Welcome, {user?.nickname} - {user?.role}</p>
-          </div>
-          <button className="btn-secondary" onClick={handleLogout} data-testid="logout-btn">
-            <LogOut size={20} /> Logout
-          </button>
-        </div>
-      </div>
+      <AdminTopbar />
 
       <div className="dashboard-content">
-        {analytics && user?.role === 'admin' && (
-          <div className="analytics-cards">
-            <motion.div className="analytics-card" custom={0} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
-              <div className="card-icon" style={{background: '#dbeafe'}}>
-                <DollarSign size={24} color="#2563eb" />
+        {(() => {
+          const titles = {
+            stats: ['Overview', 'A snapshot of the platform.'],
+            chats: ['Chat Monitoring', 'View and monitor user conversations.'],
+            payments: ['Payment Gateways', 'Manage payment providers and transactions.'],
+            notifications: ['Notifications', 'Manage notification gateways and logs.'],
+            staff: ['Staff Management', 'Invite and manage internal staff.'],
+            broadcast: ['Broadcast', 'Send in-app announcements to users.'],
+          };
+          const [title, subtitle] = titles[activeTab] || [`Welcome, ${user?.nickname || 'Admin'}`, 'Manage the platform.'];
+          return (
+            <div className="page-head">
+              <div>
+                <h1>{title}</h1>
+                <p>{subtitle}</p>
               </div>
-              <div className="card-content">
-                <p className="card-label">Platform Earnings</p>
-                <h3 className="card-value">${analytics.platform_commission.toLocaleString()}</h3>
-                <p className="card-sub">20% commission</p>
-              </div>
-            </motion.div>
-            <motion.div className="analytics-card" custom={1} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
-              <div className="card-icon" style={{background: '#d1fae5'}}>
-                <Users size={24} color="#059669" />
-              </div>
-              <div className="card-content">
-                <p className="card-label">New Creators</p>
-                <h3 className="card-value">{analytics.new_creators}</h3>
-                <p className="card-sub">Last 30 days</p>
-              </div>
-            </motion.div>
-            <motion.div className="analytics-card" custom={2} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
-              <div className="card-icon" style={{background: 'rgba(7, 7, 78, 0.08)'}}>
-                <Briefcase size={24} color="#07074E" />
-              </div>
-              <div className="card-content">
-                <p className="card-label">New Businesses</p>
-                <h3 className="card-value">{analytics.new_businesses}</h3>
-                <p className="card-sub">Last 30 days</p>
-              </div>
-            </motion.div>
-            <motion.div className="analytics-card" custom={3} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -4 }}>
-              <div className="card-icon" style={{background: '#e0e7ff'}}>
-                <TrendingUp size={24} color="#07074E" />
-              </div>
-              <div className="card-content">
-                <p className="card-label">Active Campaigns</p>
-                <h3 className="card-value">{analytics.active_campaigns}</h3>
-                <p className="card-sub">of {analytics.total_campaigns} total</p>
-              </div>
-            </motion.div>
-          </div>
-        )}
+            </div>
+          );
+        })()}
         <div className="tab-content">
           {activeTab === 'stats' && stats && (
-            <div className="operator-dashboard fade-in">
-              <motion.section
-                className="operator-section priority"
-                custom={0}
-                variants={adminSectionVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                <div className="operator-section-head">
-                  <h3>SLA-at-risk items</h3>
-                  <span>Top priority</span>
+            <div className="admin-overview fade-in">
+              <div className="stat-tiles">
+                <div className="stat-tile">
+                  <div className="stat-tile-label">Pending profiles</div>
+                  <div className="stat-tile-value">{pendingProfiles.length}</div>
+                  <div className="stat-tile-hint">Awaiting review</div>
                 </div>
-                <div className="operator-risk-list">
-                  <motion.div custom={0} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>{pendingWithdrawals.length}</strong><span>Disputes with &lt;4 hours to SLA breach</span></motion.div>
-                  <motion.div custom={1} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>0</strong><span>Shipping label requests older than 4 hours</span></motion.div>
-                  <motion.div custom={2} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>{pendingProfiles.length}</strong><span>Applications in review &gt;2 business days</span></motion.div>
-                  <motion.div custom={3} variants={adminCardStagger} initial="hidden" animate="visible" whileHover={{ y: -3 }}><strong>{pendingCampaigns.length}</strong><span>Deals auto-transitioning within 24 hours</span></motion.div>
+                <div className="stat-tile">
+                  <div className="stat-tile-label">Pending campaigns</div>
+                  <div className="stat-tile-value">{pendingCampaigns.length}</div>
+                  <div className="stat-tile-hint">Awaiting review</div>
                 </div>
-              </motion.section>
+                <div className="stat-tile">
+                  <div className="stat-tile-label">Pending gigs</div>
+                  <div className="stat-tile-value">{pendingGigs.length}</div>
+                  <div className="stat-tile-hint">Awaiting review</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="stat-tile-label">Withdrawals</div>
+                  <div className="stat-tile-value">{pendingWithdrawals.length}</div>
+                  <div className="stat-tile-hint">Pending payout</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="stat-tile-label">Active campaigns</div>
+                  <div className="stat-tile-value">{analytics?.active_campaigns ?? stats.active_campaigns}</div>
+                  <div className="stat-tile-hint">{analytics?.total_campaigns ? `of ${analytics.total_campaigns} total` : 'Live now'}</div>
+                </div>
+                {user?.role === 'admin' && analytics && (
+                  <div className="stat-tile">
+                    <div className="stat-tile-label">Platform earnings</div>
+                    <div className="stat-tile-value">${Number(analytics.platform_commission || 0).toLocaleString()}</div>
+                    <div className="stat-tile-hint">20% commission</div>
+                  </div>
+                )}
+              </div>
 
-              <section className="operator-section">
-                <div className="operator-section-head">
-                  <h3>Activity today</h3>
-                  <span>Live queue</span>
+              <div className="admin-overview-row">
+                <div className="admin-panel" style={{ flex: 1, minWidth: 320 }}>
+                  <div className="admin-panel-head"><h3>Review queue</h3></div>
+                  <ul className="admin-feed">
+                    {[
+                      { icon: <Users size={15} />, label: 'Profile approvals', count: pendingProfiles.length, to: '/dashboard/admin/profiles' },
+                      { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
+                      { icon: <FileText size={15} />, label: 'Gig approvals', count: pendingGigs.length, to: '/dashboard/admin/gig-management' },
+                      { icon: <DollarSign size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
+                    ].map((row) => (
+                      <li key={row.label} onClick={() => navigate(row.to)} style={{ cursor: 'pointer' }}>
+                        <span className="admin-feed-icon">{row.icon}</span>
+                        <span className="admin-feed-text">{row.label}</span>
+                        <span className="badge badge-active">{row.count}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="operator-metric-grid">
-                  <div><span>New applications</span><strong>{stats.pending_profiles}</strong><small>Creators + brands</small></div>
-                  <div><span>New deals accepted</span><strong>{analytics?.active_campaigns || stats.active_campaigns}</strong><small>Today</small></div>
-                  <div><span>Deals completed</span><strong>{analytics?.completed_campaigns || 0}</strong><small>Today</small></div>
-                  <div><span>Active disputes</span><strong>{pendingWithdrawals.length}</strong><small>Needs review</small></div>
-                </div>
-              </section>
 
-              <section className="operator-section">
-                <div className="operator-section-head">
-                  <h3>Key metrics</h3>
-                  <span>Platform health</span>
+                <div className="admin-panel" style={{ width: 280 }}>
+                  <div className="admin-panel-head"><h3>Quick actions</h3></div>
+                  <div className="admin-panel-body">
+                    <div className="admin-quick-actions">
+                      <button type="button" onClick={() => navigate('/dashboard/admin/applications')}><FileText size={16} /> Review applications</button>
+                      <button type="button" onClick={() => navigate('/dashboard/admin/all-campaigns')}><Briefcase size={16} /> View all campaigns</button>
+                      {user?.role === 'admin' && (
+                        <button type="button" onClick={() => navigate('/dashboard/admin/users')}><DollarSign size={16} /> Manage users &amp; wallets</button>
+                      )}
+                      <button type="button" onClick={() => navigate('/dashboard/admin/broadcast')}><MessageSquare size={16} /> Send announcement</button>
+                    </div>
+                  </div>
                 </div>
-                <div className="operator-metric-grid">
-                  <div><span>Deals in progress</span><strong>{stats.active_campaigns}</strong><small>State distribution pending backend</small></div>
-                  <div><span>Total escrow held</span><strong>${Number(analytics?.total_escrow || 0).toLocaleString()}</strong><small>Across live deals</small></div>
-                  <div><span>Total wallet balance</span><strong>${allUsers.reduce((sum, item) => sum + Number(item.balance || 0), 0).toLocaleString()}</strong><small>Across brands</small></div>
-                  <div><span>Scheduled payouts</span><strong>{pendingWithdrawals.length}</strong><small>Next 7 days</small></div>
-                </div>
-              </section>
-
-              <section className="operator-section">
-                <div className="operator-section-head">
-                  <h3>Quick actions</h3>
-                  <span>Ops tools</span>
-                </div>
-                <div className="operator-actions">
-                  <button type="button" onClick={() => setActiveTab('allcampaigns')}><Briefcase size={18} /> Create manual shipping label</button>
-                  <button type="button" onClick={() => setActiveTab('users')}><DollarSign size={18} /> Adjust wallet balance</button>
-                  <button type="button" onClick={() => setActiveTab('broadcast')}><MessageSquare size={18} /> Send platform announcement</button>
-                </div>
-              </section>
+              </div>
             </div>
           )}
 

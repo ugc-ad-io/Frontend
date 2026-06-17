@@ -6,6 +6,107 @@ import '../styles/ApplicationsPage.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// ---------------------------------------------------------------------------
+// Generic "show everything" renderer — surfaces EVERY field the applicant
+// submitted that the curated sections above don't already display, so nothing
+// from the onboarding form is ever hidden from reviewers. Stays correct even
+// as the onboarding forms add new fields.
+// ---------------------------------------------------------------------------
+const HIDDEN_DETAIL_KEYS = new Set([
+  // internal / system
+  'id', '_id', 'user_id', 'userId', '__v', 'token', 'password',
+  'status', 'submitted_date', 'sla_remaining_days', 'created_at', 'updated_at',
+  'approval_status', 'role', 'type', 'flags', 'handle_flagged_as_real_name',
+  'reviewed_by', 'reviewed_at', 'review_notes', 'profile_completed', 'terms_agreed',
+  // already shown in the curated creator sections
+  'nickname', 'email', 'category', 'location', 'languages', 'bio', 'rate_card',
+  'portfolio_videos', 'kyc_documents', 'social_handles',
+  // already shown in the curated brand sections
+  'business_name', 'business_email', 'industry', 'product_type', 'description',
+  'website', 'gst_details', 'social_media',
+]);
+
+const prettifyKey = (k) =>
+  String(k)
+    .replace(/_/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+const isEmptyVal = (v) =>
+  v === null ||
+  v === undefined ||
+  v === '' ||
+  (Array.isArray(v) && v.length === 0) ||
+  (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+
+const isUrl = (v) => typeof v === 'string' && /^https?:\/\//i.test(v.trim());
+
+function DetailValue({ value }) {
+  if (typeof value === 'boolean') return <span>{value ? 'Yes' : 'No'}</span>;
+  if (isUrl(value)) {
+    return <a href={value.trim()} target="_blank" rel="noopener noreferrer">{value}</a>;
+  }
+  if (Array.isArray(value)) {
+    const allPrimitive = value.every((v) => v === null || typeof v !== 'object');
+    if (allPrimitive) return <span>{value.filter((v) => !isEmptyVal(v)).join(', ')}</span>;
+    return (
+      <div className="ad-nested">
+        {value.map((v, i) => <DetailObject key={i} title={`#${i + 1}`} obj={v} />)}
+      </div>
+    );
+  }
+  if (value && typeof value === 'object') return <DetailObject obj={value} />;
+  return <span>{String(value)}</span>;
+}
+
+function DetailObject({ title, obj }) {
+  const entries = Object.entries(obj || {}).filter(([, v]) => !isEmptyVal(v));
+  if (!entries.length) return null;
+  return (
+    <div className="ad-nested-group">
+      {title && <p className="ad-nested-title">{title}</p>}
+      {entries.map(([k, v]) => (
+        <div className="ad-row" key={k}>
+          <span className="ad-k">{prettifyKey(k)}</span>
+          <span className="ad-v"><DetailValue value={v} /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AllSubmittedDetails({ application }) {
+  // Flatten nested profile / business_profile up so their extra fields surface too.
+  const flat = {};
+  const merge = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    Object.entries(obj).forEach(([k, v]) => {
+      if (k === 'profile' || k === 'business_profile') merge(v);
+      else if (!(k in flat)) flat[k] = v;
+    });
+  };
+  merge(application);
+
+  const entries = Object.entries(flat).filter(
+    ([k, v]) => !HIDDEN_DETAIL_KEYS.has(k) && !isEmptyVal(v)
+  );
+  if (!entries.length) return null;
+
+  return (
+    <section className="detail-section full-width">
+      <h3>All Submitted Details</h3>
+      <div className="info-grid all-details-grid">
+        {entries.map(([k, v]) => (
+          <div className="info-item full-width" key={k}>
+            <label>{prettifyKey(k)}</label>
+            <div className="all-details-value"><DetailValue value={v} /></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -275,6 +376,8 @@ function ApplicationsPage() {
                     <p className="empty-message">No social handles provided</p>
                   )}
                 </section>
+
+                <AllSubmittedDetails application={selectedApplication} />
               </div>
 
               <div className="decision-section">
@@ -458,6 +561,8 @@ function ApplicationsPage() {
                     <p className="empty-message">No social media links provided</p>
                   )}
                 </section>
+
+                <AllSubmittedDetails application={selectedApplication} />
               </div>
 
               <div className="decision-section">

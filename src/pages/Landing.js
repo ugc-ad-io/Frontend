@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
+﻿import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../App';
 import {
@@ -89,8 +89,35 @@ function cldThumb(src) {
 // Desktop cap lowered 14→8: you can't watch 8 clips at once, so 8 concurrent H.264
 // decoders look identical on screen but roughly halve the GPU/compositor decode load
 // during the showcase scroll — smoother on laptops with zero visible difference.
-const MAX_PLAYING_VIDEOS =
-  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : 8;
+// Mobile keeps a tight cap (decode load is the mobile bottleneck). Desktop is UNCAPPED so every
+// card that's near the viewport plays — the per-card play observer (240px margin) already pauses
+// anything off screen, so this only ever decodes the handful actually visible, not all 64.
+// ── Device capability tier ──────────────────────────────────────────────────────
+// Width alone can't tell a flagship Samsung from a budget Poco at the same ~400px — but the
+// heavy bits (WebGL logo, live video decode, scroll-spring physics) are exactly what a weak
+// GPU/CPU chokes on. Detect a LOW-END tier ONCE at load and degrade gracefully on it:
+//   • honour explicit user/browser intent first — prefers-reduced-motion and Save-Data — so
+//     it also covers laptops/desktops that ask for less motion or less data;
+//   • otherwise flag SMALL screens whose hardware is genuinely weak (≤4 CPU threads or ≤4 GB
+//     RAM). deviceMemory/saveData are Chrome/Android-only (undefined on iOS Safari), which is
+//     fine — high-end iPhones aren't the device we need to throttle.
+const IS_LOW_END = (() => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const mm = window.matchMedia ? (q) => window.matchMedia(q).matches : () => false;
+  if (mm('(prefers-reduced-motion: reduce)')) return true;
+  const conn = navigator.connection;
+  if (conn && conn.saveData) return true;
+  const cores = navigator.hardwareConcurrency || 8;
+  const mem = navigator.deviceMemory || 8;
+  return mm('(max-width: 768px)') && (cores <= 4 || mem <= 4);
+})();
+
+// Concurrent <video> decode cap. Low-end devices play NONE — every card holds its real
+// first-frame poster, so zero H.264 decoders run (the single biggest mobile lag source).
+// Other phones cap at 3; desktop is uncapped (only near-viewport cards ever decode).
+const MAX_PLAYING_VIDEOS = IS_LOW_END
+  ? 0
+  : (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : Infinity);
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -146,12 +173,14 @@ function cldPoster(src) {
 // the clip from page load instead of from whenever the load observer happens to fire.
 function LazyVideoEl({ src, className, eager = false }) {
   const ref = useRef(null);
-  const [loaded, setLoaded] = useState(eager);
+  // Low-end / Save-Data devices never load the clip — `loaded` stays false so the real
+  // first-frame poster shows with NO network fetch and NO decode (see preload below).
+  const [loaded, setLoaded] = useState(eager && !IS_LOW_END);
   // LOAD latch — attach the real src the first time the card nears the viewport, then KEEP it.
   // Set once and never toggled, so it triggers exactly one re-render (no churn afterwards).
   // Eager cards already have their src (loaded starts true), so they skip this gate entirely.
   useEffect(() => {
-    if (eager) return undefined;
+    if (eager || IS_LOW_END) return undefined;
     const el = ref.current;
     if (!el) return undefined;
     const io = new IntersectionObserver(
@@ -172,6 +201,7 @@ function LazyVideoEl({ src, className, eager = false }) {
   // that left every card stuck on its poster). preload="auto" means the src is buffered by
   // the time the card reaches the play margin, so play() starts/resumes instantly.
   useEffect(() => {
+    if (IS_LOW_END) return undefined; // poster-only: no play/pause observer at all
     const v = ref.current;
     if (!v) return undefined;
     // Eager cards: start playback NOW (src is already attached) instead of waiting for the
@@ -201,7 +231,7 @@ function LazyVideoEl({ src, className, eager = false }) {
       muted
       loop
       playsInline
-      preload="auto"
+      preload={IS_LOW_END ? 'none' : 'auto'}
       webkit-playsinline="true"
       disablePictureInPicture
       {...(loaded ? { src: cldThumb(src) } : {})}
@@ -1362,7 +1392,7 @@ export default function Landing() {
   // const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
 
   return (
-    <div className="lp-root" data-theme={theme}>
+    <div className={`lp-root${IS_LOW_END ? ' lp-perf-lite' : ''}`} data-theme={theme}>
 
       {/* ── Animated background blobs ───────────────────────────────────── */}
       <div className="lp-bg-animations" aria-hidden="true">
@@ -1440,7 +1470,7 @@ export default function Landing() {
 
       {/* Fixed 3D mark that flies across the hero + 3D section (desktop only).
           On mobile we fall back to a static 3D inside the section (see below). */}
-      {!heroStatic && journeyActive && (
+      {!heroStatic && journeyActive && !IS_LOW_END && (
         <motion.div
           className="lp-logo-fly"
           // Stay MOUNTED the whole time and drive visibility PURELY by scroll position
@@ -1521,8 +1551,8 @@ export default function Landing() {
               <br />
               Unlock serious growth with{' '}
               <br className="lp-hero__sub-mbr" />
-              <span style={{ color: '#A78BFA', fontWeight: 600 }}>
-                <span style={{ whiteSpace: 'nowrap', color: '#A78BFA' }}>high-performing</span> UGC ads
+              <span style={{ color: '#7387FF', fontWeight: 600 }}>
+                <span style={{ whiteSpace: 'nowrap', color: '#7387FF' }}>high-performing UGC ads</span>
               </span>.
             </span>
           </motion.p>
@@ -1580,7 +1610,7 @@ export default function Landing() {
               applies the descend (y) + shrink (scale) + dissolve (opacity) and the canvas spins
               about its vertical axis (mobileStageSpin), handing off into the brand strip below.
               Desktop keeps the full 3D fly/spin via .lp-logo-fly above. */}
-          {heroStatic && logo3dInView && (
+          {heroStatic && logo3dInView && !IS_LOW_END && (
             <motion.div className="lp-logo3d__stage" style={{ opacity: mobileStageOpacity, y: mobileStageDown, scale: mobileStageScale }}>
               <Suspense fallback={<div className="lp-logo3d__placeholder" aria-hidden="true" />}>
                 <HeroLogo3D progress={mobileStageSpin} theme={theme} verticalSpin idleSpin={false} />
@@ -1613,28 +1643,28 @@ export default function Landing() {
           <div className="lp-hero__brands-side lp-hero__brands-side--left">
             <div className="lp-brands__track lp-brands__track--left">
               {(() => {
+                // Real brand logos from /public/brand (filenames as-is; encodeURI handles spaces).
                 const base = [
-                  { name: 'YouTube', slug: 'youtube' },
-                  { name: 'Instagram', slug: 'instagram' },
-                  { name: 'Spotify', slug: 'spotify' },
-                  { name: 'Meta', slug: 'meta' },
-                  { name: 'Pinterest', slug: 'pinterest' },
-                  { name: 'Snapchat', slug: 'snapchat' },
-                  { name: 'Twitch', slug: 'twitch' },
-                  { name: 'Discord', slug: 'discord' },
+                  'Rapido-logo.png',
+                  'amazon-icon-logo-png_seeklogo-405254.png',
+                  'images (1).png',
+                  'images (2).png',
+                  'images (3).png',
+                  'images (4).png',
+                  'images (5).png',
+                  'images (6).png',
                 ];
                 return [...base, ...base, ...base, ...base];
-              })().map((b, i) => (
-                <div key={`L-${b.name}-${i}`} className="lp-brand-item">
+              })().map((file, i) => (
+                <div key={`L-${i}`} className="lp-brand-item">
                   <div className="lp-brand-item__icon">
                     <img
-                      src={`https://cdn.simpleicons.org/${b.slug}`}
-                      alt={b.name}
+                      src={encodeURI(`/brand/${file}`)}
+                      alt=""
                       loading="lazy"
-                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                      onError={(e) => { const it = e.currentTarget.closest('.lp-brand-item'); if (it) it.style.display = 'none'; }}
                     />
                   </div>
-                  <div className="lp-brand-item__name">{b.name}</div>
                 </div>
               ))}
             </div>
@@ -1647,28 +1677,28 @@ export default function Landing() {
           <div className="lp-hero__brands-side lp-hero__brands-side--right">
             <div className="lp-brands__track lp-brands__track--right">
               {(() => {
+                // Real brand logos from /public/brand (filenames as-is; encodeURI handles spaces).
                 const base = [
-                  { name: 'Figma', slug: 'figma' },
-                  { name: 'Vimeo', slug: 'vimeo' },
-                  { name: 'Reddit', slug: 'reddit' },
-                  { name: 'Stripe', slug: 'stripe' },
-                  { name: 'Shopify', slug: 'shopify' },
-                  { name: 'Dribbble', slug: 'dribbble' },
-                  { name: 'Patreon', slug: 'patreon' },
-                  { name: 'Behance', slug: 'behance' },
+                  'logo-1-scaled.jpg',
+                  'images (7).png',
+                  'images (8).png',
+                  'images (1).jpg',
+                  'images (2).jpg',
+                  'images (3).jpg',
+                  'images (4).jpg',
+                  'images.png',
                 ];
                 return [...base, ...base, ...base, ...base];
-              })().map((b, i) => (
-                <div key={`R-${b.name}-${i}`} className="lp-brand-item">
+              })().map((file, i) => (
+                <div key={`R-${i}`} className="lp-brand-item">
                   <div className="lp-brand-item__icon">
                     <img
-                      src={`https://cdn.simpleicons.org/${b.slug}`}
-                      alt={b.name}
+                      src={encodeURI(`/brand/${file}`)}
+                      alt=""
                       loading="lazy"
-                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                      onError={(e) => { const it = e.currentTarget.closest('.lp-brand-item'); if (it) it.style.display = 'none'; }}
                     />
                   </div>
-                  <div className="lp-brand-item__name">{b.name}</div>
                 </div>
               ))}
             </div>
@@ -2645,7 +2675,7 @@ export default function Landing() {
           --lp-purple-300: #8888A0;
           --lp-purple-500: #3A3A66;
           --lp-purple-600: #1F1F4E;
-          --lp-purple-700: #A78BFA;
+          --lp-purple-700: #7387FF;
           --lp-purple-900: #050538;
           --lp-ink:        #0A0A0A;
           --lp-text:       #ffffff;
@@ -2710,7 +2740,7 @@ export default function Landing() {
           opacity: 0.5;
         }
         .lp-root[data-theme="light"] .lp-bg-blob {
-          background: radial-gradient(circle, rgba(183, 168, 255, 0.3) 0%, rgba(183, 168, 255, 0) 58%);
+          background: radial-gradient(circle, rgba(115, 135, 255, 0.3) 0%, rgba(115, 135, 255, 0) 58%);
           opacity: 0.4;
         }
         .lp-bg-blob--1 { width: 480px; height: 480px; top: 10%; left: 15%; }
@@ -2816,7 +2846,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.95rem;
           font-weight: 600;
-          color: #a78bfa;
+          color: #7387FF;
           text-decoration: none;
           cursor: pointer;
           transition: opacity 0.2s ease;
@@ -2861,8 +2891,8 @@ export default function Landing() {
         .lp-root .lp-btn-signup {
           padding: 8px 22px;
           border-radius: 10px;
-          border: 1px solid #A78BFA;
-          background: #A78BFA;
+          border: 1px solid #7387FF;
+          background: #7387FF;
           color: #fff;
           font-family: var(--font-body);
           font-weight: 600;
@@ -2870,7 +2900,7 @@ export default function Landing() {
           cursor: pointer;
           transition: all 0.2s ease;
         }
-        .lp-root .lp-btn-signup:hover { background: #9170f0; border-color: #9170f0; }
+        .lp-root .lp-btn-signup:hover { background: #7387FF; border-color: #7387FF; }
 
         /* Mobile hamburger + slide-down menu (hidden on desktop) */
         .lp-navbar__burger {
@@ -3047,7 +3077,7 @@ export default function Landing() {
           padding: 6px 14px;
           border-radius: 100px;
           background: rgba(var(--lp-fg), 0.04);
-          border: 1px solid rgba(109, 74, 232, 0.35);   /* brand-purple tint instead of plain white */
+          border: 1px solid rgba(115, 135, 255, 0.35);   /* brand-purple tint instead of plain white */
           color: #C8F23A;
           font-family: var(--font-body);
           font-size: 0.9rem;
@@ -3090,7 +3120,7 @@ export default function Landing() {
 
         .lp-hero__mark {
           display: inline-block;
-          background: #A78BFA;
+          background: #7387FF;
           color: var(--lp-text);
           padding: 0.04em 0.28em;
           border-radius: 10px;
@@ -3103,8 +3133,8 @@ export default function Landing() {
           box-decoration-break: clone;
           -webkit-box-decoration-break: clone;
           background: transparent;
-          color: #A78BFA;
-          -webkit-text-fill-color: #A78BFA;
+          color: #7387FF;
+          -webkit-text-fill-color: #7387FF;
           padding: 0;
           border-radius: 0;
         }
@@ -3114,7 +3144,7 @@ export default function Landing() {
           color: rgba(var(--lp-fg), 0.65);
           font-size: 1.55rem;
           line-height: 1.55;
-          max-width: 600px;
+          max-width: 720px;
           margin: 0;
           text-align: left;
         }
@@ -3147,7 +3177,7 @@ export default function Landing() {
           gap: 10px;
           padding: 16px 32px;
           border-radius: 100px;
-          background: #A78BFA;
+          background: #7387FF;
           color: var(--lp-text);
           font-family: var(--font-body);
           font-weight: 700;
@@ -3222,7 +3252,7 @@ export default function Landing() {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #8A85F2, #A78BFA);
+          background: linear-gradient(135deg, #7387FF, #7387FF);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -3241,7 +3271,7 @@ export default function Landing() {
           border: 2px solid rgba(var(--lp-fg), 0.1);
           box-shadow:
             0 30px 70px rgba(0, 0, 0, 0.55),
-            0 0 0 1px rgba(167, 139, 250, 0.15);
+            0 0 0 1px rgba(115, 135, 255, 0.15);
           z-index: 2;
           background: #111;
         }
@@ -3352,6 +3382,7 @@ export default function Landing() {
           width: 96px;
           height: 96px;
           border-radius: 24px;
+          overflow: hidden;
           background: #131316;
           border: 1px solid rgba(var(--lp-fg), 0.09);
           /* soft highlight from the top-left for a subtly raised tile (like the ref) */
@@ -3362,9 +3393,11 @@ export default function Landing() {
           transition: all 0.3s ease;
         }
         .lp-brand-item__icon img {
-          width: 46px;
-          height: 46px;
-          object-fit: contain;
+          /* Fill the whole white tile; inherit the tile's rounded corners. */
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: inherit;
         }
         .lp-brand-item__name {
           font-size: 0.78rem;
@@ -3374,8 +3407,8 @@ export default function Landing() {
           transition: color 0.3s ease;
         }
         .lp-brand-item:hover .lp-brand-item__icon {
-          background: rgba(167, 139, 250, 0.15);
-          border-color: rgba(167, 139, 250, 0.35);
+          background: rgba(115, 135, 255, 0.15);
+          border-color: rgba(115, 135, 255, 0.35);
         }
         .lp-brand-item:hover .lp-brand-item__name { color: #ffffff; }
 
@@ -3390,9 +3423,9 @@ export default function Landing() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.55),
-                      0 0 28px rgba(167, 139, 250, 0.6),
-                      0 0 120px rgba(167, 139, 250, 0.4);
+          box-shadow: 0 0 0 2px rgba(115, 135, 255, 0.55),
+                      0 0 28px rgba(115, 135, 255, 0.6),
+                      0 0 120px rgba(115, 135, 255, 0.4);
           position: relative;
           z-index: 4;
         }
@@ -3627,9 +3660,9 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-problem__heading--accent {
-          color: #A78BFA;
+          color: #7387FF;
           background: none;
-          -webkit-text-fill-color: #A78BFA;
+          -webkit-text-fill-color: #7387FF;
         }
         .lp-problem__subtitle {
           font-family: var(--font-body);
@@ -3715,7 +3748,7 @@ export default function Landing() {
         .lp-stamp--slack {
           top: 32%;
           left: 36%;
-          color: #A78BFA;
+          color: #7387FF;
           transform: rotate(-4deg);
         }
         .lp-stamp--wa {
@@ -4003,15 +4036,15 @@ export default function Landing() {
         }
         /* Whole heading white on the dark stage (accent included). */
         .lp-showcase__heading--accent {
-          color: #A78BFA;
+          color: #7387FF;
           background: none;
-          -webkit-text-fill-color: #A78BFA;
+          -webkit-text-fill-color: #7387FF;
         }
         /* Light theme: white would vanish on the lavender bg, so keep it readable. */
         .lp-root[data-theme="light"] .lp-showcase__heading { color: var(--lp-ink); }
         .lp-root[data-theme="light"] .lp-showcase__heading--accent {
-          color: #A78BFA;
-          -webkit-text-fill-color: #A78BFA;
+          color: #7387FF;
+          -webkit-text-fill-color: #7387FF;
         }
         .lp-showcase__subtitle {
           font-family: var(--font-body);
@@ -4198,7 +4231,7 @@ export default function Landing() {
           box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
         .lp-showcase-card__tier--elite {
-          background: linear-gradient(135deg, #7c3aed, #4338ca);
+          background: linear-gradient(135deg, #7387FF, #4338ca);
         }
         .lp-showcase-card__tier--pro {
           background: linear-gradient(135deg, #2563eb, #1e3a8a);
@@ -4250,7 +4283,7 @@ export default function Landing() {
           color: var(--lp-text);
         }
         .lp-achieve__title em { font-style: italic; }
-        .lp-achieve__title .lp-achieve__hl { color: #A78BFA !important; }
+        .lp-achieve__title .lp-achieve__hl { color: #7387FF !important; }
         /* Desktop: "Creators" is highlighted; "Instantly" stays upright/default. */
         .lp-achieve__title .lp-achieve__word--instantly {
           color: inherit !important;
@@ -4263,7 +4296,7 @@ export default function Landing() {
             font-style: normal;
           }
           .lp-achieve__title .lp-achieve__word--instantly {
-            color: #A78BFA !important;
+            color: #7387FF !important;
             font-style: italic;
           }
         }
@@ -4437,10 +4470,10 @@ export default function Landing() {
         .lp-achieve-card.is-active {
           box-shadow: 0 32px 70px rgba(0, 0, 0, 0.6);
         }
-        .lp-achieve-card.is-active .lp-achieve-card__icon { color: #A78BFA; }
-        .lp-achieve-card.is-active .lp-achieve-card__num { color: #A78BFA; }
-        .lp-achieve-card.is-active .lp-achieve-card__title { color: #A78BFA; }
-        .lp-achieve-card.is-active .lp-achieve-card__title { border-bottom-color: rgba(167, 139, 250, 0.4); }
+        .lp-achieve-card.is-active .lp-achieve-card__icon { color: #7387FF; }
+        .lp-achieve-card.is-active .lp-achieve-card__num { color: #7387FF; }
+        .lp-achieve-card.is-active .lp-achieve-card__title { color: #7387FF; }
+        .lp-achieve-card.is-active .lp-achieve-card__title { border-bottom-color: rgba(115, 135, 255, 0.4); }
 
         /* Light theme surfaces. */
         .lp-root[data-theme="light"] .lp-achieve-card {
@@ -4527,7 +4560,7 @@ export default function Landing() {
         }
         /* the line continues across the panel — a brighter purple so it reads on it */
         .lp-vs__row--head .lp-vs__cell--us {
-          border-bottom: 1px solid rgba(167, 139, 250, 0.28);
+          border-bottom: 1px solid rgba(115, 135, 255, 0.28);
         }
 
         /* ── Featured UGCad.io column — brand purple panel down the right side ──
@@ -4537,17 +4570,17 @@ export default function Landing() {
           position: relative;
           padding: 18px 28px;
           background: rgba(48, 41, 80, 0.55);
-          border-left: 1px solid rgba(167, 139, 250, 0.22);
-          border-right: 1px solid rgba(167, 139, 250, 0.22);
+          border-left: 1px solid rgba(115, 135, 255, 0.22);
+          border-right: 1px solid rgba(115, 135, 255, 0.22);
         }
         .lp-vs__row--head .lp-vs__cell--us {
-          border-top: 1px solid rgba(167, 139, 250, 0.30);
+          border-top: 1px solid rgba(115, 135, 255, 0.30);
           border-top-left-radius: 22px;
           border-top-right-radius: 22px;
           padding-top: 26px;
         }
         .lp-vs__row:last-child .lp-vs__cell--us {
-          border-bottom: 1px solid rgba(167, 139, 250, 0.30);
+          border-bottom: 1px solid rgba(115, 135, 255, 0.30);
           border-bottom-left-radius: 22px;
           border-bottom-right-radius: 22px;
           padding-bottom: 26px;
@@ -4574,8 +4607,8 @@ export default function Landing() {
           fill: rgba(var(--lp-fg), 0.16);
         }
         .lp-vs__star--us {
-          color: #A78BFA;
-          fill: rgba(167, 139, 250, 0.9);
+          color: #7387FF;
+          fill: rgba(115, 135, 255, 0.9);
         }
         /* value text */
         .lp-vs__pill {
@@ -4604,7 +4637,7 @@ export default function Landing() {
         /* VS in brand purple + italic. Selector is specific enough (0,2,1) to beat the
            global ".lp-root span { color }" rule that was overriding it. */
         .lp-vs__heading span.lp-vs__heading-vs {
-          color: #A78BFA;
+          color: #7387FF;
           font-style: italic;
         }
         /* ── Comparison: mobile compare table (hidden on desktop) ──────────────
@@ -4650,8 +4683,8 @@ export default function Landing() {
         }
         .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.6); }
         .lp-vs__th--ugc {
-          color: #A78BFF;
-          background: rgba(109, 74, 232, 0.1);
+          color: #7387FF;
+          background: rgba(115, 135, 255, 0.1);
         }
         .lp-vs__th--ugc svg { vertical-align: -1px; margin-right: 2px; }
         .lp-vs__th--others { color: rgba(var(--lp-fg), 0.25); }
@@ -4669,7 +4702,7 @@ export default function Landing() {
         }
         .lp-vs__td--ugc {
           color: rgba(var(--lp-fg), 0.85);
-          background: rgba(109, 74, 232, 0.05);
+          background: rgba(115, 135, 255, 0.05);
         }
         .lp-vs__td--others { color: rgba(var(--lp-fg), 0.28); }
         .lp-vs__ctable tr:last-child .lp-vs__td { border-bottom: none; }
@@ -4682,7 +4715,7 @@ export default function Landing() {
           /* The global ".lp-root td/th { color: var(--lp-text) }" rule (0,1,1) beats the
              single-class colours above, so re-apply them at higher specificity here. */
           .lp-vs__mobile .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.8); }
-          .lp-vs__mobile .lp-vs__th--ugc { color: #A78BFF; }
+          .lp-vs__mobile .lp-vs__th--ugc { color: #7387FF; }
           .lp-vs__mobile .lp-vs__th--others { color: rgba(var(--lp-fg), 0.6); }
           .lp-vs__mobile .lp-vs__td--feature { color: rgba(var(--lp-fg), 0.72); }
           .lp-vs__mobile .lp-vs__td--ugc { color: rgba(var(--lp-fg), 0.85); }
@@ -4713,9 +4746,9 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-compare__heading--accent {
-          color: #A78BFA;
+          color: #7387FF;
           background: none;
-          -webkit-text-fill-color: #A78BFA;
+          -webkit-text-fill-color: #7387FF;
         }
 
         .lp-compare__table {
@@ -4921,8 +4954,8 @@ export default function Landing() {
           box-shadow: 0 12px 30px rgba(7,7,78,0.08);
         }
         .lp-root[data-theme="light"] .lp-card:hover {
-          border-color: rgba(167,139,250,0.55);
-          box-shadow: 0 18px 44px rgba(124,58,237,0.16);
+          border-color: rgba(115,135,255,0.55);
+          box-shadow: 0 18px 44px rgba(115,135,255,0.16);
         }
         .lp-root[data-theme="light"] .lp-card__num { color: rgba(28,27,75,0.22); }
 
@@ -5041,7 +5074,7 @@ export default function Landing() {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           box-shadow: 0 0 0 0 rgba(7, 7, 78, 0.55);
           animation: hookPulse 1.8s ease-out infinite;
           flex-shrink: 0;
@@ -5068,12 +5101,12 @@ export default function Landing() {
           left: -4%;
           right: -4%;
           height: 4px;
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           transform: rotate(-3deg);
           border-radius: 4px;
         }
         .lp-cta__heading--accent {
-          color: #A78BFA;
+          color: #7387FF;
           font-style: italic;
           position: relative;
           padding: 0 4px;
@@ -5117,7 +5150,7 @@ export default function Landing() {
           font-family: var(--font-head);
           font-size: 2.2rem;
           font-weight: var(--fw-head);
-          color: #A78BFA;
+          color: #7387FF;
           line-height: 1;
         }
         .lp-stat__label {
@@ -5169,7 +5202,7 @@ export default function Landing() {
         .lp-root .lp-btn-join { color: #ffffff; }
         .lp-btn-join:hover {
           transform: translateY(-3px);
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           box-shadow: 0 18px 46px rgba(7, 7, 78, 0.48);
         }
 
@@ -5199,8 +5232,8 @@ export default function Landing() {
         .lp-root[data-theme="light"] .lp-btn-outline:hover { color: #07074e; }
         .lp-btn-outline:hover {
           background: rgba(var(--lp-fg), 0.06);
-          border-color: #A78BFA;
-          color: #A78BFA;
+          border-color: #7387FF;
+          color: #7387FF;
         }
 
         .lp-cta__proof {
@@ -5298,8 +5331,8 @@ export default function Landing() {
              space above the title (previously empty). */
           padding: 100px 6% 48px;
           /* subtle radial purple glow behind the hero copy */
-          background: radial-gradient(circle at 50% 36%, rgba(167, 139, 250, 0.16),
-                      rgba(167, 139, 250, 0) 60%), var(--lp-page-bg);
+          background: radial-gradient(circle at 50% 36%, rgba(115, 135, 255, 0.16),
+                      rgba(115, 135, 255, 0) 60%), var(--lp-page-bg);
         }
         .lp-hero--static .lp-hero__inner {
           min-height: 0;
@@ -5617,7 +5650,7 @@ export default function Landing() {
           transition: background 0.2s ease, border-color 0.2s ease;
         }
         .lp-faq__item:hover { background: rgba(var(--lp-fg), 0.06); }
-        .lp-faq__item.is-open { border-color: rgba(167, 139, 250, 0.30); }
+        .lp-faq__item.is-open { border-color: rgba(115, 135, 255, 0.30); }
         .lp-faq__q {
           width: 100%;
           display: flex;
@@ -5641,7 +5674,7 @@ export default function Landing() {
           color: rgba(var(--lp-fg), 0.55);
           transition: transform 0.3s ease, color 0.3s ease;
         }
-        .lp-faq__item.is-open .lp-faq__chevron { transform: rotate(180deg); color: #A78BFA; }
+        .lp-faq__item.is-open .lp-faq__chevron { transform: rotate(180deg); color: #7387FF; }
         .lp-faq__answer-wrap {
           display: grid;
           grid-template-rows: 0fr;
@@ -5734,7 +5767,7 @@ export default function Landing() {
           max-width: 820px;
         }
         .lp-footer__statement-accent {
-          color: #A78BFA;
+          color: #7387FF;
           font-style: italic;
           position: relative;
         }
@@ -5798,9 +5831,9 @@ export default function Landing() {
           text-decoration: none;
         }
         .lp-footer__social-btn:hover {
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           color: var(--lp-text);
-          border-color: #A78BFA;
+          border-color: #7387FF;
           transform: translateY(-2px);
         }
 
@@ -5851,7 +5884,7 @@ export default function Landing() {
           font-weight: 500;
           margin-top: 4px;
         }
-        .lp-footer__required { color: #A78BFA; }
+        .lp-footer__required { color: #7387FF; }
 
         .lp-footer__input {
           padding: 12px 14px;
@@ -5865,7 +5898,7 @@ export default function Landing() {
         }
         .lp-footer__input:focus {
           outline: none;
-          border-color: #A78BFA;
+          border-color: #7387FF;
           box-shadow: 0 0 0 3px rgba(7,7,78,0.12);
         }
 
@@ -5883,7 +5916,7 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-footer__subscribe:hover {
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           transform: translateY(-1px);
         }
 
@@ -5896,7 +5929,7 @@ export default function Landing() {
           max-width: 340px;
         }
         .lp-footer__link-accent {
-          color: #A78BFA;
+          color: #7387FF;
           text-decoration: underline;
           font-weight: 500;
         }
@@ -5934,13 +5967,13 @@ export default function Landing() {
           letter-spacing: -0.01em;
           font-weight: 500;
         }
-        .lp-footer__list a:hover { color: #A78BFA; }
+        .lp-footer__list a:hover { color: #7387FF; }
 
         .lp-footer__badge {
           display: inline-block;
           padding: 2px 10px;
           background: linear-gradient(135deg, #BBBBC8, #8888A0);
-          color: #A78BFA;
+          color: #7387FF;
           border-radius: 100px;
           font-size: 0.7rem;
           font-weight: 600;
@@ -5968,7 +6001,7 @@ export default function Landing() {
           font-weight: 500;
           transition: color 0.18s ease;
         }
-        .lp-footer__social a:hover { color: #A78BFA; }
+        .lp-footer__social a:hover { color: #7387FF; }
         .lp-footer__social svg { color: var(--lp-text-muted); }
 
         .lp-footer__contact {
@@ -6027,9 +6060,9 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-footer__top-link:hover {
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           color: var(--lp-text);
-          border-color: #A78BFA;
+          border-color: #7387FF;
         }
 
         @media (max-width: 1100px) {
@@ -6130,7 +6163,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
-          color: #A78BFA;
+          color: #7387FF;
           letter-spacing: 0.01em;
           margin-bottom: 26px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.10);
@@ -6139,7 +6172,7 @@ export default function Landing() {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           box-shadow: 0 0 0 0 rgba(7, 7, 78, 0.55);
           animation: hookPulse 1.8s ease-out infinite;
           flex-shrink: 0;
@@ -6167,7 +6200,7 @@ export default function Landing() {
           }
         }
         .lp-hook__heading--accent {
-          color: #A78BFA;
+          color: #7387FF;
         }
 
         .lp-hook__quote-wrap {
@@ -6211,7 +6244,7 @@ export default function Landing() {
           margin: 0;
         }
         .lp-hook__quote-text em {
-          color: #A78BFA;
+          color: #7387FF;
           font-weight: 600;
           font-style: italic;
         }
@@ -6222,7 +6255,7 @@ export default function Landing() {
           border-color: rgba(28,27,75,0.10);
           box-shadow: 0 18px 46px rgba(7,7,78,0.10);
         }
-        .lp-root[data-theme="light"] .lp-hook__quote-text em { color: #7c3aed; }
+        .lp-root[data-theme="light"] .lp-hook__quote-text em { color: #7387FF; }
 
         .lp-hook__cta-row {
           display: flex;
@@ -6241,7 +6274,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 1.05rem;
           font-weight: 600;
-          color: #A78BFA;
+          color: #7387FF;
           margin: 0;
           letter-spacing: -0.02em;
           white-space: nowrap;
@@ -6265,7 +6298,7 @@ export default function Landing() {
           font-size: 0.78rem;
           font-weight: 700;
           letter-spacing: 0.18em;
-          color: #A78BFA;
+          color: #7387FF;
           text-transform: uppercase;
           padding: 6px 16px;
           background: var(--lp-purple-50);
@@ -6337,7 +6370,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 700;
-          color: #A78BFA;
+          color: #7387FF;
           letter-spacing: 0.08em;
           text-transform: uppercase;
           padding: 5px 12px;
@@ -6406,14 +6439,14 @@ export default function Landing() {
           height: 36px;
           border-radius: 50%;
           background: rgba(var(--lp-fg),0.06);
-          color: #A78BFA;
+          color: #7387FF;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           transition: background 0.3s ease, transform 0.3s ease;
         }
         .lp-step-card:hover .lp-step-card__arrow {
-          background: rgba(167, 139, 250, 0.15);
+          background: rgba(115, 135, 255, 0.15);
           color: var(--lp-text);
           transform: translateX(4px);
         }
@@ -6484,11 +6517,11 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
-          color: #A78BFA;
+          color: #7387FF;
           margin-bottom: 22px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
         }
-        .lp-audit__pill svg { color: #A78BFA; }
+        .lp-audit__pill svg { color: #7387FF; }
 
         .lp-audit__heading {
           font-family: var(--font-head);
@@ -6500,7 +6533,7 @@ export default function Landing() {
           margin: 0 0 14px 0;
         }
         .lp-audit__heading--accent {
-          color: #A78BFA;
+          color: #7387FF;
           font-style: italic;
           position: relative;
         }
@@ -6542,7 +6575,7 @@ export default function Landing() {
           position: absolute;
           width: 100%;
           max-width: 290px;
-          background: #A78BFA;
+          background: #7387FF;
           border: 1px solid rgba(var(--lp-fg), 0.2);
           border-radius: 22px;
           padding: 36px 30px 26px;
@@ -6583,7 +6616,7 @@ export default function Landing() {
           color: var(--lp-text);
           letter-spacing: 0.1em;
           padding: 5px 12px;
-          background: #A78BFA;
+          background: #7387FF;
           border: 1px solid rgba(var(--lp-fg), 0.6);
           border-radius: 100px;
         }
@@ -6771,7 +6804,7 @@ export default function Landing() {
           font-family: var(--font-head);
           font-size: clamp(2.6rem, 5.2vw, 4.4rem);
           font-weight: var(--fw-head);
-          color: #A78BFA;
+          color: #7387FF;
           letter-spacing: -0.045em;
           line-height: 1;
           display: inline-block;
@@ -6823,7 +6856,7 @@ export default function Landing() {
           height: 64px;
           margin-top: -16px;
           border-radius: 50%;
-          border: 2px solid rgba(167, 139, 250, 0.7);
+          border: 2px solid rgba(115, 135, 255, 0.7);
           color: var(--lp-ink);
           font-family: var(--font-head);
           font-size: 1.5rem;
@@ -6879,7 +6912,7 @@ export default function Landing() {
           background: #0f3a44;
         }
         .lp-root[data-theme="dark"] .lp-proof__dot--active {
-          background: #A78BFA;
+          background: #7387FF;
         }
 
         /* Vertical divider to the right of each stat — mobile only (revealed in the ≤900px block). */
@@ -6939,7 +6972,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
-          color: #A78BFA;
+          color: #7387FF;
           margin-bottom: 22px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
         }
@@ -6954,7 +6987,7 @@ export default function Landing() {
           margin: 0 0 56px 0;
         }
         .lp-testimonial__heading--accent {
-          color: #A78BFA;
+          color: #7387FF;
           font-style: italic;
           position: relative;
         }
@@ -7024,7 +7057,7 @@ export default function Landing() {
           transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
         }
         .lp-testimonial__arrow:hover {
-          background: #A78BFA;
+          background: #7387FF;
           color: #fff;
           transform: translateY(-50%) scale(1.08);
         }
@@ -7122,7 +7155,7 @@ export default function Landing() {
           font-size: 1.18rem;
         }
         .lp-tcard__quote em {
-          color: #A78BFA;
+          color: #7387FF;
           font-weight: 600;
           font-style: italic;
         }
@@ -7193,7 +7226,7 @@ export default function Landing() {
           font-family: var(--font-head);
           font-size: 1.05rem;
           font-weight: var(--fw-head);
-          color: #A78BFA;
+          color: #7387FF;
           letter-spacing: -0.02em;
           line-height: 1;
         }
@@ -7214,14 +7247,14 @@ export default function Landing() {
         }
         .lp-root[data-theme="light"] .lp-tcard--featured {
           background: linear-gradient(180deg, #ffffff 0%, #f3f1fe 100%);
-          border-color: rgba(167,139,250,0.45);
-          box-shadow: 0 22px 52px rgba(124,58,237,0.16);
+          border-color: rgba(115,135,255,0.45);
+          box-shadow: 0 22px 52px rgba(115,135,255,0.16);
         }
         .lp-root[data-theme="light"] .lp-tcard__quote em,
-        .lp-root[data-theme="light"] .lp-tcard__metric-val { color: #7c3aed; }
+        .lp-root[data-theme="light"] .lp-tcard__metric-val { color: #7387FF; }
         .lp-root[data-theme="light"] .lp-tcard__metric {
           background: #f1ecfe;
-          border-color: rgba(167,139,250,0.5);
+          border-color: rgba(115,135,255,0.5);
         }
 
         /* Mid-size screens: step the 5-up row down to 3 before it collapses to 1.
@@ -7460,6 +7493,40 @@ export default function Landing() {
           .lp-testimonial, .lp-faq, .lp-cta, .lp-vs, .lp-community, .lp-steps, .lp-problem, .lp-footer {
             content-visibility: auto;
             contain-intrinsic-size: 1px 900px;
+          }
+        }
+
+        /* ── Low-end / reduced-motion tier (.lp-perf-lite on the root) ────────────
+           Budget phones + "reduce motion" / Save-Data users. The WebGL logo and live
+           video decode are already skipped in JS for these devices; here we also stop
+           every LOOPING css animation (brand & showcase marquees, hook pulse, scroll
+           cue, connector flow, arrow slide) and drop the expensive blur repaints — at
+           ANY width, so a weak small laptop is covered too. framer-motion's scroll
+           transforms are JS-driven (not css animations) and keep working untouched. */
+        .lp-perf-lite *,
+        .lp-perf-lite *::before,
+        .lp-perf-lite *::after {
+          animation: none !important;
+          -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+        }
+        .lp-perf-lite .lp-showcase-card,
+        .lp-perf-lite .lp-audit-card,
+        .lp-perf-lite .lp-achieve-card,
+        .lp-perf-lite .lp-tcard,
+        .lp-perf-lite .lp-brand-item__icon {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32) !important;
+        }
+
+        /* Respect the OS "reduce motion" preference for everyone — also halts the
+           looping marquees on any device we didn't otherwise flag as low-end. */
+        @media (prefers-reduced-motion: reduce) {
+          .lp-root *,
+          .lp-root *::before,
+          .lp-root *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
           }
         }
       `}</style>

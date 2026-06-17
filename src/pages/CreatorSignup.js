@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
@@ -147,8 +147,8 @@ export default function CreatorSignup() {
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
         .cs-root {
-          --cs-purple: #A78BFA;
-          --cs-purple-deep: #8f6ff0;
+          --cs-purple: #7387FF;
+          --cs-purple-deep: #4f63e6;
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -242,7 +242,7 @@ export default function CreatorSignup() {
           letter-spacing: -0.01em;
         }
         .cs-title-accent {
-          background: linear-gradient(120deg, #A78BFA, #c4b3ff);
+          background: linear-gradient(120deg, #7387FF, #aeb9ff);
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -280,7 +280,7 @@ export default function CreatorSignup() {
           outline: none;
           border-color: var(--cs-purple);
           background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+          box-shadow: 0 0 0 3px rgba(115, 135, 255, 0.18);
         }
         .cs-eye {
           position: absolute;
@@ -313,12 +313,12 @@ export default function CreatorSignup() {
           font-weight: 700;
           font-family: var(--font-body);
           cursor: pointer;
-          box-shadow: 0 12px 34px rgba(167, 139, 250, 0.35);
+          box-shadow: 0 12px 34px rgba(115, 135, 255, 0.35);
           transition: transform 0.15s ease, box-shadow 0.2s ease;
         }
         .cs-submit:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 16px 42px rgba(167, 139, 250, 0.5);
+          box-shadow: 0 16px 42px rgba(115, 135, 255, 0.5);
         }
         .cs-submit:active:not(:disabled) { transform: translateY(0); }
         .cs-submit:disabled { opacity: 0.6; cursor: default; }
@@ -359,7 +359,7 @@ export default function CreatorSignup() {
           text-decoration: underline;
           text-underline-offset: 3px;
         }
-        .cs-login-link:hover { color: #c4b3ff; }
+        .cs-login-link:hover { color: #aeb9ff; }
 
         /* ── Email verification step ─────────────────────────────── */
         .cs-card--verify { text-align: center; }
@@ -384,7 +384,7 @@ export default function CreatorSignup() {
           text-decoration: underline;
           text-underline-offset: 2px;
         }
-        .cs-verify-change:hover { color: #c4b3ff; }
+        .cs-verify-change:hover { color: #aeb9ff; }
         .cs-otp {
           display: flex;
           justify-content: center;
@@ -408,7 +408,7 @@ export default function CreatorSignup() {
           outline: none;
           border-color: var(--cs-purple);
           background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+          box-shadow: 0 0 0 3px rgba(115, 135, 255, 0.18);
         }
         .cs-resend {
           display: block;

@@ -1,0 +1,701 @@
+/* ============================================================
+   Admin Panel — Professional theme (refined light / Stripe-style)
+   ------------------------------------------------------------
+   The admin pages each ship their own inline <style> block with
+   slightly different colours, 2px borders, gradient text, and
+   shimmer animations — which reads as inconsistent / amateurish.
+   This file is the single source of truth for the admin look.
+
+   styled-jsx is NOT active in this CRA build, so those inline
+   blocks are global but use low-specificity (single-class)
+   selectors. Everything here is scoped under `.admin-dashboard`
+   so it wins on specificity and unifies every admin page.
+   ============================================================ */
+
+.admin-dashboard {
+  /* Palette */
+  --ad-bg: #f6f7f9;
+  --ad-surface: #ffffff;
+  --ad-surface-2: #f9fafb;
+  --ad-border: #e6e8ec;
+  --ad-border-strong: #d4d8df;
+  --ad-text: #111827;
+  --ad-text-2: #5b6573;
+  --ad-text-muted: #98a1ad;
+  --ad-accent: #07074E;
+  --ad-accent-tint: #eef0f8;
+
+  /* Status colours */
+  --ad-ok-bg: #ecfdf3;     --ad-ok-fg: #067647;
+  --ad-warn-bg: #fffaeb;   --ad-warn-fg: #b54708;
+  --ad-danger-bg: #fef3f2; --ad-danger-fg: #b42318;
+  --ad-info-bg: #eff8ff;   --ad-info-fg: #175cd3;
+  --ad-neutral-bg: #f2f4f7; --ad-neutral-fg: #475467;
+
+  /* Geometry */
+  --ad-radius: 12px;
+  --ad-radius-sm: 8px;
+  --ad-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --ad-shadow-md: 0 6px 20px rgba(16, 24, 40, 0.08);
+
+  background: var(--ad-bg);
+}
+
+/* ---------- Header ---------- */
+.admin-dashboard .dashboard-header {
+  background: var(--ad-surface);
+  border-bottom: 1px solid var(--ad-border);
+  box-shadow: none;
+  padding: 18px 40px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.admin-dashboard .dashboard-header h1 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--ad-text);
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+.admin-dashboard .dashboard-header p {
+  color: var(--ad-text-2);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ---------- Logout / secondary button ---------- */
+.admin-dashboard .btn-secondary {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius-sm);
+  color: var(--ad-text-2);
+  font-weight: 600;
+  padding: 9px 16px;
+  box-shadow: var(--ad-shadow-sm);
+}
+.admin-dashboard .btn-secondary:hover {
+  background: var(--ad-surface-2);
+  border-color: var(--ad-border-strong);
+  color: var(--ad-text);
+  transform: none;
+}
+
+/* ---------- Content shell ---------- */
+.admin-dashboard .dashboard-content {
+  padding: 32px 40px;
+}
+.admin-dashboard .tab-content {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.admin-dashboard .tab-content > h2,
+.admin-dashboard .section-header h2,
+.admin-dashboard .chats-section > h2,
+.admin-dashboard .broadcast-section > h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ad-text);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+.admin-dashboard .section-description {
+  color: var(--ad-text-2);
+  font-size: 0.9rem;
+  margin-bottom: 22px;
+}
+.admin-dashboard .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+/* ---------- Panels (top-level surfaces) ---------- */
+.admin-dashboard .operator-section,
+.admin-dashboard .analytics-card,
+.admin-dashboard .stat-card,
+.admin-dashboard .chats-section,
+.admin-dashboard .flagged-section,
+.admin-dashboard .payments-section,
+.admin-dashboard .notifications-section,
+.admin-dashboard .staff-section,
+.admin-dashboard .broadcast-section,
+.admin-dashboard .assignments-section,
+.admin-dashboard .chat-view,
+.admin-dashboard .profile-card,
+.admin-dashboard .campaign-card,
+.admin-dashboard .withdrawal-card {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius);
+  box-shadow: var(--ad-shadow-sm);
+}
+.admin-dashboard .operator-section { padding: 24px; }
+
+.admin-dashboard .operator-section:hover,
+.admin-dashboard .profile-card:hover,
+.admin-dashboard .campaign-card:hover,
+.admin-dashboard .withdrawal-card:hover,
+.admin-dashboard .assignment-card:hover {
+  transform: none;
+  border-color: var(--ad-border-strong);
+  box-shadow: var(--ad-shadow-md);
+  background: var(--ad-surface);
+}
+
+/* ---------- Operator dashboard (main landing) ---------- */
+.admin-dashboard .operator-dashboard { gap: 22px; }
+
+/* eyebrow pill in section heads */
+.admin-dashboard .operator-section-head span,
+.admin-dashboard .operator-hero span {
+  background: var(--ad-accent-tint);
+  color: var(--ad-accent);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.admin-dashboard .operator-section-head {
+  border-bottom: 1px solid var(--ad-border);
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+}
+.admin-dashboard .operator-section-head h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ad-text);
+  letter-spacing: -0.01em;
+}
+
+/* priority block — clean accent rail instead of clashing amber */
+.admin-dashboard .operator-section.priority {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-left: 3px solid var(--ad-accent);
+}
+
+/* inner metric / risk tiles */
+.admin-dashboard .operator-metric-grid > div,
+.admin-dashboard .operator-risk-list > div {
+  background: var(--ad-surface-2);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius-sm);
+  padding: 18px;
+}
+.admin-dashboard .operator-metric-grid > div:hover,
+.admin-dashboard .operator-risk-list > div:hover {
+  transform: none;
+  background: var(--ad-surface-2);
+  border-color: var(--ad-border-strong);
+  box-shadow: none;
+}
+/* numbers: solid, no gradient text-fill */
+.admin-dashboard .operator-metric-grid strong,
+.admin-dashboard .operator-risk-list strong {
+  background: none;
+  -webkit-text-fill-color: var(--ad-accent);
+  color: var(--ad-accent);
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.admin-dashboard .operator-metric-grid span,
+.admin-dashboard .operator-risk-list span {
+  color: var(--ad-text-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+.admin-dashboard .operator-metric-grid small {
+  color: var(--ad-text-muted);
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+/* quick actions */
+.admin-dashboard .operator-actions button {
+  min-height: 56px;
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius-sm);
+  color: var(--ad-text);
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: var(--ad-shadow-sm);
+}
+.admin-dashboard .operator-actions button:hover {
+  transform: none;
+  border-color: var(--ad-accent);
+  background: var(--ad-accent-tint);
+  color: var(--ad-accent);
+  box-shadow: var(--ad-shadow-sm);
+}
+
+/* ---------- Analytics cards ---------- */
+.admin-dashboard .analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.admin-dashboard .analytics-card { padding: 20px 22px; }
+.admin-dashboard .analytics-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--ad-border-strong);
+  box-shadow: var(--ad-shadow-md);
+}
+.admin-dashboard .analytics-card:hover .card-icon { transform: none; }
+.admin-dashboard .card-icon { width: 48px; height: 48px; border-radius: 10px; }
+.admin-dashboard .card-label { color: var(--ad-text-2); font-weight: 500; margin-bottom: 6px; }
+.admin-dashboard .card-value { color: var(--ad-text); font-size: 1.7rem; }
+.admin-dashboard .card-sub { color: var(--ad-text-muted); }
+
+/* ---------- Kill shimmer / sweep pseudo-elements everywhere ---------- */
+.admin-dashboard .analytics-card::after,
+.admin-dashboard .operator-actions button::before,
+.admin-dashboard .profile-card::before,
+.admin-dashboard .campaign-card::before,
+.admin-dashboard .withdrawal-card::before,
+.admin-dashboard .operator-section.priority::before,
+.admin-dashboard .operator-metric-grid > div::before,
+.admin-dashboard .operator-risk-list > div::before,
+.admin-dashboard .btn-approve::before,
+.admin-dashboard .btn-reject::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* ---------- Inner item cards ---------- */
+.admin-dashboard .gateway-card,
+.admin-dashboard .conversation-card,
+.admin-dashboard .assignment-card,
+.admin-dashboard .message-item,
+.admin-dashboard .detail-row,
+.admin-dashboard .campaign-item-small {
+  background: var(--ad-surface-2);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius-sm);
+  box-shadow: none;
+}
+.admin-dashboard .conversation-card:hover,
+.admin-dashboard .campaign-item-small:hover {
+  transform: none;
+  border-color: var(--ad-accent);
+  box-shadow: var(--ad-shadow-sm);
+}
+
+/* ---------- Badges (unified pill system) ---------- */
+.admin-dashboard .status-badge,
+.admin-dashboard .status-badge-small,
+.admin-dashboard .badge,
+.admin-dashboard .gateway-badge,
+.admin-dashboard .default-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+}
+/* success */
+.admin-dashboard .status-badge.active,
+.admin-dashboard .status-badge-small.active,
+.admin-dashboard .status-badge.completed,
+.admin-dashboard .status-badge-small.completed,
+.admin-dashboard .status-badge.captured,
+.admin-dashboard .status-badge.success,
+.admin-dashboard .status-badge.sent,
+.admin-dashboard .status-badge.paid {
+  background: var(--ad-ok-bg); color: var(--ad-ok-fg);
+}
+/* warning */
+.admin-dashboard .status-badge.pending,
+.admin-dashboard .status-badge-small.pending_approval,
+.admin-dashboard .status-badge.processing {
+  background: var(--ad-warn-bg); color: var(--ad-warn-fg);
+}
+/* danger */
+.admin-dashboard .status-badge.inactive,
+.admin-dashboard .status-badge.failed,
+.admin-dashboard .status-badge.rejected,
+.admin-dashboard .status-badge.error {
+  background: var(--ad-danger-bg); color: var(--ad-danger-fg);
+}
+/* info */
+.admin-dashboard .status-badge-small.in_progress,
+.admin-dashboard .badge-active {
+  background: var(--ad-info-bg); color: var(--ad-info-fg);
+}
+.admin-dashboard .gateway-badge {
+  background: var(--ad-neutral-bg); color: var(--ad-neutral-fg);
+}
+.admin-dashboard .default-badge {
+  background: var(--ad-accent-tint); color: var(--ad-accent);
+}
+
+/* ---------- Primary / action buttons ---------- */
+.admin-dashboard .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ad-accent);
+  color: #fff;
+  border: 1px solid var(--ad-accent);
+  border-radius: var(--ad-radius-sm);
+  font-weight: 600;
+  padding: 10px 18px;
+  box-shadow: var(--ad-shadow-sm);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.admin-dashboard .btn-primary:hover { filter: brightness(1.15); transform: none; }
+
+.admin-dashboard .btn-approve,
+.admin-dashboard .btn-reject {
+  border-radius: var(--ad-radius-sm);
+  border: 1px solid transparent;
+  font-weight: 600;
+  box-shadow: none;
+}
+.admin-dashboard .btn-approve {
+  background: var(--ad-ok-bg); color: var(--ad-ok-fg); border-color: #abefc6;
+}
+.admin-dashboard .btn-approve:hover { background: #d3f8df; transform: none; box-shadow: none; }
+.admin-dashboard .btn-reject {
+  background: var(--ad-danger-bg); color: var(--ad-danger-fg); border-color: #fecdca;
+}
+.admin-dashboard .btn-reject:hover { background: #fee4e2; transform: none; box-shadow: none; }
+
+/* small table buttons */
+.admin-dashboard .btn-edit-small,
+.admin-dashboard .btn-ban-small,
+.admin-dashboard .btn-unban-small,
+.admin-dashboard .btn-default-small,
+.admin-dashboard .btn-delete-small {
+  border: 1px solid var(--ad-border);
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 6px 12px;
+}
+.admin-dashboard .btn-edit-small { background: var(--ad-surface); color: var(--ad-text-2); }
+.admin-dashboard .btn-edit-small:hover { background: var(--ad-surface-2); border-color: var(--ad-border-strong); color: var(--ad-text); }
+.admin-dashboard .btn-delete-small,
+.admin-dashboard .btn-ban-small { background: var(--ad-danger-bg); color: var(--ad-danger-fg); border-color: transparent; }
+.admin-dashboard .btn-unban-small { background: var(--ad-ok-bg); color: var(--ad-ok-fg); border-color: transparent; }
+
+/* ---------- Forms ---------- */
+.admin-dashboard .input-field,
+.admin-dashboard .select-input,
+.admin-dashboard .textarea-field {
+  width: 100%;
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius-sm);
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  color: var(--ad-text);
+  background: var(--ad-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-dashboard .input-field:focus,
+.admin-dashboard .select-input:focus,
+.admin-dashboard .textarea-field:focus {
+  outline: none;
+  border-color: var(--ad-accent);
+  box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.10);
+}
+.admin-dashboard .form-group label { font-weight: 600; color: var(--ad-text-2); font-size: 0.85rem; }
+
+/* ---------- Tables ---------- */
+.admin-dashboard .users-table,
+.admin-dashboard .staff-table,
+.admin-dashboard .transactions-table {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius);
+  overflow: hidden;
+}
+.admin-dashboard table { width: 100%; border-collapse: collapse; }
+.admin-dashboard thead th {
+  background: var(--ad-surface-2);
+  color: var(--ad-text-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ad-border);
+}
+.admin-dashboard tbody td {
+  padding: 14px 16px;
+  color: var(--ad-text-2);
+  border-bottom: 1px solid var(--ad-border);
+  font-size: 0.9rem;
+}
+.admin-dashboard tbody tr:last-child td { border-bottom: none; }
+.admin-dashboard tbody tr:hover { background: var(--ad-surface-2); }
+
+/* ---------- Empty states ---------- */
+.admin-dashboard .empty-state {
+  background: var(--ad-surface);
+  border: 1px dashed var(--ad-border-strong);
+  border-radius: var(--ad-radius);
+  color: var(--ad-text-muted);
+}
+.admin-dashboard .empty-state svg { color: var(--ad-border-strong); }
+
+/* ---------- Modals ---------- */
+.admin-dashboard .modal-content,
+.modal-overlay .modal-content {
+  border-radius: var(--ad-radius);
+  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18);
+}
+
+/* ---------- Sidebar polish ---------- */
+.admin-dashboard .admin-sidebar { box-shadow: var(--ad-shadow-md); }
+.admin-dashboard .admin-sidebar-mark,
+.admin-dashboard .admin-avatar { background: #5b5bd6; }
+.admin-dashboard .admin-nav-item { border-radius: 10px; }
+.admin-dashboard .admin-nav-item.active { box-shadow: var(--ad-shadow-sm); }
+
+/* ============================================================
+   Structural shell — modelled on the Creasume reference admin
+   (sticky topbar + avatar menu, page-head, stat tiles, panels).
+   Visuals stay on-brand; only the layout/structure is borrowed.
+   ============================================================ */
+
+/* ---------- Topbar (user menu lives here, not the page title) ---------- */
+.admin-dashboard .admin-topbar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 28px;
+  background: var(--ad-surface);
+  border-bottom: 1px solid var(--ad-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.admin-dashboard .admin-user { position: relative; }
+.admin-dashboard .admin-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  border-radius: var(--ad-radius-sm);
+  color: var(--ad-text);
+}
+.admin-dashboard .admin-user-btn:hover { background: var(--ad-surface-2); }
+.admin-dashboard .admin-topbar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ad-accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+.admin-dashboard .admin-user-name { font-size: 13.5px; font-weight: 600; }
+.admin-dashboard .admin-user-caret { color: var(--ad-text-muted); display: flex; }
+.admin-dashboard .admin-user-backdrop { position: fixed; inset: 0; z-index: 30; }
+.admin-dashboard .admin-user-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 232px;
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius);
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.16);
+  z-index: 40;
+  overflow: hidden;
+}
+.admin-dashboard .admin-user-menu-head { padding: 12px 14px; border-bottom: 1px solid var(--ad-border); }
+.admin-dashboard .admin-user-menu-name { font-size: 13px; font-weight: 600; color: var(--ad-text); }
+.admin-dashboard .admin-user-menu-email {
+  font-size: 11.5px;
+  color: var(--ad-text-2);
+  margin-top: 2px;
+  text-transform: capitalize;
+}
+.admin-dashboard .admin-user-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ad-danger-fg);
+}
+.admin-dashboard .admin-user-menu-item:hover { background: var(--ad-danger-bg); }
+
+/* ---------- Page header (title moves into the content) ---------- */
+.admin-dashboard .page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.admin-dashboard .page-head h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ad-text);
+  letter-spacing: -0.01em;
+}
+.admin-dashboard .page-head p {
+  margin: 4px 0 0;
+  color: var(--ad-text-2);
+  font-size: 13px;
+}
+
+/* ---------- Stat tiles (reference StatCard row) ---------- */
+.admin-dashboard .stat-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.admin-dashboard .stat-tile {
+  flex: 1 1 160px;
+  min-width: 160px;
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius);
+  box-shadow: var(--ad-shadow-sm);
+  padding: 18px 20px;
+}
+.admin-dashboard .stat-tile .stat-tile-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ad-text-muted);
+}
+.admin-dashboard .stat-tile .stat-tile-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 8px;
+  color: var(--ad-text);
+}
+.admin-dashboard .stat-tile .stat-tile-hint {
+  font-size: 11.5px;
+  color: var(--ad-text-2);
+  margin-top: 8px;
+}
+
+/* ---------- Overview panels (activity list + quick actions) ---------- */
+.admin-dashboard .admin-overview-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 22px;
+}
+.admin-dashboard .admin-panel {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-radius);
+  box-shadow: var(--ad-shadow-sm);
+}
+.admin-dashboard .admin-panel-head {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--ad-border);
+}
+.admin-dashboard .admin-panel-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--ad-text); }
+.admin-dashboard .admin-panel-body { padding: 18px 20px; }
+.admin-dashboard .admin-feed { list-style: none; margin: 0; padding: 0; }
+.admin-dashboard .admin-feed li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--ad-border);
+}
+.admin-dashboard .admin-feed li:last-child { border-bottom: none; }
+.admin-dashboard .admin-feed-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ad-accent-tint);
+  color: var(--ad-accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.admin-dashboard .admin-feed-text { flex: 1; font-size: 13px; color: var(--ad-text); }
+.admin-dashboard .admin-feed-time { font-size: 11.5px; color: var(--ad-text-muted); }
+.admin-dashboard .admin-quick-actions { display: flex; flex-direction: column; gap: 8px; }
+.admin-dashboard .admin-quick-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+  width: 100%;
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  padding: 10px 14px;
+  border-radius: var(--ad-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-dashboard .admin-quick-actions button:hover {
+  border-color: var(--ad-accent);
+  background: var(--ad-accent-tint);
+  color: var(--ad-accent);
+}
+
+/* ---------- Sidebar brand + footer (reference structure) ---------- */
+.admin-dashboard .admin-sidebar-brand { height: 44px; margin-bottom: 18px; }
+.admin-dashboard .admin-sidebar-pill {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+.admin-dashboard .admin-sidebar-note {
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #b7b7e6;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .admin-dashboard .operator-metric-grid,
+  .admin-dashboard .operator-risk-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-dashboard .operator-actions {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .admin-dashboard .dashboard-header,
+  .admin-dashboard .dashboard-content { padding-left: 20px; padding-right: 20px; }
+  .admin-dashboard .operator-section { padding: 18px; }
+}

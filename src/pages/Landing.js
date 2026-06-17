@@ -112,13 +112,15 @@ const IS_LOW_END = (() => {
   return mm('(max-width: 768px)') && (cores <= 4 || mem <= 4);
 })();
 
-// Mobile uses larger video look-ahead margins: clips must buffer (load) and start playing well
-// BEFORE the card reaches the screen, otherwise on a phone the src is still buffering when the
-// play line is crossed and the clip only "starts" around half-screen. Desktop keeps tighter
-// margins (it's uncapped, so a huge margin would decode too many clips at once).
+// Mobile buffers FAR ahead (big load margin) but keeps the PLAY margin modest. Why not a huge
+// play margin too: playback is capped (MAX_PLAYING_VIDEOS) with FIFO slot release, so if the play
+// zone holds more cards than the cap, the cards entering from the edge queue behind clips already
+// playing near centre — and only start once they reach ~half screen (the reported bug). A modest
+// play zone keeps the on-screen cards within the cap so each plays AS it enters, while the large
+// load-ahead means its src is already fully buffered by then (play() starts instantly, no pop).
 const IS_MOBILE = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-const VIDEO_LOAD_MARGIN = IS_MOBILE ? '1400px' : '450px';
-const VIDEO_PLAY_MARGIN = IS_MOBILE ? '700px' : '360px';
+const VIDEO_LOAD_MARGIN = IS_MOBILE ? '1200px' : '450px';
+const VIDEO_PLAY_MARGIN = IS_MOBILE ? '250px' : '360px';
 
 // Concurrent <video> decode cap. Low-end devices play NONE — every card holds its real
 // first-frame poster, so zero H.264 decoders run (the single biggest mobile lag source).
@@ -129,7 +131,7 @@ const VIDEO_PLAY_MARGIN = IS_MOBILE ? '700px' : '360px';
 // already playing when they appear. THIS is the knob to lower again if a weak phone stutters.
 const MAX_PLAYING_VIDEOS = IS_LOW_END
   ? 0
-  : (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 5 : Infinity);
+  : (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 6 : Infinity);
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {

@@ -104,12 +104,16 @@ function cldThumb(src) {
 const IS_LOW_END = (() => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   const mm = window.matchMedia ? (q) => window.matchMedia(q).matches : () => false;
+  // Gate the heavy hero (videos + WebGL logo) ONLY on explicit user signals — Reduce-Motion and
+  // Save-Data. The old cores<=4/mem<=4 heuristic mis-flagged many capable mid-range Androids
+  // (navigator.deviceMemory is coarse, capped low, and undefined in several browsers), so SOME
+  // phones got videos + a spinning logo and others got neither — the inconsistency users hit.
+  // Honouring only the explicit prefs gives every phone the same experience while still respecting
+  // users who opted out of motion / are saving data.
   if (mm('(prefers-reduced-motion: reduce)')) return true;
   const conn = navigator.connection;
   if (conn && conn.saveData) return true;
-  const cores = navigator.hardwareConcurrency || 8;
-  const mem = navigator.deviceMemory || 8;
-  return mm('(max-width: 768px)') && (cores <= 4 || mem <= 4);
+  return false;
 })();
 
 // Mobile buffers FAR ahead (big load margin) but keeps the PLAY margin modest. Why not a huge

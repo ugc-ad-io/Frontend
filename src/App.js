@@ -180,6 +180,22 @@ function ScrollToTop() {
 }
 
 function App() {
+  // Keep the browser tab title correct. The emergent preview / live-edit tooling can inject a
+  // test title onto the tab (e.g. "LIVE-EDIT-TEST-####"); re-assert ours and guard against any
+  // external override so the tab always reads "UGCad.io". (No effect on the real deployed site,
+  // whose <title> is already correct — this just neutralises the preview tool's injection.)
+  useEffect(() => {
+    const TITLE = 'UGCad.io';
+    document.title = TITLE;
+    const titleEl = document.querySelector('title');
+    if (!titleEl) return undefined;
+    const obs = new MutationObserver(() => {
+      if (document.title !== TITLE) document.title = TITLE;
+    });
+    obs.observe(titleEl, { childList: true });
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <div className="App">
       <BrowserRouter>

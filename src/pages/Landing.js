@@ -112,12 +112,24 @@ const IS_LOW_END = (() => {
   return mm('(max-width: 768px)') && (cores <= 4 || mem <= 4);
 })();
 
+// Mobile uses larger video look-ahead margins: clips must buffer (load) and start playing well
+// BEFORE the card reaches the screen, otherwise on a phone the src is still buffering when the
+// play line is crossed and the clip only "starts" around half-screen. Desktop keeps tighter
+// margins (it's uncapped, so a huge margin would decode too many clips at once).
+const IS_MOBILE = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+const VIDEO_LOAD_MARGIN = IS_MOBILE ? '1400px' : '450px';
+const VIDEO_PLAY_MARGIN = IS_MOBILE ? '700px' : '360px';
+
 // Concurrent <video> decode cap. Low-end devices play NONE — every card holds its real
 // first-frame poster, so zero H.264 decoders run (the single biggest mobile lag source).
-// Other phones cap at 3; desktop is uncapped (only near-viewport cards ever decode).
+// Other phones cap at 5; desktop is uncapped (only near-viewport cards ever decode).
+// Raised 3→5: with only 3 slots an entering marquee card had to WAIT for a leaving card to
+// free a slot, so clips visibly "popped" into motion a beat after sliding on screen. 5 small
+// (h_480, 2s, muted, downscaled) clips decode fine on modern phones, so the visible cards are
+// already playing when they appear. THIS is the knob to lower again if a weak phone stutters.
 const MAX_PLAYING_VIDEOS = IS_LOW_END
   ? 0
-  : (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : Infinity);
+  : (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 5 : Infinity);
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -185,11 +197,12 @@ function LazyVideoEl({ src, className, eager = false }) {
     if (!el) return undefined;
     const io = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
-      // Load-ahead is MUCH larger than the play-ahead margin below (450 vs 240) on purpose: the
-      // src attaches — and preload="auto" starts buffering — long before the card needs to play,
-      // so the clip is ready when play() fires instead of stalling. (Attaching src ≠ playing, so
-      // this costs bandwidth, not GPU/decode.)
-      { rootMargin: '450px' }
+      // Load-ahead is MUCH larger than the play-ahead margin below on purpose: the src attaches —
+      // and preload="auto" starts buffering — long before the card needs to play, so the clip is
+      // ready when play() fires instead of stalling. On mobile this is pushed way out (1400px) so
+      // the clip is fully buffered before the play line, fixing "starts only at ~half screen".
+      // (Attaching src ≠ playing, so this costs bandwidth, not GPU/decode.)
+      { rootMargin: VIDEO_LOAD_MARGIN }
     );
     io.observe(el);
     return () => io.disconnect();
@@ -218,7 +231,9 @@ function LazyVideoEl({ src, className, eager = false }) {
       // Generous margin so a clip is already playing BEFORE it slides on screen (no pop at the
       // boundary). Smaller than the load margin above, so by the time a card hits this play line
       // its src has already been buffering. threshold ~0 so a sliver counts as visible.
-      { root: null, rootMargin: '240px', threshold: 0.01 }
+      // Mobile 700px (desktop 360): a card starts playing well before it reaches the viewport, so
+      // it's already in motion when it appears instead of popping in around half-screen.
+      { root: null, rootMargin: VIDEO_PLAY_MARGIN, threshold: 0.01 }
     );
     io.observe(v);
     return () => { io.disconnect(); releaseVideo(v); };
@@ -989,7 +1004,7 @@ export default function Landing() {
         {v.isVideo ? (
           // Eager-load only the first few HERO-row cards (the ones on screen at page load) so
           // they start instantly; the rest stay lazy to avoid many simultaneous downloads.
-          <LazyVideo src={v.src} className="lp-showcase-card__media" eager={prefix === 'HERO' && idx < 3} />
+          <LazyVideo src={v.src} className="lp-showcase-card__media" eager={prefix === 'HERO' && idx < 5} />
         ) : (
           <img
             src={v.src}

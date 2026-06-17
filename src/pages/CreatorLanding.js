@@ -1425,8 +1425,10 @@ export default function CreatorLanding() {
         @media (max-width: 768px) {
           .cl-nav__links, .cl-nav__actions { display: none; }
           .cl-nav__burger { display: inline-flex; }
-          /* Match the Landing navbar logo size on mobile. */
-          .cl-brand__logo { height: 184px; margin-left: -34px; }
+          /* Mobile: the wide-padding -34px offset drags the lockup off the left edge here
+             (mobile padding is far smaller), clipping the logo. Smaller box + gentler pull
+             keeps "UGCad.io" fully visible and inset from the edge. */
+          .cl-brand__logo { height: 150px; margin-left: -16px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
           /* PERF: a blurred blob that animates re-rasterizes the whole blur every frame — the

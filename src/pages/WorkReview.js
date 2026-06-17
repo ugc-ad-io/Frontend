@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, CheckCircle, MessageCircle, Star } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -44,7 +45,7 @@ export default function WorkReview() {
       toast.success('Work approved and payment released!');
       setShowReviewModal(true);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to approve work');
+      toast.error(apiErrorMessage(error, 'Failed to approve work'));
     }
   };
 
@@ -60,7 +61,7 @@ export default function WorkReview() {
       setShowRevisionModal(false);
       navigate('/dashboard/business');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to request revision');
+      toast.error(apiErrorMessage(error, 'Failed to request revision'));
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { UserPlus, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
@@ -50,7 +51,7 @@ export default function AdminAssignments() {
       setSelectedManager('');
       fetchAll();
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Failed to assign campaign');
+      toast.error(apiErrorMessage(e, 'Failed to assign campaign'));
     }
   };
 

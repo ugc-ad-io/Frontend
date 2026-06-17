@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, Send, AlertTriangle, Shield } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -107,7 +108,7 @@ export default function ChatPage() {
       fetchChatHistory();
       setTimeout(scrollToBottom, 100);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to send message');
+      toast.error(apiErrorMessage(error, 'Failed to send message'));
     }
   };
 

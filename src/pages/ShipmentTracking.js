@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, Package, Truck, Upload, AlertTriangle } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -76,7 +77,7 @@ export default function ShipmentTracking() {
       setShowUpdateModal(false);
       fetchShipment();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update shipment');
+      toast.error(apiErrorMessage(error, 'Failed to update shipment'));
     }
   };
 
@@ -94,7 +95,7 @@ export default function ShipmentTracking() {
       setShowReceiveModal(false);
       fetchShipment();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to mark as received');
+      toast.error(apiErrorMessage(error, 'Failed to mark as received'));
     }
   };
 

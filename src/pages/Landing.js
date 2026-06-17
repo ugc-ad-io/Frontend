@@ -86,8 +86,11 @@ function cldThumb(src) {
 // card to free a slot, which is why a clip "popped" into motion mid-screen. 5 small clips (h_600,
 // 2s, muted, downscaled) decode fine on modern phones. THIS is the knob to lower again if any
 // device stutters; raising it trades smoothness-of-start for decode load.
+// Desktop cap lowered 14→8: you can't watch 8 clips at once, so 8 concurrent H.264
+// decoders look identical on screen but roughly halve the GPU/compositor decode load
+// during the showcase scroll — smoother on laptops with zero visible difference.
 const MAX_PLAYING_VIDEOS =
-  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : 14;
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 3 : 8;
 const _playingVideos = new Set();
 const _waitingVideos = new Set();
 function playVideoCapped(v) {
@@ -506,8 +509,8 @@ const auditQuestions = [
     Icon: BellOff,
   },
   {
-    title: 'Would You Click',
-    sub: "the Ad Wasn't Yours?",
+    title: 'Click the Ad',
+    sub: "If It Wasn't Yours?",
     Icon: Repeat,
   },
 ];
@@ -2769,10 +2772,10 @@ export default function Landing() {
         .lp-navbar__logo {
           /* Bigger than the bar — overflows top/bottom (bar height is fixed above) so it reads
              large without pushing the navbar down. */
-          height: 132px;
+          height: 184px;
           width: auto;
           flex: none;
-          margin-left: -92px;   /* nudged further left on web (mobile keeps its own value below) */
+          margin-left: -128px;   /* nudged further left on web (mobile keeps its own value below) */
           /* The logo PNG is a tall stacked lockup — nudge it to line up with the nav links. */
           transform: translateY(-4px);
           cursor: pointer;
@@ -5336,7 +5339,7 @@ export default function Landing() {
           .lp-navbar__actions { display: none; }
           .lp-navbar__burger { display: inline-flex; }
           .lp-navbar__mobile--open { display: flex; }
-          .lp-navbar__logo { height: 140px; margin-left: -28px; }
+          .lp-navbar__logo { height: 184px; margin-left: -37px; }
           .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   LayoutDashboard,
   Check,
@@ -85,7 +86,7 @@ export default function AdminGigManagement() {
       setShowRejectForm(null);
       setSelectedGig(null);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to approve gig');
+      toast.error(apiErrorMessage(error, 'Failed to approve gig'));
     } finally {
       setProcessingId(null);
     }
@@ -108,7 +109,7 @@ export default function AdminGigManagement() {
       setRejectReason('');
       setSelectedGig(null);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to reject gig');
+      toast.error(apiErrorMessage(error, 'Failed to reject gig'));
     } finally {
       setProcessingId(null);
     }

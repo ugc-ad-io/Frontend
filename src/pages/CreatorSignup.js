@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -43,7 +44,7 @@ export default function CreatorSignup() {
       toast.success('Account created!');
       navigate('/profile-setup/creator');
     } catch (error) {
-      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Signup failed');
+      toast.error(apiErrorMessage(error, 'Signup failed'));
     } finally {
       setSubmitting(false);
     }
@@ -72,7 +73,7 @@ export default function CreatorSignup() {
       </button>
 
       <form className="cs-card" onSubmit={handleSubmit}>
-        <img src="/ugcad-logo.png" alt="UGCad.io" className="cs-logo" />
+        <img src="/newlogo-tight.png" alt="UGCad.io" className="cs-logo" />
         {/* Heading row */}
         <div className="cs-head">
           <span className="cs-step">Step 1</span>
@@ -208,10 +209,10 @@ export default function CreatorSignup() {
           box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
         }
         .cs-logo {
-          height: 60px;
+          height: 32px;
           width: auto;
           display: block;
-          margin: 0 0 14px -8px;   /* slight left pull so the wordmark optically aligns with the text */
+          margin: 0 0 14px -4px;   /* slight left pull so the wordmark optically aligns with the text */
         }
         .cs-head {
           display: flex;

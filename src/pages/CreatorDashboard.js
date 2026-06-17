@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import DashboardLayout from '../components/DashboardLayout';
 import {
   ArrowRight,
@@ -250,7 +251,7 @@ export default function CreatorDashboard() {
       setDeliveryDays('');
       fetchAllData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit bid');
+      toast.error(apiErrorMessage(error, 'Failed to submit bid'));
     }
   };
 
@@ -277,7 +278,7 @@ export default function CreatorDashboard() {
       await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
       toast.success(`${uploadedUrls.length} file(s) added to portfolio`);
     } catch (error) {
-      toast.error(error.response?.data?.detail || error.message || 'Failed to upload portfolio items');
+      toast.error(apiErrorMessage(error, 'Failed to upload portfolio items'));
     } finally {
       setUploadingPortfolio(false);
       event.target.value = '';

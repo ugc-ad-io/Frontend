@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
 import PostABrief from './PostABrief';
 
@@ -301,7 +302,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setCompletedCampaigns(myCampaigns.filter(c => c.status === 'completed'));
     } catch (error) {
       console.error('Failed to load campaigns:', error);
-      toast.error(error.response?.data?.detail || 'Failed to load campaigns');
+      toast.error(apiErrorMessage(error, 'Failed to load campaigns'));
     } finally {
       setLoading(false);
     }
@@ -356,7 +357,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       });
       fetchCampaigns();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create campaign');
+      toast.error(apiErrorMessage(error, 'Failed to create campaign'));
     }
   };
 
@@ -378,7 +379,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setCreatorDirectoryError(
         error.response?.status === 404
           ? 'Creator directory API is not available yet.'
-          : error.response?.data?.detail || 'Failed to load creator directory.'
+          : apiErrorMessage(error, 'Failed to load creator directory.')
       );
     } finally {
       setCreatorDirectoryLoading(false);
@@ -441,7 +442,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       closeInviteModal();
       setSelectedCreatorProfile(null);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to send invitation');
+      toast.error(apiErrorMessage(error, 'Failed to send invitation'));
     } finally {
       setSendingInvite(false);
     }
@@ -454,7 +455,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       const response = await axios.get(`${API}/business/wallet`);
       setWalletData(normalizeWalletData(response.data));
     } catch (error) {
-      setWalletError(error.response?.data?.detail || 'Failed to load wallet');
+      setWalletError(apiErrorMessage(error, 'Failed to load wallet'));
     } finally {
       setWalletLoading(false);
     }
@@ -473,7 +474,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setWalletAmount(String(amount));
       await fetchWallet();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to start wallet recharge');
+      toast.error(apiErrorMessage(error, 'Failed to start wallet recharge'));
     } finally {
       setRechargingWallet(false);
     }
@@ -737,330 +738,75 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   if (user?.approval_status === 'pending') {
     return (
-      <div className="approval-page">
-        <header className="approval-header">
-          <div className="header-container">
-            <div className="logo-section">
-              <img src="/ugcad-logo.png" alt="UGCad.io" className="logo-img" />
-              <span className="logo-text">Business Platform</span>
-            </div>
-            <button className="header-logout-btn" onClick={handleLogout} data-testid="logout-btn">
-              <LogOut size={18} /> Logout
-            </button>
-          </div>
-        </header>
-
-        <div className="approval-content">
-          <div className="approval-card">
-            <div className="icon-wrapper">
-              <CheckCircle size={80} className="pending-icon" />
-            </div>
-            <h1>Business Profile Under Review</h1>
-            <p className="subtitle">Thank you for joining our platform!</p>
-            
-            <div className="info-box">
-              <div className="info-item">
-                <div className="info-icon">⏱️</div>
-                <div>
-                  <h3>Review Time</h3>
-                  <p>Typically 24-48 hours</p>
-                </div>
-              </div>
-              <div className="info-item">
-                <div className="info-icon">✉️</div>
-                <div>
-                  <h3>We'll Notify You</h3>
-                  <p>Via email once approved</p>
-                </div>
-              </div>
-              <div className="info-item">
-                <div className="info-icon">🚀</div>
-                <div>
-                  <h3>What's Next?</h3>
-                  <p>Create your first campaign</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="status-message">
-              <p>Your business profile is being verified by our team. We review all business accounts to maintain quality standards and protect our creator community.</p>
-            </div>
-
-            <button className="btn-primary" onClick={handleLogout} data-testid="home-btn">
-              Back to Home
-            </button>
-          </div>
-        </div>
-
-        <footer className="approval-footer">
-          <div className="footer-container">
-            <div className="footer-section">
-              <h4>UGC Platform</h4>
-              <p>Connecting creators with brands worldwide</p>
-            </div>
-            <div className="footer-section">
-              <h4>Support</h4>
-              <p>help@ugcplatform.com</p>
-              <p>Mon-Fri, 9AM-6PM EST</p>
-            </div>
-            <div className="footer-section">
-              <h4>Quick Links</h4>
-              <p>Terms of Service</p>
-              <p>Privacy Policy</p>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>© 2025 UGC Platform. All rights reserved.</p>
-          </div>
-        </footer>
+      <div className="bd-status-page">
+        <section className="bd-status-card">
+          <CheckCircle size={68} />
+          <p className="bd-eyebrow">Business verification</p>
+          <h1>Profile Under Review</h1>
+          <p>Your business profile is being verified by our team. Most accounts are approved within 24-48 hours, and we'll notify you via email once you're cleared to launch campaigns.</p>
+          <button type="button" onClick={handleLogout} data-testid="home-btn">Back to Home</button>
+        </section>
 
         <style jsx>{`
-          .approval-page {
+          .bd-status-page {
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
-          }
-
-          .approval-header {
-            background: white;
-            border-bottom: 2px solid #e2e8f0;
-            padding: 20px 8%;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          }
-
-          .header-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-
-          .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-          }
-
-          .logo-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 400;
-            font-size: 1rem;
-          }
-
-          .logo-img {
-            height: 44px;
-            width: auto;
-            display: block;
-          }
-
-          .logo-text {
-            font-size: 1.25rem;
-            font-weight: 400;
-            color: #1a202c;
-          }
-
-          .header-logout-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            color: #4a5568;
-            font-weight: 400;
-            cursor: pointer;
-            transition: all 0.3s ease;
-          }
-
-          .header-logout-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
-          }
-
-          .approval-content {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 60px 20px;
-          }
-
-          .approval-card {
-            background: white;
-            padding: 60px 48px;
-            border-radius: 24px;
-            max-width: 800px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            text-align: center;
-          }
-
-          .icon-wrapper {
-            margin-bottom: 24px;
-          }
-
-          .pending-icon {
-            color: #667eea;
-            animation: pulse 2s ease-in-out infinite;
-          }
-
-          @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
-          }
-
-          .approval-card h1 {
-            font-size: var(--fs-h1);
-            font-weight: var(--fw-head);
-            color: #1a202c;
-            margin-bottom: 12px;
-          }
-
-          .subtitle {
-            font-size: 1.125rem;
-            color: #718096;
-            margin-bottom: 40px;
-          }
-
-          .info-box {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 24px;
-            margin-bottom: 40px;
-            padding: 32px;
-            background: #f8f9ff;
-            border-radius: 16px;
-          }
-
-          .info-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            text-align: center;
-          }
-
-          .info-icon {
-            width: 56px;
-            height: 56px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.75rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          }
-
-          .info-item h3 {
-            font-size: var(--fs-h3);
-            font-weight: var(--fw-head);
-            color: #2d3748;
-            margin-bottom: 4px;
-          }
-
-          .info-item p {
-            font-size: 0.875rem;
-            color: #718096;
-          }
-
-          .status-message {
+            place-items: center;
             padding: 24px;
-            background: #e0e7ff;
-            border-radius: 12px;
-            margin-bottom: 32px;
-            border-left: 4px solid #667eea;
+            background: #0a0a0f;
           }
 
-          .status-message p {
-            color: #3730a3;
-            line-height: 1.6;
-            margin: 0;
-          }
-
-          .approval-footer {
-            background: white;
-            border-top: 2px solid #e2e8f0;
-            padding: 48px 8% 24px;
-            margin-top: auto;
-          }
-
-          .footer-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 40px;
-            margin-bottom: 32px;
-          }
-
-          .footer-section h4 {
-            font-size: var(--fs-h3);
-            font-weight: var(--fw-head);
-            color: #1a202c;
-            margin-bottom: 16px;
-          }
-
-          .footer-section p {
-            color: #718096;
-            line-height: 1.8;
-            margin-bottom: 8px;
-          }
-
-          .footer-bottom {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding-top: 24px;
-            border-top: 1px solid #e2e8f0;
+          .bd-status-card {
+            width: min(680px, 100%);
+            padding: 52px;
+            border-radius: 24px;
+            background: #141420;
+            color: #f4f4f8;
             text-align: center;
-            color: #a0aec0;
-            font-size: 0.875rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 16px 54px rgba(0, 0, 0, 0.55);
           }
 
-          @media (max-width: 768px) {
-            .approval-header {
-              padding: 16px 5%;
-            }
+          .bd-status-card :global(svg) {
+            color: #f4f4f8;
+          }
 
-            .logo-text {
-              font-size: 1rem;
-            }
+          .bd-eyebrow {
+            margin: 18px 0 8px;
+            color: #9a9ad6;
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
 
-            .logo-icon {
-              width: 40px;
-              height: 40px;
-              font-size: 0.875rem;
-            }
+          .bd-status-card h1 {
+            margin: 0 0 12px;
+            font-size: var(--fs-h1);
+            color: #f4f4f8;
+          }
 
-            .approval-card {
-              padding: 40px 24px;
-            }
+          .bd-status-card p:not(.bd-eyebrow) {
+            margin: 0 auto 28px;
+            max-width: 460px;
+            color: #9b9bb0;
+            line-height: 1.6;
+          }
 
-            .approval-card h1 {
-              font-size: 2rem;
-            }
+          .bd-status-card button {
+            border: 0;
+            border-radius: 12px;
+            padding: 13px 22px;
+            background: #f4f4f8;
+            color: #0a0a0f;
+            font-weight: 600;
+            cursor: pointer;
+          }
 
-            .info-box {
-              grid-template-columns: 1fr;
+          @media (max-width: 600px) {
+            .bd-status-card {
               padding: 24px;
-            }
-
-            .footer-container {
-              grid-template-columns: 1fr;
-              gap: 32px;
+              border-radius: 18px;
             }
           }
         `}</style>

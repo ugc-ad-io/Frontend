@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { AlertTriangle, BellOff, CheckCheck, ClipboardList, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
@@ -301,11 +302,11 @@ export default function MessagesPage() {
       await fetchMessages(selectedId);
     } catch (err) {
       if (err.response?.status === 400 && err.response?.data?.detail?.includes('contact information')) {
-        toast.error(err.response.data.detail);
+        toast.error(apiErrorMessage(err));
         fetchWarnings();
         return;
       }
-      toast.error(err.response?.data?.detail || 'Failed to send message');
+      toast.error(apiErrorMessage(err, 'Failed to send message'));
     } finally {
       setSending(false);
     }
@@ -339,7 +340,7 @@ export default function MessagesPage() {
         toast.success(`${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} attached`);
       })
       .catch((err) => {
-        toast.error(err.response?.data?.detail || 'File attachment failed');
+        toast.error(apiErrorMessage(err, 'File attachment failed'));
       })
       .finally(() => {
         setUploadingFiles(false);
@@ -423,7 +424,7 @@ export default function MessagesPage() {
       toast.success('Action card updated');
       fetchMessages(selectedId);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Action failed');
+      toast.error(apiErrorMessage(err, 'Action failed'));
     }
   };
 
@@ -497,7 +498,7 @@ export default function MessagesPage() {
       fetchMessages(selectedId);
       fetchConversations();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Action card failed');
+      toast.error(apiErrorMessage(err, 'Action card failed'));
     } finally {
       setCreatingCard(false);
     }

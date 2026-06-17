@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { User, Building2, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -52,7 +53,7 @@ export default function Auth() {
         routeForUser(navigate, userData.role, userData.profile_completed);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Authentication failed');
+      toast.error(apiErrorMessage(error, 'Authentication failed'));
     } finally {
       setLoading(false);
     }
@@ -334,8 +335,9 @@ export default function Auth() {
           margin-bottom: 24px;
         }
         .ap-logo {
-          height: 52px;
+          height: 64px;   /* stacked lockup (monogram + UGCad.io) needs more height than the wordmark */
           width: auto;
+          display: block;
         }
 
         /* ── Header ──────────────────────────────────────────────── */

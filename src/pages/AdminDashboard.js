@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { motion } from 'framer-motion';
 import { Users, Briefcase, LogOut, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
@@ -248,7 +249,7 @@ export default function AdminDashboard() {
       fetchApplications();
     } catch (error) {
       console.error('Failed to approve application:', error);
-      toast.error(error.response?.data?.detail || 'Failed to approve application');
+      toast.error(apiErrorMessage(error, 'Failed to approve application'));
     }
   };
 
@@ -271,7 +272,7 @@ export default function AdminDashboard() {
       fetchApplications();
     } catch (error) {
       console.error('Failed to reject application:', error);
-      toast.error(error.response?.data?.detail || 'Failed to reject application');
+      toast.error(apiErrorMessage(error, 'Failed to reject application'));
     }
   };
 
@@ -291,7 +292,7 @@ export default function AdminDashboard() {
       fetchApplicationDetail(applicationId, type);
     } catch (error) {
       console.error('Failed to send more info request:', error);
-      toast.error(error.response?.data?.detail || 'Failed to send request');
+      toast.error(apiErrorMessage(error, 'Failed to send request'));
     }
   };
 
@@ -415,7 +416,7 @@ export default function AdminDashboard() {
       setShowNotificationModal(false);
       fetchNotificationGateways();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save gateway');
+      toast.error(apiErrorMessage(error, 'Failed to save gateway'));
     }
   };
 
@@ -470,7 +471,7 @@ export default function AdminDashboard() {
         link: ''
       });
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to send broadcast');
+      toast.error(apiErrorMessage(error, 'Failed to send broadcast'));
     }
   };
 
@@ -533,7 +534,7 @@ export default function AdminDashboard() {
         permissions: []
       });
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create staff');
+      toast.error(apiErrorMessage(error, 'Failed to create staff'));
     }
   };
 
@@ -621,7 +622,7 @@ export default function AdminDashboard() {
       fetchPendingWithdrawals();
       fetchStats();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to approve withdrawal');
+      toast.error(apiErrorMessage(error, 'Failed to approve withdrawal'));
     }
   };
 
@@ -635,7 +636,7 @@ export default function AdminDashboard() {
       fetchPendingWithdrawals();
       fetchStats();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to reject withdrawal');
+      toast.error(apiErrorMessage(error, 'Failed to reject withdrawal'));
     }
   };
 
@@ -660,7 +661,7 @@ export default function AdminDashboard() {
       fetchCampaignAssignments();
       fetchAllCampaigns();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to assign campaign');
+      toast.error(apiErrorMessage(error, 'Failed to assign campaign'));
     }
   };
 
@@ -685,7 +686,7 @@ export default function AdminDashboard() {
       setShowEditUserModal(false);
       fetchAllUsers();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update user');
+      toast.error(apiErrorMessage(error, 'Failed to update user'));
     }
   };
 
@@ -712,7 +713,7 @@ export default function AdminDashboard() {
       toast.success(`User ${action}ned successfully`);
       fetchAllUsers();
     } catch (error) {
-      toast.error(error.response?.data?.detail || `Failed to ${action} user`);
+      toast.error(apiErrorMessage(error, `Failed to ${action} user`));
     }
   };
 
@@ -747,7 +748,7 @@ export default function AdminDashboard() {
       setShowGatewayModal(false);
       fetchPaymentGateways();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save gateway');
+      toast.error(apiErrorMessage(error, 'Failed to save gateway'));
     }
   };
 
@@ -759,7 +760,7 @@ export default function AdminDashboard() {
       toast.success(`Gateway ${currentlyEnabled ? 'disabled' : 'enabled'} successfully`);
       fetchPaymentGateways();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update gateway');
+      toast.error(apiErrorMessage(error, 'Failed to update gateway'));
     }
   };
 
@@ -771,7 +772,7 @@ export default function AdminDashboard() {
       toast.success('Default gateway updated');
       fetchPaymentGateways();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to set default');
+      toast.error(apiErrorMessage(error, 'Failed to set default'));
     }
   };
 
@@ -783,7 +784,7 @@ export default function AdminDashboard() {
       toast.success('Gateway deleted successfully');
       fetchPaymentGateways();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete gateway');
+      toast.error(apiErrorMessage(error, 'Failed to delete gateway'));
     }
   };
 

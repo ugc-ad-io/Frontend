@@ -2128,26 +2128,27 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f3f3ff;
+  background: #0a0a0f;
 }
 
 .pcd-status-card {
   width: min(680px, 100%);
   padding: 52px;
   border-radius: 24px;
-  background: #fff;
-  color: #07074e;
+  background: #141420;
+  color: #f4f4f8;
   text-align: center;
-  box-shadow: 0 16px 54px rgba(7, 7, 78, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 16px 54px rgba(0, 0, 0, 0.55);
 }
 
 .pcd-status-card svg {
-  color: #07074e;
+  color: #f4f4f8;
 }
 
 .pcd-eyebrow {
   margin: 18px 0 8px;
-  color: #07074e;
+  color: #9a9ad6;
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -2157,13 +2158,13 @@
 .pcd-status-card h1 {
   margin: 0 0 12px;
   font-size: var(--fs-h1);
-  color: #07074e;
+  color: #f4f4f8;
 }
 
 .pcd-status-card p:not(.pcd-eyebrow) {
   margin: 0 auto 28px;
   max-width: 460px;
-  color: #71718a;
+  color: #9b9bb0;
   line-height: 1.6;
 }
 
@@ -2171,9 +2172,9 @@
   border: 0;
   border-radius: 12px;
   padding: 13px 22px;
-  background: #07074e;
-  color: #fff;
-  font-weight: 400;
+  background: #f4f4f8;
+  color: #0a0a0f;
+  font-weight: 600;
   cursor: pointer;
 }
 

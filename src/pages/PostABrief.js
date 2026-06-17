@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
 import { useAuth } from '../App';
 
@@ -340,7 +341,7 @@ export default function PostABrief() {
       toast.success(submitted ? 'Brief submitted for admin approval' : 'Brief saved as draft');
       navigate(publishMode === 'invite' ? '/dashboard/business/pending-bids' : '/dashboard/business');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to publish brief');
+      toast.error(apiErrorMessage(error, 'Failed to publish brief'));
     } finally {
       setSubmitting(false);
       setShowConfirm(false);

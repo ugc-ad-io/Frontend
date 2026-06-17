@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   IndianRupee,
   TrendingUp,
@@ -187,7 +188,7 @@ export default function WithdrawalPage() {
       setAmount('');
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to request withdrawal');
+      toast.error(apiErrorMessage(error, 'Failed to request withdrawal'));
     }
   };
 
@@ -209,7 +210,7 @@ export default function WithdrawalPage() {
       setShowEditModal(false);
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save bank details');
+      toast.error(apiErrorMessage(error, 'Failed to save bank details'));
     } finally {
       setSavingBank(false);
     }

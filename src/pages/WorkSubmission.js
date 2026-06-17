@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, Upload, FileVideo, Image as ImageIcon } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -84,7 +85,7 @@ export default function WorkSubmission() {
         navigate('/my-active-work');
       }, 1000);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit work');
+      toast.error(apiErrorMessage(error, 'Failed to submit work'));
     }
   };
 

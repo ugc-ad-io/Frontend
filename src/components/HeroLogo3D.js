@@ -124,14 +124,18 @@ function LogoModel({ progress, theme, idleSpin = true, verticalSpin = false }) {
   useEffect(() => {
     if (!idleSpin) return; // mobile: no decorative idle spin, so no need to keep rendering at rest
     let raf;
-    const tick = () => {
-      // Only burn CONTINUOUS frames at/near the HERO, for the gentle time-based idle sway.
-      // Past the hero (the cross + the leaderboard barrel-roll) every bit of motion is
-      // SCROLL-driven, so the throttled progress.on('change') handler already renders those
-      // frames. Rendering continuously there too meant a full 60fps HDRI re-render EVERY frame
-      // even while the page sat still — the cause of the heavy desktop lag at the leaderboard.
-      // Now: when you're not at the hero and not scrolling, the GPU stays idle.
-      if (!progress || clamp01(progress.get()) < HERO_END) invalidate();
+    let lastIdle = 0;
+    const tick = (now) => {
+      // Only burn frames at/near the HERO, for the gentle time-based idle sway. Past the hero
+      // (the cross + the leaderboard barrel-roll) every bit of motion is SCROLL-driven, so the
+      // throttled progress.on('change') handler already renders those frames.
+      // Cap the idle render to ~30fps (33ms): at rest the mark only sways slowly, so 30fps reads
+      // identically to 60 but halves the WebGL work while the page sits still — frees headroom so
+      // the heavy 0.67–0.86 barrel-roll + leaderboard moment isn't competing with an idle 60fps redraw.
+      if (now - lastIdle >= 33) {
+        lastIdle = now;
+        if (!progress || clamp01(progress.get()) < HERO_END) invalidate();
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

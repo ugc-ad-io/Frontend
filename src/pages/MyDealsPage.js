@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   AlertTriangle,
   Archive,
@@ -273,7 +274,7 @@ export default function MyDealsPage() {
       setUrlFn(res.data.file_url);
       toast.success('File uploaded');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Upload failed');
+      toast.error(apiErrorMessage(err, 'Upload failed'));
     } finally {
       setUploadingFile(null);
     }
@@ -296,7 +297,7 @@ export default function MyDealsPage() {
       setUnboxingVideoUrl(null);
       fetchDeals();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Receipt submission failed');
+      toast.error(apiErrorMessage(err, 'Receipt submission failed'));
     }
   };
 
@@ -329,7 +330,7 @@ export default function MyDealsPage() {
       setRawFootageUrl(null);
       fetchDeals();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Submission failed');
+      toast.error(apiErrorMessage(err, 'Submission failed'));
     } finally {
       setSubmitting(false);
     }
@@ -346,7 +347,7 @@ export default function MyDealsPage() {
       setMessageAttachments([]);
       fetchDeals();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Message failed');
+      toast.error(apiErrorMessage(err, 'Message failed'));
     }
   };
 
@@ -382,7 +383,7 @@ export default function MyDealsPage() {
       toast.success(`${label} created`);
       fetchDeals();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Action failed');
+      toast.error(apiErrorMessage(err, 'Action failed'));
     }
   };
 
@@ -406,7 +407,7 @@ export default function MyDealsPage() {
       await handleCreateActionCard('Add Evidence', uploadedUrls);
       toast.success(`${uploadedUrls.length} evidence file${uploadedUrls.length > 1 ? 's' : ''} uploaded`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Evidence upload failed');
+      toast.error(apiErrorMessage(err, 'Evidence upload failed'));
     } finally {
       setUploadingEvidence(false);
       event.target.value = '';
@@ -428,7 +429,7 @@ export default function MyDealsPage() {
       toast.success('Revision response submitted');
       fetchDeals();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Revision response failed');
+      toast.error(apiErrorMessage(err, 'Revision response failed'));
     }
   };
 
@@ -936,7 +937,7 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, mess
       setMessageAttachments((current) => [...current, ...uploadedUrls]);
       toast.success(`${uploadedUrls.length} file${uploadedUrls.length > 1 ? 's' : ''} attached`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'File attachment failed');
+      toast.error(apiErrorMessage(err, 'File attachment failed'));
     } finally {
       setUploadingMessageFile(false);
       event.target.value = '';

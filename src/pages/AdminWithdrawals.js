@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { CheckCircle, XCircle, DollarSign, Download } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
@@ -49,7 +50,7 @@ export default function AdminWithdrawals() {
       toast.success('Withdrawal approved successfully!');
       fetchPendingWithdrawals();
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Failed to approve withdrawal');
+      toast.error(apiErrorMessage(e, 'Failed to approve withdrawal'));
     }
   };
 
@@ -61,7 +62,7 @@ export default function AdminWithdrawals() {
       toast.success('Withdrawal rejected and amount refunded to user');
       fetchPendingWithdrawals();
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Failed to reject withdrawal');
+      toast.error(apiErrorMessage(e, 'Failed to reject withdrawal'));
     }
   };
 

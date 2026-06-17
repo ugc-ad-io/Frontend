@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   Bookmark,
   Briefcase,
@@ -194,7 +195,7 @@ export default function PortfolioPage() {
         toast.success(`${uploadedUrls.length} file(s) uploaded`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || error.message || 'Failed to upload file(s)');
+      toast.error(apiErrorMessage(error, 'Failed to upload file(s)'));
     } finally {
       setUploading(false);
       event.target.value = '';
@@ -237,11 +238,7 @@ export default function PortfolioPage() {
       resetForm();
     } catch (error) {
       console.error('Save portfolio error:', error);
-      const detail = error.response?.data?.detail;
-      const errMsg = Array.isArray(detail)
-        ? detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
-        : (detail || error.message || 'Failed to save portfolio item');
-      toast.error(errMsg);
+      toast.error(apiErrorMessage(error, 'Failed to save portfolio item'));
     } finally {
       setSaving(false);
     }

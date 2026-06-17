@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   User,
   Lock,
@@ -217,7 +218,7 @@ export default function ProfileSettings() {
       setNotificationPrefs({ ...defaultNotifications, ...(notificationsRes.data || {}) });
       setSummary({ ...defaultSummary, ...(summaryRes.data || {}) });
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to load brand settings');
+      toast.error(apiErrorMessage(error, 'Failed to load brand settings'));
     } finally {
       setBrandLoading(false);
     }
@@ -230,7 +231,7 @@ export default function ProfileSettings() {
       setBrandProfile({ ...brandProfile, ...(res.data || {}) });
       toast.success('Profile settings saved');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save profile settings');
+      toast.error(apiErrorMessage(error, 'Failed to save profile settings'));
     } finally {
       setLoading(false);
     }
@@ -243,7 +244,7 @@ export default function ProfileSettings() {
       setCompany({ ...company, ...(res.data || {}) });
       toast.success('Company details saved');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save company details');
+      toast.error(apiErrorMessage(error, 'Failed to save company details'));
     } finally {
       setLoading(false);
     }
@@ -256,7 +257,7 @@ export default function ProfileSettings() {
       setNotificationPrefs({ ...notificationPrefs, ...(res.data || {}) });
       toast.success('Notification preferences saved');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save notifications');
+      toast.error(apiErrorMessage(error, 'Failed to save notifications'));
     } finally {
       setLoading(false);
     }
@@ -275,7 +276,7 @@ export default function ProfileSettings() {
       setBrandProfile(current => ({ ...current, logo_url: res.data.logo_url || res.data.photo_url || res.data.url || current.logo_url }));
       toast.success('Logo updated');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to upload logo');
+      toast.error(apiErrorMessage(error, 'Failed to upload logo'));
     } finally {
       setLogoUploading(false);
       event.target.value = '';
@@ -288,7 +289,7 @@ export default function ProfileSettings() {
       setBrandProfile(current => ({ ...current, logo_url: '' }));
       toast.success('Logo removed');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to remove logo');
+      toast.error(apiErrorMessage(error, 'Failed to remove logo'));
     }
   };
 
@@ -301,7 +302,7 @@ export default function ProfileSettings() {
       const res = await axios.get(`${API}/business/settings/team`);
       setTeam({ ...defaultTeam, ...(res.data || {}) });
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to invite member');
+      toast.error(apiErrorMessage(error, 'Failed to invite member'));
     }
   };
 
@@ -359,7 +360,7 @@ export default function ProfileSettings() {
       setUser({ ...user, profile_photo: response.data.photo_url });
       toast.success('Profile photo updated!');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to upload photo');
+      toast.error(apiErrorMessage(error, 'Failed to upload photo'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -392,7 +393,7 @@ export default function ProfileSettings() {
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('[ProfileSave] FAILED:', error?.response?.status, error?.response?.data, error);
-      toast.error(error?.response?.data?.detail || 'Failed to update profile');
+      toast.error(apiErrorMessage(error, 'Failed to update profile'));
     } finally {
       setLoading(false);
     }
@@ -423,7 +424,7 @@ export default function ProfileSettings() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to change password');
+      toast.error(apiErrorMessage(error, 'Failed to change password'));
     } finally {
       setLoading(false);
     }
@@ -458,7 +459,7 @@ export default function ProfileSettings() {
       setShowQR(false);
       setVerificationCode('');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Invalid verification code');
+      toast.error(apiErrorMessage(error, 'Invalid verification code'));
     } finally {
       setLoading(false);
     }
@@ -477,7 +478,7 @@ export default function ProfileSettings() {
       setTwoFAEnabled(false);
       setDisablePassword('');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to disable 2FA');
+      toast.error(apiErrorMessage(error, 'Failed to disable 2FA'));
     } finally {
       setLoading(false);
     }

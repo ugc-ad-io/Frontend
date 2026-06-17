@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { ChevronDown, CheckCircle } from 'lucide-react';
+import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -73,12 +74,23 @@ export default function BusinessProfileSetup() {
       return;
     }
     setSubmitting(true);
+    // Backend validates website/facebook as URLs — a bare "www.business.com" (no scheme) fails
+    // with a 422, so prepend https:// when the user omitted it.
+    const withScheme = (u) => {
+      const v = (u || '').trim();
+      if (!v) return v;
+      return /^https?:\/\//i.test(v) ? v : `https://${v}`;
+    };
     // Persist the business profile to the backend, then show the thank-you screen.
+    // business_description + product_type are REQUIRED by the backend model (BusinessProfileUpdate)
+    // but this onboarding form doesn't collect them yet — send empty strings so validation passes.
     const payload = {
       business_name: form.businessName,
-      website: form.website,
-      social_links: { facebook: form.facebook, instagram: form.instagram, linkedin: '' },
+      website: withScheme(form.website),
+      social_links: { facebook: withScheme(form.facebook), instagram: form.instagram, linkedin: '' },
       industry_category: form.industry,
+      business_description: '',
+      product_type: '',
       country: form.country,
       phone: `${dial.code} ${form.phone}`.trim(),
       gstin: form.gstin,
@@ -88,7 +100,7 @@ export default function BusinessProfileSetup() {
       setUser({ ...user, profile_completed: true, approval_status: 'pending' });
       setDone(true);
     } catch (error) {
-      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Failed to submit profile');
+      toast.error(apiErrorMessage(error, 'Failed to submit profile'));
     } finally {
       setSubmitting(false);
     }
@@ -104,8 +116,8 @@ export default function BusinessProfileSetup() {
             Your brand details have been submitted successfully. We'll tailor insights
             and recommendations for you and your account is now under review.
           </p>
-          <button type="button" className="bp-next" onClick={() => navigate('/brand-home')}>
-            Go to Dashboard
+          <button type="button" className="bp-next" onClick={() => navigate('/')}>
+            Thank you
           </button>
         </div>
         <ThemeStyles />
@@ -509,10 +521,10 @@ function ThemeStyles() {
           font-weight: 700;
           font-family: var(--font-body);
           cursor: pointer;
-          box-shadow: 0 12px 30px rgba(167, 139, 250, 0.34);
-          transition: box-shadow 0.2s ease, transform 0.15s ease;
+          box-shadow: none;
+          transition: transform 0.15s ease;
         }
-        .bp-next:hover { box-shadow: 0 16px 40px rgba(167, 139, 250, 0.48); transform: translateY(-1px); }
+        .bp-next:hover { transform: translateY(-1px); }
         .bp-next:active { transform: translateY(0); }
 
         /* Thank-you screen */

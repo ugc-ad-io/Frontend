@@ -1,46 +1,52 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import Loader from './components/Loader';
-import Landing from './pages/Landing';
-import CreatorLanding from './pages/CreatorLanding';
-import Auth from './pages/Auth';
-import CreatorSignup from './pages/CreatorSignup';
-import CreatorProfileSetup from './pages/CreatorProfileSetup';
-import BusinessProfileSetup from './pages/BusinessProfileSetup';
-import CreatorDashboard from './pages/CreatorDashboard';
-import BusinessDashboard from './pages/BusinessDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import ProfileSettings from './pages/ProfileSettings';
-import CampaignDetails from './pages/CampaignDetails';
-import MessagesPage from './pages/MessagesPage';
-import ChatPage from './pages/ChatPage';
-import WorkSubmission from './pages/WorkSubmission';
-import WorkReview from './pages/WorkReview';
-import PayoutWithLayout from './pages/PayoutWithLayout';
-import ShipmentTracking from './pages/ShipmentTracking';
-import BrowseBriefs from './pages/BrowseBriefs';
-import MyDealsPage from './pages/MyDealsPage';
-import MyBidsPage from './pages/MyBidsPage';
-import MyActiveWorkPage from './pages/MyActiveWorkPage';
-import ReviewsPage from './pages/ReviewsPage';
-import PortfolioPage from './pages/PortfolioPage';
-import CreateGig from './pages/CreateGig';
-import AdminGigManagement from './pages/AdminGigManagement';
-import AdminProfiles from './pages/AdminProfiles';
-import AdminCampaigns from './pages/AdminCampaigns';
-import AdminWithdrawals from './pages/AdminWithdrawals';
-import AdminAllCampaigns from './pages/AdminAllCampaigns';
-import AdminUsers from './pages/AdminUsers';
-import AdminAssignments from './pages/AdminAssignments';
-import AdminFlaggedMessages from './pages/AdminFlaggedMessages';
-import AdminAnalytics from './pages/AdminAnalytics';
-import BrowseApprovedGigs from './pages/BrowseApprovedGigs';
-import GigDetailsPage from './pages/GigDetailsPage';
-import ApplicationsPage from './pages/ApplicationsPage';
 import AdminLayout from './components/AdminLayout';
 import { Toaster } from 'sonner';
+
+// ── Route-level code splitting ───────────────────────────────────────────────
+// Every page is lazy-loaded so a visitor only downloads the chunk for the route
+// they actually open. This keeps the giant dashboards (BusinessDashboard ~6.5k
+// lines, AdminDashboard ~5.2k lines) and all other pages OUT of the initial
+// homepage bundle. Three.js (the 3D logo) is already lazily loaded inside Landing.
+const Landing = lazy(() => import('./pages/Landing'));
+const CreatorLanding = lazy(() => import('./pages/CreatorLanding'));
+const Auth = lazy(() => import('./pages/Auth'));
+const CreatorSignup = lazy(() => import('./pages/CreatorSignup'));
+const CreatorProfileSetup = lazy(() => import('./pages/CreatorProfileSetup'));
+const BusinessProfileSetup = lazy(() => import('./pages/BusinessProfileSetup'));
+const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
+const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
+const CampaignDetails = lazy(() => import('./pages/CampaignDetails'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const WorkSubmission = lazy(() => import('./pages/WorkSubmission'));
+const WorkReview = lazy(() => import('./pages/WorkReview'));
+const PayoutWithLayout = lazy(() => import('./pages/PayoutWithLayout'));
+const ShipmentTracking = lazy(() => import('./pages/ShipmentTracking'));
+const BrowseBriefs = lazy(() => import('./pages/BrowseBriefs'));
+const MyDealsPage = lazy(() => import('./pages/MyDealsPage'));
+const MyBidsPage = lazy(() => import('./pages/MyBidsPage'));
+const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
+const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
+const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const CreateGig = lazy(() => import('./pages/CreateGig'));
+const AdminGigManagement = lazy(() => import('./pages/AdminGigManagement'));
+const AdminProfiles = lazy(() => import('./pages/AdminProfiles'));
+const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns'));
+const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
+const AdminAllCampaigns = lazy(() => import('./pages/AdminAllCampaigns'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminAssignments = lazy(() => import('./pages/AdminAssignments'));
+const AdminFlaggedMessages = lazy(() => import('./pages/AdminFlaggedMessages'));
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
+const BrowseApprovedGigs = lazy(() => import('./pages/BrowseApprovedGigs'));
+const GigDetailsPage = lazy(() => import('./pages/GigDetailsPage'));
+const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -82,6 +88,30 @@ axios.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Normalise FastAPI validation errors before they reach any catch block. FastAPI returns 422s as
+// `detail: [{ loc, msg, type }, ...]` (an ARRAY of objects); many call sites do
+// `toast.error(error.response?.data?.detail || '...')`, so without this the array/object is passed
+// straight to toast/JSX and React throws:
+//   "Objects are not valid as a React child (found: object with keys {loc, msg, type})".
+// Collapsing detail to a STRING here fixes every such call site at once (and any future ones).
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const data = error?.response?.data;
+    if (data && data.detail != null && typeof data.detail !== 'string') {
+      const d = data.detail;
+      let msg;
+      if (Array.isArray(d)) {
+        msg = d.map((x) => (typeof x === 'string' ? x : x?.msg)).filter(Boolean).join(', ');
+      } else if (typeof d === 'object') {
+        msg = d.msg;
+      }
+      data.detail = msg || 'Something went wrong';
+    }
+    return Promise.reject(error);
+  }
+);
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -156,6 +186,7 @@ function App() {
         <AuthProvider>
           <ScrollToTop />
           <Toaster position="top-right" richColors />
+          <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/creator" element={<CreatorLanding />} />
@@ -492,6 +523,7 @@ function App() {
               }
             />
           </Routes>
+          </Suspense>
         </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

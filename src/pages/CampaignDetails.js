@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, User, DollarSign, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -50,7 +51,7 @@ export default function CampaignDetails() {
       // Redirect to chat with the creator
       navigate(`/chat/${creatorId}`);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to select creator');
+      toast.error(apiErrorMessage(error, 'Failed to select creator'));
     }
   };
 
@@ -118,7 +119,7 @@ export default function CampaignDetails() {
       await new Promise(resolve => setTimeout(resolve, 300));
       await fetchCampaign();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit bid');
+      toast.error(apiErrorMessage(error, 'Failed to submit bid'));
     }
   };
 

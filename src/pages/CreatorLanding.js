@@ -25,25 +25,29 @@ import { motion } from 'framer-motion';
 
 // -- Static content (edit freely) ------------------------------------------
 
-// Brand "logo wall" -- wordmarks rendered with distinct typographic treatments
-// so the strip reads like a row of real logos (monochrome, neatly aligned).
+// Brand "logo wall" -- real client/brand logos shipped in /public/logo. Each renders inside a
+// light tile (see .cl-brands__logo) so mixed-background logos (transparent, white-bg, dark) all
+// read cleanly on the dark strip.
+// `dark: true` marks logos whose artwork is black/dark — they'd vanish on the dark strip, so
+// only those get flipped to white (see .cl-brands__logo--dark). Colored logos render untouched.
 const BRANDS = [
-  { name: 'YouTube', slug: 'youtube' },
-  { name: 'Instagram', slug: 'instagram' },
-  { name: 'Spotify', slug: 'spotify' },
-  { name: 'Meta', slug: 'meta' },
-  { name: 'Pinterest', slug: 'pinterest' },
-  { name: 'Snapchat', slug: 'snapchat' },
-  { name: 'Twitch', slug: 'twitch' },
-  { name: 'Discord', slug: 'discord' },
-  { name: 'Figma', slug: 'figma' },
-  { name: 'Vimeo', slug: 'vimeo' },
-  { name: 'Reddit', slug: 'reddit' },
-  { name: 'Stripe', slug: 'stripe' },
-  { name: 'Shopify', slug: 'shopify' },
-  { name: 'Dribbble', slug: 'dribbble' },
-  { name: 'Patreon', slug: 'patreon' },
-  { name: 'Behance', slug: 'behance' },
+  { name: 'Awfis', img: '/bg/Awfis-new-logo-removebg-preview.png', small: true },
+  { name: 'Daisen', img: '/bg/DAISEN-LOGO-PNG-2-1024x1024-removebg-preview.png' },
+  { name: 'Sephora', img: '/bg/Sephora-Logo.jpg-removebg-preview.png', dark: true },
+  { name: 'Amazon', img: '/bg/amazon-logo-amazon-logo-white-background-vector-format-avaliable-124289859-removebg-preview.png' },
+  { name: 'Paavi', img: '/bg/paavi-logo-1-removebg-preview.png' },
+  { name: 'Brand', img: '/bg/6b496a50-a54f-4a93-8156-4e1a7a99abe0-removebg-preview.png', dark: true },
+  { name: 'Brand', img: '/bg/6e758deba2689e4122853b0b5e079e8e.jpg-removebg-preview.png' },
+  { name: 'Brand', img: '/bg/ANI-20241114083006.jpg-removebg-preview.png', dark: true },
+  { name: 'Brand', img: '/bg/My-project-2024-04-08T145719.697-removebg-preview.png' },
+  { name: 'Brand', img: '/bg/cropped-229x30-1-removebg-preview.png', small: true },
+  { name: 'Brand', img: '/bg/cropped-og-1-removebg-preview.png', dark: true, large: true },
+  { name: 'Brand', img: '/bg/images__1___1_-removebg-preview.png', dark: true, large: true },
+  { name: 'Brand', img: '/bg/images__2___1_-removebg-preview.png', dark: true, large: true },
+  { name: 'Brand', img: '/bg/images__3___1_-removebg-preview.png' },
+  { name: 'Brand', img: '/bg/images__5_-removebg-preview.png' },
+  { name: 'Brand', img: '/bg/logo__1_-removebg-preview.png' },
+  { name: 'Brand', img: '/bg/unnamed-removebg-preview.png', dark: true },
 ];
 
 // Portrait thumbs for the hero gallery row -- local UGC clips from /public/creator.
@@ -403,24 +407,23 @@ export default function CreatorLanding() {
           variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.4 }} custom={1}
         >
           <div className="cl-brands__row">
-            {[BRANDS.slice(0, 8), BRANDS.slice(8)].map((line, li) => (
+            {(() => { const mid = Math.ceil(BRANDS.length / 2); return [BRANDS.slice(0, mid), BRANDS.slice(mid)]; })().map((line, li) => (
               <div key={li} className={`cl-brands__line${li === 0 ? ' cl-brands__line--top' : ' cl-brands__line--bottom'}`}>
                 {/* Items are duplicated so the mobile marquee loops seamlessly (translateX -50%).
                     The second set is hidden on desktop via .cl-brands__logo--dup. */}
-                {[...line, ...line].map(({ name, slug }, i) => (
+                {[...line, ...line].map(({ name, img, dark, small, large }, i) => (
                   <span
                     key={`${name}-${i}`}
-                    className={`cl-brands__logo${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
+                    className={`cl-brands__logo${dark ? ' cl-brands__logo--dark' : ''}${small ? ' cl-brands__logo--small' : ''}${large ? ' cl-brands__logo--large' : ''}${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
                     aria-hidden={i >= line.length}
                   >
                     <img
                       className="cl-brands__icon"
-                      src={`https://cdn.simpleicons.org/${slug}`}
+                      src={img}
                       alt={name}
                       loading="lazy"
-                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                      onError={(e) => { const t = e.currentTarget.closest('.cl-brands__logo'); if (t) t.style.display = 'none'; }}
                     />
-                    <span className="cl-brands__name">{name}</span>
                   </span>
                 ))}
               </div>
@@ -959,8 +962,8 @@ export default function CreatorLanding() {
         .cl-brand { display: inline-flex; align-items: center; gap: 9px; background: none;
           border: none; cursor: pointer; padding: 0; }
         /* Match the Landing navbar logo size: a tall stacked lockup that overflows the fixed bar. */
-        .cl-brand__logo { height: 132px; width: auto; flex: none; display: block;
-          margin-left: -24px; transform: translateY(-4px); }
+        .cl-brand__logo { height: 184px; width: auto; flex: none; display: block;
+          margin-left: -34px; transform: translateY(-4px); }
         /* Light theme: recolour the navy logo to the brand purple (dark theme unchanged). */
         .cl-root:not([data-theme="dark"]) .cl-brand__logo {
           filter: brightness(0) saturate(100%) invert(29%) sepia(95%) saturate(2462%)
@@ -1073,17 +1076,23 @@ export default function CreatorLanding() {
         /* Brand strip -- full grid of brand names */
         .cl-brands { position: relative; z-index: 1; padding: 4px 0;
           width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
-        .cl-brands__row { display: flex; flex-direction: column; align-items: center; gap: 48px;
-          max-width: 1500px; margin: 0 auto; padding: 110px 3% 40px; }
+        .cl-brands__row { display: flex; flex-direction: column; align-items: center; gap: 28px;
+          max-width: 1500px; margin: 0 auto; padding: 72px 3% 40px; }
         .cl-brands__line { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-evenly; gap: 20px; width: 100%; }
-        .cl-brands__line--bottom { justify-content: center; gap: 52px; }
-        .cl-brands__logo { display: inline-flex; align-items: center; gap: 11px;
-          line-height: 1; white-space: nowrap; opacity: 0.92;
-          color: rgba(var(--cl-fg),0.82) !important;
-          transition: color 0.2s, opacity 0.2s, transform 0.25s ease; }
-        .cl-brands__icon { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
-        .cl-brands__name { font-size: 1.2rem; font-weight: 600; color: inherit !important; }
-        .cl-brands__logo:hover { color: rgba(var(--cl-fg),0.98) !important; opacity: 1; transform: translateY(-3px); }
+        .cl-brands__line--bottom { justify-content: center; gap: 36px; }
+        /* Background-removed (transparent) client logos sit directly on the dark strip — no tile.
+           Only black/dark artwork (tagged .cl-brands__logo--dark) is flipped to white so it reads;
+           colored logos render as-is. */
+        .cl-brands__logo { display: inline-flex; align-items: center; justify-content: center;
+          flex-shrink: 0; height: 78px; padding: 0 12px; opacity: 0.9;
+          transition: opacity 0.2s, transform 0.25s ease; }
+        .cl-brands__icon { height: 62px; width: auto; max-width: 220px; object-fit: contain; flex-shrink: 0; }
+        /* Oversized wordmarks (awfis, KUKU FM) scaled down to sit in line with the rest. */
+        .cl-brands__logo--small .cl-brands__icon { height: 34px; }
+        /* Undersized wordmarks (UBALANCE, Cristello, EULER) scaled up to match the rest. */
+        .cl-brands__logo--large .cl-brands__icon { height: 82px; max-width: 260px; }
+        .cl-brands__logo--dark .cl-brands__icon { filter: brightness(0) invert(1); }
+        .cl-brands__logo:hover { opacity: 1; transform: translateY(-3px); }
         /* Duplicate logos exist only to feed the mobile marquee loop -- hidden on desktop. */
         .cl-brands__logo--dup { display: none; }
         @media (prefers-reduced-motion: reduce) { .cl-brands__line { animation: none !important; } }
@@ -1412,7 +1421,7 @@ export default function CreatorLanding() {
           .cl-nav__links, .cl-nav__actions { display: none; }
           .cl-nav__burger { display: inline-flex; }
           /* Match the Landing navbar logo size on mobile. */
-          .cl-brand__logo { height: 140px; margin-left: -24px; }
+          .cl-brand__logo { height: 184px; margin-left: -34px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
           .cl-blob { width: 300px !important; height: 300px !important; filter: blur(70px); }
@@ -1434,8 +1443,8 @@ export default function CreatorLanding() {
             align-self: flex-start; padding-right: 34px; will-change: transform; }
           .cl-brands__line--top { animation: clMarquee 24s linear infinite; }
           .cl-brands__line--bottom { animation: clMarqueeRight 24s linear infinite; }
-          .cl-brands__name { font-size: 1rem; }
-          .cl-brands__icon { width: 26px; height: 26px; }
+          .cl-brands__logo { height: 46px; padding: 0 10px; }
+          .cl-brands__icon { height: 32px; width: auto; max-width: 130px; }
           .cl-faq { grid-template-columns: 1fr; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); }
         }

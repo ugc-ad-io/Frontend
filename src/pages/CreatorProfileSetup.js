@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { useAuth } from '../App';
 import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Instagram, Check, Trash2, Pencil,
   PersonStanding, Dumbbell, Circle, Palette, PenLine, Mic, Drama, Video, Clapperboard, Sparkles, Camera,
@@ -427,14 +428,46 @@ export default function CreatorProfileSetup() {
     } else {
       // Final step → persist the creator profile to the backend, then show success.
       setSubmitting(true);
+      // Map the form state to the backend's CreatorProfileUpdate fields (tags/social_links/etc.)
+      // while keeping all the extra details (name, contact, equipment, languages, ...) — the
+      // backend now stores extras too. This populates the model fields so the app can read them
+      // consistently, and satisfies the required-ish fields so the submit doesn't 422.
+      const creatorPayload = {
+        ...data,
+        bio: data.bio || '',
+        tags: data.skills || [],
+        // Deployed backend types portfolio as List[str] — sending the raw objects 422s. Send
+        // string refs here; keep the full structured items under a separate (extra) key.
+        portfolio: (data.portfolio || [])
+          .map((p) => p.link || p.video || p.videoUrl || p.brand || '')
+          .filter(Boolean),
+        portfolio_items: data.portfolio || [],
+        social_links: {
+          ...Object.fromEntries(Object.entries(data.links || {}).filter(([, v]) => v && v.trim())),
+          ...Object.fromEntries(
+            (data.extraLinks || [])
+              .filter((l) => l.url && l.url.trim())
+              .map((l) => [String(l.platform || 'link').toLowerCase(), l.url])
+          ),
+        },
+        rate_card: {
+          last_salary: data.lastSalary || '',
+          expected_payout: data.expectedPayout || '',
+          payout_period: data.payoutPeriod || '',
+        },
+        availability_calendar: { weekly: data.weekly || '', flexible: !!data.flexible },
+        payment_methods: {},
+        receive_briefs: true,
+        terms_agreed: true,
+      };
       (async () => {
         try {
-          await axios.put(`${API}/profile/creator`, data);
+          await axios.put(`${API}/profile/creator`, creatorPayload);
           setUser({ ...user, profile_completed: true, approval_status: 'pending' });
           setSubmitted(true);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-          toast.error(error.response?.data?.detail || error.response?.data?.message || 'Failed to submit profile');
+          toast.error(apiErrorMessage(error, 'Failed to submit profile'));
         } finally {
           setSubmitting(false);
         }
@@ -1016,7 +1049,7 @@ export default function CreatorProfileSetup() {
 
       <header className="ps-topbar">
         <button className="ps-brand" onClick={() => navigate('/')}>
-          <img src="/newlogo.png" alt="UGCad.io" className="ps-brand__logo" />
+          <img src="/newlogo-tight.png" alt="UGCad.io" className="ps-brand__logo" />
         </button>
         <span className="ps-topbar__tag">Creator onboarding</span>
       </header>
@@ -1139,7 +1172,7 @@ export default function CreatorProfileSetup() {
         .ps-topbar { position: relative; z-index: 1; display: flex; align-items: center; gap: 16px;
           padding: 20px 7%; border-bottom: 1px solid rgba(255,255,255,0.06); }
         .ps-brand { display: inline-flex; align-items: center; gap: 10px; background: none; border: none; cursor: pointer; padding: 0; }
-        .ps-brand__logo { height: 40px; width: auto; display: block; }
+        .ps-brand__logo { height: 28px; width: auto; display: block; }
         .ps-brand__mark { width: 24px; height: 24px; border-radius: 7px;
           background: linear-gradient(135deg, #A78BFA, #7c3aed); box-shadow: 0 4px 16px rgba(167,139,250,0.55); }
         .ps-brand__name { color: #fff; font-size: 1.25rem; font-weight: 700; }

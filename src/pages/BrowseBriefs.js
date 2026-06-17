@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   Bookmark,
   Briefcase,
@@ -157,7 +158,7 @@ export default function BrowseBriefs() {
       setBidAmount(''); setProposal(''); setDeliveryDays('');
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to submit bid');
+      toast.error(apiErrorMessage(err, 'Failed to submit bid'));
     }
   };
 

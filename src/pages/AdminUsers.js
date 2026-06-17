@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '../utils/apiError';
 import { Users, Search, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
@@ -44,7 +45,7 @@ export default function AdminUsers() {
       setShowEditModal(false);
       fetchAllUsers();
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Failed to update user');
+      toast.error(apiErrorMessage(e, 'Failed to update user'));
     }
   };
 
@@ -66,7 +67,7 @@ export default function AdminUsers() {
       toast.success(`User ${action}ned successfully`);
       fetchAllUsers();
     } catch (e) {
-      toast.error(e.response?.data?.detail || `Failed to ${action} user`);
+      toast.error(apiErrorMessage(e, `Failed to ${action} user`));
     }
   };
 

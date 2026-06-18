@@ -423,8 +423,8 @@ export default function CreatorDashboard() {
                     {stat.trend}
                   </span>
                 </div>
-                <p>{stat.title}</p>
                 <h2>{stat.value}</h2>
+                <p>{stat.title}</p>
               </article>
             ))}
           </section>

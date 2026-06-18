@@ -9,6 +9,13 @@
   color: #07074e;
   font-family: var(--font-body);
   font-size: 14px;
+
+  /* Compact, SaaS-grade type scale — overrides the oversized global clamp() sizes
+     just inside the dashboard so other pages keep their scale. */
+  --fs-h1: 27px;   /* page title (was up to 48px) */
+  --fs-h2: 19px;   /* section / card titles (was up to 32px) */
+  --fs-h3: 15px;   /* component titles (was up to 22px) */
+  --fw-head: 600;  /* real semibold weight for hierarchy */
 }
 
 .pcd-shell *,
@@ -38,16 +45,20 @@
   font-family: var(--font-head);
 }
 
-/* Flatten all default heading and strong-tag boldness across the dashboard */
+/* Real weight hierarchy — headings semibold, strong tags medium.
+   (Previously everything was flattened to 400, which killed contrast.) */
 .pcd-shell h1,
 .pcd-shell h2,
 .pcd-shell h3,
 .pcd-shell h4,
 .pcd-shell h5,
-.pcd-shell h6,
+.pcd-shell h6 {
+  font-weight: var(--fw-head);
+}
+
 .pcd-shell strong,
 .pcd-shell b {
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .pcd-shell button,
@@ -381,7 +392,33 @@
 .pcd-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
+  gap: 20px;
+}
+
+/* Restrained fade-up entrance on the main dashboard sections */
+@keyframes pcd-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.pcd-content > .pcd-stat-grid,
+.pcd-content > .pcd-level-banner,
+.pcd-content > .pcd-table-card,
+.pcd-content > .pcd-dashboard-grid {
+  animation: pcd-fade-up 0.45s ease both;
+}
+
+.pcd-content > .pcd-level-banner { animation-delay: 0.05s; }
+.pcd-content > .pcd-table-card { animation-delay: 0.1s; }
+.pcd-content > .pcd-dashboard-grid { animation-delay: 0.15s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pcd-content > .pcd-stat-grid,
+  .pcd-content > .pcd-level-banner,
+  .pcd-content > .pcd-table-card,
+  .pcd-content > .pcd-dashboard-grid {
+    animation: none;
+  }
 }
 
 .pcd-card {
@@ -394,8 +431,14 @@
 .pcd-stat-card {
   position: relative;
   overflow: hidden;
-  min-height: 170px;
-  padding: 24px;
+  padding: 20px;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.pcd-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: #d7dbf0;
+  box-shadow: 0 8px 24px rgba(7, 7, 78, 0.08);
 }
 
 .pcd-stat-card::after,
@@ -405,48 +448,59 @@
 
 .pcd-stat-top {
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 28px;
+  gap: 12px;
+  margin-bottom: 16px;
   position: relative;
   z-index: 1;
 }
 
 .pcd-stat-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #f0f1ff;
+}
+
+.pcd-stat-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .pcd-trend {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
   background: #ecfdf5;
   color: #10b981;
-  font-size: 11px;
-  font-weight: 400;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pcd-trend svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pcd-stat-card h2 {
+  margin: 0 0 4px;
+  color: #1a1d3f;
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.1;
 }
 
 .pcd-stat-card p {
-  margin: 0 0 6px;
+  margin: 0;
   color: #6b7280;
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
-}
-
-.pcd-stat-card h2 {
-  margin: 0;
-  color: #1a1d3f;
-  font-size: 32px;
-  font-weight: 400;
-  line-height: 1.1;
 }
 
 .pcd-level-banner {
@@ -455,9 +509,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 40px;
+  gap: 28px;
   margin-top: 24px;
-  padding: 32px;
+  padding: 22px 24px;
   border-radius: 16px;
   background: linear-gradient(135deg, #07074e 0%, #1F1F4E 100%);
   box-shadow: 0 4px 12px rgba(7, 7, 78, 0.25);
@@ -495,23 +549,28 @@
 
 .pcd-level-main {
   flex: 1;
-  gap: 40px;
+  gap: 28px;
 }
 
 .pcd-level-title {
-  gap: 20px;
+  gap: 16px;
   flex: 0 0 auto;
 }
 
 .pcd-trophy {
-  width: 64px;
-  height: 64px;
+  width: 50px;
+  height: 50px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 14px;
   background: #fff;
   color: #f59e0b;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pcd-trophy svg {
+  width: 24px;
+  height: 24px;
 }
 
 .pcd-level-title p {
@@ -542,7 +601,7 @@
 .pcd-progress-block {
   flex: 1;
   max-width: 540px;
-  padding-left: 32px;
+  padding-left: 28px;
   border-left: 1px solid rgba(255, 255, 255, 0.22);
 }
 
@@ -580,13 +639,13 @@
 }
 
 .pcd-level-metrics {
-  min-width: 280px;
+  min-width: 260px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 20px;
-  border-radius: 20px;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(7, 7, 78, 0.22);
   color: #fff;
@@ -636,7 +695,7 @@
 .pcd-section-header {
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 32px;
+  padding: 18px 24px;
   border-bottom: 1px solid #f3f3ff;
 }
 
@@ -693,32 +752,40 @@
 }
 
 .pcd-table th {
-  padding: 16px 32px;
+  padding: 12px 24px;
   background: #f9fafb;
   color: #6b7280;
   font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .pcd-table td {
-  padding: 18px 32px;
+  padding: 14px 24px;
   border-top: 1px solid #f3f4f6;
   color: #1a1d3f;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   white-space: nowrap;
 }
 
+.pcd-table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.pcd-table tbody tr:hover {
+  background: #fafbff;
+}
+
 .pcd-table td:first-child {
-  font-size: 14px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .pcd-table td button {
-  padding: 10px 20px;
+  padding: 8px 16px;
 }
 
 .pcd-status {
@@ -807,7 +874,7 @@
 
 .pcd-chart-label {
   fill: #9f9fd1;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 400;
 }
 
@@ -816,8 +883,8 @@
 }
 
 .pcd-update {
-  gap: 14px;
-  padding: 0 32px 22px;
+  gap: 12px;
+  padding: 0 24px 18px;
 }
 
 .pcd-update > span {
@@ -866,28 +933,32 @@
 .pcd-badges {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  padding: 0 32px 32px;
+  gap: 14px;
+  padding: 0 24px 24px;
 }
 
 .pcd-badge-card {
-  min-height: 160px;
-  padding: 22px 16px;
-  border-radius: 16px;
+  padding: 18px 16px;
+  border-radius: 14px;
   background: #f3f3ff;
   text-align: center;
 }
 
 .pcd-badge-card span {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  margin: 0 auto 14px;
+  margin: 0 auto 12px;
   border-radius: 50%;
   background: #fff;
   color: #7387ff;
   box-shadow: 0 4px 14px rgba(7, 7, 78, 0.06);
+}
+
+.pcd-badge-card span svg {
+  width: 20px;
+  height: 20px;
 }
 
 .pcd-badge-card h3 {
@@ -969,7 +1040,8 @@
 }
 
 .pcd-rate-list strong {
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .pcd-rate-list .positive {
@@ -1084,9 +1156,9 @@
 .pcd-campaign-card p {
   margin: 0;
   color: #9f9fd1;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1148,7 +1220,7 @@
 
 .pcd-campaign-card dt {
   color: #9f9fd1;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1158,8 +1230,8 @@
 .pcd-campaign-card dd {
   margin: 0;
   color: #07074e;
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   text-align: right;
   flex: 0 0 auto;
 }

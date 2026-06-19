@@ -219,6 +219,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
+  const [drafts, setDrafts] = useState([]);
   const [activeCampaigns, setActiveCampaigns] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
   const [completedCampaigns, setCompletedCampaigns] = useState([]);
@@ -276,12 +277,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   const fetchCampaigns = async () => {
     try {
-      const [response, dashboardRes] = await Promise.all([
+      const [response, dashboardRes, draftsRes] = await Promise.all([
         axios.get(`${API}/campaigns`),
-        axios.get(`${API}/business/dashboard`)
+        axios.get(`${API}/business/dashboard`),
+        axios.get(`${API}/campaigns?status=draft`).catch(() => ({ data: [] }))
       ]);
       const allCampaigns = response.data;
       setDashboardData(dashboardRes.data || null);
+      setDrafts((draftsRes.data || []).filter(c => c.business_id === user.id));
 
       // Filter to only show this business's campaigns
       const myCampaigns = allCampaigns.filter(c => c.business_id === user.id);
@@ -1284,6 +1287,34 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <strong>{completedCampaigns.length}</strong>
                 </div>
               </div>
+              {drafts.length > 0 && (
+                <div className="drafts-panel">
+                  <div className="drafts-panel-head">
+                    <h3><FileText size={18} /> Drafts ({drafts.length})</h3>
+                    <p>Unfinished briefs saved to your account. Pick up where you left off.</p>
+                  </div>
+                  <div className="drafts-list">
+                    {drafts.map(draft => (
+                      <div key={draft.id} className="draft-row" data-testid={`draft-${draft.id}`}>
+                        <div className="draft-row-main">
+                          <strong>{draft.title || 'Untitled brief'}</strong>
+                          <span className="draft-meta">
+                            {typeof draft.completion_percentage === 'number' ? `${draft.completion_percentage}% complete` : 'Draft'}
+                            {draft.product_category ? ` • ${draft.product_category}` : ''}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-primary draft-continue-btn"
+                          onClick={() => navigate(`/dashboard/business/post-brief?draft=${draft.id}`)}
+                        >
+                          <SquarePen size={16} /> Continue editing
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {loading ? (
                 <div className="all-campaigns-loading">Loading campaigns...</div>
               ) : campaigns.length === 0 ? (
@@ -2104,6 +2135,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
           min-height: 100vh;
           display: flex;
           background: #F3F3FF;
+
+          /* Compact, SaaS-grade type scale — overrides the oversized global clamp()
+             sizes just inside this dashboard (matches the creator dashboard). */
+          --fs-h1: 27px;   /* page title (was up to 48px) */
+          --fs-h2: 19px;   /* section / card titles (was up to 32px) */
+          --fs-h3: 15px;   /* component titles (was up to 22px) */
+          --fw-head: 600;  /* real semibold weight for hierarchy */
         }
 
         .business-sidebar {
@@ -2126,9 +2164,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 40px;
-          font-size: 20px;
-          font-weight: 400;
+          margin-bottom: 28px;
+          font-size: 18px;
+          font-weight: 600;
         }
 
         .business-sidebar-mark,
@@ -2381,6 +2419,63 @@ export default function BusinessDashboard({ page = 'overview' }) {
           padding-top: 8px;
         }
 
+        .drafts-panel {
+          background: #fff;
+          border: 1px solid #ececf1;
+          border-radius: 16px;
+          padding: 20px 22px;
+          margin-bottom: 22px;
+        }
+        .drafts-panel-head h3 {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 4px;
+          font-size: 17px;
+        }
+        .drafts-panel-head p {
+          margin: 0 0 14px;
+          color: #6b6b76;
+          font-size: 13px;
+        }
+        .drafts-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .draft-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 12px 14px;
+          border: 1px solid #eee;
+          border-radius: 12px;
+          background: #fafafb;
+        }
+        .draft-row-main {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .draft-row-main strong {
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .draft-meta {
+          font-size: 12px;
+          color: #8a8a93;
+        }
+        .draft-continue-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+
         .brand-search {
           position: relative;
           flex: 1;
@@ -2591,8 +2686,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .brand-metric-card strong {
           color: #07074E;
-          font-size: clamp(22px, 1.6vw, 28px);
-          font-weight: 400;
+          font-size: clamp(22px, 1.6vw, 27px);
+          font-weight: 600;
           line-height: 1.1;
           letter-spacing: -0.01em;
           overflow-wrap: anywhere;
@@ -4306,13 +4401,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .all-campaigns-section .stat-value {
+          display: block;
           min-width: 0;
-          overflow: hidden;
+          margin-top: 4px;
           color: #07074E;
           font-size: 14px;
           font-weight: 400;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          line-height: 1.35;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
 
         .all-campaigns-section .campaign-actions-row {
@@ -5057,15 +5154,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .wallet-hero-card {
-          min-height: 194px;
           display: flex;
           justify-content: space-between;
           gap: 24px;
-          padding: 36px;
-          border-radius: 28px;
+          padding: 24px;
+          border-radius: 20px;
           color: white;
           background: linear-gradient(135deg, #080866 0%, #171184 48%, #3938b8 100%);
-          box-shadow: 0 22px 50px rgba(7, 7, 78, 0.18);
+          box-shadow: 0 16px 40px rgba(7, 7, 78, 0.16);
         }
 
         .wallet-kicker {
@@ -5079,15 +5175,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .wallet-hero-card p {
-          margin: 24px 0 8px;
+          margin: 18px 0 6px;
           color: rgba(255, 255, 255, 0.66);
           font-weight: 400;
         }
 
         .wallet-hero-card h2 {
           margin: 0;
-          font-size: 60px;
-          line-height: 0.95;
+          font-size: 36px;
+          font-weight: 600;
+          line-height: 1;
           color: white;
         }
 
@@ -5563,7 +5660,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .work-review-stats strong {
           color: #07074E;
-          font-size: 28px;
+          font-size: 24px;
+          font-weight: 600;
         }
 
         .work-review-empty {

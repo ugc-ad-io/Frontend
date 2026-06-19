@@ -106,18 +106,34 @@ export default function WorkReview() {
 
         <div className="work-section">
           <h3>Submitted Files</h3>
+          {work.watermark_protected && (
+            <p className="watermark-note">🔒 Watermarked preview — the clean original is released to you after you approve.</p>
+          )}
           <div className="files-grid">
-            {work.work_files.map((file, idx) => (
-              <div key={idx} className="file-preview" data-testid={`file-${idx}`}>
-                <div className="file-icon">
-                  {file.includes('video') ? '🎥' : '🖼️'}
+            {(work.work_files || []).length === 0 && (
+              <p className="work-description">No files were attached to this submission.</p>
+            )}
+            {(work.work_files || []).map((file, idx) => {
+              const url = String(file).startsWith('http') ? file : `${BACKEND_URL}${file}`;
+              const ext = String(file).toLowerCase().split('?')[0].split('.').pop();
+              const isVideo = ['mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv'].includes(ext);
+              const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
+              return (
+                <div key={idx} className="file-preview" data-testid={`file-${idx}`}>
+                  {isVideo ? (
+                    <video src={url} controls controlsList="nodownload" className="file-media" />
+                  ) : isImage ? (
+                    <img src={url} alt={`Submission ${idx + 1}`} className="file-media" />
+                  ) : (
+                    <div className="file-icon">📎</div>
+                  )}
+                  <p className="file-name">{decodeURIComponent(String(file).split('/').pop() || `File ${idx + 1}`)}</p>
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="view-link">
+                    Open in new tab
+                  </a>
                 </div>
-                <p className="file-name">{file.split('/').pop()}</p>
-                <a href={file.startsWith('http') ? file : `${BACKEND_URL}${file}`} target="_blank" rel="noopener noreferrer" className="view-link">
-                  View File
-                </a>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -332,6 +348,26 @@ export default function WorkReview() {
         .file-icon {
           font-size: 3rem;
           margin-bottom: 12px;
+        }
+
+        .file-media {
+          width: 100%;
+          max-height: 240px;
+          object-fit: contain;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          background: #000;
+          display: block;
+        }
+
+        .watermark-note {
+          background: #fff7ed;
+          border: 1px solid #fed7aa;
+          color: #9a3412;
+          font-size: 0.85rem;
+          padding: 10px 14px;
+          border-radius: 8px;
+          margin-bottom: 14px;
         }
 
         .file-name {

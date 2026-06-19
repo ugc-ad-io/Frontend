@@ -23,10 +23,72 @@ export default function CampaignDetails() {
   const [showCreatorModal, setShowCreatorModal] = useState(false);
   const [creatorDetails, setCreatorDetails] = useState(null);
   const [loadingCreator, setLoadingCreator] = useState(false);
+  const [shortlist, setShortlist] = useState(null);
+  const [shortlistBusy, setShortlistBusy] = useState(false);
+  const [inviteTarget, setInviteTarget] = useState(null);
+  const [inviteMessage, setInviteMessage] = useState('');
 
   useEffect(() => {
     fetchCampaign();
   }, [id]);
+
+  // Brands on the "Request Matches" path get an ops-curated shortlist (PRD 5.4).
+  useEffect(() => {
+    if (!campaign || !user) return;
+    const owner = user.role === 'business' && campaign.business_id === user.id;
+    if (owner && campaign.match_status) fetchShortlist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?.id, campaign?.match_status, user?.id]);
+
+  const fetchShortlist = async () => {
+    try {
+      const res = await axios.get(`${API}/campaigns/${id}/shortlist`);
+      setShortlist(res.data);
+    } catch (error) {
+      // Non-fatal: the shortlist panel just stays hidden.
+    }
+  };
+
+  const handleInvite = async () => {
+    if (!inviteTarget) return;
+    setShortlistBusy(true);
+    try {
+      await axios.post(`${API}/campaigns/${id}/shortlist/${inviteTarget.creator_id}/invite`, {
+        message: inviteMessage,
+      });
+      toast.success('Invitation sent — opening chat with the creator…');
+      const creatorId = inviteTarget.creator_id;
+      setInviteTarget(null);
+      setInviteMessage('');
+      await fetchCampaign();
+      await fetchShortlist();
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      navigate(`/chat/${creatorId}`);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to send invitation'));
+    } finally {
+      setShortlistBusy(false);
+    }
+  };
+
+  const handleRequestNewShortlist = async () => {
+    setShortlistBusy(true);
+    try {
+      await axios.post(`${API}/campaigns/${id}/shortlist/request-new`);
+      toast.success('New shortlist requested — our team will curate fresh matches');
+      await fetchCampaign();
+      await fetchShortlist();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to request a new shortlist'));
+    } finally {
+      setShortlistBusy(false);
+    }
+  };
+
+  const shortlistMediaUrl = (path) => {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${BACKEND_URL}${path}`;
+  };
 
   const fetchCampaign = async () => {
     try {
@@ -138,6 +200,37 @@ export default function CampaignDetails() {
 
   return (
     <div className="campaign-details-page">
+      <style>{`
+        .shortlist-section { border: 1px solid #ececf1; border-radius: 16px; padding: 20px 22px; margin: 18px 0; background: #fff; }
+        .shortlist-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .shortlist-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; }
+        .shortlist-request-count { font-size: 12px; color: #8a8a93; background: #f3f3f6; padding: 3px 10px; border-radius: 999px; }
+        .shortlist-intro { color: #555; font-size: 13px; margin: 0 0 14px; }
+        .shortlist-state { background: #f8f8fb; border: 1px dashed #d9d9e2; border-radius: 12px; padding: 18px; color: #555; }
+        .shortlist-state-done { display: flex; align-items: center; gap: 10px; color: #1f8a4c; background: #eefaf1; border-color: #bfe6cd; }
+        .shortlist-state-done p, .shortlist-state p { margin: 0; }
+        .shortlist-hint { display: block; margin-top: 8px; font-size: 12px; color: #8a8a93; }
+        .shortlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+        .shortlist-card { border: 1px solid #ececf1; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: box-shadow .15s; }
+        .shortlist-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+        .shortlist-card.is-dismissed { opacity: .5; }
+        .shortlist-card.is-invited { border-color: #bfe6cd; background: #f6fcf8; }
+        .shortlist-card-head { display: flex; align-items: center; gap: 10px; }
+        .shortlist-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .shortlist-avatar-fallback { display: flex; align-items: center; justify-content: center; background: #6d5efc; color: #fff; font-weight: 600; }
+        .shortlist-name { font-weight: 600; font-size: 14px; }
+        .shortlist-cat { font-size: 12px; color: #8a8a93; }
+        .shortlist-badge { margin-left: auto; font-size: 11px; color: #1f8a4c; background: #eefaf1; padding: 2px 8px; border-radius: 999px; }
+        .shortlist-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .shortlist-meta span { font-size: 11px; color: #555; background: #f3f3f6; padding: 3px 8px; border-radius: 6px; }
+        .shortlist-note { font-size: 12px; font-style: italic; color: #6b6b76; margin: 0; }
+        .shortlist-card-actions { display: flex; gap: 8px; margin-top: auto; }
+        .shortlist-card-actions .btn-action-small { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; }
+        .shortlist-card-actions .btn-select-small { flex: 1; padding: 7px 10px; border: none; border-radius: 8px; background: #6d5efc; color: #fff; cursor: pointer; font-weight: 600; font-size: 13px; }
+        .shortlist-card-actions .btn-select-small:disabled { background: #c5c5cf; cursor: not-allowed; }
+        .shortlist-request-new { margin-top: 16px; background: none; border: none; color: #6d5efc; cursor: pointer; font-size: 13px; font-weight: 600; padding: 0; }
+        .shortlist-request-new:disabled { color: #b3b3bd; cursor: not-allowed; }
+      `}</style>
       <div className="page-header">
         <button className="back-btn" onClick={() => navigate(-1)} data-testid="back-btn">
           <ArrowLeft size={20} /> Back
@@ -237,6 +330,89 @@ export default function CampaignDetails() {
               </div>
             )}
 
+            {/* Curated Shortlist (Request Matches path) */}
+            {isBusiness && campaign.match_status && (
+              <div className="campaign-section shortlist-section">
+                <div className="shortlist-head">
+                  <h3><Star size={18} /> Curated Shortlist</h3>
+                  {shortlist?.shortlist_request_count > 0 && (
+                    <span className="shortlist-request-count">Request #{shortlist.shortlist_request_count}</span>
+                  )}
+                </div>
+
+                {campaign.match_status === 'fulfilled' ? (
+                  <div className="shortlist-state shortlist-state-done">
+                    <CheckCircle size={20} />
+                    <p>You've invited a creator from this shortlist. Track the conversation in your chats.</p>
+                  </div>
+                ) : !shortlist || !shortlist.candidates || shortlist.candidates.length === 0 ? (
+                  <div className="shortlist-state">
+                    <p>Our team is curating creator matches for this brief. You'll be notified as soon as your shortlist is ready.</p>
+                    {shortlist?.shortlist_request_count > 0 && (
+                      <span className="shortlist-hint">New shortlist requested — sit tight while we find fresh matches.</span>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <p className="shortlist-intro">Pick one creator to invite. Inviting sends a private offer and closes the rest of this shortlist.</p>
+                    <div className="shortlist-grid">
+                      {shortlist.candidates.map((cand) => {
+                        const c = cand.creator || {};
+                        const dismissed = cand.status === 'dismissed';
+                        const invited = cand.status === 'invited';
+                        return (
+                          <div key={cand.creator_id} className={`shortlist-card ${dismissed ? 'is-dismissed' : ''} ${invited ? 'is-invited' : ''}`}>
+                            <div className="shortlist-card-head">
+                              {c.profile_photo ? (
+                                <img src={shortlistMediaUrl(c.profile_photo)} alt="" className="shortlist-avatar" />
+                              ) : (
+                                <div className="shortlist-avatar shortlist-avatar-fallback">{(c.public_creator_id || 'C').slice(0, 1).toUpperCase()}</div>
+                              )}
+                              <div>
+                                <div className="shortlist-name">{c.public_creator_id || 'Creator'}</div>
+                                <div className="shortlist-cat">{c.primary_category || 'UGC Creator'}</div>
+                              </div>
+                              {invited && <span className="shortlist-badge">Invited</span>}
+                            </div>
+                            <div className="shortlist-meta">
+                              {c.city_tier && <span>{c.city_tier}</span>}
+                              {Array.isArray(c.languages) && c.languages.length > 0 && <span>{c.languages.slice(0, 3).join(', ')}</span>}
+                              {typeof c.deliverables_completed === 'number' && <span>{c.deliverables_completed} deliverables</span>}
+                              {c.content_style && <span>{c.content_style}</span>}
+                            </div>
+                            {cand.ops_note && <p className="shortlist-note">“{cand.ops_note}”</p>}
+                            <div className="shortlist-card-actions">
+                              <button
+                                className="btn-action-small"
+                                onClick={() => handleViewCreatorProfile(cand.creator_id)}
+                                title="View profile"
+                              >
+                                <User size={16} /> Profile
+                              </button>
+                              <button
+                                className="btn-select-small"
+                                disabled={shortlistBusy || dismissed || campaign.match_status === 'fulfilled'}
+                                onClick={() => { setInviteTarget(cand); setInviteMessage(''); }}
+                              >
+                                Invite
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      className="shortlist-request-new"
+                      disabled={shortlistBusy}
+                      onClick={handleRequestNewShortlist}
+                    >
+                      Not the right fit? Request a new shortlist
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Bids Section - Moved to main content area */}
             {isBusiness && campaign.bids && campaign.bids.length > 0 && (
             <div className="campaign-section">
@@ -323,6 +499,41 @@ export default function CampaignDetails() {
           {/* Sidebar content - bids moved to main area */}
         </div>
       </div>
+
+      {inviteTarget && (
+        <div className="modal-overlay" onClick={() => !shortlistBusy && setInviteTarget(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Invite Creator</h2>
+              <button className="modal-close" onClick={() => setInviteTarget(null)}>×</button>
+            </div>
+            <div className="bid-form">
+              <p style={{ marginTop: 0, color: '#555' }}>
+                Send a private invitation to <strong>{inviteTarget.creator?.public_creator_id || 'this creator'}</strong> for
+                <strong> {campaign.title}</strong>. The other shortlisted creators will be released.
+              </p>
+              <div className="form-group">
+                <label htmlFor="inviteMessage">Message to creator (optional)</label>
+                <textarea
+                  id="inviteMessage"
+                  value={inviteMessage}
+                  onChange={(e) => setInviteMessage(e.target.value)}
+                  placeholder="Add a personal note about why they're a great fit…"
+                  rows="4"
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setInviteTarget(null)} disabled={shortlistBusy}>
+                  Cancel
+                </button>
+                <button type="button" className="btn-primary" onClick={handleInvite} disabled={shortlistBusy}>
+                  {shortlistBusy ? 'Sending…' : 'Send Invitation'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showBidModal && (
         <div className="modal-overlay" onClick={() => setShowBidModal(false)}>

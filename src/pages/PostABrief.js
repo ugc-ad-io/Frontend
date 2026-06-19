@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -9,6 +9,7 @@ import { useAuth } from '../App';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
+const DRAFT_ID_KEY = 'ugcad-brand-brief-draft-id-v2';
 const COMMISSION_RATE = 0.25;
 const LISTING_FEE = 500;
 
@@ -134,8 +135,48 @@ const addDays = (dateString, days) => {
   return date.toISOString().slice(0, 10);
 };
 
+// Best-effort restore of a server-saved draft into the rich brief form.
+// localStorage holds full fidelity on the same device; this fills the key
+// top-level fields so a draft can be resumed from the dashboard / another device.
+function mapCampaignToForm(c) {
+  if (!c || typeof c !== 'object') return {};
+  const out = {};
+  const put = (key, value) => { if (value !== undefined && value !== null && value !== '') out[key] = value; };
+  put('campaignName', c.title);
+  put('brandName', c.brand_name);
+  put('category', c.product_category || c.category);
+  put('productName', c.product_name);
+  put('productDescription', c.product_description);
+  put('campaignHook', c.campaign_hook);
+  put('keyMessage', c.key_message);
+  if (Array.isArray(c.objectives) && c.objectives.length) out.objectives = c.objectives;
+  put('finalDeliveryBy', c.final_delivery_by || c.due_date || c.deadline);
+  put('creatorLevel', c.creator_level);
+  put('qualityTier', c.content_quality_tier);
+  put('genderPreference', c.gender_preference);
+  put('cityFilter', c.city_filter);
+  if (Array.isArray(c.creator_niche_tags) && c.creator_niche_tags.length) out.nicheTags = c.creator_niche_tags;
+  if (Array.isArray(c.tone_tags) && c.tone_tags.length) out.tones = c.tone_tags;
+  const revisions = c.free_revisions ?? c.revision_limit;
+  if (revisions !== undefined && revisions !== null) out.revisions = Number(revisions) || 0;
+  const bMin = Number(c.budget_min || 0);
+  const bMax = Number(c.per_video_budget || c.budget_max || 0);
+  if (bMax > 0) {
+    if (bMin && bMin !== bMax) {
+      out.budgetMode = 'range';
+      out.budgetMin = String(bMin);
+      out.budgetMax = String(bMax);
+    } else {
+      out.budgetMode = 'fixed';
+      out.fixedBudget = String(bMax);
+    }
+  }
+  return out;
+}
+
 export default function PostABrief() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initialForm);
@@ -143,6 +184,8 @@ export default function PostABrief() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [publishMode, setPublishMode] = useState('matches');
   const [draftSavedAt, setDraftSavedAt] = useState('');
+  const [draftId, setDraftId] = useState(() => localStorage.getItem(DRAFT_ID_KEY) || null);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(DRAFT_KEY);
@@ -167,6 +210,24 @@ export default function PostABrief() {
         setForm(current => ({ ...current, brandName: current.brandName || user?.nickname || user?.full_name || '' }));
       });
   }, [user?.id]);
+
+  // Resume a server-saved draft when arriving from the dashboard (?draft=<id>).
+  useEffect(() => {
+    const resumeId = searchParams.get('draft');
+    if (!resumeId) return;
+    setDraftId(resumeId);
+    localStorage.setItem(DRAFT_ID_KEY, resumeId);
+    axios.get(`${API}/campaigns/${resumeId}`)
+      .then(res => {
+        const mapped = mapCampaignToForm(res.data);
+        if (Object.keys(mapped).length) {
+          setForm(current => ({ ...current, ...mapped }));
+          toast.success('Draft loaded — continue where you left off');
+        }
+      })
+      .catch(() => toast.error('Could not load that draft'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   useEffect(() => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
@@ -256,9 +317,29 @@ export default function PostABrief() {
     setStep(Math.min(8, step + 1));
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
-    toast.success('Draft saved');
+    if (savingDraft) return;
+    setSavingDraft(true);
+    try {
+      const payload = buildPayload();
+      if (draftId) {
+        await axios.patch(`${API}/campaigns/${draftId}`, payload);
+      } else {
+        const res = await axios.post(`${API}/campaigns/draft`, payload);
+        const newId = res.data?.campaign_id;
+        if (newId) {
+          setDraftId(newId);
+          localStorage.setItem(DRAFT_ID_KEY, newId);
+        }
+      }
+      toast.success('Draft saved to your account');
+    } catch (error) {
+      // Server save failed, but the local copy is safe — let the user keep working.
+      toast.success('Draft saved on this device');
+    } finally {
+      setSavingDraft(false);
+    }
   };
 
   const handleHashtagsChange = (value) => {
@@ -295,50 +376,73 @@ export default function PostABrief() {
     ].join('\n');
   };
 
+  const buildPayload = () => {
+    const primaryDeliverable = form.deliverables[0] || {};
+    return {
+      title: form.campaignName,
+      brief_text: briefText(),
+      budget_min: form.budgetMode === 'fixed' ? budget : Number(form.budgetMin || 0),
+      budget_max: budget,
+      objectives: form.objectives,
+      requires_shipment: true,
+      shipment_required: true,
+      shipment_option: 'yes',
+      due_date: form.finalDeliveryBy,
+      deadline: form.finalDeliveryBy,
+      revision_limit: Number(form.revisions || 0),
+      product_name: form.productName,
+      product_category: form.category,
+      product_description: form.productDescription,
+      brief_type: primaryDeliverable.type,
+      campaign_hook: form.campaignHook,
+      key_message: form.keyMessage,
+      what_not_to_do: avoidRules,
+      tone_reference: form.pacing,
+      tone_tags: form.tones,
+      video_format: primaryDeliverable.type,
+      aspect_ratio: primaryDeliverable.aspectRatios?.[0],
+      duration_seconds: parseDurationSeconds(primaryDeliverable.duration),
+      additional_deliverables: form.deliverables.slice(1).map(item => `${item.quantity} x ${item.type}`),
+      free_revisions: Number(form.revisions || 0),
+      creator_level: form.creatorLevel,
+      content_quality_tier: form.qualityTier,
+      gender_preference: form.genderPreference,
+      city_filter: form.cityFilter,
+      creator_niche_tags: form.nicheTags,
+      per_video_budget: budget,
+      total_budget: budget,
+      currency: 'INR'
+    };
+  };
+
+  const clearDraftStorage = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(DRAFT_ID_KEY);
+    setDraftId(null);
+  };
+
   const publish = async () => {
     try {
       setSubmitting(true);
-      const primaryDeliverable = form.deliverables[0] || {};
-      const payload = {
-        status: 'pending_approval',
-        title: form.campaignName,
-        brief_text: briefText(),
-        budget_min: form.budgetMode === 'fixed' ? budget : Number(form.budgetMin || 0),
-        budget_max: budget,
-        objectives: form.objectives,
-        requires_shipment: true,
-        shipment_required: true,
-        shipment_option: 'yes',
-        due_date: form.finalDeliveryBy,
-        deadline: form.finalDeliveryBy,
-        revision_limit: Number(form.revisions || 0),
-        product_name: form.productName,
-        product_category: form.category,
-        product_description: form.productDescription,
-        brief_type: primaryDeliverable.type,
-        campaign_hook: form.campaignHook,
-        key_message: form.keyMessage,
-        what_not_to_do: avoidRules,
-        tone_reference: form.pacing,
-        tone_tags: form.tones,
-        video_format: primaryDeliverable.type,
-        aspect_ratio: primaryDeliverable.aspectRatios[0],
-        duration_seconds: parseDurationSeconds(primaryDeliverable.duration),
-        additional_deliverables: form.deliverables.slice(1).map(item => `${item.quantity} x ${item.type}`),
-        free_revisions: Number(form.revisions || 0),
-        creator_level: form.creatorLevel,
-        content_quality_tier: form.qualityTier,
-        gender_preference: form.genderPreference,
-        city_filter: form.cityFilter,
-        creator_niche_tags: form.nicheTags,
-        per_video_budget: budget,
-        total_budget: budget,
-        currency: 'INR'
-      };
-      const response = await axios.post(`${API}/campaigns`, payload);
-      localStorage.removeItem(DRAFT_KEY);
-      const submitted = response.data?.status === 'pending_approval';
-      toast.success(submitted ? 'Brief submitted for admin approval' : 'Brief saved as draft');
+      // PRD 5.2 Path B: "Request Matches" asks ops for a curated shortlist.
+      const payload = { ...buildPayload(), match_requested: publishMode === 'matches' };
+      let promoted = false;
+      if (draftId) {
+        // Promote the existing server draft instead of creating a duplicate.
+        try {
+          await axios.patch(`${API}/campaigns/${draftId}`, payload);
+          await axios.post(`${API}/campaigns/${draftId}/submit`);
+          promoted = true;
+        } catch (err) {
+          // Stale/missing draft (e.g. already submitted) — fall back to a fresh brief.
+          if (err?.response?.status !== 404) throw err;
+        }
+      }
+      if (!promoted) {
+        await axios.post(`${API}/campaigns`, { ...payload, status: 'pending_approval' });
+      }
+      clearDraftStorage();
+      toast.success('Brief submitted for admin approval');
       navigate(publishMode === 'invite' ? '/dashboard/business/pending-bids' : '/dashboard/business');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to publish brief'));
@@ -393,7 +497,7 @@ export default function PostABrief() {
             <div className="step-badge">Section {String.fromCharCode(64 + step)} of H</div>
             <div className="step-header">
               <h2>{STEPS[step - 1]}</h2>
-              <p>{draftSavedAt ? `Draft autosaved at ${draftSavedAt}` : 'Partial briefs are saved as drafts automatically.'}</p>
+              <p>{draftSavedAt ? `Autosaved on this device at ${draftSavedAt}${draftId ? ' · synced to your account' : ''}` : 'Partial briefs are saved as drafts automatically.'}</p>
             </div>
 
             {step === 1 && (
@@ -519,7 +623,7 @@ export default function PostABrief() {
           </div>
 
           <div className="pab-footer">
-            <button type="button" className="btn-secondary" onClick={saveDraft}><Save size={16} /> Save as Draft</button>
+            <button type="button" className="btn-secondary" onClick={saveDraft} disabled={savingDraft}><Save size={16} /> {savingDraft ? 'Saving…' : 'Save as Draft'}</button>
             <div className="pab-footer-actions">
               {step > 1 && <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}><ChevronLeft size={18} /> Back</button>}
               {step < 8 ? (

@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Users, Briefcase, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, DollarSign, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
+import { Users, Briefcase, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, IndianRupee, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminTopbar from '../components/AdminTopbar';
 
@@ -875,7 +875,7 @@ export default function AdminDashboard() {
                       { icon: <Users size={15} />, label: 'Profile approvals', count: pendingProfiles.length, to: '/dashboard/admin/profiles' },
                       { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
                       { icon: <FileText size={15} />, label: 'Gig approvals', count: pendingGigs.length, to: '/dashboard/admin/gig-management' },
-                      { icon: <DollarSign size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
+                      { icon: <IndianRupee size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
                     ].map((row) => (
                       <li key={row.label} onClick={() => navigate(row.to)} style={{ cursor: 'pointer' }}>
                         <span className="admin-feed-icon">{row.icon}</span>
@@ -893,7 +893,7 @@ export default function AdminDashboard() {
                       <button type="button" onClick={() => navigate('/dashboard/admin/applications')}><FileText size={16} /> Review applications</button>
                       <button type="button" onClick={() => navigate('/dashboard/admin/all-campaigns')}><Briefcase size={16} /> View all campaigns</button>
                       {user?.role === 'admin' && (
-                        <button type="button" onClick={() => navigate('/dashboard/admin/users')}><DollarSign size={16} /> Manage users &amp; wallets</button>
+                        <button type="button" onClick={() => navigate('/dashboard/admin/users')}><IndianRupee size={16} /> Manage users &amp; wallets</button>
                       )}
                       <button type="button" onClick={() => navigate('/dashboard/admin/broadcast')}><MessageSquare size={16} /> Send announcement</button>
                     </div>
@@ -1070,7 +1070,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="transactions-section">
-                <h3><DollarSign size={20} /> Payment Transactions</h3>
+                <h3><IndianRupee size={20} /> Payment Transactions</h3>
                 {paymentTransactions.length === 0 ? (
                   <p className="no-transactions">No transactions yet</p>
                 ) : (
@@ -2012,7 +2012,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .admin-dashboard {
           min-height: 100vh;
           display: flex;

@@ -41,8 +41,8 @@ export default function WorkReview() {
 
   const handleApprove = async () => {
     try {
-      await axios.post(`${API}/work/${workId}/approve`);
-      toast.success('Work approved and payment released!');
+      const res = await axios.post(`${API}/work/${workId}/approve`);
+      toast.success(res.data?.message || 'Content approved. The creator has been paid.');
       setShowReviewModal(true);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to approve work'));
@@ -230,7 +230,7 @@ export default function WorkReview() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .work-review-page {
           min-height: 100vh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);

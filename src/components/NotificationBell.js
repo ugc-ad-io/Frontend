@@ -162,7 +162,7 @@ const NotificationBell = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .notification-bell-container {
           position: relative;
         }

@@ -83,7 +83,7 @@ export default function AdminAllCampaigns() {
                 </div>
                 <div className="aac-card-body">
                   <p><strong>Business:</strong> {c.business_nickname || '—'}</p>
-                  <p><strong>Budget:</strong> ${c.budget_min} - ${c.budget_max}</p>
+                  <p><strong>Budget:</strong> ₹{c.budget_min} - ₹{c.budget_max}</p>
                   <p><strong>Brief:</strong> {c.brief_text?.substring(0, 150)}{c.brief_text?.length > 150 ? '...' : ''}</p>
                   <p><strong>Created:</strong> {new Date(c.created_at).toLocaleDateString()}</p>
                 </div>
@@ -93,7 +93,7 @@ export default function AdminAllCampaigns() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .aac-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .aac-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
         .aac-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }

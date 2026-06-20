@@ -10,7 +10,7 @@ import {
   Heart,
   Share2,
   MessageCircle,
-  DollarSign,
+  IndianRupee,
   Calendar,
   Award
 } from 'lucide-react';
@@ -247,7 +247,7 @@ export default function BrowseApprovedGigs() {
               {/* Budget and CTA */}
               <div className="gig-footer">
                 <div className="gig-budget">
-                  <DollarSign size={16} />
+                  <IndianRupee size={16} />
                   <span className="budget-amount">{gig.budget}</span>
                 </div>
                 <button

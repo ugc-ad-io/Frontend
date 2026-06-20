@@ -854,7 +854,7 @@ export default function BrandWelcomePage() {
 
                           <div className="gig-footer">
                             <div className="gig-budget">
-                              <span className="budget-amount">${gig.budget || '0'}</span>
+                              <span className="budget-amount">₹{gig.budget || '0'}</span>
                             </div>
                             <button className="gig-cta-button">
                               <span>View Gig</span>

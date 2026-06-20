@@ -1,4 +1,4 @@
-import { TrendingUp, FileText, Users, Briefcase, DollarSign, Download, UserPlus, BarChart, AlertTriangle } from 'lucide-react';
+import { TrendingUp, FileText, Users, Briefcase, IndianRupee, Download, UserPlus, BarChart, AlertTriangle } from 'lucide-react';
 
 function AdminSidebar({ activeTab, onTabClick, user }) {
   const adminTabs = [
@@ -7,7 +7,7 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
     { id: 'profiles', label: 'Profiles', icon: Users, testId: 'tab-profiles', slug: 'profiles' },
     { id: 'campaigns', label: 'Campaigns', icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
     { id: 'gigs', label: 'Gig Management', icon: Briefcase, testId: 'tab-gigs', slug: 'gigs' },
-    { id: 'withdrawals', label: 'Withdrawals', icon: DollarSign, testId: 'tab-withdrawals', slug: 'withdrawals' },
+    { id: 'withdrawals', label: 'Withdrawals', icon: IndianRupee, testId: 'tab-withdrawals', slug: 'withdrawals' },
     { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns', slug: 'all-campaigns' },
     { id: 'users', label: 'Users', icon: Users, testId: 'tab-users', slug: 'users' },
     { id: 'assignments', label: 'Assignments', icon: UserPlus, testId: 'tab-assignments', slug: 'assignments' },

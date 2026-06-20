@@ -95,29 +95,57 @@ function PortfolioMedia({ url, index }) {
   return <img src={fallbackUrl || assetUrl} alt={`Portfolio item ${index + 1}`} loading="lazy" onError={loadWithAuth} />;
 }
 
-// Convert legacy string entries to objects, leave object entries as-is
+const EMPTY_ITEM = { urls: [], title: '', description: '', project_cost: '', project_duration: '' };
+
+function isUsableMediaUrl(u) {
+  return typeof u === 'string' && (/^https?:\/\//i.test(u) || u.startsWith('/'));
+}
+
+// Normalize the various portfolio item shapes into the card shape the page renders:
+//  - legacy string entries (a bare URL)
+//  - page-added items: { urls|url, title, description, project_cost, project_duration }
+//  - signup items:      { brand, desc, link, video, videoUrl }
 function normalizePortfolio(items) {
   if (!Array.isArray(items)) return [];
   return items.map((item) => {
-    if (!item) return { urls: [], title: '', description: '', project_cost: '', project_duration: '' };
+    if (!item) return EMPTY_ITEM;
     if (typeof item === 'string') {
-      return { urls: [item], title: '', description: '', project_cost: '', project_duration: '' };
+      return { ...EMPTY_ITEM, urls: isUsableMediaUrl(item) ? [item] : [] };
     }
-    if (typeof item !== 'object') {
-      return { urls: [], title: '', description: '', project_cost: '', project_duration: '' };
+    if (typeof item !== 'object') return EMPTY_ITEM;
+
+    let urls = Array.isArray(item.urls)
+      ? item.urls.filter(isUsableMediaUrl)
+      : (isUsableMediaUrl(item.url) ? [item.url] : []);
+    // Signup shape stores the uploaded media under videoUrl/link/video.
+    if (!urls.length) {
+      urls = [item.videoUrl, item.link, item.video].filter(isUsableMediaUrl);
     }
-    // Migrate old single-url items to urls array
-    const urls = Array.isArray(item.urls)
-      ? item.urls.filter((u) => typeof u === 'string')
-      : (typeof item.url === 'string' ? [item.url] : []);
     return {
       urls,
-      title: typeof item.title === 'string' ? item.title : '',
-      description: typeof item.description === 'string' ? item.description : '',
+      title: (typeof item.title === 'string' && item.title) ? item.title : (typeof item.brand === 'string' ? item.brand : ''),
+      description: (typeof item.description === 'string' && item.description) ? item.description : (typeof item.desc === 'string' ? item.desc : ''),
       project_cost: typeof item.project_cost === 'string' ? item.project_cost : '',
       project_duration: typeof item.project_duration === 'string' ? item.project_duration : ''
     };
   });
+}
+
+// The portfolio can live in several places depending on how it was created:
+// top-level `portfolio` (page-added), or nested signup data under
+// `profile.portfolio_items` / `profile.portfolio`. Merge them, de-duped by media URL.
+function collectPortfolio(source) {
+  if (!source) return [];
+  const fromTop = normalizePortfolio(source.portfolio);
+  const fromItems = normalizePortfolio(
+    (Array.isArray(source.portfolio_items) && source.portfolio_items.length && source.portfolio_items)
+    || source.profile?.portfolio_items
+    || source.profile?.portfolio
+    || []
+  );
+  const seen = new Set(fromTop.map((i) => i.urls[0]).filter(Boolean));
+  const merged = [...fromTop, ...fromItems.filter((i) => i.urls[0] && !seen.has(i.urls[0]))];
+  return merged.filter((i) => i.urls.length > 0);
 }
 
 export default function PortfolioPage() {
@@ -150,11 +178,27 @@ export default function PortfolioPage() {
     { name: 'Settings', icon: Settings, action: () => navigate('/settings') },
   ];
 
-  // Load portfolio from user once; we don't auto-refresh from /auth/me to avoid races
+  // Seed from context immediately, then refresh from /auth/me (which returns the
+  // full doc incl. nested signup portfolio) so signup-uploaded work shows up too.
   useEffect(() => {
-    setPortfolio(normalizePortfolio(user?.portfolio));
-    setLoading(false);
-  }, [user?.portfolio]);
+    setPortfolio(collectPortfolio(user));
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/auth/me`);
+        if (!cancelled) {
+          setPortfolio(collectPortfolio(res.data));
+          if (setUser) setUser(res.data);
+        }
+      } catch (error) {
+        // keep the context-seeded list
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const resetForm = () => {
     setFormData({ urls: [], title: '', description: '', project_cost: '', project_duration: '' });
@@ -401,7 +445,7 @@ export default function PortfolioPage() {
                   <label>Project Cost</label>
                   <input
                     type="text"
-                    placeholder="e.g., $200-$400"
+                    placeholder="e.g., ₹200-₹400"
                     value={formData.project_cost}
                     onChange={(e) => setFormData((prev) => ({ ...prev, project_cost: e.target.value }))}
                     maxLength={50}

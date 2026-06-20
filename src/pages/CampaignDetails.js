@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { ArrowLeft, User, DollarSign, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
+import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -105,7 +105,7 @@ export default function CampaignDetails() {
   const handleSelectCreator = async (creatorId) => {
     try {
       const response = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${creatorId}`);
-      toast.success(`🎉 ${response.data.creator_nickname} selected! Payment of $${response.data.amount} held in escrow. Opening chat...`);
+      toast.success(`🎉 ${response.data.creator_nickname} selected! Payment of ₹${response.data.amount} held in escrow. Opening chat...`);
       
       // Wait a moment for the toast to be visible
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -267,7 +267,7 @@ export default function CampaignDetails() {
                   <div className="bid-submitted-details">
                     <div className="detail-row">
                       <span className="detail-label">Your Bid Amount:</span>
-                      <span className="detail-value">${userBid?.amount}</span>
+                      <span className="detail-value">₹{userBid?.amount}</span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Estimated Delivery:</span>
@@ -294,8 +294,8 @@ export default function CampaignDetails() {
                 <span>Posted by {campaign.business_nickname}</span>
               </div>
               <div className="meta-item">
-                <DollarSign size={20} />
-                <span>Budget: ${campaign.budget_min} - ${campaign.budget_max}</span>
+                <IndianRupee size={20} />
+                <span>Budget: ₹{campaign.budget_min} - ₹{campaign.budget_max}</span>
               </div>
               {campaign.requires_shipment && (
                 <div className="meta-item">
@@ -435,7 +435,7 @@ export default function CampaignDetails() {
                         <div className="bid-info">
                           <div className="bid-creator-name">{bid.creator_nickname}</div>
                           <div className="bid-meta-inline">
-                            <span className="bid-amount-inline">${bid.amount}</span>
+                            <span className="bid-amount-inline">₹{bid.amount}</span>
                             <span className="bid-separator">•</span>
                             <span className="bid-delivery"><Calendar size={14} /> {bid.estimated_delivery_days} days</span>
                           </div>
@@ -556,7 +556,7 @@ export default function CampaignDetails() {
                   required
                   data-testid="bid-amount-input"
                 />
-                <small>Budget range: ${campaign.budget_min} - ${campaign.budget_max}</small>
+                <small>Budget range: ₹{campaign.budget_min} - ₹{campaign.budget_max}</small>
               </div>
               <div className="form-group">
                 <label htmlFor="deliveryDays">Estimated Delivery (days)</label>
@@ -751,19 +751,19 @@ export default function CampaignDetails() {
                       {creatorDetails.profile.rate_card.video_30s && (
                         <div className="rate-item">
                           <span>30s Video:</span>
-                          <span>${creatorDetails.profile.rate_card.video_30s}</span>
+                          <span>₹{creatorDetails.profile.rate_card.video_30s}</span>
                         </div>
                       )}
                       {creatorDetails.profile.rate_card.video_60s && (
                         <div className="rate-item">
                           <span>60s Video:</span>
-                          <span>${creatorDetails.profile.rate_card.video_60s}</span>
+                          <span>₹{creatorDetails.profile.rate_card.video_60s}</span>
                         </div>
                       )}
                       {creatorDetails.profile.rate_card.photo_post && (
                         <div className="rate-item">
                           <span>Photo Post:</span>
-                          <span>${creatorDetails.profile.rate_card.photo_post}</span>
+                          <span>₹{creatorDetails.profile.rate_card.photo_post}</span>
                         </div>
                       )}
                     </div>
@@ -775,7 +775,7 @@ export default function CampaignDetails() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .campaign-details-page {
           min-height: 100vh;
           background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);

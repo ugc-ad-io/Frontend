@@ -204,7 +204,7 @@ export default function ChatPage() {
         </form>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .chat-page {
           min-height: 100vh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);

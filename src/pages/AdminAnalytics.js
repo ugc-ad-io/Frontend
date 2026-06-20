@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { BarChart, DollarSign, Users, Briefcase, TrendingUp, Download } from 'lucide-react';
+import { BarChart, IndianRupee, Users, Briefcase, TrendingUp, Download } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -93,7 +93,7 @@ export default function AdminAnalytics() {
             <div className="aan-section-grid">
               <section className="aan-section">
                 <div className="aan-section-head">
-                  <DollarSign size={20} />
+                  <IndianRupee size={20} />
                   <h3>Revenue Metrics</h3>
                 </div>
                 <div className="aan-rows">
@@ -143,7 +143,7 @@ export default function AdminAnalytics() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .aan-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .aan-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
         .aan-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }

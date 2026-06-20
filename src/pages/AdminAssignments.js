@@ -169,7 +169,7 @@ export default function AdminAssignments() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .aas-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .aas-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
         .aas-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }

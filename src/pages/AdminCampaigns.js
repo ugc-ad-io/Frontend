@@ -81,7 +81,7 @@ export default function AdminCampaigns() {
                 </div>
                 <div className="ac-card-body">
                   <p><strong>Business:</strong> {campaign.business_nickname}</p>
-                  <p><strong>Budget:</strong> ${campaign.budget_min} - ${campaign.budget_max}</p>
+                  <p><strong>Budget:</strong> ₹{campaign.budget_min} - ₹{campaign.budget_max}</p>
                   <p><strong>Brief:</strong> {campaign.brief_text?.substring(0, 150)}{campaign.brief_text?.length > 150 ? '...' : ''}</p>
                   {campaign.objectives?.length > 0 && (
                     <>
@@ -107,7 +107,7 @@ export default function AdminCampaigns() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .ac-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .ac-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
         .ac-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }

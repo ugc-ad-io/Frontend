@@ -286,7 +286,7 @@ export default function CreateGig() {
               <fieldset>
                 <legend>Budget *</legend>
                 <div className="price-input">
-                  <span>$</span>
+                  <span>₹</span>
                   <input
                     type="number"
                     name="budget"
@@ -298,7 +298,7 @@ export default function CreateGig() {
                     required
                   />
                 </div>
-                <small>Budget amount in USD (must be greater than 0)</small>
+                <small>Budget amount in INR (must be greater than 0)</small>
               </fieldset>
 
               <fieldset>

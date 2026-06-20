@@ -191,7 +191,7 @@ export default function AdminUsers() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .au-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .au-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
         .au-header h1 { display: flex; align-items: center; gap: 12px; font-size: var(--fs-h1); font-weight: var(--fw-head); color: #07074e; margin: 0 0 6px; }

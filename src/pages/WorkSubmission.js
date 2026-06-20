@@ -172,7 +172,7 @@ export default function WorkSubmission() {
         </form>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .work-submission-page {
           min-height: 100vh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);

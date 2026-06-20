@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { CheckCircle, XCircle, DollarSign, Download } from 'lucide-react';
+import { CheckCircle, XCircle, IndianRupee, Download } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -71,7 +71,7 @@ export default function AdminWithdrawals() {
       <div className="aw-container">
         <div className="aw-header">
           <div>
-            <h1><DollarSign size={26} /> Pending Withdrawals</h1>
+            <h1><IndianRupee size={26} /> Pending Withdrawals</h1>
             <p>Review withdrawal requests and approve or refund</p>
           </div>
           <div className="aw-header-actions">
@@ -103,7 +103,7 @@ export default function AdminWithdrawals() {
                 </div>
                 <div className="aw-card-body">
                   <p><strong>User ID:</strong> {w.user_id}</p>
-                  <p><strong>Amount:</strong> ${w.amount?.toFixed(2)}</p>
+                  <p><strong>Amount:</strong> ₹{w.amount?.toFixed(2)}</p>
                   <p><strong>Payment Method:</strong> {w.payment_method}</p>
                   <p><strong>Requested:</strong> {new Date(w.requested_at).toLocaleDateString()}</p>
                 </div>
@@ -121,7 +121,7 @@ export default function AdminWithdrawals() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .aw-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .aw-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
         .aw-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }

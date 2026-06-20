@@ -431,9 +431,33 @@ export default function CreatorProfileSetup() {
       setPhotoUploading(false);
     }
   };
-  const onPickVideo = (e) => {
+  const onPickVideo = async (e) => {
     const file = e.target.files?.[0];
-    if (file) setData((d) => ({ ...d, pfVideo: file.name, pfVideoUrl: URL.createObjectURL(file) }));
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Video is too large. Maximum 50MB.');
+      return;
+    }
+    // Show an instant local preview, then upload so a real server URL is persisted
+    // (a local blob: ref is useless once the session ends — the portfolio page can
+    // only display an uploaded URL).
+    setData((d) => ({ ...d, pfVideo: file.name, pfVideoUrl: URL.createObjectURL(file) }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await axios.post(`${API}/upload/file`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      let url = res.data?.file_url || res.data?.url;
+      if (url && url.startsWith('/')) url = `${BACKEND_URL}${url}`;
+      if (url) {
+        setData((d) => ({ ...d, pfVideoUrl: url }));
+      } else {
+        toast.error('Video upload failed. Please try again.');
+      }
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Video upload failed'));
+    }
   };
 
   const back = () => { setShowErrors(false); setStep((s) => Math.max(1, s - 1)); };

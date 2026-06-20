@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { ArrowLeft, Package, Truck, Upload, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -33,6 +33,27 @@ export default function ShipmentTracking() {
     items_damaged: false,
     dispute_reason: ''
   });
+  const [unboxingFile, setUnboxingFile] = useState(null);
+  const [courierFile, setCourierFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Uploaded files come back as a relative "/uploads/..." path; absolute URLs
+  // (legacy/cloud) are used as-is.
+  const resolveMediaUrl = (u) => {
+    if (!u) return '';
+    if (/^https?:\/\//i.test(u)) return u;
+    return `${BACKEND_URL}${u.startsWith('/') ? '' : '/'}${u}`;
+  };
+
+  // Upload a real file to the backend and return its stored URL.
+  const uploadFile = async (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await axios.post(`${API}/upload/file`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.file_url;
+  };
 
   useEffect(() => {
     if (campaignId) {
@@ -64,8 +85,13 @@ export default function ShipmentTracking() {
 
   const handleUpdateShipment = async (e) => {
     e.preventDefault();
+    setUploading(true);
     try {
-      const courierSlip = `https://storage.example.com/courier/${Date.now()}.pdf`;
+      // Upload the courier slip if the business attached one (it's optional).
+      let courierSlip = '';
+      if (courierFile) {
+        courierSlip = await uploadFile(courierFile);
+      }
       await axios.post(`${API}/shipment/update`, {
         campaign_id: campaignId,
         tracking_number: shipmentData.tracking_number,
@@ -75,16 +101,25 @@ export default function ShipmentTracking() {
       });
       toast.success('Shipment details updated!');
       setShowUpdateModal(false);
+      setCourierFile(null);
       fetchShipment();
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to update shipment'));
+    } finally {
+      setUploading(false);
     }
   };
 
   const handleReceiveShipment = async (e) => {
     e.preventDefault();
+    if (!unboxingFile) {
+      toast.error('Please attach your unboxing video.');
+      return;
+    }
+    setUploading(true);
     try {
-      const unboxingVideo = `https://storage.example.com/unboxing/${Date.now()}.mp4`;
+      // Upload the real unboxing video and store its URL.
+      const unboxingVideo = await uploadFile(unboxingFile);
       await axios.post(`${API}/shipment/receive`, {
         campaign_id: campaignId,
         unboxing_video: unboxingVideo,
@@ -93,9 +128,12 @@ export default function ShipmentTracking() {
       });
       toast.success('Shipment marked as received!');
       setShowReceiveModal(false);
+      setUnboxingFile(null);
       fetchShipment();
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to mark as received'));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -114,6 +152,55 @@ export default function ShipmentTracking() {
 
   const isBusiness = user?.role === 'business' && campaign.business_id === user.id;
   const isCreator = user?.role === 'creator' && campaign.selected_creator === user.id;
+
+  // What-to-do-next guidance based on who is viewing and the shipment status.
+  const getNextSteps = () => {
+    const status = shipment?.status;
+    if (isCreator) {
+      if (status === 'received') {
+        return {
+          title: 'What to do next',
+          steps: [
+            'Create the content exactly as described in the brief.',
+            'Submit your work for review from "My Active Work".',
+            'Wait for the brand to approve it — your payment is released on approval.',
+          ],
+        };
+      }
+      return {
+        title: 'What to do next',
+        steps: [
+          'Watch for the package to arrive at your address.',
+          'Record an unboxing video as you open it (you may need it if anything is wrong).',
+          'Click "Mark as Received" once it arrives — report any damage or wrong item there.',
+          'Then create your content and submit it from "My Active Work".',
+        ],
+      };
+    }
+    if (isBusiness) {
+      if (status === 'received') {
+        return {
+          title: 'What to do next',
+          steps: [
+            'The creator has received the product.',
+            'Wait for them to submit the content, then review it.',
+            'Approve the work to release payment, or request changes.',
+          ],
+        };
+      }
+      return {
+        title: 'What to do next',
+        steps: [
+          'The product is on its way to the creator.',
+          'Wait for the creator to confirm receipt.',
+          'You can update the tracking details above if anything changes.',
+        ],
+      };
+    }
+    return null;
+  };
+
+  const nextSteps = getNextSteps();
 
   return (
     <div className="shipment-page">
@@ -170,7 +257,7 @@ export default function ShipmentTracking() {
                 {shipment.courier_slip && (
                   <div className="detail-item">
                     <span className="label">Courier Slip:</span>
-                    <a href={shipment.courier_slip} target="_blank" rel="noopener noreferrer" className="link">
+                    <a href={resolveMediaUrl(shipment.courier_slip)} target="_blank" rel="noopener noreferrer" className="link">
                       View Document
                     </a>
                   </div>
@@ -214,7 +301,7 @@ export default function ShipmentTracking() {
             {shipment.unboxing_video && (
               <div className="detail-card">
                 <h3>Unboxing Video</h3>
-                <a href={shipment.unboxing_video} target="_blank" rel="noopener noreferrer" className="video-link">
+                <a href={resolveMediaUrl(shipment.unboxing_video)} target="_blank" rel="noopener noreferrer" className="video-link">
                   View Unboxing Video
                 </a>
               </div>
@@ -227,6 +314,20 @@ export default function ShipmentTracking() {
                   <strong>Dispute Reported</strong>
                   <p>{shipment.dispute.reason}</p>
                 </div>
+              </div>
+            )}
+
+            {nextSteps && (
+              <div className="next-steps" data-testid="next-steps">
+                <div className="next-steps-header">
+                  <ClipboardList size={22} />
+                  <h3>{nextSteps.title}</h3>
+                </div>
+                <ol className="next-steps-list">
+                  {nextSteps.steps.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
               </div>
             )}
 
@@ -320,17 +421,25 @@ export default function ShipmentTracking() {
                 </div>
               </div>
 
-              <div className="info-note">
-                <Upload size={20} />
-                <span>Courier slip will be automatically uploaded (mocked)</span>
+              <div className="form-group">
+                <label htmlFor="courier-file">Courier Slip (PDF or image — optional)</label>
+                <input
+                  id="courier-file"
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => setCourierFile(e.target.files?.[0] || null)}
+                  className="input-field"
+                  data-testid="courier-file-input"
+                />
+                {courierFile && <span className="file-name">{courierFile.name}</span>}
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowUpdateModal(false)}>
+                <button type="button" className="btn-secondary" onClick={() => setShowUpdateModal(false)} disabled={uploading}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" data-testid="submit-shipment-btn">
-                  Update Shipment
+                <button type="submit" className="btn-primary" data-testid="submit-shipment-btn" disabled={uploading}>
+                  {uploading ? 'Uploading…' : 'Update Shipment'}
                 </button>
               </div>
             </form>
@@ -344,9 +453,18 @@ export default function ShipmentTracking() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Mark Shipment as Received</h2>
             <form onSubmit={handleReceiveShipment} className="receive-form">
-              <div className="info-note">
-                <Upload size={20} />
-                <span>Unboxing video will be automatically uploaded (mocked)</span>
+              <div className="form-group">
+                <label htmlFor="unboxing-file">Unboxing Video (max 50 MB, up to 30s)</label>
+                <input
+                  id="unboxing-file"
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setUnboxingFile(e.target.files?.[0] || null)}
+                  className="input-field"
+                  required
+                  data-testid="unboxing-file-input"
+                />
+                {unboxingFile && <span className="file-name">{unboxingFile.name}</span>}
               </div>
 
               <div className="form-group">
@@ -377,11 +495,11 @@ export default function ShipmentTracking() {
               )}
 
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowReceiveModal(false)}>
+                <button type="button" className="btn-secondary" onClick={() => setShowReceiveModal(false)} disabled={uploading}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" data-testid="submit-receive-btn">
-                  Confirm Receipt
+                <button type="submit" className="btn-primary" data-testid="submit-receive-btn" disabled={uploading}>
+                  {uploading ? 'Uploading…' : 'Confirm Receipt'}
                 </button>
               </div>
             </form>
@@ -389,7 +507,7 @@ export default function ShipmentTracking() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .shipment-page {
           min-height: 100vh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
@@ -614,6 +732,49 @@ export default function ShipmentTracking() {
           display: block;
           margin-bottom: 8px;
           font-size: 1.1rem;
+        }
+
+        .next-steps {
+          padding: 24px;
+          background: #f0fdf4;
+          border-radius: 16px;
+          border: 2px solid #86efac;
+          color: #14532d;
+        }
+
+        .next-steps-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .next-steps-header h3 {
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: #166534;
+          margin: 0;
+        }
+
+        .next-steps-list {
+          margin: 0;
+          padding-left: 22px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .next-steps-list li {
+          font-size: 0.98rem;
+          line-height: 1.5;
+        }
+
+        .file-name {
+          display: block;
+          margin-top: 8px;
+          font-size: 0.875rem;
+          color: #4a5568;
+          word-break: break-all;
         }
 
         .action-buttons {

@@ -144,7 +144,7 @@ export default function AdminFlaggedMessages() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .afm-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
         .afm-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
         .afm-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }

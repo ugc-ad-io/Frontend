@@ -268,7 +268,7 @@ export default function AdminProfiles() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .ap-container {
           padding: 32px 40px;
           max-width: 1480px;

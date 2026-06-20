@@ -10,6 +10,7 @@ import {
   Bookmark,
   Briefcase,
   CheckCheck,
+  CheckCircle,
   ChevronDown,
   Clock,
   FileCheck,
@@ -282,6 +283,10 @@ export default function MyDealsPage() {
 
   const handleSubmitReceipt = async () => {
     if (!selectedDeal?.deal_id) return;
+    if (!selectedDeal?.can_mark_received) {
+      toast.error('You can mark the product received only after the brand ships it.');
+      return;
+    }
     if (!unboxingVideoUrl && !selectedDeal?.receipt?.unboxing_video_url) {
       toast.error('Upload an unboxing video before marking received');
       return;
@@ -573,14 +578,16 @@ export default function MyDealsPage() {
               )}
             </DealCard>
 
-            <ShippingBlock
-              deal={selectedDeal}
-              unboxingVideoUrl={unboxingVideoUrl}
-              onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')}
-              onSubmitReceipt={handleSubmitReceipt}
-              uploading={uploadingFile === 'unboxing'}
-              onActionCard={handleActionCardRequest}
-            />
+            {(selectedDeal?.shipment?.required || selectedDeal?.campaign?.requires_shipment) && (
+              <ShippingBlock
+                deal={selectedDeal}
+                unboxingVideoUrl={unboxingVideoUrl}
+                onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')}
+                onSubmitReceipt={handleSubmitReceipt}
+                uploading={uploadingFile === 'unboxing'}
+                onActionCard={handleActionCardRequest}
+              />
+            )}
 
             {isDamageState(selectedDeal) && <DamageReportCard deal={selectedDeal} onActionCard={handleActionCardRequest} />}
 
@@ -722,8 +729,14 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
   const shipment = deal?.shipment || {};
   const receipt = deal?.receipt || {};
   const damaged = isDamageState(deal);
+  const received = Boolean(receipt.received_at);
+  const isShipped = ['shipped', 'in_transit', 'delivered'].includes(shipment.courier_status);
+  const hasVideo = Boolean(unboxingVideoUrl || receipt.unboxing_video_url);
   const hasCourierDetails = shipment.tracking_id || shipment.courier_status || shipment.expected_delivery_at || receipt.received_at;
-  const canSubmitReceipt = Boolean(deal?.can_mark_received && (unboxingVideoUrl || receipt.unboxing_video_url));
+  const canSubmitReceipt = Boolean(deal?.can_mark_received && hasVideo);
+  const submittedVideoUrl = receipt.unboxing_video_url
+    ? (String(receipt.unboxing_video_url).startsWith('http') ? receipt.unboxing_video_url : `${BACKEND_URL}${receipt.unboxing_video_url}`)
+    : null;
   return (
     <DealCard className="deal-shipping-card">
       <div className="deal-section-title">
@@ -745,13 +758,31 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
           <button type="button" onClick={() => onActionCard('Add Evidence')}>Add Evidence</button>
           <button type="button" onClick={() => onActionCard('Message Support')}>Message Support</button>
         </div>
+      ) : received ? (
+        <div className="deal-receipt-confirmed">
+          <p className="deal-receipt-done"><CheckCircle size={18} /> Product received on {formatDate(receipt.received_at)} — receipt confirmed.</p>
+          {submittedVideoUrl && (
+            <a className="deal-receipt-video-link" href={submittedVideoUrl} target="_blank" rel="noreferrer">View submitted unboxing video</a>
+          )}
+        </div>
       ) : (
         <>
           <button type="button" className="deal-secondary-action" disabled={!canSubmitReceipt} onClick={onSubmitReceipt}>Mark Received</button>
+          {!canSubmitReceipt && (
+            <p className="deal-helper-text">
+              {!hasCourierDetails
+                ? 'Available once the brand adds shipment tracking.'
+                : !isShipped
+                  ? 'Waiting for the brand to mark the package shipped.'
+                  : !hasVideo
+                    ? 'Upload your unboxing video to enable “Mark Received”.'
+                    : 'Ready — tap “Mark Received” to confirm.'}
+            </p>
+          )}
           <label>Upload Unboxing Video</label>
           <p className="deal-helper-text">Upload a short unboxing video showing package condition, opening, and product received.</p>
           <input type="file" id="unboxing-upload" accept="video/mp4,video/quicktime" onChange={(event) => onUpload(event.target.files?.[0])} />
-          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 150MB - Max 2 minutes" uploaded={Boolean(unboxingVideoUrl || receipt.unboxing_video_url)} onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
+          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 150MB - Max 2 minutes" uploaded={hasVideo} onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
         </>
       )}
     </DealCard>
@@ -780,6 +811,24 @@ function ContentSubmission({
   const needsThumbnail = Boolean(required.thumbnail);
   const needsRaw = Boolean(required.raw_footage);
   const canSubmit = canSubmitUploadedAssets(deal, { finalVideoUrl, captionUrl, thumbnailUrl, rawFootageUrl });
+  // Content production only begins once the deal reaches the content stage
+  // (for shipment deals that means the product must be received first).
+  const contentUnlocked = Boolean(deal?.can_submit_content);
+  const awaitingReceipt = Boolean(deal?.shipment?.required && !deal?.receipt?.received_at);
+  const currentState = deal?.current_state || '';
+  const latestVersion = versions.length ? versions[versions.length - 1] : null;
+  let lockReason;
+  if (awaitingReceipt) {
+    lockReason = 'Confirm you’ve received the product (in Shipping / Receipt above) before uploading your content.';
+  } else if (currentState.includes('Awaiting Review') || latestVersion?.status === 'submitted') {
+    lockReason = `You’ve submitted${latestVersion ? ` v${latestVersion.version}` : ''} — waiting for the brand to review your content.`;
+  } else if (currentState.includes('Paid') || currentState.includes('Complete') || latestVersion?.status === 'approved') {
+    lockReason = 'This deal is complete — your content was approved.';
+  } else if (deal?.primary_next_action) {
+    lockReason = `Next: ${deal.primary_next_action}.`;
+  } else {
+    lockReason = 'Content upload unlocks when it’s your turn to submit.';
+  }
 
   return (
     <DealCard className="deal-delivery-card">
@@ -788,27 +837,28 @@ function ContentSubmission({
         <div><h2>Content Submission</h2><p>{content.watermark_required_until_approval ? 'Watermarked preview until brand approval' : 'Brand approval rules loaded'}</p></div>
       </div>
       {content.watermark_required_until_approval && <div className="deal-watermark">Watermarked preview until brand approval</div>}
-      <UploadZone icon={Play} label="Final Video Upload" accept="MP4 - MOV" uploaded={Boolean(finalVideoUrl)} onClick={() => document.getElementById('video-file-real').click()} disabled={uploadingFile === 'video'} />
+      {!contentUnlocked && <div className="deal-locked-note"><ShieldAlert size={16} /> {lockReason}</div>}
+      <UploadZone icon={Play} label="Final Video Upload" accept="MP4 - MOV" uploaded={Boolean(finalVideoUrl)} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
       <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
       <div className="deal-asset-grid">
         {needsCaption && (
           <div>
             <label>Caption / Script Upload</label>
-            <UploadZone icon={FileText} label="Caption / Script" accept=".txt - .docx" uploaded={Boolean(captionUrl)} onClick={() => document.getElementById('caption-file-real').click()} disabled={uploadingFile === 'caption'} />
+            <UploadZone icon={FileText} label="Caption / Script" accept=".txt - .docx" uploaded={Boolean(captionUrl)} onClick={() => document.getElementById('caption-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'caption'} />
             <input type="file" id="caption-file-real" onChange={(event) => onUpload(event.target.files?.[0], setCaptionUrl, 'caption')} hidden />
           </div>
         )}
         {needsThumbnail && (
           <div>
             <label>Thumbnail Upload</label>
-            <UploadZone icon={Image} label="Thumbnail" accept="JPG - PNG" uploaded={Boolean(thumbnailUrl)} onClick={() => document.getElementById('thumb-file-real').click()} disabled={uploadingFile === 'thumb'} />
+            <UploadZone icon={Image} label="Thumbnail" accept="JPG - PNG" uploaded={Boolean(thumbnailUrl)} onClick={() => document.getElementById('thumb-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'thumb'} />
             <input type="file" id="thumb-file-real" accept="image/*" onChange={(event) => onUpload(event.target.files?.[0], setThumbnailUrl, 'thumb')} hidden />
           </div>
         )}
         {needsRaw && (
           <div>
             <label>Raw Footage Upload</label>
-            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4 - MOV" uploaded={Boolean(rawFootageUrl)} onClick={() => document.getElementById('raw-file-real').click()} disabled={uploadingFile === 'raw'} />
+            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4 - MOV" uploaded={Boolean(rawFootageUrl)} onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} />
             <input type="file" id="raw-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setRawFootageUrl, 'raw')} hidden />
           </div>
         )}

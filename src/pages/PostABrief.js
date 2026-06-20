@@ -442,7 +442,7 @@ export default function PostABrief() {
         await axios.post(`${API}/campaigns`, { ...payload, status: 'pending_approval' });
       }
       clearDraftStorage();
-      toast.success('Brief submitted for admin approval');
+      toast.success('Brief published — creators can see it now');
       navigate(publishMode === 'invite' ? '/dashboard/business/pending-bids' : '/dashboard/business');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to publish brief'));
@@ -673,7 +673,7 @@ export default function PostABrief() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .brief-builder-page {
           color: #07074E;
         }

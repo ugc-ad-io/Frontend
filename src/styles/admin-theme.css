@@ -1,18 +1,11 @@
 /* ============================================================
-   Admin Panel — Professional theme (refined light / Stripe-style)
-   ------------------------------------------------------------
-   The admin pages each ship their own inline <style> block with
-   slightly different colours, 2px borders, gradient text, and
-   shimmer animations — which reads as inconsistent / amateurish.
-   This file is the single source of truth for the admin look.
-
-   styled-jsx is NOT active in this CRA build, so those inline
-   blocks are global but use low-specificity (single-class)
-   selectors. Everything here is scoped under `.admin-dashboard`
-   so it wins on specificity and unifies every admin page.
+   Admin Panel — Professional compact theme
    ============================================================ */
 
+/* Shell layout */
 .admin-dashboard {
+  min-height: 100vh;
+  display: flex;
   /* Palette */
   --ad-bg: #f6f7f9;
   --ad-surface: #ffffff;
@@ -22,8 +15,14 @@
   --ad-text: #111827;
   --ad-text-2: #5b6573;
   --ad-text-muted: #98a1ad;
-  --ad-accent: #07074E;
-  --ad-accent-tint: #eef0f8;
+  /* Brand blue — shared with the creator + brand dashboards (#5b6bff/#4452f0)
+     so the admin reads as part of the same product, not an off-brand purple. */
+  --ad-accent: #5b6bff;
+  --ad-accent-strong: #4452f0;
+  --ad-accent-ring: rgba(91, 107, 255, 0.16);
+  --ad-accent-tint: #eef0ff;
+  /* Navy — reserved for the sidebar chrome (matches the brand dashboard). */
+  --ad-navy: #07074E;
 
   /* Status colours */
   --ad-ok-bg: #ecfdf3;     --ad-ok-fg: #067647;
@@ -41,18 +40,38 @@
   background: var(--ad-bg);
 }
 
+.admin-sidebar {
+  width: 220px;
+  min-width: 220px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 12px;
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ---------- Header ---------- */
 .admin-dashboard .dashboard-header {
   background: var(--ad-surface);
   border-bottom: 1px solid var(--ad-border);
   box-shadow: none;
-  padding: 18px 40px;
+  padding: 12px 24px;
   position: sticky;
   top: 0;
   z-index: 5;
 }
 .admin-dashboard .dashboard-header h1 {
-  font-size: 1.55rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--ad-text);
   margin: 0 0 2px;
@@ -60,7 +79,7 @@
 }
 .admin-dashboard .dashboard-header p {
   color: var(--ad-text-2);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   margin: 0;
 }
 
@@ -83,7 +102,8 @@
 
 /* ---------- Content shell ---------- */
 .admin-dashboard .dashboard-content {
-  padding: 32px 40px;
+  padding: 20px 24px;
+  flex: 1;
 }
 .admin-dashboard .tab-content {
   background: transparent;
@@ -95,7 +115,7 @@
 .admin-dashboard .section-header h2,
 .admin-dashboard .chats-section > h2,
 .admin-dashboard .broadcast-section > h2 {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ad-text);
   margin: 0 0 4px;
@@ -103,18 +123,19 @@
 }
 .admin-dashboard .section-description {
   color: var(--ad-text-2);
-  font-size: 0.9rem;
-  margin-bottom: 22px;
+  font-size: 0.82rem;
+  margin-bottom: 16px;
 }
 .admin-dashboard .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 /* ---------- Panels (top-level surfaces) ---------- */
+/* Keep cards compact — no large padding */
 .admin-dashboard .operator-section,
 .admin-dashboard .analytics-card,
 .admin-dashboard .stat-card,
@@ -134,7 +155,7 @@
   border-radius: var(--ad-radius);
   box-shadow: var(--ad-shadow-sm);
 }
-.admin-dashboard .operator-section { padding: 24px; }
+.admin-dashboard .operator-section { padding: 16px; }
 
 .admin-dashboard .operator-section:hover,
 .admin-dashboard .profile-card:hover,
@@ -238,21 +259,21 @@
 /* ---------- Analytics cards ---------- */
 .admin-dashboard .analytics-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-  margin-bottom: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.admin-dashboard .analytics-card { padding: 20px 22px; }
+.admin-dashboard .analytics-card { padding: 14px 16px; }
 .admin-dashboard .analytics-card:hover {
   transform: translateY(-2px);
   border-color: var(--ad-border-strong);
   box-shadow: var(--ad-shadow-md);
 }
 .admin-dashboard .analytics-card:hover .card-icon { transform: none; }
-.admin-dashboard .card-icon { width: 48px; height: 48px; border-radius: 10px; }
-.admin-dashboard .card-label { color: var(--ad-text-2); font-weight: 500; margin-bottom: 6px; }
-.admin-dashboard .card-value { color: var(--ad-text); font-size: 1.7rem; }
-.admin-dashboard .card-sub { color: var(--ad-text-muted); }
+.admin-dashboard .card-icon { width: 36px; height: 36px; border-radius: 8px; }
+.admin-dashboard .card-label { color: var(--ad-text-2); font-weight: 500; margin-bottom: 4px; font-size: 0.78rem; }
+.admin-dashboard .card-value { color: var(--ad-text); font-size: 1.35rem; font-weight: 700; }
+.admin-dashboard .card-sub { color: var(--ad-text-muted); font-size: 0.75rem; }
 
 /* ---------- Kill shimmer / sweep pseudo-elements everywhere ---------- */
 .admin-dashboard .analytics-card::after,
@@ -345,16 +366,16 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--ad-accent);
+  background: linear-gradient(135deg, var(--ad-accent) 0%, var(--ad-accent-strong) 100%);
   color: #fff;
-  border: 1px solid var(--ad-accent);
+  border: 1px solid transparent;
   border-radius: var(--ad-radius-sm);
   font-weight: 600;
   padding: 10px 18px;
-  box-shadow: var(--ad-shadow-sm);
-  transition: filter 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 8px 18px -8px rgba(91, 107, 255, 0.7);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
-.admin-dashboard .btn-primary:hover { filter: brightness(1.15); transform: none; }
+.admin-dashboard .btn-primary:hover { box-shadow: 0 12px 24px -8px rgba(91, 107, 255, 0.8); transform: translateY(-1px); }
 
 .admin-dashboard .btn-approve,
 .admin-dashboard .btn-reject {
@@ -407,7 +428,7 @@
 .admin-dashboard .textarea-field:focus {
   outline: none;
   border-color: var(--ad-accent);
-  box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.10);
+  box-shadow: 0 0 0 3px var(--ad-accent-ring);
 }
 .admin-dashboard .form-group label { font-weight: 600; color: var(--ad-text-2); font-size: 0.85rem; }
 
@@ -457,11 +478,21 @@
 }
 
 /* ---------- Sidebar polish ---------- */
-.admin-dashboard .admin-sidebar { box-shadow: var(--ad-shadow-md); }
+.admin-dashboard .admin-sidebar {
+  background: linear-gradient(190deg, #101046 0%, #0a0a30 100%);
+  box-shadow: var(--ad-shadow-md);
+}
 .admin-dashboard .admin-sidebar-mark,
-.admin-dashboard .admin-avatar { background: #5b5bd6; }
-.admin-dashboard .admin-nav-item { border-radius: 10px; }
-.admin-dashboard .admin-nav-item.active { box-shadow: var(--ad-shadow-sm); }
+.admin-dashboard .admin-avatar {
+  background: linear-gradient(140deg, var(--ad-accent) 0%, var(--ad-accent-strong) 100%);
+  box-shadow: 0 4px 10px -4px rgba(91, 107, 255, 0.7);
+}
+.admin-dashboard .admin-nav-item { border-radius: 7px; }
+.admin-dashboard .admin-nav-item.active {
+  color: #fff;
+  background: rgba(91, 107, 255, 0.85);
+  box-shadow: none;
+}
 
 /* ============================================================
    Structural shell — modelled on the Creasume reference admin
@@ -469,14 +500,14 @@
    Visuals stay on-brand; only the layout/structure is borrowed.
    ============================================================ */
 
-/* ---------- Topbar (user menu lives here, not the page title) ---------- */
+/* ---------- Topbar ---------- */
 .admin-dashboard .admin-topbar {
-  height: 60px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  padding: 0 28px;
+  padding: 0 20px;
   background: var(--ad-surface);
   border-bottom: 1px solid var(--ad-border);
   position: sticky;
@@ -544,70 +575,70 @@
 }
 .admin-dashboard .admin-user-menu-item:hover { background: var(--ad-danger-bg); }
 
-/* ---------- Page header (title moves into the content) ---------- */
+/* ---------- Page header ---------- */
 .admin-dashboard .page-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
+  gap: 12px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 .admin-dashboard .page-head h1 {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 700;
   margin: 0;
   color: var(--ad-text);
   letter-spacing: -0.01em;
 }
 .admin-dashboard .page-head p {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--ad-text-2);
-  font-size: 13px;
+  font-size: 12px;
 }
 
-/* ---------- Stat tiles (reference StatCard row) ---------- */
+/* ---------- Stat tiles ---------- */
 .admin-dashboard .stat-tiles {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 10px;
 }
 .admin-dashboard .stat-tile {
-  flex: 1 1 160px;
-  min-width: 160px;
+  flex: 1 1 130px;
+  min-width: 130px;
   background: var(--ad-surface);
   border: 1px solid var(--ad-border);
   border-radius: var(--ad-radius);
   box-shadow: var(--ad-shadow-sm);
-  padding: 18px 20px;
+  padding: 12px 14px;
 }
 .admin-dashboard .stat-tile .stat-tile-label {
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--ad-text-muted);
 }
 .admin-dashboard .stat-tile .stat-tile-value {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1;
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--ad-text);
 }
 .admin-dashboard .stat-tile .stat-tile-hint {
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--ad-text-2);
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
-/* ---------- Overview panels (activity list + quick actions) ---------- */
+/* ---------- Overview panels ---------- */
 .admin-dashboard .admin-overview-row {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
   align-items: flex-start;
-  margin-top: 22px;
+  margin-top: 16px;
 }
 .admin-dashboard .admin-panel {
   background: var(--ad-surface);
@@ -616,23 +647,24 @@
   box-shadow: var(--ad-shadow-sm);
 }
 .admin-dashboard .admin-panel-head {
-  padding: 15px 20px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--ad-border);
 }
-.admin-dashboard .admin-panel-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--ad-text); }
-.admin-dashboard .admin-panel-body { padding: 18px 20px; }
+.admin-dashboard .admin-panel-head h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--ad-text); }
+.admin-dashboard .admin-panel-body { padding: 12px 14px; }
 .admin-dashboard .admin-feed { list-style: none; margin: 0; padding: 0; }
 .admin-dashboard .admin-feed li {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 20px;
+  gap: 10px;
+  padding: 9px 14px;
   border-bottom: 1px solid var(--ad-border);
+  font-size: 13px;
 }
 .admin-dashboard .admin-feed li:last-child { border-bottom: none; }
 .admin-dashboard .admin-feed-icon {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--ad-accent-tint);
   color: var(--ad-accent);
@@ -641,21 +673,22 @@
   flex-shrink: 0;
 }
 .admin-dashboard .admin-feed-text { flex: 1; font-size: 13px; color: var(--ad-text); }
-.admin-dashboard .admin-feed-time { font-size: 11.5px; color: var(--ad-text-muted); }
-.admin-dashboard .admin-quick-actions { display: flex; flex-direction: column; gap: 8px; }
+.admin-dashboard .admin-feed-time { font-size: 11px; color: var(--ad-text-muted); }
+.admin-dashboard .admin-quick-actions { display: flex; flex-direction: column; gap: 6px; }
 .admin-dashboard .admin-quick-actions button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-start;
   width: 100%;
   border: 1px solid var(--ad-border);
   background: var(--ad-surface);
   color: var(--ad-text);
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: var(--ad-radius-sm);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
+  cursor: pointer;
 }
 .admin-dashboard .admin-quick-actions button:hover {
   border-color: var(--ad-accent);
@@ -663,8 +696,62 @@
   color: var(--ad-accent);
 }
 
-/* ---------- Sidebar brand + footer (reference structure) ---------- */
-.admin-dashboard .admin-sidebar-brand { height: 44px; margin-bottom: 18px; }
+/* ---------- Sidebar brand + nav ---------- */
+.admin-dashboard .admin-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-bottom: 16px;
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.admin-dashboard .admin-sidebar-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.admin-dashboard .admin-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-dashboard .admin-nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.4);
+  padding: 8px 10px 4px;
+}
+.admin-dashboard .admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  color: rgba(255,255,255,0.65);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, color 0.15s;
+}
+.admin-dashboard .admin-nav-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+.admin-dashboard .admin-sidebar-brand { height: 36px; margin-bottom: 16px; }
 .admin-dashboard .admin-sidebar-pill {
   margin-left: auto;
   font-size: 10.5px;
@@ -677,25 +764,33 @@
   color: rgba(255, 255, 255, 0.85);
 }
 .admin-dashboard .admin-sidebar-note {
-  padding-top: 18px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  color: #b7b7e6;
-  font-size: 11.5px;
+  color: rgba(255,255,255,0.35);
+  font-size: 10.5px;
   line-height: 1.5;
+}
+
+/* ---------- Tables compact ---------- */
+.admin-dashboard thead th {
+  padding: 9px 12px;
+}
+.admin-dashboard tbody td {
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}
+
+/* ---------- Primary button compact ---------- */
+.admin-dashboard .btn-primary {
+  padding: 7px 14px;
+  font-size: 13px;
 }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
-  .admin-dashboard .operator-metric-grid,
-  .admin-dashboard .operator-risk-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .admin-dashboard .operator-actions {
-    grid-template-columns: 1fr;
-  }
+  .admin-sidebar { width: 180px; min-width: 180px; }
 }
 @media (max-width: 768px) {
-  .admin-dashboard .dashboard-header,
-  .admin-dashboard .dashboard-content { padding-left: 20px; padding-right: 20px; }
-  .admin-dashboard .operator-section { padding: 18px; }
+  .admin-sidebar { display: none; }
+  .admin-dashboard .dashboard-content { padding: 16px; }
 }

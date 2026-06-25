@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import './BrowseApprovedGigs.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const GigCategoryIcon = ({ category }) => {
@@ -88,11 +88,18 @@ export default function BrowseApprovedGigs() {
   const fetchApprovedGigs = async () => {
     setLoading(true);
     try {
+      // NOTE: passing ?status=approved 400s — the backend's list validator only
+      // accepts UPPERCASE status enums while the stored data is lowercase. So we
+      // fetch without the status filter and keep only approved gigs client-side
+      // (case-insensitive, to be safe across either casing).
       const res = await axios.get(`${API}/gigs`, {
-        params: { status: 'approved', limit: 100 }
+        params: { limit: 100 }
       });
       const gigsData = res.data.data || res.data || [];
-      setGigs(gigsData);
+      const approved = gigsData.filter(
+        (gig) => (gig.status || '').toLowerCase() === 'approved'
+      );
+      setGigs(approved);
     } catch (error) {
       toast.error('Failed to load gigs');
       console.error(error);
@@ -174,7 +181,7 @@ export default function BrowseApprovedGigs() {
       ) : (
         <div className="gigs-grid">
           {filteredGigs.map(gig => (
-            <div key={gig.id} className="gig-card" onClick={() => navigate(`/gig/${gig.id}`)} style={{ cursor: 'pointer' }}>
+            <div key={gig.id} className="gig-card" onClick={() => navigate(`/gig/${gig._id || gig.id}`)} style={{ cursor: 'pointer' }}>
               {/* Creator Info Header */}
               <div className="gig-creator-header">
                 <div className="creator-avatar">
@@ -252,7 +259,7 @@ export default function BrowseApprovedGigs() {
                 </div>
                 <button
                   className="gig-cta-button"
-                  onClick={(e) => { e.stopPropagation(); navigate(`/gig/${gig.id}`); }}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/gig/${gig._id || gig.id}`); }}
                 >
                   View Gig
                 </button>

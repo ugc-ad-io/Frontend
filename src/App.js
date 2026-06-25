@@ -36,20 +36,28 @@ const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const CreateGig = lazy(() => import('./pages/CreateGig'));
+const MyGigsPage = lazy(() => import('./pages/MyGigsPage'));
 const AdminGigManagement = lazy(() => import('./pages/AdminGigManagement'));
-const AdminProfiles = lazy(() => import('./pages/AdminProfiles'));
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns'));
 const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
+const AdminDisputes = lazy(() => import('./pages/AdminDisputes'));
 const AdminAllCampaigns = lazy(() => import('./pages/AdminAllCampaigns'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminMyCreators = lazy(() => import('./pages/AdminMyCreators'));
 const AdminAssignments = lazy(() => import('./pages/AdminAssignments'));
 const AdminFlaggedMessages = lazy(() => import('./pages/AdminFlaggedMessages'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
-const BrowseApprovedGigs = lazy(() => import('./pages/BrowseApprovedGigs'));
+const AdminDeals = lazy(() => import('./pages/AdminDeals'));
+const AdminShipping = lazy(() => import('./pages/AdminShipping'));
+const AdminFinancials = lazy(() => import('./pages/AdminFinancials'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const AdminRoles = lazy(() => import('./pages/AdminRoles'));
+const AdminReports = lazy(() => import('./pages/AdminReports'));
+const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog'));
 const GigDetailsPage = lazy(() => import('./pages/GigDetailsPage'));
 const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export const AuthContext = createContext();
@@ -290,6 +298,14 @@ function App() {
               }
             />
             <Route
+              path="/my-gigs"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <MyGigsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/brand-home"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
@@ -338,10 +354,18 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/browse-gigs"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard page="browse-gigs" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/browse-approved-gigs"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BrowseApprovedGigs />
+                  <BusinessDashboard page="browse-gigs" />
                 </ProtectedRoute>
               }
             />
@@ -412,14 +436,6 @@ function App() {
               }
             />
             <Route
-              path="/dashboard/admin/profiles"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
-                  <AdminProfiles />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/dashboard/admin/campaigns"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
@@ -444,10 +460,26 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/admin/disputes"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminDisputes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/admin/users"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/my-creators"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminMyCreators />
                 </ProtectedRoute>
               }
             />
@@ -472,6 +504,70 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/deals"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminDeals />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/shipping"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminShipping />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/financials"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminFinancials />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/reports"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/chat-oversight"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminFlaggedMessages />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/audit-log"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminAuditLog />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/roles"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminRoles />
                 </ProtectedRoute>
               }
             />

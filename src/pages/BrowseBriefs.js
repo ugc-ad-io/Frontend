@@ -22,6 +22,7 @@ import {
   Sparkles,
   Star,
   IndianRupee,
+  ClipboardList,
   Upload,
   User,
   Zap,
@@ -30,7 +31,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
 import './BrowseBriefs.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
@@ -111,7 +112,7 @@ export default function BrowseBriefs() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
+    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
     { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },

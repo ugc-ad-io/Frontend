@@ -5,7 +5,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { UserPlus, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function AdminAssignments() {
@@ -187,7 +187,7 @@ export default function AdminAssignments() {
         .aas-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9; }
         .aas-card-head h3 { font-size: 1.05rem; font-weight: 700; color: #07074e; margin: 0; }
         .aas-email { font-size: 0.8rem; color: #718096; margin: 2px 0 0; }
-        .aas-count { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; background: #07074e; color: white; border-radius: 999px; white-space: nowrap; }
+        .aas-count { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; background: #5b6bff; color: white; border-radius: 999px; white-space: nowrap; }
         .aas-list { display: flex; flex-direction: column; gap: 8px; }
         .aas-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; background: #f8f9ff; border-radius: 8px; }
         .aas-item-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
@@ -204,8 +204,8 @@ export default function AdminAssignments() {
         .aas-btn-reassign:hover { background: #fde68a; }
         .aas-btn-assign { background: #dcfce7; color: #166534; }
         .aas-btn-assign:hover { background: #bbf7d0; }
-        .aas-btn-primary { background: #07074e; color: white; padding: 10px 18px; font-size: 0.9rem; }
-        .aas-btn-primary:hover { background: #1e1e7e; }
+        .aas-btn-primary { background: #5b6bff; color: white; padding: 10px 18px; font-size: 0.9rem; }
+        .aas-btn-primary:hover { background: #4452f0; }
         .aas-btn-secondary { background: #e2e8f0; color: #4a5568; padding: 10px 18px; font-size: 0.9rem; }
         .aas-btn-secondary:hover { background: #cbd5e0; }
         .aas-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
@@ -216,7 +216,7 @@ export default function AdminAssignments() {
         .aas-modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
         .aas-modal-body label { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #2d3748; }
         .aas-modal-body select { padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; }
-        .aas-modal-body select:focus { outline: none; border-color: #07074e; }
+        .aas-modal-body select:focus { outline: none; border-color: #5b6bff; }
         .aas-modal-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px; border-top: 1.5px solid #e8ecff; }
         @media (max-width: 720px) {
           .aas-container { padding: 20px; }

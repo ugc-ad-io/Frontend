@@ -7,7 +7,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { User, Building2, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 // Route a freshly-authenticated user by role + onboarding state.

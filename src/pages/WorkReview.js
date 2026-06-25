@@ -4,9 +4,9 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { ArrowLeft, CheckCircle, MessageCircle, Star } from 'lucide-react';
+import { ArrowLeft, CheckCircle, MessageCircle, Star, Download } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function WorkReview() {
@@ -43,9 +43,29 @@ export default function WorkReview() {
     try {
       const res = await axios.post(`${API}/work/${workId}/approve`);
       toast.success(res.data?.message || 'Content approved. The creator has been paid.');
+      // Stay on the page in an "approved" state so the brand can download the clean file.
+      setWork((prev) => prev ? { ...prev, status: 'approved', watermark_protected: false, can_download: true } : prev);
       setShowReviewModal(true);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to approve work'));
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const res = await axios.get(`${API}/work/${workId}/download`, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      const cd = res.headers['content-disposition'] || '';
+      const match = cd.match(/filename="?([^"]+)"?/);
+      a.download = match ? match[1] : `${work?.campaign_title || 'deliverable'}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Download failed'));
     }
   };
 
@@ -120,10 +140,17 @@ export default function WorkReview() {
               const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
               return (
                 <div key={idx} className="file-preview" data-testid={`file-${idx}`}>
-                  {isVideo ? (
-                    <video src={url} controls controlsList="nodownload" className="file-media" />
-                  ) : isImage ? (
-                    <img src={url} alt={`Submission ${idx + 1}`} className="file-media" />
+                  {isVideo || isImage ? (
+                    <div className="file-media-wrap">
+                      {isVideo ? (
+                        <video src={url} controls controlsList={work.watermark_protected ? 'nodownload' : undefined} className="file-media" />
+                      ) : (
+                        <img src={url} alt={`Submission ${idx + 1}`} className="file-media" />
+                      )}
+                      {work.watermark_protected && (
+                        <img className="file-watermark" src="/watermark.png" alt="" aria-hidden="true" />
+                      )}
+                    </div>
                   ) : (
                     <div className="file-icon">📎</div>
                   )}
@@ -137,22 +164,31 @@ export default function WorkReview() {
           </div>
         </div>
 
-        <div className="action-buttons">
-          <button
-            className="btn-approve"
-            onClick={handleApprove}
-            data-testid="approve-btn"
-          >
-            <CheckCircle size={20} /> Approve & Release Payment
-          </button>
-          <button
-            className="btn-revision"
-            onClick={() => setShowRevisionModal(true)}
-            data-testid="revision-btn"
-          >
-            <MessageCircle size={20} /> Request Revision
-          </button>
-        </div>
+        {(work.status === 'approved' || work.can_download) ? (
+          <div className="approved-panel">
+            <p className="approved-note"><CheckCircle size={18} /> Approved — payment released. The clean, watermark-free file is now yours to download.</p>
+            <button className="btn-download" onClick={handleDownload} data-testid="download-btn">
+              <Download size={20} /> Download Video
+            </button>
+          </div>
+        ) : (
+          <div className="action-buttons">
+            <button
+              className="btn-approve"
+              onClick={handleApprove}
+              data-testid="approve-btn"
+            >
+              <CheckCircle size={20} /> Approve & Release Payment
+            </button>
+            <button
+              className="btn-revision"
+              onClick={() => setShowRevisionModal(true)}
+              data-testid="revision-btn"
+            >
+              <MessageCircle size={20} /> Request Revision
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Review Modal */}
@@ -360,6 +396,26 @@ export default function WorkReview() {
           display: block;
         }
 
+        .file-media-wrap {
+          position: relative;
+          margin-bottom: 12px;
+        }
+
+        .file-media-wrap .file-media {
+          margin-bottom: 0;
+        }
+
+        .file-watermark {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          opacity: 0.42;
+          pointer-events: none;
+          padding: 10px;
+        }
+
         .watermark-note {
           background: #fff7ed;
           border: 1px solid #fed7aa;
@@ -400,6 +456,48 @@ export default function WorkReview() {
           margin-top: 40px;
           padding-top: 32px;
           border-top: 2px solid #e2e8f0;
+        }
+
+        .approved-panel {
+          margin-top: 40px;
+          padding-top: 32px;
+          border-top: 2px solid #e2e8f0;
+          display: grid;
+          gap: 16px;
+        }
+
+        .approved-note {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #effaf3;
+          border: 1px solid #bfe6cd;
+          color: #1f8a4c;
+          font-weight: 600;
+          padding: 14px 16px;
+          border-radius: 12px;
+          margin: 0;
+        }
+
+        .btn-download {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 16px;
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 1.05rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-download:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);
         }
 
         .btn-approve {

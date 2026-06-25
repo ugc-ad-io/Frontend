@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { CheckCircle, XCircle, Briefcase } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function AdminCampaigns() {

@@ -5,7 +5,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { CheckCircle, XCircle, IndianRupee, Download } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function AdminWithdrawals() {
@@ -149,8 +149,8 @@ export default function AdminWithdrawals() {
         .aw-btn-approve:hover { background: #bbf7d0; }
         .aw-btn-reject { flex: 1; background: #fee2e2; color: #991b1b; }
         .aw-btn-reject:hover { background: #fecaca; }
-        .aw-btn-export { background: #07074e; color: white; }
-        .aw-btn-export:hover { background: #1e1e7e; }
+        .aw-btn-export { background: #5b6bff; color: white; }
+        .aw-btn-export:hover { background: #4452f0; }
         @media (max-width: 720px) {
           .aw-container { padding: 20px; }
           .aw-header { flex-direction: column; align-items: stretch; }

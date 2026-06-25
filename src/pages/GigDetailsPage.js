@@ -43,7 +43,7 @@ const listStagger = {
   }),
 };
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function GigDetailsPage() {
@@ -96,10 +96,12 @@ export default function GigDetailsPage() {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/gigs/${gigId}`);
-      setGig(res.data);
-      if (res.data?.creator_id) {
-        fetchReviews(res.data.creator_id);
-        fetchCreatorPortfolio(res.data.creator_id);
+      // Some backends wrap the gig in { success, data }, others return it directly.
+      const gigData = res.data?.data || res.data;
+      setGig(gigData);
+      if (gigData?.creator_id) {
+        fetchReviews(gigData.creator_id);
+        fetchCreatorPortfolio(gigData.creator_id);
       }
       fetchWishlist();
     } catch (error) {

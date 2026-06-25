@@ -11,13 +11,16 @@ import {
   Bell,
   Bookmark,
   Briefcase,
+  CalendarClock,
   CheckCircle,
+  ClipboardList,
   CheckCircle2,
   ChevronDown,
   Clock,
   Eye,
   Filter,
   FileCheck,
+  Image as ImageIcon,
   IndianRupee,
   LayoutDashboard,
   LayoutGrid,
@@ -36,21 +39,13 @@ import {
   Trophy,
   Upload,
   User,
+  Video,
   Zap
 } from 'lucide-react';
 import './CreatorDashboard.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-
-const earningsData = [
-  { label: 'Jan', value: 12000 },
-  { label: 'Feb', value: 19000 },
-  { label: 'Mar', value: 15000 },
-  { label: 'Apr', value: 28000 },
-  { label: 'May', value: 22000 },
-  { label: 'Jun', value: 34000 }
-];
 
 const browseCovers = [
   'https://images.unsplash.com/photo-1581182800629-7d90925ad072?auto=format&fit=crop&q=80&w=800&h=520',
@@ -81,47 +76,6 @@ const getCampaignBudget = (campaign) => {
 };
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
-
-function MiniAreaChart({ data }) {
-  const width = 640;
-  const height = 230;
-  const padding = 26;
-  const max = Math.max(...data.map((point) => point.value));
-  const min = Math.min(...data.map((point) => point.value));
-  const range = max - min || 1;
-  const points = data.map((point, index) => {
-    const x = padding + (index * (width - padding * 2)) / (data.length - 1);
-    const y = height - padding - ((point.value - min) / range) * (height - padding * 2);
-    return { ...point, x, y };
-  });
-  const line = points.map((point) => `${point.x},${point.y}`).join(' ');
-  const area = `${padding},${height - padding} ${line} ${width - padding},${height - padding}`;
-
-  return (
-    <svg className="pcd-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Earnings chart">
-      <defs>
-        <linearGradient id="pcdChartFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#7387ff" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#7387ff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[0, 1, 2, 3].map((lineIndex) => {
-        const y = padding + (lineIndex * (height - padding * 2)) / 3;
-        return <line key={lineIndex} x1={padding} x2={width - padding} y1={y} y2={y} className="pcd-chart-grid" />;
-      })}
-      <polygon points={area} fill="url(#pcdChartFill)" />
-      <polyline points={line} fill="none" stroke="#7387ff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((point) => (
-        <g key={point.label}>
-          <circle cx={point.x} cy={point.y} r="5" className="pcd-chart-dot" />
-          <text x={point.x} y={height - 3} textAnchor="middle" className="pcd-chart-label">
-            {point.label}
-          </text>
-        </g>
-      ))}
-    </svg>
-  );
-}
 
 const getLevelInfo = (completedWorks) => {
   if (completedWorks >= 20) {
@@ -316,7 +270,7 @@ export default function CreatorDashboard() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator'), active: true },
-    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
+    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
     { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
@@ -333,6 +287,26 @@ export default function CreatorDashboard() {
     { title: 'Pending Payout', value: formatMoney(user?.balance), icon: IndianRupee, trend: 'Processing', color: '#f59e0b' },
     { title: 'Total Earned', value: formatMoney(totalEarned), icon: IndianRupee, trend: '+18% vs last mo', color: '#27ae60' },
     { title: 'Creator Rating', value: rating ? rating.toFixed(1) : 'N/A', icon: Star, trend: `${user?.total_reviews || reviews.length} reviews`, color: '#f59e0b' }
+  ];
+
+  // First-view onboarding: a brand-new creator who has no briefs/bids/completed work yet.
+  const hasReceivedBriefs = activeCampaigns.length > 0 || myBids.length > 0;
+  const isNewCreator = !loading && !hasReceivedBriefs && completedWorks === 0;
+
+  // Optional-but-encouraged profile completion nudges.
+  const profileChecklist = [
+    { key: 'avatar', label: 'Add a profile picture', hint: 'Optional — a default avatar is used otherwise', done: Boolean(user?.profile_picture || user?.avatar), icon: User, to: '/settings' },
+    { key: 'banner', label: 'Add a banner image', hint: 'Optional', done: Boolean(user?.banner || user?.banner_image), icon: ImageIcon, to: '/settings' },
+    { key: 'intro', label: 'Record a 30–60 second intro video', hint: 'Face + voice — builds brand trust', done: Boolean(user?.intro_video), icon: Video, to: '/settings' },
+    { key: 'availability', label: 'Review and adjust availability', hint: 'Set vacation mode if needed', done: Boolean(user?.availability_calendar || user?.weekly_availability), icon: CalendarClock, to: '/settings' }
+  ];
+  const profileDone = profileChecklist.filter((item) => item.done).length;
+
+  const quickLinks = [
+    { label: 'Profile', value: 'Edit details', icon: User, to: '/settings' },
+    { label: 'Portfolio', value: `${portfolio.length} item${portfolio.length === 1 ? '' : 's'}`, icon: Briefcase, to: '/portfolio' },
+    { label: 'Earnings', value: formatMoney(user?.balance), icon: IndianRupee, to: '/withdrawal' },
+    { label: 'Settings', value: 'Preferences', icon: Settings, to: '/settings' }
   ];
 
   if (user?.approval_status === 'pending') {
@@ -411,6 +385,58 @@ export default function CreatorDashboard() {
       topbarExtra={null}
       sidebarExtra={null}
     >
+          {isNewCreator && (
+            <section className="pcd-onboarding">
+              <div className="pcd-onboarding-hero">
+                <span className="pcd-live-badge"><CheckCircle2 size={16} /> Your profile is live</span>
+                <h1>Welcome, {displayName} 👋</h1>
+                <p className="pcd-onboarding-empty">
+                  You haven't received any briefs yet. We'll notify you as soon as a brand is matched with you.
+                </p>
+                <div className="pcd-quick-links">
+                  {quickLinks.map((link) => (
+                    <button key={link.label} type="button" onClick={() => navigate(link.to)}>
+                      <span className="pcd-quick-icon"><link.icon size={18} /></span>
+                      <span className="pcd-quick-text">
+                        <strong>{link.label}</strong>
+                        <small>{link.value}</small>
+                      </span>
+                      <ArrowUpRight size={15} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pcd-card pcd-nudges-card">
+                <div className="pcd-section-header align-start">
+                  <div>
+                    <h2>Complete your profile</h2>
+                    <p>Optional, but creators with full profiles get matched faster.</p>
+                  </div>
+                  <span className="pcd-nudge-count">{profileDone} / {profileChecklist.length}</span>
+                </div>
+                <ul className="pcd-nudge-list">
+                  {profileChecklist.map((item) => (
+                    <li key={item.key} className={item.done ? 'done' : ''}>
+                      <span className="pcd-nudge-icon">
+                        {item.done ? <CheckCircle2 size={18} /> : <item.icon size={18} />}
+                      </span>
+                      <span className="pcd-nudge-text">
+                        <strong>{item.label}</strong>
+                        <small>{item.hint}</small>
+                      </span>
+                      {!item.done && (
+                        <button type="button" onClick={() => navigate(item.to)}>
+                          Add <ArrowRight size={14} />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
           <section className="pcd-stat-grid">
             {stats.map((stat) => (
               <article key={stat.title} className="pcd-card pcd-stat-card">
@@ -521,20 +547,6 @@ export default function CreatorDashboard() {
           </section>
 
           <section className="pcd-dashboard-grid">
-            <article className="pcd-card pcd-analytics-card">
-              <div className="pcd-section-header align-start">
-                <div>
-                  <h2>Earnings Analytics</h2>
-                  <p>Your payout performance over the last 6 months.</p>
-                </div>
-                <select aria-label="Earnings range">
-                  <option>Last 6 Months</option>
-                  <option>This Year</option>
-                </select>
-              </div>
-              <MiniAreaChart data={earningsData} />
-            </article>
-
             <article className="pcd-card pcd-updates-card">
               <div className="pcd-section-header">
                 <h2>Updates</h2>
@@ -558,9 +570,28 @@ export default function CreatorDashboard() {
                 </div>
               ))}
             </article>
+
+            <article className="pcd-rate-card">
+              <div>
+                <div className="pcd-rate-head">
+                  <h2>Rate Card</h2>
+                  <span>Public</span>
+                </div>
+                <p>Current baseline figures for L1 Rising.</p>
+              </div>
+              <div className="pcd-rate-list">
+                <div><span>Minimum Rate</span><strong>Rs. 5,000</strong></div>
+                <div><span>Tier Multiplier</span><strong className="positive">1.2x</strong></div>
+                <div><span>Custom Limit</span><strong>Rs. 50,000</strong></div>
+                <div><span>Payout Window</span><strong>14 Days</strong></div>
+              </div>
+              <button type="button" onClick={() => navigate('/settings')}>
+                Edit Rate Card <ArrowUpRight size={16} />
+              </button>
+            </article>
           </section>
 
-          <section className="pcd-dashboard-grid bottom">
+          <section className="pcd-dashboard-grid bottom single">
             <article className="pcd-card pcd-achievements-card">
               <div className="pcd-section-header align-start">
                 <div>
@@ -583,25 +614,6 @@ export default function CreatorDashboard() {
                   </div>
                 ))}
               </div>
-            </article>
-
-            <article className="pcd-rate-card">
-              <div>
-                <div className="pcd-rate-head">
-                  <h2>Rate Card</h2>
-                  <span>Public</span>
-                </div>
-                <p>Current baseline figures for L1 Rising.</p>
-              </div>
-              <div className="pcd-rate-list">
-                <div><span>Minimum Rate</span><strong>Rs. 5,000</strong></div>
-                <div><span>Tier Multiplier</span><strong className="positive">1.2x</strong></div>
-                <div><span>Custom Limit</span><strong>Rs. 50,000</strong></div>
-                <div><span>Payout Window</span><strong>14 Days</strong></div>
-              </div>
-              <button type="button" onClick={() => navigate('/settings')}>
-                Edit Rate Card <ArrowUpRight size={16} />
-              </button>
             </article>
           </section>
 

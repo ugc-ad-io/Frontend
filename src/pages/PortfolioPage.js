@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Settings,
   Star,
+  ClipboardList,
   Upload,
   User,
   X,
@@ -24,7 +25,7 @@ import { EmptyPanel } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 function getPortfolioAssetUrl(url) {
@@ -166,7 +167,7 @@ export default function PortfolioPage() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
+    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
     { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },

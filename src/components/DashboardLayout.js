@@ -1,10 +1,10 @@
 import { useAuth } from '../App';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Bell, ChevronDown, LogOut, Search, Menu } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
@@ -21,7 +21,34 @@ export default function DashboardLayout({
 }) {
   const { user, setUser, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Highlight the sidebar item that matches the current route (longest prefix wins),
+  // so the active state is always correct regardless of each page's hardcoded `active`.
+  const NAV_ROUTES = {
+    'Dashboard': ['/dashboard/creator', '/dashboard/business'],
+    'My Gigs': ['/my-gigs', '/create-gig'],
+    'My Active Work': ['/my-active-work'],
+    'My Bids': ['/my-bids'],
+    'Reviews': ['/reviews'],
+    'Portfolio': ['/portfolio'],
+    'Browse Briefs': ['/browse-briefs'],
+    'My Deals': ['/my-deals'],
+    'Messages': ['/messages'],
+    'Payout': ['/withdrawal', '/payout'],
+    'Settings': ['/settings']
+  };
+  let activeName = null;
+  let bestLen = 0;
+  for (const [name, routes] of Object.entries(NAV_ROUTES)) {
+    for (const r of routes) {
+      if ((pathname === r || pathname.startsWith(`${r}/`)) && r.length > bestLen) {
+        activeName = name;
+        bestLen = r.length;
+      }
+    }
+  }
 
   useEffect(() => {
     if (user?.id) {
@@ -62,7 +89,7 @@ export default function DashboardLayout({
               <button
                 key={item.name}
                 type="button"
-                className={`pcd-nav-item ${item.active ? 'is-active' : ''}`}
+                className={`pcd-nav-item ${(activeName ? item.name === activeName : item.active) ? 'is-active' : ''}`}
                 onClick={() => {
                   item.action();
                   setSidebarOpen(false);

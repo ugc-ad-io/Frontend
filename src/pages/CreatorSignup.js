@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 // Multicolour Google "G" mark (inline so it matches the screenshot exactly).

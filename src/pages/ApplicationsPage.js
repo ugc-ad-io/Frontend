@@ -1,59 +1,59 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, CheckCircle, XCircle, Search, Users, Briefcase, Clock, FileText, ArrowRight } from 'lucide-react';
+import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import '../styles/ApplicationsPage.css';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${BACKEND_URL}/api`;
 
-// ---------------------------------------------------------------------------
-// Generic "show everything" renderer — surfaces EVERY field the applicant
-// submitted that the curated sections above don't already display, so nothing
-// from the onboarding form is ever hidden from reviewers. Stays correct even
-// as the onboarding forms add new fields.
-// ---------------------------------------------------------------------------
-const HIDDEN_DETAIL_KEYS = new Set([
-  // internal / system
-  'id', '_id', 'user_id', 'userId', '__v', 'token', 'password',
-  'status', 'submitted_date', 'sla_remaining_days', 'created_at', 'updated_at',
-  'approval_status', 'role', 'type', 'flags', 'handle_flagged_as_real_name',
-  'reviewed_by', 'reviewed_at', 'review_notes', 'profile_completed', 'terms_agreed',
-  // already shown in the curated creator sections
-  'nickname', 'email', 'category', 'location', 'languages', 'bio', 'rate_card',
-  'portfolio_videos', 'kyc_documents', 'social_handles',
-  // already shown in the curated brand sections
-  'business_name', 'business_email', 'industry', 'product_type', 'description',
-  'website', 'gst_details', 'social_media',
-]);
+const isCreatorRole = (role) => String(role || '').toLowerCase() === 'creator';
+const isBrandRole = (role) => ['business', 'brand'].includes(String(role || '').toLowerCase());
 
-const prettifyKey = (k) =>
-  String(k)
-    .replace(/_/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+const avatarColor = (name) => {
+  const palette = ['#6366f1', '#3b82f6', '#0ea5e9', '#14b8a6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return palette[hash % palette.length];
+};
 
-const isEmptyVal = (v) =>
-  v === null ||
-  v === undefined ||
-  v === '' ||
-  (Array.isArray(v) && v.length === 0) ||
-  (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+const resolveUrl = (u) => {
+  if (!u || typeof u !== 'string') return '';
+  const s = u.trim();
+  return /^https?:\/\//i.test(s) ? s : `${BACKEND_URL}${s.startsWith('/') ? '' : '/'}${s}`;
+};
 
+const VIDEO_EXT = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|#|$)/i;
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg|avif)(\?|#|$)/i;
+const KEY_IS_VIDEO = /video|reel|intro/i;
+const KEY_IS_IMAGE = /photo|picture|avatar|image|logo|banner|thumb/i;
+const KEY_IS_KYC = /pan|aadhaar|aadhar|selfie|kyc|id_proof|id_card|govt|passport|document|verification/i;
+const KEY_IS_SOCIAL = /social|links|instagram|youtube|tiktok|facebook|twitter|linkedin|handle/i;
+const KEY_IS_MEDIA = /photo|picture|avatar|image|logo|banner|thumb|video|reel|intro|portfolio/i;
+
+const collectUrls = (v) => {
+  const out = [];
+  const push = (x) => { if (typeof x === 'string' && x.trim()) out.push(x.trim()); };
+  if (typeof v === 'string') push(v);
+  else if (Array.isArray(v)) v.forEach((item) => {
+    if (typeof item === 'string') push(item);
+    else if (item && typeof item === 'object') push(item.url || item.file_url || item.src || item.video || item.video_url || item.image || item.image_url);
+  });
+  else if (v && typeof v === 'object') push(v.url || v.file_url || v.src);
+  return out;
+};
+
+const prettifyKey = (k) => String(k).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
+const isEmptyVal = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0) || (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
 const isUrl = (v) => typeof v === 'string' && /^https?:\/\//i.test(v.trim());
 
 function DetailValue({ value }) {
   if (typeof value === 'boolean') return <span>{value ? 'Yes' : 'No'}</span>;
-  if (isUrl(value)) {
-    return <a href={value.trim()} target="_blank" rel="noopener noreferrer">{value}</a>;
-  }
+  if (isUrl(value)) return <a href={value.trim()} target="_blank" rel="noopener noreferrer">{value}</a>;
   if (Array.isArray(value)) {
     const allPrimitive = value.every((v) => v === null || typeof v !== 'object');
     if (allPrimitive) return <span>{value.filter((v) => !isEmptyVal(v)).join(', ')}</span>;
-    return (
-      <div className="ad-nested">
-        {value.map((v, i) => <DetailObject key={i} title={`#${i + 1}`} obj={v} />)}
-      </div>
-    );
+    return <div className="ad-nested">{value.map((v, i) => <DetailObject key={i} title={`#${i + 1}`} obj={v} />)}</div>;
   }
   if (value && typeof value === 'object') return <DetailObject obj={value} />;
   return <span>{String(value)}</span>;
@@ -75,768 +75,587 @@ function DetailObject({ title, obj }) {
   );
 }
 
-function AllSubmittedDetails({ application }) {
-  // Flatten nested profile / business_profile up so their extra fields surface too.
-  const flat = {};
-  const merge = (obj) => {
-    if (!obj || typeof obj !== 'object') return;
-    Object.entries(obj).forEach(([k, v]) => {
-      if (k === 'profile' || k === 'business_profile') merge(v);
-      else if (!(k in flat)) flat[k] = v;
-    });
-  };
-  merge(application);
+const formatDateSafe = (value) => {
+  if (!value) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+};
 
-  const entries = Object.entries(flat).filter(
-    ([k, v]) => !HIDDEN_DETAIL_KEYS.has(k) && !isEmptyVal(v)
-  );
-  if (!entries.length) return null;
+// SLA — target turnaround for review (48h). Oldest applications go urgent/overdue.
+const SLA_TARGET_HOURS = 48;
+const slaInfo = (submitted, nowMs) => {
+  if (!submitted) return { label: '—', urgent: false };
+  const t = new Date(submitted).getTime();
+  if (Number.isNaN(t)) return { label: '—', urgent: false };
+  const remainingH = SLA_TARGET_HOURS - (nowMs - t) / 3600000;
+  if (remainingH <= 0) return { label: 'Overdue', urgent: true };
+  if (remainingH < 24) return { label: `${Math.round(remainingH)}h left`, urgent: remainingH < 6 };
+  return { label: `${Math.ceil(remainingH / 24)}d left`, urgent: false };
+};
+
+// Handle that looks like a real name (e.g. "Priya Sharma" / "priya.sharma") → flag.
+const looksLikeRealName = (name) => {
+  const s = String(name || '').replace(/^@/, '').trim();
+  if (!s) return false;
+  if (/^[A-Z][a-z]+ [A-Z][a-z]+/.test(s)) return true;            // Firstname Lastname
+  if (/^[a-z]+[._][a-z]+\d{0,3}$/i.test(s) && !/\d{3,}/.test(s)) return true; // firstname.lastname
+  return false;
+};
+
+// GST verification badge (we surface what was submitted; real verification is a backend job)
+const gstStatus = (profile) => {
+  const gstin = profile.gstin || profile.gst_number || profile.gst || (profile.gst_details && (profile.gst_details.gstin || profile.gst_details.number));
+  if (!gstin) return { label: 'No GST provided', tone: 'red', value: '' };
+  const v = String(gstin).trim();
+  const valid = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v);
+  return valid ? { label: 'GST format valid', tone: 'green', value: v } : { label: 'GST unverified', tone: 'yellow', value: v };
+};
+
+const FREE_EMAIL = /@(gmail|yahoo|hotmail|outlook|icloud|proton|rediff)\./i;
+const RESTRICTED_CATS = ['gambling', 'tobacco', 'alcohol', 'adult', 'crypto', 'weapons', 'cbd'];
+const brandFlags = (profile, email) => {
+  const flags = [];
+  if (FREE_EMAIL.test(email || profile.business_email || '')) flags.push('Free-email domain (not a work email)');
+  const cat = String(profile.industry || profile.industry_category || profile.category || profile.product_type || '').toLowerCase();
+  if (RESTRICTED_CATS.some((c) => cat.includes(c))) flags.push('Restricted category');
+  const blob = `${profile.business_name || ''} ${profile.business_description || profile.description || ''}`.toLowerCase();
+  if (/\bagency\b|\bagencies\b|on behalf/.test(blob)) flags.push('Possible agency representative');
+  return flags;
+};
+
+const STATE_META = {
+  pending: { label: 'Pending', cls: 'pending' },
+  more_info: { label: 'More Info', cls: 'more_info' },
+  approved: { label: 'Approved', cls: 'approved' },
+  rejected: { label: 'Rejected', cls: 'rejected' },
+};
+
+const REJECT_REASONS = {
+  creators: ['Incomplete profile', 'Low-quality portfolio', 'Failed KYC verification', 'Handle looks like a real name', 'Policy violation', 'Duplicate account', 'Other'],
+  brands: ['Incomplete profile', 'Invalid / missing GST', 'Restricted category', 'Low-trust (free-email) domain', 'Suspected agency misrepresentation', 'Policy violation', 'Other'],
+};
+const MORE_INFO_ITEMS = {
+  creators: ['Add 3–5 clear portfolio samples', 'Upload valid KYC (PAN / Aadhaar / selfie)', 'Verify social handles', 'Re-record a higher-quality intro video', 'Confirm category / niche', 'Confirm location'],
+  brands: ['Provide valid GST details', 'Verify business website', 'Use a work-domain business email', 'Clarify product category', 'Verify social media links'],
+};
+
+// ===========================================================================
+// Row — one application in the list (role-aware columns)
+// ===========================================================================
+function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
+  const p = profile.profile || {};
+  const brand = isBrandRole(profile.role);
+  const displayName = profile.username ? `@${profile.username}` : (profile.nickname || p.fullName || p.business_name || p.full_name || '—');
+  const email = profile.email || p.business_email || '—';
+  const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '—';
+  const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
+  const sla = slaInfo(submitted, nowMs);
+  const state = STATE_META[profile.approval_status] || STATE_META.pending;
+  const flagName = !brand && looksLikeRealName(displayName);
+  const stop = (e, fn) => { e.stopPropagation(); fn(); };
+
+  // Role-specific middle columns
+  const cols = brand
+    ? [
+        ['Email', email],
+        ['Category', category],
+        ['GST', gstStatus(p).label],
+        ['Submitted', formatDateSafe(submitted)],
+      ]
+    : [
+        ['Category', category],
+        ['Languages', [].concat(p.languages || p.language || []).filter(Boolean).join(', ') || '—'],
+        ['Location', p.location || p.country || p.city || '—'],
+        ['Submitted', formatDateSafe(submitted)],
+      ];
 
   return (
-    <section className="detail-section full-width">
-      <h3>All Submitted Details</h3>
-      <div className="info-grid all-details-grid">
-        {entries.map(([k, v]) => (
-          <div className="info-item full-width" key={k}>
-            <label>{prettifyKey(k)}</label>
-            <div className="all-details-value"><DetailValue value={v} /></div>
+    <div className="apps-row apps-row--request" onClick={() => onOpen(profile)}>
+      <div className="apps-row-identity">
+        <div className="apps-avatar" style={{ background: avatarColor(displayName) }}>
+          {displayName.replace(/^@/, '').slice(0, 2).toUpperCase()}
+        </div>
+        <div className="apps-name-block">
+          <h4 title={flagName ? 'Handle looks like a real name — verify' : undefined}>
+            {displayName}
+            {flagName && <AlertTriangle size={13} className="apps-name-flag" />}
+          </h4>
+          <div className="apps-chip-row">
+            <span className="apps-role-pill">{brand ? 'Brand' : 'Creator'}</span>
+            <span className={`apps-state apps-state-${state.cls}`}>{state.label}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="apps-row-meta">
+        {cols.map(([label, val]) => (
+          <div className="apps-meta" key={label}>
+            <span className="apps-meta-label">{label}</span>
+            <span className="apps-meta-value" title={String(val)}>{val}</span>
           </div>
         ))}
+        <div className="apps-meta">
+          <span className="apps-meta-label">SLA</span>
+          <span className={`apps-meta-value ${sla.urgent ? 'apps-sla-urgent' : ''}`}>{sla.label}</span>
+        </div>
       </div>
-    </section>
+
+      <div className="apps-action-group">
+        <button className="btn-decision btn-approve" onClick={(e) => stop(e, () => onApprove(profile.id))}>✓ Approve</button>
+        <button className="btn-decision btn-reject" onClick={(e) => stop(e, () => onReject(profile.id))}>✕ Reject</button>
+        <button className="apps-row-action" onClick={(e) => stop(e, () => onOpen(profile))}><Eye size={14} /> View</button>
+      </div>
+    </div>
   );
 }
 
+// ===========================================================================
+// Detail modal — organized sections + decision builder
+// ===========================================================================
+function ProfileDetail({ profile, onBack, onDecide }) {
+  const [full, setFull] = useState(profile);
+  const [loadingFull, setLoadingFull] = useState(true);
+  const [mode, setMode] = useState(null);             // null | 'more_info' | 'reject'
+  const [reasonCode, setReasonCode] = useState('');
+  const [reasonDetails, setReasonDetails] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [infoItems, setInfoItems] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    setLoadingFull(true);
+    setFull(profile);
+    const id = profile?.id;
+    const role = isBrandRole(profile.role) ? 'brands' : 'creators';
+    Promise.allSettled([
+      id ? axios.get(`${API}/profile/${id}`) : Promise.reject(new Error('no id')),
+      axios.get(`${API}/admin/applications/${role}`),
+    ]).then(([profR, appsR]) => {
+      if (!alive) return;
+      const prof = (profR.status === 'fulfilled' && profR.value?.data) ? profR.value.data : {};
+      let appMatch = {};
+      if (appsR.status === 'fulfilled') {
+        const list = Array.isArray(appsR.value.data) ? appsR.value.data : (appsR.value.data?.data || []);
+        appMatch = list.find((a) => a.id === id || (profile.email && a.email === profile.email)) || {};
+      }
+      setFull({
+        ...appMatch, ...prof, ...profile,
+        profile: { ...(appMatch.profile || appMatch || {}), ...(prof.profile || prof || {}), ...(profile.profile || {}) },
+      });
+    }).finally(() => { if (alive) setLoadingFull(false); });
+    return () => { alive = false; };
+  }, [profile]);
+
+  const p = full.profile || {};
+  const flat = { ...p };
+  Object.entries(full).forEach(([k, v]) => { if (k !== 'profile' && !(k in flat)) flat[k] = v; });
+
+  const brand = isBrandRole(full.role || profile.role);
+  const roleKey = brand ? 'brands' : 'creators';
+
+  // ---- media: photo, videos, kyc, social, generic fields ----
+  const photos = [], videos = [], kyc = [];
+  Object.entries(flat).forEach(([k, v]) => {
+    collectUrls(v).forEach((u) => {
+      if (KEY_IS_KYC.test(k)) kyc.push({ k, u });
+      else if (KEY_IS_VIDEO.test(k) || VIDEO_EXT.test(u)) videos.push(u);
+      else if (KEY_IS_IMAGE.test(k) || IMAGE_EXT.test(u) || /portfolio/i.test(k)) (VIDEO_EXT.test(u) ? videos : photos).push(u);
+    });
+  });
+  const uniq = (a) => [...new Set(a)];
+  const photoList = uniq(photos);
+  const videoList = uniq(videos);
+  const mainPhoto = photoList[0];
+  const portfolioPhotos = photoList.slice(1);
+
+  // social links
+  const socialObj = p.social_links || p.social_media || p.links || {};
+  const socials = [];
+  if (socialObj && typeof socialObj === 'object') {
+    Object.entries(socialObj).forEach(([k, v]) => { const u = (collectUrls(v)[0]) || (typeof v === 'string' ? v : ''); if (u) socials.push([k, u]); });
+  }
+  (p.extraLinks || []).forEach((l) => { if (l && l.url) socials.push([l.platform || 'link', l.url]); });
+
+  const uname = full.username || profile.username;
+  const displayName = uname ? `@${uname}` : (full.nickname || p.fullName || p.business_name || profile.nickname || '—');
+  const headerEmail = full.email || p.business_email || profile.email;
+  const flagName = !brand && looksLikeRealName(displayName);
+  const gst = gstStatus(p);
+  const flags = brand ? brandFlags(p, headerEmail) : [];
+  const website = brand ? (p.website || p.website_url) : null;
+  const review = full.review || {};
+
+  // text fields excluding media/kyc/social
+  const entries = Object.entries(flat).filter(([k, v]) => !MEDIA_OR_META(k) && !isEmptyVal(v));
+  function MEDIA_OR_META(k) {
+    return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers'].includes(k)
+      || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);
+  }
+
+  const decide = (action, payload) => { onDecide(profile.id, action, payload); onBack(); };
+  const toggleItem = (it) => setInfoItems((cur) => cur.includes(it) ? cur.filter((x) => x !== it) : [...cur, it]);
+
+  return (
+    <div className="apps-modal-overlay" onClick={onBack} role="dialog" aria-modal="true">
+      <div className="apps-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="apps-modal-close" onClick={onBack} aria-label="Close"><X size={18} /></button>
+
+        <div className="apps-modal-head">
+          {mainPhoto ? (
+            <img src={resolveUrl(mainPhoto)} alt={displayName} className="apps-modal-photo" />
+          ) : (
+            <div className="apps-avatar apps-modal-photo" style={{ background: avatarColor(displayName) }}>
+              {displayName.replace(/^@/, '').slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <div className="apps-modal-head-info">
+            <h2>{displayName}{flagName && <span className="apps-flag-pill"><AlertTriangle size={12} /> Looks like a real name</span>}</h2>
+            <div className="apps-chip-row">
+              <span className="apps-role-pill">{brand ? 'Brand' : 'Creator'}</span>
+              <span className={`apps-state apps-state-${(STATE_META[full.approval_status] || STATE_META.pending).cls}`}>
+                {(STATE_META[full.approval_status] || STATE_META.pending).label}
+              </span>
+            </div>
+            <p>{headerEmail}</p>
+          </div>
+        </div>
+
+        <div className="apps-modal-body">
+          {review && (review.reason_code || review.more_info_message) && (
+            <div className="apps-review-note">
+              {review.reason_code && <p><strong>Rejection:</strong> {review.reason_code}{review.reason_details ? ` — ${review.reason_details}` : ''}</p>}
+              {review.more_info_message && <p><strong>Info requested:</strong> {review.more_info_message}</p>}
+            </div>
+          )}
+
+          {/* Portfolio + video (creator) */}
+          {(videoList.length > 0 || portfolioPhotos.length > 0) && (
+            <section className="detail-section full-width">
+              <h3><PlayCircle size={16} className="apps-h3-ic" />{brand ? 'Media' : 'Portfolio & Video'} <span className="apps-h3-note">full resolution · no watermark</span></h3>
+              <div className="apps-modal-media">
+                {videoList.map((u, i) => (
+                  <video key={`v${i}`} src={resolveUrl(u)} controls preload="metadata" style={{ width: '100%', borderRadius: 10, background: '#000', aspectRatio: '16 / 9' }} />
+                ))}
+                {portfolioPhotos.map((u, i) => (
+                  <a key={`p${i}`} href={resolveUrl(u)} target="_blank" rel="noopener noreferrer"><img src={resolveUrl(u)} alt="" style={{ width: '100%', borderRadius: 10, objectFit: 'cover', aspectRatio: '1 / 1' }} /></a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* KYC documents (creator) */}
+          {!brand && kyc.length > 0 && (
+            <section className="detail-section full-width">
+              <h3><ShieldCheck size={16} className="apps-h3-ic" />KYC Documents</h3>
+              <div className="apps-kyc-grid">
+                {kyc.map(({ k, u }, i) => {
+                  const url = resolveUrl(u);
+                  const isImg = IMAGE_EXT.test(u) || KEY_IS_IMAGE.test(k);
+                  return (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="apps-kyc-item">
+                      {isImg ? <img src={url} alt={k} /> : <div className="apps-kyc-doc"><FileText size={26} /></div>}
+                      <span>{prettifyKey(k)}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* GST verification (brand) */}
+          {brand && (
+            <section className="detail-section full-width">
+              <h3><ShieldCheck size={16} className="apps-h3-ic" />GST Verification</h3>
+              <div className="apps-gst-row">
+                <span className={`apps-gst-badge apps-gst-${gst.tone}`}>{gst.label}</span>
+                {gst.value && <code className="apps-gst-num">{gst.value}</code>}
+              </div>
+            </section>
+          )}
+
+          {/* Website preview (brand) */}
+          {brand && website && (
+            <section className="detail-section full-width">
+              <h3><Globe size={16} className="apps-h3-ic" />Website Preview <a href={resolveUrl(website)} target="_blank" rel="noopener noreferrer" className="apps-h3-note">open ↗</a></h3>
+              <div className="apps-web-frame">
+                <iframe title="website preview" src={resolveUrl(website)} sandbox="allow-scripts allow-same-origin" loading="lazy" referrerPolicy="no-referrer" />
+              </div>
+            </section>
+          )}
+
+          {/* Social handles */}
+          {socials.length > 0 && (
+            <section className="detail-section full-width">
+              <h3><Link2 size={16} className="apps-h3-ic" />{brand ? 'Social Media' : 'Social Handles'} <span className="apps-h3-note">for cross-verification</span></h3>
+              <div className="apps-social-row">
+                {socials.map(([k, u], i) => (
+                  <a key={i} href={isUrl(u) ? u : `https://${u}`} target="_blank" rel="noopener noreferrer" className="apps-social-chip">{prettifyKey(k)}</a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Flags (brand) */}
+          {brand && flags.length > 0 && (
+            <section className="detail-section full-width">
+              <h3><AlertTriangle size={16} className="apps-h3-ic" />Flags</h3>
+              <div className="apps-flags">{flags.map((f, i) => <span key={i} className="apps-flag-item"><AlertTriangle size={12} /> {f}</span>)}</div>
+            </section>
+          )}
+
+          {/* Everything else */}
+          <section className="detail-section full-width">
+            <h3>All Submitted Details</h3>
+            {entries.length > 0 ? (
+              <div className="info-grid all-details-grid">
+                {entries.map(([k, v]) => (
+                  <div key={k} className="info-item full-width"><label>{prettifyKey(k)}</label><div className="all-details-value"><DetailValue value={v} /></div></div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: '#94a3b8' }}>{loadingFull ? 'Loading full profile…' : 'No additional details were submitted.'}</p>
+            )}
+          </section>
+
+          {/* Decision builder panels */}
+          {mode === 'more_info' && (
+            <section className="detail-section full-width apps-builder">
+              <h3><MessageSquarePlus size={16} className="apps-h3-ic" />Request More Information</h3>
+              <div className="apps-builder-items">
+                {MORE_INFO_ITEMS[roleKey].map((it) => (
+                  <label key={it} className="apps-check"><input type="checkbox" checked={infoItems.includes(it)} onChange={() => toggleItem(it)} /> {it}</label>
+                ))}
+              </div>
+              <textarea className="apps-textarea" placeholder="Add a message to the applicant…" value={infoMessage} onChange={(e) => setInfoMessage(e.target.value)} rows={3} />
+            </section>
+          )}
+          {mode === 'reject' && (
+            <section className="detail-section full-width apps-builder">
+              <h3><XCircle size={16} className="apps-h3-ic" />Reject — reason</h3>
+              <select className="apps-select" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
+                <option value="">Select a reason code…</option>
+                {REJECT_REASONS[roleKey].map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <textarea className="apps-textarea" placeholder="Optional details for the applicant…" value={reasonDetails} onChange={(e) => setReasonDetails(e.target.value)} rows={3} />
+            </section>
+          )}
+        </div>
+
+        <div className="apps-modal-foot">
+          {mode === null && (
+            <>
+              <button className="btn-decision btn-moreinfo" onClick={() => setMode('more_info')}><MessageSquarePlus size={15} /> Request More Info</button>
+              <button className="btn-decision btn-reject" onClick={() => setMode('reject')}>✕ Reject</button>
+              <button className="btn-decision btn-approve" onClick={() => decide('approve')}>✓ Approve</button>
+            </>
+          )}
+          {mode === 'more_info' && (
+            <>
+              <button className="btn-decision" onClick={() => setMode(null)}>Back</button>
+              <button className="btn-decision btn-moreinfo" disabled={!infoMessage && infoItems.length === 0}
+                onClick={() => decide('request_info', { message: infoMessage, items: infoItems })}>Send Request</button>
+            </>
+          )}
+          {mode === 'reject' && (
+            <>
+              <button className="btn-decision" onClick={() => setMode(null)}>Back</button>
+              <button className="btn-decision btn-reject" disabled={!reasonCode}
+                onClick={() => decide('reject', { reason_code: reasonCode, reason_details: reasonDetails })}>Confirm Reject</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===========================================================================
+// Page
+// ===========================================================================
 function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedApplication, setSelectedApplication] = useState(null);
   const [applicationType, setApplicationType] = useState('creators');
-  const [filterState, setFilterState] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showMoreInfoModal, setShowMoreInfoModal] = useState(false);
-  const [rejectFormData, setRejectFormData] = useState({ reason_code: '', reason_details: '' });
-  const [moreInfoFormData, setMoreInfoFormData] = useState({
-    request_type: 'clarification',
-    message: '',
-    priority: 'medium',
-    deadline_days: 7
-  });
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  // filters
+  const [stateFilter, setStateFilter] = useState('pending');   // default: pending (current view preserved)
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [gstFilter, setGstFilter] = useState('all');           // brand: all|green|yellow|red
+  const [flaggedOnly, setFlaggedOnly] = useState(false);       // brand
+  const [sortOrder, setSortOrder] = useState('oldest');        // oldest first by default
+  const nowMs = useMemo(() => Date.now(), [applications]);
 
-  useEffect(() => {
-    fetchApplications();
-  }, [applicationType]);
+  useEffect(() => { fetchApplications(); }, []);
 
   const fetchApplications = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const endpoint = applicationType === 'creators'
-        ? `${API}/admin/applications/creators`
-        : `${API}/admin/applications/brands`;
-
-      const response = await axios.get(endpoint);
-      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-      setApplications(data);
-      setSelectedApplication(null);
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-      toast.error('Failed to fetch applications');
+      const res = await axios.get(`${API}/admin/pending-profiles`);
+      setApplications(Array.isArray(res.data) ? res.data : (res.data?.data || []));
+    } catch {
+      toast.error('Failed to load applications');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApproveApplication = async (id, type) => {
+  const handleDecision = async (userId, action, payload = {}) => {
     try {
-      await axios.post(`${API}/admin/applications/${id}/approve`);
-      toast.success('Application approved');
-      setApplications(applications.filter(app => app.id !== id));
-      setSelectedApplication(null);
-    } catch (error) {
-      console.error('Error approving application:', error);
-      toast.error('Failed to approve application');
+      await axios.post(`${API}/admin/approve-profile`, { item_id: userId, action, ...payload });
+      const msg = action === 'approve' ? 'Application approved' : action === 'request_info' ? 'More info requested' : 'Application rejected';
+      toast.success(msg);
+      fetchApplications();
+    } catch {
+      toast.error('Action failed');
     }
   };
 
-  const handleRejectApplication = async (id, type) => {
-    if (!rejectFormData.reason_code) {
-      toast.error('Please select a rejection reason');
-      return;
-    }
+  const roleList = useMemo(
+    () => applications.filter((a) => (applicationType === 'creators' ? isCreatorRole(a.role) : isBrandRole(a.role))),
+    [applications, applicationType]
+  );
 
-    try {
-      await axios.post(`${API}/admin/applications/${id}/reject`, {
-        reason_code: rejectFormData.reason_code,
-        reason_details: rejectFormData.reason_details
-      });
-      toast.success('Application rejected');
-      setApplications(applications.filter(app => app.id !== id));
-      setSelectedApplication(null);
-      setRejectFormData({ reason_code: '', reason_details: '' });
-    } catch (error) {
-      console.error('Error rejecting application:', error);
-      toast.error('Failed to reject application');
-    }
-  };
+  const categories = useMemo(() => {
+    const set = new Set();
+    roleList.forEach((a) => {
+      const p = a.profile || {};
+      const c = a.category || p.category || p.niche || p.industry || p.industry_category || p.business_type;
+      if (c) set.add(c);
+    });
+    return [...set];
+  }, [roleList]);
 
-  const handleRequestMoreInfo = async (id, type) => {
-    if (!moreInfoFormData.message) {
-      toast.error('Please enter a message');
-      return;
-    }
+  const counts = useMemo(() => {
+    const c = { pending: 0, more_info: 0, approved: 0, rejected: 0 };
+    roleList.forEach((a) => { c[a.approval_status] = (c[a.approval_status] || 0) + 1; });
+    return c;
+  }, [roleList]);
 
-    try {
-      await axios.post(`${API}/admin/applications/${id}/request-more-info`, moreInfoFormData);
-      toast.success('More info request sent');
-      setShowMoreInfoModal(false);
-      setMoreInfoFormData({ request_type: 'clarification', message: '', priority: 'medium', deadline_days: 7 });
-    } catch (error) {
-      console.error('Error requesting more info:', error);
-      toast.error('Failed to request more information');
-    }
-  };
+  const visible = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo ? new Date(dateTo).getTime() + 86400000 : null;
+    let rows = roleList.filter((a) => {
+      const p = a.profile || {};
+      if (stateFilter !== 'all' && a.approval_status !== stateFilter) return false;
+      const cat = a.category || p.category || p.niche || p.industry || p.industry_category || p.business_type;
+      if (categoryFilter !== 'all' && cat !== categoryFilter) return false;
+      const subMs = new Date(a.submitted_at || a.created_at || a.createdAt || 0).getTime();
+      if (from && subMs < from) return false;
+      if (to && subMs > to) return false;
+      if (applicationType === 'brands' && gstFilter !== 'all' && gstStatus(p).tone !== gstFilter) return false;
+      if (applicationType === 'brands' && flaggedOnly && brandFlags(p, a.email).length === 0) return false;
+      if (q) {
+        const name = (a.username || a.nickname || p.fullName || p.business_name || '').toLowerCase();
+        const email = (a.email || p.business_email || '').toLowerCase();
+        if (!name.includes(q) && !email.includes(q)) return false;
+      }
+      return true;
+    });
+    rows = rows.sort((a, b) => {
+      const am = new Date(a.submitted_at || a.created_at || a.createdAt || 0).getTime();
+      const bm = new Date(b.submitted_at || b.created_at || b.createdAt || 0).getTime();
+      return sortOrder === 'oldest' ? am - bm : bm - am;
+    });
+    return rows;
+  }, [roleList, stateFilter, categoryFilter, dateFrom, dateTo, gstFilter, flaggedOnly, searchQuery, sortOrder, applicationType]);
 
-  const filteredApplications = applications.filter(app => {
-    if (filterState !== 'all' && app.status !== filterState) return false;
-    const appCategory = app.category || app.business_profile?.industry;
-    if (filterCategory !== 'all' && appCategory !== filterCategory) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const name = (applicationType === 'creators' ? app.nickname : app.business_name) || '';
-      const email = (applicationType === 'creators' ? app.email : app.business_email) || '';
-      if (!name.toLowerCase().includes(q) && !email.toLowerCase().includes(q)) return false;
-    }
-    return true;
-  });
-
-  const categories = [...new Set(applications.map(app => app.category || app.business_profile?.industry))].filter(Boolean);
-
-  const stats = useMemo(() => ({
-    total: applications.length,
-    pending: applications.filter(a => a.status === 'pending').length,
-    approved: applications.filter(a => a.status === 'approved').length,
-    rejected: applications.filter(a => a.status === 'rejected').length,
-  }), [applications]);
-
-  const getInitials = (name) => {
-    if (!name) return '?';
-    const clean = name.replace(/^@/, '').trim();
-    const parts = clean.split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return clean.slice(0, 2).toUpperCase();
-  };
-
-  const avatarColor = (name) => {
-    const palette = ['#6366f1', '#3b82f6', '#0ea5e9', '#14b8a6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-    let hash = 0;
-    for (let i = 0; i < (name || '').length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-    return palette[hash % palette.length];
-  };
-
-  if (selectedApplication) {
-    return (
-      <>
-        <div className="detail-view">
-          <button className="btn-back" onClick={() => setSelectedApplication(null)}>
-            <ChevronLeft size={18} /> Back
-          </button>
-
-          {applicationType === 'creators' ? (
-            <div className="detail-content">
-              <div className="detail-header">
-                <div className="detail-title">
-                  <h2>{selectedApplication.nickname}</h2>
-                  <p>{selectedApplication.email}</p>
-                  <span className={`status-badge status-${selectedApplication.status}`}>
-                    {selectedApplication.status?.replace(/_/g, ' ').toUpperCase()}
-                  </span>
-                  {selectedApplication.handle_flagged_as_real_name && (
-                    <span className="flag-badge">⚠️ Handle flagged as real name</span>
-                  )}
-                </div>
-                <div className="detail-meta">
-                  <div className="meta-item">
-                    <span className="label">Submitted</span>
-                    <span className="value">{new Date(selectedApplication.submitted_date).toLocaleDateString()}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="label">SLA Remaining</span>
-                    <span className="value">{selectedApplication.sla_remaining_days} days</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="label">Category</span>
-                    <span className="value">{selectedApplication.category}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-grid">
-                <section className="detail-section">
-                  <h3>Profile Information</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <label>Handle</label>
-                      <p>{selectedApplication.nickname}</p>
-                    </div>
-                    <div className="info-item">
-                      <label>Location</label>
-                      <p>{selectedApplication.location}</p>
-                    </div>
-                    <div className="info-item">
-                      <label>Languages</label>
-                      <p>{selectedApplication.languages?.join(', ')}</p>
-                    </div>
-                    <div className="info-item">
-                      <label>Category</label>
-                      <p>{selectedApplication.category}</p>
-                    </div>
-                    <div className="info-item full-width">
-                      <label>Bio</label>
-                      <p>{selectedApplication.bio}</p>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="detail-section">
-                  <h3>Rate Card</h3>
-                  <div className="rate-card-grid">
-                    {Object.entries(selectedApplication.rate_card || {}).map(([key, value]) => (
-                      <div key={key} className="rate-item">
-                        <span className="rate-label">{key.replace(/_/g, ' ').toUpperCase()}</span>
-                        <span className="rate-value">₹{Number(value).toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="detail-section full-width">
-                  <h3>Portfolio Videos</h3>
-                  {selectedApplication.portfolio_videos?.length > 0 ? (
-                    <div className="portfolio-grid">
-                      {selectedApplication.portfolio_videos.map(video => (
-                        <div key={video.id} className="video-card">
-                          <div className="video-thumbnail">
-                            <img src={video.thumbnail} alt={video.title} />
-                            <a href={video.url} target="_blank" rel="noopener noreferrer" className="play-button">▶</a>
-                          </div>
-                          <p className="video-title">{video.title}</p>
-                          {video.duration && <p className="video-duration">{Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="empty-message">No portfolio videos provided</p>
-                  )}
-                </section>
-
-                <section className="detail-section full-width">
-                  <h3>KYC Documents</h3>
-                  <div className="kyc-grid">
-                    {selectedApplication.kyc_documents ? Object.entries(selectedApplication.kyc_documents).map(([docType, doc]) => (
-                      <div key={docType} className="kyc-card">
-                        <div className="kyc-header">
-                          <h4>{docType.replace(/_/g, ' ').toUpperCase()}</h4>
-                          <span className={`verify-badge ${doc.verified ? 'verified' : 'pending'}`}>
-                            {doc.verified ? '✓ Verified' : '⏳ Pending'}
-                          </span>
-                        </div>
-                        {doc.url && (
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer" className="doc-link">
-                            View Document
-                          </a>
-                        )}
-                        {doc.number && <p className="doc-info"><strong>ID:</strong> {doc.number}</p>}
-                        {doc.verified_at && <p className="doc-info"><strong>Verified:</strong> {new Date(doc.verified_at).toLocaleDateString()}</p>}
-                      </div>
-                    )) : null}
-                  </div>
-                </section>
-
-                <section className="detail-section full-width">
-                  <h3>Social Media Handles</h3>
-                  {selectedApplication.social_handles ? (
-                    <div className="social-grid">
-                      {Object.entries(selectedApplication.social_handles).map(([platform, data]) => (
-                        data.handle || data.profile_url ? (
-                          <div key={platform} className="social-card">
-                            <h4>{platform.toUpperCase()}</h4>
-                            {data.profile_url ? (
-                              <a href={data.profile_url} target="_blank" rel="noopener noreferrer">{data.handle || data.profile_url}</a>
-                            ) : (
-                              <p>{data.handle}</p>
-                            )}
-                            {data.followers && <p className="followers">{Number(data.followers).toLocaleString()} followers</p>}
-                            {data.verified && <span className="verified-badge">✓ Verified</span>}
-                          </div>
-                        ) : null
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="empty-message">No social handles provided</p>
-                  )}
-                </section>
-
-                <AllSubmittedDetails application={selectedApplication} />
-              </div>
-
-              <div className="decision-section">
-                <h3>Application Decision</h3>
-                <div className="decision-buttons">
-                  <button
-                    className="btn-decision btn-approve"
-                    onClick={() => handleApproveApplication(selectedApplication.id, 'creator')}
-                    disabled={selectedApplication.status === 'approved'}
-                  >
-                    ✓ Approve
-                  </button>
-                  <button
-                    className="btn-decision btn-more-info"
-                    onClick={() => setShowMoreInfoModal(true)}
-                    disabled={selectedApplication.status === 'approved' || selectedApplication.status === 'rejected'}
-                  >
-                    ✎ Request More Info
-                  </button>
-                  <button
-                    className="btn-decision btn-reject"
-                    onClick={() => document.querySelector('.reject-form')?.classList.toggle('show')}
-                    disabled={selectedApplication.status === 'approved' || selectedApplication.status === 'rejected'}
-                  >
-                    ✕ Reject
-                  </button>
-                </div>
-
-                <div className="reject-form">
-                  <div className="form-group">
-                    <label>Rejection Reason</label>
-                    <select
-                      value={rejectFormData.reason_code}
-                      onChange={(e) => setRejectFormData({...rejectFormData, reason_code: e.target.value})}
-                    >
-                      <option value="">Select a reason...</option>
-                      <option value="invalid_documents">Invalid Documents</option>
-                      <option value="incomplete_kyc">Incomplete KYC</option>
-                      <option value="restricted_category">Restricted Category</option>
-                      <option value="fraud_detected">Fraud Detected</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Details</label>
-                    <textarea
-                      value={rejectFormData.reason_details}
-                      onChange={(e) => setRejectFormData({...rejectFormData, reason_details: e.target.value})}
-                      placeholder="Provide details for rejection..."
-                    />
-                  </div>
-                  <div className="form-actions">
-                    <button
-                      className="btn-confirm btn-reject"
-                      onClick={() => handleRejectApplication(selectedApplication.id, 'creator')}
-                    >
-                      Confirm Rejection
-                    </button>
-                    <button
-                      className="btn-cancel"
-                      onClick={() => document.querySelector('.reject-form')?.classList.remove('show')}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="detail-content">
-              <div className="detail-header">
-                <div className="detail-title">
-                  <h2>{selectedApplication.business_name}</h2>
-                  <p>{selectedApplication.business_email}</p>
-                  <span className={`status-badge status-${selectedApplication.status}`}>
-                    {selectedApplication.status?.replace(/_/g, ' ').toUpperCase()}
-                  </span>
-                  {selectedApplication.flags?.free_email_domain && (
-                    <span className="flag-badge">⚠️ Free email domain</span>
-                  )}
-                  {selectedApplication.flags?.restricted_category && (
-                    <span className="flag-badge">⚠️ Restricted category</span>
-                  )}
-                </div>
-                <div className="detail-meta">
-                  <div className="meta-item">
-                    <span className="label">Submitted</span>
-                    <span className="value">{new Date(selectedApplication.submitted_date).toLocaleDateString()}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="label">SLA Remaining</span>
-                    <span className="value">{selectedApplication.sla_remaining_days} days</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="label">GST Status</span>
-                    <span className={`gst-badge ${selectedApplication.gst_details?.verification_status}`}>
-                      {selectedApplication.gst_details?.verification_status?.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-grid">
-                <section className="detail-section">
-                  <h3>Business Information</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <label>Business Name</label>
-                      <p>{selectedApplication.business_name}</p>
-                    </div>
-                    <div className="info-item">
-                      <label>Business Email</label>
-                      <p>{selectedApplication.business_email}</p>
-                    </div>
-                    <div className="info-item">
-                      <label>Industry</label>
-                      <p>{selectedApplication.business_profile?.industry}</p>
-                    </div>
-                    <div className="info-item">
-                      <label>Product Type</label>
-                      <p>{selectedApplication.business_profile?.product_type}</p>
-                    </div>
-                    <div className="info-item full-width">
-                      <label>Description</label>
-                      <p>{selectedApplication.business_profile?.description}</p>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="detail-section">
-                  <h3>GST Verification</h3>
-                  <div className="gst-info">
-                    <div className="gst-item">
-                      <label>GST Number</label>
-                      <p>{selectedApplication.gst_details?.gst_number}</p>
-                    </div>
-                    <div className="gst-item">
-                      <label>Status</label>
-                      <span className={`gst-badge ${selectedApplication.gst_details?.verification_status}`}>
-                        {selectedApplication.gst_details?.verification_status?.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="gst-item">
-                      <label>Business Type</label>
-                      <p>{selectedApplication.gst_details?.business_type}</p>
-                    </div>
-                    {selectedApplication.gst_details?.verified_at && (
-                      <div className="gst-item">
-                        <label>Verified Date</label>
-                        <p>{new Date(selectedApplication.gst_details.verified_at).toLocaleDateString()}</p>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                {selectedApplication.business_profile?.website && (
-                  <section className="detail-section full-width">
-                    <h3>Website</h3>
-                    <div className="website-preview">
-                      <a href={selectedApplication.business_profile.website} target="_blank" rel="noopener noreferrer">
-                        {selectedApplication.business_profile.website}
-                      </a>
-                    </div>
-                  </section>
-                )}
-
-                <section className="detail-section full-width">
-                  <h3>Social Media Links</h3>
-                  {selectedApplication.social_media ? (
-                    <div className="social-grid">
-                      {Object.entries(selectedApplication.social_media).map(([platform, url]) => (
-                        url ? (
-                          <div key={platform} className="social-card">
-                            <h4>{platform.toUpperCase()}</h4>
-                            <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
-                          </div>
-                        ) : null
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="empty-message">No social media links provided</p>
-                  )}
-                </section>
-
-                <AllSubmittedDetails application={selectedApplication} />
-              </div>
-
-              <div className="decision-section">
-                <h3>Application Decision</h3>
-                <div className="decision-buttons">
-                  <button
-                    className="btn-decision btn-approve"
-                    onClick={() => handleApproveApplication(selectedApplication.id, 'brand')}
-                    disabled={selectedApplication.status === 'approved'}
-                  >
-                    ✓ Approve
-                  </button>
-                  <button
-                    className="btn-decision btn-more-info"
-                    onClick={() => setShowMoreInfoModal(true)}
-                    disabled={selectedApplication.status === 'approved' || selectedApplication.status === 'rejected'}
-                  >
-                    ✎ Request More Info
-                  </button>
-                  <button
-                    className="btn-decision btn-reject"
-                    onClick={() => document.querySelector('.reject-form')?.classList.toggle('show')}
-                    disabled={selectedApplication.status === 'approved' || selectedApplication.status === 'rejected'}
-                  >
-                    ✕ Reject
-                  </button>
-                </div>
-
-                <div className="reject-form">
-                  <div className="form-group">
-                    <label>Rejection Reason</label>
-                    <select
-                      value={rejectFormData.reason_code}
-                      onChange={(e) => setRejectFormData({...rejectFormData, reason_code: e.target.value})}
-                    >
-                      <option value="">Select a reason...</option>
-                      <option value="invalid_gst">Invalid GST</option>
-                      <option value="restricted_category">Restricted Category</option>
-                      <option value="fraud_detected">Fraud Detected</option>
-                      <option value="low_trust">Low Trust Indicators</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Details</label>
-                    <textarea
-                      value={rejectFormData.reason_details}
-                      onChange={(e) => setRejectFormData({...rejectFormData, reason_details: e.target.value})}
-                      placeholder="Provide details for rejection..."
-                    />
-                  </div>
-                  <div className="form-actions">
-                    <button
-                      className="btn-confirm btn-reject"
-                      onClick={() => handleRejectApplication(selectedApplication.id, 'brand')}
-                    >
-                      Confirm Rejection
-                    </button>
-                    <button
-                      className="btn-cancel"
-                      onClick={() => document.querySelector('.reject-form')?.classList.remove('show')}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {showMoreInfoModal && (
-            <div className="modal-overlay" onClick={() => setShowMoreInfoModal(false)}>
-              <div className="modal-content more-info-modal" onClick={(e) => e.stopPropagation()}>
-                <h3>Request More Information</h3>
-                <div className="form-group">
-                  <label>Request Type</label>
-                  <select
-                    value={moreInfoFormData.request_type}
-                    onChange={(e) => setMoreInfoFormData({...moreInfoFormData, request_type: e.target.value})}
-                  >
-                    <option value="clarification">Clarification</option>
-                    <option value="document">Document</option>
-                    <option value="verification">Verification</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Message</label>
-                  <textarea
-                    value={moreInfoFormData.message}
-                    onChange={(e) => setMoreInfoFormData({...moreInfoFormData, message: e.target.value})}
-                    placeholder="Enter your request message..."
-                    rows="4"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Priority</label>
-                  <select
-                    value={moreInfoFormData.priority}
-                    onChange={(e) => setMoreInfoFormData({...moreInfoFormData, priority: e.target.value})}
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Response Deadline (Days)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={moreInfoFormData.deadline_days}
-                    onChange={(e) => setMoreInfoFormData({...moreInfoFormData, deadline_days: parseInt(e.target.value)})}
-                  />
-                </div>
-                <div className="modal-actions">
-                  <button
-                    className="btn-confirm"
-                    onClick={() => handleRequestMoreInfo(selectedApplication.id, applicationType === 'creators' ? 'creator' : 'brand')}
-                  >
-                    Send Request
-                  </button>
-                  <button
-                    className="btn-cancel"
-                    onClick={() => setShowMoreInfoModal(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </>
-    );
-  }
+  const creatorCount = useMemo(() => applications.filter((a) => isCreatorRole(a.role)).length, [applications]);
+  const brandCount = useMemo(() => applications.filter((a) => isBrandRole(a.role)).length, [applications]);
+  const isBrands = applicationType === 'brands';
 
   return (
     <div className="apps-page">
+      {selectedProfile && (
+        <ProfileDetail profile={selectedProfile} onBack={() => setSelectedProfile(null)} onDecide={handleDecision} />
+      )}
+
       <div className="apps-stats">
-        <div className="stat-card">
-          <div className="stat-icon stat-icon-blue"><FileText size={20} /></div>
-          <div className="stat-body">
-            <span className="stat-label">Total</span>
-            <span className="stat-value">{stats.total}</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon stat-icon-amber"><Clock size={20} /></div>
-          <div className="stat-body">
-            <span className="stat-label">Pending</span>
-            <span className="stat-value">{stats.pending}</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon stat-icon-green"><CheckCircle size={20} /></div>
-          <div className="stat-body">
-            <span className="stat-label">Approved</span>
-            <span className="stat-value">{stats.approved}</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon stat-icon-red"><XCircle size={20} /></div>
-          <div className="stat-body">
-            <span className="stat-label">Rejected</span>
-            <span className="stat-value">{stats.rejected}</span>
-          </div>
-        </div>
+        <div className="stat-card"><div className="stat-icon stat-icon-blue"><FileText size={20} /></div><div className="stat-body"><span className="stat-label">Total</span><span className="stat-value">{roleList.length}</span></div></div>
+        <div className="stat-card"><div className="stat-icon stat-icon-amber"><Clock size={20} /></div><div className="stat-body"><span className="stat-label">Pending</span><span className="stat-value">{counts.pending}</span></div></div>
+        <div className="stat-card"><div className="stat-icon stat-icon-blue"><MessageSquarePlus size={20} /></div><div className="stat-body"><span className="stat-label">More Info</span><span className="stat-value">{counts.more_info}</span></div></div>
+        <div className="stat-card"><div className="stat-icon stat-icon-green"><CheckCircle size={20} /></div><div className="stat-body"><span className="stat-label">Approved</span><span className="stat-value">{counts.approved}</span></div></div>
       </div>
 
       <div className="apps-toolbar">
         <div className="apps-tabs">
-          <button
-            className={`apps-tab ${applicationType === 'creators' ? 'active' : ''}`}
-            onClick={() => setApplicationType('creators')}
-          >
-            <Users size={16} />
-            Creators
+          <button className={`apps-tab ${!isBrands ? 'active' : ''}`} onClick={() => setApplicationType('creators')}>
+            <Users size={16} /> Creators {creatorCount > 0 && <span className="apps-tab-count">{creatorCount}</span>}
           </button>
-          <button
-            className={`apps-tab ${applicationType === 'brands' ? 'active' : ''}`}
-            onClick={() => setApplicationType('brands')}
-          >
-            <Briefcase size={16} />
-            Brands
+          <button className={`apps-tab ${isBrands ? 'active' : ''}`} onClick={() => setApplicationType('brands')}>
+            <Briefcase size={16} /> Brands {brandCount > 0 && <span className="apps-tab-count">{brandCount}</span>}
           </button>
         </div>
-
         <div className="apps-controls">
           <div className="apps-search">
             <Search size={16} />
-            <input
-              type="text"
-              placeholder={`Search ${applicationType === 'creators' ? 'creators' : 'brands'}…`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <input type="text" placeholder={`Search ${isBrands ? 'brands' : 'creators'}…`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
-          <select className="apps-select" value={filterState} onChange={(e) => setFilterState(e.target.value)}>
-            <option value="all">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          {categories.length > 0 && (
-            <select className="apps-select" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-              <option value="all">All categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          )}
         </div>
       </div>
 
+      {/* Filters bar */}
+      <div className="apps-filters">
+        <label>State
+          <select value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="more_info">More Info</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </label>
+        <label>Category
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="all">All</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        {isBrands ? (
+          <>
+            <label>GST
+              <select value={gstFilter} onChange={(e) => setGstFilter(e.target.value)}>
+                <option value="all">All</option>
+                <option value="green">Valid</option>
+                <option value="yellow">Unverified</option>
+                <option value="red">Missing</option>
+              </select>
+            </label>
+            <label className="apps-check-inline"><input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} /> Flagged only</label>
+          </>
+        ) : (
+          <>
+            <label>From<input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} /></label>
+            <label>To<input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} /></label>
+          </>
+        )}
+        <label>Sort
+          <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+            <option value="oldest">Oldest first</option>
+            <option value="newest">Newest first</option>
+          </select>
+        </label>
+      </div>
+
       {loading ? (
-        <div className="apps-skeleton-list">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="apps-skeleton-row" />
-          ))}
-        </div>
-      ) : filteredApplications.length === 0 ? (
+        <div className="apps-skeleton-list">{[...Array(5)].map((_, i) => <div key={i} className="apps-skeleton-row" />)}</div>
+      ) : visible.length === 0 ? (
         <div className="apps-empty">
           <CheckCircle size={56} />
-          <h3>No applications found</h3>
-          <p>Try adjusting your filters or search query.</p>
+          <h3>No {isBrands ? 'brand' : 'creator'} applications</h3>
+          <p>Try a different State filter, or new submissions will appear here.</p>
         </div>
       ) : (
         <div className="apps-list">
-          {filteredApplications.map(app => {
-            const name = applicationType === 'creators' ? app.nickname : app.business_name;
-            const email = applicationType === 'creators' ? app.email : app.business_email;
-            const category = applicationType === 'creators' ? app.category : app.business_profile?.industry;
-            return (
-              <div key={app.id} className="apps-row" onClick={() => setSelectedApplication(app)}>
-                <div className="apps-row-identity">
-                  <div className="apps-avatar" style={{ background: avatarColor(name || '') }}>
-                    {getInitials(name)}
-                  </div>
-                  <div className="apps-name-block">
-                    <h4>{name}</h4>
-                    <span className={`apps-status apps-status-${app.status}`}>
-                      {app.status?.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="apps-row-meta">
-                  <div className="apps-meta">
-                    <span className="apps-meta-label">Email</span>
-                    <span className="apps-meta-value" title={email}>{email}</span>
-                  </div>
-                  <div className="apps-meta">
-                    <span className="apps-meta-label">Category</span>
-                    <span className="apps-meta-value">{category || '—'}</span>
-                  </div>
-                  <div className="apps-meta">
-                    <span className="apps-meta-label">Submitted</span>
-                    <span className="apps-meta-value">{new Date(app.submitted_date).toLocaleDateString()}</span>
-                  </div>
-                  <div className="apps-meta">
-                    <span className="apps-meta-label">SLA</span>
-                    <span className={`apps-meta-value ${app.sla_remaining_days <= 1 ? 'apps-sla-urgent' : ''}`}>
-                      {app.sla_remaining_days != null ? `${app.sla_remaining_days}d left` : '—'}
-                    </span>
-                  </div>
-                </div>
-
-                <button className="apps-row-action" onClick={(e) => { e.stopPropagation(); setSelectedApplication(app); }}>
-                  View <ArrowRight size={14} />
-                </button>
-              </div>
-            );
-          })}
+          {visible.map((profile) => (
+            <ApplicationRow key={profile.id} profile={profile} nowMs={nowMs}
+              onOpen={setSelectedProfile}
+              onApprove={(id) => handleDecision(id, 'approve')}
+              onReject={(id) => setSelectedProfile(profile)} />
+          ))}
         </div>
       )}
     </div>

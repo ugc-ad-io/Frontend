@@ -8,7 +8,7 @@ import { Users, Briefcase, CheckCircle, XCircle, TrendingUp, MessageSquare, Cred
 import AdminSidebar from '../components/AdminSidebar';
 import AdminTopbar from '../components/AdminTopbar';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function AdminDashboard() {
@@ -861,7 +861,7 @@ export default function AdminDashboard() {
                 {user?.role === 'admin' && analytics && (
                   <div className="stat-tile">
                     <div className="stat-tile-label">Platform earnings</div>
-                    <div className="stat-tile-value">${Number(analytics.platform_commission || 0).toLocaleString()}</div>
+                    <div className="stat-tile-value">₹{Number(analytics.platform_commission || 0).toLocaleString('en-IN')}</div>
                     <div className="stat-tile-hint">20% commission</div>
                   </div>
                 )}
@@ -1501,7 +1501,7 @@ export default function AdminDashboard() {
               </div>
               <div className="detail-row">
                 <span className="detail-label">Balance:</span>
-                <span className="detail-value">${selectedUser.balance?.toFixed(2) || '0.00'}</span>
+                <span className="detail-value">₹{selectedUser.balance?.toFixed(2) || '0.00'}</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Joined:</span>
@@ -1552,7 +1552,7 @@ export default function AdminDashboard() {
               </select>
             </div>
             <div className="form-group">
-              <label>Balance ($)</label>
+              <label>Balance (₹)</label>
               <input
                 type="number"
                 step="0.01"
@@ -2151,12 +2151,12 @@ export default function AdminDashboard() {
         }
 
         .tab:hover {
-          color: #07074E;
+          color: #5b6bff;
         }
 
         .tab.active {
-          color: #07074E;
-          border-bottom-color: #07074E;
+          color: #5b6bff;
+          border-bottom-color: #5b6bff;
         }
 
         .tab-content {
@@ -2192,7 +2192,7 @@ export default function AdminDashboard() {
         .stat-icon {
           width: 64px;
           height: 64px;
-          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           border-radius: 16px;
           display: flex;
           align-items: center;
@@ -2274,7 +2274,7 @@ export default function AdminDashboard() {
         }
 
         .operator-section.priority {
-          border: 2px solid #07074E;
+          border: 2px solid #5b6bff;
           background: linear-gradient(135deg, rgba(255, 247, 237, 0.8) 0%, rgba(254, 243, 199, 0.4) 50%, #ffffff 100%);
           position: relative;
           overflow: hidden;
@@ -2287,7 +2287,7 @@ export default function AdminDashboard() {
           left: 0;
           right: 0;
           height: 4px;
-          background: linear-gradient(90deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
         }
 
         .operator-section-head {
@@ -2334,7 +2334,7 @@ export default function AdminDashboard() {
           left: 0;
           right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           opacity: 0;
           transition: opacity 0.3s ease;
         }
@@ -2419,7 +2419,7 @@ export default function AdminDashboard() {
         }
 
         .operator-actions button:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           background: linear-gradient(135deg, #eff2f8 0%, #e8ecff 100%);
           box-shadow: 0 8px 24px rgba(7, 7, 78, 0.18);
           transform: translateY(-3px);
@@ -2475,7 +2475,7 @@ export default function AdminDashboard() {
           left: 0;
           right: 0;
           height: 4px;
-          background: linear-gradient(90deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           transform: scaleX(0);
           transform-origin: left;
           transition: transform 0.4s ease;
@@ -2676,8 +2676,8 @@ export default function AdminDashboard() {
 
         .input-field:focus {
           outline: none;
-          border-color: #07074E;
-          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
+          border-color: #5b6bff;
+          box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.16);
         }
 
         .users-table {
@@ -2738,7 +2738,7 @@ export default function AdminDashboard() {
 
         .flagged-stat-card {
           background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          border: 2px solid #07074E;
+          border: 2px solid #5b6bff;
           padding: 16px 24px;
           border-radius: 12px;
           display: flex;
@@ -2788,13 +2788,13 @@ export default function AdminDashboard() {
         }
 
         .conversation-card:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           box-shadow: 0 4px 12px rgba(7, 7, 78, 0.2);
           transform: translateY(-2px);
         }
 
         .conversation-card.has-violations {
-          border-left: 4px solid #07074E;
+          border-left: 4px solid #5b6bff;
           background: #fffbeb;
         }
 
@@ -2886,8 +2886,8 @@ export default function AdminDashboard() {
         }
 
         .btn-back:hover {
-          border-color: #07074E;
-          color: #07074E;
+          border-color: #5b6bff;
+          color: #5b6bff;
         }
 
         .chat-participants {
@@ -2930,7 +2930,7 @@ export default function AdminDashboard() {
         }
 
         .message-item.filtered-message {
-          border-color: #07074E;
+          border-color: #5b6bff;
           background: #fffbeb;
         }
 
@@ -3078,7 +3078,7 @@ export default function AdminDashboard() {
         }
 
         .campaign-count-badge {
-          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           color: white;
           padding: 6px 16px;
           border-radius: 20px;
@@ -3104,7 +3104,7 @@ export default function AdminDashboard() {
         }
 
         .campaign-item-small:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           box-shadow: 0 2px 8px rgba(7, 7, 78, 0.2);
         }
 
@@ -3174,7 +3174,7 @@ export default function AdminDashboard() {
         }
 
         .btn-assign {
-          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           color: white;
         }
 
@@ -3234,8 +3234,8 @@ export default function AdminDashboard() {
 
         .select-input:focus {
           outline: none;
-          border-color: #07074E;
-          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
+          border-color: #5b6bff;
+          box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.16);
         }
 
         .modal-actions {
@@ -3312,7 +3312,7 @@ export default function AdminDashboard() {
         }
 
         .default-badge {
-          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           color: white;
           padding: 4px 12px;
           border-radius: 12px;
@@ -3358,7 +3358,7 @@ export default function AdminDashboard() {
         }
 
         .gateway-toggle input:checked + .slider {
-          background-color: #07074E;
+          background-color: #5b6bff;
         }
 
         .gateway-toggle input:checked + .slider:before {
@@ -3487,7 +3487,7 @@ export default function AdminDashboard() {
         .gateway-badge {
           display: inline-block;
           padding: 4px 8px;
-          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           color: white;
           border-radius: 8px;
           font-size: 0.75rem;
@@ -3574,8 +3574,8 @@ export default function AdminDashboard() {
 
         .textarea-field:focus {
           outline: none;
-          border-color: #07074E;
-          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
+          border-color: #5b6bff;
+          box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.16);
         }
 
         .form-row {
@@ -3735,7 +3735,7 @@ export default function AdminDashboard() {
         }
 
         .metric-card.highlight {
-          background: linear-gradient(135deg, #07074E 0%, #07074E 100%);
+          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
           color: white;
         }
 
@@ -4021,12 +4021,12 @@ export default function AdminDashboard() {
         }
 
         .app-tab-btn.active {
-          color: #07074E;
-          border-bottom-color: #07074E;
+          color: #5b6bff;
+          border-bottom-color: #5b6bff;
         }
 
         .app-tab-btn:hover {
-          color: #07074E;
+          color: #5b6bff;
         }
 
         .applications-filters {
@@ -4074,8 +4074,8 @@ export default function AdminDashboard() {
         .filter-group select:focus,
         .filter-group input:focus {
           outline: none;
-          border-color: #07074E;
-          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
+          border-color: #5b6bff;
+          box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.16);
         }
 
         .applications-list {
@@ -4193,7 +4193,7 @@ export default function AdminDashboard() {
         }
 
         .btn-view-detail:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           box-shadow: 0 4px 12px rgba(7, 7, 78, 0.15);
           transform: translateY(-2px);
         }
@@ -4223,7 +4223,7 @@ export default function AdminDashboard() {
         }
 
         .btn-back:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           box-shadow: 0 4px 12px rgba(7, 7, 78, 0.1);
           background: #f5f7ff;
         }
@@ -4415,7 +4415,7 @@ export default function AdminDashboard() {
         }
 
         .video-card:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           box-shadow: 0 6px 16px rgba(7, 7, 78, 0.15);
           transform: translateY(-4px);
         }
@@ -4444,7 +4444,7 @@ export default function AdminDashboard() {
           transform: translate(-50%, -50%);
           width: 48px;
           height: 48px;
-          background: rgba(7, 7, 78, 0.9);
+          background: rgba(91, 107, 255, 0.9);
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -4456,7 +4456,7 @@ export default function AdminDashboard() {
         }
 
         .play-button:hover {
-          background: #07074E;
+          background: #4452f0;
           transform: translate(-50%, -50%) scale(1.1);
         }
 
@@ -4564,7 +4564,7 @@ export default function AdminDashboard() {
         }
 
         .social-card:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           box-shadow: 0 4px 12px rgba(7, 7, 78, 0.1);
         }
 
@@ -4816,8 +4816,8 @@ export default function AdminDashboard() {
         .form-group textarea:focus,
         .form-group input:focus {
           outline: none;
-          border-color: #07074E;
-          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.1);
+          border-color: #5b6bff;
+          box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.16);
         }
 
         .form-group textarea {
@@ -4844,14 +4844,14 @@ export default function AdminDashboard() {
         }
 
         .btn-confirm {
-          background: #07074E;
+          background: #5b6bff;
           color: white;
-          border-color: #07074E;
+          border-color: #5b6bff;
         }
 
         .btn-confirm:hover {
-          background: #07074E;
-          border-color: #07074E;
+          background: #4452f0;
+          border-color: #4452f0;
         }
 
         .btn-confirm.btn-reject {
@@ -4866,7 +4866,7 @@ export default function AdminDashboard() {
         }
 
         .btn-cancel:hover {
-          border-color: #07074E;
+          border-color: #5b6bff;
           background: #f5f7ff;
         }
 

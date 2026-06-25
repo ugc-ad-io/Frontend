@@ -9,16 +9,19 @@ function AdminLayout({ children }) {
 
   const currentPath = window.location.pathname;
   const pathToTab = {
-    '/dashboard/admin/applications': 'applications',
-    '/dashboard/admin/profiles': 'profiles',
-    '/dashboard/admin/campaigns': 'campaigns',
-    '/dashboard/admin/gig-management': 'gigs',
-    '/dashboard/admin/withdrawals': 'withdrawals',
-    '/dashboard/admin/all-campaigns': 'allcampaigns',
-    '/dashboard/admin/users': 'users',
-    '/dashboard/admin/assignments': 'assignments',
-    '/dashboard/admin/flagged': 'flagged',
-    '/dashboard/admin/analytics': 'analytics',
+    '/dashboard/admin/applications':  'applications',
+    '/dashboard/admin/campaigns':     'briefs',
+    '/dashboard/admin/my-creators':   'assigned',
+    '/dashboard/admin/deals':         'deals',
+    '/dashboard/admin/disputes':      'disputes',
+    '/dashboard/admin/shipping':      'shipping',
+    '/dashboard/admin/users':         'users',
+    '/dashboard/admin/financials':    'financials',
+    '/dashboard/admin/chat-oversight':'chat',
+    '/dashboard/admin/reports':       'reports',
+    '/dashboard/admin/audit-log':     'audit',
+    '/dashboard/admin/settings':      'settings',
+    '/dashboard/admin/roles':         'roles',
   };
 
   const activeTab = pathToTab[currentPath] || 'stats';
@@ -26,12 +29,8 @@ function AdminLayout({ children }) {
   const handleTabClick = (tab) => {
     if (tab.id === 'applications') {
       navigate('/dashboard/admin/applications');
-    } else if (tab.id === 'gigs') {
-      navigate('/dashboard/admin/gig-management');
     } else if (tab.id === 'stats') {
       navigate('/dashboard/admin');
-    } else if (tab.id === 'allcampaigns') {
-      navigate('/dashboard/admin/all-campaigns');
     } else {
       navigate(`/dashboard/admin/${tab.slug}`);
     }
@@ -47,16 +46,19 @@ function AdminLayout({ children }) {
         <div className="dashboard-content">
           {(() => {
             const titles = {
-              applications: ['Applications Management', 'Manage creator and brand applications'],
-              profiles: ['Profile Approvals', 'Review and approve newly submitted profiles'],
-              campaigns: ['Campaign Approvals', 'Review and approve brand campaigns'],
-              gigs: ['Gig Management', 'Review and approve creator gigs'],
-              withdrawals: ['Withdrawal Requests', 'Review pending withdrawals'],
-              allcampaigns: ['All Campaigns', 'View every campaign on the platform'],
-              users: ['User Management', 'Search, edit, and ban users'],
-              assignments: ['Campaign Assignments', 'Assign campaigns to managers'],
-              flagged: ['Flagged Messages', 'Review reported chat messages'],
-              analytics: ['Platform Analytics', 'Revenue, growth, and performance metrics'],
+              applications: ['Applications',   'Creator, brand applications and profile approvals'],
+              briefs:       ['Briefs',         'Review and approve new brand briefs before they go live'],
+              assigned:     ['My Users',       'Creators & brands in the categories assigned to you'],
+              deals:        ['Deals',          'All active and past deals on the platform'],
+              disputes:     ['Disputes',       'Review evidence and rule on creator/brand disputes'],
+              shipping:     ['Shipping Queue', 'Manual label requests — target SLA 4 hours'],
+              users:        ['Users',          'Search, edit, warn, suspend or ban users'],
+              financials:   ['Financials',     'Wallets, escrow, payouts and withdrawals'],
+              chat:         ['Chat Oversight', 'Flagged messages and contact-info filter log'],
+              reports:      ['Reports',        'Exports, metrics and platform summaries'],
+              audit:        ['Audit Log',      'Immutable record of every admin action — retained 7 years'],
+              settings:     ['Settings',       'Platform config — founder access only'],
+              roles:        ['Team & Roles',   'Admin role structure and staff access — founder manages'],
             };
             const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', 'Manage the platform'];
             return (

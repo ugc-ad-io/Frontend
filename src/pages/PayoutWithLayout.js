@@ -21,13 +21,14 @@ import {
   User,
   Bell,
   IndianRupee,
+  ClipboardList,
   Upload,
   Zap as ZapIcon
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const STATUS_STYLES = {
@@ -84,7 +85,7 @@ export default function PayoutWithLayout() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
+    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
     { name: 'My Active Work', icon: ZapIcon, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
     { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },

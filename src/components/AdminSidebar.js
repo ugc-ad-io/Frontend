@@ -1,18 +1,22 @@
-import { TrendingUp, FileText, Users, Briefcase, IndianRupee, Download, UserPlus, BarChart, AlertTriangle } from 'lucide-react';
+import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck } from 'lucide-react';
+import { can } from '../utils/adminRoles';
 
 function AdminSidebar({ activeTab, onTabClick, user }) {
   const adminTabs = [
-    { id: 'stats', label: 'Admin Dashboard', icon: TrendingUp, testId: 'tab-stats', slug: 'overview' },
-    { id: 'applications', label: 'Applications', icon: FileText, testId: 'tab-applications', slug: 'applications' },
-    { id: 'profiles', label: 'Profiles', icon: Users, testId: 'tab-profiles', slug: 'profiles' },
-    { id: 'campaigns', label: 'Campaigns', icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
-    { id: 'gigs', label: 'Gig Management', icon: Briefcase, testId: 'tab-gigs', slug: 'gigs' },
-    { id: 'withdrawals', label: 'Withdrawals', icon: IndianRupee, testId: 'tab-withdrawals', slug: 'withdrawals' },
-    { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns', slug: 'all-campaigns' },
-    { id: 'users', label: 'Users', icon: Users, testId: 'tab-users', slug: 'users' },
-    { id: 'assignments', label: 'Assignments', icon: UserPlus, testId: 'tab-assignments', slug: 'assignments' },
-    { id: 'flagged', label: 'Flagged Messages', icon: AlertTriangle, testId: 'tab-flagged', slug: 'flagged', adminOnly: true },
-    { id: 'analytics', label: 'Analytics', icon: BarChart, testId: 'tab-analytics', slug: 'analytics' },
+    { id: 'stats',        label: 'Dashboard',      icon: TrendingUp,   testId: 'tab-stats',        slug: 'overview' },
+    { id: 'applications', label: 'Applications',   icon: FileText,     testId: 'tab-applications', slug: 'applications', cap: 'review_applications' },
+    { id: 'briefs',       label: 'Briefs',         icon: ClipboardCheck, testId: 'tab-briefs',     slug: 'campaigns',    cap: 'review_applications' },
+    { id: 'assigned',     label: 'My Users',       icon: UserCheck,    testId: 'tab-assigned',     slug: 'my-creators',  cap: 'review_applications' },
+    { id: 'deals',        label: 'Deals',          icon: Briefcase,    testId: 'tab-deals',        slug: 'deals',        cap: 'manage_deals' },
+    { id: 'disputes',     label: 'Disputes',       icon: Scale,        testId: 'tab-disputes',     slug: 'disputes',     cap: 'rule_disputes' },
+    { id: 'shipping',     label: 'Shipping Queue', icon: Package,      testId: 'tab-shipping',     slug: 'shipping',     cap: 'manage_shipping' },
+    { id: 'users',        label: 'Users',          icon: Users,        testId: 'tab-users',        slug: 'users',        cap: 'user_management' },
+    { id: 'financials',   label: 'Financials',     icon: IndianRupee,  testId: 'tab-financials',   slug: 'financials',   cap: 'view_financials' },
+    { id: 'chat',         label: 'Chat Oversight', icon: MessageSquare,testId: 'tab-chat',         slug: 'chat-oversight', cap: 'content_moderation' },
+    { id: 'reports',      label: 'Reports',        icon: BarChart,     testId: 'tab-reports',      slug: 'reports',      cap: 'generate_reports' },
+    { id: 'audit',        label: 'Audit Log',      icon: ScrollText,   testId: 'tab-audit',        slug: 'audit-log',    cap: 'view_audit' },
+    { id: 'roles',        label: 'Team & Roles',   icon: ShieldCheck,  testId: 'tab-roles',        slug: 'roles',        cap: 'manage_roles' },
+    { id: 'settings',     label: 'Settings',       icon: Settings,     testId: 'tab-settings',     slug: 'settings',     cap: 'edit_settings' },
   ];
 
   return (
@@ -25,7 +29,7 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
         </div>
         <nav className="admin-sidebar-nav" aria-label="Admin dashboard">
           <span className="admin-nav-label">Admin</span>
-          {adminTabs.filter((tab) => !tab.adminOnly || user?.role === 'admin').map((tab) => {
+          {adminTabs.filter((tab) => !tab.cap || can(user, tab.cap)).map((tab) => {
             const Icon = tab.icon;
             return (
               <button

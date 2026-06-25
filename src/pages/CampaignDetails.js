@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function CampaignDetails() {
@@ -27,6 +27,7 @@ export default function CampaignDetails() {
   const [shortlistBusy, setShortlistBusy] = useState(false);
   const [inviteTarget, setInviteTarget] = useState(null);
   const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteBrief, setInviteBrief] = useState('');
 
   useEffect(() => {
     fetchCampaign();
@@ -55,15 +56,19 @@ export default function CampaignDetails() {
     try {
       await axios.post(`${API}/campaigns/${id}/shortlist/${inviteTarget.creator_id}/invite`, {
         message: inviteMessage,
+        brief: inviteBrief,
       });
       toast.success('Invitation sent — opening chat with the creator…');
       const creatorId = inviteTarget.creator_id;
       setInviteTarget(null);
       setInviteMessage('');
+      setInviteBrief('');
       await fetchCampaign();
       await fetchShortlist();
       await new Promise(resolve => setTimeout(resolve, 1200));
-      navigate(`/chat/${creatorId}`);
+      // Open the full Messages UI (renders the private_invitation action card);
+      // /chat/:id is a basic view that does not render action cards.
+      navigate(`/messages?conv=${creatorId}`);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to send invitation'));
     } finally {
@@ -392,7 +397,7 @@ export default function CampaignDetails() {
                               <button
                                 className="btn-select-small"
                                 disabled={shortlistBusy || dismissed || campaign.match_status === 'fulfilled'}
-                                onClick={() => { setInviteTarget(cand); setInviteMessage(''); }}
+                                onClick={() => { setInviteTarget(cand); setInviteMessage(''); setInviteBrief(''); }}
                               >
                                 Invite
                               </button>
@@ -519,8 +524,20 @@ export default function CampaignDetails() {
                   value={inviteMessage}
                   onChange={(e) => setInviteMessage(e.target.value)}
                   placeholder="Add a personal note about why they're a great fit…"
-                  rows="4"
+                  rows="3"
                 />
+              </div>
+              <div className="form-group">
+                <label htmlFor="inviteBrief">Describe the brief (optional)</label>
+                <textarea
+                  id="inviteBrief"
+                  value={inviteBrief}
+                  onChange={(e) => setInviteBrief(e.target.value)}
+                  placeholder="Share the brief details for this creator — deliverables, key talking points, do's & don'ts…"
+                  rows="4"
+                  data-testid="invite-brief"
+                />
+                <small>Private to this creator. Shared with them when they accept the invitation.</small>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setInviteTarget(null)} disabled={shortlistBusy}>
@@ -544,7 +561,7 @@ export default function CampaignDetails() {
             </div>
             <form onSubmit={handleSubmitBid} className="bid-form">
               <div className="form-group">
-                <label htmlFor="bidAmount">Bid Amount ($)</label>
+                <label htmlFor="bidAmount">Bid Amount (₹)</label>
                 <input
                   id="bidAmount"
                   type="number"

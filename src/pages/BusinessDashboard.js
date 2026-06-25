@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
 import PostABrief from './PostABrief';
+import BrowseApprovedGigs from './BrowseApprovedGigs';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const budgetColors = ['#5b6bff', '#9296ba', '#07074E', '#27AE60', '#F59E0B'];
 const campaignPerformanceSample = [
@@ -496,10 +497,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
     setSendingInvite(true);
     try {
-      await axios.post(`${API}/business/creator-directory/${selectedCreatorInvite.id}/invite`, payload);
+      const creatorId = selectedCreatorInvite.id;
+      await axios.post(`${API}/business/creator-directory/${creatorId}/invite`, payload);
       toast.success(`Invitation sent to ${selectedCreatorInvite.handle}`);
       closeInviteModal();
       setSelectedCreatorProfile(null);
+      // Open the full Messages UI where the invitation card is rendered.
+      navigate(`/messages?conv=${creatorId}`);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to send invitation'));
     } finally {
@@ -556,6 +560,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
     { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
+    { id: 'browse-gigs', label: 'Browse Gigs', icon: Eye, path: '/dashboard/business/browse-gigs' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
@@ -570,6 +575,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     'post-brief': 'Create a new campaign and attract top creators',
     'pending-bids': 'Review creator proposals and select the best fit for each campaign',
     'browse-creator': 'Discover vetted creators and send private invitations',
+    'browse-gigs': 'Browse approved creator gigs and contact creators directly',
     'all-campaigns': 'Track every brief from draft to delivery',
     'work-review': 'Review submitted creator work and approve deliverables',
     shipments: 'Manage product shipments and creator selection for delivery campaigns',
@@ -987,7 +993,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           </div>
         </div>
 
-        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
+        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'browse-gigs', 'pending-bids', 'shipments', 'work-review', 'wallet'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
         {activeTab === 'overview' && (
           <>
             <div className="brand-metrics-grid">
@@ -1041,134 +1047,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         {/* Tab Content */}
         <div className="tab-content">
           {activeTab === 'overview' && (
-            <div className="brand-overview-grid">
-              <section className="brand-panel performance-panel">
-                <div className="panel-title-row">
-                  <h2>Campaign Performance</h2>
-                  <div className="performance-controls">
-                    <label className="campaign-filter">
-                      <span>Campaign</span>
-                      <select value={performanceCampaignId} onChange={(event) => setPerformanceCampaignId(event.target.value)}>
-                        <option value="all">All campaigns</option>
-                        {campaigns.map(campaign => (
-                          <option key={campaign.id} value={campaign.id}>{campaign.title || 'Untitled Campaign'}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="period-switch" role="tablist" aria-label="Campaign performance period">
-                      {performancePeriods.map(period => (
-                        <button
-                          key={period}
-                          type="button"
-                          className={period === performancePeriod ? 'active' : ''}
-                          onClick={() => setPerformancePeriod(period)}
-                          role="tab"
-                          aria-selected={period === performancePeriod}
-                        >
-                          {period}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="performance-chart" aria-label="Campaign performance chart">
-                  <div className="chart-grid-lines">
-                    <span>120</span>
-                    <span>90</span>
-                    <span>60</span>
-                    <span>30</span>
-                    <span>0</span>
-                  </div>
-                  <div className="chart-axis-right">
-                    <span>80</span>
-                    <span>60</span>
-                    <span>40</span>
-                    <span>20</span>
-                    <span>0</span>
-                  </div>
-                  <svg viewBox="0 0 640 280" preserveAspectRatio="none" aria-hidden="true">
-                    <polyline points={dashboardPerformance.map((item, index) => `${chartXs[index]},${chartYRight(item.spend_k)}`).join(' ')} className="line spend" />
-                    <polyline points={dashboardPerformance.map((item, index) => `${chartXs[index]},${chartYLeft(item.applications_received)}`).join(' ')} className="line applications" />
-                    {dashboardPerformance.map((item, index) => {
-                      const x = chartXs[index];
-                      const dealsHeight = Math.max(4, (Number(item.deals_closed || 0) / performanceLeftMax) * chartHeight);
-                      const deliveriesHeight = Math.max(4, (Number(item.approved_deliveries || 0) / performanceLeftMax) * chartHeight);
-                      return (
-                      <g key={x}>
-                        <rect x={x - 28} y={chartBottom - dealsHeight} width="38" height={dealsHeight} rx="6" className="bar deals" />
-                        <rect x={x + 16} y={chartBottom - deliveriesHeight} width="38" height={deliveriesHeight} rx="6" className="bar deliveries" />
-                      </g>
-                      );
-                    })}
-                    {dashboardPerformance.map((item, index) => (
-                      <circle key={`s-${item.month}`} cx={chartXs[index]} cy={chartYRight(item.spend_k)} r="6" className="dot spend" />
-                    ))}
-                    {dashboardPerformance.map((item, index) => (
-                      <circle key={`a-${item.month}`} cx={chartXs[index]} cy={chartYLeft(item.applications_received)} r="6" className="dot applications" />
-                    ))}
-                  </svg>
-                  <div className="chart-hit-zones">
-                    {dashboardPerformance.map((item, index) => (
-                      <button
-                        key={`hover-${item.month}`}
-                        type="button"
-                        className="chart-hit-zone"
-                        style={{ '--month-x': `${(chartXs[index] / 640) * 100}%` }}
-                        aria-label={`${item.month} campaign details`}
-                      >
-                        <span className="chart-hover-guide" />
-                        <span className="campaign-tooltip">
-                          <strong>{item.month}</strong>
-                          <span><i className="legend-deals" /> Deals Closed <b>{item.deals_closed}</b></span>
-                          <span><i className="legend-deliveries" /> Approved Deliveries <b>{item.approved_deliveries}</b></span>
-                          <span><i className="legend-applications" /> Applications Received <b>{item.applications_received}</b></span>
-                          <span><i className="legend-spend" /> Spend (K) <b>Rs. {item.spend_k}K</b></span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="chart-months">
-                    {dashboardPerformance.map(item => <span key={item.month}>{item.month}</span>)}
-                  </div>
-                </div>
-                <div className="chart-legend">
-                  <span><i className="legend-deals" /> Deals Closed</span>
-                  <span><i className="legend-deliveries" /> Approved Deliveries</span>
-                  <span><i className="legend-applications" /> Applications Received</span>
-                  <span><i className="legend-spend" /> Spend (K)</span>
-                </div>
-              </section>
-
-              <section className="brand-panel funnel-panel">
-                <h2>Creator Funnel</h2>
-                <div className="funnel-chart">
-                  <div className="funnel-axis">
-                    <span>1000</span>
-                    <span>750</span>
-                    <span>500</span>
-                    <span>250</span>
-                    <span>0</span>
-                  </div>
-                  <div className="funnel-bars">
-                    {funnelStages.map(stage => (
-                      <div
-                        key={stage.key}
-                        className={`funnel-bar ${stage.className}`}
-                        style={{ height: `${funnelHeight(dashboardFunnel[stage.key])}px` }}
-                        tabIndex={0}
-                        aria-label={`${stage.label}: ${dashboardFunnel[stage.key] || 0}`}
-                      >
-                        <span className="funnel-tooltip">{stage.label}<br /><strong>{dashboardFunnel[stage.key] || 0}</strong></span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="funnel-labels">
-                  {funnelStages.map(stage => <span key={stage.key}>{stage.label}</span>)}
-                </div>
-              </section>
-
-              <aside className="brand-side-stack">
+            <div className="brand-lower-grid">
+              <div className="brand-main-col">
                 <section className="brand-panel top-campaigns-panel">
                   <div className="top-campaigns-head">
                     <div>
@@ -1202,23 +1082,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     </div>
                   ) : <p className="empty-inline">{dashboardSearchTerm ? 'No matching campaigns' : 'No campaigns yet'}</p>}
                 </section>
-                <div className="mini-kpi-grid">
-                  <section className="brand-panel mini-kpi">
-                    <p>Approval Rate</p>
-                    <strong>{dashboardMetrics.approval_rate || 0}%</strong>
-                  </section>
-                  <section className="brand-panel mini-kpi">
-                    <p>Avg Rating</p>
-                    <strong>{dashboardMetrics.avg_rating || 0}</strong>
-                  </section>
-                </div>
-              </aside>
-            </div>
-          )}
-
-          {activeTab === 'overview' && (
-            <div className="brand-lower-grid">
-              <section className="brand-panel active-deals-panel">
+                <section className="brand-panel active-deals-panel">
                 <div className="panel-title-row">
                   <h2>Active Deals</h2>
                   <button type="button" onClick={() => navigate('/dashboard/business/all-campaigns')}>View All</button>
@@ -1260,8 +1124,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   )}
                 </div>
               </section>
+              </div>
 
               <aside className="brand-right-rail">
+                <div className="mini-kpi-grid">
+                  <section className="brand-panel mini-kpi">
+                    <p>Approval Rate</p>
+                    <strong>{dashboardMetrics.approval_rate || 0}%</strong>
+                  </section>
+                  <section className="brand-panel mini-kpi">
+                    <p>Avg Rating</p>
+                    <strong>{dashboardMetrics.avg_rating || 0}</strong>
+                  </section>
+                </div>
                 <section className="brand-panel pending-actions-panel">
                   <h2>Pending Actions</h2>
                   {filteredDashboardPendingActions.length ? filteredDashboardPendingActions.map((action) => {
@@ -1275,6 +1150,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     </button>
                     );
                   }) : <p className="empty-inline">{dashboardSearchTerm ? 'No matching pending actions' : 'No pending actions'}</p>}
+                </section>
+
+                <section className="brand-panel quick-actions-panel">
+                  <h2>Quick Actions</h2>
+                  <div className="quick-action-grid">
+                    <button type="button" onClick={() => navigate('/dashboard/business/post-brief')}><FileCheck size={20} />Post a Brief</button>
+                    <button type="button" onClick={() => navigate('/dashboard/business/pending-bids')}><Users size={20} />Creator Bids</button>
+                    <button type="button" onClick={() => navigate('/dashboard/business/wallet')}><Wallet size={20} />Top Up Wallet</button>
+                    <button type="button"><IndianRupee size={20} />Download Report</button>
+                  </div>
                 </section>
 
                 <section className="brand-panel budget-panel">
@@ -1294,16 +1179,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       })}
                     </div>
                   ) : <p className="empty-inline">No budget usage yet</p>}
-                </section>
-
-                <section className="brand-panel quick-actions-panel">
-                  <h2>Quick Actions</h2>
-                  <div className="quick-action-grid">
-                    <button type="button" onClick={() => navigate('/dashboard/business/post-brief')}><FileCheck size={20} />Post a Brief</button>
-                    <button type="button" onClick={() => navigate('/dashboard/business/pending-bids')}><Users size={20} />Creator Bids</button>
-                    <button type="button" onClick={() => navigate('/dashboard/business/wallet')}><Wallet size={20} />Top Up Wallet</button>
-                    <button type="button"><IndianRupee size={20} />Download Report</button>
-                  </div>
                 </section>
               </aside>
             </div>
@@ -1448,6 +1323,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
                             </button>
                           );
                         })()}
+                        {campaign.status === 'completed' && (
+                          <button
+                            className="btn-secondary campaign-review-action"
+                            onClick={() => navigate(`/work-review/${campaign.id}`)}
+                            data-testid={`download-work-${campaign.id}`}
+                          >
+                            <Download size={18} /> View / Download
+                          </button>
+                        )}
                         {campaign.selected_creator && (
                           <button
                             className="btn-secondary"
@@ -1518,6 +1402,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'browse-gigs' && (
+            <BrowseApprovedGigs />
           )}
 
           {activeTab === 'browse-creator' && (
@@ -1994,7 +1882,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
               <div className="budget-row">
                 <div className="form-group">
-                  <label htmlFor="budget_min">Min Budget ($)</label>
+                  <label htmlFor="budget_min">Min Budget (₹)</label>
                   <input
                     id="budget_min"
                     type="number"
@@ -2007,7 +1895,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="budget_max">Max Budget ($)</label>
+                  <label htmlFor="budget_max">Max Budget (₹)</label>
                   <input
                     id="budget_max"
                     type="number"
@@ -3524,6 +3412,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
           gap: 24px;
           margin-top: 12px;
           align-items: start;
+        }
+
+        .brand-main-col {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          min-width: 0;
         }
 
         .active-deals-panel {

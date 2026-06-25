@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Package as PackageIcon, Heart, Mail, Video, Star, Gift, Zap, PlayCircle, Share2, Smile, TrendingUpIcon, Book, Camera, ArrowRight, Sparkles, Rocket } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const iconMap = {
@@ -814,7 +814,7 @@ export default function BrandWelcomePage() {
                         <motion.div
                           key={gig.id}
                           className="gig-card-welcome"
-                          onClick={() => navigate(`/gig/${gig.id}`)}
+                          onClick={() => navigate(`/gig/${gig._id || gig.id}`)}
                           custom={idx}
                           variants={cardStagger}
                           initial="hidden"

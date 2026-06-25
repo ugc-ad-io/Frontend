@@ -4,13 +4,14 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ClipboardList, FileText, Flag, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
+import PostABrief from './PostABrief';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const ATTACHMENT_MESSAGE_PREFIX = '__UGCAD_ATTACHMENT__:';
 const MAX_ATTACHMENTS = 5;
@@ -133,17 +134,19 @@ export default function MessagesPage() {
   const [actionForm, setActionForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
   const typingSentAtRef = useRef(0);
   const messageContainerRef = useRef(null);
   const userScrolledUpRef = useRef(false);
 
   const navItems = user?.role === 'business'
     ? [
-      { name: 'Brand Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/business') },
-      { name: 'Post a Brief', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
-      { name: 'All Campaigns', icon: Briefcase, action: () => navigate('/dashboard/business/all-campaigns') },
-      { name: 'Creator Bids', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
+      { name: 'Brand Dashboard', icon: LayoutGrid, action: () => navigate('/dashboard/business') },
+      { name: 'Post a Brief', icon: SquarePen, action: () => navigate('/dashboard/business/post-brief') },
+      { name: 'Creator Bids', icon: UserRoundSearch, action: () => navigate('/dashboard/business/pending-bids') },
       { name: 'Browse Creator', icon: Search, action: () => navigate('/dashboard/business/browse-creator') },
+      { name: 'Browse Gigs', icon: Eye, action: () => navigate('/dashboard/business/browse-gigs') },
+      { name: 'All Campaigns', icon: ClipboardList, action: () => navigate('/dashboard/business/all-campaigns') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
       { name: 'Manage Shipment', icon: Package, action: () => navigate('/dashboard/business/shipments') },
@@ -152,7 +155,7 @@ export default function MessagesPage() {
     ]
     : [
       { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-      { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
+      { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
       { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
       { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
@@ -428,6 +431,9 @@ export default function MessagesPage() {
     }
   };
 
+  // Open the full multi-step brief wizard in a modal for the selected creator.
+  const openBriefFromCard = () => setBriefTarget(selectedId);
+
   const renderActionCard = (item) => {
     const fields = item.fields || {};
     const isOwn = item.sender_id === user.id;
@@ -452,6 +458,14 @@ export default function MessagesPage() {
               <button key={action} type="button" onClick={() => respondToActionCard(item.id, action)}>{action}</button>
             ))}
           </div>
+        ) : null}
+        {isOwn && item.type === 'private_invitation' && item.status === 'accepted' ? (
+          <div className="msg-action-card-actions">
+            <button type="button" className="is-primary" onClick={() => openBriefFromCard(item)}>Post a Brief →</button>
+          </div>
+        ) : null}
+        {!isOwn && item.type === 'private_invitation' && item.status === 'accepted' ? (
+          <p className="msg-action-card-note">Accepted — waiting for the brand to post the brief.</p>
         ) : null}
         <small className="msg-action-card-time">{new Date(getItemTime(item)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
       </div>
@@ -814,6 +828,26 @@ export default function MessagesPage() {
         )}
 
       </div>
+
+      {briefTarget && (
+        <div className="msg-brief-overlay" onClick={() => setBriefTarget(null)}>
+          <div className="msg-brief-wizard" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="msg-brief-close" aria-label="Close" onClick={() => setBriefTarget(null)}><X size={18} /></button>
+            <PostABrief
+              embeddedCreatorId={briefTarget}
+              onClose={() => setBriefTarget(null)}
+              onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
+            />
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .msg-brief-overlay { position: fixed; inset: 0; background: rgba(7,7,78,0.5); backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; z-index: 1000; padding: 24px; overflow: auto; }
+        .msg-brief-wizard { position: relative; width: min(1080px, 100%); margin: auto; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(7,7,78,0.3); overflow: hidden; }
+        .msg-brief-close { position: absolute; top: 14px; right: 14px; z-index: 5; border: 0; background: #f3f3ff; color: #07074e; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(7,7,78,0.12); }
+        .msg-brief-close:hover { background: #e6e7fb; }
+      `}</style>
     </DashboardLayout>
   );
 }

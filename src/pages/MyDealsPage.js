@@ -31,6 +31,7 @@ import {
   ShieldAlert,
   Smile,
   Star,
+  ClipboardList,
   Upload,
   User,
   Zap
@@ -40,7 +41,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import './CreatorDashboard.css';
 import './MyDealsPage.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const DEAL_STATES = [
@@ -69,12 +70,28 @@ function DealCard({ children, className = '' }) {
   return <section className={`deal-card ${className}`}>{children}</section>;
 }
 
-function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled }) {
+function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled, previewUrl, previewType, watermark }) {
+  const showPreview = uploaded && previewUrl;
   return (
-    <button type="button" className={`deal-upload ${uploaded ? 'is-uploaded' : ''}`} onClick={onClick} disabled={disabled}>
-      <span><Icon size={22} strokeWidth={1.6} /></span>
-      <strong>{uploaded ? 'File uploaded successfully' : label}</strong>
-      <small>{uploaded ? 'Ready for submission' : accept}</small>
+    <button type="button" className={`deal-upload ${uploaded ? 'is-uploaded' : ''} ${showPreview ? 'has-preview' : ''}`} onClick={onClick} disabled={disabled}>
+      {showPreview ? (
+        <div className="deal-upload-preview">
+          {previewType === 'video' ? (
+            // #t=0.5 nudges the browser to render a real frame instead of a black poster
+            <video src={`${getAssetUrl(previewUrl)}#t=0.5`} muted playsInline preload="metadata" />
+          ) : (
+            <img src={getAssetUrl(previewUrl)} alt="Uploaded preview" />
+          )}
+          {watermark && <img className="deal-upload-watermark" src="/watermark.png" alt="" aria-hidden="true" />}
+          <span className="deal-upload-preview-label"><CheckCircle size={14} /> File uploaded successfully</span>
+        </div>
+      ) : (
+        <>
+          <span><Icon size={22} strokeWidth={1.6} /></span>
+          <strong>{uploaded ? 'File uploaded successfully' : label}</strong>
+          <small>{uploaded ? 'Ready for submission' : accept}</small>
+        </>
+      )}
     </button>
   );
 }
@@ -130,6 +147,17 @@ function formatDateTime(dateValue) {
 function formatDate(dateValue) {
   if (!dateValue) return 'Not available';
   return new Date(dateValue).toLocaleDateString('en-IN');
+}
+
+// Humanize a version/submission status into a label + color tone for the badge.
+function versionStatusMeta(status) {
+  const raw = (status || '').toLowerCase();
+  const label = (status || 'Pending').replace(/_/g, ' ');
+  let tone = 'warn';
+  if (raw.includes('approv')) tone = 'ok';
+  else if (raw.includes('reject') || raw.includes('revision') || raw.includes('declin')) tone = 'bad';
+  else if (raw.includes('await') || raw.includes('pending') || raw.includes('review')) tone = 'warn';
+  return { label, tone };
 }
 
 function getEscrowAmount(deal) {
@@ -233,7 +261,7 @@ export default function MyDealsPage() {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'Create a Gig', icon: Upload, action: () => navigate('/create-gig') },
+    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
     { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
     { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
     { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
@@ -782,7 +810,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
           <label>Upload Unboxing Video</label>
           <p className="deal-helper-text">Upload a short unboxing video showing package condition, opening, and product received.</p>
           <input type="file" id="unboxing-upload" accept="video/mp4,video/quicktime" onChange={(event) => onUpload(event.target.files?.[0])} />
-          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 150MB - Max 2 minutes" uploaded={hasVideo} onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
+          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 150MB - Max 2 minutes" uploaded={hasVideo} previewUrl={unboxingVideoUrl || receipt.unboxing_video_url} previewType="video" onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
         </>
       )}
     </DealCard>
@@ -838,7 +866,7 @@ function ContentSubmission({
       </div>
       {content.watermark_required_until_approval && <div className="deal-watermark">Watermarked preview until brand approval</div>}
       {!contentUnlocked && <div className="deal-locked-note"><ShieldAlert size={16} /> {lockReason}</div>}
-      <UploadZone icon={Play} label="Final Video Upload" accept="MP4 - MOV" uploaded={Boolean(finalVideoUrl)} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
+      <UploadZone icon={Play} label="Final Video Upload" accept="MP4 - MOV" uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
       <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
       <div className="deal-asset-grid">
         {needsCaption && (
@@ -851,41 +879,57 @@ function ContentSubmission({
         {needsThumbnail && (
           <div>
             <label>Thumbnail Upload</label>
-            <UploadZone icon={Image} label="Thumbnail" accept="JPG - PNG" uploaded={Boolean(thumbnailUrl)} onClick={() => document.getElementById('thumb-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'thumb'} />
+            <UploadZone icon={Image} label="Thumbnail" accept="JPG - PNG" uploaded={Boolean(thumbnailUrl)} previewUrl={thumbnailUrl} previewType="image" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('thumb-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'thumb'} />
             <input type="file" id="thumb-file-real" accept="image/*" onChange={(event) => onUpload(event.target.files?.[0], setThumbnailUrl, 'thumb')} hidden />
           </div>
         )}
         {needsRaw && (
           <div>
             <label>Raw Footage Upload</label>
-            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4 - MOV" uploaded={Boolean(rawFootageUrl)} onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} />
+            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4 - MOV" uploaded={Boolean(rawFootageUrl)} previewUrl={rawFootageUrl} previewType="video" onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} />
             <input type="file" id="raw-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setRawFootageUrl, 'raw')} hidden />
           </div>
         )}
       </div>
       <div className="deal-version-row">
-        {versions.length ? versions.map((version) => (
-          <article key={version.version}>
-            <div className="deal-preview-tile">
-              {version.thumbnail_url ? (
-                <img src={getAssetUrl(version.thumbnail_url)} alt={`v${version.version} thumbnail`} />
-              ) : version.video_url ? (
-                <video src={getAssetUrl(version.video_url)} />
-              ) : (
-                <Play size={24} />
-              )}
-              {content.watermark_required_until_approval && version.status !== 'approved' && <b>UGCAD.IO Preview</b>}
-              {version.video_url && (
-                <a href={getAssetUrl(version.video_url)} target="_blank" rel="noreferrer" aria-label={`Open v${version.version} preview`}>
-                  <Play size={16} />
-                </a>
-              )}
+        {versions.length ? versions.map((version) => {
+          const { label: statusLabel, tone: statusTone } = versionStatusMeta(version.status);
+          return (
+            <article key={version.version}>
+              <div className="deal-preview-tile">
+                {version.thumbnail_url ? (
+                  <img src={getAssetUrl(version.thumbnail_url)} alt={`v${version.version} thumbnail`} />
+                ) : version.video_url ? (
+                  <video src={getAssetUrl(version.video_url)} />
+                ) : (
+                  <Play size={24} />
+                )}
+                {content.watermark_required_until_approval && version.status !== 'approved' && (version.thumbnail_url || version.video_url) && (
+                  <img className="deal-preview-watermark" src="/watermark.png" alt="" aria-hidden="true" />
+                )}
+                {version.video_url && (
+                  <a href={getAssetUrl(version.video_url)} target="_blank" rel="noreferrer" aria-label={`Open v${version.version} preview`}>
+                    <Play size={16} />
+                  </a>
+                )}
+              </div>
+              <div className="deal-version-meta">
+                <strong>v{version.version}</strong>
+                <small>{formatDateTime(version.submitted_at)}</small>
+                <span className={`deal-version-status is-${statusTone}`}>{statusLabel}</span>
+              </div>
+            </article>
+          );
+        }) : (
+          <article className="is-empty">
+            <div className="deal-preview-tile"><Play size={24} /></div>
+            <div className="deal-version-meta">
+              <strong>v1</strong>
+              <small>No upload yet</small>
+              <span className="deal-version-status is-warn">Awaiting submission</span>
             </div>
-            <strong>v{version.version}</strong>
-            <small>{formatDateTime(version.submitted_at)}</small>
-            <span>{version.status}</span>
           </article>
-        )) : <article><strong>v1</strong><small>No upload yet</small><span>Awaiting submission</span></article>}
+        )}
       </div>
       <button type="button" className="deal-submit" disabled={!canSubmit || submitting} onClick={onSubmit}>
         <Upload size={17} /> {submitting ? 'Submitting...' : 'Submit Final Delivery'}

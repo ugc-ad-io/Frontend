@@ -6,7 +6,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
 import { useAuth } from '../App';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
 const DRAFT_ID_KEY = 'ugcad-brand-brief-draft-id-v2';
@@ -174,7 +174,7 @@ function mapCampaignToForm(c) {
   return out;
 }
 
-export default function PostABrief() {
+export default function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null } = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -309,9 +309,49 @@ export default function PostABrief() {
     return true;
   };
 
+  // Human-readable list of what's still blocking the current section.
+  const stepIssues = (target = step) => {
+    const m = [];
+    if (target === 1) {
+      if (form.campaignName.trim().length < 3) m.push('Campaign name (min 3 chars)');
+      if (form.productName.trim().length < 2) m.push('Product name');
+      if (form.productDescription.trim().length < 20) m.push('Product description (min 20 chars)');
+      if (form.campaignHook.trim().length < 10) m.push('Campaign hook (min 10 chars)');
+      if (form.keyMessage.trim().length < 10) m.push('Key message (min 10 chars)');
+      if (!form.category) m.push('Category');
+      if (form.objectives.length === 0) m.push('Campaign objective');
+      const ta = form.targetAudience.trim().length;
+      if (ta < 50 || ta > 200) m.push('Target audience (50–200 chars)');
+    } else if (target === 2) {
+      if (!(form.deliverables.length > 0 && form.deliverables.every(i => i.type && i.quantity >= 1 && i.quantity <= 5 && i.aspectRatios.length > 0 && (!isVideoDeliverable(i.type) || i.duration)))) m.push('Each deliverable: type, quantity 1–5, aspect ratio (+ duration for video)');
+    } else if (target === 3) {
+      if (form.productVisible && !form.visibilitySeconds) m.push('Product visibility seconds');
+      if (form.verbalMention && !form.productNames) m.push('Product names to mention');
+      if (!form.callToAction) m.push('Call to action');
+      if (form.callToAction === 'Use code' && !form.promoCode) m.push('Promo code');
+    } else if (target === 5) {
+      if (form.tones.length === 0) m.push('Tone tags');
+      if (!form.pacing) m.push('Pacing reference');
+    } else if (target === 6) {
+      if (form.platforms.length === 0) m.push('Platforms');
+      if (!form.rightsDuration) m.push('Rights duration');
+      if (!form.exclusivity) m.push('Exclusivity');
+      if (!form.modificationRights) m.push('Modification rights');
+    } else if (target === 7) {
+      if (!form.productShippingBy) m.push('Product shipping date');
+      if (!form.draftDeliveryBy) m.push('Draft delivery date');
+      if (!form.finalDeliveryBy) m.push('Final delivery date');
+      if (!(budget > 0)) m.push('Budget');
+      if (!form.creatorLevel) m.push('Creator level');
+      if (!form.qualityTier) m.push('Quality tier');
+    }
+    return m;
+  };
+
   const goNext = () => {
-    if (!isStepValid()) {
-      toast.error('Please complete the required fields for this section');
+    const issues = stepIssues();
+    if (issues.length) {
+      toast.error(`Complete to continue: ${issues.join(', ')}`);
       return;
     }
     setStep(Math.min(8, step + 1));
@@ -424,6 +464,18 @@ export default function PostABrief() {
   const publish = async () => {
     try {
       setSubmitting(true);
+
+      // Direct brief for a creator who accepted a private invitation: skip the
+      // matches/approval path — publish straight to a deal with that creator.
+      const directCreator = embeddedCreatorId || searchParams.get('creator');
+      if (directCreator) {
+        await axios.post(`${API}/campaigns`, { ...buildPayload(), selected_creator: directCreator });
+        clearDraftStorage();
+        toast.success('Brief sent — the deal has started with the creator');
+        if (onPublished) onPublished(); else navigate('/dashboard/business');
+        return;
+      }
+
       // PRD 5.2 Path B: "Request Matches" asks ops for a curated shortlist.
       const payload = { ...buildPayload(), match_requested: publishMode === 'matches' };
       let promoted = false;
@@ -628,6 +680,8 @@ export default function PostABrief() {
               {step > 1 && <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}><ChevronLeft size={18} /> Back</button>}
               {step < 8 ? (
                 <button type="button" className="btn-primary" onClick={goNext}>Next Section <ChevronRight size={18} /></button>
+              ) : (embeddedCreatorId || searchParams.get('creator')) ? (
+                <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}><Send size={16} /> Publish & Start Deal</button>
               ) : (
                 <>
                   <button type="button" className="btn-secondary" onClick={() => { setPublishMode('invite'); setShowConfirm(true); }} disabled={submitting}><Send size={16} /> Publish & Invite Creator</button>

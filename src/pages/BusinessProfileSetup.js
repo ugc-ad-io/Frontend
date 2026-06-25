@@ -5,8 +5,9 @@ import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { ChevronDown, CheckCircle } from 'lucide-react';
 import { apiErrorMessage } from '../utils/apiError';
+import { CONTENT_CATEGORIES, resolveCategory } from '../constants/contentCategories';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 // iso = flagcdn country code (flags are image-based so they render on Windows too).
@@ -52,6 +53,8 @@ export default function BusinessProfileSetup() {
     phone: '',
     country: '',
     industry: '',
+    category: '',          // primary UGC content category (work-distribution tag)
+    customCategory: '',
     gstin: '',
   });
 
@@ -89,6 +92,7 @@ export default function BusinessProfileSetup() {
       website: withScheme(form.website),
       social_links: { facebook: withScheme(form.facebook), instagram: form.instagram, linkedin: '' },
       industry_category: form.industry,
+      category: resolveCategory(form.category, form.customCategory),
       business_description: '',
       product_type: '',
       country: form.country,
@@ -260,6 +264,29 @@ export default function BusinessProfileSetup() {
             <option value="" disabled>Select industry...</option>
             {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
+        </div>
+
+        {/* Content category — the kind of UGC you want (routes the application) */}
+        <div className="bp-field">
+          <label className="bp-label" htmlFor="bp-category">Content category</label>
+          <select
+            id="bp-category"
+            className={`bp-input bp-select${!form.category ? ' bp-select--placeholder' : ''}`}
+            value={form.category}
+            onChange={(e) => set('category', e.target.value)}
+          >
+            <option value="" disabled>Select content category...</option>
+            {CONTENT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+          {form.category === 'custom' && (
+            <input
+              className="bp-input"
+              style={{ marginTop: 10 }}
+              placeholder="Describe the content category"
+              value={form.customCategory}
+              onChange={(e) => set('customCategory', e.target.value)}
+            />
+          )}
         </div>
 
         {/* GSTIN — optional */}

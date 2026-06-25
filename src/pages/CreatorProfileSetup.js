@@ -9,8 +9,9 @@ import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Ins
   Aperture, VolumeX, Lightbulb, Square, Image as ImageIcon, Users, UsersRound, PawPrint, Globe, Info,
   PartyPopper, Upload, Music2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CONTENT_CATEGORIES, resolveCategory } from '../constants/contentCategories';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 // ── Step config ────────────────────────────────────────────────────────────
@@ -256,6 +257,8 @@ export default function CreatorProfileSetup() {
     fullName: '',
     age: '',
     gender: '',
+    category: '',         // primary UGC content category (work-distribution tag)
+    customCategory: '',
     bodyType: '',
     skinTone: '',
     // Step 2 — Contact Information
@@ -487,6 +490,7 @@ export default function CreatorProfileSetup() {
       // consistently, and satisfies the required-ish fields so the submit doesn't 422.
       const creatorPayload = {
         ...data,
+        category: resolveCategory(data.category, data.customCategory),
         bio: data.bio || '',
         tags: data.skills || [],
         // Deployed backend types portfolio as List[str] — sending the raw objects 422s. Send
@@ -675,6 +679,30 @@ export default function CreatorProfileSetup() {
               ))}
             </div>
             {reqError('skinTone')}
+          </div>
+
+          <div className="ps-field">
+            <label className="ps-label">Primary content category</label>
+            <div className="ps-select">
+              <select
+                className={`ps-select__el${data.category ? '' : ' ps-select__el--empty'}`}
+                value={data.category}
+                onChange={(e) => set('category', e.target.value)}
+              >
+                <option value="" disabled>Select the content you create</option>
+                {CONTENT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+              <ChevronDown size={18} className="ps-select__chev" />
+            </div>
+            {data.category === 'custom' && (
+              <input
+                className="ps-input"
+                style={{ marginTop: 10 }}
+                placeholder="Describe your content category"
+                value={data.customCategory}
+                onChange={(e) => set('customCategory', e.target.value)}
+              />
+            )}
           </div>
         </>
       );

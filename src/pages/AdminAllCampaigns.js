@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Briefcase } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function AdminAllCampaigns() {
@@ -104,7 +104,7 @@ export default function AdminAllCampaigns() {
         .aac-stat span { font-size: 0.72rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
         .aac-stat strong { font-size: 1.3rem; color: #07074e; margin-top: 4px; }
         .aac-search { width: 100%; padding: 12px 18px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; margin-bottom: 24px; }
-        .aac-search:focus { outline: none; border-color: #07074e; box-shadow: 0 0 0 3px rgba(7,7,78,0.08); }
+        .aac-search:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,0.16); }
         .aac-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px 24px; background: white; border-radius: 16px; color: #4a5568; text-align: center; }
         .aac-empty p { margin: 0; font-size: 1.05rem; font-weight: 600; color: #1a202c; }
         .aac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }

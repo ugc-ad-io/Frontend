@@ -30,7 +30,7 @@ function normalizeBrief(c, index, myBids) {
   const d = c.estimated_delivery_days || c.delivery_days;
   return {
     campaign: c,
-    id: c.id,
+    id: c.id || c._id,
     title: c.title,
     description: c.brief_text || 'Create engaging UGC content for this brand.',
     brand: c.business_nickname || c.brand_handle || 'Brand',
@@ -141,7 +141,7 @@ export default function BrowseBriefs() {
       {shown.length ? (
         <div className="cmk-bb-grid">
           {shown.map((b) => (
-            <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => navigate(`/campaign/${b.id}`)}>
+            <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? navigate(`/campaign/${b.id}`) : toast.error('This brief is unavailable')}>
               <div className="cmk-bb-top">
                 <span className="cmk-bb-logo">
                   {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}

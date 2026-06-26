@@ -42,8 +42,10 @@ import {
   Package
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import './CreatorDashboard.css';
 import './ProfileSettings.css';
+import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -490,7 +492,7 @@ export default function ProfileSettings() {
   const navItems = user?.role === 'business'
     ? [
       { name: 'Brand Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/business') },
-      { name: 'Post a Brief', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
+      { name: 'Post a Campaign', icon: FileCheck, action: () => navigate('/dashboard/business/post-brief') },
       { name: 'All Campaigns', icon: Briefcase, action: () => navigate('/dashboard/business/all-campaigns') },
       { name: 'Creator Bids', icon: User, action: () => navigate('/dashboard/business/pending-bids') },
       { name: 'Browse Creator', icon: Search, action: () => navigate('/dashboard/business/browse-creator') },
@@ -502,7 +504,6 @@ export default function ProfileSettings() {
     ]
     : [
       { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-      { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
       { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
       { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
@@ -516,7 +517,7 @@ export default function ProfileSettings() {
 
   const brandNav = [
     { label: 'Brand Dashboard', icon: LayoutDashboard, path: '/dashboard/business' },
-    { label: 'Post a Brief', icon: FileCheck, path: '/dashboard/business/post-brief' },
+    { label: 'Post a Campaign', icon: FileCheck, path: '/dashboard/business/post-brief' },
     { label: 'Creator Bids', icon: Users, path: '/dashboard/business/pending-bids', badge: 3, tone: 'orange' },
     { label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { label: 'All Campaigns', icon: Briefcase, path: '/dashboard/business/all-campaigns' },
@@ -858,13 +859,11 @@ export default function ProfileSettings() {
   }
 
   return (
-    <DashboardLayout
-      navItems={navItems}
-      title="Profile Settings"
-      description="Manage your account information and security"
-      topbarExtra={null}
-      sidebarExtra={null}
-    >
+    <CreatorTopNavLayout>
+      <div className="cmk-page-head cmk-rise" style={{ marginBottom: 18 }}>
+        <h1>Settings</h1>
+        <p>Manage your account information and security.</p>
+      </div>
       <div className="ps-content">
           <div className="ps-container">
             <div className="ps-tab-sidebar">
@@ -1185,6 +1184,6 @@ export default function ProfileSettings() {
             </div>
           </div>
       </div>
-    </DashboardLayout>
+    </CreatorTopNavLayout>
   );
 }

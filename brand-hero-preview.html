@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UGCad.io — Brand Hero Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --indigo:#5b6bff;--indigo-strong:#4452f0;--violet:#8b5cf6;
+    --ink:#15163a;--ink-2:#585c7e;--muted:#9296ba;
+    --bg:#eef0f4;--surface:#fff;--line:#e4e7f0;
+    --font-head:'Plus Jakarta Sans',system-ui,sans-serif;--font-body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:#dfe2ea;color:var(--ink);-webkit-font-smoothing:antialiased;padding:26px}
+  .stage{max-width:1240px;margin:0 auto;background:linear-gradient(160deg,#f3f4f8 0%,#e9ebf1 100%);
+    border-radius:26px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(28,30,80,.35);position:relative}
+
+  /* top nav */
+  .nav{display:flex;align-items:center;gap:30px;padding:20px 34px}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--font-head);font-weight:800;font-size:17px}
+  .brand i{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;font-style:normal;
+    background:linear-gradient(135deg,var(--indigo),var(--violet));font-size:13px}
+  .nav .links{display:flex;gap:24px;margin:0 auto}
+  .nav .links a{color:var(--ink-2);text-decoration:none;font-size:14px;font-weight:600}
+  .nav .links a:hover{color:var(--ink)}
+  .nav .cta{background:#111233;color:#fff;border:none;border-radius:30px;padding:10px 20px;font-weight:700;
+    font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+
+  .hero{display:grid;grid-template-columns:1fr 1.05fr;gap:20px;padding:18px 34px 50px;position:relative}
+
+  /* left */
+  .left{padding-top:26px;position:relative;z-index:5}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);
+    color:var(--indigo);font-weight:600;font-size:12.5px;padding:7px 14px;border-radius:30px}
+  h1{font-family:var(--font-head);font-size:62px;line-height:1.04;letter-spacing:-1.6px;font-weight:800;margin:20px 0 0}
+  .grad{background:linear-gradient(100deg,var(--indigo),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin-top:18px;font-size:16px;color:var(--ink-2);line-height:1.6;max-width:400px}
+  .btns{display:flex;gap:13px;margin-top:30px}
+  .btn{border:none;border-radius:30px;padding:14px 26px;font-family:var(--font-body);font-weight:700;font-size:14.5px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:9px;transition:.2s}
+  .btn-dark{background:#111233;color:#fff}
+  .btn-dark:hover{transform:translateY(-2px)}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{transform:translateY(-2px)}
+
+  /* floating green action rail (like ref) */
+  .rail{position:absolute;left:calc(50% - 34px);top:50%;transform:translateY(-45%);display:flex;flex-direction:column;gap:14px;z-index:6}
+  .rail span{width:46px;height:46px;border-radius:50%;background:#eaf6ec;border:1px solid #d5edd9;display:grid;place-items:center;
+    color:#3fae5a;box-shadow:0 10px 20px -10px rgba(63,174,90,.5)}
+  .rail .accent{background:linear-gradient(135deg,#4452f0,#5b6bff);color:#fff;border:none}
+
+  /* right — auto-scrolling video columns */
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;height:520px;
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000 12%,#000 88%,transparent);
+            mask-image:linear-gradient(180deg,transparent,#000 12%,#000 88%,transparent)}
+  .col{overflow:hidden}
+  .track{display:flex;flex-direction:column;gap:16px;animation:up 20s linear infinite}
+  .col.down .track{animation:down 20s linear infinite}
+  .col.slow .track{animation-duration:26s}
+  @keyframes up{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+  @keyframes down{from{transform:translateY(-50%)}to{transform:translateY(0)}}
+  .cols:hover .track{animation-play-state:paused}
+
+  .vcard{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:3/4;flex:none;
+    box-shadow:0 14px 30px -16px rgba(28,30,80,.4)}
+  .vcard .media{position:absolute;inset:0}
+  .vcard video,.vcard img{width:100%;height:100%;object-fit:cover}
+  .vcard .ph{position:absolute;inset:0}
+  .vcard .shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(12,12,40,.7))}
+  .vcard .bubble{position:absolute;left:12px;bottom:12px;right:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);
+    border-radius:12px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--ink)}
+  .vcard .bubble b{width:24px;height:24px;border-radius:50%;background:#eaf6ec;display:grid;place-items:center;color:#3fae5a;font-size:12px}
+  .vcard .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;
+    background:rgba(255,255,255,.85);display:grid;place-items:center;color:var(--indigo)}
+  .g1{background:linear-gradient(135deg,#c9d0ff,#8b97ff)}
+  .g2{background:linear-gradient(135deg,#ffd9a8,#f0913a)}
+  .g3{background:linear-gradient(135deg,#bdeecb,#4fae6a)}
+  .g4{background:linear-gradient(135deg,#f6c9d6,#e0537a)}
+  .g5{background:linear-gradient(135deg,#cfe3ff,#5b9bf0)}
+  .g6{background:linear-gradient(135deg,#e2d4ff,#9b7af0)}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <nav class="nav">
+      <div class="brand"><i>U</i> UGCad.io</div>
+      <div class="links"><a>About</a><a>For Brands</a><a>Creators</a><a>Pricing</a><a>Reviews</a></div>
+      <button class="cta">Post a Campaign ↗</button>
+    </nav>
+
+    <div class="hero">
+      <div class="left">
+        <span class="eyebrow">✦ The UGC marketplace for brands</span>
+        <h1>Launch<br/>campaigns with<br/><span class="grad">real creators</span></h1>
+        <p class="sub">Post a brief, get bids from vetted UGC creators, and turn authentic content into conversions — all in one place.</p>
+        <div class="btns">
+          <button class="btn btn-dark">Post a Campaign →</button>
+          <button class="btn btn-ghost">Browse Creators</button>
+        </div>
+      </div>
+
+      <div class="rail">
+        <span class="accent">＋</span>
+        <span>🎬</span>
+        <span>💬</span>
+        <span>★</span>
+      </div>
+
+      <!-- auto-scrolling video columns -->
+      <div class="cols">
+        <div class="col"><div class="track" id="t1"></div></div>
+        <div class="col down"><div class="track" id="t2"></div></div>
+        <div class="col slow"><div class="track" id="t3"></div></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Build columns of video cards (duplicated for a seamless loop).
+  const sets = [
+    [['g1','Skincare Reel'],['g2','Unboxing'],['g3','Food Review'],['g4','Get Ready']],
+    [['g5','Tech Demo'],['g6','Fashion Haul'],['g2','Product Tour'],['g1','Tutorial']],
+    [['g3','Fitness Tip'],['g4','Lifestyle'],['g5','Q&A Clip'],['g6','Testimonial']]
+  ];
+  function card([g,label]){
+    return `<div class="vcard"><div class="ph ${g}"></div><div class="shade"></div>
+      <div class="play">▶</div>
+      <div class="bubble">${label}<b>↑</b></div></div>`;
+  }
+  ['t1','t2','t3'].forEach((id,i)=>{
+    const html = sets[i].map(card).join('');
+    document.getElementById(id).innerHTML = html + html; // duplicate => seamless
+  });
+</script>
+</body>
+</html>

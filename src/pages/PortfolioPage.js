@@ -19,11 +19,14 @@ import {
   X,
   Zap,
   Plus,
+  Play,
+  Pencil,
+  Bookmark as BookmarkIcon,
   Clock
 } from 'lucide-react';
-import { EmptyPanel } from '../components/CreatorComponents';
-import DashboardLayout from '../components/DashboardLayout';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import './CreatorDashboard.css';
+import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -39,7 +42,7 @@ function isVideoUrl(url) {
   return /\.(mp4|webm|mov)$/i.test(String(url || '').split('?')[0]);
 }
 
-function PortfolioMedia({ url, index }) {
+function PortfolioMedia({ url, index, thumbnail = false, demo = false }) {
   const [fallbackUrl, setFallbackUrl] = useState('');
   const [failed, setFailed] = useState(false);
   const assetUrl = getPortfolioAssetUrl(url);
@@ -62,6 +65,20 @@ function PortfolioMedia({ url, index }) {
       setFailed(true);
     }
   };
+
+  // Thumbnail videos rest on a poster frame and play while hovered.
+  const playOnHover = {
+    onMouseEnter: (e) => { e.currentTarget.play().catch(() => {}); },
+    onMouseLeave: (e) => { try { e.currentTarget.pause(); } catch (_) { /* noop */ } },
+  };
+
+  // Demo items live in /public (same origin) — use the path as-is, no backend prefix,
+  // no auth blob fallback.
+  if (demo) {
+    return isVideo
+      ? <video src={`${url}#t=0.5`} muted loop playsInline preload="metadata" {...playOnHover} />
+      : <img src={url} alt={`Portfolio item ${index + 1}`} />;
+  }
 
   if (failed) {
     return (
@@ -90,6 +107,10 @@ function PortfolioMedia({ url, index }) {
   }
 
   if (isVideo) {
+    // Thumbnail mode: show a still frame (no native controls) for a clean card look.
+    if (thumbnail) {
+      return <video src={`${fallbackUrl || assetUrl}#t=0.5`} muted loop playsInline preload="metadata" {...playOnHover} onError={loadWithAuth} />;
+    }
     return <video src={fallbackUrl || assetUrl} controls onError={loadWithAuth} />;
   }
 
@@ -97,6 +118,21 @@ function PortfolioMedia({ url, index }) {
 }
 
 const EMPTY_ITEM = { urls: [], title: '', description: '', project_cost: '', project_duration: '' };
+
+// ── DEMO SEED (UI testing only) ──────────────────────────────────────────────
+// Sample videos so the portfolio grid / featured row can be evaluated before the
+// creator has uploaded real work. Only shown when there are < 3 real items.
+// Flip SHOW_DEMO to false (or delete) once you're done checking the UI.
+const SHOW_DEMO = true;
+// Vertical UGC sample clips bundled in /public — same-origin, load reliably.
+const DEMO_ITEMS = [
+  { urls: ['/7690504-hd_1080_1920_30fps-sm.mp4'], title: 'Skincare Routine (Demo)', _demo: true },
+  { urls: ['/6944288-uhd_2160_3840_24fps-sm.mp4'], title: 'Unboxing Reel (Demo)', _demo: true },
+  { urls: ['/6948556-uhd_2160_3840_24fps-sm.mp4'], title: 'Product Review (Demo)', _demo: true },
+  { urls: ['/6951180-uhd_2160_3840_24fps-sm.mp4'], title: 'Fashion Haul (Demo)', _demo: true },
+  { urls: ['/13929852-uhd_2160_3840_24fps-sm.mp4'], title: 'Tutorial (Demo)', _demo: true },
+  { urls: ['/17811912-uhd_2160_3840_24fps-sm.mp4'], title: 'Lifestyle Clip (Demo)', _demo: true },
+];
 
 function isUsableMediaUrl(u) {
   return typeof u === 'string' && (/^https?:\/\//i.test(u) || u.startsWith('/'));
@@ -165,19 +201,7 @@ export default function PortfolioPage() {
     project_duration: ''
   });
 
-  const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
-    { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-    { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
-    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
-    { name: 'Portfolio', icon: User, action: () => {}, active: true },
-    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
-    { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
-    { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
-    { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Settings', icon: Settings, action: () => navigate('/settings') },
-  ];
+  const [tab, setTab] = useState('all');
 
   // Seed from context immediately, then refresh from /auth/me (which returns the
   // full doc incl. nested signup portfolio) so signup-uploaded work shows up too.
@@ -304,67 +328,86 @@ export default function PortfolioPage() {
     }
   };
 
+  const isVid = (it) => isVideoUrl(it.urls?.[0]);
+  // Pad with demo items while the real portfolio is nearly empty: top 3 fill the
+  // featured row, the rest flow into the grid below.
+  const pool = (SHOW_DEMO && portfolio.length < 3) ? [...portfolio, ...DEMO_ITEMS] : portfolio;
+  const visibleItems = pool.filter((it) => (tab === 'videos' ? isVid(it) : tab === 'photos' ? !isVid(it) : true));
+
   return (
-    <DashboardLayout
-      navItems={navItems}
-      title="Portfolio"
-      description="Showcase your best work"
-      topbarExtra={null}
-      sidebarExtra={null}
-    >
+    <CreatorTopNavLayout notifications={0}>
       {loading ? (
-        <div className="pcd-empty-panel">Loading...</div>
+        <div className="cmk-empty">Loading…</div>
       ) : (
-        <div>
-          <div className="pcd-portfolio-head">
-            <h2>My Portfolio</h2>
-            <button
-              type="button"
-              className="portfolio-add-btn"
-              onClick={() => { resetForm(); setShowModal(true); }}
-            >
-              <Plus size={16} /> Add Work
-            </button>
+        <>
+          <div className="cmk-pf-head">
+            <div>
+              <h1>My Portfolio</h1>
+              <p>Showcase your best work to brands.</p>
+            </div>
+            <div className="cmk-pf-actions">
+              <button type="button" className="cmk-btn-ghost-sm" onClick={() => navigate('/settings')}>
+                <Pencil size={16} /> Edit Profile
+              </button>
+              <button type="button" className="cmk-btn-primary-sm" onClick={() => { resetForm(); setShowModal(true); }}>
+                <Plus size={16} /> Add New Work
+              </button>
+            </div>
           </div>
 
-          <div className="portfolio-grid-rich">
-            {portfolio.length ? portfolio.map((item, index) => (
-              <article key={index} className="portfolio-card">
-                <div className="portfolio-card-media">
-                  <PortfolioMedia url={item.urls?.[0] || ''} index={index} />
-                  {item.urls?.length > 1 && (
-                    <div className="portfolio-card-count">+{item.urls.length - 1}</div>
-                  )}
-                </div>
-                <div className="portfolio-card-body">
-                  {item.title && <h3 className="portfolio-card-title">{item.title}</h3>}
-                  {item.description && <p className="portfolio-card-description">{item.description}</p>}
-                  <div className="portfolio-card-meta">
-                    {item.project_cost && (
-                      <div className="portfolio-card-meta-item">
-                        <span className="meta-label">Project Cost</span>
-                        <span className="meta-value">{item.project_cost}</span>
-                      </div>
-                    )}
-                    {item.project_duration && (
-                      <div className="portfolio-card-meta-item">
-                        <Clock size={14} />
-                        <span>{item.project_duration}</span>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="portfolio-remove-btn"
-                    onClick={() => handleRemovePortfolioItem(index)}
-                  >
-                    <X size={14} /> Remove
-                  </button>
-                </div>
-              </article>
-            )) : <EmptyPanel text="No portfolio items yet. Click 'Add Work' to upload your first piece." />}
+          <div className="cmk-tabs-row">
+            <div className="cmk-tabs">
+              <button type="button" className={tab === 'all' ? 'is-active' : ''} onClick={() => setTab('all')}>All <em>({pool.length})</em></button>
+              <button type="button" className={tab === 'videos' ? 'is-active' : ''} onClick={() => setTab('videos')}>Videos <em>({pool.filter(isVid).length})</em></button>
+              <button type="button" className={tab === 'photos' ? 'is-active' : ''} onClick={() => setTab('photos')}>Photos <em>({pool.filter((it) => !isVid(it)).length})</em></button>
+            </div>
           </div>
-        </div>
+
+          {visibleItems.length ? (
+            <>
+              {/* Top 3 — expanding panels: hover one and it stretches wide */}
+              <div className="cmk-pf-featured">
+                {visibleItems.slice(0, 3).map((item, index) => {
+                  const realIndex = portfolio.indexOf(item);
+                  return (
+                    <article key={item.urls?.[0] || `f${index}`} className="cmk-pf-feature cmk-rise">
+                      <PortfolioMedia url={item.urls?.[0] || ''} index={index} thumbnail demo={Boolean(item._demo)} />
+                      <span className="cmk-pf-feature-shade" />
+                      {isVid(item) && <span className="cmk-pf-play"><Play size={24} fill="currentColor" /></span>}
+                      <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={16} /></button>
+                      {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={15} /></button>}
+                      {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
+                      {item.title && <div className="cmk-pf-feature-cap"><strong>{item.title}</strong></div>}
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* The rest — standard grid */}
+              {visibleItems.length > 3 && (
+                <div className="cmk-pf-grid">
+                  {visibleItems.slice(3).map((item, index) => {
+                    const realIndex = portfolio.indexOf(item);
+                    return (
+                      <article key={item.urls?.[0] || `g${index}`} className="cmk-pf-card cmk-rise">
+                        <div className="cmk-pf-media">
+                          <PortfolioMedia url={item.urls?.[0] || ''} index={index + 3} thumbnail demo={Boolean(item._demo)} />
+                          {isVid(item) && <span className="cmk-pf-play"><Play size={22} fill="currentColor" /></span>}
+                          <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={15} /></button>
+                          {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={14} /></button>}
+                          {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
+                        </div>
+                        {item.title && <h3 className="cmk-pf-title">{item.title}</h3>}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="cmk-empty">No {tab === 'all' ? 'portfolio items' : tab} yet. Click “Add New Work”.</div>
+          )}
+        </>
       )}
 
       {showModal && (
@@ -828,6 +871,6 @@ export default function PortfolioPage() {
           }
         }
       `}</style>
-    </DashboardLayout>
+    </CreatorTopNavLayout>
   );
 }

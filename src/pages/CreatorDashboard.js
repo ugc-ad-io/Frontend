@@ -4,7 +4,8 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import DashboardLayout from '../components/DashboardLayout';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import CreatorHero from '../components/CreatorHero';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -40,6 +41,7 @@ import {
   Upload,
   User,
   Video,
+  Wallet,
   Zap
 } from 'lucide-react';
 import './CreatorDashboard.css';
@@ -268,27 +270,6 @@ export default function CreatorDashboard() {
     : 100;
   const worksRemaining = levelInfo.nextWorks ? Math.max(0, levelInfo.nextWorks - levelInfo.currentWorks) : 0;
 
-  const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator'), active: true },
-    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
-    { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-    { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
-    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
-    { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
-    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
-    { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
-    { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
-    { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
-  ];
-
-  const stats = [
-    { title: 'Active Deals', value: activeCampaigns.length, icon: Briefcase, trend: `${availableCampaigns.length} open briefs`, color: '#7387ff' },
-    { title: 'Pending Payout', value: formatMoney(user?.balance), icon: IndianRupee, trend: 'Processing', color: '#f59e0b' },
-    { title: 'Total Earned', value: formatMoney(totalEarned), icon: IndianRupee, trend: '+18% vs last mo', color: '#27ae60' },
-    { title: 'Creator Rating', value: rating ? rating.toFixed(1) : 'N/A', icon: Star, trend: `${user?.total_reviews || reviews.length} reviews`, color: '#f59e0b' }
-  ];
-
   // First-view onboarding: a brand-new creator who has no briefs/bids/completed work yet.
   const hasReceivedBriefs = activeCampaigns.length > 0 || myBids.length > 0;
   const isNewCreator = !loading && !hasReceivedBriefs && completedWorks === 0;
@@ -363,28 +344,63 @@ export default function CreatorDashboard() {
     );
   }
 
+  const profilePct = Math.round((profileDone / profileChecklist.length) * 100);
+  const heroName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : 'Creator');
+  const heroDeal = activeCampaigns[0];
+  const heroActiveDeal = heroDeal ? {
+    brand: heroDeal.business_nickname ? `@${heroDeal.business_nickname}` : (heroDeal.brand_handle ? `@${heroDeal.brand_handle}` : 'Brand'),
+    title: heroDeal.title || 'Active campaign',
+    budgetLabel: getCampaignBudget(heroDeal),
+    progress: heroDeal.status === 'in_progress' ? 65 : 40,
+    logo: heroDeal.brand_logo || heroDeal.business_logo
+  } : null;
+
   return (
-    <DashboardLayout
-      navItems={navItems}
-      title="Creator Dashboard"
-      description={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span>Welcome back, {displayName}</span>
-          <span style={{
-            background: levelInfo.color,
-            color: 'white',
-            padding: '4px 12px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: '600'
-          }}>
-            {levelInfo.badge}
-          </span>
-        </div>
-      }
-      topbarExtra={null}
-      sidebarExtra={null}
-    >
+    <CreatorTopNavLayout notifications={0}>
+          <CreatorHero
+            name={heroName}
+            photo={user?.profile_photo}
+            activeDeals={activeCampaigns.length}
+            newBriefs={availableCampaigns.length}
+            totalEarned={Number(totalEarned || 0)}
+            nextPayout={Number(user?.balance || 0)}
+            profilePct={profilePct}
+            activeDeal={heroActiveDeal}
+          />
+
+          <section className="cmk-stats">
+            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.10s' }}>
+              <div className="cmk-ic cmk-ic-indigo"><IndianRupee size={22} /></div>
+              <div className="cmk-stat-lbl">Total Earnings</div>
+              <div className="cmk-stat-val">{formatMoney(totalEarned)}</div>
+              <div className="cmk-stat-meta cmk-up"><TrendingUp size={14} /> 18% <span>this month</span></div>
+            </article>
+            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.16s' }}>
+              <div className="cmk-ic cmk-ic-green"><Briefcase size={22} /></div>
+              <div className="cmk-stat-lbl">Active Deals</div>
+              <div className="cmk-stat-val">{activeCampaigns.length}</div>
+              <div className="cmk-stat-meta"><span>{availableCampaigns.length} open briefs</span></div>
+            </article>
+            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.22s' }}>
+              <div className="cmk-ic cmk-ic-orange"><Bookmark size={22} /></div>
+              <div className="cmk-stat-lbl">Pending Bids</div>
+              <div className="cmk-stat-val">{myBids.length}</div>
+              <div className="cmk-stat-meta"><span>awaiting response</span></div>
+            </article>
+            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.28s' }}>
+              <div className="cmk-ic cmk-ic-blue"><Star size={22} /></div>
+              <div className="cmk-stat-lbl">Creator Rating</div>
+              <div className="cmk-stat-val">{rating ? rating.toFixed(1) : 'N/A'}</div>
+              <div className="cmk-stat-meta"><span>{user?.total_reviews || reviews.length} reviews</span></div>
+            </article>
+            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.34s' }}>
+              <div className="cmk-ic cmk-ic-violet"><Wallet size={22} /></div>
+              <div className="cmk-stat-lbl">Pending Payout</div>
+              <div className="cmk-stat-val">{formatMoney(user?.balance)}</div>
+              <div className="cmk-stat-meta"><span>Processing</span></div>
+            </article>
+          </section>
+
           {isNewCreator && (
             <section className="pcd-onboarding">
               <div className="pcd-onboarding-hero">
@@ -437,185 +453,6 @@ export default function CreatorDashboard() {
             </section>
           )}
 
-          <section className="pcd-stat-grid">
-            {stats.map((stat) => (
-              <article key={stat.title} className="pcd-card pcd-stat-card">
-                <div className="pcd-stat-top">
-                  <span className="pcd-stat-icon" style={{ color: stat.color }}>
-                    <stat.icon size={24} strokeWidth={1.6} />
-                  </span>
-                  <span className="pcd-trend">
-                    {stat.trend.includes('+') && <TrendingUp size={14} />}
-                    {stat.trend}
-                  </span>
-                </div>
-                <h2>{stat.value}</h2>
-                <p>{stat.title}</p>
-              </article>
-            ))}
-          </section>
-
-          <section className="pcd-level-banner">
-            <div className="pcd-level-main">
-              <div className="pcd-level-title">
-                <span className="pcd-trophy" style={{ color: levelInfo.color }}><Trophy size={32} /></span>
-                <div>
-                  <p>Current Level <strong style={{ color: levelInfo.color }}>{levelInfo.subtitle}</strong></p>
-                  <h2>{levelInfo.level}</h2>
-                </div>
-              </div>
-              {levelInfo.nextLevel && (
-                <div className="pcd-progress-block">
-                  <div className="pcd-progress-copy">
-                    <span>Progress to {levelInfo.nextLevel}</span>
-                    <strong>{levelInfo.currentWorks} / {levelInfo.nextWorks} works</strong>
-                  </div>
-                  <div className="pcd-progress-track">
-                    <span style={{ width: `${progressPercentage}%` }} />
-                  </div>
-                  <p><Zap size={14} /> {worksRemaining > 0 ? `${worksRemaining} more ${worksRemaining === 1 ? 'work' : 'works'} to level up!` : 'You\'ve reached this level!'}</p>
-                </div>
-              )}
-              {!levelInfo.nextLevel && (
-                <div className="pcd-progress-block">
-                  <div className="pcd-progress-copy">
-                    <span>You've reached the top level!</span>
-                    <strong>{levelInfo.currentWorks} Completed Works</strong>
-                  </div>
-                  <div className="pcd-progress-track">
-                    <span style={{ width: '100%' }} />
-                  </div>
-                  <p><Zap size={14} /> {levelInfo.benefits}</p>
-                </div>
-              )}
-            </div>
-            <div className="pcd-level-metrics">
-              <div>
-                <span>Rating</span>
-                <strong>{rating ? rating.toFixed(1) : 'N/A'} <Star size={16} /></strong>
-              </div>
-              <i />
-              <div>
-                <span>Completed Works</span>
-                <strong>{completedWorks}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section className="pcd-card pcd-table-card">
-            <div className="pcd-section-header">
-              <h2>Active Campaigns</h2>
-              <button type="button" onClick={() => navigate('/my-active-work')}>
-                View all deals <ArrowRight size={14} />
-              </button>
-            </div>
-            <div className="pcd-table-wrap">
-              <table className="pcd-table">
-                <thead>
-                  <tr>
-                    <th>Brief Name</th>
-                    <th>Quality</th>
-                    <th>Brand Handle</th>
-                    <th>Stage</th>
-                    <th>Due Date</th>
-                    <th>Payout</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(activeCampaigns.length ? activeCampaigns : myBids.slice(0, 4)).slice(0, 4).map((campaign, index) => (
-                    <tr key={campaign.id || index}>
-                      <td>{campaign.title || 'Creator Brief'}</td>
-                      <td>{campaign.quality || (index % 2 ? 'Standard' : 'Premium')}</td>
-                      <td>@{campaign.business_nickname || campaign.brand_handle || 'brand'}</td>
-                      <td><span className={`pcd-status ${campaign.status || 'pending'}`}>{(campaign.status || 'Pending').replace('_', ' ')}</span></td>
-                      <td>{campaign.due_date ? new Date(campaign.due_date).toLocaleDateString() : 'Oct 15, 2026'}</td>
-                      <td>{getCampaignBudget(campaign)}</td>
-                      <td>
-                        <button type="button" onClick={() => navigate(`/campaign/${campaign.id}`)}>Open</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!activeCampaigns.length && !myBids.length && (
-                    <tr>
-                      <td colSpan="7" className="pcd-empty-row">No active campaigns yet. Browse briefs to start a deal.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className="pcd-dashboard-grid">
-            <article className="pcd-card pcd-updates-card">
-              <div className="pcd-section-header">
-                <h2>Updates</h2>
-                <button type="button">Mark all read</button>
-              </div>
-              {[
-                { icon: FileCheck, title: 'Brief Approved', desc: activeCampaigns[0]?.title || 'Your concept was approved.', time: '2h ago', color: '#27ae60' },
-                { icon: IndianRupee, title: 'Payout Processed', desc: `${formatMoney(user?.balance)} available for withdrawal.`, time: '5h ago', color: '#7387ff' },
-                { icon: MessageCircle, title: 'New Message', desc: 'You have a message from a brand.', time: '1d ago', color: '#f59e0b' },
-                { icon: Trophy, title: 'Level Up Pending', desc: 'You are 250 XP away from L2.', time: '2d ago', color: '#07074e' }
-              ].map((update) => (
-                <div key={update.title} className="pcd-update">
-                  <span style={{ color: update.color, backgroundColor: `${update.color}18` }}>
-                    <update.icon size={18} />
-                  </span>
-                  <div>
-                    <h3>{update.title}</h3>
-                    <p>{update.desc}</p>
-                    <small><Clock size={12} /> {update.time}</small>
-                  </div>
-                </div>
-              ))}
-            </article>
-
-            <article className="pcd-rate-card">
-              <div>
-                <div className="pcd-rate-head">
-                  <h2>Rate Card</h2>
-                  <span>Public</span>
-                </div>
-                <p>Current baseline figures for L1 Rising.</p>
-              </div>
-              <div className="pcd-rate-list">
-                <div><span>Minimum Rate</span><strong>Rs. 5,000</strong></div>
-                <div><span>Tier Multiplier</span><strong className="positive">1.2x</strong></div>
-                <div><span>Custom Limit</span><strong>Rs. 50,000</strong></div>
-                <div><span>Payout Window</span><strong>14 Days</strong></div>
-              </div>
-              <button type="button" onClick={() => navigate('/settings')}>
-                Edit Rate Card <ArrowUpRight size={16} />
-              </button>
-            </article>
-          </section>
-
-          <section className="pcd-dashboard-grid bottom single">
-            <article className="pcd-card pcd-achievements-card">
-              <div className="pcd-section-header align-start">
-                <div>
-                  <h2>Creator Achievements</h2>
-                  <p>Keep completing deals to unlock new badges.</p>
-                </div>
-                <span>4 of 7 Unlocked</span>
-              </div>
-              <div className="pcd-badges">
-                {[
-                  { title: 'Fast Deliverer', rule: '< 48h turnaround', icon: Zap },
-                  { title: 'Brief Faithful', rule: '0 revisions needed', icon: ShieldCheck },
-                  { title: '5 Star Streak', rule: '5x 5-star ratings', icon: Star },
-                  { title: 'Elite Creator', rule: 'Top 10% volume', icon: Trophy }
-                ].map((badge) => (
-                  <div key={badge.title} className="pcd-badge-card">
-                    <span><badge.icon size={24} /></span>
-                    <h3>{badge.title}</h3>
-                    <p>{badge.rule}</p>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </section>
 
       {selectedCampaign && (
         <div className="pcd-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bid-modal-title">
@@ -641,7 +478,7 @@ export default function CreatorDashboard() {
           </form>
         </div>
       )}
-    </DashboardLayout>
+    </CreatorTopNavLayout>
   );
 }
 

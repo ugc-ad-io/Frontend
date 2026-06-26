@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import {
   AlertTriangle,
+  ArrowLeft,
+  Check,
   Archive,
   Bookmark,
   Briefcase,
@@ -34,12 +36,14 @@ import {
   ClipboardList,
   Upload,
   User,
+  X,
   Zap
 } from 'lucide-react';
 import { EmptyPanel, formatMoney, getInitial } from '../components/CreatorComponents';
-import DashboardLayout from '../components/DashboardLayout';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import './CreatorDashboard.css';
 import './MyDealsPage.css';
+import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -93,6 +97,25 @@ function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled, pr
         </>
       )}
     </button>
+  );
+}
+
+// Render a brief blob nicely: every "Label: value" line gets a consistent bold
+// label, so the dense brief text becomes scannable instead of one flat paragraph.
+function BriefContent({ content }) {
+  if (!content) return <p className="cmk-dr-brief-row">Not specified</p>;
+  const lines = String(content).split(/\r?\n/);
+  return (
+    <>
+      {lines.map((line, i) => {
+        const t = line.trim();
+        if (!t) return <div key={i} className="cmk-dr-brief-gap" />;
+        const m = t.match(/^([A-Z][^:]{0,40}):\s*(.*)$/);
+        if (m && m[2]) return <p key={i} className="cmk-dr-brief-row"><strong>{m[1]}:</strong> {m[2]}</p>;
+        if (m) return <p key={i} className="cmk-dr-brief-row"><strong>{m[1]}:</strong></p>;
+        return <p key={i} className="cmk-dr-brief-row">{t}</p>;
+      })}
+    </>
   );
 }
 
@@ -237,14 +260,49 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
   };
 }
 
+// 7-step reference stepper. Map the detailed deal state onto one of these steps.
+const DEAL_STEPS = ['Accepted', 'In Progress', 'Submitted', 'In Review', 'Approved', 'Shipped', 'Paid'];
+const STEP_SUBS = ['Deal accepted', 'Working on it', 'Waiting for you', 'Waiting for review', 'Waiting for approval', 'Waiting for delivery', 'Waiting for payout'];
+
+function getDealStepIndex(state) {
+  const s = stateKey(state);
+  if (s.includes('paid')) return 6;
+  if (s.includes('approved')) return 4;
+  if (s.includes('await') && s.includes('review')) return 3;
+  if (s.includes('content submitted')) return 2;
+  if (s.includes('revision')) return 1;
+  if (s.includes('content in progress') || s.includes('received')) return 1;
+  if (s.includes('delivered')) return 1;
+  if (s.includes('shipped') || s.includes('transit') || s.includes('accepted')) return 0;
+  return 0;
+}
+
+// Build a display-only deliverables summary from the deal's content submission.
+function buildDeliverables(deal) {
+  const content = deal?.content_submission || {};
+  const required = content.required_assets || {};
+  const versions = content.versions || [];
+  const latest = versions.length ? versions[versions.length - 1] : null;
+  const videoMeta = latest ? versionStatusMeta(latest.status) : { label: 'Pending', tone: 'warn' };
+  const rows = [{ name: 'Final Video', meta: 'Format: MP4 · Platform: Reels', status: videoMeta, done: latest?.status === 'approved' }];
+  if (required.caption_script) rows.push({ name: 'Caption / Script', meta: '.txt / .docx', status: { label: 'Pending', tone: 'warn' }, done: false });
+  if (required.thumbnail) rows.push({ name: 'Thumbnail', meta: 'JPG / PNG', status: { label: 'Pending', tone: 'warn' }, done: false });
+  if (required.raw_footage) rows.push({ name: 'Raw Footage', meta: 'MP4 / MOV', status: { label: 'Pending', tone: 'warn' }, done: false });
+  return rows;
+}
+
 export default function MyDealsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [deals, setDeals] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [briefOpen, setBriefOpen] = useState(false);
-  const [rightTab, setRightTab] = useState('chat');
+  const [fullBrief, setFullBrief] = useState(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [leftTab, setLeftTab] = useState('overview');
+  const [chatOpen, setChatOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [messageAttachments, setMessageAttachments] = useState([]);
   const [finalVideoUrl, setFinalVideoUrl] = useState(null);
@@ -259,31 +317,41 @@ export default function MyDealsPage() {
   const [showAllActivity, setShowAllActivity] = useState(false);
   const evidenceInputRef = useRef(null);
 
-  const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
-    { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-    { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
-    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
-    { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
-    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
-    { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals'), active: true },
-    { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
-    { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Settings', icon: Settings, action: () => navigate('/settings') }
-  ];
-
   useEffect(() => {
-    if (user?.id) fetchDeals();
-  }, [user?.id]);
+    if (!user?.id) return undefined;
+    fetchDeals();
+    // Poll so brand-side updates (e.g. courier marked "shipped") reflect here
+    // without a manual refresh — the Deal Room previously never refetched.
+    const interval = setInterval(fetchDeals, 10000);
+    return () => clearInterval(interval);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset the inline full-brief expansion when switching to a different deal.
+  useEffect(() => {
+    setBriefOpen(false);
+    setFullBrief(null);
+  }, [selectedDeal?.deal_id]);
 
   const fetchDeals = async () => {
     try {
       const res = await axios.get(`${API}/deals/my`);
       const list = res.data || [];
       setDeals(list);
+      const campaignParam = searchParams.get('campaign');
+      const dealParam = searchParams.get('deal');
       setSelectedDeal((current) => {
         if (!list.length) return null;
+        // Deep-link from My Bids / My Active Work: preselect the matching deal.
+        if (!current) {
+          if (dealParam) {
+            const byDeal = list.find((d) => getDealId(d) === dealParam);
+            if (byDeal) return byDeal;
+          }
+          if (campaignParam) {
+            const byCampaign = list.find((d) => String(d.campaign?.id) === String(campaignParam));
+            if (byCampaign) return byCampaign;
+          }
+        }
         return list.find((item) => getDealId(item) === getDealId(current)) || list[0];
       });
     } catch (error) {
@@ -507,165 +575,307 @@ export default function MyDealsPage() {
 
   if (loading) {
     return (
-      <DashboardLayout navItems={navItems} title="Deal Room" description="Creator-side delivery workspace" topbarExtra={null} sidebarExtra={null}>
+      <CreatorTopNavLayout notifications={0}>
         <div className="deal-page"><EmptyPanel text="Loading..." /></div>
-      </DashboardLayout>
+      </CreatorTopNavLayout>
     );
   }
 
   if (!deals.length) {
     return (
-      <DashboardLayout navItems={navItems} title="Deal Room" description="Creator-side delivery workspace" topbarExtra={null} sidebarExtra={null}>
+      <CreatorTopNavLayout notifications={0}>
         <div className="deal-page"><EmptyPanel text="No active deals yet. Browse briefs and submit bids to get started." /></div>
-      </DashboardLayout>
+      </CreatorTopNavLayout>
     );
   }
 
-  return (
-    <DashboardLayout navItems={navItems} title="Deal Room" description="Creator-side delivery workspace" topbarExtra={null} sidebarExtra={null}>
-      <div className="deal-page">
-        <input
-          ref={evidenceInputRef}
-          type="file"
-          hidden
-          multiple
-          accept="image/*,video/*,.pdf"
-          onChange={handleEvidenceUpload}
-        />
-        <StatusHeader
-          deal={selectedDeal}
-          currentState={selectedState}
-          escrowAmount={escrowAmount}
-          primaryAction={uploadingEvidence && primaryAction.type === 'add_evidence' ? { ...primaryAction, label: 'Uploading...', disabled: true } : primaryAction}
-          onPrimaryAction={handlePrimaryAction}
-          onActionCard={handleActionCardRequest}
-          onArchive={handleArchiveDeal}
-        />
+  const deal = selectedDeal;
 
-        <div className="deal-mobile-tabs" role="tablist" aria-label="Deal room sections">
-          {['deals', 'workspace', 'chat'].map((section) => (
-            <button key={section} type="button" className={mobileSection === section ? 'is-active' : ''} onClick={() => setMobileSection(section)}>
-              {section}
-            </button>
-          ))}
+  // "View full brief" expands inline (fetches the full campaign once) instead of
+  // navigating away — the deal only carries 2 short brief_sections.
+  const toggleFullBrief = async () => {
+    const next = !briefOpen;
+    setBriefOpen(next);
+    if (next && !fullBrief && deal?.campaign?.id) {
+      setBriefLoading(true);
+      try {
+        const res = await axios.get(`${API}/campaigns/${deal.campaign.id}`);
+        setFullBrief(res.data);
+      } catch (e) {
+        // Fall back to the short brief_sections already shown.
+      } finally {
+        setBriefLoading(false);
+      }
+    }
+  };
+
+  const fb = fullBrief || {};
+  const fullBriefRows = [
+    ['Product', fb.product_name],
+    ['Product description', fb.product_description],
+    ['Campaign hook', fb.campaign_hook],
+    ['Key message', fb.key_message],
+    ['Objectives', Array.isArray(fb.objectives) ? fb.objectives.join(', ') : fb.objectives],
+    ['Format', [fb.video_format, fb.duration_seconds ? `${fb.duration_seconds} sec` : null, fb.aspect_ratio].filter(Boolean).join(' · ')],
+    ['Tone', Array.isArray(fb.tone_tags) ? fb.tone_tags.join(', ') : (fb.tone_reference || fb.tone_tags)],
+    ['What not to do', Array.isArray(fb.what_not_to_do) ? fb.what_not_to_do.join('; ') : fb.what_not_to_do],
+    ['Additional deliverables', Array.isArray(fb.additional_deliverables) ? fb.additional_deliverables.join(', ') : fb.additional_deliverables],
+    ['Revisions included', fb.revision_limit ?? fb.free_revisions],
+    ['Creator level', fb.creator_level],
+    ['Quality tier', fb.content_quality_tier],
+    ['Niche', Array.isArray(fb.creator_niche_tags) ? fb.creator_niche_tags.join(', ') : fb.creator_niche_tags],
+    ['Budget', (fb.budget_min || fb.budget_max) ? formatMoney(fb.budget_max || fb.budget_min) : null],
+  ].filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '').map(([label, value]) => ({ label, value: String(value) }));
+
+  const stepIndex = getDealStepIndex(selectedState);
+  const brandName = deal?.brand?.name || getBrandHandle(deal);
+  const creatorName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : 'You');
+  const dealTags = (Array.isArray(deal?.campaign?.objectives) && deal.campaign.objectives.length
+    ? deal.campaign.objectives.slice(0, 2)
+    : [deal?.campaign?.industry_type || 'UGC']).concat('UGC Video');
+  const shipmentRequired = deal?.shipment?.required || deal?.campaign?.requires_shipment;
+  const shipment = deal?.shipment || {};
+  const chatMessages = deal?.chat_summary?.messages || [];
+  const escrow = deal?.escrow || {};
+  const deliverables = buildDeliverables(deal);
+  const deliverablesDone = deliverables.filter((d) => d.done).length;
+  const uploadLabel = uploadingEvidence && primaryAction.type === 'add_evidence' ? 'Uploading...' : primaryAction.label;
+  const escStage = stepIndex >= 4 ? 2 : 1; // 0 funded → 1 in escrow → 2 release
+
+  return (
+    <CreatorTopNavLayout notifications={0}>
+      <input ref={evidenceInputRef} type="file" hidden multiple accept="image/*,video/*,.pdf" onChange={handleEvidenceUpload} />
+      <div className="cmk-dr">
+        <div className="cmk-dr-back">
+          <button type="button" onClick={() => navigate('/my-active-work')}><ArrowLeft size={16} /> Back to My Deals</button>
+          {deals.length > 1 && (
+            <select value={String(getDealId(selectedDeal))} onChange={(e) => setSelectedDeal(deals.find((d) => String(getDealId(d)) === e.target.value) || selectedDeal)}>
+              {deals.map((d) => <option key={getDealId(d)} value={String(getDealId(d))}>{getDealTitle(d)}</option>)}
+            </select>
+          )}
         </div>
 
-        <div className={`deal-room-grid show-${mobileSection}`}>
-          <DealNavigation
-            groups={[
-              ['Active Deals', activeDeals],
-              ['Awaiting My Action', awaitingAction],
-              ['Past Deals', pastDeals],
-              ['Disputed Deals', disputedDeals]
-            ]}
-            selectedDeal={selectedDeal}
-            onSelect={setSelectedDeal}
-          />
+        {/* header */}
+        <section className="cmk-dr-head">
+          <div className="cmk-dr-logo">
+            {deal?.brand?.logo_url ? <img src={getAssetUrl(deal.brand.logo_url)} alt={brandName} /> : getInitial(brandName)}
+          </div>
+          <div className="cmk-dr-title">
+            <h1>{getDealTitle(deal)}</h1>
+            <div className="cmk-dr-id">Deal ID: {getDealId(deal)} <span className="cmk-pill info">● {selectedState}</span></div>
+            <div className="cmk-dr-tags">{dealTags.map((t, i) => <span key={i}>{t}</span>)}</div>
+          </div>
+          <div className="cmk-dr-metacol"><small>Brand</small><b>{brandName}</b></div>
+          <div className="cmk-dr-metacol"><small>Creator</small><b>{creatorName}</b></div>
+          <div className="cmk-dr-metacol"><small>Budget</small><b>{formatMoney(escrowAmount)}</b></div>
+          <div className="cmk-dr-metacol"><small>Deadline</small><b>{formatDate(getDealDeadline(deal))}</b></div>
+          <div className="cmk-dr-next"><Clock size={20} /><div><small>Next Action</small><strong>{primaryAction.label}</strong></div></div>
+        </section>
 
-          <main className="deal-workspace">
-            <DealCard className="deal-brief-card">
-              <button type="button" className="deal-brief-toggle" onClick={() => setBriefOpen((value) => !value)}>
-                <span><FileText size={18} /></span>
-                <strong>Full Campaign Brief</strong>
-                <em>Usage rights highlighted</em>
-                <ChevronDown size={18} className={briefOpen ? 'is-open' : ''} />
-              </button>
-              {briefOpen && (
-                <div className="deal-brief-body">
-                  {(selectedDeal?.brief_sections || []).map((section) => (
-                    <article key={section.title} className={section.title === 'Usage Rights' ? 'is-rights' : ''}>
-                      <h3>{section.title}</h3>
-                      <p>{section.content || 'Not specified'}</p>
-                    </article>
-                  ))}
-                  <button type="button" className="deal-link-btn" onClick={() => navigate(`/campaign/${selectedDeal?.campaign?.id}`)}>View full brief in new tab</button>
-                </div>
-              )}
-            </DealCard>
-
-            <DealCard className="deal-activity">
-              <div className="deal-section-title">
-                <span><Clock size={18} /></span>
-                <div><h2>Activity Feed</h2><p>Chronological deal state transitions</p></div>
+        {/* stepper */}
+        <section className="cmk-dr-steps">
+          {DEAL_STEPS.map((label, i) => {
+            const state = i < stepIndex ? 'done' : i === stepIndex ? 'active' : 'todo';
+            return (
+              <div key={label} className={`cmk-dr-step ${state}`}>
+                <span className="dot">{state === 'done' ? <Check size={15} /> : i + 1}</span>
+                {i < DEAL_STEPS.length - 1 && <i className={`line ${i < stepIndex ? 'on' : ''}`} />}
+                <span className="lbl">{label}</span>
+                <span className="sub">{STEP_SUBS[i]}</span>
               </div>
-              <div className="deal-timeline">
-                {activity.length ? visibleActivity.map((event) => (
-                  <div key={event.id} className="deal-timeline-item">
-                    <span className="blue"><CheckCheck size={16} /></span>
-                    <article>
-                      <header><strong>{event.actor_name || event.actor_type}</strong><small>{formatDateTime(event.timestamp)}</small></header>
-                      <p>{event.message}</p>
-                    </article>
+            );
+          })}
+        </section>
+
+        {/* body */}
+        <div className="cmk-dr-body">
+          <main>
+            <div className="cmk-dr-tabs">
+              {['overview', 'brief', 'deliverables', 'timeline', 'payments'].map((t) => (
+                <button key={t} type="button" className={leftTab === t ? 'on' : ''} onClick={() => setLeftTab(t)}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {leftTab === 'overview' && (
+              <>
+                <section className="cmk-card cmk-dr-sec">
+                  <div className="cmk-dr-sec-h">
+                    <div><h2>Deliverables</h2><span className="meta">{deliverablesDone} of {deliverables.length} completed</span></div>
+                    <button type="button" className="cmk-dr-upload" disabled={primaryAction.disabled} onClick={handlePrimaryAction}>
+                      <Upload size={16} /> {primaryAction.type === 'content' ? 'Upload / Submit Work' : uploadLabel}
+                    </button>
+                  </div>
+                  {deliverables.map((d, i) => (
+                    <div key={i} className="cmk-dr-del">
+                      <span className={`n ${d.done ? 'ok' : 'pend'}`}>{d.done ? <Check size={14} /> : i + 1}</span>
+                      <div className="info"><strong>{d.name}</strong><p>{d.meta}</p></div>
+                      <span className={`cmk-pill ${d.status.tone}`}>{d.status.label}</span>
+                    </div>
+                  ))}
+                  {shipmentRequired && (
+                    <div className="cmk-dr-ship">
+                      <div className="cmk-dr-ship-h"><Package size={17} /> Shipment Tracking</div>
+                      <div className="cmk-dr-ship-grid">
+                        <div><small>Courier Partner</small><p>{shipment.courier_partner || shipment.courier_name || 'Not assigned'}</p></div>
+                        <div><small>Tracking ID</small><p>{shipment.tracking_id || 'Pending'}</p>{shipment.courier_tracking_url && <a href={shipment.courier_tracking_url} target="_blank" rel="noreferrer" className="lnk">Track Package ↗</a>}</div>
+                        <div><small>Status</small><p className="stat">● {shipment.courier_status || 'Pending'}</p></div>
+                        <div><small>Expected Delivery</small><p>{formatDate(shipment.expected_delivery_at)}</p></div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                <section className="cmk-card cmk-dr-sec">
+                  <div className="cmk-dr-sec-h"><h2>Activity Timeline</h2></div>
+                  {activity.length ? activity.slice(0, 6).map((ev) => (
+                    <div key={ev.id} className="cmk-dr-tl">
+                      <span className="ic"><CheckCheck size={16} /></span>
+                      <div className="c"><strong>{ev.actor_name || ev.actor_type}</strong><p>{ev.message}</p></div>
+                      <span className="t">{formatDateTime(ev.timestamp)}</span>
+                    </div>
+                  )) : <EmptyPanel text="No activity yet." />}
+                </section>
+              </>
+            )}
+
+            {leftTab === 'brief' && (
+              <section className="cmk-card cmk-dr-sec">
+                <div className="cmk-dr-sec-h"><h2>Campaign Brief</h2></div>
+                {(deal?.brief_sections || []).length ? deal.brief_sections.map((s) => (
+                  <div key={s.title} className="cmk-dr-brief"><h3>{s.title}</h3><BriefContent content={s.content} /></div>
+                )) : <EmptyPanel text="Brief details not available." />}
+
+                {briefOpen && (
+                  <div className="cmk-dr-brief-full">
+                    {briefLoading ? (
+                      <p className="cmk-dr-empty-msg">Loading full brief…</p>
+                    ) : fullBriefRows.length ? (
+                      fullBriefRows.map((r) => (
+                        <div key={r.label} className="cmk-dr-brief"><h3>{r.label}</h3><p>{r.value}</p></div>
+                      ))
+                    ) : (
+                      <p className="cmk-dr-empty-msg">No additional brief details available.</p>
+                    )}
+                  </div>
+                )}
+
+                {deal?.campaign?.id && (
+                  <button type="button" className="cmk-link-btn" onClick={toggleFullBrief}>
+                    {briefOpen ? 'Show less ↑' : 'View full brief ↓'}
+                  </button>
+                )}
+              </section>
+            )}
+
+            {leftTab === 'deliverables' && (
+              <div className="cmk-dr-legacy">
+                {shipmentRequired && (
+                  <ShippingBlock deal={deal} unboxingVideoUrl={unboxingVideoUrl} onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')} onSubmitReceipt={handleSubmitReceipt} uploading={uploadingFile === 'unboxing'} onActionCard={handleActionCardRequest} />
+                )}
+                {isDamageState(deal) && <DamageReportCard deal={deal} onActionCard={handleActionCardRequest} />}
+                <ContentSubmission deal={deal} finalVideoUrl={finalVideoUrl} captionUrl={captionUrl} thumbnailUrl={thumbnailUrl} rawFootageUrl={rawFootageUrl} onUpload={handleFileUpload} setFinalVideoUrl={setFinalVideoUrl} setCaptionUrl={setCaptionUrl} setThumbnailUrl={setThumbnailUrl} setRawFootageUrl={setRawFootageUrl} uploadingFile={uploadingFile} onSubmit={handleSubmitContent} submitting={submitting} />
+                <RevisionTracker deal={deal} onRevisionResponse={handleRevisionResponse} />
+              </div>
+            )}
+
+            {leftTab === 'timeline' && (
+              <section className="cmk-card cmk-dr-sec">
+                <div className="cmk-dr-sec-h"><h2>Full Activity Timeline</h2></div>
+                {activity.length ? activity.map((ev) => (
+                  <div key={ev.id} className="cmk-dr-tl">
+                    <span className="ic"><CheckCheck size={16} /></span>
+                    <div className="c"><strong>{ev.actor_name || ev.actor_type}</strong><p>{ev.message}</p></div>
+                    <span className="t">{formatDateTime(ev.timestamp)}</span>
                   </div>
                 )) : <EmptyPanel text="No activity yet." />}
-              </div>
-              {activity.length > 5 && (
-                <button type="button" className="deal-expand-timeline" onClick={() => setShowAllActivity((value) => !value)}>
-                  {showAllActivity ? 'Show fewer activities' : `Show ${hiddenActivityCount} more activit${hiddenActivityCount > 1 ? 'ies' : 'y'}`}
-                </button>
-              )}
-            </DealCard>
-
-            {(selectedDeal?.shipment?.required || selectedDeal?.campaign?.requires_shipment) && (
-              <ShippingBlock
-                deal={selectedDeal}
-                unboxingVideoUrl={unboxingVideoUrl}
-                onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')}
-                onSubmitReceipt={handleSubmitReceipt}
-                uploading={uploadingFile === 'unboxing'}
-                onActionCard={handleActionCardRequest}
-              />
+              </section>
             )}
 
-            {isDamageState(selectedDeal) && <DamageReportCard deal={selectedDeal} onActionCard={handleActionCardRequest} />}
-
-            {isDamageState(selectedDeal) ? (
-              <DealCard className="deal-paused-card">
-                <div className="deal-section-title">
-                  <span><AlertTriangle size={18} /></span>
-                  <div><h2>Creator Timeline Paused</h2><p>Damage report under review</p></div>
+            {leftTab === 'payments' && (
+              <section className="cmk-card cmk-dr-sec">
+                <div className="cmk-dr-sec-h"><h2>Payment Details</h2></div>
+                <div className="cmk-dr-pay">
+                  <p><span>Escrow Held</span><strong>{formatMoney(escrow.held_amount || escrowAmount)}</strong></p>
+                  <p><span>Net Payable</span><strong>{formatMoney(escrow.net_payable || escrowAmount)}</strong></p>
+                  <p><span>Estimated Payout</span><strong>{formatDateTime(escrow.estimated_payout_at)}</strong></p>
                 </div>
-                <p>Work is paused until resolution. No late penalty will apply while this issue is under review.</p>
-              </DealCard>
-            ) : (
-              <ContentSubmission
-                deal={selectedDeal}
-                finalVideoUrl={finalVideoUrl}
-                captionUrl={captionUrl}
-                thumbnailUrl={thumbnailUrl}
-                rawFootageUrl={rawFootageUrl}
-                onUpload={handleFileUpload}
-                setFinalVideoUrl={setFinalVideoUrl}
-                setCaptionUrl={setCaptionUrl}
-                setThumbnailUrl={setThumbnailUrl}
-                setRawFootageUrl={setRawFootageUrl}
-                uploadingFile={uploadingFile}
-                onSubmit={handleSubmitContent}
-                submitting={submitting}
-              />
+                <div className="cmk-dr-support">
+                  <button type="button" onClick={() => handleActionCardRequest('Raise Dispute')}><Flag size={15} /> Raise Dispute</button>
+                  <button type="button" onClick={() => handleActionCardRequest('Escalate to Admin')}><Headphones size={15} /> Get Help</button>
+                </div>
+              </section>
             )}
-
-            <RevisionTracker deal={selectedDeal} onRevisionResponse={handleRevisionResponse} />
           </main>
 
-          <RightPanel
-            tab={rightTab}
-            setTab={setRightTab}
-            deal={selectedDeal}
-            currentState={selectedState}
-            message={message}
-            setMessage={setMessage}
-            messageAttachments={messageAttachments}
-            setMessageAttachments={setMessageAttachments}
-            onSendMessage={handleSendMessage}
-            onActionCard={handleActionCardRequest}
-          />
+          {/* right column */}
+          <aside className="cmk-dr-aside">
+            <section className="cmk-card cmk-dr-details-card">
+              <div className="cmk-dr-chat-head">
+                <span className="b">{deal?.brand?.logo_url ? <img src={getAssetUrl(deal.brand.logo_url)} alt="" /> : getInitial(brandName)}</span>
+                <div><strong>{getDealTitle(deal)}</strong><small>{getDealId(deal)}</small></div>
+              </div>
+              <div className="cmk-dr-details">
+                <p><span>Brand</span><strong>{brandName}</strong></p>
+                <p><span>Deal ID</span><strong>{getDealId(deal)}</strong></p>
+                <p><span>Status</span><strong>{selectedState}</strong></p>
+                <p><span>Deadline</span><strong>{formatDate(getDealDeadline(deal))}</strong></p>
+                <p><span>Budget</span><strong>{formatMoney(escrowAmount)}</strong></p>
+              </div>
+            </section>
+
+            <section className="cmk-card cmk-dr-esc">
+              <div className="h"><strong>Payment / Escrow</strong><span className="sec"><ShieldAlert size={14} /> Secured</span></div>
+              <div className="amt">{formatMoney(escrow.held_amount || escrowAmount)}</div>
+              <p className="note">Funds are held securely in escrow</p>
+              <div className="bar">
+                <span className="pt on" />
+                <span className={`seg ${escStage >= 1 ? 'on' : ''}`} />
+                <span className={`pt ${escStage >= 2 ? 'on' : 'cur'}`} />
+                <span className={`seg ${escStage >= 2 ? 'on' : ''}`} />
+                <span className={`pt ${escStage >= 2 ? 'on' : ''}`} />
+              </div>
+              <div className="lbls"><span>Funded</span><span className={escStage < 2 ? 'c' : ''}>In Escrow</span><span>Release</span></div>
+              <button type="button" className="esc-btn" onClick={() => setLeftTab('payments')}>View Payment Details</button>
+            </section>
+          </aside>
         </div>
-        <button type="button" className="deal-mobile-fab" disabled={primaryAction.disabled} onClick={handlePrimaryAction}>
-          {primaryAction.label}
-        </button>
       </div>
-    </DashboardLayout>
+
+      {/* Floating chat: the message section opens over the deal page on demand. */}
+      {chatOpen && (
+        <div className="cmk-dr-chat-pop" role="dialog" aria-label="Deal chat">
+          <div className="cmk-dr-chat-pop-head">
+            <span className="b">{deal?.brand?.logo_url ? <img src={getAssetUrl(deal.brand.logo_url)} alt="" /> : getInitial(brandName)}</span>
+            <div><strong>{getDealTitle(deal)}</strong><small>{getDealId(deal)}</small></div>
+            <button type="button" className="x" aria-label="Close chat" onClick={() => setChatOpen(false)}><X size={18} /></button>
+          </div>
+          <div className="cmk-dr-msgs">
+            {chatMessages.length ? chatMessages.map((m) => (
+              <div key={m.id} className={`cmk-dr-m ${m.sender_type === 'creator' ? 'me' : m.sender_type === 'system' ? 'sys' : 'them'}`}>
+                <div className="who">{m.sender_name}</div>
+                <div className="bub">{m.message}</div>
+              </div>
+            )) : <p className="cmk-dr-empty-msg">No messages yet.</p>}
+          </div>
+          <div className="cmk-dr-chat-in">
+            <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your message..." onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }} />
+            <button type="button" className="send" onClick={handleSendMessage}><Send size={17} /></button>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        className={`cmk-dr-chat-fab ${chatOpen ? 'is-open' : ''}`}
+        onClick={() => setChatOpen((v) => !v)}
+        aria-label={chatOpen ? 'Close chat' : 'Open chat'}
+      >
+        {chatOpen ? <X size={22} /> : <MessageSquare size={22} />}
+        {!chatOpen && chatMessages.length > 0 && <i className="cmk-dr-fab-badge">{chatMessages.length}</i>}
+      </button>
+    </CreatorTopNavLayout>
   );
 }
 
@@ -804,7 +1014,9 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
                   ? 'Waiting for the brand to mark the package shipped.'
                   : !hasVideo
                     ? 'Upload your unboxing video to enable “Mark Received”.'
-                    : 'Ready — tap “Mark Received” to confirm.'}
+                    : !deal?.can_mark_received
+                      ? 'Waiting for the brand to confirm delivery. This updates automatically once the package is marked delivered.'
+                      : 'Ready — tap “Mark Received” to confirm.'}
             </p>
           )}
           <label>Upload Unboxing Video</label>

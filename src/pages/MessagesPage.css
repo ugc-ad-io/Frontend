@@ -202,12 +202,12 @@
 .msg-search {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid #dcdcff;
-  background: #F5F6FF;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid #ececf3;
+  background: #f6f7fb;
   flex-shrink: 0;
-  margin: 0 16px 0 16px;
+  margin: 14px 14px 6px;
   border-radius: 12px;
 }
 
@@ -218,18 +218,18 @@
   outline: none;
   font-size: 14px;
   padding: 0;
-  color: #07074E;
+  color: #2b2f3a;
   font-family: var(--font-body);
 }
 
 .msg-search input::placeholder {
-  color: #07074E;
-  opacity: 0.5;
+  color: #9aa0b4;
+  opacity: 1;
 }
 
 .msg-search svg {
-  color: #07074E;
-  opacity: 0.5;
+  color: #9aa0b4;
+  opacity: 1;
 }
 
 .msg-filters {
@@ -286,29 +286,28 @@
 .msg-conv-item {
   display: flex;
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid rgba(7, 7, 78, 0.1);
-  border-radius: 16px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  align-items: flex-start;
-  background: #EEF0FF;
-  margin: 0 8px;
+  transition: background 0.18s ease;
+  align-items: center;
+  background: transparent;
+  margin: 2px 10px;
 }
 
 .msg-conv-item:hover {
-  background: #f5f4ff;
+  background: #f5f5fb;
 }
 
 .msg-conv-item.is-active {
-  background: #f0f4ff;
-  border-left: 4px solid #7387FF;
-  padding-left: 12px;
-  border-bottom-color: #f0f4ff;
+  background: #f3f3fa;
+  border-left: none;
+  padding-left: 14px;
 }
 
 .msg-conv-item.is-active .msg-conv-top strong {
-  color: #7387FF;
+  color: #1f2330;
 }
 
 .msg-conv-item.is-active .msg-preview {
@@ -391,13 +390,17 @@
 
 .msg-preview {
   font-size: 0.85rem;
-  color: #07074E;
+  color: #8a8fa3;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.4;
   font-family: var(--font-body);
+}
+
+.msg-conv-item.is-active .msg-preview {
+  color: #8a8fa3;
 }
 
 .msg-deal-status {
@@ -430,10 +433,11 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f3f3ff;
-  border-radius: 30px;
-  box-shadow: 0 8px 30px rgba(93, 95, 239, 0.08);
-  border: 1px solid rgba(93, 95, 239, 0.06);
+  background: #ffffff;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  border-left: 1px solid #eef0f6;
   min-height: 0;
 }
 
@@ -448,11 +452,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 32px;
+  padding: 18px 28px;
   background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #eef0f6;
   flex-shrink: 0;
-  border-radius: 30px 30px 0 0;
+  border-radius: 0;
 }
 
 .msg-header-info {
@@ -484,13 +488,15 @@
 }
 
 .msg-chat-actions button {
-  padding: 10px 12px;
-  background: #f5f4ff;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: transparent;
   border: none;
-  border-radius: 12px;
-  color: #7387FF;
+  border-radius: 10px;
+  color: #9aa0b4;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -498,9 +504,8 @@
 }
 
 .msg-chat-actions button:hover {
-  background: #f0ecff;
-  color: #7387FF;
-  transform: translateY(-2px);
+  background: #f2f3fb;
+  color: #6366f1;
 }
 
 .msg-messages {
@@ -508,11 +513,11 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 28px 32px 20px;
+  padding: 26px 30px 18px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  background: #f3f3ff;
+  gap: 18px;
+  background: #ffffff;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
 }
@@ -541,25 +546,27 @@
 }
 
 .msg-bubble {
-  max-width: 55%;
-  padding: 12px 18px;
-  border-radius: 20px;
+  max-width: 62%;
+  padding: 12px 16px;
+  border-radius: 18px;
   word-wrap: break-word;
   line-height: 1.5;
   font-family: var(--font-body);
 }
 
 .msg-bubble-row:not(.is-own) .msg-bubble {
-  background: #fff;
-  color: #1a202c;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #f1f1f5;
+  color: #2b2f3a;
+  border: none;
+  box-shadow: none;
+  border-bottom-left-radius: 6px;
 }
 
 .msg-bubble-row.is-own .msg-bubble {
-  background: #7387FF;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(115, 135, 255, 0.3);
+  background: #e7e8fd;
+  color: #2e2a6b;
+  box-shadow: none;
+  border-bottom-right-radius: 6px;
 }
 
 .msg-bubble p {
@@ -933,10 +940,10 @@
 .msg-quick-chips {
   display: flex;
   gap: 10px;
-  padding: 16px 32px;
+  padding: 14px 28px;
   flex-wrap: nowrap;
-  background: #f3f3ff;
-  border-top: 1px solid #f0f0f0;
+  background: #ffffff;
+  border-top: 1px solid #eef0f6;
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -972,12 +979,12 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 32px 28px 32px;
-  background: #f3f3ff;
-  border-top: 1px solid #f0f0f0;
+  gap: 10px;
+  padding: 16px 28px 22px 28px;
+  background: #ffffff;
+  border-top: 1px solid #eef0f6;
   flex-shrink: 0;
-  border-radius: 0 0 30px 30px;
+  border-radius: 0;
 }
 
 .msg-emoji-wrap {
@@ -1019,9 +1026,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 10px 32px 0;
-  background: #f3f3ff;
-  border-top: 1px solid #f0f0f0;
+  padding: 10px 28px 0;
+  background: #ffffff;
+  border-top: 1px solid #eef0f6;
 }
 
 .msg-attachment-preview span {
@@ -1075,27 +1082,27 @@
 
 .msg-input {
   flex: 1;
-  padding: 12px 18px;
-  border: 1.5px solid rgba(7, 7, 78, 0.1);
-  border-radius: 16px;
+  padding: 13px 18px;
+  border: 1px solid #e7e9f1;
+  border-radius: 14px;
   font-size: 14px;
   font-weight: 400;
   font-family: var(--font-body);
-  color: #07074E;
-  transition: all 0.3s ease;
-  background: transparent;
+  color: #1f2330;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #f6f7fb;
 }
 
 .msg-input:focus {
   outline: none;
-  border-color: #7387FF;
-  background: transparent;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #c7c9f7;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .msg-input::placeholder {
-  color: #07074E;
-  opacity: 0.5;
+  color: #9aa0b4;
+  opacity: 1;
 }
 
 .msg-send {

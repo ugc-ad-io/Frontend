@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UGCad.io — Creator Hero Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --indigo:#5b6bff;
+    --indigo-strong:#4452f0;
+    --violet:#8b5cf6;
+    --ink:#15163a;
+    --ink-2:#585c7e;
+    --muted:#9296ba;
+    --bg:#f6f7fc;
+    --surface:#ffffff;
+    --line:#e9ebf4;
+    --ok:#15a35b;
+    --ok-soft:#e7f6ee;
+    --warn:#d98314;
+    --bad:#e11d48;
+    --font-head:'Plus Jakarta Sans',system-ui,sans-serif;
+    --font-body:'Inter',system-ui,sans-serif;
+    --shadow-card:0 18px 40px -18px rgba(28,30,80,.30);
+    --shadow-soft:0 10px 30px -12px rgba(28,30,80,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:var(--font-body);
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 60px;
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:0 28px}
+
+  /* ── reduced motion ───────────────────────────── */
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important}
+  }
+
+  /* ── load animation helper ────────────────────── */
+  .rise{opacity:0;transform:translateY(18px);animation:rise .65s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* ── TOP NAV ──────────────────────────────────── */
+  .nav{
+    position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  }
+  .nav-inner{display:flex;align-items:center;gap:30px;height:72px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-head);font-weight:800;font-size:19px;color:var(--ink)}
+  .brand-mark{
+    width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;font-weight:800;
+    box-shadow:0 6px 16px -4px rgba(91,107,255,.55);
+  }
+  .nav-links{display:flex;align-items:center;gap:30px;margin-left:18px}
+  .nav-links a{
+    text-decoration:none;color:var(--ink-2);font-weight:600;font-size:15px;position:relative;
+    padding:6px 0;transition:color .2s;
+  }
+  .nav-links a:hover{color:var(--ink)}
+  .nav-links a.active{color:var(--indigo)}
+  .nav-links a.active::after{
+    content:"";position:absolute;left:0;right:0;bottom:-26px;height:3px;border-radius:3px;
+    background:linear-gradient(90deg,var(--indigo),var(--violet));
+  }
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--indigo);margin-left:5px;vertical-align:middle}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:16px;position:relative}
+  .icon-btn{
+    width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:#fff;
+    display:grid;place-items:center;cursor:pointer;color:var(--ink-2);position:relative;transition:.2s;
+  }
+  .icon-btn:hover{border-color:#d6d9ee;transform:translateY(-1px)}
+  .badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:var(--bad);
+    color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px;border:2px solid #fff}
+  .avatar-btn{display:flex;align-items:center;gap:7px;cursor:pointer;padding:3px;border-radius:40px;border:1px solid var(--line);background:#fff}
+  .avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;display:block}
+  .chev{color:var(--muted)}
+
+  /* dropdown */
+  .menu{
+    position:absolute;top:54px;right:0;width:230px;background:#fff;border:1px solid var(--line);
+    border-radius:16px;box-shadow:var(--shadow-card);padding:8px;
+  }
+  .menu a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:var(--ink);
+    text-decoration:none;font-size:14.5px;font-weight:500;transition:.15s}
+  .menu a:hover{background:var(--bg)}
+  .menu .sep{height:1px;background:var(--line);margin:6px 4px}
+  .menu svg{color:var(--muted)}
+
+  /* ── HERO BAND ────────────────────────────────── */
+  .hero{
+    position:relative;margin-top:26px;border-radius:28px;overflow:hidden;
+    background:
+      radial-gradient(120% 130% at 85% 10%, rgba(139,92,246,.20) 0%, rgba(139,92,246,0) 45%),
+      radial-gradient(120% 130% at 60% 90%, rgba(91,107,255,.18) 0%, rgba(91,107,255,0) 50%),
+      linear-gradient(135deg,#eef0ff 0%, #f4f0ff 45%, #fbf3fb 100%);
+    border:1px solid #eceaff;
+    padding:46px 48px;
+    display:grid;grid-template-columns:1.05fr 1.25fr;gap:30px;align-items:center;min-height:420px;
+  }
+  .dots{position:absolute;inset:0;background-image:radial-gradient(rgba(91,107,255,.18) 1px,transparent 1px);
+    background-size:22px 22px;mask:radial-gradient(60% 60% at 30% 60%,#000,transparent);opacity:.5;pointer-events:none}
+
+  .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.8);border:1px solid #e2e0ff;
+    color:var(--indigo);font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:30px;backdrop-filter:blur(6px)}
+  h1.hero-title{font-family:var(--font-head);font-size:62px;line-height:1.04;letter-spacing:-1.5px;margin:18px 0 0;font-weight:800}
+  .grad{background:linear-gradient(100deg,var(--indigo),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero-sub{margin-top:16px;font-size:18px;color:var(--ink-2);line-height:1.6;max-width:440px}
+  .hero-sub b{color:var(--ink);font-weight:700}
+
+  .cta-row{display:flex;align-items:center;gap:14px;margin-top:30px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-body);font-weight:700;font-size:15.5px;
+    border-radius:16px;padding:15px 26px;cursor:pointer;border:1px solid transparent;transition:.22s;text-decoration:none}
+  .btn-primary{background:linear-gradient(100deg,var(--indigo),var(--indigo-strong));color:#fff;
+    box-shadow:0 14px 30px -10px rgba(68,82,240,.6)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 38px -10px rgba(68,82,240,.7)}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn-ghost:hover{transform:translateY(-2px);border-color:#d3d7f0}
+  .btn-profile{background:#fff;border-color:var(--line);color:var(--ink);font-weight:600}
+  .ring{width:34px;height:34px;flex:none}
+
+  .chips{display:flex;gap:11px;margin-top:24px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);color:var(--ink-2);
+    font-weight:600;font-size:13.5px;padding:9px 15px;border-radius:30px}
+  .chip svg{color:var(--indigo)}
+
+  /* ── floating glass cards ─────────────────────── */
+  .stage{position:relative;height:430px}
+  .gcard{position:absolute;background:rgba(255,255,255,.72);backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.9);border-radius:22px;box-shadow:var(--shadow-card)}
+  /* fade-in (opacity only) + float (transform only) combined so they don't clash */
+  .float{opacity:0;animation:fadein .7s ease forwards, float 6s ease-in-out infinite}
+  @keyframes fadein{to{opacity:1}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+  .c-earn{top:6px;left:48px;width:330px;padding:20px 22px}
+  .c-earn .lbl{color:var(--ink-2);font-size:14px;font-weight:600}
+  .c-earn .amt{font-family:var(--font-head);font-size:38px;font-weight:800;margin-top:2px}
+  .trend{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-weight:700;font-size:13.5px;margin-top:4px}
+  .trend span{color:var(--muted);font-weight:500}
+  .spark{margin-top:6px;width:100%;height:64px;display:block}
+
+  .c-avatar{top:150px;left:402px;width:108px;height:128px;border-radius:22px;overflow:visible;padding:0}
+  .c-avatar img{width:100%;height:100%;object-fit:cover;border-radius:22px}
+  .verified{position:absolute;right:-8px;bottom:-8px;width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,var(--indigo),var(--violet));display:grid;place-items:center;border:3px solid #fff;color:#fff}
+
+  .orb{position:absolute;top:120px;right:70px;width:92px;height:92px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%,#fff 0%,#b9c0ff 30%,#8b5cf6 100%);
+    box-shadow:0 20px 50px -10px rgba(139,92,246,.55), inset -8px -10px 22px rgba(80,50,160,.45);opacity:.92}
+
+  .c-deal{top:208px;right:6px;width:360px;padding:20px 22px}
+  .c-deal .top{display:flex;align-items:center;justify-content:space-between}
+  .c-deal .tag{color:var(--indigo);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.4px}
+  .c-deal .dots3{color:var(--muted);font-weight:800;letter-spacing:1px}
+  .deal-brand{display:flex;align-items:center;gap:13px;margin-top:13px}
+  .deal-logo{width:46px;height:46px;border-radius:14px;background:#111;display:grid;place-items:center;color:#fff;flex:none}
+  .deal-brand strong{font-family:var(--font-head);font-size:17px}
+  .deal-brand p{color:var(--ink-2);font-size:14px}
+  .deal-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:14px}
+  .deal-price{font-weight:700;color:var(--ink)}
+  .bar{flex:1;height:8px;border-radius:6px;background:#e7e9f7;overflow:hidden;margin:0 4px}
+  .bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--indigo),var(--violet));transition:width 1.4s cubic-bezier(.2,.7,.2,1)}
+  .pct{font-size:13px;color:var(--ink-2);font-weight:600}
+  .btn-view{background:#eef0ff;color:var(--indigo);border:none;border-radius:12px;padding:9px 20px;font-weight:700;cursor:pointer;font-family:var(--font-body)}
+
+  .c-pay{top:330px;left:120px;width:210px;padding:15px 18px;z-index:3}
+  .c-pay .row{display:flex;align-items:center;gap:7px}
+  .c-pay .lbl{color:var(--ink-2);font-size:13px;font-weight:600}
+  .c-pay .amt{color:var(--ok);font-family:var(--font-head);font-weight:800;font-size:26px;margin-top:2px;display:flex;align-items:center;justify-content:space-between}
+  .check{width:18px;height:18px;border-radius:50%;background:var(--ok);display:grid;place-items:center;color:#fff}
+
+  /* ── STAT CARDS ───────────────────────────────── */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:26px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow-soft);transition:.22s;position:relative;overflow:hidden}
+  .stat:hover{transform:translateY(-4px);box-shadow:var(--shadow-card)}
+  .stat .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;margin-bottom:16px}
+  .ic.indigo{background:linear-gradient(135deg,#6b78ff,#4452f0)}
+  .ic.green{background:linear-gradient(135deg,#2bd47e,#15a35b)}
+  .ic.orange{background:linear-gradient(135deg,#ffb24d,#f08a1d)}
+  .ic.blue{background:linear-gradient(135deg,#56b8ff,#2f8de0)}
+  .stat .lbl{color:var(--ink-2);font-size:14px;font-weight:600}
+  .stat .val{font-family:var(--font-head);font-size:30px;font-weight:800;margin-top:4px}
+  .stat .meta{margin-top:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px}
+  .up{color:var(--ok)}.down{color:var(--bad)}
+  .stat .meta span{color:var(--muted);font-weight:500}
+  .coins{position:absolute;right:14px;bottom:10px;font-size:40px;opacity:.9}
+
+  @media (max-width:1080px){
+    .hero{grid-template-columns:1fr}
+    .stage{display:none}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    h1.hero-title{font-size:48px}
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP NAV -->
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <div class="brand"><span class="brand-mark">U</span> UGCad.io</div>
+      <nav class="nav-links">
+        <a href="#" class="active">Browse Briefs</a>
+        <a href="#">My Bids</a>
+        <a href="#">My Deals</a>
+        <a href="#">Messages<span class="dot"></span></a>
+      </nav>
+      <div class="nav-right">
+        <button class="icon-btn" aria-label="Notifications">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a4 4 0 0 1 8 0c0 4 1.5 5 2 6H4c.5-1 2-2 2-6Z"/><path d="M8.5 17a1.5 1.5 0 0 0 3 0"/></svg>
+          <i class="badge">3</i>
+        </button>
+        <div class="avatar-btn" id="avBtn">
+          <img class="avatar" src="https://i.pravatar.cc/120?img=12" alt="Alex" />
+          <svg class="chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg>
+        </div>
+        <div class="menu" id="menu" style="display:none">
+          <a href="#"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="12" height="11" rx="2"/><path d="M6 2v3M12 2v3"/></svg> My Active Work</a>
+          <a href="#"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m9 2 2 4 4 .5-3 3 .8 4.2L9 15.8 5.2 17.7 6 13.5l-3-3L7 6Z"/></svg> Reviews</a>
+          <a href="#"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="12" height="12" rx="2"/><path d="M3 11l3-3 3 3 3-4 3 4"/></svg> Portfolio</a>
+          <a href="#"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="14" height="9" rx="2"/><path d="M2 8h14"/></svg> Earnings</a>
+          <div class="sep"></div>
+          <a href="#"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="2.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2"/></svg> Settings</a>
+          <a href="#"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2H3v14h4M11 12l4-3-4-3M15 9H6"/></svg> Log out</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="dots"></div>
+
+      <!-- LEFT -->
+      <div class="hero-left">
+        <span class="pill rise" style="animation-delay:.05s">✦ Welcome back</span>
+        <h1 class="hero-title rise" style="animation-delay:.12s">Hey, <span class="grad">Alex</span> 👋</h1>
+        <p class="hero-sub rise" style="animation-delay:.2s">You have <b>3 active deals</b> and <b>2 new briefs</b> matching your niche.</p>
+
+        <div class="cta-row rise" style="animation-delay:.28s">
+          <a class="btn btn-primary" href="#">Browse Briefs
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h10M10 5l4 4-4 4"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="#">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="12" height="12" rx="3"/><path d="m6 9 2 2 4-4"/></svg>
+            My Deals
+          </a>
+          <a class="btn btn-profile" href="#">Complete your profile
+            <svg class="ring" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="#e7e9f7" stroke-width="5"/>
+              <circle id="profRing" cx="18" cy="18" r="15" fill="none" stroke="url(#pg)" stroke-width="5" stroke-linecap="round"
+                      stroke-dasharray="94.2" stroke-dashoffset="94.2" transform="rotate(-90 18 18)"/>
+              <text x="18" y="22" text-anchor="middle" font-size="11" font-weight="800" fill="#15163a">80%</text>
+              <defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b6bff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+            </svg>
+          </a>
+        </div>
+
+        <div class="chips rise" style="animation-delay:.36s">
+          <span class="chip"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1 14 4v8l-6 3-6-3V4Z"/></svg> Unboxing</span>
+          <span class="chip"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1c3 4 4 6 4 8a4 4 0 1 1-8 0c0-2 1-4 4-8Z"/></svg> Skincare</span>
+          <span class="chip"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="12" height="8" rx="1"/><path d="M6 14h4"/></svg> Tech</span>
+          <span class="chip"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 2 3 5v9h10V5l-2-3M5 2h6M6 5h4"/></svg> Fashion</span>
+        </div>
+      </div>
+
+      <!-- RIGHT / floating cards -->
+      <div class="stage">
+        <div class="orb float" style="animation-delay:.2s,-2.2s"></div>
+
+        <div class="gcard c-earn float" style="animation-delay:.3s,-1.5s">
+          <div class="lbl">Total Earnings</div>
+          <div class="amt">$<span class="count" data-to="8720">0</span></div>
+          <div class="trend">↗ 24% <span>this month</span></div>
+          <svg class="spark" viewBox="0 0 290 64" preserveAspectRatio="none">
+            <defs><linearGradient id="eg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6bff" stop-opacity=".25"/><stop offset="1" stop-color="#5b6bff" stop-opacity="0"/></linearGradient></defs>
+            <path id="earnArea" d="M0,52 L30,46 60,50 90,38 120,42 150,28 180,32 210,18 240,22 290,6 L290,64 L0,64 Z" fill="url(#eg)"/>
+            <path id="earnLine" d="M0,52 L30,46 60,50 90,38 120,42 150,28 180,32 210,18 240,22 290,6" fill="none" stroke="#5b6bff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="290" cy="6" r="4" fill="#5b6bff"/>
+          </svg>
+        </div>
+
+        <div class="gcard c-avatar float" style="animation-delay:.36s,-3s">
+          <img src="https://i.pravatar.cc/200?img=12" alt="creator" />
+          <span class="verified"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m4 8 3 3 5-6"/></svg></span>
+        </div>
+
+        <div class="gcard c-deal float" style="animation-delay:.42s,-4.2s">
+          <div class="top"><span class="tag">Active Deal</span><span class="dots3">⋯</span></div>
+          <div class="deal-brand">
+            <span class="deal-logo">
+              <svg width="26" height="12" viewBox="0 0 26 12" fill="#fff"><path d="M3 11C1 11 0 9.8 0 8.2c0-1 .5-1.8 1.7-2.8L24 0 6.5 8.6c-1 .5-1.8.7-2.6.7Z"/></svg>
+            </span>
+            <div><strong>Nike</strong><p>Summer Campaign</p></div>
+          </div>
+          <div class="deal-foot">
+            <span class="deal-price">$250 – $400</span>
+            <span class="bar"><i id="dealBar"></i></span>
+            <span class="pct">65%</span>
+            <button class="btn-view">View</button>
+          </div>
+        </div>
+
+        <div class="gcard c-pay float" style="animation-delay:.5s,-5s">
+          <div class="row"><span class="lbl">Payout</span><span class="check"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 2 2 4-5"/></svg></span></div>
+          <div class="amt">+$<span class="count" data-to="450">0</span>
+            <svg width="64" height="26" viewBox="0 0 64 26"><path d="M2,22 L14,16 26,19 38,9 50,12 62,3" fill="none" stroke="#15a35b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAT CARDS -->
+    <section class="stats">
+      <div class="stat rise" style="animation-delay:.1s">
+        <div class="ic indigo"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="18" height="13" rx="2"/><path d="M2 9h18"/></svg></div>
+        <div class="lbl">Total Earnings</div>
+        <div class="val">$<span class="count" data-to="8720">0</span></div>
+        <div class="meta up">↗ 24% <span>this month</span></div>
+      </div>
+      <div class="stat rise" style="animation-delay:.16s">
+        <div class="ic green"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h14v11H4zM7 7V5a4 4 0 0 1 8 0v2"/></svg></div>
+        <div class="lbl">Active Deals</div>
+        <div class="val"><span class="count" data-to="3">0</span></div>
+        <div class="meta up">↗ 1 <span>from last week</span></div>
+      </div>
+      <div class="stat rise" style="animation-delay:.22s">
+        <div class="ic orange"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h9l3 3v12H5z"/><path d="M9 9h5M9 13h5"/></svg></div>
+        <div class="lbl">Pending Bids</div>
+        <div class="val"><span class="count" data-to="2">0</span></div>
+        <div class="meta down">↘ 1 <span>from last week</span></div>
+      </div>
+      <div class="stat rise" style="animation-delay:.28s">
+        <div class="ic blue"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 11s3-6 10-6 10 6 10 6-3 6-10 6S1 11 1 11Z"/><circle cx="11" cy="11" r="2.6"/></svg></div>
+        <div class="lbl">Profile Views</div>
+        <div class="val"><span class="count" data-to="1248">0</span></div>
+        <div class="meta up">↗ 18% <span>this month</span></div>
+      </div>
+      <div class="stat rise" style="animation-delay:.34s">
+        <div class="lbl">Next Payout</div>
+        <div class="val">$<span class="count" data-to="450">0</span></div>
+        <div class="meta"><span>Expected on May 28</span></div>
+        <div class="coins">🪙</div>
+      </div>
+    </section>
+
+  </main>
+
+<script>
+  // avatar dropdown
+  const avBtn = document.getElementById('avBtn');
+  const menu = document.getElementById('menu');
+  avBtn.addEventListener('click', e => { e.stopPropagation(); menu.style.display = menu.style.display==='none'?'block':'none'; });
+  document.addEventListener('click', () => menu.style.display='none');
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // count-up numbers
+  function countUp(el){
+    const to = +el.dataset.to; const dur = 1200; const start = performance.now();
+    function tick(now){
+      const p = Math.min(1,(now-start)/dur);
+      const e = 1-Math.pow(1-p,3);
+      el.textContent = Math.round(to*e).toLocaleString('en-US');
+      if(p<1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // draw earnings line
+  function drawLine(){
+    const line = document.getElementById('earnLine');
+    if(!line) return;
+    const len = line.getTotalLength();
+    line.style.strokeDasharray = len; line.style.strokeDashoffset = len;
+    line.getBoundingClientRect();
+    line.style.transition = 'stroke-dashoffset 1.6s ease-out';
+    line.style.strokeDashoffset = 0;
+  }
+
+  window.addEventListener('load', () => {
+    if(reduce){
+      document.querySelectorAll('.count').forEach(el => el.textContent = (+el.dataset.to).toLocaleString('en-US'));
+      document.getElementById('dealBar').style.width='65%';
+      document.getElementById('profRing').style.strokeDashoffset = 94.2*(1-0.8);
+      return;
+    }
+    setTimeout(()=>document.querySelectorAll('.count').forEach(countUp), 350);
+    setTimeout(drawLine, 400);
+    setTimeout(()=>{ document.getElementById('dealBar').style.width='65%'; }, 700);
+    // profile ring 0 -> 80%
+    const ring = document.getElementById('profRing');
+    ring.style.transition = 'stroke-dashoffset 1.3s ease-out';
+    setTimeout(()=>{ ring.style.strokeDashoffset = 94.2*(1-0.8); }, 500);
+  });
+
+  // parallax on the floating stage
+  const stage = document.querySelector('.stage');
+  if(stage && !reduce){
+    stage.addEventListener('mousemove', e => {
+      const r = stage.getBoundingClientRect();
+      const x = (e.clientX - r.left)/r.width - .5;
+      const y = (e.clientY - r.top)/r.height - .5;
+      stage.querySelectorAll('.gcard, .orb').forEach((el,i) => {
+        const depth = (i+1)*4;
+        el.style.transform = `translate(${x*depth}px, ${y*depth}px)`;
+      });
+    });
+    stage.addEventListener('mouseleave', () => {
+      stage.querySelectorAll('.gcard, .orb').forEach(el => el.style.transform='');
+    });
+  }
+</script>
+</body>
+</html>

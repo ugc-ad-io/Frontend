@@ -1,0 +1,145 @@
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../App';
+import {
+  Bell, ChevronDown, Zap, Star, User, Wallet, Settings, LogOut, Search, Menu, X
+} from 'lucide-react';
+import '../styles/creator-marketplace.css';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
+
+// Primary links live in the top bar; account/secondary links live in the avatar menu.
+const PRIMARY_LINKS = [
+  { name: 'Browse Briefs', to: '/browse-briefs' },
+  { name: 'My Bids', to: '/my-bids' },
+  { name: 'My Deals', to: '/my-deals' },
+  { name: 'Messages', to: '/messages', dot: true }
+];
+
+const MENU_LINKS = [
+  { name: 'My Active Work', to: '/my-active-work', icon: Zap },
+  { name: 'Reviews', to: '/reviews', icon: Star },
+  { name: 'Portfolio', to: '/portfolio', icon: User },
+  { name: 'Earnings', to: '/withdrawal', icon: Wallet },
+  { sep: true },
+  { name: 'Settings', to: '/settings', icon: Settings }
+];
+
+/**
+ * Top-navigation marketplace shell for the creator side (replaces the sidebar
+ * DashboardLayout). Renders the sticky nav + avatar menu and wraps page content
+ * full-width. Pass `notifications` to show a bell badge.
+ */
+export default function CreatorTopNavLayout({ children, notifications = 0 }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  const displayName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : user?.email) || 'Creator';
+  const photo = user?.profile_photo || user?.profile_picture || user?.avatar;
+  const isActive = (to) => pathname === to || pathname.startsWith(`${to}/`);
+
+  const handleLogout = () => { logout(); navigate('/'); };
+
+  return (
+    <div className="cmk-app">
+      <header className="cmk-nav">
+        <div className="cmk-wrap cmk-nav-inner">
+          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')}>
+            <span className="cmk-brand-mark">U</span> UGCad.io
+          </button>
+
+          <div className="cmk-nav-search" role="search">
+            <Search size={18} />
+            <input
+              type="search"
+              placeholder="Search briefs, brands, categories..."
+              aria-label="Search"
+              onKeyDown={(e) => { if (e.key === 'Enter') navigate('/browse-briefs'); }}
+            />
+          </div>
+
+          <nav className="cmk-links" aria-label="Creator">
+            {PRIMARY_LINKS.map((link) => (
+              <button
+                key={link.name}
+                type="button"
+                className={isActive(link.to) ? 'is-active' : ''}
+                onClick={() => navigate(link.to)}
+              >
+                {link.name}
+                {link.dot && <span className="cmk-link-dot" />}
+              </button>
+            ))}
+          </nav>
+
+          <div className="cmk-nav-right" ref={menuRef}>
+            <button type="button" className="cmk-icon-btn" aria-label="Notifications" onClick={() => navigate('/messages')}>
+              <Bell size={20} />
+              {notifications > 0 && <i className="cmk-badge">{notifications > 9 ? '9+' : notifications}</i>}
+            </button>
+
+            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
+              <span className="cmk-avatar">
+                {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
+              </span>
+              <span className="cmk-avatar-id">
+                <strong>{displayName}</strong>
+                <small>Creator</small>
+              </span>
+              <ChevronDown size={16} color="#9296ba" />
+            </button>
+
+            {menuOpen && (
+              <div className="cmk-menu">
+                {MENU_LINKS.map((item, i) => (
+                  item.sep
+                    ? <div key={`sep-${i}`} className="cmk-sep" />
+                    : (
+                      <button key={item.name} type="button" onClick={() => { setMenuOpen(false); navigate(item.to); }}>
+                        <item.icon size={18} /> {item.name}
+                      </button>
+                    )
+                ))}
+                <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+              </div>
+            )}
+            <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
+        </div>
+        {mobileOpen && (
+          <div className="cmk-mobile-menu">
+            {PRIMARY_LINKS.map((link) => (
+              <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
+                {link.name}
+              </button>
+            ))}
+            <div className="cmk-sep" />
+            {MENU_LINKS.filter((i) => !i.sep).map((item) => (
+              <button key={item.name} type="button" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
+                <item.icon size={18} /> {item.name}
+              </button>
+            ))}
+            <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+          </div>
+        )}
+      </header>
+
+      <main className="cmk-wrap cmk-page">
+        {children}
+      </main>
+    </div>
+  );
+}

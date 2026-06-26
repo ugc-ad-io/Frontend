@@ -7,7 +7,8 @@ import { apiErrorMessage } from '../utils/apiError';
 import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
-import PostABrief from './PostABrief';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import PlanBrief from './PlanBrief';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
 
@@ -142,10 +143,9 @@ export default function MessagesPage() {
   const navItems = user?.role === 'business'
     ? [
       { name: 'Brand Dashboard', icon: LayoutGrid, action: () => navigate('/dashboard/business') },
-      { name: 'Post a Brief', icon: SquarePen, action: () => navigate('/dashboard/business/post-brief') },
+      { name: 'Post a Campaign', icon: SquarePen, action: () => navigate('/dashboard/business/post-brief') },
       { name: 'Creator Bids', icon: UserRoundSearch, action: () => navigate('/dashboard/business/pending-bids') },
       { name: 'Browse Creator', icon: Search, action: () => navigate('/dashboard/business/browse-creator') },
-      { name: 'Browse Gigs', icon: Eye, action: () => navigate('/dashboard/business/browse-gigs') },
       { name: 'All Campaigns', icon: ClipboardList, action: () => navigate('/dashboard/business/all-campaigns') },
       { name: 'Work Review', icon: FileCheck, action: () => navigate('/dashboard/business/work-review') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
@@ -155,7 +155,6 @@ export default function MessagesPage() {
     ]
     : [
       { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-      { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
       { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
       { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
@@ -563,15 +562,25 @@ export default function MessagesPage() {
   const selectedConv = conversations.find((c) => c.user_id === selectedId);
   const actionCardsOnly = warnings?.action_cards_only_until && new Date(warnings.action_cards_only_until) > new Date();
 
+  // Creators use the top-nav marketplace shell (same as My Deals / Browse Briefs)
+  // so opening Messages keeps you in the top-nav UI instead of redirecting to the
+  // old sidebar dashboard. Business keeps its sidebar dashboard layout.
+  const isBusiness = user?.role === 'business';
+  const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  const Shell = isBusiness ? DashboardLayout : CreatorTopNavLayout;
+  const shellProps = isBusiness
+    ? {
+        navItems,
+        title: 'Messages',
+        description: 'Connect with creators and manage campaign conversations',
+        topbarExtra: null,
+        sidebarExtra: null,
+        sidebarLabel: 'Business',
+      }
+    : { notifications: totalUnread };
+
   return (
-    <DashboardLayout
-      navItems={navItems}
-      title="Messages"
-      description={user?.role === 'business' ? 'Connect with creators and manage campaign conversations' : 'Connect with brands and manage conversations'}
-      topbarExtra={null}
-      sidebarExtra={null}
-      sidebarLabel={user?.role === 'business' ? 'Business' : 'Menu'}
-    >
+    <Shell {...shellProps}>
       <div className="msg-layout">
         {/* Left Panel: Conversations List */}
         <div className="msg-list-panel">
@@ -830,24 +839,13 @@ export default function MessagesPage() {
       </div>
 
       {briefTarget && (
-        <div className="msg-brief-overlay" onClick={() => setBriefTarget(null)}>
-          <div className="msg-brief-wizard" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="msg-brief-close" aria-label="Close" onClick={() => setBriefTarget(null)}><X size={18} /></button>
-            <PostABrief
-              embeddedCreatorId={briefTarget}
-              onClose={() => setBriefTarget(null)}
-              onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
-            />
-          </div>
-        </div>
+        <PlanBrief
+          creatorId={briefTarget}
+          creatorName={selectedConv?.nickname || 'Creator'}
+          onClose={() => setBriefTarget(null)}
+          onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
+        />
       )}
-
-      <style>{`
-        .msg-brief-overlay { position: fixed; inset: 0; background: rgba(7,7,78,0.5); backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; z-index: 1000; padding: 24px; overflow: auto; }
-        .msg-brief-wizard { position: relative; width: min(1080px, 100%); margin: auto; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(7,7,78,0.3); overflow: hidden; }
-        .msg-brief-close { position: absolute; top: 14px; right: 14px; z-index: 5; border: 0; background: #f3f3ff; color: #07074e; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(7,7,78,0.12); }
-        .msg-brief-close:hover { background: #e6e7fb; }
-      `}</style>
-    </DashboardLayout>
+    </Shell>
   );
 }

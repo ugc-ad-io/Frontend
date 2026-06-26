@@ -35,9 +35,6 @@ const MyBidsPage = lazy(() => import('./pages/MyBidsPage'));
 const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
-const CreateGig = lazy(() => import('./pages/CreateGig'));
-const MyGigsPage = lazy(() => import('./pages/MyGigsPage'));
-const AdminGigManagement = lazy(() => import('./pages/AdminGigManagement'));
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns'));
 const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
 const AdminDisputes = lazy(() => import('./pages/AdminDisputes'));
@@ -54,7 +51,6 @@ const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminRoles = lazy(() => import('./pages/AdminRoles'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog'));
-const GigDetailsPage = lazy(() => import('./pages/GigDetailsPage'));
 const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -290,22 +286,6 @@ function App() {
               }
             />
             <Route
-              path="/create-gig"
-              element={
-                <ProtectedRoute allowedRoles={['creator']}>
-                  <CreateGig />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-gigs"
-              element={
-                <ProtectedRoute allowedRoles={['creator']}>
-                  <MyGigsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/brand-home"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
@@ -350,30 +330,6 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['business']}>
                   <BusinessDashboard page="browse-creator" />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/business/browse-gigs"
-              element={
-                <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard page="browse-gigs" />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/browse-approved-gigs"
-              element={
-                <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard page="browse-gigs" />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/gig/:gigId"
-              element={
-                <ProtectedRoute allowedRoles={['business']}>
-                  <GigDetailsPage />
                 </ProtectedRoute>
               }
             />
@@ -424,14 +380,6 @@ function App() {
                   <AdminLayout isApplicationsPage={true}>
                     <ApplicationsPage />
                   </AdminLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/admin/gig-management"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
-                  <AdminGigManagement />
                 </ProtectedRoute>
               }
             />

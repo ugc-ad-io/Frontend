@@ -70,8 +70,6 @@ export default function BrandWelcomePage() {
   const { user, logout } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [contentCategories, setContentCategories] = useState([]);
-  const [approvedGigs, setApprovedGigs] = useState([]);
-  const [gigsLoading, setGigsLoading] = useState(true);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -125,22 +123,6 @@ export default function BrandWelcomePage() {
   }, []);
 
   useEffect(() => {
-    const fetchApprovedGigs = async () => {
-      setGigsLoading(true);
-      try {
-        const response = await axios.get(`${API}/gigs?status=approved`);
-        const gigs = response.data?.data || response.data || [];
-        setApprovedGigs(gigs);
-      } catch (error) {
-        console.error('Failed to fetch approved gigs:', error);
-      } finally {
-        setGigsLoading(false);
-      }
-    };
-    fetchApprovedGigs();
-  }, []);
-
-  useEffect(() => {
     const fetchContentCategories = async () => {
       try {
         const response = await axios.get(`${API}/categories`);
@@ -169,10 +151,9 @@ export default function BrandWelcomePage() {
 
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
-    { id: 'post-brief', label: 'Post a Brief', icon: SquarePen, path: '/dashboard/business/post-brief' },
+    { id: 'post-brief', label: 'Post a Campaign', icon: SquarePen, path: '/dashboard/business/post-brief' },
     { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: campaigns.reduce((sum, c) => sum + (c.bids?.length || 0), 0) || 3, badgeTone: 'orange' },
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
-    { id: 'browse-gigs', label: 'Browse Approved Gigs', icon: Video, path: '/browse-approved-gigs' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
@@ -767,105 +748,7 @@ export default function BrandWelcomePage() {
               </div>
 
               <div className="categories-content">
-                {gigsLoading ? (
-                  <>
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="gig-card-welcome gig-card-skeleton" style={{ pointerEvents: 'none', animationDelay: `${i * 0.1}s` }}>
-                        <div className="skel skel-img" />
-                        <div className="skel skel-line" style={{ width: '60%', marginTop: '12px' }} />
-                        <div className="skel skel-line" style={{ width: '90%', marginTop: '8px', height: '12px' }} />
-                      </div>
-                    ))}
-                    <style>{`
-                      @keyframes gigSkeleton {
-                        0%   { background-position: 200% 0; }
-                        100% { background-position: -200% 0; }
-                      }
-                      .skel {
-                        background: linear-gradient(115deg, #e9eaf3 0%, #fafbff 50%, #e9eaf3 100%);
-                        background-size: 200% 100%;
-                        animation: gigSkeleton 1.6s ease-in-out infinite;
-                        border-radius: 6px;
-                      }
-                      .skel-img {
-                        width: 100%;
-                        aspectRatio: 4/3;
-                        height: 240px;
-                        border-radius: 0;
-                      }
-                      .skel-line {
-                        height: 14px;
-                        margin-left: 16px;
-                        margin-right: 16px;
-                      }
-                    `}</style>
-                  </>
-                ) : approvedGigs.length > 0 ? (
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeCategory}
-                      style={{ display: 'contents' }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      {approvedGigs.slice(0, 6).map((gig, idx) => (
-                        <motion.div
-                          key={gig.id}
-                          className="gig-card-welcome"
-                          onClick={() => navigate(`/gig/${gig._id || gig.id}`)}
-                          custom={idx}
-                          variants={cardStagger}
-                          initial="hidden"
-                          animate="visible"
-                          whileHover={{ y: -4 }}
-                        >
-                          {gig.attachments && gig.attachments.length > 0 && (
-                            <div className="gig-media-preview">
-                              <img
-                                src={gig.attachments[0]}
-                                alt="Gig preview"
-                                className="gig-preview-image"
-                                onError={(e) => {e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E';}}
-                              />
-                              <button
-                                className="gig-wishlist-btn"
-                                onClick={(e) => { e.stopPropagation(); }}
-                                aria-label="Add to wishlist"
-                              >
-                                <Heart size={16} />
-                              </button>
-                              {gig.attachments.length > 1 && (
-                                <div className="attachment-more">+{gig.attachments.length - 1}</div>
-                              )}
-                              <div className="gig-creator-overlay">
-                                <div className="creator-avatar creator-avatar--overlay">
-                                  {(gig.public_creator_id || gig.creator_id)?.charAt(0).toUpperCase() || 'C'}
-                                </div>
-                                <span className="creator-name-overlay">
-                                  {gig.public_creator_id || gig.creator_id || 'Creator'}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          <h3 className="gig-title">{gig.title}</h3>
-
-                          <div className="gig-footer">
-                            <div className="gig-budget">
-                              <span className="budget-amount">₹{gig.budget || '0'}</span>
-                            </div>
-                            <button className="gig-cta-button">
-                              <span>View Gig</span>
-                              <ArrowRight size={12} className="gig-cta-arrow" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  </AnimatePresence>
-                ) : (
+                {(
                   <>
                     {dashboardCards.map((card, idx) => {
                       const Icon = card.icon;

@@ -5,9 +5,35 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+
+// Creators get the marketplace top-nav shell (consistent with Browse Briefs / My Bids);
+// brands keep the bare page they had.
+function CreatorShell({ isCreator, children }) {
+  return isCreator ? <CreatorTopNavLayout>{children}</CreatorTopNavLayout> : <>{children}</>;
+}
+
+// The brief is stored as plain text ("Label: value" per line). Render it so the
+// label reads as a dark sub-heading and the value as muted body text.
+function renderBrief(text) {
+  if (!text) return <p className="brief-line">No brief details provided.</p>;
+  return String(text).split('\n').map((line, i) => {
+    if (!line.trim()) return <div key={i} className="brief-gap" />;
+    const idx = line.indexOf(':');
+    if (idx > 0 && idx <= 28) {
+      return (
+        <p key={i} className="brief-line">
+          <strong>{line.slice(0, idx)}:</strong> {line.slice(idx + 1).trim()}
+        </p>
+      );
+    }
+    return <p key={i} className="brief-line">{line}</p>;
+  });
+}
 
 export default function CampaignDetails() {
   const { id } = useParams();
@@ -204,8 +230,51 @@ export default function CampaignDetails() {
   const isBusiness = user?.role === 'business' && campaign.business_id === user.id;
 
   return (
+    <CreatorShell isCreator={user?.role === 'creator'}>
     <div className="campaign-details-page">
       <style>{`
+        /* Marketplace restyle — only applies under the creator top-nav shell (.cmk-app) */
+        .cmk-app .campaign-details-page{min-height:auto;background:transparent;padding:0;display:block}
+        .cmk-app .page-header{max-width:none;margin:0 0 18px}
+        .cmk-app .back-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e9ebf4;
+          border-radius:12px;padding:10px 16px;color:#15163a;font-weight:700;cursor:pointer;font-family:inherit}
+        .cmk-app .back-btn:hover{border-color:#cdd2f3}
+        .cmk-app .campaign-container{max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:20px}
+        .cmk-app .page-header{max-width:900px;margin:0 auto 18px}
+        .cmk-app .campaign-info-card{background:#fff;border:1px solid #e9ebf4;border-radius:22px;
+          box-shadow:0 18px 40px -18px rgba(28,30,80,.18);padding:30px}
+        .cmk-app .campaign-title-section{display:flex;align-items:center;justify-content:space-between;gap:16px}
+        .cmk-app .campaign-title-section h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);
+          font-size:32px;font-weight:800;letter-spacing:-.5px;color:#15163a;margin:0}
+        .cmk-app .badge{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;padding:6px 14px;
+          border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
+        .cmk-app .bid-submitted-banner,.cmk-app .creator-bid-banner{background:linear-gradient(135deg,#eef0ff,#f4f0ff);
+          border:1px solid #e0e3ff;border-radius:18px;padding:22px;margin:20px 0}
+        .cmk-app .bid-submitted-header h3,.cmk-app .creator-bid-banner h3{color:#4452f0}
+        .cmk-app .detail-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+        .cmk-app .detail-label{color:#585c7e;font-weight:600}
+        .cmk-app .detail-value{color:#15163a;font-weight:800}
+        .cmk-app .status-badge{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;font-weight:700;
+          padding:7px 16px;border-radius:12px;font-size:13px}
+        .cmk-app .bid-submitted-proposal{background:#fff;border:1px solid #e9ebf4;border-radius:14px;padding:16px;margin-top:14px}
+        .cmk-app .proposal-text{color:#585c7e;margin:6px 0 0}
+        .cmk-app .btn-bid-now{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border:none;border-radius:14px;
+          padding:13px 24px;font-weight:700;cursor:pointer;box-shadow:0 12px 26px -12px rgba(68,82,240,.6);font-family:inherit}
+        .cmk-app .campaign-meta{display:flex;flex-wrap:wrap;gap:22px;padding:18px 0;border-top:1px solid #eef0f6;
+          border-bottom:1px solid #eef0f6;margin:20px 0}
+        .cmk-app .meta-item{display:flex;align-items:center;gap:8px;color:#585c7e;font-weight:600}
+        .cmk-app .meta-item svg{color:#5b6bff}
+        .cmk-app .campaign-section{margin:22px 0}
+        .cmk-app .campaign-section h3{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;
+          font-weight:700;color:#15163a;margin:0 0 12px}
+        .cmk-app .brief-text{color:#585c7e;font-size:15px;line-height:1.7}
+        .cmk-app .brief-line{margin:0 0 7px;color:#585c7e;font-size:14.5px;line-height:1.6}
+        .cmk-app .brief-line strong{color:#15163a;font-weight:700}
+        .cmk-app .brief-gap{height:12px}
+        .cmk-app .objectives-grid{display:flex;flex-wrap:wrap;gap:10px}
+        .cmk-app .objective-item{background:#eef0ff;color:#5b6bff;font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:20px}
+        .cmk-app .shipment-notice{background:#fff7ed;border:1px solid #ffe0bd;border-radius:14px;padding:16px;color:#9a5b14}
+
         .shortlist-section { border: 1px solid #ececf1; border-radius: 16px; padding: 20px 22px; margin: 18px 0; background: #fff; }
         .shortlist-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
         .shortlist-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; }
@@ -300,7 +369,9 @@ export default function CampaignDetails() {
               </div>
               <div className="meta-item">
                 <IndianRupee size={20} />
-                <span>Budget: ₹{campaign.budget_min} - ₹{campaign.budget_max}</span>
+                <span>{Number(campaign.budget_min) === Number(campaign.budget_max)
+                  ? `Budget: ₹${Number(campaign.budget_max).toLocaleString('en-IN')} (fixed)`
+                  : `Budget: ₹${Number(campaign.budget_min).toLocaleString('en-IN')} - ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`}</span>
               </div>
               {campaign.requires_shipment && (
                 <div className="meta-item">
@@ -312,7 +383,7 @@ export default function CampaignDetails() {
 
             <div className="campaign-section">
               <h3>Campaign Brief</h3>
-              <p className="brief-text">{campaign.brief_text}</p>
+              <div className="brief-text">{renderBrief(campaign.brief_text)}</div>
             </div>
 
             <div className="campaign-section">
@@ -573,7 +644,9 @@ export default function CampaignDetails() {
                   required
                   data-testid="bid-amount-input"
                 />
-                <small>Budget range: ₹{campaign.budget_min} - ₹{campaign.budget_max}</small>
+                <small>{Number(campaign.budget_min) === Number(campaign.budget_max)
+                  ? `Fixed budget: ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`
+                  : `Budget range: ₹${Number(campaign.budget_min).toLocaleString('en-IN')} - ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`}</small>
               </div>
               <div className="form-group">
                 <label htmlFor="deliveryDays">Estimated Delivery (days)</label>
@@ -1858,5 +1931,6 @@ export default function CampaignDetails() {
         }
       `}</style>
     </div>
+    </CreatorShell>
   );
 }

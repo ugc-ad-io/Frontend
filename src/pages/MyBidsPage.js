@@ -1,138 +1,238 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import {
-  Bookmark,
-  Briefcase,
-  Calendar,
-  Eye,
-  FileCheck,
-  IndianRupee,
-  LayoutDashboard,
-  MessageSquare,
-  Settings,
-  Star,
-  ClipboardList,
-  Upload,
-  User,
-  Zap,
-} from 'lucide-react';
-import { EmptyPanel, formatMoney, getCampaignBudget } from '../components/CreatorComponents';
-import DashboardLayout from '../components/DashboardLayout';
-import './CreatorDashboard.css';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const VISIBLE_BID_STATUSES = new Set(['pending', 'submitted', 'bid_submitted']);
 
-const getBidStatus = (item) => (
-  item?.bid_status ||
-  item?.my_bid?.status ||
-  item?.bid?.status ||
-  'pending'
-).toLowerCase();
+const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
+const formatMoney = (v) => `Rs. ${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent');
 
-const isVisiblePendingBid = (item) => {
-  const campaign = item?.campaign || {};
-  const isCampaignAssigned = Boolean(campaign.selected_creator || item?.selected_creator);
-  return !isCampaignAssigned && VISIBLE_BID_STATUSES.has(getBidStatus(item));
-};
+const getBidStatus = (item) => (item?.bid_status || item?.my_bid?.status || item?.bid?.status || 'pending').toLowerCase();
+
+const STATUS_TONE = { shortlisted: 'info', accepted: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
+const STATUS_LABEL = { bid_submitted: 'Pending', submitted: 'Pending' };
+
+const TABS = [
+  { key: 'all', label: 'All', match: () => true },
+  { key: 'shortlisted', label: 'Shortlisted', match: (s) => s === 'shortlisted' },
+  { key: 'accepted', label: 'Accepted', match: (s) => s === 'accepted' },
+  { key: 'rejected', label: 'Rejected', match: (s) => s === 'rejected' },
+];
 
 export default function MyBidsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [myBids, setMyBids] = useState([]);
+  const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('all');
+  const [selected, setSelected] = useState(null); // the bid item being viewed
+  const [detail, setDetail] = useState(null); // full campaign fetched on open
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
-    { name: 'My Gigs', icon: ClipboardList, action: () => navigate('/my-gigs') },
-    { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-    { name: 'My Bids', icon: Bookmark, action: () => {}, active: true },
-    { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
-    { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
-    { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
-    { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
-    { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
-    { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
-    { name: 'Settings', icon: Settings, action: () => navigate('/settings') },
-  ];
+  const openView = async (item) => {
+    setSelected(item);
+    setDetail(null);
+    const cid = item.campaign?.id || item.campaign?._id;
+    if (!cid) return;
+    setDetailLoading(true);
+    try {
+      const res = await axios.get(`${API}/campaigns/${cid}`);
+      setDetail(res.data);
+    } catch { /* fall back to the row's campaign data */ }
+    finally { setDetailLoading(false); }
+  };
 
   useEffect(() => {
-    if (user?.approval_status !== 'approved') return;
+    if (user?.approval_status && user.approval_status !== 'approved') return undefined;
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [user?.id]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchData = async () => {
     try {
       const res = await axios.get(`${API}/bids/my?t=${Date.now()}`);
-      setMyBids((res.data || []).filter(isVisiblePendingBid));
-    } catch (error) {
+      setBids(res.data || []);
+    } catch {
       toast.error('Failed to load bids');
     } finally {
       setLoading(false);
     }
   };
 
+  const counts = useMemo(() => {
+    const o = {};
+    TABS.forEach((t) => { o[t.key] = bids.filter((b) => t.match(getBidStatus(b))).length; });
+    return o;
+  }, [bids]);
+
+  const rows = useMemo(() => {
+    const t = TABS.find((x) => x.key === tab);
+    return bids.filter((b) => t.match(getBidStatus(b)));
+  }, [bids, tab]);
+
   return (
-    <DashboardLayout
-      navItems={navItems}
-      title="My Bids"
-      description="Track your submitted bids"
-      topbarExtra={null}
-      sidebarExtra={null}
-    >
+    <CreatorTopNavLayout notifications={0}>
+      <div className="cmk-page-head">
+        <h1>My Bids</h1>
+        <p>Track all your submitted proposals.</p>
+      </div>
+
+      <div className="cmk-tabs-row">
+        <div className="cmk-tabs">
+          {TABS.map((t) => (
+            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
+              {t.label} <em>({counts[t.key] || 0})</em>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
-        <div className="pcd-empty-panel">Loading...</div>
+        <div className="cmk-empty">Loading…</div>
+      ) : rows.length ? (
+        <div className="cmk-table-card">
+          <table className="cmk-table">
+            <thead>
+              <tr><th>Brief</th><th>Brand</th><th>Budget</th><th>Status</th><th>Submitted On</th><th aria-label="action" /></tr>
+            </thead>
+            <tbody>
+              {rows.map((item) => {
+                const c = item.campaign || {};
+                const bid = item.my_bid || item.bid || {};
+                const status = getBidStatus(item);
+                const brand = c.business_nickname || c.brand_handle || 'Brand';
+                return (
+                  <tr key={bid.id || c.id}>
+                    <td className="cmk-td-strong">{c.title || 'Campaign'}</td>
+                    <td>
+                      <span className="cmk-td-brand">
+                        <span className="cmk-td-logo">
+                          {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
+                        </span>
+                        {brand}
+                      </span>
+                    </td>
+                    <td>{formatMoney(bid.amount || c.budget_max || c.budget)}</td>
+                    <td><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{STATUS_LABEL[status] || (status.charAt(0).toUpperCase() + status.slice(1))}</span></td>
+                    <td className="cmk-td-muted">{fmtDate(item.submitted_at || bid.submitted_at)}</td>
+                    <td className="cmk-td-right">
+                      {['selected', 'accepted'].includes(status) && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/my-deals?campaign=${c.id}`)}
+                          style={{ marginRight: 16, background: 'linear-gradient(100deg,#5b6bff,#4452f0)', color: '#fff', border: 0, borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 18px -8px rgba(68,82,240,.6)' }}
+                        >
+                          Deal Room →
+                        </button>
+                      )}
+                      <button type="button" className="cmk-link-btn" onClick={() => openView(item)}>View</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <MyBidsGrid items={myBids} onView={(campaignId) => navigate(`/campaign/${campaignId}`)} />
+        <div className="cmk-empty">No bids in “{TABS.find((t) => t.key === tab).label}”.</div>
       )}
-    </DashboardLayout>
-  );
-}
 
-function MyBidsGrid({ items, onView }) {
-  if (!items.length) return <EmptyPanel text="No bids submitted yet." />;
-
-  return (
-    <div className="pcd-campaign-grid">
-      {items.map((item) => {
-        const campaign = item.campaign || {};
-        const bid = item.my_bid || {};
-        const bidStatus = item.bid_status || 'pending';
-        const submittedAt = item.submitted_at || bid.submitted_at;
-
+      {selected && (() => {
+        const c = detail || selected.campaign || {};
+        const bid = selected.my_bid || selected.bid || {};
+        const status = getBidStatus(selected);
+        const brand = c.business_nickname || c.brand_handle || 'Brand';
+        const budget = (c.budget_min || c.budget_max)
+          ? `${formatMoney(c.budget_min || c.budget_max)}${c.budget_max && c.budget_max !== c.budget_min ? ` – ${formatMoney(c.budget_max)}` : ''}`
+          : formatMoney(bid.amount);
         return (
-          <article key={bid.id || campaign.id} className="pcd-campaign-card pcd-bid-card">
-            <div>
-              <h3>{campaign.title || 'Campaign'}</h3>
-              <span className={`pcd-status ${bidStatus}`}>{bidStatus}</span>
-            </div>
-            <p>{campaign.brief_text ? `${campaign.brief_text.substring(0, 150)}${campaign.brief_text.length > 150 ? '...' : ''}` : 'Creator campaign brief'}</p>
-            <dl>
-              <div><dt>Your Bid</dt><dd>{formatMoney(bid.amount)}</dd></div>
-              <div><dt>Campaign Budget</dt><dd>{getCampaignBudget(campaign)}</dd></div>
-              <div><dt>Brand</dt><dd>{campaign.business_nickname || campaign.brand_handle || 'Brand'}</dd></div>
-              <div><dt>Delivery</dt><dd>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} days` : 'N/A'}</dd></div>
-              <div><dt>Campaign Status</dt><dd>{(item.campaign_status || campaign.status || 'active').replace('_', ' ')}</dd></div>
-              <div>
-                <dt><Calendar size={13} /> Submitted</dt>
-                <dd>{submittedAt ? new Date(submittedAt).toLocaleDateString() : 'Recent'}</dd>
+          <div className="mb-overlay" onClick={() => setSelected(null)}>
+            <aside className="mb-drawer" onClick={(e) => e.stopPropagation()}>
+              <div className="mb-drawer-head">
+                <div className="mb-drawer-brand">
+                  <span className="cmk-td-logo">{getInitial(brand)}</span>
+                  <div>
+                    <strong>{c.title || 'Campaign'}</strong>
+                    <small>{brand}</small>
+                  </div>
+                </div>
+                <button type="button" className="mb-close" aria-label="Close" onClick={() => setSelected(null)}>✕</button>
               </div>
-            </dl>
-            {bid.proposal && <p className="pcd-bid-proposal">{bid.proposal}</p>}
-            <div className="pcd-card-actions">
-              <button type="button" onClick={() => onView(campaign.id)}>
-                <Eye size={16} /> View Campaign
-              </button>
-            </div>
-          </article>
+
+              <div className="mb-drawer-body">
+                <div className="mb-meta-row">
+                  <span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{STATUS_LABEL[status] || (status.charAt(0).toUpperCase() + status.slice(1))}</span>
+                  {c.category && <span className="cmk-pill info">{c.category}</span>}
+                </div>
+
+                <div className="mb-grid">
+                  <div className="mb-stat"><small>Brief Budget</small><strong>{budget}</strong></div>
+                  <div className="mb-stat"><small>Your Bid</small><strong>{formatMoney(bid.amount)}</strong></div>
+                  <div className="mb-stat"><small>Delivery</small><strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} days` : '—'}</strong></div>
+                  <div className="mb-stat"><small>Submitted</small><strong>{fmtDate(selected.submitted_at || bid.submitted_at)}</strong></div>
+                </div>
+
+                <div className="mb-sec">
+                  <h4>Brief</h4>
+                  {detailLoading && !detail ? <p className="mb-muted">Loading brief…</p> : (
+                    <p className="mb-text">{c.brief_text || c.deliverables || 'No brief details provided.'}</p>
+                  )}
+                </div>
+
+                {Array.isArray(c.objectives) && c.objectives.length > 0 && (
+                  <div className="mb-sec">
+                    <h4>Objectives</h4>
+                    <div className="mb-chips">{c.objectives.map((o, i) => <span key={i}>{o}</span>)}</div>
+                  </div>
+                )}
+
+                {bid.proposal && (
+                  <div className="mb-sec">
+                    <h4>Your Proposal</h4>
+                    <p className="mb-text">{bid.proposal}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-drawer-foot">
+                <button type="button" className="cmk-btn-ghost-sm" onClick={() => setSelected(null)}>Close</button>
+                <button type="button" className="cmk-btn-primary-sm" onClick={() => { const id = c.business_id || c.business?.id; if (id) navigate(`/messages?conv=${id}`); else navigate('/messages'); }}>Message Brand</button>
+              </div>
+            </aside>
+
+            <style>{`
+              .mb-overlay{position:fixed;inset:0;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);z-index:1000;display:flex;justify-content:flex-end}
+              .mb-drawer{width:min(460px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:mb-slide .28s cubic-bezier(.2,.7,.2,1)}
+              @keyframes mb-slide{from{transform:translateX(40px);opacity:.6}to{transform:none;opacity:1}}
+              .mb-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 22px;border-bottom:1px solid #e9ebf4}
+              .mb-drawer-brand{display:flex;align-items:center;gap:12px;min-width:0}
+              .mb-drawer-brand strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a;line-height:1.25}
+              .mb-drawer-brand small{color:#9296ba;font-size:13px}
+              .mb-close{border:0;background:#f1f3fa;color:#15163a;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px;flex:none}
+              .mb-drawer-body{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+              .mb-meta-row{display:flex;gap:8px;flex-wrap:wrap}
+              .mb-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+              .mb-stat{background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:12px 14px}
+              .mb-stat small{color:#9296ba;font-size:12px;font-weight:600;display:block}
+              .mb-stat strong{color:#15163a;font-size:15px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
+              .mb-sec h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#585c7e;text-transform:uppercase;letter-spacing:.4px}
+              .mb-text{margin:0;color:#585c7e;font-size:14px;line-height:1.6;white-space:pre-wrap}
+              .mb-muted{margin:0;color:#9296ba;font-size:14px}
+              .mb-chips{display:flex;flex-wrap:wrap;gap:7px}
+              .mb-chips span{background:#eef0ff;color:#5b6bff;font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}
+              .mb-drawer-foot{display:flex;gap:10px;padding:16px 22px;border-top:1px solid #e9ebf4}
+              .mb-drawer-foot button{flex:1;justify-content:center}
+            `}</style>
+          </div>
         );
-      })}
-    </div>
+      })()}
+    </CreatorTopNavLayout>
   );
 }

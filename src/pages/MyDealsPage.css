@@ -780,6 +780,7 @@
   opacity: 0.4;
   pointer-events: none;
   padding: 18px;
+  z-index: 2;
 }
 
 .deal-upload-preview-label {
@@ -866,6 +867,7 @@
   opacity: 0.42;
   pointer-events: none;
   padding: 10px;
+  z-index: 2;
 }
 
 .deal-preview-tile a {

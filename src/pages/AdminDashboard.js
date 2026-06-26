@@ -37,7 +37,6 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [pendingProfiles, setPendingProfiles] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
-  const [pendingGigs, setPendingGigs] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
   const [allCampaigns, setAllCampaigns] = useState([]);
@@ -134,7 +133,6 @@ export default function AdminDashboard() {
     fetchStats();
     fetchPendingProfiles();
     fetchPendingCampaigns();
-    fetchPendingGigs();
     fetchPendingWithdrawals();
     fetchAllCampaigns();
     fetchCampaignAssignments();
@@ -307,15 +305,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchPendingGigs = async () => {
-    try {
-      const response = await axios.get(`${API}/gigs?status=pending_approval`);
-      const gigs = response.data?.data || response.data || [];
-      setPendingGigs(gigs);
-    } catch (error) {
-      console.error('Failed to load pending gigs:', error);
-    }
-  };
 
   const fetchAllUsers = async () => {
     try {
@@ -775,7 +764,6 @@ export default function AdminDashboard() {
     { id: 'applications', label: 'Applications', icon: FileText, testId: 'tab-applications', slug: 'applications' },
     { id: 'profiles', label: `Profiles (${pendingProfiles.length})`, icon: Users, testId: 'tab-profiles', slug: 'profiles' },
     { id: 'campaigns', label: `Campaigns (${pendingCampaigns.length})`, icon: Briefcase, testId: 'tab-campaigns', slug: 'campaigns' },
-    { id: 'gigs', label: `Gig Management (${pendingGigs.length})`, icon: Briefcase, testId: 'tab-gigs', slug: 'gigs' },
     { id: 'withdrawals', label: `Withdrawals (${pendingWithdrawals.length})`, icon: Briefcase, testId: 'tab-withdrawals', slug: 'withdrawals' },
     { id: 'allcampaigns', label: 'All Campaigns', icon: Briefcase, testId: 'tab-allcampaigns', slug: 'all-campaigns' },
     ...(user?.role === 'admin' ? [
@@ -793,8 +781,6 @@ export default function AdminDashboard() {
   const handleAdminTabClick = (tab) => {
     if (tab.id === 'applications') {
       navigate('/dashboard/admin/applications');
-    } else if (tab.id === 'gigs') {
-      navigate('/dashboard/admin/gig-management');
     } else {
       setActiveTab(tab.id);
       tab.onOpen?.();
@@ -844,11 +830,6 @@ export default function AdminDashboard() {
                   <div className="stat-tile-hint">Awaiting review</div>
                 </div>
                 <div className="stat-tile">
-                  <div className="stat-tile-label">Pending gigs</div>
-                  <div className="stat-tile-value">{pendingGigs.length}</div>
-                  <div className="stat-tile-hint">Awaiting review</div>
-                </div>
-                <div className="stat-tile">
                   <div className="stat-tile-label">Withdrawals</div>
                   <div className="stat-tile-value">{pendingWithdrawals.length}</div>
                   <div className="stat-tile-hint">Pending payout</div>
@@ -874,7 +855,6 @@ export default function AdminDashboard() {
                     {[
                       { icon: <Users size={15} />, label: 'Profile approvals', count: pendingProfiles.length, to: '/dashboard/admin/profiles' },
                       { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
-                      { icon: <FileText size={15} />, label: 'Gig approvals', count: pendingGigs.length, to: '/dashboard/admin/gig-management' },
                       { icon: <IndianRupee size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
                     ].map((row) => (
                       <li key={row.label} onClick={() => navigate(row.to)} style={{ cursor: 'pointer' }}>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UGCad.io — Deal Room Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --indigo:#5b6bff;--indigo-strong:#4452f0;--violet:#8b5cf6;
+    --ink:#15163a;--ink-2:#585c7e;--muted:#9296ba;
+    --bg:#f4f5fa;--surface:#fff;--line:#e9ebf4;--line-soft:#f1f2f9;
+    --ok:#15a35b;--ok-soft:#e7f6ee;--warn:#d98314;--warn-soft:#fdf3e3;--bad:#e11d48;
+    --fh:'Plus Jakarta Sans',system-ui,sans-serif;--fb:'Inter',system-ui,sans-serif;
+    --shadow:0 12px 30px -16px rgba(28,30,80,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--fb);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+
+  /* nav */
+  .nav{background:#fff;border-bottom:1px solid var(--line);height:64px;display:flex;align-items:center}
+  .nav .wrap{display:flex;align-items:center;gap:26px;width:100%}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--fh);font-weight:800;font-size:17px}
+  .brand i{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-style:normal;background:linear-gradient(135deg,var(--indigo),var(--violet));font-size:14px}
+  .nsearch{flex:1;max-width:360px;height:40px;border-radius:30px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 14px;color:var(--muted);font-size:13.5px}
+  .nlinks{display:flex;gap:22px;font-size:14px;font-weight:600;color:var(--ink-2)}
+  .nright{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--ink-2)}
+  .nava{display:flex;align-items:center;gap:8px}.nava b{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--violet))}
+  .nava small{display:block;font-size:11px;color:var(--muted)}.nava strong{font-size:13px}
+
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--indigo);font-weight:600;font-size:13.5px;margin:18px 0 14px}
+
+  /* header card */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .dh{display:flex;align-items:center;gap:26px;padding:20px 24px}
+  .dh-logo{width:58px;height:58px;border-radius:14px;background:#111;display:grid;place-items:center;color:#fff;flex:none}
+  .dh-main{min-width:200px}
+  .dh-main h1{font-family:var(--fh);font-size:19px;font-weight:800}
+  .dh-id{display:flex;align-items:center;gap:10px;margin-top:4px;font-size:12.5px;color:var(--muted)}
+  .badge-st{background:var(--ok-soft);color:var(--ok);font-weight:700;padding:3px 10px;border-radius:20px;font-size:11.5px}
+  .dh-tags{display:flex;gap:6px;margin-top:8px}
+  .dh-tags span{background:#eef0ff;color:var(--indigo);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+  .dh-col{display:flex;flex-direction:column;gap:3px}
+  .dh-col small{color:var(--muted);font-size:11.5px}
+  .dh-col .v{display:flex;align-items:center;gap:7px;font-weight:700;font-size:14px}
+  .dh-col .av{width:22px;height:22px;border-radius:50%;background:#d7d9ea}
+  .verok{color:var(--indigo)}
+  .dh-next{margin-left:auto;background:var(--warn-soft);border:1px solid #f6e2c0;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:11px;color:#9a6212}
+  .dh-next small{color:#b9802e;font-size:11px;display:block}.dh-next strong{font-size:13.5px;color:#8a5a13}
+
+  /* stepper */
+  .steps{display:flex;padding:22px 24px;margin-top:16px}
+  .step{flex:1;position:relative;text-align:center}
+  .step .dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;margin:0 auto;background:#eef0f7;color:var(--muted);position:relative;z-index:2;border:3px solid #fff}
+  .step.done .dot{background:var(--indigo);color:#fff}
+  .step.active .dot{background:#fff;color:var(--indigo);box-shadow:0 0 0 4px rgba(91,107,255,.2),0 0 0 2px var(--indigo) inset}
+  .step .lbl{font-weight:700;font-size:13px;margin-top:8px}
+  .step.todo .lbl{color:var(--muted)}
+  .step .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .step .line{position:absolute;top:17px;left:50%;width:100%;height:2px;background:#e7e9f7;z-index:1}
+  .step .line.on{background:var(--indigo)}
+  .step.active{outline:2px solid #e3e6ff;border-radius:14px;padding:6px 0}
+
+  /* body grid */
+  .body{display:grid;grid-template-columns:1fr 372px;gap:20px;margin:20px 0 50px}
+
+  .tabs{display:flex;gap:26px;border-bottom:1px solid var(--line);padding:0 4px}
+  .tabs button{background:none;border:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-2);padding:14px 0;cursor:pointer;position:relative}
+  .tabs button.on{color:var(--indigo)}
+  .tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,var(--indigo),var(--violet))}
+
+  .sec{padding:22px 24px;margin-top:18px}
+  .sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .sec-h h2{font-family:var(--fh);font-size:18px;font-weight:800}
+  .sec-h .meta{color:var(--muted);font-size:12.5px}
+  .btn-up{background:linear-gradient(100deg,var(--indigo),var(--indigo-strong));color:#fff;border:none;border-radius:12px;padding:11px 18px;font-weight:700;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+
+  .del{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+  .del .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+  .del .n.ok{background:var(--ok);color:#fff}
+  .del .n.pend{background:#eef0ff;color:var(--indigo)}
+  .del .info{flex:1}
+  .del .info strong{font-size:14.5px;font-weight:700}
+  .del .info p{color:var(--muted);font-size:12px;margin-top:3px}
+  .del .pill{font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px}
+  .del .pill.ok{background:var(--ok-soft);color:var(--ok)}
+  .del .pill.pend{background:var(--warn-soft);color:var(--warn)}
+  .del .chev{color:var(--muted)}
+
+  .ship{border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:8px}
+  .ship-h{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14.5px;margin-bottom:14px}
+  .ship-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .ship-grid small{color:var(--muted);font-size:11.5px;display:block;margin-bottom:4px}
+  .ship-grid div p{font-size:13px;font-weight:600}
+  .ship-grid .lnk{color:var(--indigo);font-size:12px}
+  .ship-stat{color:var(--indigo);font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px}
+
+  .tl{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line-soft)}
+  .tl:last-child{border:none}
+  .tl .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:#eef0ff;color:var(--indigo)}
+  .tl .c{flex:1}.tl .c strong{font-size:14px}.tl .c p{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .tl .t{color:var(--muted);font-size:11.5px;white-space:nowrap}
+
+  /* right column */
+  .chat-tabs{display:flex;gap:20px;padding:16px 18px 0}
+  .chat-tabs button{background:none;border:none;font-family:inherit;font-weight:600;font-size:13.5px;color:var(--ink-2);padding-bottom:12px;cursor:pointer;position:relative}
+  .chat-tabs button.on{color:var(--indigo)}
+  .chat-tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--indigo)}
+  .chat-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .chat-head b{width:32px;height:32px;border-radius:9px;background:#111;flex:none}
+  .chat-head small{color:var(--muted);font-size:11px;display:block}
+  .msgs{padding:16px 18px;display:flex;flex-direction:column;gap:14px;min-height:240px}
+  .m{max-width:80%}
+  .m .who{font-size:11px;color:var(--muted);margin-bottom:4px}
+  .m .bub{padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.45}
+  .m.them .bub{background:#f1f2f8;border-top-left-radius:4px}
+  .m.me{align-self:flex-end;text-align:right}
+  .m.me .bub{background:linear-gradient(100deg,var(--indigo),var(--indigo-strong));color:#fff;border-top-right-radius:4px;text-align:left}
+  .m .file{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:7px;font-size:12px;font-weight:600}
+  .chat-in{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+  .chat-in input{flex:1;border:1px solid var(--line);border-radius:24px;height:42px;padding:0 14px;font-family:inherit;font-size:13.5px;outline:none}
+  .chat-in .send{width:42px;height:42px;border-radius:12px;border:none;background:var(--indigo);color:#fff;display:grid;place-items:center;cursor:pointer}
+  .chat-in .ic{color:var(--muted)}
+
+  .esc{margin-top:20px;padding:20px}
+  .esc-h{display:flex;align-items:center;justify-content:space-between}
+  .esc-h strong{font-size:14px}
+  .esc-sec{color:var(--ok);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .esc-amt{font-family:var(--fh);font-size:30px;font-weight:800;margin-top:8px}
+  .esc-note{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .esc-bar{display:flex;align-items:center;margin:18px 0 6px}
+  .esc-bar .pt{width:14px;height:14px;border-radius:50%;background:#dfe2f0;position:relative;z-index:2}
+  .esc-bar .pt.on{background:var(--ok)}
+  .esc-bar .pt.cur{background:var(--indigo);box-shadow:0 0 0 4px rgba(91,107,255,.2)}
+  .esc-bar .seg{flex:1;height:3px;background:#e7e9f7}
+  .esc-bar .seg.on{background:var(--ok)}
+  .esc-lbls{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+  .esc-lbls .c{color:var(--indigo);font-weight:700}
+  .esc-btn{width:100%;margin-top:18px;background:linear-gradient(100deg,var(--indigo),var(--indigo-strong));color:#fff;border:none;border-radius:13px;padding:13px;font-weight:700;font-size:14px;cursor:pointer}
+</style>
+</head>
+<body>
+  <nav class="nav"><div class="wrap">
+    <div class="brand"><i>U</i> UGCad.io</div>
+    <div class="nsearch">🔍 Search briefs, brands, categories...</div>
+    <div class="nlinks"><span>Browse Briefs</span><span>My Bids</span><span>Messages</span></div>
+    <div class="nright">🔔 <div class="nava"><b></b><div><strong>Meet Patel</strong><small>Creator</small></div></div></div>
+  </div></nav>
+
+  <div class="wrap">
+    <div class="back">← Back to My Deals</div>
+
+    <!-- header -->
+    <section class="card dh">
+      <div class="dh-logo">✔</div>
+      <div class="dh-main">
+        <h1>Nike Summer Campaign</h1>
+        <div class="dh-id">Deal ID: UGC-672829 <span class="badge-st">● In Progress</span></div>
+        <div class="dh-tags"><span>Lifestyle</span><span>UGC Video</span><span>India</span></div>
+      </div>
+      <div class="dh-col"><small>Brand</small><span class="v"><span class="av"></span>Nike <span class="verok">✓</span></span></div>
+      <div class="dh-col"><small>Creator</small><span class="v"><span class="av"></span>Meet Patel <span class="verok">✓</span></span></div>
+      <div class="dh-col"><small>Budget</small><span class="v">₹ 12,000</span></div>
+      <div class="dh-col"><small>Deadline</small><span class="v">28 Jun 2026</span></div>
+      <div class="dh-next">⏳<div><small>Next Action</small><strong>Awaiting your delivery</strong></div></div>
+    </section>
+
+    <!-- stepper -->
+    <section class="card steps">
+      <div class="step done"><span class="dot">✓</span><div class="line on"></div><div class="lbl">Accepted</div><div class="sub">20 Jun, 10:30 AM</div></div>
+      <div class="step active"><span class="dot">▦</span><div class="line"></div><div class="lbl">In Progress</div><div class="sub">21 Jun, 09:00 AM</div></div>
+      <div class="step todo"><span class="dot">▢</span><div class="line"></div><div class="lbl">Submitted</div><div class="sub">Waiting for you</div></div>
+      <div class="step todo"><span class="dot">◷</span><div class="line"></div><div class="lbl">In Review</div><div class="sub">Waiting for review</div></div>
+      <div class="step todo"><span class="dot">▢</span><div class="line"></div><div class="lbl">Approved</div><div class="sub">Waiting for approval</div></div>
+      <div class="step todo"><span class="dot">⛟</span><div class="line"></div><div class="lbl">Shipped</div><div class="sub">Waiting for delivery</div></div>
+      <div class="step todo"><span class="dot">◷</span><div class="lbl">Paid</div><div class="sub">Waiting for payout</div></div>
+    </section>
+
+    <div class="body">
+      <!-- LEFT -->
+      <main>
+        <div class="card" style="padding:0 4px">
+          <div class="tabs"><button class="on">Overview</button><button>Brief</button><button>Deliverables</button><button>Timeline</button><button>Payments</button></div>
+        </div>
+
+        <section class="card sec">
+          <div class="sec-h"><div><h2>Deliverables</h2><span class="meta">1 of 2 completed</span></div><button class="btn-up">⤓ Upload / Submit Work</button></div>
+          <div class="del"><span class="n ok">✓</span><div class="info"><strong>Unboxing &amp; First Impression (Video)</strong><p>Format: MP4 · Length: 30–45 sec · Platform: Instagram Reels</p></div><span class="pill ok">Approved</span><span class="chev">⌄</span></div>
+          <div class="del"><span class="n pend">2</span><div class="info"><strong>Product Usage &amp; Review (Video)</strong><p>Format: MP4 · Length: 45–60 sec · Platform: Instagram Reels</p></div><span class="pill pend">Pending</span><span class="chev">⌄</span></div>
+
+          <div class="ship">
+            <div class="ship-h">📦 Shipment Tracking</div>
+            <div class="ship-grid">
+              <div><small>Shipping Address</small><p>Meet Patel<br/>Bangalore, KA 560001</p></div>
+              <div><small>Courier Partner</small><p>BlueDart</p></div>
+              <div><small>Tracking ID</small><p>BD1234567890</p><span class="lnk">Track Package ↗</span></div>
+              <div><small>Status</small><p class="ship-stat">● In Transit</p><small style="margin-top:6px">Expected 26 Jun 2026</small></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card sec">
+          <div class="sec-h"><h2>Activity Timeline</h2></div>
+          <div class="tl"><span class="ic">🗳</span><div class="c"><strong>Deal Accepted</strong><p>You accepted the deal and the brand funded the escrow.</p></div><span class="t">20 Jun 2026, 10:30 AM</span></div>
+          <div class="tl"><span class="ic">⤓</span><div class="c"><strong>Brief Received</strong><p>You received the product and brand brief.</p></div><span class="t">21 Jun 2026, 09:00 AM</span></div>
+          <div class="tl"><span class="ic">📦</span><div class="c"><strong>Product Shipped</strong><p>Brand has shipped the product.</p></div><span class="t">21 Jun 2026, 11:15 AM</span></div>
+          <div class="tl"><span class="ic">▦</span><div class="c"><strong>In Progress</strong><p>You started working on the deliverables.</p></div><span class="t">21 Jun 2026, 01:20 PM</span></div>
+        </section>
+      </main>
+
+      <!-- RIGHT -->
+      <aside>
+        <div class="card">
+          <div class="chat-tabs"><button class="on">Chat</button><button>Details</button><span style="margin-left:auto;color:var(--muted);padding-bottom:12px">···</span></div>
+          <div class="chat-head"><b></b><div><strong style="font-size:13.5px">Nike Summer Campaign</strong><small>UGC-672829</small></div><span style="margin-left:auto;color:var(--muted)">🔖</span></div>
+          <div class="msgs">
+            <div class="m them"><div class="who">Rahul Sharma (Nike) · 11:30 AM</div><div class="bub">Hi Meet, we loved your previous work! Please create content as per the brief.<div class="file">📄 Campaign Brief.pdf <span style="margin-left:auto;color:var(--muted)">⤓</span></div></div></div>
+            <div class="m me"><div class="who">You · 11:35 AM</div><div class="bub">Sure! I'll start working on it and share an update soon.</div></div>
+            <div class="m them"><div class="who">Rahul Sharma (Nike) · 11:36 AM</div><div class="bub">Great! Looking forward to it 🚀</div></div>
+          </div>
+          <div class="chat-in"><span class="ic">😊</span><input placeholder="Type your message..."/><span class="ic">📎</span><button class="send">➤</button></div>
+        </div>
+
+        <div class="card esc">
+          <div class="esc-h"><strong>Payment / Escrow</strong><span class="esc-sec">🛡 Secured</span></div>
+          <div class="esc-amt">₹ 12,000</div>
+          <div class="esc-note">Funds are held securely in escrow</div>
+          <div class="esc-bar"><span class="pt on"></span><span class="seg on"></span><span class="pt cur"></span><span class="seg"></span><span class="pt"></span></div>
+          <div class="esc-lbls"><span>Funded<br/>20 Jun</span><span class="c">In Escrow<br/>20 Jun</span><span>Release<br/>After approval</span></div>
+          <button class="esc-btn">View Payment Details</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

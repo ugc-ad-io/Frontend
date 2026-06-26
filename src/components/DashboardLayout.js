@@ -28,7 +28,6 @@ export default function DashboardLayout({
   // so the active state is always correct regardless of each page's hardcoded `active`.
   const NAV_ROUTES = {
     'Dashboard': ['/dashboard/creator', '/dashboard/business'],
-    'My Gigs': ['/my-gigs', '/create-gig'],
     'My Active Work': ['/my-active-work'],
     'My Bids': ['/my-bids'],
     'Reviews': ['/reviews'],

@@ -8,6 +8,7 @@ import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag,
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PlanBrief from './PlanBrief';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
@@ -567,17 +568,8 @@ export default function MessagesPage() {
   // old sidebar dashboard. Business keeps its sidebar dashboard layout.
   const isBusiness = user?.role === 'business';
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-  const Shell = isBusiness ? DashboardLayout : CreatorTopNavLayout;
-  const shellProps = isBusiness
-    ? {
-        navItems,
-        title: 'Messages',
-        description: 'Connect with creators and manage campaign conversations',
-        topbarExtra: null,
-        sidebarExtra: null,
-        sidebarLabel: 'Business',
-      }
-    : { notifications: totalUnread };
+  const Shell = isBusiness ? BrandTopNavLayout : CreatorTopNavLayout;
+  const shellProps = { notifications: totalUnread };
 
   return (
     <Shell {...shellProps}>

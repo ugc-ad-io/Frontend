@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
 import PostABrief from './PostABrief';
+import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -889,106 +891,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
   }
 
   return (
-    <div className="dashboard-page">
-      <aside className="business-sidebar">
-        <div>
-          <div className="business-sidebar-brand">
-            <div className="business-sidebar-mark">U</div>
-            <span>UGCad.io</span>
+    <BrandTopNavLayout>
+      <main className="business-main bd-topnav-main">
+        {activeTab !== 'overview' && (
+          <div className="brand-page-title bd-topnav-title">
+            <h1>{pageTitle}</h1>
+            <p>{pageDescription}</p>
           </div>
-          <nav className="business-sidebar-nav" aria-label="Business dashboard">
-            <span className="business-nav-label">Business</span>
-            {businessTabs.map(({ id, label, icon: Icon, path, badge, badgeTone }) => (
-              <button
-                key={id}
-                type="button"
-                className={`business-nav-item ${activeTab === id ? 'active' : ''}`}
-                onClick={() => navigate(path)}
-                data-testid={`tab-${id}`}
-              >
-                <Icon size={20} />
-                <span>{label}</span>
-                {badge ? <b className={`business-nav-badge ${badgeTone || ''}`}>{badge}</b> : null}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div className="business-sidebar-profile">
-          <div className="business-avatar">
-            {(user?.nickname || user?.full_name || 'B').trim().charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <strong>{user?.nickname || user?.full_name || 'Business'}</strong>
-            <span>Approved Business</span>
-          </div>
-        </div>
-      </aside>
-
-      <main className="business-main">
-        <div className="dashboard-header">
-          <div className="header-content">
-            <div className="brand-page-title">
-              {activeTab === 'post-brief' && (
-                <div className="brand-breadcrumb">
-                  <span>Brand</span>
-                  <span>›</span>
-                  <strong>Post</strong>
-                </div>
-              )}
-              <h1>{activeTab === 'overview' ? 'Business Dashboard' : pageTitle}</h1>
-              <p>{pageDescription}</p>
-            </div>
-            <form className="brand-search" role="search" onSubmit={handleDashboardSearchSubmit}>
-              <Search size={20} />
-              <input
-                type="search"
-                placeholder="Search campaigns, deals, creators, status, briefs..."
-                aria-label="Search dashboard"
-                value={dashboardSearchQuery}
-                onChange={(event) => {
-                  setDashboardSearchQuery(event.target.value);
-                  setDashboardSearchOpen(true);
-                }}
-                onFocus={() => setDashboardSearchOpen(true)}
-                onBlur={() => window.setTimeout(() => setDashboardSearchOpen(false), 120)}
-              />
-              {dashboardSearchOpen && hasDashboardSearchQuery && (
-                <div className="brand-search-results">
-                  {dashboardSearchResults.length ? dashboardSearchResults.map(result => (
-                    <button
-                      key={result.key}
-                      type="button"
-                      className="brand-search-result"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => handleDashboardSearchSelect(result.target)}
-                    >
-                      <span>{result.type}</span>
-                      <strong>{result.title}</strong>
-                      <small>{result.meta}</small>
-                    </button>
-                  )) : (
-                    <div className="brand-search-empty">
-                      <strong>No results found</strong>
-                      <small>Try a campaign, creator, deal, or brief keyword.</small>
-                    </div>
-                  )}
-                </div>
-              )}
-            </form>
-            <div className="header-actions">
-              <button className="brand-round-action" type="button" aria-label="Notifications">
-                <Bell size={18} />
-                <i />
-              </button>
-              <button className="brand-profile-photo" type="button" onClick={() => navigate('/settings')} aria-label="Profile">
-                {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
-              </button>
-              <button className="brand-round-action" type="button" onClick={handleLogout} aria-label="Logout">
-                <LogOut size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
         {activeTab === 'overview' && (
@@ -6561,7 +6471,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         /* Modal */
         .dashboard-page .modal-content { border-radius: 16px; box-shadow: var(--bz-sh-lg); }
+
+        /* Brand top-nav compat: neutralize the old sidebar-layout widths */
+        .cmk-app .business-main.bd-topnav-main{width:auto;max-width:none;min-height:auto;padding:0;margin:0;background:transparent}
+        .cmk-app .bd-topnav-title{margin:0 0 18px}
+        .cmk-app .bd-topnav-title h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:32px;font-weight:800;letter-spacing:-.6px;color:#15163a}
+        .cmk-app .bd-topnav-title p{color:#585c7e;font-size:15px;margin-top:6px}
+        .cmk-app .dashboard-content{padding:0;width:auto;max-width:none}
       `}</style>
-    </div>
+    </BrandTopNavLayout>
   );
 }

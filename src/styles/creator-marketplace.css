@@ -421,6 +421,35 @@
 .cmk-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:700;color:var(--ink);margin:0 0 4px}
 .cmk-sec-sub{color:var(--ink-2);font-size:13.5px;margin:0 0 18px}
 
+/* ── Brand Overview ──────────────────────────────────────────────────────── */
+.bo-hero{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;background:#fff;border:1px solid var(--line);
+  border-radius:24px;padding:34px 36px;box-shadow:var(--shadow-soft);margin-top:6px;align-items:center}
+.bo-hello{color:var(--ink-2);font-weight:600;font-size:15px}
+.bo-hero h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:38px;font-weight:800;letter-spacing:-.8px;margin:10px 0 0;line-height:1.12}
+.bo-hero h1 em{font-style:normal;background:linear-gradient(100deg,var(--indigo),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.bo-hero .bo-sub{color:var(--ink-2);font-size:15px;margin:14px 0 0;max-width:430px;line-height:1.6}
+.bo-hero-cta{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+.bo-spend{background:linear-gradient(135deg,#f6f6ff,#f2effb);border:1px solid #ececff;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;min-height:190px}
+.bo-spend-top{display:flex;align-items:center;justify-content:space-between;color:var(--ink-2);font-size:13.5px;font-weight:600}
+.bo-spend-pill{background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:12.5px;color:var(--ink-2)}
+.bo-spend-val{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:32px;font-weight:800;margin-top:8px}
+.bo-spend-trend{color:var(--ok);font-weight:700;font-size:13px;margin-top:2px;display:flex;align-items:center;gap:5px}
+.bo-spark{margin-top:auto;width:100%;height:70px;display:block}
+.bo-sec-head{display:flex;align-items:center;justify-content:space-between;margin:32px 0 6px}
+.bo-sec-head h2{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:22px;font-weight:800}
+.bo-sec-head button{color:var(--indigo);font-weight:700;font-size:14px;cursor:pointer;background:none;border:none;font-family:inherit}
+.bo-camp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:14px}
+.bo-camp-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s}
+.bo-camp-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card)}
+.bo-camp-img{height:120px;background:linear-gradient(135deg,#e9ebff,#efeaff);position:relative;display:grid;place-items:center;color:#b9c0e8;font-weight:800;font-size:28px}
+.bo-camp-img img{width:100%;height:100%;object-fit:cover}
+.bo-camp-tag{position:absolute;top:10px;left:10px;background:#fff;color:var(--indigo);font-size:10.5px;font-weight:800;
+  padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+.bo-camp-body{padding:14px 16px}
+.bo-camp-body strong{font-size:14.5px;color:var(--ink);display:block;line-height:1.3}
+.bo-camp-body small{color:var(--muted);font-size:12.5px}
+@media (max-width:1080px){.bo-hero{grid-template-columns:1fr}.bo-camp-grid{grid-template-columns:repeat(2,1fr)}}
+
 /* settings form */
 .cmk-set-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 24px}
 .cmk-field{display:grid;gap:7px}

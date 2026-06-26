@@ -20,6 +20,7 @@ const CreatorProfileSetup = lazy(() => import('./pages/CreatorProfileSetup'));
 const BusinessProfileSetup = lazy(() => import('./pages/BusinessProfileSetup'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
+const BrandOverview = lazy(() => import('./pages/BrandOverview'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const CampaignDetails = lazy(() => import('./pages/CampaignDetails'));
@@ -100,9 +101,33 @@ axios.interceptors.request.use((config) => {
 // straight to toast/JSX and React throws:
 //   "Objects are not valid as a React child (found: object with keys {loc, msg, type})".
 // Collapsing detail to a STRING here fixes every such call site at once (and any future ones).
+// Cold-start resilience: the backend (Render free tier) spins down after idle and
+// takes ~30-60s to boot. During that window requests fail with a network error or a
+// 502/503/504 from the edge — which made EVERY page show "failed to load". We retry
+// idempotent GETs a few times with backoff so they succeed once the server wakes.
+// POST/PUT/PATCH/DELETE are NEVER retried (could double-submit a bid, payment, etc.).
+const COLD_START_RETRIES = 4;
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
 axios.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error?.config || {};
+    const method = (config.method || 'get').toLowerCase();
+    const status = error?.response?.status;
+    const isTransient = !error.response /* network error / timeout / ERR_FAILED */
+      || [502, 503, 504].includes(status);
+
+    if (method === 'get' && isTransient && !config.__noRetry) {
+      config.__retryCount = (config.__retryCount || 0) + 1;
+      if (config.__retryCount <= COLD_START_RETRIES) {
+        await sleep(1500 * config.__retryCount); // 1.5s, 3s, 4.5s, 6s (~15s total)
+        return axios(config);
+      }
+    }
+
+    // Normalise FastAPI validation errors (detail can be an array/object) to a string
+    // so call sites that render error.response.data.detail don't crash React.
     const data = error?.response?.data;
     if (data && data.detail != null && typeof data.detail !== 'string') {
       const d = data.detail;
@@ -289,7 +314,7 @@ function App() {
               path="/brand-home"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard page="overview" />
+                  <BrandOverview />
                 </ProtectedRoute>
               }
             />
@@ -297,7 +322,7 @@ function App() {
               path="/dashboard/business"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard page="overview" />
+                  <BrandOverview />
                 </ProtectedRoute>
               }
             />

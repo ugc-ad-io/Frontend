@@ -22,6 +22,9 @@ const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
 const BrandOverview = lazy(() => import('./pages/BrandOverview'));
 const BrandCreators = lazy(() => import('./pages/BrandCreators'));
+const BrandWorkReview = lazy(() => import('./pages/BrandWorkReview'));
+const BrandCampaigns = lazy(() => import('./pages/BrandCampaigns'));
+const BrandCampaignDetail = lazy(() => import('./pages/BrandCampaignDetail'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const CampaignDetails = lazy(() => import('./pages/CampaignDetails'));
@@ -331,7 +334,15 @@ function App() {
               path="/dashboard/business/all-campaigns"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard page="all-campaigns" />
+                  <BrandCampaigns />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/campaign/:id"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandCampaignDetail />
                 </ProtectedRoute>
               }
             />
@@ -363,7 +374,7 @@ function App() {
               path="/dashboard/business/work-review"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard page="work-review" />
+                  <BrandWorkReview />
                 </ProtectedRoute>
               }
             />

@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { Users, Zap, TrendingUp } from 'lucide-react';
+import { useAuth } from '../App';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
+import { DEMO_OVERVIEW_CREATORS } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -49,10 +52,20 @@ function CreatorCard({ c, onMessage, fallback }) {
   );
 }
 
+const HERO_FEATURES = [
+  { icon: Users, tone: 'bov-ic-indigo', title: '2K+ Creators', sub: 'Ready to collaborate' },
+  { icon: Zap, tone: 'bov-ic-violet', title: 'Fast & Easy', sub: 'Campaign management' },
+  { icon: TrendingUp, tone: 'bov-ic-pink', title: 'Real Results', sub: 'Content that converts' },
+];
+
 export default function BrandOverview() {
+  const { user } = useAuth();
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chatWith, setChatWith] = useState(null);
+
+  const brandName = user?.profile?.business_name || user?.nickname || user?.full_name
+    || (user?.username ? user.username : '') || 'there';
 
   useEffect(() => {
     let active = true;
@@ -60,28 +73,53 @@ export default function BrandOverview() {
       try {
         const res = await axios.get(`${API}/business/creator-directory`);
         const list = Array.isArray(res.data) ? res.data : (res.data?.creators || []);
-        if (active) setCreators(list);
-      } catch { /* ignore */ }
+        // Demo fallback: only when no real creators come back.
+        if (active) setCreators(list.length ? list : DEMO_OVERVIEW_CREATORS);
+      } catch { if (active) setCreators(DEMO_OVERVIEW_CREATORS); }
       finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
   }, []);
 
   const messageCreator = (c) => setChatWith({ id: c.id, name: creatorName(c).replace('@', ''), photo: c.profile_photo });
-  // Two rows of six. If fewer than 12 creators exist, repeat them to fill both rows.
-  const TARGET = 12;
+  // A single showcase row. If fewer than 6 creators exist, repeat them to fill the row.
+  const TARGET = 6;
   const shown = creators.length
     ? (creators.length >= TARGET ? creators.slice(0, TARGET) : Array.from({ length: TARGET }, (_, i) => creators[i % creators.length]))
     : [];
 
   return (
     <BrandTopNavLayout>
+      <section className="bov-hero">
+        <span className="cmk-pill bov-pill">Welcome back, {brandName} 👋</span>
+        <h1 className="bov-title">
+          Let’s create something<br />
+          <span className="cmk-grad">amazing together.</span>
+        </h1>
+        <p className="bov-sub">
+          Launch campaigns, collaborate with top UGC creators,<br />
+          and grow your brand with authentic content.
+        </p>
+
+        <div className="bov-feats">
+          {HERO_FEATURES.map((f) => (
+            <div className="bov-feat" key={f.title}>
+              <span className={`bov-feat-ic ${f.tone}`}><f.icon size={20} /></span>
+              <div className="bov-feat-txt">
+                <strong>{f.title}</strong>
+                <small>{f.sub}</small>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {loading ? (
         <div className="cmk-empty">Loading creators…</div>
       ) : shown.length === 0 ? (
         <div className="cmk-empty">No creators available yet.</div>
       ) : (
-        <div className="bo-cre-grid">
+        <div className="bo-cre-grid bov-reels">
           {shown.map((c, i) => <CreatorCard key={i} c={c} onMessage={messageCreator} fallback={FALLBACK_VIDEOS[i % FALLBACK_VIDEOS.length]} />)}
         </div>
       )}

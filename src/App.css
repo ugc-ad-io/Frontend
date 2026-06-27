@@ -321,6 +321,8 @@ h3 { font-size: var(--fs-h3); }
 html {
   scroll-behavior: smooth;
   overflow-x: clip;         /* clip stray horizontal overflow (mobile white-bg seam) without breaking position: sticky */
+  overflow-y: scroll;       /* always reserve the scrollbar gutter so switching tabs/pages doesn't shift the layout right */
+  scrollbar-gutter: stable; /* modern browsers: reserve the gutter without forcing a visible track */
   max-width: 100%;
 }
 

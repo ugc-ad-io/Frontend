@@ -12,6 +12,7 @@ import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
 import WorkReview from './WorkReview';
 import ShipmentTracking from './ShipmentTracking';
+import { DEMO_CAMPAIGNS, DEMO_WORK_SUBMISSIONS, DEMO_CREATOR_DIRECTORY, DEMO_WALLET, DEMO_DASHBOARD } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -121,6 +122,117 @@ const formatBudget = (min, max) => {
   if (!lo) return formatMoney(hi);
   return `${formatMoney(lo)} - ${formatMoney(hi)}`;
 };
+
+// Creator Bids review block for a single campaign — header + filter tabs + bid rows.
+function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile }) {
+  const bids = campaign.bids || [];
+  const [tab, setTab] = useState('all');
+  const [shortlist, setShortlist] = useState(() => new Set());
+  const [declined, setDeclined] = useState(() => new Set());
+
+  const idOf = (b) => b.id ?? b.creator_id;
+  const hasResponded = (b) => !!(b.proposal && b.proposal.trim());
+
+  const counts = {
+    all: bids.filter(b => !declined.has(idOf(b))).length,
+    shortlisted: bids.filter(b => shortlist.has(idOf(b))).length,
+    responded: bids.filter(b => hasResponded(b) && !declined.has(idOf(b))).length,
+    declined: bids.filter(b => declined.has(idOf(b))).length,
+  };
+
+  const TABS = [
+    { id: 'all', label: 'All Bids' },
+    { id: 'shortlisted', label: 'Shortlisted' },
+    { id: 'responded', label: 'Responded' },
+    { id: 'declined', label: 'Declined' },
+  ];
+
+  const visible = bids.filter(b => {
+    const id = idOf(b);
+    if (tab === 'shortlisted') return shortlist.has(id);
+    if (tab === 'responded') return hasResponded(b) && !declined.has(id);
+    if (tab === 'declined') return declined.has(id);
+    return !declined.has(id);
+  });
+
+  const declineBid = (id) => setDeclined(prev => new Set(prev).add(id));
+  const toggleShortlist = (id) => setShortlist(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const nameOf = (b) => b.creator_nickname || b.public_creator_id || b.creator_id || 'Creator';
+  const handleOf = (b) => { const n = String(nameOf(b)); return n.startsWith('@') ? n : `@${n}`; };
+  const initialOf = (b) => (String(nameOf(b)).replace(/[^A-Za-z0-9]/g, '').charAt(0) || 'C').toUpperCase();
+
+  return (
+    <article className="cb-card">
+      <div className="cb-campaign">
+        <div className="cb-campaign-thumb">{(campaign.title || 'C').trim().charAt(0).toUpperCase()}</div>
+        <div className="cb-campaign-info">
+          <h3>{campaign.title || 'Untitled Campaign'}</h3>
+          <p>Budget: {formatBudget(campaign.budget_min, campaign.budget_max)} • {bids.length} Application{bids.length === 1 ? '' : 's'}</p>
+        </div>
+        <button type="button" className="cb-view-campaign" onClick={() => onViewCampaign(campaign.id)}>View Campaign</button>
+      </div>
+
+      <div className="cb-tabs-row">
+        <div className="cb-tabs">
+          {TABS.map(t => (
+            <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+              {t.label} ({counts[t.id]})
+            </button>
+          ))}
+        </div>
+        <button type="button" className="cb-filters"><Filter size={16} /> Filters</button>
+      </div>
+
+      <div className="cb-bid-list">
+        {visible.length === 0 ? (
+          <div className="cb-empty">No bids in this view.</div>
+        ) : visible.map((bid, idx) => {
+          const id = idOf(bid);
+          const isTop = idx === 0 && tab === 'all';
+          const isShort = shortlist.has(id);
+          return (
+            <div key={id} className="cb-bid">
+              <div className="cb-bid-avatar">{initialOf(bid)}</div>
+              <div className="cb-bid-main">
+                <div className="cb-bid-name">
+                  <strong>{handleOf(bid)}</strong>
+                  {isTop && <span className="cb-top-match">TOP MATCH</span>}
+                </div>
+                {(bid.category || campaign.category) && <span className="cb-bid-cat">{bid.category || campaign.category}</span>}
+                <p className="cb-bid-pitch">{bid.proposal || 'No proposal message provided.'}</p>
+              </div>
+              <div className="cb-bid-stat">
+                <strong>{formatMoney(bid.amount)}</strong>
+                <span>Price / video</span>
+              </div>
+              <div className="cb-bid-stat">
+                <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} Days` : '—'}</strong>
+                <span>Delivery</span>
+              </div>
+              <div className="cb-bid-actions">
+                <button
+                  type="button"
+                  className={`cb-star ${isShort ? 'on' : ''}`}
+                  aria-label={isShort ? 'Remove from shortlist' : 'Shortlist'}
+                  title={isShort ? 'Shortlisted' : 'Add to shortlist'}
+                  onClick={() => toggleShortlist(id)}
+                >★</button>
+                <button type="button" className="cb-view-profile" onClick={() => onViewProfile(campaign.id, bid)}>View Profile</button>
+                <button type="button" className="cb-accept" onClick={() => onAccept(campaign.id, bid.creator_id)}>Accept</button>
+                <button type="button" className="cb-decline" onClick={() => declineBid(id)}>Decline</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -307,6 +419,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [selectedCreatorProfile, setSelectedCreatorProfile] = useState(null);
   const [chatWith, setChatWith] = useState(null); // opens the in-page chat popup
   const [modalView, setModalView] = useState(null); // { type: 'campaign'|'review'|'shipment', id } -> opens a page in a modal
+  const [shipmentsMap, setShipmentsMap] = useState({}); // campaignId -> shipment record (for the shipments table)
+  const [shipTab, setShipTab] = useState('all'); // all | transit | delivered
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
   const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -357,20 +471,24 @@ export default function BusinessDashboard({ page = 'overview' }) {
         axios.get(`${API}/campaigns?status=draft`).catch(() => ({ data: [] }))
       ]);
       const allCampaigns = response.data;
-      setDashboardData(dashboardRes.data || null);
-      setDrafts((draftsRes.data || []).filter(c => c.business_id === user.id));
 
       // Filter to only show this business's campaigns
-      const myCampaigns = allCampaigns.filter(c => c.business_id === user.id);
+      const realCampaigns = allCampaigns.filter(c => c.business_id === user.id);
+      // Demo fallback: only when this brand has no real campaigns yet.
+      const myCampaigns = realCampaigns.length ? realCampaigns : DEMO_CAMPAIGNS;
+      const usingDemo = realCampaigns.length === 0;
       setCampaigns(myCampaigns);
+
+      setDashboardData(dashboardRes.data?.metrics ? dashboardRes.data : (usingDemo ? DEMO_DASHBOARD : (dashboardRes.data || null)));
+      setDrafts((draftsRes.data || []).filter(c => c.business_id === user.id));
 
       // Get work submissions for campaigns with work_submitted status
       const workSubmittedCampaigns = myCampaigns.filter(c => c.status === 'work_submitted');
-      if (workSubmittedCampaigns.length > 0) {
+      if (!usingDemo && workSubmittedCampaigns.length > 0) {
         const workRes = await axios.get(`${API}/work/pending-review`);
-        setWorkSubmissions(workRes.data || []);
+        setWorkSubmissions((workRes.data || []).length ? workRes.data : (usingDemo ? DEMO_WORK_SUBMISSIONS : []));
       } else {
-        setWorkSubmissions([]);
+        setWorkSubmissions(usingDemo ? DEMO_WORK_SUBMISSIONS : []);
       }
 
       // Categorize campaigns
@@ -379,7 +497,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setCompletedCampaigns(myCampaigns.filter(c => c.status === 'completed'));
     } catch (error) {
       console.error('Failed to load campaigns:', error);
-      toast.error(apiErrorMessage(error, 'Failed to load campaigns'));
+      // Backend unavailable → populate brand sections with demo data instead of a blank error state.
+      setCampaigns(DEMO_CAMPAIGNS);
+      setDashboardData(DEMO_DASHBOARD);
+      setWorkSubmissions(DEMO_WORK_SUBMISSIONS);
+      setActiveCampaigns(DEMO_CAMPAIGNS.filter(c => c.status === 'active' || c.status === 'in_progress'));
+      setCompletedCampaigns(DEMO_CAMPAIGNS.filter(c => c.status === 'completed'));
     } finally {
       setLoading(false);
     }
@@ -450,14 +573,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
       };
       const response = await axios.get(`${API}/business/creator-directory`, { params });
       const items = Array.isArray(response.data) ? response.data : response.data?.creators || [];
-      setCreatorDirectory(items.map(normalizeCreatorDirectoryItem));
+      // Demo fallback: only when the curated pool comes back empty.
+      setCreatorDirectory(items.length ? items.map(normalizeCreatorDirectoryItem) : DEMO_CREATOR_DIRECTORY);
     } catch (error) {
-      setCreatorDirectory([]);
-      setCreatorDirectoryError(
-        error.response?.status === 404
-          ? 'Creator directory API is not available yet.'
-          : apiErrorMessage(error, 'Failed to load creator directory.')
-      );
+      // Backend unavailable → still show demo creators so the section isn't blank.
+      setCreatorDirectory(DEMO_CREATOR_DIRECTORY);
+      setCreatorDirectoryError('');
     } finally {
       setCreatorDirectoryLoading(false);
     }
@@ -533,9 +654,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
     setWalletError('');
     try {
       const response = await axios.get(`${API}/business/wallet`);
-      setWalletData(normalizeWalletData(response.data));
+      // Demo fallback: only when there's no balance and no transactions yet.
+      const hasRealWallet = response.data && (Number(response.data.available_balance) > 0 || (response.data.transactions || []).length > 0);
+      setWalletData(normalizeWalletData(hasRealWallet ? response.data : DEMO_WALLET));
     } catch (error) {
-      setWalletError(apiErrorMessage(error, 'Failed to load wallet'));
+      // Backend unavailable → show demo wallet instead of an error.
+      setWalletData(normalizeWalletData(DEMO_WALLET));
+      setWalletError('');
     } finally {
       setWalletLoading(false);
     }
@@ -569,6 +694,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
     navigate(`/campaign/${campaignId}`);
   };
 
+  // Accept a bid = select that creator for the campaign (payment held in escrow).
+  const handleAcceptBid = async (campaignId, creatorId) => {
+    if (!creatorId) { toast.error('Could not identify the creator for this bid.'); return; }
+    try {
+      const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${creatorId}`);
+      toast.success(`🎉 ${res.data?.creator_nickname || 'Creator'} selected! Payment held in escrow.`);
+      fetchCampaigns();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to accept bid'));
+    }
+  };
+
   // Calculate stats
   const totalSpent = completedCampaigns.reduce((sum, c) => sum + (c.budget_max || 0), 0);
   const totalBidsReceived = campaigns.reduce((sum, c) => sum + (c.bids?.length || 0), 0);
@@ -585,6 +722,22 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
+
+  // Load each shipment record (courier / tracking / status / ETA) when the
+  // Shipments tab opens, so the table can show real data per campaign.
+  useEffect(() => {
+    if (activeTab !== 'shipments') return undefined;
+    const shipCampaigns = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(shipCampaigns.map(async (c) => {
+        try { const r = await axios.get(`${API}/shipment/${c.id}`); return [c.id, r.data]; }
+        catch { return [c.id, null]; }
+      }));
+      if (!cancelled) setShipmentsMap(Object.fromEntries(entries));
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab, campaigns]);
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
   const pageDescription = {
     overview: `Welcome back, ${user?.nickname}!`,
@@ -1286,45 +1439,22 @@ export default function BusinessDashboard({ page = 'overview' }) {
           )}
 
           {activeTab === 'pending-bids' && (
-            <div className="bids-section">
-              <div className="bids-section-head">
-                <div>
-                  <span className="bids-section-kicker"><UserRoundSearch size={16} /> Creator Pipeline</span>
-                  <h2>Campaigns with Pending Bids</h2>
-                  <p>Review creator proposals, compare bid amounts, and open the campaign workspace.</p>
-                </div>
-                <span>{campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).length} campaigns</span>
-              </div>
+            <div className="cb-section">
               {campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).length === 0 ? (
                 <div className="empty-state">
                   <Users size={64} />
                   <p>No pending bids at the moment</p>
                 </div>
               ) : (
-                <div className="bids-grid">
+                <div className="cb-list">
                   {campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).map(campaign => (
-                    <div key={campaign.id} className="bid-campaign-card" data-testid={`bid-campaign-${campaign.id}`}>
-                      <div className="bid-campaign-header">
-                        <h3>{campaign.title}</h3>
-                        <span className="bid-count">{campaign.bids.length} Bids</span>
-                      </div>
-                      <p className="campaign-budget">{formatBudget(campaign.budget_min, campaign.budget_max)}</p>
-                      <div className="bids-preview">
-                        {campaign.bids.slice(0, 2).map((bid, idx) => (
-                          <div key={idx} className="bid-preview-item">
-                            <span className="creator-name">{bid.public_creator_id || bid.creator_id || 'Creator'}</span>
-                            <span className="bid-amount">{formatMoney(bid.amount)}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        className="btn-primary"
-                        onClick={() => handleViewCampaign(campaign.id)}
-                        data-testid={`review-bids-${campaign.id}`}
-                      >
-                        Review All Bids
-                      </button>
-                    </div>
+                    <BidsCampaignCard
+                      key={campaign.id}
+                      campaign={campaign}
+                      onAccept={handleAcceptBid}
+                      onViewCampaign={(id) => setModalView({ type: 'campaign', id })}
+                      onViewProfile={(id) => setModalView({ type: 'campaign', id })}
+                    />
                   ))}
                 </div>
               )}
@@ -1695,62 +1825,84 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           {activeTab === 'shipments' && (
             <div className="shipments-section">
-              <div className="shipments-section-head">
-                <div>
-                  <span className="shipments-section-kicker"><Package size={16} /> Logistics</span>
-                  <h2>Campaign Shipments</h2>
-                  <p>Track product dispatch readiness and jump into shipment workflows for selected creators.</p>
-                </div>
-                <span>{campaigns.filter(c => c.requires_shipment || c.shipment_option === 'yes').length} campaigns</span>
-              </div>
-              {campaigns.filter(c => c.requires_shipment || c.shipment_option === 'yes').length === 0 ? (
-                <div className="empty-state">
-                  <Package size={64} />
-                  <p>No campaigns requiring shipment</p>
-                  <p className="hint">Campaigns with shipment requirements will appear here</p>
-                </div>
-              ) : (
-                <div className="shipments-grid">
-                  {campaigns.filter(c => c.requires_shipment || c.shipment_option === 'yes').map(campaign => (
-                    <div key={campaign.id} className="shipment-card" data-testid={`shipment-${campaign.id}`}>
-                      <div className="shipment-header">
-                        <h3>{campaign.title}</h3>
-                        <span className={`badge ${campaign.selected_creator ? 'badge-active' : 'badge-pending'}`}>
-                          {campaign.selected_creator ? 'Ready to Ship' : 'Awaiting Creator Selection'}
-                        </span>
-                      </div>
-                      <div className="shipment-details">
-                        <p className="shipment-info">
-                          <strong>Status:</strong> {campaign.status.replace('_', ' ')}
-                        </p>
-                        <p className="shipment-info">
-                          <strong>Creator:</strong> {campaign.selected_creator ? campaign.selected_creator : 'Not yet selected'}
-                        </p>
-                        <p className="shipment-info">
-                          <strong>Budget:</strong> {formatBudget(campaign.budget_min, campaign.budget_max)}
-                        </p>
-                      </div>
-                      {campaign.selected_creator ? (
-                        <button
-                          className="btn-primary"
-                          onClick={() => setModalView({ type: 'shipment', id: campaign.id })}
-                          data-testid={`manage-shipment-${campaign.id}`}
-                        >
-                          <Package size={18} /> Manage Shipment
-                        </button>
-                      ) : (
-                        <button
-                          className="btn-secondary"
-                          onClick={() => setModalView({ type: 'campaign', id: campaign.id })}
-                          data-testid={`view-campaign-${campaign.id}`}
-                        >
-                          <Eye size={18} /> View Campaign & Select Creator
-                        </button>
-                      )}
+              {(() => {
+                const ship = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
+                const statusOf = (c) => {
+                  const raw = (shipmentsMap[c.id]?.status || '').toLowerCase();
+                  if (['delivered', 'received'].includes(raw)) return 'delivered';
+                  if (['in_transit', 'shipped'].includes(raw)) return 'transit';
+                  return 'pending';
+                };
+                const counts = {
+                  all: ship.length,
+                  transit: ship.filter((c) => statusOf(c) === 'transit').length,
+                  delivered: ship.filter((c) => statusOf(c) === 'delivered').length,
+                };
+                const TABS = [['all', 'All Shipments'], ['transit', 'In Transit'], ['delivered', 'Delivered']];
+                const rows = ship.filter((c) => (shipTab === 'all' ? true : statusOf(c) === shipTab));
+                const cr = (id) => creatorDirectory.find((x) => x.id === id) || {};
+                const cname = (c) => { const u = cr(c.selected_creator); return u.username ? `@${u.username}` : (u.nickname || u.full_name || (c.selected_creator ? 'Creator' : 'Not selected')); };
+                const cinit = (c) => (cname(c).replace('@', '')[0] || 'C').toUpperCase();
+                const cphoto = (c) => cr(c.selected_creator).profile_photo;
+
+                if (ship.length === 0) {
+                  return (
+                    <div className="empty-state">
+                      <Package size={64} />
+                      <p>No campaigns requiring shipment</p>
+                      <p className="hint">Campaigns with shipment requirements will appear here</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="ship-toolbar">
+                      <div className="ship-tabs">
+                        {TABS.map(([k, l]) => (
+                          <button key={k} type="button" className={shipTab === k ? 'on' : ''} onClick={() => setShipTab(k)}>
+                            {l} <em>({counts[k]})</em>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="ship-table-card">
+                      <table className="ship-table">
+                        <thead>
+                          <tr><th>Creator</th><th>Campaign</th><th>Courier</th><th>Tracking ID</th><th>Status</th><th>Est. Delivery</th><th>Action</th></tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((c) => {
+                            const s = shipmentsMap[c.id];
+                            const st = statusOf(c);
+                            const photo = cphoto(c);
+                            return (
+                              <tr key={c.id} data-testid={`shipment-${c.id}`}>
+                                <td>
+                                  <span className="ship-cr">
+                                    <span className="ship-ava">{photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt="" /> : cinit(c)}</span>
+                                    {cname(c)}
+                                  </span>
+                                </td>
+                                <td className="ship-strong">{c.title}</td>
+                                <td>{s?.courier || s?.courier_name || '—'}</td>
+                                <td>{s?.tracking_number || '—'}</td>
+                                <td><span className={`ship-status ${st}`}>{st === 'delivered' ? 'Delivered' : st === 'transit' ? 'In Transit' : (c.selected_creator ? 'Ready to Ship' : 'Awaiting Creator')}</span></td>
+                                <td className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '—'}</td>
+                                <td className="ship-action">
+                                  {c.selected_creator
+                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id })}>{st === 'delivered' ? 'View' : 'Track'}</button>
+                                    : <button type="button" onClick={() => setModalView({ type: 'campaign', id: c.id })}>Select</button>}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -4493,6 +4645,153 @@ export default function BusinessDashboard({ page = 'overview' }) {
           gap: 22px;
         }
 
+        /* ---- Creator Bids (redesigned) ---- */
+        .cb-section { display: flex; flex-direction: column; gap: 20px; }
+        .cb-head h2 { margin: 0; font-size: 26px; font-weight: 800; color: #15163a; letter-spacing: -0.4px; }
+        .cb-head p { margin: 6px 0 0; color: #767aa0; font-size: 14.5px; }
+
+        .cb-list { display: flex; flex-direction: column; gap: 22px; }
+
+        .cb-card {
+          background: #fff;
+          border: 1px solid #ecedf7;
+          border-radius: 20px;
+          box-shadow: 0 18px 44px rgba(7, 7, 78, 0.05);
+          overflow: hidden;
+        }
+
+        /* campaign header strip */
+        .cb-campaign {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 18px 22px;
+          border-bottom: 1px solid #f0f1f9;
+        }
+        .cb-campaign-thumb {
+          flex-shrink: 0;
+          width: 52px; height: 52px;
+          display: grid; place-items: center;
+          border-radius: 13px;
+          background: linear-gradient(135deg, #5b6bff, #7b5bff);
+          color: #fff; font-weight: 800; font-size: 20px;
+        }
+        .cb-campaign-info { flex: 1; min-width: 0; }
+        .cb-campaign-info h3 { margin: 0; font-size: 17px; font-weight: 700; color: #15163a; }
+        .cb-campaign-info p { margin: 4px 0 0; color: #868ab0; font-size: 13.5px; }
+        .cb-view-campaign {
+          flex-shrink: 0;
+          min-height: 42px; padding: 0 20px;
+          border: 1px solid #e0e2f0; border-radius: 12px;
+          background: #fff; color: #2a2d63; font-weight: 600; font-size: 14px;
+          cursor: pointer; transition: .18s;
+        }
+        .cb-view-campaign:hover { border-color: #c7ccf0; background: #f7f8ff; }
+
+        /* tabs row */
+        .cb-tabs-row {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 14px; padding: 14px 22px; border-bottom: 1px solid #f0f1f9;
+        }
+        .cb-tabs { display: flex; flex-wrap: wrap; gap: 22px; }
+        .cb-tabs button {
+          position: relative;
+          background: none; border: none; cursor: pointer;
+          padding: 6px 0; color: #868ab0; font-weight: 600; font-size: 14px;
+          font-family: inherit; transition: color .15s;
+        }
+        .cb-tabs button:hover { color: #4a4e86; }
+        .cb-tabs button.active { color: #5b6bff; }
+        .cb-tabs button.active::after {
+          content: ''; position: absolute; left: 0; right: 0; bottom: -15px;
+          height: 2px; background: #5b6bff; border-radius: 2px;
+        }
+        .cb-filters {
+          display: inline-flex; align-items: center; gap: 8px;
+          min-height: 38px; padding: 0 16px;
+          border: 1px solid #e0e2f0; border-radius: 11px;
+          background: #fff; color: #2a2d63; font-weight: 600; font-size: 13.5px;
+          cursor: pointer; transition: .18s;
+        }
+        .cb-filters:hover { border-color: #c7ccf0; background: #f7f8ff; }
+
+        /* bid rows */
+        .cb-bid-list { display: flex; flex-direction: column; }
+        .cb-bid {
+          display: grid;
+          grid-template-columns: 64px minmax(0, 1fr) 110px 96px auto;
+          align-items: center;
+          gap: 18px;
+          padding: 20px 22px;
+          border-bottom: 1px solid #f3f4fb;
+          transition: background .15s;
+        }
+        .cb-bid:last-child { border-bottom: none; }
+        .cb-bid:hover { background: #fafbff; }
+        .cb-bid-avatar {
+          width: 64px; height: 64px; border-radius: 14px;
+          display: grid; place-items: center;
+          background: linear-gradient(135deg, #eef1ff, #e7e9ff);
+          color: #5b6bff; font-weight: 800; font-size: 24px;
+        }
+        .cb-bid-main { min-width: 0; }
+        .cb-bid-name { display: flex; align-items: center; gap: 10px; }
+        .cb-bid-name strong { font-size: 15.5px; font-weight: 700; color: #15163a; }
+        .cb-top-match {
+          display: inline-flex; align-items: center;
+          padding: 3px 10px; border-radius: 999px;
+          background: #e3f9ee; color: #1aa260;
+          font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+        }
+        .cb-bid-cat { display: block; margin: 3px 0 6px; color: #9296ba; font-size: 12.5px; font-weight: 500; }
+        .cb-bid-pitch { margin: 0; color: #686c95; font-size: 13.5px; line-height: 1.5;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .cb-bid-stat { text-align: left; }
+        .cb-bid-stat strong { display: block; color: #15163a; font-size: 15px; font-weight: 700; }
+        .cb-bid-stat span { color: #a3a6c6; font-size: 12px; }
+        .cb-bid-actions { display: flex; align-items: center; gap: 10px; }
+        .cb-star {
+          width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+          border: 1px solid #e6e8f4; background: #fff; color: #c5c8de;
+          font-size: 17px; line-height: 1; cursor: pointer; transition: .15s;
+        }
+        .cb-star:hover { border-color: #ffd24a; color: #ffb800; }
+        .cb-star.on { border-color: #ffd24a; background: #fff8e6; color: #ffb800; }
+        .cb-view-profile {
+          min-height: 40px; padding: 0 18px;
+          border: 1px solid #e0e2f0; border-radius: 11px;
+          background: #fff; color: #2a2d63; font-weight: 600; font-size: 14px;
+          cursor: pointer; transition: .18s; white-space: nowrap;
+        }
+        .cb-view-profile:hover { border-color: #c7ccf0; background: #f7f8ff; }
+        .cb-accept {
+          min-height: 40px; padding: 0 22px;
+          border: none; border-radius: 11px;
+          background: linear-gradient(100deg, #5b6bff, #6a5bff); color: #fff;
+          font-weight: 700; font-size: 14px; cursor: pointer;
+          box-shadow: 0 10px 22px -10px rgba(91, 107, 255, .8); transition: .18s;
+        }
+        .cb-accept:hover { transform: translateY(-1px); }
+        .cb-decline {
+          background: none; border: none; cursor: pointer;
+          color: #b0496a; font-weight: 600; font-size: 13px; font-family: inherit; padding: 4px;
+        }
+        .cb-decline:hover { text-decoration: underline; }
+        .cb-empty { padding: 40px; text-align: center; color: #9296ba; font-size: 14px; }
+
+        @media (max-width: 860px) {
+          .cb-bid {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+          }
+          .cb-bid-avatar { width: 56px; height: 56px; }
+          .cb-bid-main { flex: 1 1 200px; }
+          .cb-bid-stat { flex: 0 0 auto; margin-right: 22px; }
+          .cb-bid-actions { flex: 1 1 100%; justify-content: flex-start; flex-wrap: wrap; }
+          .cb-tabs-row { flex-wrap: wrap; }
+        }
+
         .shipments-section {
           display: flex;
           flex-direction: column;
@@ -4756,6 +5055,35 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .shipment-card .btn-secondary svg {
           flex: 0 0 auto;
         }
+
+        /* ── Manage Shipment table ── */
+        .ship-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #e9ebf4;margin-bottom:18px;flex-wrap:wrap}
+        .ship-add{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border:none;border-radius:12px;padding:10px 18px;margin-bottom:8px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 12px 26px -12px rgba(68,82,240,.6)}
+        .ship-add:hover{transform:translateY(-1px)}
+        .ship-tabs{display:flex;gap:24px}
+        .ship-tabs button{background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;font-size:14.5px;color:#65699b;padding:0 0 12px;position:relative}
+        .ship-tabs button em{color:#9296ba;font-style:normal}
+        .ship-tabs button.on{color:#5b6bff}
+        .ship-tabs button.on em{color:#5b6bff}
+        .ship-tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,#5b6bff,#8b5cf6)}
+        .ship-table-card{background:#fff;border:1px solid #e9ebf4;border-radius:16px;overflow:hidden;box-shadow:0 12px 30px -16px rgba(28,30,80,.12)}
+        .ship-table{width:100%;border-collapse:collapse}
+        .ship-table thead th{text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9296ba;padding:15px 20px;border-bottom:1px solid #eef0f7;background:#fbfbfe}
+        .ship-table tbody td{padding:15px 20px;border-bottom:1px solid #f3f4fa;font-size:14px;color:#585c7e;vertical-align:middle}
+        .ship-table tbody tr:last-child td{border-bottom:none}
+        .ship-table tbody tr:hover{background:#fafbff}
+        .ship-strong{font-weight:600;color:#15163a}
+        .ship-muted{color:#9296ba}
+        .ship-cr{display:inline-flex;align-items:center;gap:10px;font-weight:600;color:#15163a}
+        .ship-ava{width:30px;height:30px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#56b8ff,#5b6bff);color:#fff;font-weight:800;font-size:12px}
+        .ship-ava img{width:100%;height:100%;object-fit:cover}
+        .ship-status{font-weight:700;font-size:13px}
+        .ship-status.delivered{color:#15a35b}
+        .ship-status.transit{color:#2f8de0}
+        .ship-status.pending{color:#d98314}
+        .ship-action button{background:#fff;border:1px solid #e5e7ff;border-radius:9px;padding:7px 16px;font-weight:700;font-size:13px;color:#5b6bff;cursor:pointer;font-family:inherit}
+        .ship-action button:hover{background:#eef0ff}
+        @media (max-width:760px){.ship-table-card{overflow-x:auto}.ship-table{min-width:680px}}
 
         .creator-directory-section {
           display: flex;

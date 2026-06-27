@@ -10,6 +10,9 @@ import {
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
+import PageModal from '../components/PageModal';
+import CampaignDetails from './CampaignDetails';
+import ShipmentTracking from './ShipmentTracking';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -37,20 +40,50 @@ const safeText = (v, fb = '—') => {
 // readable definition list so labels (sub-headings) stand apart from the values
 // instead of collapsing into one grey wall of text.
 function renderBrief(text) {
-  if (!text) return <p className="bcd-bl">No description provided.</p>;
-  return String(text).split('\n').map((line, i) => {
+  if (!text) return [<p key="none" className="bcd-bl">No description provided.</p>];
+  const out = [];
+  let skip = false; // inside the "Deliverables" block — shown in its own card, so drop it here
+  String(text).split('\n').forEach((line, i) => {
     const t = line.trim();
-    if (!t) return <div key={i} className="bcd-bgap" />;
-    if (/^\d+\.\s/.test(t)) return <p key={i} className="bcd-bl bcd-bl-item">{t}</p>;
+    if (!t) return; // spacing handled via CSS margins, not blank rows
+    if (/^\d+\.\s/.test(t)) { if (!skip) out.push(<p key={i} className="bcd-bl bcd-bl-item">{t}</p>); return; }
     const idx = t.indexOf(':');
     if (idx > 0 && idx <= 28) {
       const label = t.slice(0, idx);
       const val = t.slice(idx + 1).trim();
-      if (!val) return <p key={i} className="bcd-bsub">{label}</p>;
-      return <p key={i} className="bcd-bl"><span className="bcd-blab">{label}:</span> {val}</p>;
+      if (!val) {
+        if (/^deliverables$/i.test(label)) { skip = true; return; }
+        skip = false;
+        out.push(<p key={i} className="bcd-bsub">{label}</p>);
+        return;
+      }
+      skip = false;
+      out.push(<p key={i} className="bcd-bl"><span className="bcd-blab">{label}:</span> {val}</p>);
+      return;
     }
-    return <p key={i} className="bcd-bl">{t}</p>;
+    skip = false;
+    out.push(<p key={i} className="bcd-bl">{t}</p>);
   });
+  return out;
+}
+
+// Pull the numbered deliverable lines out of the brief's "Deliverables:" block so
+// they can live in the dedicated Deliverables card instead of the About section.
+function extractDeliverables(text) {
+  if (!text) return [];
+  const items = [];
+  let inBlock = false;
+  String(text).split('\n').forEach((line) => {
+    const t = line.trim();
+    if (!t) return;
+    const idx = t.indexOf(':');
+    const label = idx > 0 && idx <= 28 ? t.slice(0, idx) : '';
+    const val = idx > 0 ? t.slice(idx + 1).trim() : '';
+    if (label && !val) { inBlock = /^deliverables$/i.test(label); return; }
+    if (inBlock && /^\d+\.\s/.test(t)) { items.push(t.replace(/^\d+\.\s*/, '')); return; }
+    if (label) inBlock = false; // a new labelled line ends the block
+  });
+  return items;
 }
 
 export default function BrandCampaignDetail() {
@@ -64,8 +97,11 @@ export default function BrandCampaignDetail() {
   const [tab, setTab] = useState('overview');
   const [chatOpen, setChatOpen] = useState(false);
   const [profOpen, setProfOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [shipmentOpen, setShipmentOpen] = useState(false);
   const [wsDur, setWsDur] = useState('');
   const [wsMenu, setWsMenu] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -130,14 +166,16 @@ export default function BrandCampaignDetail() {
 
   const spent = campaign.escrow_amount || campaign.budget_min || 0;
   const total = campaign.budget_max || campaign.budget_min || 0;
-  const pct = total ? Math.min(100, Math.round((spent / total) * 100)) : 0;
   const handle = creator ? (creator.nickname || (creator.username ? `@${creator.username}` : '') || creator.public_creator_id || 'Creator') : null;
   const cp = creator?.profile || {};
   const ship = deal?.shipment || {};
   const rec = deal?.receipt || {};
   const shipped = !!(ship.shipped_at || ['shipped', 'in_transit', 'delivered'].includes(ship.courier_status));
   const delivered = !!(rec.received_at || ship.delivered_at || ship.courier_status === 'delivered');
-  const deliverList = String(campaign.deliverables || '').split(/[\n;]+/).map((s) => s.trim()).filter(Boolean);
+  const unboxingUrl = assetUrl(rec.unboxing_video_url || ship.unboxing_video || '');
+  const campaignDeliver = String(campaign.deliverables || '').split(/[\n;]+/).map((s) => s.trim()).filter(Boolean);
+  const briefDeliver = extractDeliverables(campaign.brief_text);
+  const deliverList = campaignDeliver.length ? campaignDeliver : briefDeliver;
 
   const ws = campaign.work_submission;
   const wsStatus = ws ? (ws.status || (campaign.status === 'completed' ? 'approved' : 'pending_review')) : null;
@@ -164,11 +202,9 @@ export default function BrandCampaignDetail() {
           <div className="bcd-budget">
             <label>Total Budget</label>
             <strong>{inr(spent)} <small>/ {inr(total)}</small></strong>
-            <div className="bcd-budget-bar"><i style={{ width: `${pct}%` }} /></div>
-            <span className="bcd-pct">{pct}%</span>
           </div>
           <div className="bcd-actions">
-            <button className="cmk-btn-ghost-sm" onClick={() => navigate(`/campaign/${id}`)}>View Details</button>
+            <button className="cmk-btn-ghost-sm" onClick={() => setDetailsOpen(true)}>View Details</button>
             <button className="cmk-btn-primary-sm" onClick={() => navigate('/dashboard/business/post-brief')}><Send size={15} /> Share Brief</button>
           </div>
         </div>
@@ -283,7 +319,14 @@ export default function BrandCampaignDetail() {
                 {delivered && <div className="bcd-ship-date">{fmtDate(rec.received_at || ship.delivered_at)}</div>}
                 <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '—'}</strong></div>
                 <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '—'}</strong></div>
-                <button className="bcd-cta"><Truck size={15} /> View Shipment</button>
+
+                {unboxingUrl && (
+                  <button type="button" className="bcd-cta" onClick={() => window.open(unboxingUrl, '_blank')}>
+                    <Play size={15} /> View Unboxing Video
+                  </button>
+                )}
+
+                <button className="bcd-cta bcd-cta-ship" onClick={() => setShipmentOpen(true)}><Truck size={15} /> View Shipment</button>
               </>
             ) : <p className="bcd-muted">No physical product for this campaign.</p>}
           </div>
@@ -310,7 +353,22 @@ export default function BrandCampaignDetail() {
         <div className="bcd-grid2">
           <div className="bcd-card bcd-about-card">
             <h3>About Campaign</h3>
-            <div className="bcd-about">{renderBrief(campaign.brief_text)}</div>
+            {(() => {
+              const rows = renderBrief(campaign.brief_text);
+              const LIMIT = 5;
+              const shown = aboutOpen ? rows : rows.slice(0, LIMIT);
+              return (
+                <>
+                  <div className="bcd-about">{shown}</div>
+                  {rows.length > LIMIT && (
+                    <button type="button" className="bcd-more" onClick={() => setAboutOpen((v) => !v)}>
+                      {aboutOpen ? 'Show less' : `Show more details (+${rows.length - LIMIT})`}
+                      <ChevronRight size={15} className={aboutOpen ? 'bcd-more-up' : 'bcd-more-down'} />
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <div className="bcd-card">
             <h3>Deliverables</h3>
@@ -325,6 +383,8 @@ export default function BrandCampaignDetail() {
 
       {chatOpen && creator && <ChatPopup user={{ id: creator.id, name: (handle || '').replace('@', ''), photo: creator.profile_photo }} onClose={() => setChatOpen(false)} />}
       {profOpen && creator && <CreatorProfileModal id={creator.id} fallbackName={handle} photo={creator.profile_photo} onClose={() => setProfOpen(false)} onMessage={() => { setProfOpen(false); setChatOpen(true); }} />}
+      {detailsOpen && <PageModal bare maxWidth={900} onClose={() => setDetailsOpen(false)}><CampaignDetails embedId={id} onClose={() => setDetailsOpen(false)} /></PageModal>}
+      {shipmentOpen && <PageModal onClose={() => setShipmentOpen(false)} maxWidth={920}><ShipmentTracking embedCampaignId={id} onClose={() => setShipmentOpen(false)} /></PageModal>}
 
       <style>{`
         .bcd-bc{display:flex;align-items:center;gap:8px;margin-bottom:16px}
@@ -348,7 +408,7 @@ export default function BrandCampaignDetail() {
         .bcd-tabs button{background:none;border:none;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:#585c7e;padding:0 0 14px;position:relative;white-space:nowrap}
         .bcd-tabs button.is-active{color:#5b6bff}
         .bcd-tabs button.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,#5b6bff,#8b5cf6)}
-        .bcd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+        .bcd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
         .bcd-grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;margin-top:20px;align-items:start}
         .bcd-card{background:#fff;border:1px solid #eef0f6;border-radius:18px;padding:20px;box-shadow:0 10px 30px -12px rgba(28,30,80,.10)}
         .bcd-card h3{margin:0 0 16px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;font-weight:700;color:#15163a}
@@ -373,6 +433,7 @@ export default function BrandCampaignDetail() {
         .bcd-cta{width:100%;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #e9ebf4;background:#fff;color:#5b6bff;border-radius:12px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .bcd-cta:hover{border-color:#cdd2f3}
         .bcd-cta.primary{background:#eef0ff;border-color:#dfe2ff}
+        .bcd-cta-ship{margin-top:10px}
         .bcd-creator{display:flex;align-items:center;gap:12px;margin-bottom:6px}
         .bcd-cre-ava{width:48px;height:48px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800;font-size:18px}
         .bcd-cre-ava img{width:100%;height:100%;object-fit:cover}
@@ -386,8 +447,12 @@ export default function BrandCampaignDetail() {
         .bcd-bl-item{padding-left:14px;position:relative}
         .bcd-bl-item::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:#cdd2f3}
         .bcd-bgap{height:4px}
-        .bcd-deliver{display:flex;align-items:center;gap:9px;color:#585c7e;font-size:14px;padding:7px 0}
-        .bcd-deliver svg{color:#15a35b;flex:none}
+        .bcd-more{display:inline-flex;align-items:center;gap:5px;margin-top:12px;padding:8px 16px;border-radius:30px;border:1px solid #dfe2ff;background:#eef0ff;color:#5b6bff;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:.18s}
+        .bcd-more:hover{background:#e2e5ff}
+        .bcd-more-down{transform:rotate(90deg)}
+        .bcd-more-up{transform:rotate(-90deg)}
+        .bcd-deliver{display:flex;align-items:flex-start;gap:9px;color:#585c7e;font-size:14px;line-height:1.5;padding:7px 0}
+        .bcd-deliver svg{color:#15a35b;flex:none;margin-top:2px}
         .bcd-muted{color:#9296ba;font-size:14px;margin:0}
         @media (max-width:980px){.bcd-grid{grid-template-columns:1fr}.bcd-grid2{grid-template-columns:1fr}}
       `}</style>

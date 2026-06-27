@@ -51,8 +51,8 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
     <div className="cmk-app">
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business')}>
-            <span className="cmk-brand-mark">U</span> UGCad.io
+          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business')} aria-label="Go to Overview">
+            <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
           </button>
 
           <div className="cmk-nav-search" role="search">

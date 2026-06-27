@@ -6930,7 +6930,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
 
       {modalView && (
-        <PageModal onClose={() => setModalView(null)} maxWidth={modalView.type === 'shipment' ? 920 : 1100}>
+        <PageModal onClose={() => setModalView(null)} bare={modalView.type === 'campaign'} maxWidth={modalView.type === 'campaign' ? 900 : modalView.type === 'shipment' ? 920 : 1100}>
           {modalView.type === 'campaign' && <CampaignDetails embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'review' && <WorkReview embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} onClose={() => setModalView(null)} />}

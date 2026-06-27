@@ -110,9 +110,7 @@ export default function BrandCampaigns() {
                   <div className="bcam-meta">{subLine(c)}</div>
                   <div className="bcam-foot">
                     <span className="bcam-budget">{inr(spent)} <small>/ {inr(total)}</small></span>
-                    <span className="bcam-pct">{s.pct}%</span>
                   </div>
-                  <div className="bcam-bar"><i style={{ width: `${s.pct}%` }} /></div>
                 </div>
               </article>
             );

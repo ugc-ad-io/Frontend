@@ -312,11 +312,13 @@ export default function CampaignDetails({ embedId, onClose }) {
         .shortlist-request-new { margin-top: 16px; background: none; border: none; color: #6d5efc; cursor: pointer; font-size: 13px; font-weight: 600; padding: 0; }
         .shortlist-request-new:disabled { color: #b3b3bd; cursor: not-allowed; }
       `}</style>
-      <div className="page-header">
-        <button className="back-btn" onClick={goBack} data-testid="back-btn">
-          <ArrowLeft size={20} /> Back
-        </button>
-      </div>
+      {!embedId && (
+        <div className="page-header">
+          <button className="back-btn" onClick={goBack} data-testid="back-btn">
+            <ArrowLeft size={20} /> Back
+          </button>
+        </div>
+      )}
 
       <div className="campaign-container fade-in">
         <div className="campaign-main">

@@ -59,13 +59,17 @@ export default function PayoutWithLayout() {
         <p>Track your balance, payouts in escrow, and withdrawal history.</p>
       </div>
 
-      <div className="cmk-stats" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+      <div className="cmk-stats cmk-stats-2l" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         {stats.map((s) => (
           <div key={s.lbl} className="cmk-stat cmk-rise">
-            <div className={`cmk-ic ${s.ic}`}><s.Icon size={22} /></div>
-            <div className="cmk-stat-lbl">{s.lbl}</div>
-            <div className="cmk-stat-val">{s.val}</div>
-            <div className="cmk-stat-meta"><span>{s.meta}</span></div>
+            <div className="cmk-stat-head">
+              <div className={`cmk-ic ${s.ic}`}><s.Icon size={20} /></div>
+              <div className="cmk-stat-lbl">{s.lbl}</div>
+            </div>
+            <div className="cmk-stat-row">
+              <div className="cmk-stat-val">{s.val}</div>
+              <div className="cmk-stat-meta"><span>{s.meta}</span></div>
+            </div>
           </div>
         ))}
       </div>

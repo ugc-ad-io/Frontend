@@ -7,6 +7,11 @@ import { apiErrorMessage } from '../utils/apiError';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import ChatPopup from '../components/ChatPopup';
+import PageModal from '../components/PageModal';
+import CampaignDetails from './CampaignDetails';
+import WorkReview from './WorkReview';
+import ShipmentTracking from './ShipmentTracking';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -106,6 +111,15 @@ const buildCampaignPerformance = (campaign, baseData) => {
 const formatMoney = (value) => {
   const amount = Number(value || 0);
   return `Rs. ${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+};
+
+// Show a single value when the budget is fixed (min === max), otherwise a range.
+const formatBudget = (min, max) => {
+  const lo = Number(min || 0);
+  const hi = Number(max || 0);
+  if (!hi || lo === hi) return formatMoney(lo || hi);
+  if (!lo) return formatMoney(hi);
+  return `${formatMoney(lo)} - ${formatMoney(hi)}`;
 };
 
 const formatDate = (value) => {
@@ -291,6 +305,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [creatorFilters, setCreatorFilters] = useState(creatorDirectoryDefaults);
   const [creatorSort, setCreatorSort] = useState('best_match');
   const [selectedCreatorProfile, setSelectedCreatorProfile] = useState(null);
+  const [chatWith, setChatWith] = useState(null); // opens the in-page chat popup
+  const [modalView, setModalView] = useState(null); // { type: 'campaign'|'review'|'shipment', id } -> opens a page in a modal
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
   const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -1183,7 +1199,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <div className="campaign-stats">
                         <div className="stat">
                           <span className="stat-label">Budget</span>
-                          <span className="stat-value">{formatMoney(campaign.budget_min)} - {formatMoney(campaign.budget_max)}</span>
+                          <span className="stat-value">{formatBudget(campaign.budget_min, campaign.budget_max)}</span>
                         </div>
                         <div className="stat">
                           <span className="stat-label">Bids</span>
@@ -1213,7 +1229,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <div className="campaign-actions-row">
                         <button
                           className="campaign-primary-action"
-                          onClick={() => handleViewCampaign(campaign.id)}
+                          onClick={() => setModalView({ type: 'campaign', id: campaign.id })}
                           data-testid={`view-campaign-${campaign.id}`}
                         >
                           <Eye size={18} /> View Details
@@ -1223,7 +1239,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                           return (
                             <button
                               className="btn-secondary campaign-review-action"
-                              onClick={() => navigate(work ? `/work-review/${work.id}` : '/dashboard/business/work-review')}
+                              onClick={() => work ? setModalView({ type: 'review', id: work.id }) : navigate('/dashboard/business/work-review')}
                               data-testid={`review-work-${campaign.id}`}
                             >
                               <FileCheck size={18} /> Review Work
@@ -1233,7 +1249,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         {campaign.status === 'completed' && (
                           <button
                             className="btn-secondary campaign-review-action"
-                            onClick={() => navigate(`/work-review/${campaign.id}`)}
+                            onClick={() => setModalView({ type: 'review', id: campaign.id })}
                             data-testid={`download-work-${campaign.id}`}
                           >
                             <Download size={18} /> View / Download
@@ -1242,7 +1258,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         {campaign.selected_creator && (
                           <button
                             className="btn-secondary"
-                            onClick={() => navigate(`/chat/${campaign.selected_creator}`)}
+                            onClick={() => setChatWith({
+                              id: campaign.selected_creator,
+                              name: campaign.selected_creator_nickname || campaign.selected_creator_name || 'Creator',
+                              photo: campaign.selected_creator_photo,
+                            })}
                             data-testid={`chat-creator-${campaign.id}`}
                           >
                             <MessageSquare size={18} /> Chat
@@ -1251,7 +1271,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         {campaign.requires_shipment && campaign.selected_creator && (
                           <button
                             className="btn-secondary"
-                            onClick={() => navigate(`/shipment?campaign=${campaign.id}`)}
+                            onClick={() => setModalView({ type: 'shipment', id: campaign.id })}
                             data-testid={`shipment-${campaign.id}`}
                           >
                             <Package size={18} /> Shipment
@@ -1288,7 +1308,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         <h3>{campaign.title}</h3>
                         <span className="bid-count">{campaign.bids.length} Bids</span>
                       </div>
-                      <p className="campaign-budget">{formatMoney(campaign.budget_min)} - {formatMoney(campaign.budget_max)}</p>
+                      <p className="campaign-budget">{formatBudget(campaign.budget_min, campaign.budget_max)}</p>
                       <div className="bids-preview">
                         {campaign.bids.slice(0, 2).map((bid, idx) => (
                           <div key={idx} className="bid-preview-item">
@@ -1513,7 +1533,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                             <small>Files</small>
                             <strong>{files.length}</strong>
                           </div>
-                          <button className="work-review-primary" onClick={() => navigate(`/work-review/${work.id}`)}>
+                          <button className="work-review-primary" onClick={() => setModalView({ type: 'review', id: work.id })}>
                             Review Work <ExternalLink size={17} />
                           </button>
                         </div>
@@ -1707,13 +1727,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                           <strong>Creator:</strong> {campaign.selected_creator ? campaign.selected_creator : 'Not yet selected'}
                         </p>
                         <p className="shipment-info">
-                          <strong>Budget:</strong> {formatMoney(campaign.budget_min)} - {formatMoney(campaign.budget_max)}
+                          <strong>Budget:</strong> {formatBudget(campaign.budget_min, campaign.budget_max)}
                         </p>
                       </div>
                       {campaign.selected_creator ? (
                         <button
                           className="btn-primary"
-                          onClick={() => navigate(`/shipment?campaign=${campaign.id}`)}
+                          onClick={() => setModalView({ type: 'shipment', id: campaign.id })}
                           data-testid={`manage-shipment-${campaign.id}`}
                         >
                           <Package size={18} /> Manage Shipment
@@ -1721,7 +1741,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       ) : (
                         <button
                           className="btn-secondary"
-                          onClick={() => navigate(`/campaign/${campaign.id}`)}
+                          onClick={() => setModalView({ type: 'campaign', id: campaign.id })}
                           data-testid={`view-campaign-${campaign.id}`}
                         >
                           <Eye size={18} /> View Campaign & Select Creator
@@ -4399,6 +4419,51 @@ export default function BusinessDashboard({ page = 'overview' }) {
           background: #F7F8FF;
         }
 
+        /* ── modern refresh: align All Campaigns cards with the new marketplace look ── */
+        .all-campaigns-section .campaign-card-detailed {
+          border-radius: 18px;
+          box-shadow: 0 12px 30px -16px rgba(28, 30, 80, 0.16);
+        }
+        .all-campaigns-section .campaign-card-detailed:hover {
+          border-color: #cdd4ff;
+          box-shadow: 0 18px 40px -18px rgba(28, 30, 80, 0.30);
+        }
+        .all-campaigns-section .campaign-type-label {
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          font-size: 11.5px;
+        }
+        .all-campaigns-section .campaign-header h3 { font-weight: 800; letter-spacing: -0.3px; }
+        .all-campaigns-section .stat {
+          background: #f6f7fc;
+          border-color: #eceeff;
+          border-radius: 12px;
+        }
+        .all-campaigns-section .stat-value { font-weight: 700; }
+        /* stepper → indigo→violet, matching the deal room */
+        .all-campaigns-section .cp-step.done .cp-dot { background: #5b6bff; border-color: #5b6bff; }
+        .all-campaigns-section .cp-step.current .cp-dot { border-color: #5b6bff; box-shadow: 0 0 0 4px rgba(91, 107, 255, 0.2); }
+        .all-campaigns-section .cp-step.current .cp-label { color: #5b6bff; font-weight: 700; }
+        .all-campaigns-section .campaign-progress-next { color: #8a8dbd; font-size: 12.5px; }
+        /* primary action → indigo gradient like the rest of the app */
+        .all-campaigns-section .campaign-primary-action {
+          background: linear-gradient(100deg, #5b6bff, #4452f0);
+          border-radius: 13px;
+          font-weight: 700;
+          box-shadow: 0 12px 26px -12px rgba(68, 82, 240, 0.6);
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .all-campaigns-section .campaign-primary-action:hover { transform: translateY(-1px); box-shadow: 0 18px 34px -12px rgba(68, 82, 240, 0.7); }
+        .all-campaigns-section .btn-secondary {
+          border: 1px solid #e9ebf4;
+          background: #fff;
+          border-radius: 13px;
+          font-weight: 700;
+          transition: border-color 0.18s ease, transform 0.18s ease;
+        }
+        .all-campaigns-section .btn-secondary:hover { border-color: #cdd4ff; transform: translateY(-1px); }
+        .all-campaigns-section .badge { font-weight: 700; }
+
         .pending-list {
           display: flex;
           flex-direction: column;
@@ -4541,8 +4606,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .bids-grid,
         .shipments-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 420px));
-          gap: 24px;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 18px;
           align-items: start;
         }
 
@@ -4560,13 +4625,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .shipment-card {
           display: flex;
           flex-direction: column;
-          gap: 18px;
-          min-height: 360px;
-          padding: 28px;
+          gap: 12px;
+          padding: 18px;
           border: 1px solid #E5E7FF;
-          border-radius: 24px;
+          border-radius: 16px;
           background: white;
-          box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+          box-shadow: 0 12px 26px rgba(7, 7, 78, 0.05);
         }
 
         .bid-campaign-header,
@@ -4606,8 +4670,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .shipment-details {
           display: grid;
-          gap: 14px;
-          padding: 16px;
+          gap: 8px;
+          padding: 12px;
           border: 1px solid #EEF0FF;
           border-radius: 16px;
           background: #FBFBFF;
@@ -4675,16 +4739,17 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .shipment-card .btn-primary,
         .shipment-card .btn-secondary {
           width: 100%;
-          min-height: 54px;
+          min-height: 42px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
+          gap: 8px;
           margin-top: auto;
-          padding: 12px 20px;
-          border-radius: 999px;
+          padding: 10px 16px;
+          border-radius: 12px;
+          font-size: 14px;
           text-align: center;
-          line-height: 1.25;
+          line-height: 1.2;
         }
 
         .shipment-card .btn-primary svg,
@@ -5535,62 +5600,92 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .work-review-hero {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 24px;
-          padding: 28px;
-          border: 1px solid #E9EBFF;
-          border-radius: 24px;
+          padding: 34px 32px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 26px;
+          overflow: hidden;
           background:
-            radial-gradient(circle at 92% 18%, rgba(115, 135, 255, 0.15), transparent 28%),
-            white;
-          box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
+            radial-gradient(circle at 88% -10%, rgba(123, 145, 255, 0.55), transparent 42%),
+            radial-gradient(circle at 0% 120%, rgba(48, 213, 200, 0.28), transparent 45%),
+            linear-gradient(120deg, #1b1d52 0%, #2b2f86 55%, #4350c7 100%);
+          box-shadow: 0 26px 60px -24px rgba(33, 38, 120, 0.7);
         }
+
+        .work-review-hero::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+          background-size: 22px 22px;
+          opacity: 0.4;
+          pointer-events: none;
+        }
+
+        .work-review-hero > div { position: relative; z-index: 1; }
 
         .work-review-kicker {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 12px;
-          padding: 8px 12px;
+          margin-bottom: 14px;
+          padding: 8px 14px;
           border-radius: 999px;
-          background: #EEF0FF;
-          color: #5b6bff;
+          background: rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          color: #dfe3ff;
           font-size: 12px;
-          font-weight: 400;
+          font-weight: 500;
           text-transform: uppercase;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.05em;
+          backdrop-filter: blur(6px);
         }
 
         .work-review-hero h2 {
           margin: 0;
-          color: #07074E;
+          color: #ffffff;
           font-size: var(--fs-h2);
-          line-height: 1;
+          line-height: 1.05;
         }
 
         .work-review-hero p {
-          margin: 10px 0 0;
-          color: #9296ba;
+          margin: 12px 0 0;
+          color: rgba(225, 228, 255, 0.78);
           font-weight: 400;
           max-width: 560px;
+          line-height: 1.55;
         }
 
         .work-review-refresh {
-          min-height: 44px;
+          position: relative;
+          z-index: 1;
+          min-height: 46px;
           display: inline-flex;
           align-items: center;
           gap: 9px;
-          padding: 0 18px;
-          border: 1px solid #E2E4F0;
-          border-radius: 13px;
-          background: white;
-          color: #07074E;
-          font-weight: 400;
+          padding: 0 20px;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.95);
+          color: #1b1d52;
+          font-weight: 600;
           cursor: pointer;
-          box-shadow: 0 10px 22px rgba(7, 7, 78, 0.06);
+          box-shadow: 0 12px 26px -10px rgba(7, 7, 78, 0.5);
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
+
+        .work-review-refresh:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 16px 30px -10px rgba(7, 7, 78, 0.55);
+        }
+
+        .work-review-refresh:hover svg { animation: wr-spin 0.9s linear infinite; }
+
+        @keyframes wr-spin { to { transform: rotate(360deg); } }
 
         .work-review-stats {
           display: grid;
@@ -5599,49 +5694,72 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .work-review-stats > div {
+          position: relative;
           display: grid;
-          grid-template-columns: 46px 1fr auto;
+          grid-template-columns: 50px 1fr auto;
           align-items: center;
           gap: 14px;
-          padding: 18px;
+          padding: 20px;
           border: 1px solid #E9EBFF;
-          border-radius: 18px;
+          border-radius: 20px;
           background: white;
           box-shadow: 0 14px 30px rgba(7, 7, 78, 0.04);
+          overflow: hidden;
+          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
         }
+
+        .work-review-stats > div::before {
+          content: '';
+          position: absolute;
+          left: 0; top: 0; bottom: 0;
+          width: 4px;
+          background: var(--wr-accent, #5b6bff);
+        }
+
+        .work-review-stats > div:hover {
+          transform: translateY(-3px);
+          border-color: #d3d9ff;
+          box-shadow: 0 22px 40px -16px rgba(7, 7, 78, 0.18);
+        }
+
+        .work-review-stats > div:nth-child(1) { --wr-accent: #5b6bff; }
+        .work-review-stats > div:nth-child(2) { --wr-accent: #f0a020; }
+        .work-review-stats > div:nth-child(3) { --wr-accent: #27AE60; }
 
         .work-review-stats span {
           display: grid;
           place-items: center;
-          width: 46px;
-          height: 46px;
-          border-radius: 14px;
-          background: #f6f7fc;
-          color: #5b6bff;
+          width: 50px;
+          height: 50px;
+          border-radius: 15px;
+          background: color-mix(in srgb, var(--wr-accent, #5b6bff) 14%, white);
+          color: var(--wr-accent, #5b6bff);
         }
 
         .work-review-stats p {
           margin: 0;
           color: #9296ba;
-          font-weight: 400;
+          font-weight: 500;
         }
 
         .work-review-stats strong {
           color: #07074E;
-          font-size: 24px;
-          font-weight: 600;
+          font-size: 28px;
+          font-weight: 700;
         }
 
         .work-review-empty {
-          min-height: 300px;
+          min-height: 320px;
           display: grid;
           place-items: center;
           align-content: center;
           gap: 12px;
-          padding: 40px;
+          padding: 48px 40px;
           border: 1px solid #E9EBFF;
           border-radius: 24px;
-          background: white;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(39, 174, 96, 0.07), transparent 55%),
+            white;
           text-align: center;
           box-shadow: 0 18px 42px rgba(7, 7, 78, 0.05);
         }
@@ -5649,11 +5767,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .work-review-empty > span {
           display: grid;
           place-items: center;
-          width: 86px;
-          height: 86px;
-          border-radius: 24px;
+          width: 92px;
+          height: 92px;
+          border-radius: 26px;
           background: #E8F8EE;
           color: #27AE60;
+          box-shadow: 0 0 0 10px rgba(39, 174, 96, 0.06);
         }
 
         .work-review-empty h3 {
@@ -6479,6 +6598,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .cmk-app .bd-topnav-title p{color:#585c7e;font-size:15px;margin-top:6px}
         .cmk-app .dashboard-content{padding:0;width:auto;max-width:none}
       `}</style>
+
+      {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
+
+      {modalView && (
+        <PageModal onClose={() => setModalView(null)} maxWidth={modalView.type === 'shipment' ? 920 : 1100}>
+          {modalView.type === 'campaign' && <CampaignDetails embedId={modalView.id} onClose={() => setModalView(null)} />}
+          {modalView.type === 'review' && <WorkReview embedId={modalView.id} onClose={() => setModalView(null)} />}
+          {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} onClose={() => setModalView(null)} />}
+        </PageModal>
+      )}
     </BrandTopNavLayout>
   );
 }

@@ -9,9 +9,11 @@ import { ArrowLeft, CheckCircle, MessageCircle, Star, Download } from 'lucide-re
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
-export default function WorkReview() {
-  const { id: workId } = useParams();
+export default function WorkReview({ embedId, onClose }) {
+  const params = useParams();
+  const workId = embedId || params.id;
   const navigate = useNavigate();
+  const goBack = () => (onClose ? onClose() : navigate(-1));
   const { user } = useAuth();
   const [work, setWork] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function WorkReview() {
   return (
     <div className="work-review-page">
       <div className="page-header">
-        <button className="back-btn" onClick={() => navigate(-1)} data-testid="back-btn">
+        <button className="back-btn" onClick={goBack} data-testid="back-btn">
           <ArrowLeft size={20} /> Back
         </button>
       </div>

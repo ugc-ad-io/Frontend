@@ -21,6 +21,7 @@ const BusinessProfileSetup = lazy(() => import('./pages/BusinessProfileSetup'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
 const BrandOverview = lazy(() => import('./pages/BrandOverview'));
+const BrandCreators = lazy(() => import('./pages/BrandCreators'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const CampaignDetails = lazy(() => import('./pages/CampaignDetails'));
@@ -354,7 +355,7 @@ function App() {
               path="/dashboard/business/browse-creator"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BusinessDashboard page="browse-creator" />
+                  <BrandCreators />
                 </ProtectedRoute>
               }
             />

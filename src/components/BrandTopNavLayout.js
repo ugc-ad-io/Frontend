@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Bell, ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch } from 'lucide-react';
+import { Bell, ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X } from 'lucide-react';
+import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -32,6 +33,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -57,9 +59,14 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
             <Search size={18} />
             <input
               type="search"
-              placeholder="Search campaigns, creators, briefs..."
-              aria-label="Search"
-              onKeyDown={(e) => { if (e.key === 'Enter') navigate('/dashboard/business/browse-creator'); }}
+              placeholder="Search creators by name, niche..."
+              aria-label="Search creators"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const v = e.target.value.trim();
+                  navigate(`/dashboard/business/browse-creator${v ? `?q=${encodeURIComponent(v)}` : ''}`);
+                }
+              }}
             />
           </div>
 
@@ -73,9 +80,6 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
-            <button type="button" className="cmk-btn-primary-sm" onClick={() => navigate('/dashboard/business/post-brief')} style={{ height: 42 }}>
-              <Plus size={17} /> Post a Campaign
-            </button>
             <button type="button" className="cmk-icon-btn" aria-label="Notifications" onClick={() => navigate('/messages')}>
               <Bell size={20} />
               {notifications > 0 && <i className="cmk-badge">{notifications > 9 ? '9+' : notifications}</i>}
@@ -113,6 +117,33 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       <main className="cmk-wrap cmk-page">
         {children}
       </main>
+
+      <button
+        type="button"
+        className="cmk-btn-primary-sm cmk-post-fab"
+        onClick={() => setBriefOpen(true)}
+      >
+        <Plus size={18} /> Post a Campaign
+      </button>
+
+      {briefOpen && (
+        <div className="cmk-brief-overlay" onClick={() => setBriefOpen(false)}>
+          <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="cmk-brief-close"
+              aria-label="Close"
+              onClick={() => setBriefOpen(false)}
+            >
+              <X size={20} />
+            </button>
+            <PostABrief
+              onClose={() => setBriefOpen(false)}
+              onPublished={() => setBriefOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

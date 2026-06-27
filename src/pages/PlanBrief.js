@@ -395,8 +395,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
       <style>{`
         .pb-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 18px; }
-        .pb-modal { width: min(1000px, calc(100% - 220px)); height: min(640px, 92vh); background: #fff; border-radius: 18px; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; box-shadow: 0 30px 70px rgba(15,23,42,0.35); font-family: inherit; transform: translateX(100px); }
-        @media (max-width: 760px) { .pb-modal { transform: none; width: 100%; } }
+        .pb-modal { width: min(840px, calc(100% - 32px)); height: min(560px, 88vh); background: #fff; border-radius: 18px; display: grid; grid-template-columns: 250px 1fr; overflow: hidden; box-shadow: 0 30px 70px rgba(15,23,42,0.35); font-family: inherit; }
+        @media (max-width: 760px) { .pb-modal { width: 100%; } }
         .pb-rail { background: #fafbfd; border-right: 1px solid #eef0f6; padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
         .pb-tabs { display: flex; gap: 18px; border-bottom: 1px solid #eef0f6; }
         .pb-tabs button { background: none; border: 0; padding: 6px 2px 10px; font-weight: 700; color: #94a3b8; cursor: pointer; border-bottom: 2px solid transparent; }

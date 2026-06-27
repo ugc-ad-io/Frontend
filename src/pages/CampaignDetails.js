@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -35,9 +35,11 @@ function renderBrief(text) {
   });
 }
 
-export default function CampaignDetails() {
-  const { id } = useParams();
+export default function CampaignDetails({ embedId, onClose }) {
+  const params = useParams();
+  const id = embedId || params.id;
   const navigate = useNavigate();
+  const goBack = () => (onClose ? onClose() : navigate(-1));
   const { user } = useAuth();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -229,8 +231,13 @@ export default function CampaignDetails() {
 
   const isBusiness = user?.role === 'business' && campaign.business_id === user.id;
 
+  // When embedded in a modal, skip the CreatorShell chrome (the brand page already
+  // provides the nav around the modal).
+  const Wrap = embedId ? Fragment : CreatorShell;
+  const wrapProps = embedId ? {} : { isCreator: user?.role === 'creator' };
+
   return (
-    <CreatorShell isCreator={user?.role === 'creator'}>
+    <Wrap {...wrapProps}>
     <div className="campaign-details-page">
       <style>{`
         /* Marketplace restyle — only applies under the creator top-nav shell (.cmk-app) */
@@ -306,7 +313,7 @@ export default function CampaignDetails() {
         .shortlist-request-new:disabled { color: #b3b3bd; cursor: not-allowed; }
       `}</style>
       <div className="page-header">
-        <button className="back-btn" onClick={() => navigate(-1)} data-testid="back-btn">
+        <button className="back-btn" onClick={goBack} data-testid="back-btn">
           <ArrowLeft size={20} /> Back
         </button>
       </div>
@@ -1931,6 +1938,6 @@ export default function CampaignDetails() {
         }
       `}</style>
     </div>
-    </CreatorShell>
+    </Wrap>
   );
 }

@@ -9,10 +9,11 @@ import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
-export default function ShipmentTracking() {
+export default function ShipmentTracking({ embedCampaignId, onClose }) {
   const [searchParams] = useSearchParams();
-  const campaignId = searchParams.get('campaign');
+  const campaignId = embedCampaignId || searchParams.get('campaign');
   const navigate = useNavigate();
+  const goBack = () => (onClose ? onClose() : navigate(-1));
   const { user } = useAuth();
   const [campaign, setCampaign] = useState(null);
   const [shipment, setShipment] = useState(null);
@@ -202,19 +203,23 @@ export default function ShipmentTracking() {
 
   const nextSteps = getNextSteps();
 
+  const embedded = !!onClose;
+
   return (
-    <div className="shipment-page">
+    <div className={`shipment-page ${embedded ? 'is-embed' : ''}`}>
       <div className="page-header">
-        <button className="back-btn" onClick={() => navigate(-1)} data-testid="back-btn">
+        <button className="back-btn" onClick={goBack} data-testid="back-btn">
           <ArrowLeft size={20} /> Back
         </button>
       </div>
 
       <div className="shipment-container fade-in">
-        <div className="shipment-header">
-          <Package size={48} className="header-icon" />
-          <h1>Shipment Tracking</h1>
-          <p>Campaign: {campaign.title}</p>
+        <div className="st-header">
+          <span className="st-icon"><Package size={26} /></span>
+          <div className="st-head-text">
+            <h1>Shipment Tracking</h1>
+            <p>Campaign: {campaign.title}</p>
+          </div>
         </div>
 
         {!shipment ? (
@@ -299,7 +304,7 @@ export default function ShipmentTracking() {
             </div>
 
             {shipment.unboxing_video && (
-              <div className="detail-card">
+              <div className="detail-card detail-card--row">
                 <h3>Unboxing Video</h3>
                 <a href={resolveMediaUrl(shipment.unboxing_video)} target="_blank" rel="noopener noreferrer" className="video-link">
                   View Unboxing Video
@@ -558,26 +563,38 @@ export default function ShipmentTracking() {
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
         }
 
-        .shipment-header {
-          text-align: center;
-          margin-bottom: 48px;
+        .st-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 28px;
+          padding-bottom: 22px;
+          border-bottom: 1px solid #eef0f7;
         }
 
-        .header-icon {
+        .st-icon {
+          flex-shrink: 0;
+          display: grid;
+          place-items: center;
+          width: 52px;
+          height: 52px;
+          border-radius: 15px;
+          background: linear-gradient(135deg, #eef1ff 0%, #e6e9ff 100%);
           color: #667eea;
-          margin: 0 auto 16px;
         }
 
-        .shipment-header h1 {
-          font-size: 2rem;
+        .st-head-text h1 {
+          font-size: 1.6rem;
           font-weight: 700;
           color: #1a202c;
-          margin-bottom: 8px;
+          margin: 0;
+          line-height: 1.1;
         }
 
-        .shipment-header p {
+        .st-head-text p {
           color: #718096;
-          font-size: 1.05rem;
+          font-size: 0.95rem;
+          margin: 3px 0 0;
         }
 
         .no-shipment {
@@ -593,14 +610,14 @@ export default function ShipmentTracking() {
         .shipment-details {
           display: flex;
           flex-direction: column;
-          gap: 32px;
+          gap: 18px;
         }
 
         .status-card {
           display: flex;
           align-items: center;
-          gap: 20px;
-          padding: 24px;
+          gap: 18px;
+          padding: 22px 24px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           border-radius: 16px;
           color: white;
@@ -629,31 +646,44 @@ export default function ShipmentTracking() {
 
         .details-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 24px;
+          grid-template-columns: 1fr 1fr;
+          gap: 18px;
+          align-items: start;
         }
 
         .detail-card {
-          padding: 24px;
-          background: #f8f9ff;
-          border-radius: 16px;
-          border: 2px solid #e2e8f0;
+          padding: 20px 22px;
+          background: #fbfcff;
+          border-radius: 14px;
+          border: 1px solid #e8ebf5;
         }
 
         .detail-card h3 {
-          font-size: 1.25rem;
+          font-size: 1.1rem;
           font-weight: 600;
           color: #2d3748;
-          margin-bottom: 20px;
+          margin: 0 0 14px;
+        }
+
+        .detail-card--row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .detail-card--row h3 {
+          margin: 0;
         }
 
         .detail-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #e2e8f0;
+          gap: 16px;
+          margin-bottom: 10px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #eceef5;
         }
 
         .detail-item:last-child {
@@ -862,9 +892,34 @@ export default function ShipmentTracking() {
           flex: 1;
         }
 
+        /* Embedded inside the dashboard PageModal — drop the full-page
+           background and the redundant outer card so it sits flush. */
+        .shipment-page.is-embed {
+          min-height: 0;
+          background: transparent;
+          padding: 0;
+        }
+
+        .shipment-page.is-embed .page-header {
+          max-width: none;
+          margin: 0 0 18px;
+        }
+
+        .shipment-page.is-embed .shipment-container {
+          max-width: none;
+          padding: 0;
+          border-radius: 0;
+          box-shadow: none;
+          background: transparent;
+        }
+
         @media (max-width: 768px) {
           .shipment-container {
             padding: 32px 24px;
+          }
+
+          .shipment-page.is-embed .shipment-container {
+            padding: 0;
           }
 
           .details-grid {

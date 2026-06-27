@@ -1,128 +1,92 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Plus, Search, Briefcase, Users, Eye, CheckCircle, TrendingUp } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import ChatPopup from '../components/ChatPopup';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const inr = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
-const STATUS_TAG = {
-  active: 'Live', in_progress: 'Live', work_submitted: 'In Review',
-  pending_approval: 'Pending', completed: 'Completed', draft: 'Draft', rejected: 'Rejected',
-};
+const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
+const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
+// Portrait sample reels (served from public/) used when a creator has no portfolio video.
+const FALLBACK_VIDEOS = [
+  '/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4',
+  '/creator/video_29.mp4', '/creator/video_30.mp4', '/creator/video_32.mp4', '/creator/video_33.mp4',
+  '/creator/video_34.mp4', '/creator/video_35.mp4',
+];
+const creatorName = (c) => (c.name || '').trim() || (c.full_name || '').trim() || (c.nickname || '').trim() || (c.username ? `@${c.username}` : '') || 'Creator';
+const initial = (c) => (creatorName(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 
-// Lightweight sparkline from a fixed silhouette (purely decorative).
-function Spark() {
-  const pts = [6, 10, 8, 14, 11, 18, 15, 22, 19, 26, 24, 30];
-  const w = 280, h = 60, max = Math.max(...pts);
-  const path = pts.map((v, i) => `${(i / (pts.length - 1)) * w},${h - (v / max) * h}`).join(' ');
+function CreatorCard({ c, onMessage, fallback }) {
+  const ref = useRef(null);
+  const media = assetUrl(c.portfolio_preview);
+  const photo = assetUrl(c.profile_photo);
+  const videoSrc = (media && isVideo(media)) ? `${media}#t=0.4` : fallback;
+
   return (
-    <svg className="bo-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-      <polyline points={path} fill="none" stroke="#5b6bff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className="bo-cre-item">
+      <article
+        className="bo-cre-card"
+        onMouseEnter={() => { if (ref.current) ref.current.play?.().catch(() => {}); }}
+        onMouseLeave={() => { if (ref.current) { ref.current.pause?.(); ref.current.currentTime = 0; } }}
+        onClick={() => onMessage(c)}
+      >
+        <div className="bo-cre-media">
+          <video ref={ref} src={videoSrc} muted loop playsInline preload="metadata" />
+        </div>
+        <div className="bo-cre-shade" />
+        {c.premium && <span className="bo-cre-premium">Premium</span>}
+      </article>
+      <button type="button" className="bo-cre-send" onClick={() => onMessage(c)}>
+        <span className="bo-cre-msg-ava">
+          {photo ? <img src={photo} alt="" /> : initial(c)}
+          <i />
+        </span>
+        <span>Message {creatorName(c).replace('@', '')}</span>
+      </button>
+    </div>
   );
 }
 
 export default function BrandOverview() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [campaigns, setCampaigns] = useState([]);
-  const [spend, setSpend] = useState(0);
+  const [creators, setCreators] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [chatWith, setChatWith] = useState(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
-        if (active) setCampaigns((res.data || []).filter((c) => String(c.business_id) === String(user?.id)));
+        const res = await axios.get(`${API}/business/creator-directory`);
+        const list = Array.isArray(res.data) ? res.data : (res.data?.creators || []);
+        if (active) setCreators(list);
       } catch { /* ignore */ }
-      try {
-        const w = await axios.get(`${API}/business/wallet`);
-        if (active) setSpend(w.data?.total_spent ?? w.data?.spent ?? 0);
-      } catch { /* ignore */ }
+      finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, [user?.id]);
+  }, []);
 
-  const activeCount = campaigns.filter((c) => ['active', 'in_progress'].includes(c.status)).length;
-  const bidsCount = campaigns.reduce((s, c) => s + ((c.bids || []).length), 0);
-  const inReview = campaigns.filter((c) => c.status === 'work_submitted').length;
-  const completed = campaigns.filter((c) => c.status === 'completed').length;
-
-  const stats = [
-    { ic: 'cmk-ic-indigo', Icon: Briefcase, val: activeCount, lbl: 'Active Campaigns' },
-    { ic: 'cmk-ic-violet', Icon: Users, val: bidsCount, lbl: 'Creator Bids' },
-    { ic: 'cmk-ic-orange', Icon: Eye, val: inReview, lbl: 'In Review' },
-    { ic: 'cmk-ic-green', Icon: CheckCircle, val: completed, lbl: 'Completed' },
-  ];
-
-  const recent = [...campaigns]
-    .sort((a, b) => new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0))
-    .slice(0, 4);
-
-  const brandName = user?.profile?.business_name || user?.nickname || 'there';
+  const messageCreator = (c) => setChatWith({ id: c.id, name: creatorName(c).replace('@', ''), photo: c.profile_photo });
+  // Two rows of six. If fewer than 12 creators exist, repeat them to fill both rows.
+  const TARGET = 12;
+  const shown = creators.length
+    ? (creators.length >= TARGET ? creators.slice(0, TARGET) : Array.from({ length: TARGET }, (_, i) => creators[i % creators.length]))
+    : [];
 
   return (
     <BrandTopNavLayout>
-      <section className="bo-hero cmk-rise">
-        <div>
-          <span className="bo-hello">Welcome back, {brandName} 👋</span>
-          <h1>Let’s create something <em>amazing</em> together.</h1>
-          <p className="bo-sub">Launch campaigns, collaborate with creators, and grow your brand with authentic UGC content.</p>
-          <div className="bo-hero-cta">
-            <button type="button" className="cmk-btn cmk-btn-primary" onClick={() => navigate('/dashboard/business/post-brief')}>
-              <Plus size={18} /> Post a Campaign
-            </button>
-            <button type="button" className="cmk-btn cmk-btn-ghost" onClick={() => navigate('/dashboard/business/browse-creator')}>
-              <Search size={18} /> Browse Creators
-            </button>
-          </div>
-        </div>
-        <div className="bo-spend">
-          <div className="bo-spend-top"><span>Total Spend</span><span className="bo-spend-pill">This month</span></div>
-          <div className="bo-spend-val">{inr(spend)}</div>
-          <div className="bo-spend-trend"><TrendingUp size={14} /> Tracking your campaign spend</div>
-          <Spark />
-        </div>
-      </section>
-
-      <div className="cmk-stats" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
-        {stats.map((s) => (
-          <div key={s.lbl} className="cmk-stat cmk-rise">
-            <div className={`cmk-ic ${s.ic}`}><s.Icon size={22} /></div>
-            <div className="cmk-stat-val">{s.val}</div>
-            <div className="cmk-stat-lbl">{s.lbl}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="bo-sec-head">
-        <h2>Recent Campaigns</h2>
-        <button type="button" onClick={() => navigate('/dashboard/business/all-campaigns')}>View all campaigns</button>
-      </div>
-
-      {recent.length === 0 ? (
-        <div className="cmk-empty">No campaigns yet. Post your first campaign to get started.</div>
+      {loading ? (
+        <div className="cmk-empty">Loading creators…</div>
+      ) : shown.length === 0 ? (
+        <div className="cmk-empty">No creators available yet.</div>
       ) : (
-        <div className="bo-camp-grid">
-          {recent.map((c) => (
-            <article key={c.id || c._id} className="bo-camp-card cmk-rise" onClick={() => navigate(`/campaign/${c.id || c._id}`)}>
-              <div className="bo-camp-img">
-                {c.cover_image ? <img src={c.cover_image.startsWith('http') ? c.cover_image : `${BACKEND_URL}${c.cover_image}`} alt="" /> : (c.title || 'C').charAt(0).toUpperCase()}
-                <span className="bo-camp-tag">{STATUS_TAG[c.status] || c.status}</span>
-              </div>
-              <div className="bo-camp-body">
-                <strong>{c.title || 'Untitled campaign'}</strong>
-                <small>{c.category || 'UGC'} · {inr(c.budget_max || c.budget_min)}</small>
-              </div>
-            </article>
-          ))}
+        <div className="bo-cre-grid">
+          {shown.map((c, i) => <CreatorCard key={i} c={c} onMessage={messageCreator} fallback={FALLBACK_VIDEOS[i % FALLBACK_VIDEOS.length]} />)}
         </div>
       )}
+
+      {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
     </BrandTopNavLayout>
   );
 }

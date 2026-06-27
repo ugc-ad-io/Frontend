@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import './CreatorDashboard.css';
 import './ProfileSettings.css';
 import '../styles/creator-marketplace.css';
@@ -515,19 +516,6 @@ export default function ProfileSettings() {
       { name: 'Settings', icon: Settings, action: () => navigate('/settings'), active: true }
     ];
 
-  const brandNav = [
-    { label: 'Brand Dashboard', icon: LayoutDashboard, path: '/dashboard/business' },
-    { label: 'Post a Campaign', icon: FileCheck, path: '/dashboard/business/post-brief' },
-    { label: 'Creator Bids', icon: Users, path: '/dashboard/business/pending-bids', badge: 3, tone: 'orange' },
-    { label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
-    { label: 'All Campaigns', icon: Briefcase, path: '/dashboard/business/all-campaigns' },
-    { label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
-    { label: 'Messages', icon: MessageSquare, path: '/messages', badge: 2, tone: 'green' },
-    { label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
-    { label: 'Wallet', icon: Wallet, path: '/dashboard/business/wallet' },
-    { label: 'Settings', icon: Settings, path: '/settings', active: true }
-  ];
-
   const logoSrc = brandProfile.logo_url?.startsWith('http')
     ? brandProfile.logo_url
     : brandProfile.logo_url
@@ -756,105 +744,48 @@ export default function ProfileSettings() {
 
   if (user?.role === 'business') {
     return (
-      <div className="dashboard-page">
-        <aside className="business-sidebar">
-          <div>
-            <div className="business-sidebar-brand">
-              <div className="business-sidebar-mark">U</div>
-              <span>UGCad.io</span>
-            </div>
-            <nav className="business-sidebar-nav" aria-label="Business dashboard">
-              <span className="business-nav-label">Business</span>
-              {brandNav.map(({ label, icon: Icon, path, badge, tone, active }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={`business-nav-item ${active ? 'active' : ''}`}
-                  onClick={() => navigate(path)}
-                >
-                  <Icon size={20} />
-                  <span>{label}</span>
-                  {badge ? <b className={`business-nav-badge ${tone || ''}`}>{badge}</b> : null}
+      <BrandTopNavLayout>
+        <div className="cmk-page-head cmk-rise" style={{ marginBottom: 18 }}>
+          <h1>Settings</h1>
+          <p>Manage preferences, profile, billing, and notifications</p>
+        </div>
+        <div className="bs-page bs-dashboard-page">
+          <section className="bs-left">
+            <div className="bs-tabs">
+              {BRAND_TABS.map(tab => (
+                <button key={tab.id} type="button" className={brandTab === tab.id ? 'active' : ''} onClick={() => setBrandTab(tab.id)}>
+                  <tab.icon size={18} /> {tab.label}
                 </button>
               ))}
-            </nav>
-          </div>
-          <div className="business-sidebar-profile">
-            <div className="business-avatar">{getInitial(displayName)}</div>
-            <div>
-              <strong>{displayName}</strong>
-              <span>Approved Business</span>
             </div>
-          </div>
-        </aside>
-        <main className="business-main">
-          <div className="dashboard-header settings-main-header">
-            <div className="header-content">
-              <div className="brand-page-title">
-                <div className="brand-breadcrumb">
-                  <span>Brand</span>
-                  <span>›</span>
-                  <strong>Settings</strong>
-                </div>
-                <h1>Settings</h1>
-                <p>Manage preferences, profile, billing, and notifications</p>
-              </div>
-              <div className="brand-search">
-                <Search size={20} />
-                <input type="search" placeholder="Search deals, creators, briefs..." aria-label="Search dashboard" />
-              </div>
-              <div className="header-actions">
-                <button className="brand-round-action" type="button" aria-label="Notifications">
-                  <Bell size={18} />
-                  <i />
-                </button>
-                <button className="brand-round-action" type="button" aria-label="Help">
-                  <HelpCircle size={18} />
-                </button>
-                <button className="brand-profile-photo" type="button" aria-label="Profile">
-                  {getInitial(displayName)}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="bs-page bs-dashboard-page">
-            <section className="bs-left">
-              <div className="bs-tabs">
-                {BRAND_TABS.map(tab => (
-                  <button key={tab.id} type="button" className={brandTab === tab.id ? 'active' : ''} onClick={() => setBrandTab(tab.id)}>
-                    <tab.icon size={18} /> {tab.label}
-                  </button>
-                ))}
-              </div>
-              {renderBrandPanel()}
+            {renderBrandPanel()}
+          </section>
+          <aside className="bs-rail">
+            <section className="bs-status-card">
+              <Shield size={16} />
+              <h3>Workspace Status</h3>
+              <dl>
+                <div><dt>Active Plan</dt><dd>{summary.active_plan || 'Pro'}</dd></div>
+                <div><dt>Wallet</dt><dd>{money(summary.wallet_balance)}</dd></div>
+                <div><dt>Team Count</dt><dd>{summary.team_count || team.members?.length || 0} Members</dd></div>
+              </dl>
+              <button type="button"><BarChart3 size={16} /> View Workspace Analytics</button>
             </section>
-            <aside className="bs-rail">
-              <section className="bs-status-card">
-                <Shield size={16} />
-                <h3>Workspace Status</h3>
-                <dl>
-                  <div><dt>Active Plan</dt><dd>{summary.active_plan || 'Pro'}</dd></div>
-                  <div><dt>Wallet</dt><dd>{money(summary.wallet_balance)}</dd></div>
-                  <div><dt>Team Count</dt><dd>{summary.team_count || team.members?.length || 0} Members</dd></div>
-                </dl>
-                <button type="button"><BarChart3 size={16} /> View Workspace Analytics</button>
-              </section>
-              <section className="bs-quick-card">
-                <h3>Quick Actions</h3>
-                <button type="button" onClick={inviteMember}><span><UserPlus size={18} /></span>Invite Team<ChevronRight size={17} /></button>
-                <button type="button"><span className="warm"><Bolt size={18} /></span>Upgrade Plan<ChevronRight size={17} /></button>
-                <button type="button"><span className="green"><LifeBuoy size={18} /></span>Contact Support<ChevronRight size={17} /></button>
-              </section>
-              <section className="bs-help-card">
-                <span><HelpCircle size={20} /></span>
-                <h3>Need Help?</h3>
-                <p>Our support team is here to help you optimize your workspace.</p>
-                <button type="button">Visit Help Center</button>
-              </section>
-            </aside>
-          </div>
-        </main>
-      </div>
+            <section className="bs-quick-card">
+              <h3>Quick Actions</h3>
+              <button type="button" onClick={inviteMember}><span><UserPlus size={18} /></span>Invite Team<ChevronRight size={17} /></button>
+              <button type="button"><span className="warm"><Bolt size={18} /></span>Upgrade Plan<ChevronRight size={17} /></button>
+              <button type="button"><span className="green"><LifeBuoy size={18} /></span>Contact Support<ChevronRight size={17} /></button>
+            </section>
+            <section className="bs-help-card">
+              <span><HelpCircle size={20} /></span>
+              <h3>Need Help?</h3>
+              <p>Our support team is here to help you optimize your workspace.</p>
+              <button type="button">Visit Help Center</button>
+            </section>
+          </aside>
+        </div>
+      </BrandTopNavLayout>
     );
   }
 

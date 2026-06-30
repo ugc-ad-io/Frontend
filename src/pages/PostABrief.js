@@ -10,7 +10,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
 const DRAFT_ID_KEY = 'ugcad-brand-brief-draft-id-v2';
-const COMMISSION_RATE = 0.25;
+const COMMISSION_RATE = 0.20;
 const LISTING_FEE = 500;
 
 const STEPS = [
@@ -412,7 +412,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       `Creator targeting: level ${form.creatorLevel}; quality ${form.qualityTier}; gender ${form.genderPreference}; city ${form.cityFilter}; niches ${form.nicheTags.join(', ') || 'none'}`,
       `Timeline: ship by ${form.productShippingBy}; draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
       `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
-      `Commission: platform 25%, total wallet debit Rs. ${totalDebit}, creator receives Rs. ${budget} pre-tax`
+      `Commission: platform 20%, total wallet debit Rs. ${totalDebit}, creator receives Rs. ${budget} pre-tax`
     ].join('\n');
   };
 
@@ -656,7 +656,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
                 {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="number" value={form.fixedBudget} onChange={e => set('fixedBudget', e.target.value)} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMin} onChange={e => set('budgetMin', e.target.value)} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMax} onChange={e => set('budgetMax', e.target.value)} /></div></div>}
                 <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>
-                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (25%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p><p>Creator receives on approval <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><small>Creator amount is pre-tax. TDS may apply.</small></div>
+                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p><p>Creator receives on approval <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><small>Creator amount is pre-tax. TDS may apply.</small></div>
               </>
             )}
 
@@ -718,7 +718,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         <div className="brief-modal-backdrop">
           <div className="brief-modal">
             <h3>Confirm publishing</h3>
-            <p>This will debit Rs. {totalDebit.toLocaleString('en-IN')} from your wallet: Rs. {budget.toLocaleString('en-IN')} budget + Rs. {commission.toLocaleString('en-IN')} platform commission + Rs. {LISTING_FEE.toLocaleString('en-IN')} listing fee. It cannot be modified after a creator accepts. Continue?</p>
+            <p>Rs. {totalDebit.toLocaleString('en-IN')} will be put <strong>on hold</strong> from your wallet (held securely in escrow): Rs. {budget.toLocaleString('en-IN')} budget + Rs. {commission.toLocaleString('en-IN')} platform commission + Rs. {LISTING_FEE.toLocaleString('en-IN')} listing fee. The budget is only released to the creator after you approve their work — nothing is paid out until then. It cannot be modified after a creator accepts. Continue?</p>
             <div>
               <button type="button" className="btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
               <button type="button" className="btn-primary" onClick={publish} disabled={submitting}>{submitting ? 'Publishing...' : 'Continue'}</button>

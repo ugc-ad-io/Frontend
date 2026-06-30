@@ -1743,6 +1743,48 @@
   margin-top: 8px;
 }
 
+/* Banner (wide cover) upload */
+.ps-banner-upload {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.ps-banner-preview {
+  width: 280px;
+  height: 110px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f8f9ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(93, 95, 239, 0.12);
+  border: 2px solid rgba(93, 95, 239, 0.1);
+}
+
+.ps-banner-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ps-banner-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #aeb4cf;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .ps-banner-upload { flex-direction: column; align-items: flex-start; }
+  .ps-banner-preview { width: 100%; }
+}
+
 .ps-btn-primary {
   display: flex;
   align-items: center;

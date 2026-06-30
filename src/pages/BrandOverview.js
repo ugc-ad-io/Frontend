@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Users, Zap, TrendingUp } from 'lucide-react';
-import { useAuth } from '../App';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import { DEMO_OVERVIEW_CREATORS } from '../data/brandDemo';
@@ -52,20 +50,10 @@ function CreatorCard({ c, onMessage, fallback }) {
   );
 }
 
-const HERO_FEATURES = [
-  { icon: Users, tone: 'bov-ic-indigo', title: '2K+ Creators', sub: 'Ready to collaborate' },
-  { icon: Zap, tone: 'bov-ic-violet', title: 'Fast & Easy', sub: 'Campaign management' },
-  { icon: TrendingUp, tone: 'bov-ic-pink', title: 'Real Results', sub: 'Content that converts' },
-];
-
 export default function BrandOverview() {
-  const { user } = useAuth();
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chatWith, setChatWith] = useState(null);
-
-  const brandName = user?.profile?.business_name || user?.nickname || user?.full_name
-    || (user?.username ? user.username : '') || 'there';
 
   useEffect(() => {
     let active = true;
@@ -90,30 +78,6 @@ export default function BrandOverview() {
 
   return (
     <BrandTopNavLayout>
-      <section className="bov-hero">
-        <span className="cmk-pill bov-pill">Welcome back, {brandName} 👋</span>
-        <h1 className="bov-title">
-          Let’s create something<br />
-          <span className="cmk-grad">amazing together.</span>
-        </h1>
-        <p className="bov-sub">
-          Launch campaigns, collaborate with top UGC creators,<br />
-          and grow your brand with authentic content.
-        </p>
-
-        <div className="bov-feats">
-          {HERO_FEATURES.map((f) => (
-            <div className="bov-feat" key={f.title}>
-              <span className={`bov-feat-ic ${f.tone}`}><f.icon size={20} /></span>
-              <div className="bov-feat-txt">
-                <strong>{f.title}</strong>
-                <small>{f.sub}</small>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {loading ? (
         <div className="cmk-empty">Loading creators…</div>
       ) : shown.length === 0 ? (

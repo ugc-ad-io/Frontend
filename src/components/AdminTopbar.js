@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { ChevronDown, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../App';
 
 /**
@@ -8,7 +8,7 @@ import { useAuth } from '../App';
  * Holds only the user identity + a dropdown (name/email + Sign out)
  * on the far right; the page title lives in the content `.page-head`.
  */
-export default function AdminTopbar() {
+export default function AdminTopbar({ onMenuToggle }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -29,6 +29,9 @@ export default function AdminTopbar() {
 
   return (
     <header className="admin-topbar">
+      <button type="button" className="admin-mobile-toggle" aria-label="Open menu" onClick={onMenuToggle}>
+        <Menu size={20} />
+      </button>
       <div className="admin-user">
         <button
           type="button"

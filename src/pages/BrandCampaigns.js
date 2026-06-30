@@ -85,7 +85,6 @@ export default function BrandCampaigns() {
             </button>
           ))}
         </div>
-        <button type="button" className="wr-filter"><SlidersHorizontal size={16} /> Filters</button>
       </div>
 
       {loading ? (

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import AdminSidebar from './AdminSidebar';
@@ -6,6 +7,7 @@ import AdminTopbar from './AdminTopbar';
 function AdminLayout({ children }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [navOpen, setNavOpen] = useState(false);
 
   const currentPath = window.location.pathname;
   const pathToTab = {
@@ -27,6 +29,7 @@ function AdminLayout({ children }) {
   const activeTab = pathToTab[currentPath] || 'stats';
 
   const handleTabClick = (tab) => {
+    setNavOpen(false);
     if (tab.id === 'applications') {
       navigate('/dashboard/admin/applications');
     } else if (tab.id === 'stats') {
@@ -38,10 +41,10 @@ function AdminLayout({ children }) {
 
   return (
     <div className="admin-dashboard">
-      <AdminSidebar activeTab={activeTab} onTabClick={handleTabClick} user={user} />
+      <AdminSidebar activeTab={activeTab} onTabClick={handleTabClick} user={user} mobileOpen={navOpen} onClose={() => setNavOpen(false)} />
 
       <main className="admin-main">
-        <AdminTopbar />
+        <AdminTopbar onMenuToggle={() => setNavOpen((v) => !v)} />
 
         <div className="dashboard-content">
           {(() => {

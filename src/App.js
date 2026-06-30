@@ -25,6 +25,8 @@ const BrandCreators = lazy(() => import('./pages/BrandCreators'));
 const BrandWorkReview = lazy(() => import('./pages/BrandWorkReview'));
 const BrandCampaigns = lazy(() => import('./pages/BrandCampaigns'));
 const BrandCampaignDetail = lazy(() => import('./pages/BrandCampaignDetail'));
+const CreatorProfilePage = lazy(() => import('./pages/CreatorProfilePage'));
+const CreatorMyProfilePage = lazy(() => import('./pages/CreatorMyProfilePage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const CampaignDetails = lazy(() => import('./pages/CampaignDetails'));
@@ -315,6 +317,14 @@ function App() {
               }
             />
             <Route
+              path="/profile"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <CreatorMyProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/brand-home"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
@@ -326,7 +336,7 @@ function App() {
               path="/dashboard/business"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BrandOverview />
+                  <Navigate to="/dashboard/business/browse-creator" replace />
                 </ProtectedRoute>
               }
             />
@@ -343,6 +353,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['business']}>
                   <BrandCampaignDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/creator/:id"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <CreatorProfilePage />
                 </ProtectedRoute>
               }
             />

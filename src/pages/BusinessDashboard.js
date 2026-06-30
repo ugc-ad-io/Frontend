@@ -12,6 +12,7 @@ import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
 import WorkReview from './WorkReview';
 import ShipmentTracking from './ShipmentTracking';
+import CreatorProfileModal from '../components/CreatorProfileModal';
 import { DEMO_CAMPAIGNS, DEMO_WORK_SUBMISSIONS, DEMO_CREATOR_DIRECTORY, DEMO_WALLET, DEMO_DASHBOARD } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
 
@@ -129,6 +130,8 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
   const [tab, setTab] = useState('all');
   const [shortlist, setShortlist] = useState(() => new Set());
   const [declined, setDeclined] = useState(() => new Set());
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sort, setSort] = useState('match'); // match | price-low | price-high | delivery-fast
 
   const idOf = (b) => b.id ?? b.creator_id;
   const hasResponded = (b) => !!(b.proposal && b.proposal.trim());
@@ -154,6 +157,34 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
     if (tab === 'declined') return declined.has(id);
     return !declined.has(id);
   });
+
+  const num = (v) => (v == null || v === '' ? null : Number(v));
+  if (sort !== 'match') {
+    visible.sort((a, b) => {
+      if (sort === 'price-low' || sort === 'price-high') {
+        const av = num(a.amount), bv = num(b.amount);
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return sort === 'price-low' ? av - bv : bv - av;
+      }
+      if (sort === 'delivery-fast') {
+        const av = num(a.estimated_delivery_days), bv = num(b.estimated_delivery_days);
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return av - bv;
+      }
+      return 0;
+    });
+  }
+
+  const SORTS = [
+    { id: 'match', label: 'Best match' },
+    { id: 'price-low', label: 'Price: Low to High' },
+    { id: 'price-high', label: 'Price: High to Low' },
+    { id: 'delivery-fast', label: 'Fastest delivery' },
+  ];
 
   const declineBid = (id) => setDeclined(prev => new Set(prev).add(id));
   const toggleShortlist = (id) => setShortlist(prev => {
@@ -185,7 +216,30 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
             </button>
           ))}
         </div>
-        <button type="button" className="cb-filters"><Filter size={16} /> Filters</button>
+        <div className="cb-filters-wrap">
+          <button type="button" className={`cb-filters ${sort !== 'match' ? 'on' : ''}`} onClick={() => setFiltersOpen(o => !o)}>
+            <Filter size={16} /> Filters{sort !== 'match' && <span className="cb-filters-dot" />}
+          </button>
+          {filtersOpen && (
+            <>
+              <div className="cb-filters-backdrop" onClick={() => setFiltersOpen(false)} />
+              <div className="cb-filters-menu" role="menu">
+                <span className="cb-filters-head">Sort bids by</span>
+                {SORTS.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`cb-filters-opt ${sort === s.id ? 'sel' : ''}`}
+                    onClick={() => { setSort(s.id); setFiltersOpen(false); }}
+                  >
+                    {s.label}
+                    {sort === s.id && <CheckCircle size={15} />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="cb-bid-list">
@@ -193,7 +247,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
           <div className="cb-empty">No bids in this view.</div>
         ) : visible.map((bid, idx) => {
           const id = idOf(bid);
-          const isTop = idx === 0 && tab === 'all';
+          const isTop = idx === 0 && tab === 'all' && sort === 'match';
           const isShort = shortlist.has(id);
           return (
             <div key={id} className="cb-bid">
@@ -419,6 +473,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [selectedCreatorProfile, setSelectedCreatorProfile] = useState(null);
   const [chatWith, setChatWith] = useState(null); // opens the in-page chat popup
   const [modalView, setModalView] = useState(null); // { type: 'campaign'|'review'|'shipment', id } -> opens a page in a modal
+  const [profileView, setProfileView] = useState(null); // { id, name, photo } -> opens a creator profile modal
   const [shipmentsMap, setShipmentsMap] = useState({}); // campaignId -> shipment record (for the shipments table)
   const [shipTab, setShipTab] = useState('all'); // all | transit | delivered
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
@@ -1453,7 +1508,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       campaign={campaign}
                       onAccept={handleAcceptBid}
                       onViewCampaign={(id) => setModalView({ type: 'campaign', id })}
-                      onViewProfile={(id) => setModalView({ type: 'campaign', id })}
+                      onViewProfile={(id, bid) => {
+                        const creatorId = bid?.creator_id || bid?.public_creator_id || bid?.id;
+                        if (!creatorId) { toast.error('Creator profile unavailable for this bid.'); return; }
+                        setProfileView({ id: creatorId, name: bid?.creator_nickname || bid?.public_creator_id, photo: bid?.creator_photo || bid?.profile_photo });
+                      }}
                     />
                   ))}
                 </div>
@@ -4657,7 +4716,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border: 1px solid #ecedf7;
           border-radius: 20px;
           box-shadow: 0 18px 44px rgba(7, 7, 78, 0.05);
-          overflow: hidden;
+          overflow: visible;
         }
 
         /* campaign header strip */
@@ -4714,9 +4773,33 @@ export default function BusinessDashboard({ page = 'overview' }) {
           cursor: pointer; transition: .18s;
         }
         .cb-filters:hover { border-color: #c7ccf0; background: #f7f8ff; }
+        .cb-filters.on { border-color: #5b6bff; color: #5b6bff; background: #f3f4ff; }
+        .cb-filters-dot { width: 6px; height: 6px; border-radius: 50%; background: #5b6bff; }
+        .cb-filters-wrap { position: relative; }
+        .cb-filters-backdrop { position: fixed; inset: 0; z-index: 40; }
+        .cb-filters-menu {
+          position: absolute; top: calc(100% + 8px); right: 0; z-index: 50;
+          min-width: 210px; padding: 8px; background: #fff;
+          border: 1px solid #e9ebf4; border-radius: 13px;
+          box-shadow: 0 18px 44px rgba(15,22,58,.16);
+          display: flex; flex-direction: column; gap: 2px;
+        }
+        .cb-filters-head {
+          padding: 6px 10px 8px; font-size: 11px; font-weight: 700;
+          letter-spacing: .4px; text-transform: uppercase; color: #9296ba;
+        }
+        .cb-filters-opt {
+          display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          padding: 9px 11px; border: none; background: none; cursor: pointer;
+          border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 600;
+          color: #2a2d63; text-align: left; transition: background .15s;
+        }
+        .cb-filters-opt:hover { background: #f4f5fc; }
+        .cb-filters-opt.sel { color: #5b6bff; background: #f3f4ff; }
+        .cb-filters-opt.sel svg { color: #5b6bff; }
 
         /* bid rows */
-        .cb-bid-list { display: flex; flex-direction: column; }
+        .cb-bid-list { display: flex; flex-direction: column; overflow: hidden; border-radius: 0 0 20px 20px; }
         .cb-bid {
           display: grid;
           grid-template-columns: 64px minmax(0, 1fr) 110px 96px auto;
@@ -6935,6 +7018,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
           {modalView.type === 'review' && <WorkReview embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} onClose={() => setModalView(null)} />}
         </PageModal>
+      )}
+
+      {profileView && (
+        <CreatorProfileModal
+          id={profileView.id}
+          fallbackName={profileView.name}
+          photo={profileView.photo}
+          onClose={() => setProfileView(null)}
+          onMessage={() => { const cid = profileView.id; setProfileView(null); navigate(`/messages?conv=${cid}`); }}
+        />
       )}
     </BrandTopNavLayout>
   );

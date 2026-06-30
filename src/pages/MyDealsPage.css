@@ -774,13 +774,11 @@
 .deal-upload-watermark {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  opacity: 0.4;
-  pointer-events: none;
-  padding: 18px;
   z-index: 2;
+  pointer-events: none;
+  opacity: 0.6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='96'%3E%3Ctext x='0' y='58' transform='rotate(-28 75 48)' fill='%23ffffff' fill-opacity='0.5' font-family='Arial, sans-serif' font-size='13' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
 .deal-upload-preview-label {
@@ -861,13 +859,11 @@
 .deal-preview-watermark {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  opacity: 0.42;
-  pointer-events: none;
-  padding: 10px;
   z-index: 2;
+  pointer-events: none;
+  opacity: 0.6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='96'%3E%3Ctext x='0' y='58' transform='rotate(-28 75 48)' fill='%23ffffff' fill-opacity='0.5' font-family='Arial, sans-serif' font-size='13' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
 .deal-preview-tile a {

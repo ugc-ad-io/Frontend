@@ -85,7 +85,7 @@ export default function ReviewsPage() {
         <p>See what brands think about your work and build your reputation.</p>
       </div>
 
-      <div className="cmk-stats cmk-stats-sm cmk-stats-2l" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+      <div className="cmk-stats cmk-stats-sm cmk-stats-2l cmk-rev-stats">
         <div className="cmk-stat">
           <div className="cmk-stat-head"><div className="cmk-ic cmk-ic-orange"><Star size={20} /></div><div className="cmk-stat-lbl">Average Rating</div></div>
           <div className="cmk-stat-row">

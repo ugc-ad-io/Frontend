@@ -17,7 +17,7 @@ function routeForUser(navigate, role, profileCompleted) {
     if (role === 'business') return navigate('/profile-setup/business');
   }
   if (role === 'creator') return navigate('/dashboard/creator');
-  if (role === 'business') return navigate('/dashboard/business');
+  if (role === 'business') return navigate('/dashboard/business/browse-creator');
   if (role === 'admin') return navigate('/dashboard/admin');
   return navigate('/');
 }

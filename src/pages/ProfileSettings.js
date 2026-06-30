@@ -159,6 +159,8 @@ export default function ProfileSettings() {
   const [description, setDescription] = useState('');
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [profileBanner, setProfileBanner] = useState(user?.banner || user?.profile?.banner || '');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [gender, setGender] = useState('');
   const [languages, setLanguages] = useState([]);
   const [country, setCountry] = useState('');
@@ -370,6 +372,35 @@ export default function ProfileSettings() {
     }
   };
 
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image too large. Maximum 5MB allowed.');
+      return;
+    }
+    setUploadingBanner(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await axios.post(`${API}/upload/file`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      let url = res.data?.file_url || res.data?.url;
+      if (!url) { toast.error('Banner upload failed.'); return; }
+      const fullUrl = url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+      // Persist via the dedicated banner endpoint (stores under the user's `banner` field).
+      await axios.patch(`${API}/profile/banner`, { banner: fullUrl });
+      setProfileBanner(fullUrl);
+      setUser({ ...user, banner: fullUrl });
+      toast.success('Banner image updated!');
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to upload banner'));
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
@@ -509,7 +540,7 @@ export default function ProfileSettings() {
       { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
       { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
-      { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
+      { name: 'Browse Campaigns', icon: Briefcase, action: () => navigate('/browse-briefs') },
       { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages') },
       { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
@@ -878,6 +909,26 @@ export default function ProfileSettings() {
                           {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
                         </label>
                         <p className="ps-hint">JPG, PNG or WebP. Max 2MB.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="ps-form-group">
+                    <label>Banner Image</label>
+                    <div className="ps-banner-upload">
+                      <label htmlFor="banner-upload" className="ps-banner-preview" style={{ cursor: 'pointer' }}>
+                        {profileBanner ? (
+                          <img src={profileBanner.startsWith('http') ? profileBanner : `${BACKEND_URL}${profileBanner}`} alt="Banner" />
+                        ) : (
+                          <div className="ps-banner-placeholder"><Camera size={28} /> Add a banner</div>
+                        )}
+                      </label>
+                      <div className="ps-photo-actions">
+                        <input type="file" accept="image/*" onChange={handleBannerUpload} id="banner-upload" />
+                        <label htmlFor="banner-upload">
+                          {uploadingBanner ? 'Uploading...' : (profileBanner ? 'Change Banner' : 'Upload Banner')}
+                        </label>
+                        <p className="ps-hint">Wide cover image. JPG, PNG or WebP. Max 5MB.</p>
                       </div>
                     </div>
                   </div>

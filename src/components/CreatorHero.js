@@ -112,7 +112,7 @@ export default function CreatorHero({
 
         <div className="cmk-cta-row cmk-rise" style={{ animationDelay: '.28s' }}>
           <button type="button" className="cmk-btn cmk-btn-primary" onClick={() => navigate('/browse-briefs')}>
-            Browse Briefs <ArrowRight size={18} />
+            Browse Campaigns <ArrowRight size={18} />
           </button>
           <button type="button" className="cmk-btn cmk-btn-ghost" onClick={() => navigate('/my-deals')}>
             <CheckCircle2 size={18} /> My Deals

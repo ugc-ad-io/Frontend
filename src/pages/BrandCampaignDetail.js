@@ -10,6 +10,7 @@ import {
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
+import RevisionRequestModal from '../components/RevisionRequestModal';
 import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
 import ShipmentTracking from './ShipmentTracking';
@@ -101,7 +102,10 @@ export default function BrandCampaignDetail() {
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [wsDur, setWsDur] = useState('');
   const [wsMenu, setWsMenu] = useState(false);
+  const [videoModal, setVideoModal] = useState(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false);
+  const [revSubmitting, setRevSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -149,11 +153,17 @@ export default function BrandCampaignDetail() {
     try { await axios.post(`${API}/work/${id}/approve`); toast.success('Approved — payment released to the creator'); refresh(); }
     catch { toast.error('Failed to approve'); }
   };
-  const requestRevision = async () => {
-    const fb = window.prompt('What changes would you like? (revision feedback)');
-    if (fb === null) return;
-    try { await axios.post(`${API}/work/${id}/request-revision?feedback=${encodeURIComponent(fb)}`); toast.success('Revision requested'); refresh(); }
-    catch { toast.error('Failed to request revision'); }
+  const requestRevision = () => setRevisionOpen(true);
+  const submitRevision = async (payload) => {
+    setRevSubmitting(true);
+    try {
+      await axios.post(`${API}/work/${id}/request-revision`, payload);
+      toast.success('Revision requested');
+      setRevisionOpen(false);
+      refresh();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Failed to request revision');
+    } finally { setRevSubmitting(false); }
   };
   const downloadWork = async () => {
     try {
@@ -182,7 +192,13 @@ export default function BrandCampaignDetail() {
   const wsFiles = ws?.work_files || [];
   const wsFirst = wsFiles[0];
   const wsMedia = assetUrl(wsFirst);
-  const openWork = () => { const f = wsFiles.find((x) => isVideo(x)) || wsFirst; if (f) window.open(assetUrl(f), '_blank'); };
+  const openWork = () => {
+    const f = wsFiles.find((x) => isVideo(x)) || wsFirst;
+    if (!f) return;
+    const url = assetUrl(f);
+    if (isVideo(url)) setVideoModal({ src: url, watermark: wsStatus !== 'approved', title: campaign.title });
+    else window.open(url, '_blank');
+  };
 
   return (
     <BrandTopNavLayout>
@@ -205,7 +221,6 @@ export default function BrandCampaignDetail() {
           </div>
           <div className="bcd-actions">
             <button className="cmk-btn-ghost-sm" onClick={() => setDetailsOpen(true)}>View Details</button>
-            <button className="cmk-btn-primary-sm" onClick={() => navigate('/dashboard/business/post-brief')}><Send size={15} /> Share Brief</button>
           </div>
         </div>
 
@@ -230,6 +245,7 @@ export default function BrandCampaignDetail() {
                         ? <video src={`${wsMedia}#t=0.5`} muted playsInline preload="metadata" onLoadedMetadata={(e) => setWsDur(fmtDur(e.target.duration))} />
                         : <img src={wsMedia} alt="" />)
                         : <div className="bwr-thumb-fb"><FileText size={26} /></div>}
+                      {wsStatus !== 'approved' && <span className="bwr-wm" aria-hidden="true" />}
                       <span className="bwr-play"><Play size={20} fill="currentColor" /></span>
                       {wsDur && <span className="bwr-dur">{wsDur}</span>}
                     </div>
@@ -385,6 +401,20 @@ export default function BrandCampaignDetail() {
       {profOpen && creator && <CreatorProfileModal id={creator.id} fallbackName={handle} photo={creator.profile_photo} onClose={() => setProfOpen(false)} onMessage={() => { setProfOpen(false); setChatOpen(true); }} />}
       {detailsOpen && <PageModal bare maxWidth={900} onClose={() => setDetailsOpen(false)}><CampaignDetails embedId={id} onClose={() => setDetailsOpen(false)} /></PageModal>}
       {shipmentOpen && <PageModal onClose={() => setShipmentOpen(false)} maxWidth={920}><ShipmentTracking embedCampaignId={id} onClose={() => setShipmentOpen(false)} /></PageModal>}
+      {revisionOpen && <RevisionRequestModal onClose={() => setRevisionOpen(false)} onSubmit={submitRevision} submitting={revSubmitting} />}
+
+      {videoModal && (
+        <div className="bwr-vid-overlay" onClick={() => setVideoModal(null)}>
+          <div className="bwr-vid-card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="bwr-vid-close" aria-label="Close" onClick={() => setVideoModal(null)}>✕</button>
+            <div className="bwr-vid-frame">
+              <video src={videoModal.src} controls autoPlay playsInline className="bwr-vid-el" />
+              {videoModal.watermark && <span className="bwr-wm" aria-hidden="true" />}
+            </div>
+            {videoModal.title && <div className="bwr-vid-name">{videoModal.title}</div>}
+          </div>
+        </div>
+      )}
 
       <style>{`
         .bcd-bc{display:flex;align-items:center;gap:8px;margin-bottom:16px}

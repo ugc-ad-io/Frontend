@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ function normalizeBrief(c, index, myBids) {
     budget: getCampaignBudget(c),
     budgetMax,
     deliveryLabel: d ? `${d} Days` : '3 - 5 Days',
+    deliveryDays: Number(d) || 5,
     matchScore,
     hasBid,
     createdAt: c.created_at ? new Date(c.created_at).getTime() : 0,
@@ -49,12 +50,16 @@ function normalizeBrief(c, index, myBids) {
 export default function BrowseBriefs() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [availableCampaigns, setAvailableCampaigns] = useState([]);
   const [myBids, setMyBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState(searchParams.get('q') || '');
   const [category, setCategory] = useState('All Categories');
   const [sortBy, setSortBy] = useState('recommended');
+  const [budgetFilter, setBudgetFilter] = useState('any');
+  const [deliveryFilter, setDeliveryFilter] = useState('any');
   const [visible, setVisible] = useState(8);
 
   useEffect(() => {
@@ -62,6 +67,12 @@ export default function BrowseBriefs() {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the search box in sync when arriving from the top-nav search (?q=...)
+  useEffect(() => {
+    setSearch(searchParams.get('q') || '');
+    setVisible(8);
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchData = async () => {
     try {
@@ -83,49 +94,88 @@ export default function BrowseBriefs() {
 
   const filtered = useMemo(() => {
     const cat = category.toLowerCase();
+    const inBudget = (v) => {
+      switch (budgetFilter) {
+        case '0-2000': return v < 2000;
+        case '2000-5000': return v >= 2000 && v <= 5000;
+        case '5000-10000': return v > 5000 && v <= 10000;
+        case '10000+': return v > 10000;
+        default: return true;
+      }
+    };
+    const inDelivery = (d) => {
+      switch (deliveryFilter) {
+        case '3': return d <= 3;
+        case '5': return d <= 5;
+        case '7': return d <= 7;
+        case '7+': return d > 7;
+        default: return true;
+      }
+    };
+    const q = search.trim().toLowerCase();
     return briefs
       .filter((b) => {
-        if (category === 'All Categories') return true;
-        const hay = `${b.industryType} ${b.tags.join(' ')} ${b.title}`.toLowerCase();
-        return hay.includes(cat);
+        if (category !== 'All Categories') {
+          const hay = `${b.industryType} ${b.tags.join(' ')} ${b.title}`.toLowerCase();
+          if (!hay.includes(cat)) return false;
+        }
+        if (q) {
+          const hay = `${b.title} ${b.brand} ${b.description} ${b.industryType} ${b.tags.join(' ')}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return inBudget(b.budgetMax) && inDelivery(b.deliveryDays);
       })
       .sort((a, b) => {
         if (sortBy === 'highest') return b.budgetMax - a.budgetMax;
         if (sortBy === 'newest') return b.createdAt - a.createdAt;
         return b.matchScore - a.matchScore;
       });
-  }, [briefs, category, sortBy]);
+  }, [briefs, search, category, sortBy, budgetFilter, deliveryFilter]);
 
   const shown = filtered.slice(0, visible);
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      {/* category bar */}
-      <div className="cmk-cat-bar">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            className={category === cat ? 'is-active' : ''}
-            onClick={() => { setCategory(cat); setVisible(8); }}
-          >
-            {cat}
-          </button>
-        ))}
-        <button type="button" className="cmk-cat-more">More <ChevronDown size={14} /></button>
-      </div>
-
       <div className="cmk-page-head">
-        <h1>Explore Briefs</h1>
+        <h1>Browse Campaigns</h1>
         <p>Find exciting brands to collaborate with and create content.</p>
+        {search.trim() && (
+          <div className="cmk-search-note">
+            Showing results for <strong>“{search.trim()}”</strong>
+            <span className="cmk-search-count">· {filtered.length} match{filtered.length === 1 ? '' : 'es'}</span>
+            <button
+              type="button"
+              className="cmk-search-clear"
+              onClick={() => { setSearch(''); setSearchParams({}, { replace: true }); setVisible(8); }}
+            >
+              Clear search
+            </button>
+          </div>
+        )}
       </div>
 
       {/* filter row */}
       <div className="cmk-filter-row">
-        <div className="cmk-select"><span>Category</span><ChevronDown size={16} /></div>
-        <div className="cmk-select"><span>Budget</span><ChevronDown size={16} /></div>
-        <div className="cmk-select"><span>Delivery Time</span><ChevronDown size={16} /></div>
-        <div className="cmk-select"><span>Platform</span><ChevronDown size={16} /></div>
+        <div className="cmk-sort">
+          <label>Budget</label>
+          <select value={budgetFilter} onChange={(e) => { setBudgetFilter(e.target.value); setVisible(8); }}>
+            <option value="any">Any budget</option>
+            <option value="0-2000">Under ₹2,000</option>
+            <option value="2000-5000">₹2,000 – ₹5,000</option>
+            <option value="5000-10000">₹5,000 – ₹10,000</option>
+            <option value="10000+">₹10,000+</option>
+          </select>
+        </div>
+        <div className="cmk-sort">
+          <label>Delivery</label>
+          <select value={deliveryFilter} onChange={(e) => { setDeliveryFilter(e.target.value); setVisible(8); }}>
+            <option value="any">Any time</option>
+            <option value="3">Within 3 days</option>
+            <option value="5">Within 5 days</option>
+            <option value="7">Within 7 days</option>
+            <option value="7+">More than 7 days</option>
+          </select>
+        </div>
         <div className="cmk-sort">
           <label>Sort by</label>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
@@ -134,7 +184,9 @@ export default function BrowseBriefs() {
             <option value="newest">Newest</option>
           </select>
         </div>
-        <button type="button" className="cmk-filter-btn"><SlidersHorizontal size={16} /> Filter</button>
+        {(budgetFilter !== 'any' || deliveryFilter !== 'any') && (
+          <button type="button" className="cmk-filter-clear" onClick={() => { setBudgetFilter('any'); setDeliveryFilter('any'); }}>Clear filters</button>
+        )}
       </div>
 
       {/* grid */}

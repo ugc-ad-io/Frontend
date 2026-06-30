@@ -89,12 +89,6 @@ export default function MyActiveWorkPage() {
             </button>
           ))}
         </div>
-        <div className="cmk-tabs-tools">
-          <div className="cmk-sort"><label>Sort by</label>
-            <select defaultValue="deadline"><option value="deadline">Deadline</option><option value="recent">Recent</option></select>
-          </div>
-          <button type="button" className="cmk-filter-btn"><SlidersHorizontal size={16} /> Filter</button>
-        </div>
       </div>
 
       {loading ? (
@@ -108,7 +102,7 @@ export default function MyActiveWorkPage() {
             const tags = (Array.isArray(c.objectives) && c.objectives.length ? c.objectives.slice(0, 1) : [c.industry_type || 'Lifestyle']).concat('UGC Video');
             const stepDates = [c.created_at, c.work_submitted_at || c.submitted_at, c.reviewed_at, c.paid_at];
             return (
-              <article key={c.id} className="cmk-aw-row cmk-rise">
+              <article key={c.id} className="cmk-aw-row cmk-rise cmk-aw-clickable" onClick={() => navigate(`/my-deals?campaign=${c.id}`)} role="button" tabIndex={0}>
                 <div className="cmk-aw-brand">
                   <span className="cmk-aw-logo">
                     {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
@@ -138,7 +132,7 @@ export default function MyActiveWorkPage() {
                     : <span className={`cmk-aw-status ${st.tone}`}>{st.label}</span>}
                   <div className="cmk-aw-prog"><span>Progress</span><b>{st.progress}%</b></div>
                   <div className="cmk-aw-bar"><i style={{ width: `${st.progress}%` }} /></div>
-                  <button type="button" className={st.cta === 'Continue' ? 'cmk-btn-sm-primary' : 'cmk-btn-sm-ghost'} onClick={() => navigate('/my-deals')}>
+                  <button type="button" className={st.cta === 'Continue' ? 'cmk-btn-sm-primary' : 'cmk-btn-sm-ghost'} onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}>
                     {st.cta}
                   </button>
                 </div>

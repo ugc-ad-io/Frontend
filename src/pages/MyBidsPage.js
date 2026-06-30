@@ -15,6 +15,24 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-di
 
 const getBidStatus = (item) => (item?.bid_status || item?.my_bid?.status || item?.bid?.status || 'pending').toLowerCase();
 
+// Render a brief string with distinct colors for the field labels vs. their values
+const renderBrief = (text) => {
+  const lines = String(text || '').split('\n');
+  return lines.map((line, i) => {
+    if (!line.trim()) return <span key={i} className="mb-brief-gap" />;
+    const idx = line.indexOf(':');
+    // Budget visibility is a brand-only setting — never surface it to creators.
+    if (idx > 0 && /^budget visibility$/i.test(line.slice(0, idx).trim())) return null;
+    if (idx === -1) return <span key={i} className="mb-brief-line"><span className="mb-brief-val">{line}</span></span>;
+    return (
+      <span key={i} className="mb-brief-line">
+        <span className="mb-brief-label">{line.slice(0, idx + 1)}</span>
+        <span className="mb-brief-val">{line.slice(idx + 1)}</span>
+      </span>
+    );
+  });
+};
+
 const STATUS_TONE = { shortlisted: 'info', accepted: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
 const STATUS_LABEL = { bid_submitted: 'Pending', submitted: 'Pending' };
 
@@ -109,7 +127,7 @@ export default function MyBidsPage() {
                 const status = getBidStatus(item);
                 const brand = c.business_nickname || c.brand_handle || 'Brand';
                 return (
-                  <tr key={bid.id || c.id}>
+                  <tr key={bid.id || c.id} className="cmk-row-clickable" onClick={() => openView(item)} title="View bid details">
                     <td className="cmk-td-strong">{c.title || 'Campaign'}</td>
                     <td>
                       <span className="cmk-td-brand">
@@ -126,13 +144,13 @@ export default function MyBidsPage() {
                       {['selected', 'accepted'].includes(status) && (
                         <button
                           type="button"
-                          onClick={() => navigate(`/my-deals?campaign=${c.id}`)}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
                           style={{ marginRight: 16, background: 'linear-gradient(100deg,#5b6bff,#4452f0)', color: '#fff', border: 0, borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 18px -8px rgba(68,82,240,.6)' }}
                         >
                           Deal Room →
                         </button>
                       )}
-                      <button type="button" className="cmk-link-btn" onClick={() => openView(item)}>View</button>
+                      <button type="button" className="cmk-link-btn" onClick={(e) => { e.stopPropagation(); openView(item); }}>View</button>
                     </td>
                   </tr>
                 );
@@ -182,7 +200,7 @@ export default function MyBidsPage() {
                 <div className="mb-sec">
                   <h4>Brief</h4>
                   {detailLoading && !detail ? <p className="mb-muted">Loading brief…</p> : (
-                    <p className="mb-text">{c.brief_text || c.deliverables || 'No brief details provided.'}</p>
+                    <div className="mb-text mb-brief">{(c.brief_text || c.deliverables) ? renderBrief(c.brief_text || c.deliverables) : 'No brief details provided.'}</div>
                   )}
                 </div>
 
@@ -222,8 +240,13 @@ export default function MyBidsPage() {
               .mb-stat{background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:12px 14px}
               .mb-stat small{color:#9296ba;font-size:12px;font-weight:600;display:block}
               .mb-stat strong{color:#15163a;font-size:15px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
-              .mb-sec h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#585c7e;text-transform:uppercase;letter-spacing:.4px}
+              .mb-sec h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px}
               .mb-text{margin:0;color:#585c7e;font-size:14px;line-height:1.6;white-space:pre-wrap}
+              .mb-brief{display:flex;flex-direction:column}
+              .mb-brief-line{display:block;line-height:1.55}
+              .mb-brief-gap{display:block;height:10px}
+              .mb-brief-label{color:#15163a;font-weight:700;margin-right:4px}
+              .mb-brief-val{color:#585c7e}
               .mb-muted{margin:0;color:#9296ba;font-size:14px}
               .mb-chips{display:flex;flex-wrap:wrap;gap:7px}
               .mb-chips span{background:#eef0ff;color:#5b6bff;font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}

@@ -292,8 +292,11 @@ export default function CreatorProfileSetup() {
     lastSalary: '', expectedPayout: '', payoutPeriod: 'Per Video',
     topics: ['None'],
     profile_picture: '', // real uploaded URL (photoPreview is just the local/preview src)
+    profile_banner: '',  // optional cover/banner image URL (bannerPreview is the preview src)
   });
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const bannerRef = useRef(null);
   const pfFileRef = useRef(null);
 
   // App theme paints html/#root/body light (App.css gradient + Tailwind --background).
@@ -432,6 +435,36 @@ export default function CreatorProfileSetup() {
       toast.error(apiErrorMessage(error, 'Photo upload failed'));
     } finally {
       setPhotoUploading(false);
+    }
+  };
+  const onPickBanner = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image is too large. Maximum 5MB.');
+      return;
+    }
+    set('bannerPreview', URL.createObjectURL(file));
+    setBannerUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await axios.post(`${API}/upload/file`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      let url = res.data?.file_url || res.data?.url;
+      if (url && url.startsWith('/')) url = `${BACKEND_URL}${url}`;
+      if (url) {
+        setData((d) => ({ ...d, profile_banner: url, banner: url, bannerPreview: url }));
+        // Persist immediately via the dedicated banner endpoint (stored under `banner`).
+        await axios.patch(`${API}/profile/banner`, { banner: url }).catch(() => {});
+      } else {
+        toast.error('Banner upload failed. Please try again.');
+      }
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Banner upload failed'));
+    } finally {
+      setBannerUploading(false);
     }
   };
   const onPickVideo = async (e) => {
@@ -597,6 +630,25 @@ export default function CreatorProfileSetup() {
               </span>
               <span className="ps-upload__cta">{photoUploading ? 'Wait…' : 'Browse'}</span>
               <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />
+            </button>
+          </div>
+
+          {/* Banner upload (optional) */}
+          <div className="ps-field">
+            <button type="button" className="ps-upload" onClick={() => bannerRef.current?.click()}>
+              <span className="ps-upload__icon">
+                {data.bannerPreview
+                  ? <img src={data.bannerPreview} alt="" className="ps-upload__preview" />
+                  : <ImagePlus size={22} />}
+              </span>
+              <span className="ps-upload__text">
+                <span className="ps-upload__title">
+                  {bannerUploading ? 'Uploading…' : (data.bannerPreview ? 'Change banner image' : 'Upload banner image')}
+                </span>
+                <span className="ps-upload__hint">Wide cover image · Max 5MB</span>
+              </span>
+              <span className="ps-upload__cta">{bannerUploading ? 'Wait…' : 'Browse'}</span>
+              <input ref={bannerRef} type="file" accept="image/*" hidden onChange={onPickBanner} />
             </button>
           </div>
 

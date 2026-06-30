@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Bell, ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X } from 'lucide-react';
+import { Bell, ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu } from 'lucide-react';
 import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
@@ -9,9 +9,8 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
 const PRIMARY_LINKS = [
-  { name: 'Overview', to: '/dashboard/business' },
-  { name: 'Campaigns', to: '/dashboard/business/all-campaigns' },
   { name: 'Creators', to: '/dashboard/business/browse-creator' },
+  { name: 'Campaigns', to: '/dashboard/business/all-campaigns' },
   { name: 'Work Review', to: '/dashboard/business/work-review' },
   { name: 'Messages', to: '/messages', dot: true },
 ];
@@ -33,6 +32,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -51,7 +51,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
     <div className="cmk-app">
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business')} aria-label="Go to Overview">
+          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
           </button>
 
@@ -110,8 +110,27 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                 <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
               </div>
             )}
+            <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
           </div>
         </div>
+        {mobileOpen && (
+          <div className="cmk-mobile-menu">
+            {PRIMARY_LINKS.map((link) => (
+              <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
+                {link.name}
+              </button>
+            ))}
+            <div className="cmk-sep" />
+            {MENU_LINKS.filter((i) => !i.sep).map((item) => (
+              <button key={item.name} type="button" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
+                <item.icon size={18} /> {item.name}
+              </button>
+            ))}
+            <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+          </div>
+        )}
       </header>
 
       <main className="cmk-wrap cmk-page">

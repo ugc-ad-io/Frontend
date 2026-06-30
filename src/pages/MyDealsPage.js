@@ -86,7 +86,7 @@ function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled, pr
           ) : (
             <img src={getAssetUrl(previewUrl)} alt="Uploaded preview" />
           )}
-          {watermark && <img className="deal-upload-watermark" src="/watermark.png" alt="" aria-hidden="true" />}
+          {watermark && <span className="deal-upload-watermark" aria-hidden="true" />}
           <span className="deal-upload-preview-label"><CheckCircle size={14} /> File uploaded successfully</span>
         </div>
       ) : (
@@ -110,6 +110,8 @@ function BriefContent({ content }) {
       {lines.map((line, i) => {
         const t = line.trim();
         if (!t) return <div key={i} className="cmk-dr-brief-gap" />;
+        // Budget visibility is a brand-only setting — never surface it to creators.
+        if (/^budget visibility\s*:/i.test(t)) return null;
         const m = t.match(/^([A-Z][^:]{0,40}):\s*(.*)$/);
         if (m && m[2]) return <p key={i} className="cmk-dr-brief-row"><strong>{m[1]}:</strong> {m[2]}</p>;
         if (m) return <p key={i} className="cmk-dr-brief-row"><strong>{m[1]}:</strong></p>;
@@ -481,7 +483,12 @@ export default function MyDealsPage() {
           attachment_urls: attachments
         });
       }
-      toast.success(`${label} created`);
+      const SUCCESS_MSG = {
+        'Raise Dispute': 'Dispute raised',
+        'Escalate to Admin': 'Escalated to admin',
+        'Damage Report': 'Damage reported',
+      };
+      toast.success(SUCCESS_MSG[label] || `${label} created`);
       fetchDeals();
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Action failed'));
@@ -1117,7 +1124,7 @@ function ContentSubmission({
                   <Play size={24} />
                 )}
                 {content.watermark_required_until_approval && version.status !== 'approved' && (version.thumbnail_url || version.video_url) && (
-                  <img className="deal-preview-watermark" src="/watermark.png" alt="" aria-hidden="true" />
+                  <span className="deal-preview-watermark" aria-hidden="true" />
                 )}
                 {version.video_url && (
                   <a href={getAssetUrl(version.video_url)} target="_blank" rel="noreferrer" aria-label={`Open v${version.version} preview`}>

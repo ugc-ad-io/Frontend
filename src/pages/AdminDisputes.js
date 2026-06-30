@@ -658,6 +658,7 @@ export default function AdminDisputes() {
         .disp-peer-btn { border: 1px solid #5a4ff3; background: #eef0ff; color: #5a4ff3; }
         .disp-draft-btn:disabled, .disp-peer-btn:disabled { opacity: .55; cursor: not-allowed; }
         @media (max-width: 860px) { .disp-split { grid-template-columns: 1fr; } .disp-evidence { border-right: none; border-bottom: 1px solid #ececf1; } }
+        @media (max-width: 760px) { .disp-table { overflow-x: auto; } .disp-row { min-width: 720px; } }
       `}</style>
     </AdminLayout>
   );

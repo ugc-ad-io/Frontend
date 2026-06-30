@@ -1,7 +1,7 @@
 import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck } from 'lucide-react';
 import { can } from '../utils/adminRoles';
 
-function AdminSidebar({ activeTab, onTabClick, user }) {
+function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose }) {
   const adminTabs = [
     { id: 'stats',        label: 'Dashboard',      icon: TrendingUp,   testId: 'tab-stats',        slug: 'overview' },
     { id: 'applications', label: 'Applications',   icon: FileText,     testId: 'tab-applications', slug: 'applications', cap: 'review_applications' },
@@ -20,7 +20,9 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
   ];
 
   return (
-    <aside className="admin-sidebar">
+    <>
+    <div className={`admin-nav-backdrop ${mobileOpen ? 'is-open' : ''}`} onClick={onClose} />
+    <aside className={`admin-sidebar ${mobileOpen ? 'is-open' : ''}`}>
       <div>
         <div className="admin-sidebar-brand">
           <div className="admin-sidebar-mark">A</div>
@@ -52,6 +54,7 @@ function AdminSidebar({ activeTab, onTabClick, user }) {
         Internal — authorised staff only
       </div>
     </aside>
+    </>
   );
 }
 

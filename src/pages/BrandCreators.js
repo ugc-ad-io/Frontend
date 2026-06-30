@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Play, VolumeX, Volume2, Maximize2, X, Star } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
-import CreatorProfileModal from '../components/CreatorProfileModal';
 import PlanBrief from './PlanBrief';
 import '../styles/creator-marketplace.css';
 
@@ -21,14 +20,19 @@ const FALLBACK_VIDEOS = [
 const nameOf = (c) => (c.name || '').trim() || (c.full_name || '').trim() || (c.nickname || '').trim() || (c.username ? `@${c.username}` : '') || 'Creator';
 const initialOf = (c) => (nameOf(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 
-function ReelCard({ c, onView, fallback }) {
+function ReelCard({ c, onView, onExpand, fallback }) {
   const vref = useRef(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const media = assetUrl(c.portfolio_preview);
   const videoSrc = (media && isVideo(media)) ? `${media}#t=0.5` : fallback;
-  const rating = Number(c.average_rating ?? c.rating ?? c.avg_rating ?? 0);
-  const grade = rating >= 4.8 ? 'A+' : rating >= 4.5 ? 'A' : rating >= 4 ? 'B+' : rating >= 3 ? 'B' : rating > 0 ? 'C' : 'New';
+  // Creator level (admin-assigned): New / Verified / L1 / L2 / Elite.
+  const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
+  const levelKey = LEVEL_LABEL[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new';
+  const tier = LEVEL_LABEL[levelKey];
+  const price = c.budget_range || c.price || c.rate || '';
+  const fullName = nameOf(c).replace('@', '');
+  const location = c.city_tier || c.location_region || 'India';
 
   const togglePlay = () => {
     if (!vref.current) return;
@@ -41,8 +45,7 @@ function ReelCard({ c, onView, fallback }) {
       <div className="bc-reel" onClick={togglePlay}>
         <video ref={vref} src={videoSrc} muted={muted} loop playsInline preload="metadata" />
         <div className="bc-rate">
-          <span className="bc-grade">{grade}</span>
-          <span className="bc-stars"><Star size={12} fill="currentColor" /> {rating ? rating.toFixed(1) : 'New'}</span>
+          <span className={`bc-tier ${tier.toLowerCase()}`}>{tier}</span>
         </div>
         {!playing && <span className="bc-play"><Play size={20} fill="currentColor" /></span>}
         <button type="button" className="bc-mute" aria-label={muted ? 'Unmute' : 'Mute'} onClick={(e) => {
@@ -64,15 +67,23 @@ function ReelCard({ c, onView, fallback }) {
         }}>
           {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </button>
-        <button type="button" className="bc-expand" aria-label="Expand" onClick={(e) => { e.stopPropagation(); onView(c); }}>
+        <button type="button" className="bc-expand" aria-label="Expand video" onClick={(e) => {
+          e.stopPropagation();
+          if (vref.current) { vref.current.pause(); setPlaying(false); }
+          onExpand?.({ src: videoSrc, name: fullName });
+        }}>
           <Maximize2 size={14} />
         </button>
       </div>
 
       <div className="bc-meta">
-        <span className="bc-ava">{assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}</span>
-        <div className="bc-name"><strong>{nameOf(c).replace('@', '')}</strong><small>India</small></div>
-        <button type="button" className="bc-view" onClick={() => onView(c)}>View Profile</button>
+        <button type="button" className="bc-ava bc-ava-btn" onClick={() => onView(c)} aria-label="View profile">
+          {assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}
+        </button>
+        <button type="button" className="bc-name bc-name-btn" onClick={() => onView(c)}>
+          <strong>{fullName}</strong>
+          <small className="bc-price-txt">{price || 'Rate on request'}</small>
+        </button>
       </div>
     </div>
   );
@@ -80,13 +91,15 @@ function ReelCard({ c, onView, fallback }) {
 
 export default function BrandCreators() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState(searchParams.get('q') || '');
   const [cat, setCat] = useState('all');
   const [chatWith, setChatWith] = useState(null);
-  const [profile, setProfile] = useState(null);
   const [briefFor, setBriefFor] = useState(null);
+  const [videoCard, setVideoCard] = useState(null);
+  const viewProfile = (c) => navigate(`/dashboard/business/creator/${c.id}`);
 
   useEffect(() => {
     let active = true;
@@ -119,7 +132,7 @@ export default function BrandCreators() {
     return true;
   }), [creators, cat, q]);
 
-  const openChat = (c) => { setProfile(null); setChatWith({ id: c.id, name: nameOf(c).replace('@', ''), photo: c.profile_photo }); };
+  const openChat = (c) => { setChatWith({ id: c.id, name: nameOf(c).replace('@', ''), photo: c.profile_photo }); };
 
   return (
     <BrandTopNavLayout>
@@ -131,11 +144,8 @@ export default function BrandCreators() {
       <div className="bc-filters">
         <div className="bc-search">
           <Search size={18} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, niche, location..." />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name..." />
         </div>
-        <select defaultValue=""><option value="">Select Language</option><option>Hinglish</option><option>Hindi</option><option>English</option></select>
-        <select defaultValue=""><option value="">Select Country</option><option>India</option></select>
-        <select defaultValue=""><option value="">Select Gender</option><option>Female</option><option>Male</option></select>
       </div>
 
       <div className="bc-cats">
@@ -150,19 +160,18 @@ export default function BrandCreators() {
         <div className="cmk-empty">No creators match your filters.</div>
       ) : (
         <div className="bc-grid">
-          {filtered.map((c, i) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={setProfile} fallback={FALLBACK_VIDEOS[i % FALLBACK_VIDEOS.length]} />)}
+          {filtered.map((c, i) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={viewProfile} onExpand={setVideoCard} fallback={FALLBACK_VIDEOS[i % FALLBACK_VIDEOS.length]} />)}
         </div>
       )}
 
-      {profile && (
-        <CreatorProfileModal
-          id={profile.id}
-          fallbackName={nameOf(profile)}
-          photo={profile.profile_photo}
-          onClose={() => setProfile(null)}
-          onMessage={() => { openChat(profile); }}
-          onBegin={() => { const c = profile; setProfile(null); setBriefFor(c); }}
-        />
+      {videoCard && (
+        <div className="bc-vid-overlay" onClick={() => setVideoCard(null)}>
+          <div className="bc-vid-card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="bc-vid-close" aria-label="Close" onClick={() => setVideoCard(null)}><X size={20} /></button>
+            <video src={videoCard.src} controls autoPlay playsInline className="bc-vid-el" />
+            {videoCard.name && <div className="bc-vid-name">{videoCard.name}</div>}
+          </div>
+        </div>
       )}
 
       {briefFor && (

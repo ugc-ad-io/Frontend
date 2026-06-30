@@ -160,7 +160,7 @@ export default function MessagesPage() {
       { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
       { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
-      { name: 'Browse Briefs', icon: Briefcase, action: () => navigate('/browse-briefs') },
+      { name: 'Browse Campaigns', icon: Briefcase, action: () => navigate('/browse-briefs') },
       { name: 'My Deals', icon: FileCheck, action: () => navigate('/my-deals') },
       { name: 'Messages', icon: MessageSquare, action: () => navigate('/messages'), active: true },
       { name: 'Payout', icon: IndianRupee, action: () => navigate('/withdrawal') },
@@ -739,9 +739,6 @@ export default function MessagesPage() {
                     <small>Fill the details and send a structured action card.</small>
                   </div>
                   <div className="msg-action-composer-head-actions">
-                    <button type="submit" className="msg-action-send-top" disabled={creatingCard}>
-                      {creatingCard ? 'Sending...' : 'Send Card'}
-                    </button>
                     <button type="button" className="msg-action-close" aria-label="Close action card form" onClick={closeActionComposer}><X size={16} /></button>
                   </div>
                 </div>

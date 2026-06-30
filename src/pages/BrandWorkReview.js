@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
+import RevisionRequestModal from '../components/RevisionRequestModal';
 import { DEMO_WORK_REVIEW } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
 
@@ -19,7 +21,7 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'nume
 const fmtDur = (s) => { if (!s || !isFinite(s)) return ''; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
 const fileExt = (f) => (f ? (String(f).split('?')[0].split('.').pop() || '').toUpperCase() : '');
 
-function Thumb({ file, onOpen, onDuration }) {
+function Thumb({ file, onOpen, onDuration, watermark }) {
   const [d, setD] = useState('');
   const url = assetUrl(file);
   const vid = isVideo(url);
@@ -29,6 +31,7 @@ function Thumb({ file, onOpen, onDuration }) {
         ? <video src={`${url}#t=0.5`} muted playsInline preload="metadata" onLoadedMetadata={(e) => { const v = fmtDur(e.target.duration); setD(v); onDuration?.(v); }} />
         : <img src={url} alt="" />)
         : <div className="bwr-thumb-fb"><FileText size={26} /></div>}
+      {watermark && <span className="bwr-wm" aria-hidden="true" />}
       <span className="bwr-play"><Play size={20} fill="currentColor" /></span>
       {d && <span className="bwr-dur">{d}</span>}
     </div>
@@ -51,6 +54,7 @@ const STATUS = {
 const PER_PAGE_OPTIONS = [10, 20, 50];
 
 export default function BrandWorkReview() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
@@ -59,6 +63,9 @@ export default function BrandWorkReview() {
   const [menuId, setMenuId] = useState(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [videoModal, setVideoModal] = useState(null);
+  const [revisionFor, setRevisionFor] = useState(null);
+  const [revSubmitting, setRevSubmitting] = useState(false);
   const busy = useRef(false);
 
   const load = async () => {
@@ -115,11 +122,18 @@ export default function BrandWorkReview() {
     catch { toast.error('Failed to approve'); }
     finally { busy.current = false; }
   };
-  const requestRevision = async (id) => {
-    const fb = window.prompt('What changes would you like? (revision feedback)');
-    if (fb === null) return;
-    try { await axios.post(`${API}/work/${id}/request-revision?feedback=${encodeURIComponent(fb)}`); toast.success('Revision requested'); await load(); }
-    catch { toast.error('Failed to request revision'); }
+  const requestRevision = (id) => setRevisionFor(id);
+  const submitRevision = async (payload) => {
+    if (!revisionFor) return;
+    setRevSubmitting(true);
+    try {
+      await axios.post(`${API}/work/${revisionFor}/request-revision`, payload);
+      toast.success('Revision requested');
+      setRevisionFor(null);
+      await load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Failed to request revision');
+    } finally { setRevSubmitting(false); }
   };
   const download = async (id, title) => {
     try {
@@ -129,7 +143,14 @@ export default function BrandWorkReview() {
       document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(u);
     } catch { toast.error('Download unlocks after approval'); }
   };
-  const openFile = (it) => { const f = it.files.find((x) => isVideo(x)) || it.files[0]; if (f) window.open(assetUrl(f), '_blank'); };
+  const openFile = (it) => {
+    const f = it.files.find((x) => isVideo(x)) || it.files[0];
+    if (!f) return;
+    const url = assetUrl(f);
+    // Videos play in a watermarked in-app modal until approved; other files just open.
+    if (isVideo(url)) setVideoModal({ src: url, watermark: it.status !== 'approved', title: it.title });
+    else window.open(url, '_blank');
+  };
   const message = (it) => setChatWith({ id: it.creatorId, name: String(it.creator).replace('@', ''), photo: it.photo });
 
   return (
@@ -147,7 +168,6 @@ export default function BrandWorkReview() {
             </button>
           ))}
         </div>
-        <button type="button" className="bwr-filter"><SlidersHorizontal size={16} /> Filters</button>
       </div>
 
       {loading ? (
@@ -163,7 +183,7 @@ export default function BrandWorkReview() {
               const ftype = fileExt(it.files[0]) || '—';
               return (
                 <article key={it.id} className="bwr-card">
-                  <Thumb file={it.files[0]} onOpen={() => openFile(it)} onDuration={(v) => setDurations((p) => (p[it.id] === v ? p : { ...p, [it.id]: v }))} />
+                  <Thumb file={it.files[0]} onOpen={() => openFile(it)} watermark={it.status !== 'approved'} onDuration={(v) => setDurations((p) => (p[it.id] === v ? p : { ...p, [it.id]: v }))} />
 
                   <div className="bwr-body">
                     <h3 className="bwr-title">{it.title}</h3>
@@ -174,7 +194,13 @@ export default function BrandWorkReview() {
                       <Calendar size={14} /> Submitted on {fmtDate(it.submittedAt)}
                     </div>
 
-                    <div className="bwr-cbox">
+                    <div
+                      className="bwr-cbox bwr-cbox-link"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => it.id && navigate(`/dashboard/business/campaign/${it.id}`)}
+                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && it.id) navigate(`/dashboard/business/campaign/${it.id}`); }}
+                    >
                       <span className="bwr-cbox-ic"><FileText size={18} /></span>
                       <div><label>Campaign</label><strong>{it.campaign}</strong></div>
                     </div>
@@ -246,6 +272,20 @@ export default function BrandWorkReview() {
       )}
 
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
+      {revisionFor && <RevisionRequestModal onClose={() => setRevisionFor(null)} onSubmit={submitRevision} submitting={revSubmitting} />}
+
+      {videoModal && (
+        <div className="bwr-vid-overlay" onClick={() => setVideoModal(null)}>
+          <div className="bwr-vid-card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="bwr-vid-close" aria-label="Close" onClick={() => setVideoModal(null)}>✕</button>
+            <div className="bwr-vid-frame">
+              <video src={videoModal.src} controls autoPlay playsInline className="bwr-vid-el" />
+              {videoModal.watermark && <span className="bwr-wm" aria-hidden="true" />}
+            </div>
+            {videoModal.title && <div className="bwr-vid-name">{videoModal.title}</div>}
+          </div>
+        </div>
+      )}
     </BrandTopNavLayout>
   );
 }

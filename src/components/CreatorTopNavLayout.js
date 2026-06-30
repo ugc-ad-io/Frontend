@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
-  Bell, ChevronDown, Zap, Star, User, Wallet, Settings, LogOut, Search, Menu, X
+  Bell, ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X
 } from 'lucide-react';
 import '../styles/creator-marketplace.css';
 
@@ -11,16 +11,15 @@ const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 
 // Primary links live in the top bar; account/secondary links live in the avatar menu.
 const PRIMARY_LINKS = [
-  { name: 'Browse Briefs', to: '/browse-briefs' },
+  { name: 'Active Work', to: '/my-active-work' },
+  { name: 'Browse Campaigns', to: '/browse-briefs' },
   { name: 'My Bids', to: '/my-bids' },
-  { name: 'My Deals', to: '/my-deals' },
   { name: 'Messages', to: '/messages', dot: true }
 ];
 
 const MENU_LINKS = [
-  { name: 'My Active Work', to: '/my-active-work', icon: Zap },
   { name: 'Reviews', to: '/reviews', icon: Star },
-  { name: 'Portfolio', to: '/portfolio', icon: User },
+  { name: 'Profile', to: '/profile', icon: User },
   { name: 'Earnings', to: '/withdrawal', icon: Wallet },
   { sep: true },
   { name: 'Settings', to: '/settings', icon: Settings }
@@ -37,7 +36,13 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const menuRef = useRef(null);
+
+  const runSearch = () => {
+    const q = searchTerm.trim();
+    navigate(q ? `/browse-briefs?q=${encodeURIComponent(q)}` : '/browse-briefs');
+  };
 
   useEffect(() => {
     const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
@@ -55,17 +60,21 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
     <div className="cmk-app">
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')}>
-            <span className="cmk-brand-mark">U</span> UGCad.io
+          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">
+            <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
           </button>
 
           <div className="cmk-nav-search" role="search">
-            <Search size={18} />
+            <button type="button" className="cmk-nav-search-btn" aria-label="Search" onClick={runSearch}>
+              <Search size={18} />
+            </button>
             <input
               type="search"
               placeholder="Search briefs, brands, categories..."
               aria-label="Search"
-              onKeyDown={(e) => { if (e.key === 'Enter') navigate('/browse-briefs'); }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
             />
           </div>
 

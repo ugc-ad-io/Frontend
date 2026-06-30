@@ -814,21 +814,6 @@
   font-weight: 400;
 }
 
-.msg-action-send-top {
-  min-height: 34px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: #7387FF;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(115, 135, 255, 0.24);
-  white-space: nowrap;
-}
-
-.msg-action-send-top:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
 .msg-action-close {
   width: 30px;
   height: 30px;

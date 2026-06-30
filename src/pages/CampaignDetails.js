@@ -25,9 +25,12 @@ function renderBrief(text) {
     if (!line.trim()) return <div key={i} className="brief-gap" />;
     const idx = line.indexOf(':');
     if (idx > 0 && idx <= 28) {
+      const label = line.slice(0, idx).trim();
+      // Budget visibility is a brand-only setting — never surface it to creators.
+      if (/^budget visibility$/i.test(label)) return null;
       return (
         <p key={i} className="brief-line">
-          <strong>{line.slice(0, idx)}:</strong> {line.slice(idx + 1).trim()}
+          <strong>{label}:</strong> {line.slice(idx + 1).trim()}
         </p>
       );
     }
@@ -258,6 +261,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         .cmk-app .bid-submitted-banner,.cmk-app .creator-bid-banner{background:linear-gradient(135deg,#eef0ff,#f4f0ff);
           border:1px solid #e0e3ff;border-radius:18px;padding:22px;margin:20px 0}
         .cmk-app .bid-submitted-header h3,.cmk-app .creator-bid-banner h3{color:#4452f0}
+        .cmk-app .creator-bid-banner .banner-content p{color:#585c7e;opacity:1}
         .cmk-app .detail-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
         .cmk-app .detail-label{color:#585c7e;font-weight:600}
         .cmk-app .detail-value{color:#15163a;font-weight:800}
@@ -648,8 +652,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
                   placeholder="Enter your bid amount"
-                  min={campaign.budget_min}
-                  max={campaign.budget_max}
+                  min="1"
                   required
                   data-testid="bid-amount-input"
                 />

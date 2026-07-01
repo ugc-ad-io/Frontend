@@ -3154,8 +3154,9 @@ export default function AdminDashboard() {
         }
 
         .btn-assign {
-          background: linear-gradient(135deg, #5b6bff 0%, #4452f0 100%);
-          color: white;
+          background: linear-gradient(100deg,#12124f,#07074e);
+          color: #fff;
+          box-shadow: 0 12px 26px -12px rgba(7,7,78,.7);
         }
 
         .btn-assign:hover {
@@ -4824,14 +4825,14 @@ export default function AdminDashboard() {
         }
 
         .btn-confirm {
-          background: #5b6bff;
-          color: white;
-          border-color: #5b6bff;
+          background: linear-gradient(100deg,#12124f,#07074e);
+          color: #fff;
+          border-color: #07074e;
         }
 
         .btn-confirm:hover {
-          background: #4452f0;
-          border-color: #4452f0;
+          background: #12124f;
+          border-color: #12124f;
         }
 
         .btn-confirm.btn-reject {

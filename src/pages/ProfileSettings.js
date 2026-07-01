@@ -59,7 +59,7 @@ const getLevelInfo = (completedWorks) => {
     return {
       badge: 'L2 (Pro)',
       level: 'L2 Professional',
-      color: '#7387ff',
+      color: '#07074e',
       subtitle: 'Promo Eligible',
       nextLevel: null,
       currentWorks: completedWorks,

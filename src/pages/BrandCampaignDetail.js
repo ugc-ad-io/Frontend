@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -11,7 +11,6 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import RevisionRequestModal from '../components/RevisionRequestModal';
-import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
 import '../styles/creator-marketplace.css';
 
@@ -29,6 +28,23 @@ const WS_STATUS = {
   revision_requested: { cls: 'warn', label: 'Revision', icon: RefreshCw },
 };
 const DEAL_ORDER = ['Accepted - Awaiting Shipment', 'Shipped - In Transit', 'Delivered - Awaiting Receipt Confirmation', 'Received - Content in Progress', 'Content Submitted - Awaiting Review', 'Approved - Payment Processing', 'Paid - Complete'];
+const FALLBACK_WORK = ['/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4'];
+const pfUrlOf = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || it?.video || ''));
+
+// Small playable portfolio thumbnail for the creator card.
+function WorkTile({ url }) {
+  const ref = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const src = assetUrl(url);
+  const toggle = () => { const v = ref.current; if (!v) return; if (v.paused) { v.play().then(() => setPlaying(true)).catch(() => {}); } else { v.pause(); setPlaying(false); } };
+  return (
+    <div className="bcd-work-tile" onClick={toggle}>
+      {isVideo(src) ? <video ref={ref} src={`${src}#t=0.5`} muted loop playsInline preload="metadata" /> : <img src={src} alt="" />}
+      {!playing && <span className="bcd-work-play"><Play size={13} fill="currentColor" /></span>}
+    </div>
+  );
+}
+
 // Some profile fields (e.g. followers) are objects — never render those directly.
 const safeText = (v, fb = '—') => {
   if (v == null || v === '') return fb;
@@ -373,8 +389,14 @@ export default function BrandCampaignDetail() {
                   <div className="bcd-kv"><label>Location</label><strong>{safeText(cp.city || cp.location_region || creator.city_tier, 'India')}</strong></div>
                   <div className="bcd-kv"><label>Level</label><strong>{safeText(creator.level_label || creator.level, 'New')}</strong></div>
                 </div>
+                <div className="bcd-kv-row">
+                  <div className="bcd-kv"><label>Deliverables</label><strong>{safeText(creator.deliverables_completed, '0')} done</strong></div>
+                  <div className="bcd-kv"><label>Starting Rate</label><strong>{safeText((cp.rate_card && cp.rate_card.expected_payout) || cp.expectedPayout || creator.budget_range, 'On request')}</strong></div>
+                  <div className="bcd-kv"><label>Skills</label><strong>{Array.isArray(cp.skills) && cp.skills.length ? cp.skills.slice(0, 2).join(', ') : safeText(creator.content_style, '—')}</strong></div>
+                </div>
+                <p className="bcd-cre-bio">{safeText(cp.bio, 'This creator hasn’t added a bio yet — open their profile to see full portfolio, reviews and past work.')}</p>
                 <div className="bcd-cre-actions">
-                  <button className="bcd-cta" onClick={() => setProfOpen(true)}><User size={15} /> View Creator Profile</button>
+                  <button className="bcd-cta" onClick={() => creator.id && navigate(`/dashboard/business/creator/${creator.id}`)}><User size={15} /> View Creator Profile</button>
                   <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>
                 </div>
               </>
@@ -387,7 +409,19 @@ export default function BrandCampaignDetail() {
 
       {chatOpen && creator && <ChatPopup user={{ id: creator.id, name: (handle || '').replace('@', ''), photo: creator.profile_photo }} onClose={() => setChatOpen(false)} />}
       {profOpen && creator && <CreatorProfileModal id={creator.id} fallbackName={handle} photo={creator.profile_photo} onClose={() => setProfOpen(false)} onMessage={() => { setProfOpen(false); setChatOpen(true); }} />}
-      {detailsOpen && <PageModal bare maxWidth={900} onClose={() => setDetailsOpen(false)}><CampaignDetails embedId={id} onClose={() => setDetailsOpen(false)} /></PageModal>}
+      {detailsOpen && (
+        <div className="bcd-drawer-overlay" onClick={() => setDetailsOpen(false)}>
+          <aside className="bcd-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="bcd-drawer-head">
+              <strong>Campaign Details</strong>
+              <button type="button" className="bcd-drawer-close" aria-label="Close" onClick={() => setDetailsOpen(false)}>✕</button>
+            </div>
+            <div className="bcd-drawer-body">
+              <CampaignDetails embedId={id} onClose={() => setDetailsOpen(false)} />
+            </div>
+          </aside>
+        </div>
+      )}
       {revisionOpen && <RevisionRequestModal onClose={() => setRevisionOpen(false)} onSubmit={submitRevision} submitting={revSubmitting} />}
 
       {videoModal && (
@@ -404,6 +438,16 @@ export default function BrandCampaignDetail() {
       )}
 
       <style>{`
+        /* View Details — right-side slide-in drawer */
+        .bcd-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
+        .bcd-drawer{width:min(680px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-24px 0 60px rgba(15,22,58,.28);animation:bcd-slide .3s cubic-bezier(.2,.7,.2,1)}
+        @keyframes bcd-slide{from{transform:translateX(48px);opacity:.5}to{transform:none;opacity:1}}
+        .bcd-drawer-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 24px;border-bottom:1px solid #eef0f6}
+        .bcd-drawer-head strong{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a}
+        .bcd-drawer-close{border:0;background:#f1f3fa;color:#15163a;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px;flex:none}
+        .bcd-drawer-close:hover{background:#e7eaf6}
+        .bcd-drawer-body{flex:1;min-height:0;overflow-y:auto;padding:22px 24px}
+        @media (max-width:600px){.bcd-drawer{width:100%}}
         .bcd-bc{display:flex;align-items:center;gap:8px;margin-bottom:16px}
         .bcd-bc button{display:inline-flex;align-items:center;gap:6px;color:#5b6bff;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px}
         .bcd-bc strong{color:#15163a;font-weight:700;font-size:14px}
@@ -418,13 +462,13 @@ export default function BrandCampaignDetail() {
         .bcd-budget strong{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
         .bcd-budget strong small{color:#9296ba;font-weight:600;font-size:13px}
         .bcd-budget-bar{height:7px;border-radius:6px;background:#e7e9f7;overflow:hidden}
-        .bcd-budget-bar i{display:block;height:100%;background:linear-gradient(90deg,#5b6bff,#8b5cf6)}
+        .bcd-budget-bar i{display:block;height:100%;background:linear-gradient(90deg,#5b6bff,#23236a)}
         .bcd-pct{color:#585c7e;font-weight:700;font-size:13px;align-self:flex-end}
         .bcd-actions{display:flex;align-items:center;gap:10px}
         .bcd-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin:18px 0 22px;flex-wrap:wrap}
         .bcd-tabs button{background:none;border:none;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:#585c7e;padding:0 0 14px;position:relative;white-space:nowrap}
         .bcd-tabs button.is-active{color:#5b6bff}
-        .bcd-tabs button.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,#5b6bff,#8b5cf6)}
+        .bcd-tabs button.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,#5b6bff,#23236a)}
         .bcd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
         .bcd-grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;margin-top:20px;align-items:start}
         .bcd-card{background:#fff;border:1px solid #eef0f6;border-radius:18px;padding:20px;box-shadow:0 10px 30px -12px rgba(28,30,80,.10)}
@@ -486,16 +530,23 @@ export default function BrandCampaignDetail() {
         .bcd-kv-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px;padding:14px 0 0 14px;border-top:1px solid #eef0f6}
         .bcd-kv-row + .bcd-kv-row{border-top:none;padding-top:0;margin-top:16px}
         .bcd-kv-row .bcd-kv{margin-top:0}
+        .bcd-cre-bio{margin:18px 0 0;color:#585c7e;font-size:13.5px;line-height:1.55}
+        .bcd-cre-work{margin-top:16px}
+        .bcd-cre-work > label{display:block;color:#9296ba;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+        .bcd-cre-work-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+        .bcd-work-tile{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#0b1020;cursor:pointer}
+        .bcd-work-tile video,.bcd-work-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+        .bcd-work-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-items:center;color:#5b6bff;pointer-events:none}
         .bcd-cre-actions{display:flex;gap:10px;margin-top:18px}
         .bcd-cre-actions .bcd-cta{margin-top:0}
         @media (max-width:520px){.bcd-kv-row{grid-template-columns:1fr 1fr}.bcd-cre-actions{flex-direction:column}}
         .bcd-cta{width:100%;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #e9ebf4;background:#fff;color:#5b6bff;border-radius:12px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .bcd-cta:hover{border-color:#cdd2f3}
         .bcd-cta.primary{background:#07074e;border-color:#07074e;color:#fff}
-        .bcd-cta.primary:hover{background:#12124f;border-color:#12124f}
+        .bcd-cta.primary:hover{background:linear-gradient(100deg,#2e2e94,#1e1e70);border-color:#2e2e94}
         .bcd-cta-ship{margin-top:10px}
         .bcd-creator{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-        .bcd-cre-ava{width:48px;height:48px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800;font-size:18px}
+        .bcd-cre-ava{width:48px;height:48px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:18px}
         .bcd-cre-ava img{width:100%;height:100%;object-fit:cover}
         .bcd-creator strong{display:block;font-size:15.5px;color:#15163a}
         .bcd-creator small{color:#9296ba;font-size:13px;text-transform:capitalize}

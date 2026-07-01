@@ -556,7 +556,7 @@
 .bs-tabs button.active {
   background: #07074e;
   color: white;
-  box-shadow: 0 10px 22px rgba(115,135,255,0.28);
+  box-shadow: 0 10px 22px rgba(7,7,78,0.28);
 }
 
 .bs-card {
@@ -723,7 +723,7 @@
 .bs-primary {
   background: #07074e;
   color: white;
-  box-shadow: 0 12px 26px rgba(115,135,255,0.28);
+  box-shadow: 0 12px 26px rgba(7,7,78,0.28);
 }
 
 .bs-primary.dark {

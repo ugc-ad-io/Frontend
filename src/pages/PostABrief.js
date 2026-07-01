@@ -982,7 +982,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           padding: 8px 14px;
           border-radius: 999px;
           background: #F3F3FF;
-          color: #7387FF;
+          color: #07074e;
           font-size: 12px;
           font-weight: 400;
           text-transform: uppercase;
@@ -1061,8 +1061,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
 
         .brief-chip.active {
-          border-color: #7387FF;
-          background: #7387FF;
+          border-color: #07074e;
+          background: #07074e;
           color: white;
         }
 
@@ -1105,7 +1105,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
 
         .brief-switch-row > button.is-on {
-          background: #7387FF;
+          background: #07074e;
           color: white;
         }
 
@@ -1157,7 +1157,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           border: 0;
           border-radius: 11px;
           background: #EEF0FF;
-          color: #7387FF;
+          color: #07074e;
           font-weight: 400;
           padding: 10px 13px;
           cursor: pointer;
@@ -1194,7 +1194,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           display: flex;
           align-items: flex-start;
           gap: 10px;
-          color: #7387FF;
+          color: #07074e;
           font-weight: 400;
         }
 
@@ -1290,9 +1290,9 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
 
         .btn-primary {
-          background: #7387FF;
+          background: #07074e;
           color: white;
-          box-shadow: 0 12px 22px rgba(115, 135, 255, 0.24);
+          box-shadow: 0 12px 22px rgba(7, 7, 78, 0.24);
         }
 
         .btn-secondary {
@@ -1320,7 +1320,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           align-items: center;
           gap: 8px;
           margin: 0 0 16px;
-          color: #7387FF;
+          color: #07074e;
           font-size: 13px;
           text-transform: uppercase;
         }
@@ -1347,7 +1347,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
 
         .tip-card {
-          background: linear-gradient(135deg, rgba(115, 135, 255, 0.12), rgba(159, 159, 209, 0.11));
+          background: linear-gradient(135deg, rgba(7, 7, 78, 0.12), rgba(159, 159, 209, 0.11));
         }
 
         .tip-head {
@@ -1361,8 +1361,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           width: 36px;
           height: 36px;
           border-radius: 10px;
-          background: rgba(115, 135, 255, 0.16);
-          color: #7387FF;
+          background: rgba(7, 7, 78, 0.16);
+          color: #07074e;
         }
 
         .tip-head h3 {

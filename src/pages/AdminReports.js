@@ -96,7 +96,7 @@ export default function AdminReports() {
         .rep-panel h3 { margin:0 0 12px; font-size:15px; color:#07074e; display:flex; align-items:center; gap:8px; }
         .rep-count { background:#eef0ff; color:#5b6bff; border-radius:999px; padding:1px 9px; font-size:12px; }
         .rep-exports { display:flex; gap:10px; flex-wrap:wrap; }
-        .rep-exports button { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border:1px solid transparent; border-radius:9px; background:linear-gradient(135deg,#5b6bff,#4452f0); color:#fff; font-weight:600; cursor:pointer; font-size:13px; box-shadow:0 8px 18px -8px rgba(91,107,255,0.7); }
+        .rep-exports button { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border:1px solid transparent; border-radius:9px; background:linear-gradient(100deg,#12124f,#07074e); color:#fff; font-weight:600; cursor:pointer; font-size:13px; box-shadow:0 12px 26px -12px rgba(7,7,78,.7); }
         .rep-exports button:hover { transform:translateY(-1px); }
         .rep-head select:focus { outline:none; border-color:#5b6bff; box-shadow:0 0 0 3px rgba(91,107,255,0.16); }
         .rep-head { display:flex; align-items:center; justify-content:space-between; }

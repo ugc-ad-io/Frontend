@@ -145,7 +145,7 @@ export default function MyBidsPage() {
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
-                          style={{ marginRight: 16, background: 'linear-gradient(100deg,#5b6bff,#4452f0)', color: '#fff', border: 0, borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 18px -8px rgba(68,82,240,.6)' }}
+                          style={{ marginRight: 16, background: 'linear-gradient(100deg,#12124f,#07074e)', color: '#fff', border: 0, borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 12px 26px -12px rgba(7,7,78,.7)' }}
                         >
                           Deal Room →
                         </button>

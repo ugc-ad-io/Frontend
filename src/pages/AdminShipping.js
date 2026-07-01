@@ -288,7 +288,7 @@ export default function AdminShipping() {
         .ash-badge.warn { background: #fffaeb; color: #b54708; }
         .ash-sla { font-weight: 700; font-size: 0.82rem; }
         .ash-sla.ok { color: #067647; } .ash-sla.warn { color: #b54708; } .ash-sla.danger { color: #b42318; } .ash-sla.muted { color: #98a1ad; }
-        .ash-action { border: 1px solid transparent; background: linear-gradient(135deg, #5b6bff, #4452f0); color: #fff; font-weight: 600; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; box-shadow: 0 8px 18px -8px rgba(91,107,255,0.7); }
+        .ash-action { border: 1px solid transparent; background: linear-gradient(100deg,#12124f,#07074e); color: #fff; font-weight: 600; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .ash-action:hover { transform: translateY(-1px); }
         .ash-done { display: inline-flex; align-items: center; gap: 5px; color: #067647; font-weight: 600; font-size: 0.82rem; }
         .ash-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 70px 24px; color: #5b6573; text-align: center; }
@@ -325,7 +325,7 @@ export default function AdminShipping() {
         .ash-upload.is-set { border-color: #5b6bff; color: #4452f0; background: #eef0ff; }
         .ash-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px; border-top: 1px solid #e6e8ec; }
         .ash-ghost { border: 1px solid #e6e8ec; background: #fff; color: #5b6573; font-weight: 600; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
-        .ash-primary { display: inline-flex; align-items: center; gap: 7px; border: 1px solid transparent; background: linear-gradient(135deg, #5b6bff, #4452f0); color: #fff; font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; box-shadow: 0 8px 18px -8px rgba(91,107,255,0.7); }
+        .ash-primary { display: inline-flex; align-items: center; gap: 7px; border: 1px solid transparent; background: linear-gradient(100deg,#12124f,#07074e); color: #fff; font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .ash-primary:hover { transform: translateY(-1px); }
         .ash-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
         @media (max-width: 720px) { .ash { padding: 18px; } }

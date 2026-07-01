@@ -495,8 +495,8 @@ export default function AdminFlaggedMessages() {
         .afm-rules-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
         .afm-rules-head h2 { display: flex; align-items: center; gap: 9px; font-size: 1.2rem; color: #07074e; margin: 0 0 6px; }
         .afm-rules-head p { color: #718096; font-size: 0.86rem; margin: 0; max-width: 620px; line-height: 1.5; }
-        .afm-btn-primary { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; background: #5b6bff; color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 0.86rem; cursor: pointer; white-space: nowrap; }
-        .afm-btn-primary:hover { background: #4453e6; }
+        .afm-btn-primary { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; background: linear-gradient(100deg,#12124f,#07074e); color: #fff; border: none; border-radius: 10px; font-weight: 600; font-size: 0.86rem; cursor: pointer; white-space: nowrap; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
+        .afm-btn-primary:hover { background: #2e2e94; }
         .afm-icon-btn { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; }
         .afm-icon-btn:hover { color: #475569; }
 

@@ -672,11 +672,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       <div className="cpm-vid-item" key={i}>
                         <VideoTile url={v} />
                         <div className="cpm-vid-cap">
-                          <span className="cpm-vid-cat">{hlCategory}</span>
-                          <div className="cpm-vid-pd">
-                            <span><strong>{hlPrice}</strong><label>Price</label></span>
-                            <span><strong>{hlDelivery}</strong><label>Delivered in</label></span>
+                          <div className="cpm-vid-catrow">
+                            <span className="cpm-vid-cat">{hlCategory}</span>
+                            <span className="cpm-vid-del"><label>Delivered in</label><strong>{hlDelivery}</strong></span>
                           </div>
+                          <div className="cpm-vid-price"><label>Price</label><strong>{hlPrice}</strong></div>
                         </div>
                       </div>
                     ))}
@@ -771,18 +771,18 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-ov{position:fixed;inset:0;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);z-index:1400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto}
         .cpm{position:relative;width:min(980px,100%);background:#fff;border-radius:22px;box-shadow:0 30px 70px rgba(15,22,58,.4);overflow:hidden}
         .cpm-page .cpm{width:100%;max-width:none;margin:0;box-shadow:none;border:none;border-radius:0}
-        .cpm-banner{position:relative;height:190px;background:linear-gradient(120deg,#5b6bff,#8b5cf6 55%,#4452f0);background-size:cover;background-position:center}
+        .cpm-banner{position:relative;height:190px;background:linear-gradient(120deg,#5b6bff,#23236a 55%,#4452f0);background-size:cover;background-position:center}
         .cpm-x,.cpm-banner-back{position:absolute;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:#15163a;cursor:pointer;display:grid;place-items:center;z-index:2;box-shadow:0 4px 14px rgba(15,22,58,.25)}
         .cpm-x{top:16px;right:16px}
         .cpm-banner-back{top:16px;left:16px}
         .cpm-phead{position:relative;padding:0 28px 20px}
         .cpm-avatar-wrap{position:relative;width:108px;height:108px;margin-top:-54px}
-        .cpm-avatar-lg{box-sizing:border-box;display:grid;place-items:center;width:108px;height:108px;border-radius:50%;border:4px solid #fff;overflow:hidden;background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800;font-size:38px;box-shadow:0 8px 22px -8px rgba(15,22,58,.4)}
+        .cpm-avatar-lg{box-sizing:border-box;display:grid;place-items:center;width:108px;height:108px;border-radius:50%;border:4px solid #fff;overflow:hidden;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:38px;box-shadow:0 8px 22px -8px rgba(15,22,58,.4)}
         .cpm-avatar-lg img{width:100%;height:100%;object-fit:cover}
         .cpm-actions{position:absolute;right:28px;top:122px;display:flex;align-items:center;gap:10px}
         .cpm-msg{display:inline-flex;align-items:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-msg:hover{filter:brightness(1.12)}
-        .cpm-brief-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(68,82,240,.7)}
+        .cpm-brief-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-brief-btn:hover{transform:translateY(-1px)}
         .cpm-save{width:44px;height:44px;border-radius:50%;border:1px solid #e6e8f3;background:#fff;color:#585c7e;cursor:pointer;display:grid;place-items:center}
         .cpm-save:hover{border-color:#cdd4ff;color:#4452f0}
@@ -800,7 +800,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         @media (max-width:520px){.cpm-highlights{grid-template-columns:1fr 1fr}}
         .cpm-lvl{padding:2px 10px;border-radius:20px;color:#fff!important;font-size:13px!important}
-        .cpm-lvl.elite{background:linear-gradient(135deg,#8b5cf6,#5b6bff)}
+        .cpm-lvl.elite{background:linear-gradient(135deg,#23236a,#5b6bff)}
         .cpm-lvl.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
         .cpm-lvl.l1{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
         .cpm-lvl.verified{background:linear-gradient(135deg,#2bd47e,#15a35b)}
@@ -832,7 +832,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-rev-main{flex:1;min-width:0}
         .cpm-rev-media{flex:none}
         .cpm-rev-who{display:flex;align-items:center;gap:10px}
-        .cpm-rev-ava{width:38px;height:38px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800;font-size:15px}
+        .cpm-rev-ava{width:38px;height:38px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:15px}
         .cpm-rev-ava img{width:100%;height:100%;object-fit:cover}
         .cpm-rev-who strong{font-size:14.5px;color:#15163a}
         .cpm-rev-meta{display:flex;align-items:center;gap:6px;margin-top:10px;color:#9296ba;font-size:12.5px}
@@ -879,6 +879,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-vid-pd strong{color:#07074e;font-size:13.5px;font-weight:800;white-space:nowrap}
         .cpm-vid-pd label{color:#9296ba;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
         .cpm-vid-pd span:last-child{text-align:right;align-items:flex-end}
+        /* Videos tab caption: category + delivered on one line, price below */
+        .cpm-vid-catrow{display:flex;align-items:center;justify-content:flex-start;gap:12px;flex-wrap:wrap;margin-top:8px}
+        .cpm-vid-del{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
+        .cpm-vid-price{display:flex;flex-direction:column;margin-top:8px}
+        .cpm-vid-del label,.cpm-vid-price label{color:#9296ba;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+        .cpm-vid-del strong,.cpm-vid-price strong{color:#07074e;font-size:13.5px;font-weight:800;white-space:nowrap}
         .cpm-vid video,.cpm-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         .cpm-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#5b6bff;pointer-events:none}
         .cpm-empty{text-align:center;color:#9296ba;padding:30px 0;font-size:14px}
@@ -940,7 +946,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-foot-text span{font-size:22px}
         .cpm-foot-text strong{display:block;color:#15163a;font-size:15px}
         .cpm-foot-text p{margin:2px 0 0;color:#585c7e;font-size:12.5px}
-        .cpm-begin{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
+        .cpm-begin{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-begin:hover{filter:brightness(1.06)}
         @media(max-width:640px){
           .cpm-actions{position:static;margin-top:12px}

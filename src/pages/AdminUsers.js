@@ -544,8 +544,8 @@ export default function AdminUsers() {
         .au-btn-ban:hover { background: #fecaca; }
         .au-btn-unban { background: #dcfce7; color: #166534; }
         .au-btn-unban:hover { background: #bbf7d0; }
-        .au-btn-primary { background: #5b6bff; color: white; padding: 10px 18px; font-size: 0.9rem; }
-        .au-btn-primary:hover { background: #4452f0; }
+        .au-btn-primary { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; padding: 10px 18px; font-size: 0.9rem; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
+        .au-btn-primary:hover { background: #2e2e94; }
         .au-btn-secondary { background: #e2e8f0; color: #4a5568; padding: 10px 18px; font-size: 0.9rem; }
         .au-btn-secondary:hover { background: #cbd5e0; }
 

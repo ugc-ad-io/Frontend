@@ -52,7 +52,7 @@
   height: 22px;
   margin-left: auto;
   border-radius: 999px;
-  background: #7387FF;
+  background: #07074e;
   color: white;
   font-size: 12px;
   line-height: 1;
@@ -100,7 +100,7 @@
   border-radius: 999px;
   background: white;
   color: #9F9FD1;
-  box-shadow: 0 8px 24px rgba(115, 135, 255, 0.14);
+  box-shadow: 0 8px 24px rgba(7, 7, 78, 0.14);
 }
 
 .pcd-business-header-search input {
@@ -263,13 +263,13 @@
 }
 
 .msg-filters button:hover {
-  border-color: #7387FF;
+  border-color: #07074e;
   background: #faf9fc;
-  color: #7387FF;
+  color: #07074e;
 }
 
 .msg-filters button.is-active {
-  background: #7387FF;
+  background: #07074e;
   color: #fff;
   border-color: transparent;
   font-weight: 400;
@@ -408,14 +408,14 @@
 .msg-deal-status {
   display: inline-block;
   margin-top: 6px;
-  color: #7387FF;
+  color: #07074e;
   font-size: 11px;
   font-weight: 400;
   text-transform: capitalize;
 }
 
 .msg-badge {
-  background: #7387FF;
+  background: #07074e;
   color: #fff;
   border-radius: 50%;
   width: 26px;
@@ -471,8 +471,8 @@
   display: grid;
   place-items: center;
   background: #ffffff;
-  color: #7387FF;
-  box-shadow: 0 12px 30px rgba(115, 135, 255, 0.18);
+  color: #07074e;
+  box-shadow: 0 12px 30px rgba(7, 7, 78, 0.18);
   margin-bottom: 22px;
 }
 
@@ -728,7 +728,7 @@
   gap: 10px;
   background-color: #f7f8fc;
   background-image:
-    radial-gradient(rgba(115, 135, 255, 0.06) 1px, transparent 1px);
+    radial-gradient(rgba(7, 7, 78, 0.06) 1px, transparent 1px);
   background-size: 22px 22px;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
@@ -866,18 +866,18 @@
   padding: 8px 12px;
   border-radius: 999px;
   background: #fff;
-  color: #7387FF;
+  color: #07074e;
   font-size: 12px;
   font-weight: 400;
-  border: 1px solid rgba(115, 135, 255, 0.2);
+  border: 1px solid rgba(7, 7, 78, 0.2);
 }
 
 .msg-action-card {
   width: min(520px, 78%);
   align-self: flex-start;
   background: #fff;
-  border: 1px solid rgba(115, 135, 255, 0.22);
-  border-left: 4px solid #7387FF;
+  border: 1px solid rgba(7, 7, 78, 0.22);
+  border-left: 4px solid #07074e;
   border-radius: 16px;
   padding: 14px;
   box-shadow: 0 8px 18px rgba(7, 7, 78, 0.06);
@@ -900,7 +900,7 @@
   height: 32px;
   border-radius: 10px;
   background: #eef0ff;
-  color: #7387FF;
+  color: #07074e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -927,7 +927,7 @@
   padding: 5px 9px;
   border-radius: 999px;
   background: #f5f4ff;
-  color: #7387FF;
+  color: #07074e;
   font-size: 11px;
   font-weight: 400;
   text-transform: uppercase;
@@ -967,7 +967,7 @@
 .msg-action-card-actions button {
   border: none;
   border-radius: 10px;
-  background: #7387FF;
+  background: #07074e;
   color: #fff;
   padding: 8px 12px;
   font-weight: 400;
@@ -998,7 +998,7 @@
   padding: 16px;
   border-radius: 20px;
   background: #fff;
-  border: 1px solid rgba(115, 135, 255, 0.16);
+  border: 1px solid rgba(7, 7, 78, 0.16);
   box-shadow: 0 14px 32px rgba(7, 7, 78, 0.1);
   flex-shrink: 0;
   max-height: min(430px, 48vh);
@@ -1102,8 +1102,8 @@
 .msg-action-composer-grid input:focus,
 .msg-action-composer-grid select:focus,
 .msg-action-composer-grid textarea:focus {
-  border-color: #7387FF;
-  box-shadow: 0 0 0 3px rgba(115, 135, 255, 0.12);
+  border-color: #07074e;
+  box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.12);
 }
 
 .msg-action-composer-grid label:has(textarea),
@@ -1136,22 +1136,22 @@
 }
 
 .msg-action-composer-actions button:last-child {
-  background: #7387FF;
+  background: #07074e;
   color: #fff;
-  box-shadow: 0 8px 18px rgba(115, 135, 255, 0.22);
+  box-shadow: 0 8px 18px rgba(7, 7, 78, 0.22);
 }
 
 .msg-system-pill {
   text-align: center;
-  background: rgba(115, 135, 255, 0.08);
+  background: rgba(7, 7, 78, 0.08);
   border-radius: 12px;
   padding: 14px 24px;
   font-size: 0.85rem;
-  color: #7387FF;
+  color: #07074e;
   margin: 16px auto;
   align-self: center;
   max-width: 85%;
-  border: 1px solid rgba(115, 135, 255, 0.15);
+  border: 1px solid rgba(7, 7, 78, 0.15);
   font-weight: 400;
   font-family: var(--font-body);
 }
@@ -1189,8 +1189,8 @@
 
 .msg-quick-chips button:hover {
   background: #f5f4ff;
-  border-color: #7387FF;
-  color: #7387FF;
+  border-color: #07074e;
+  color: #07074e;
   transform: translateY(-2px);
 }
 
@@ -1261,7 +1261,7 @@
   padding: 7px 10px;
   border-radius: 999px;
   background: #fff;
-  border: 1px solid rgba(115, 135, 255, 0.2);
+  border: 1px solid rgba(7, 7, 78, 0.2);
   color: #07074E;
   font-size: 12px;
   font-weight: 400;
@@ -1295,7 +1295,7 @@
 }
 
 .msg-input-icon:hover {
-  color: #7387FF;
+  color: #07074e;
   transform: scale(1.1);
 }
 
@@ -1328,7 +1328,7 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  background: #7387FF;
+  background: #07074e;
   color: #fff;
   border: none;
   border-radius: 50%;
@@ -1340,7 +1340,7 @@
   font-weight: 400;
   flex-shrink: 0;
   font-family: var(--font-body);
-  box-shadow: 0 4px 12px rgba(115, 135, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(7, 7, 78, 0.3);
 }
 
 .msg-send:hover:not(:disabled) {

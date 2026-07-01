@@ -135,7 +135,7 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           .rrm-time{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
           .rrm-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #eef0f6}
           .rrm-cancel{border:1px solid #e6e8f3;background:#fff;color:#15163a;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
-          .rrm-submit{border:none;background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
+          .rrm-submit{border:none;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
           .rrm-submit:disabled{opacity:.5;cursor:not-allowed}
         `}</style>
       </div>

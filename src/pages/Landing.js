@@ -689,7 +689,7 @@ const showcaseVideos = [
     brand: 'NestHome',        creator: 'Olivia',  logoBg: 'linear-gradient(135deg, #7c2d12, #fb7185)', logoText: 'NH', tier: 'PRO', rating: 4.9 },
   { id: 14, industryId: 'gaming', label: 'Gaming',           isVideo: true,
     src: '/home/video_24.mp4',
-    brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #8b5cf6)', logoText: 'PV', tier: 'ELITE', rating: 4.8 },
+    brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #23236a)', logoText: 'PV', tier: 'ELITE', rating: 4.8 },
   { id: 15, industryId: 'charity', label: 'Charity',         isVideo: true,
     src: '/home/video_25.mp4',
     brand: 'CareCircle',      creator: 'Mia',     logoBg: 'linear-gradient(135deg, #831843, #ec4899)', logoText: 'CC', tier: 'RISING', rating: 4.9 },
@@ -1572,8 +1572,8 @@ export default function Landing() {
               <br />
               Unlock serious growth with{' '}
               <br className="lp-hero__sub-mbr" />
-              <span style={{ color: '#7387FF', fontWeight: 600 }}>
-                <span style={{ whiteSpace: 'nowrap', color: '#7387FF' }}>high-performing UGC ads</span>
+              <span style={{ color: '#07074e', fontWeight: 600 }}>
+                <span style={{ whiteSpace: 'nowrap', color: '#07074e' }}>high-performing UGC ads</span>
               </span>.
             </span>
           </motion.p>
@@ -2696,7 +2696,7 @@ export default function Landing() {
           --lp-purple-300: #8888A0;
           --lp-purple-500: #3A3A66;
           --lp-purple-600: #1F1F4E;
-          --lp-purple-700: #7387FF;
+          --lp-purple-700: #07074e;
           --lp-purple-900: #050538;
           --lp-ink:        #0A0A0A;
           --lp-text:       #ffffff;
@@ -2761,7 +2761,7 @@ export default function Landing() {
           opacity: 0.5;
         }
         .lp-root[data-theme="light"] .lp-bg-blob {
-          background: radial-gradient(circle, rgba(115, 135, 255, 0.3) 0%, rgba(115, 135, 255, 0) 58%);
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.3) 0%, rgba(7, 7, 78, 0) 58%);
           opacity: 0.4;
         }
         .lp-bg-blob--1 { width: 480px; height: 480px; top: 10%; left: 15%; }
@@ -2867,7 +2867,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.95rem;
           font-weight: 600;
-          color: #7387FF;
+          color: #07074e;
           text-decoration: none;
           cursor: pointer;
           transition: opacity 0.2s ease;
@@ -2912,8 +2912,8 @@ export default function Landing() {
         .lp-root .lp-btn-signup {
           padding: 8px 22px;
           border-radius: 10px;
-          border: 1px solid #7387FF;
-          background: #7387FF;
+          border: 1px solid #07074e;
+          background: #07074e;
           color: #fff;
           font-family: var(--font-body);
           font-weight: 600;
@@ -2921,7 +2921,7 @@ export default function Landing() {
           cursor: pointer;
           transition: all 0.2s ease;
         }
-        .lp-root .lp-btn-signup:hover { background: #7387FF; border-color: #7387FF; }
+        .lp-root .lp-btn-signup:hover { background: #07074e; border-color: #07074e; }
 
         /* Mobile hamburger + slide-down menu (hidden on desktop) */
         .lp-navbar__burger {
@@ -3098,7 +3098,7 @@ export default function Landing() {
           padding: 6px 14px;
           border-radius: 100px;
           background: rgba(var(--lp-fg), 0.04);
-          border: 1px solid rgba(115, 135, 255, 0.35);   /* brand-purple tint instead of plain white */
+          border: 1px solid rgba(7, 7, 78, 0.35);   /* brand-purple tint instead of plain white */
           color: #C8F23A;
           font-family: var(--font-body);
           font-size: 0.9rem;
@@ -3141,7 +3141,7 @@ export default function Landing() {
 
         .lp-hero__mark {
           display: inline-block;
-          background: #7387FF;
+          background: #07074e;
           color: var(--lp-text);
           padding: 0.04em 0.28em;
           border-radius: 10px;
@@ -3154,8 +3154,8 @@ export default function Landing() {
           box-decoration-break: clone;
           -webkit-box-decoration-break: clone;
           background: transparent;
-          color: #7387FF;
-          -webkit-text-fill-color: #7387FF;
+          color: #07074e;
+          -webkit-text-fill-color: #07074e;
           padding: 0;
           border-radius: 0;
         }
@@ -3198,7 +3198,7 @@ export default function Landing() {
           gap: 10px;
           padding: 16px 32px;
           border-radius: 100px;
-          background: #7387FF;
+          background: #07074e;
           color: var(--lp-text);
           font-family: var(--font-body);
           font-weight: 700;
@@ -3273,7 +3273,7 @@ export default function Landing() {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #7387FF, #7387FF);
+          background: linear-gradient(135deg, #07074e, #07074e);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -3292,7 +3292,7 @@ export default function Landing() {
           border: 2px solid rgba(var(--lp-fg), 0.1);
           box-shadow:
             0 30px 70px rgba(0, 0, 0, 0.55),
-            0 0 0 1px rgba(115, 135, 255, 0.15);
+            0 0 0 1px rgba(7, 7, 78, 0.15);
           z-index: 2;
           background: #111;
         }
@@ -3428,8 +3428,8 @@ export default function Landing() {
           transition: color 0.3s ease;
         }
         .lp-brand-item:hover .lp-brand-item__icon {
-          background: rgba(115, 135, 255, 0.15);
-          border-color: rgba(115, 135, 255, 0.35);
+          background: rgba(7, 7, 78, 0.15);
+          border-color: rgba(7, 7, 78, 0.35);
         }
         .lp-brand-item:hover .lp-brand-item__name { color: #ffffff; }
 
@@ -3444,9 +3444,9 @@ export default function Landing() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0 0 2px rgba(115, 135, 255, 0.55),
-                      0 0 28px rgba(115, 135, 255, 0.6),
-                      0 0 120px rgba(115, 135, 255, 0.4);
+          box-shadow: 0 0 0 2px rgba(7, 7, 78, 0.55),
+                      0 0 28px rgba(7, 7, 78, 0.6),
+                      0 0 120px rgba(7, 7, 78, 0.4);
           position: relative;
           z-index: 4;
         }
@@ -3681,9 +3681,9 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-problem__heading--accent {
-          color: #7387FF;
+          color: #07074e;
           background: none;
-          -webkit-text-fill-color: #7387FF;
+          -webkit-text-fill-color: #07074e;
         }
         .lp-problem__subtitle {
           font-family: var(--font-body);
@@ -3769,7 +3769,7 @@ export default function Landing() {
         .lp-stamp--slack {
           top: 32%;
           left: 36%;
-          color: #7387FF;
+          color: #07074e;
           transform: rotate(-4deg);
         }
         .lp-stamp--wa {
@@ -4057,15 +4057,15 @@ export default function Landing() {
         }
         /* Whole heading white on the dark stage (accent included). */
         .lp-showcase__heading--accent {
-          color: #7387FF;
+          color: #07074e;
           background: none;
-          -webkit-text-fill-color: #7387FF;
+          -webkit-text-fill-color: #07074e;
         }
         /* Light theme: white would vanish on the lavender bg, so keep it readable. */
         .lp-root[data-theme="light"] .lp-showcase__heading { color: var(--lp-ink); }
         .lp-root[data-theme="light"] .lp-showcase__heading--accent {
-          color: #7387FF;
-          -webkit-text-fill-color: #7387FF;
+          color: #07074e;
+          -webkit-text-fill-color: #07074e;
         }
         .lp-showcase__subtitle {
           font-family: var(--font-body);
@@ -4252,7 +4252,7 @@ export default function Landing() {
           box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
         .lp-showcase-card__tier--elite {
-          background: linear-gradient(135deg, #7387FF, #4338ca);
+          background: linear-gradient(135deg, #07074e, #4338ca);
         }
         .lp-showcase-card__tier--pro {
           background: linear-gradient(135deg, #2563eb, #1e3a8a);
@@ -4304,7 +4304,7 @@ export default function Landing() {
           color: var(--lp-text);
         }
         .lp-achieve__title em { font-style: italic; }
-        .lp-achieve__title .lp-achieve__hl { color: #7387FF !important; }
+        .lp-achieve__title .lp-achieve__hl { color: #07074e !important; }
         /* Desktop: "Creators" is highlighted; "Instantly" stays upright/default. */
         .lp-achieve__title .lp-achieve__word--instantly {
           color: inherit !important;
@@ -4317,7 +4317,7 @@ export default function Landing() {
             font-style: normal;
           }
           .lp-achieve__title .lp-achieve__word--instantly {
-            color: #7387FF !important;
+            color: #07074e !important;
             font-style: italic;
           }
         }
@@ -4491,10 +4491,10 @@ export default function Landing() {
         .lp-achieve-card.is-active {
           box-shadow: 0 32px 70px rgba(0, 0, 0, 0.6);
         }
-        .lp-achieve-card.is-active .lp-achieve-card__icon { color: #7387FF; }
-        .lp-achieve-card.is-active .lp-achieve-card__num { color: #7387FF; }
-        .lp-achieve-card.is-active .lp-achieve-card__title { color: #7387FF; }
-        .lp-achieve-card.is-active .lp-achieve-card__title { border-bottom-color: rgba(115, 135, 255, 0.4); }
+        .lp-achieve-card.is-active .lp-achieve-card__icon { color: #07074e; }
+        .lp-achieve-card.is-active .lp-achieve-card__num { color: #07074e; }
+        .lp-achieve-card.is-active .lp-achieve-card__title { color: #07074e; }
+        .lp-achieve-card.is-active .lp-achieve-card__title { border-bottom-color: rgba(7, 7, 78, 0.4); }
 
         /* Light theme surfaces. */
         .lp-root[data-theme="light"] .lp-achieve-card {
@@ -4581,7 +4581,7 @@ export default function Landing() {
         }
         /* the line continues across the panel — a brighter purple so it reads on it */
         .lp-vs__row--head .lp-vs__cell--us {
-          border-bottom: 1px solid rgba(115, 135, 255, 0.28);
+          border-bottom: 1px solid rgba(7, 7, 78, 0.28);
         }
 
         /* ── Featured UGCad.io column — brand purple panel down the right side ──
@@ -4591,17 +4591,17 @@ export default function Landing() {
           position: relative;
           padding: 18px 28px;
           background: rgba(48, 41, 80, 0.55);
-          border-left: 1px solid rgba(115, 135, 255, 0.22);
-          border-right: 1px solid rgba(115, 135, 255, 0.22);
+          border-left: 1px solid rgba(7, 7, 78, 0.22);
+          border-right: 1px solid rgba(7, 7, 78, 0.22);
         }
         .lp-vs__row--head .lp-vs__cell--us {
-          border-top: 1px solid rgba(115, 135, 255, 0.30);
+          border-top: 1px solid rgba(7, 7, 78, 0.30);
           border-top-left-radius: 22px;
           border-top-right-radius: 22px;
           padding-top: 26px;
         }
         .lp-vs__row:last-child .lp-vs__cell--us {
-          border-bottom: 1px solid rgba(115, 135, 255, 0.30);
+          border-bottom: 1px solid rgba(7, 7, 78, 0.30);
           border-bottom-left-radius: 22px;
           border-bottom-right-radius: 22px;
           padding-bottom: 26px;
@@ -4628,8 +4628,8 @@ export default function Landing() {
           fill: rgba(var(--lp-fg), 0.16);
         }
         .lp-vs__star--us {
-          color: #7387FF;
-          fill: rgba(115, 135, 255, 0.9);
+          color: #07074e;
+          fill: rgba(7, 7, 78, 0.9);
         }
         /* value text */
         .lp-vs__pill {
@@ -4658,7 +4658,7 @@ export default function Landing() {
         /* VS in brand purple + italic. Selector is specific enough (0,2,1) to beat the
            global ".lp-root span { color }" rule that was overriding it. */
         .lp-vs__heading span.lp-vs__heading-vs {
-          color: #7387FF;
+          color: #07074e;
           font-style: italic;
         }
         /* ── Comparison: mobile compare table (hidden on desktop) ──────────────
@@ -4704,8 +4704,8 @@ export default function Landing() {
         }
         .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.6); }
         .lp-vs__th--ugc {
-          color: #7387FF;
-          background: rgba(115, 135, 255, 0.1);
+          color: #07074e;
+          background: rgba(7, 7, 78, 0.1);
         }
         .lp-vs__th--ugc svg { vertical-align: -1px; margin-right: 2px; }
         .lp-vs__th--others { color: rgba(var(--lp-fg), 0.25); }
@@ -4723,7 +4723,7 @@ export default function Landing() {
         }
         .lp-vs__td--ugc {
           color: rgba(var(--lp-fg), 0.85);
-          background: rgba(115, 135, 255, 0.05);
+          background: rgba(7, 7, 78, 0.05);
         }
         .lp-vs__td--others { color: rgba(var(--lp-fg), 0.28); }
         .lp-vs__ctable tr:last-child .lp-vs__td { border-bottom: none; }
@@ -4736,7 +4736,7 @@ export default function Landing() {
           /* The global ".lp-root td/th { color: var(--lp-text) }" rule (0,1,1) beats the
              single-class colours above, so re-apply them at higher specificity here. */
           .lp-vs__mobile .lp-vs__th--feature { color: rgba(var(--lp-fg), 0.8); }
-          .lp-vs__mobile .lp-vs__th--ugc { color: #7387FF; }
+          .lp-vs__mobile .lp-vs__th--ugc { color: #07074e; }
           .lp-vs__mobile .lp-vs__th--others { color: rgba(var(--lp-fg), 0.6); }
           .lp-vs__mobile .lp-vs__td--feature { color: rgba(var(--lp-fg), 0.72); }
           .lp-vs__mobile .lp-vs__td--ugc { color: rgba(var(--lp-fg), 0.85); }
@@ -4767,9 +4767,9 @@ export default function Landing() {
           margin-right: auto;
         }
         .lp-compare__heading--accent {
-          color: #7387FF;
+          color: #07074e;
           background: none;
-          -webkit-text-fill-color: #7387FF;
+          -webkit-text-fill-color: #07074e;
         }
 
         .lp-compare__table {
@@ -4975,8 +4975,8 @@ export default function Landing() {
           box-shadow: 0 12px 30px rgba(7,7,78,0.08);
         }
         .lp-root[data-theme="light"] .lp-card:hover {
-          border-color: rgba(115,135,255,0.55);
-          box-shadow: 0 18px 44px rgba(115,135,255,0.16);
+          border-color: rgba(7,7,78,0.55);
+          box-shadow: 0 18px 44px rgba(7,7,78,0.16);
         }
         .lp-root[data-theme="light"] .lp-card__num { color: rgba(28,27,75,0.22); }
 
@@ -5095,7 +5095,7 @@ export default function Landing() {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           box-shadow: 0 0 0 0 rgba(7, 7, 78, 0.55);
           animation: hookPulse 1.8s ease-out infinite;
           flex-shrink: 0;
@@ -5122,12 +5122,12 @@ export default function Landing() {
           left: -4%;
           right: -4%;
           height: 4px;
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           transform: rotate(-3deg);
           border-radius: 4px;
         }
         .lp-cta__heading--accent {
-          color: #7387FF;
+          color: #07074e;
           font-style: italic;
           position: relative;
           padding: 0 4px;
@@ -5171,7 +5171,7 @@ export default function Landing() {
           font-family: var(--font-head);
           font-size: 2.2rem;
           font-weight: var(--fw-head);
-          color: #7387FF;
+          color: #07074e;
           line-height: 1;
         }
         .lp-stat__label {
@@ -5223,7 +5223,7 @@ export default function Landing() {
         .lp-root .lp-btn-join { color: #ffffff; }
         .lp-btn-join:hover {
           transform: translateY(-3px);
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           box-shadow: 0 18px 46px rgba(7, 7, 78, 0.48);
         }
 
@@ -5253,8 +5253,8 @@ export default function Landing() {
         .lp-root[data-theme="light"] .lp-btn-outline:hover { color: #07074e; }
         .lp-btn-outline:hover {
           background: rgba(var(--lp-fg), 0.06);
-          border-color: #7387FF;
-          color: #7387FF;
+          border-color: #07074e;
+          color: #07074e;
         }
 
         .lp-cta__proof {
@@ -5352,8 +5352,8 @@ export default function Landing() {
              space above the title (previously empty). */
           padding: 100px 6% 48px;
           /* subtle radial purple glow behind the hero copy */
-          background: radial-gradient(circle at 50% 36%, rgba(115, 135, 255, 0.16),
-                      rgba(115, 135, 255, 0) 60%), var(--lp-page-bg);
+          background: radial-gradient(circle at 50% 36%, rgba(7, 7, 78, 0.16),
+                      rgba(7, 7, 78, 0) 60%), var(--lp-page-bg);
         }
         .lp-hero--static .lp-hero__inner {
           min-height: 0;
@@ -5671,7 +5671,7 @@ export default function Landing() {
           transition: background 0.2s ease, border-color 0.2s ease;
         }
         .lp-faq__item:hover { background: rgba(var(--lp-fg), 0.06); }
-        .lp-faq__item.is-open { border-color: rgba(115, 135, 255, 0.30); }
+        .lp-faq__item.is-open { border-color: rgba(7, 7, 78, 0.30); }
         .lp-faq__q {
           width: 100%;
           display: flex;
@@ -5695,7 +5695,7 @@ export default function Landing() {
           color: rgba(var(--lp-fg), 0.55);
           transition: transform 0.3s ease, color 0.3s ease;
         }
-        .lp-faq__item.is-open .lp-faq__chevron { transform: rotate(180deg); color: #7387FF; }
+        .lp-faq__item.is-open .lp-faq__chevron { transform: rotate(180deg); color: #07074e; }
         .lp-faq__answer-wrap {
           display: grid;
           grid-template-rows: 0fr;
@@ -5788,7 +5788,7 @@ export default function Landing() {
           max-width: 820px;
         }
         .lp-footer__statement-accent {
-          color: #7387FF;
+          color: #07074e;
           font-style: italic;
           position: relative;
         }
@@ -5852,9 +5852,9 @@ export default function Landing() {
           text-decoration: none;
         }
         .lp-footer__social-btn:hover {
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           color: var(--lp-text);
-          border-color: #7387FF;
+          border-color: #07074e;
           transform: translateY(-2px);
         }
 
@@ -5905,7 +5905,7 @@ export default function Landing() {
           font-weight: 500;
           margin-top: 4px;
         }
-        .lp-footer__required { color: #7387FF; }
+        .lp-footer__required { color: #07074e; }
 
         .lp-footer__input {
           padding: 12px 14px;
@@ -5919,7 +5919,7 @@ export default function Landing() {
         }
         .lp-footer__input:focus {
           outline: none;
-          border-color: #7387FF;
+          border-color: #07074e;
           box-shadow: 0 0 0 3px rgba(7,7,78,0.12);
         }
 
@@ -5937,7 +5937,7 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-footer__subscribe:hover {
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           transform: translateY(-1px);
         }
 
@@ -5950,7 +5950,7 @@ export default function Landing() {
           max-width: 340px;
         }
         .lp-footer__link-accent {
-          color: #7387FF;
+          color: #07074e;
           text-decoration: underline;
           font-weight: 500;
         }
@@ -5988,13 +5988,13 @@ export default function Landing() {
           letter-spacing: -0.01em;
           font-weight: 500;
         }
-        .lp-footer__list a:hover { color: #7387FF; }
+        .lp-footer__list a:hover { color: #07074e; }
 
         .lp-footer__badge {
           display: inline-block;
           padding: 2px 10px;
           background: linear-gradient(135deg, #BBBBC8, #8888A0);
-          color: #7387FF;
+          color: #07074e;
           border-radius: 100px;
           font-size: 0.7rem;
           font-weight: 600;
@@ -6022,7 +6022,7 @@ export default function Landing() {
           font-weight: 500;
           transition: color 0.18s ease;
         }
-        .lp-footer__social a:hover { color: #7387FF; }
+        .lp-footer__social a:hover { color: #07074e; }
         .lp-footer__social svg { color: var(--lp-text-muted); }
 
         .lp-footer__contact {
@@ -6081,9 +6081,9 @@ export default function Landing() {
           transition: all 0.22s ease;
         }
         .lp-footer__top-link:hover {
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           color: var(--lp-text);
-          border-color: #7387FF;
+          border-color: #07074e;
         }
 
         @media (max-width: 1100px) {
@@ -6184,7 +6184,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
-          color: #7387FF;
+          color: #07074e;
           letter-spacing: 0.01em;
           margin-bottom: 26px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.10);
@@ -6193,7 +6193,7 @@ export default function Landing() {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           box-shadow: 0 0 0 0 rgba(7, 7, 78, 0.55);
           animation: hookPulse 1.8s ease-out infinite;
           flex-shrink: 0;
@@ -6221,7 +6221,7 @@ export default function Landing() {
           }
         }
         .lp-hook__heading--accent {
-          color: #7387FF;
+          color: #07074e;
         }
 
         .lp-hook__quote-wrap {
@@ -6265,7 +6265,7 @@ export default function Landing() {
           margin: 0;
         }
         .lp-hook__quote-text em {
-          color: #7387FF;
+          color: #07074e;
           font-weight: 600;
           font-style: italic;
         }
@@ -6276,7 +6276,7 @@ export default function Landing() {
           border-color: rgba(28,27,75,0.10);
           box-shadow: 0 18px 46px rgba(7,7,78,0.10);
         }
-        .lp-root[data-theme="light"] .lp-hook__quote-text em { color: #7387FF; }
+        .lp-root[data-theme="light"] .lp-hook__quote-text em { color: #07074e; }
 
         .lp-hook__cta-row {
           display: flex;
@@ -6295,7 +6295,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 1.05rem;
           font-weight: 600;
-          color: #7387FF;
+          color: #07074e;
           margin: 0;
           letter-spacing: -0.02em;
           white-space: nowrap;
@@ -6319,7 +6319,7 @@ export default function Landing() {
           font-size: 0.78rem;
           font-weight: 700;
           letter-spacing: 0.18em;
-          color: #7387FF;
+          color: #07074e;
           text-transform: uppercase;
           padding: 6px 16px;
           background: var(--lp-purple-50);
@@ -6391,7 +6391,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 700;
-          color: #7387FF;
+          color: #07074e;
           letter-spacing: 0.08em;
           text-transform: uppercase;
           padding: 5px 12px;
@@ -6460,14 +6460,14 @@ export default function Landing() {
           height: 36px;
           border-radius: 50%;
           background: rgba(var(--lp-fg),0.06);
-          color: #7387FF;
+          color: #07074e;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           transition: background 0.3s ease, transform 0.3s ease;
         }
         .lp-step-card:hover .lp-step-card__arrow {
-          background: rgba(115, 135, 255, 0.15);
+          background: rgba(7, 7, 78, 0.15);
           color: var(--lp-text);
           transform: translateX(4px);
         }
@@ -6538,11 +6538,11 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
-          color: #7387FF;
+          color: #07074e;
           margin-bottom: 22px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
         }
-        .lp-audit__pill svg { color: #7387FF; }
+        .lp-audit__pill svg { color: #07074e; }
 
         .lp-audit__heading {
           font-family: var(--font-head);
@@ -6554,7 +6554,7 @@ export default function Landing() {
           margin: 0 0 14px 0;
         }
         .lp-audit__heading--accent {
-          color: #7387FF;
+          color: #07074e;
           font-style: italic;
           position: relative;
         }
@@ -6596,7 +6596,7 @@ export default function Landing() {
           position: absolute;
           width: 100%;
           max-width: 290px;
-          background: #7387FF;
+          background: #07074e;
           border: 1px solid rgba(var(--lp-fg), 0.2);
           border-radius: 22px;
           padding: 36px 30px 26px;
@@ -6637,7 +6637,7 @@ export default function Landing() {
           color: var(--lp-text);
           letter-spacing: 0.1em;
           padding: 5px 12px;
-          background: #7387FF;
+          background: #07074e;
           border: 1px solid rgba(var(--lp-fg), 0.6);
           border-radius: 100px;
         }
@@ -6825,7 +6825,7 @@ export default function Landing() {
           font-family: var(--font-head);
           font-size: clamp(2.6rem, 5.2vw, 4.4rem);
           font-weight: var(--fw-head);
-          color: #7387FF;
+          color: #07074e;
           letter-spacing: -0.045em;
           line-height: 1;
           display: inline-block;
@@ -6877,7 +6877,7 @@ export default function Landing() {
           height: 64px;
           margin-top: -16px;
           border-radius: 50%;
-          border: 2px solid rgba(115, 135, 255, 0.7);
+          border: 2px solid rgba(7, 7, 78, 0.7);
           color: var(--lp-ink);
           font-family: var(--font-head);
           font-size: 1.5rem;
@@ -6933,7 +6933,7 @@ export default function Landing() {
           background: #0f3a44;
         }
         .lp-root[data-theme="dark"] .lp-proof__dot--active {
-          background: #7387FF;
+          background: #07074e;
         }
 
         /* Vertical divider to the right of each stat — mobile only (revealed in the ≤900px block). */
@@ -6993,7 +6993,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           font-weight: 600;
-          color: #7387FF;
+          color: #07074e;
           margin-bottom: 22px;
           box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
         }
@@ -7008,7 +7008,7 @@ export default function Landing() {
           margin: 0 0 56px 0;
         }
         .lp-testimonial__heading--accent {
-          color: #7387FF;
+          color: #07074e;
           font-style: italic;
           position: relative;
         }
@@ -7078,7 +7078,7 @@ export default function Landing() {
           transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
         }
         .lp-testimonial__arrow:hover {
-          background: #7387FF;
+          background: #07074e;
           color: #fff;
           transform: translateY(-50%) scale(1.08);
         }
@@ -7176,7 +7176,7 @@ export default function Landing() {
           font-size: 1.18rem;
         }
         .lp-tcard__quote em {
-          color: #7387FF;
+          color: #07074e;
           font-weight: 600;
           font-style: italic;
         }
@@ -7247,7 +7247,7 @@ export default function Landing() {
           font-family: var(--font-head);
           font-size: 1.05rem;
           font-weight: var(--fw-head);
-          color: #7387FF;
+          color: #07074e;
           letter-spacing: -0.02em;
           line-height: 1;
         }
@@ -7268,14 +7268,14 @@ export default function Landing() {
         }
         .lp-root[data-theme="light"] .lp-tcard--featured {
           background: linear-gradient(180deg, #ffffff 0%, #f3f1fe 100%);
-          border-color: rgba(115,135,255,0.45);
-          box-shadow: 0 22px 52px rgba(115,135,255,0.16);
+          border-color: rgba(7,7,78,0.45);
+          box-shadow: 0 22px 52px rgba(7,7,78,0.16);
         }
         .lp-root[data-theme="light"] .lp-tcard__quote em,
-        .lp-root[data-theme="light"] .lp-tcard__metric-val { color: #7387FF; }
+        .lp-root[data-theme="light"] .lp-tcard__metric-val { color: #07074e; }
         .lp-root[data-theme="light"] .lp-tcard__metric {
           background: #f1ecfe;
-          border-color: rgba(115,135,255,0.5);
+          border-color: rgba(7,7,78,0.5);
         }
 
         /* Mid-size screens: step the 5-up row down to 3 before it collapses to 1.

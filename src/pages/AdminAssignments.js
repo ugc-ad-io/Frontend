@@ -204,8 +204,8 @@ export default function AdminAssignments() {
         .aas-btn-reassign:hover { background: #fde68a; }
         .aas-btn-assign { background: #dcfce7; color: #166534; }
         .aas-btn-assign:hover { background: #bbf7d0; }
-        .aas-btn-primary { background: #5b6bff; color: white; padding: 10px 18px; font-size: 0.9rem; }
-        .aas-btn-primary:hover { background: #4452f0; }
+        .aas-btn-primary { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; padding: 10px 18px; font-size: 0.9rem; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
+        .aas-btn-primary:hover { background: #2e2e94; }
         .aas-btn-secondary { background: #e2e8f0; color: #4a5568; padding: 10px 18px; font-size: 0.9rem; }
         .aas-btn-secondary:hover { background: #cbd5e0; }
         .aas-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }

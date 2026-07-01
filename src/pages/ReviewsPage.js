@@ -8,7 +8,7 @@ import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const AVA_COLORS = ['#111827', '#ef6f6f', '#22a565', '#f0931d', '#5b6bff', '#8b5cf6', '#2f8de0'];
+const AVA_COLORS = ['#111827', '#ef6f6f', '#22a565', '#f0931d', '#5b6bff', '#23236a', '#2f8de0'];
 const avaColor = (name) => AVA_COLORS[(String(name || 'B').toUpperCase().charCodeAt(0) || 0) % AVA_COLORS.length];
 const relTime = (d) => {
   if (!d) return 'Recent';

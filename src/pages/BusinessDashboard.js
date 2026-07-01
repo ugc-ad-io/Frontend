@@ -2603,7 +2603,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border-radius: 999px;
           background: white;
           color: #9296ba;
-          box-shadow: 0 8px 24px rgba(115, 135, 255, 0.14);
+          box-shadow: 0 8px 24px rgba(7, 7, 78, 0.14);
           z-index: 20;
         }
 
@@ -2752,7 +2752,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border-radius: 10px;
           color: #5b6bff;
           background: #EEF0FF;
-          box-shadow: 0 6px 14px rgba(115, 135, 255, 0.16);
+          box-shadow: 0 6px 14px rgba(7, 7, 78, 0.16);
           flex-shrink: 0;
         }
         .metric-icon svg { width: 18px; height: 18px; }
@@ -4658,10 +4658,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .all-campaigns-section .campaign-progress-next { color: #8a8dbd; font-size: 12.5px; }
         /* primary action → indigo gradient like the rest of the app */
         .all-campaigns-section .campaign-primary-action {
-          background: linear-gradient(100deg, #5b6bff, #4452f0);
+          background: linear-gradient(100deg,#12124f,#07074e);
+          color: #fff;
           border-radius: 13px;
           font-weight: 700;
-          box-shadow: 0 12px 26px -12px rgba(68, 82, 240, 0.6);
+          box-shadow: 0 12px 26px -12px rgba(7,7,78,.7);
           transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
         .all-campaigns-section .campaign-primary-action:hover { transform: translateY(-1px); box-shadow: 0 18px 34px -12px rgba(68, 82, 240, 0.7); }
@@ -4850,9 +4851,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .cb-accept {
           min-height: 40px; padding: 0 22px;
           border: none; border-radius: 11px;
-          background: linear-gradient(100deg, #5b6bff, #6a5bff); color: #fff;
+          background: linear-gradient(100deg,#12124f,#07074e); color: #fff;
           font-weight: 700; font-size: 14px; cursor: pointer;
-          box-shadow: 0 10px 22px -10px rgba(91, 107, 255, .8); transition: .18s;
+          box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); transition: .18s;
         }
         .cb-accept:hover { transform: translateY(-1px); }
         .cb-decline {
@@ -5141,14 +5142,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         /* ── Manage Shipment table ── */
         .ship-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #e9ebf4;margin-bottom:18px;flex-wrap:wrap}
-        .ship-add{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border:none;border-radius:12px;padding:10px 18px;margin-bottom:8px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 12px 26px -12px rgba(68,82,240,.6)}
+        .ship-add{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:12px;padding:10px 18px;margin-bottom:8px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .ship-add:hover{transform:translateY(-1px)}
         .ship-tabs{display:flex;gap:24px}
         .ship-tabs button{background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;font-size:14.5px;color:#65699b;padding:0 0 12px;position:relative}
         .ship-tabs button em{color:#9296ba;font-style:normal}
         .ship-tabs button.on{color:#5b6bff}
         .ship-tabs button.on em{color:#5b6bff}
-        .ship-tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,#5b6bff,#8b5cf6)}
+        .ship-tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,#5b6bff,#23236a)}
         .ship-table-card{background:#fff;border:1px solid #e9ebf4;border-radius:16px;overflow:hidden;box-shadow:0 12px 30px -16px rgba(28,30,80,.12)}
         .ship-table{width:100%;border-collapse:collapse}
         .ship-table thead th{text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9296ba;padding:15px 20px;border-bottom:1px solid #eef0f7;background:#fbfbfe}
@@ -5453,10 +5454,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .creator-card-actions .btn-primary {
-          border: 1px solid #5b6bff;
-          background: #5b6bff;
-          color: white;
-          box-shadow: 0 8px 18px rgba(115, 135, 255, 0.2);
+          border: 1px solid #07074e;
+          background: linear-gradient(100deg,#12124f,#07074e);
+          color: #fff;
+          box-shadow: 0 12px 26px -12px rgba(7,7,78,.7);
         }
 
         .creator-directory-empty {
@@ -6357,11 +6358,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin-top: auto;
           border: 0;
           border-radius: 13px;
-          background: #5b6bff;
-          color: white;
+          background: linear-gradient(100deg,#12124f,#07074e);
+          color: #fff;
           font-weight: 400;
           cursor: pointer;
-          box-shadow: 0 12px 24px rgba(115, 135, 255, 0.25);
+          box-shadow: 0 12px 26px -12px rgba(7,7,78,.7);
         }
 
         .creator-name {

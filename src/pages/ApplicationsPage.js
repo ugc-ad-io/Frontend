@@ -11,7 +11,7 @@ const isCreatorRole = (role) => String(role || '').toLowerCase() === 'creator';
 const isBrandRole = (role) => ['business', 'brand'].includes(String(role || '').toLowerCase());
 
 const avatarColor = (name) => {
-  const palette = ['#6366f1', '#3b82f6', '#0ea5e9', '#14b8a6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const palette = ['#6366f1', '#3b82f6', '#0ea5e9', '#14b8a6', '#10b981', '#f59e0b', '#ef4444', '#23236a', '#ec4899'];
   let hash = 0;
   for (let i = 0; i < (name || '').length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   return palette[hash % palette.length];

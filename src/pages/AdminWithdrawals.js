@@ -149,8 +149,8 @@ export default function AdminWithdrawals() {
         .aw-btn-approve:hover { background: #bbf7d0; }
         .aw-btn-reject { flex: 1; background: #fee2e2; color: #991b1b; }
         .aw-btn-reject:hover { background: #fecaca; }
-        .aw-btn-export { background: #5b6bff; color: white; }
-        .aw-btn-export:hover { background: #4452f0; }
+        .aw-btn-export { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
+        .aw-btn-export:hover { background: #2e2e94; }
         @media (max-width: 720px) {
           .aw-container { padding: 20px; }
           .aw-header { flex-direction: column; align-items: stretch; }

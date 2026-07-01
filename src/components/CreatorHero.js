@@ -25,7 +25,7 @@ const CAT_CLASS = (c) => ({
  */
 const CLIP_SECONDS = 4; // only show a short 4s snippet of each reel before moving on
 
-export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, newBriefs = 0 }) {
+export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, newBriefs = 0, handle, category = 'UGC', price = 'On request', deliveryLabel = '1 day', rating = 4.9 }) {
   const navigate = useNavigate();
   const reelRef = useRef(null);
   const advancingRef = useRef(false);         // guard so one clip advances only once
@@ -148,9 +148,9 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
       <style>{`
         .chero{position:relative;display:grid;grid-template-columns:1.05fr 1fr;gap:32px;align-items:center;
           background:linear-gradient(135deg,#f3f3ff,#ececfa 60%,#f5eee9);border:1px solid #e9e7f6;border-radius:26px;
-          padding:42px 44px;overflow:hidden;box-shadow:0 30px 60px -34px rgba(67,82,196,.35)}
+          padding:42px 44px;overflow:hidden;box-shadow:0 30px 60px -34px rgba(7,7,78,.35)}
         .chero::before{content:"";position:absolute;inset:0;pointer-events:none;
-          background:radial-gradient(520px 280px at 86% -10%,rgba(115,135,255,.16),transparent 60%)}
+          background:radial-gradient(520px 280px at 86% -10%,rgba(7,7,78,.16),transparent 60%)}
         .chero-left{position:relative;z-index:1}
 
         .chero-badge{display:inline-flex;align-items:center;gap:11px;margin-bottom:18px}
@@ -210,7 +210,7 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
         .chero-deal{position:absolute;bottom:4%;right:-3%;z-index:4;display:flex;align-items:center;gap:13px;width:240px;padding:14px;border-radius:18px;
           background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.7);box-shadow:0 22px 44px -18px rgba(20,20,50,.45);
           animation:cheroFloat 5.5s ease-in-out infinite;animation-delay:-3s}
-        .chero-deal-logo{width:54px;height:54px;border-radius:12px;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#7387ff,#8b5cf6);color:#fff;font-weight:800;font-size:20px}
+        .chero-deal-logo{width:54px;height:54px;border-radius:12px;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#07074e,#23236a);color:#fff;font-weight:800;font-size:20px}
         .chero-deal-logo img{width:100%;height:100%;object-fit:cover}
         .chero-deal-info{min-width:0}
         .chero-deal-info strong{display:block;font-size:14px;color:#07074e;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

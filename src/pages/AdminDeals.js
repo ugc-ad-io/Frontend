@@ -726,7 +726,7 @@ export default function AdminDeals() {
         .adl-block select, .adl-block textarea { width: 100%; border: 1px solid #e6e8ec; border-radius: 8px; padding: 9px 12px; font-size: 0.85rem; color: #111827; margin-bottom: 10px; font-family: inherit; box-sizing: border-box; }
         .adl-block select:focus, .adl-block textarea:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,0.16); }
         .adl-primary, .adl-secondary, .adl-danger, .adl-warn-btn { display: inline-flex; align-items: center; gap: 7px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; padding: 9px 14px; cursor: pointer; border: 1px solid transparent; }
-        .adl-primary { background: linear-gradient(135deg, #5b6bff, #4452f0); color: #fff; box-shadow: 0 8px 18px -8px rgba(91,107,255,0.7); }
+        .adl-primary { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .adl-primary:hover:not(:disabled) { transform: translateY(-1px); }
         .adl-primary:disabled, .adl-secondary:disabled, .adl-danger:disabled, .adl-warn-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
         .adl-secondary { background: #fff; border-color: #e6e8ec; color: #111827; }

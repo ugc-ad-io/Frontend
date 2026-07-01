@@ -40,7 +40,7 @@ const API = `${BACKEND_URL}/api`;
 
 const STATUS_STYLES = {
   Paid: { bg: "#22C55E12", text: "#22C55E", border: "#22C55E25", icon: CheckCircle2 },
-  Processing: { bg: "#7387FF12", text: "#7387FF", border: "#7387FF25", icon: RefreshCw },
+  Processing: { bg: "#07074e12", text: "#07074e", border: "#07074e25", icon: RefreshCw },
   Disputed: { bg: "#EF444412", text: "#EF4444", border: "#EF444425", icon: XCircle },
   Pending: { bg: "#F59E0B12", text: "#F59E0B", border: "#F59E0B25", icon: AlertCircle },
 };
@@ -224,7 +224,7 @@ export default function WithdrawalPage() {
   const PAYOUT_LEVELS = [
     { level: "New", days: "12 business days", icon: CircleDot, color: "#9F9FD1", current: creatorLevel === "New" },
     { level: "Verified", days: "7 business days", icon: BadgeCheck, color: "#B7B7E6", current: creatorLevel === "Verified" },
-    { level: "L1 Rising", days: "5 business days", icon: Star, color: "#7387FF", current: creatorLevel === "L1 Rising" },
+    { level: "L1 Rising", days: "5 business days", icon: Star, color: "#07074e", current: creatorLevel === "L1 Rising" },
     { level: "L2 Pro", days: "3 business days", icon: Trophy, color: "#F59E0B", current: creatorLevel === "L2 Pro" },
     { level: "Elite", days: "48 hours", icon: Zap, color: "#22C55E", current: creatorLevel === "Elite" },
   ];
@@ -254,7 +254,7 @@ export default function WithdrawalPage() {
     <div className="flex flex-col gap-6 max-w-[1440px] mx-auto w-full pb-10 pt-2 font-sans" style={{ padding: '40px 8%' }}>
       <div className="max-w-[1440px] mx-auto w-full mb-2">
         <button
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E9EBEF] rounded-[12px] text-[#4a5568] font-semibold hover:border-[#7387FF] hover:text-[#7387FF] transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E9EBEF] rounded-[12px] text-[#4a5568] font-semibold hover:border-[#07074e] hover:text-[#07074e] transition-all"
           onClick={() => navigate(-1)}
         >
           <ArrowLeft size={18} /> Back to Dashboard
@@ -284,8 +284,8 @@ export default function WithdrawalPage() {
           value={`₹${payoutOverview.all_time_earnings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
           sub="Since Jan 2025"
           icon={BarChart3}
-          iconColor="#7387FF"
-          accent="#7387FF"
+          iconColor="#07074e"
+          accent="#07074e"
         />
         <KPICard
           label="Payout Window"
@@ -340,9 +340,9 @@ export default function WithdrawalPage() {
                         <button
                           key={s}
                           onClick={() => { setStatusFilter(s); setShowStatusDrop(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-[13px] font-medium transition-colors flex items-center gap-2.5 ${statusFilter === s ? "bg-[#7387FF]/8 text-[#7387FF] font-semibold" : "text-[#07074E] hover:bg-[#F3F3FF]"}`}
+                          className={`w-full text-left px-4 py-2.5 text-[13px] font-medium transition-colors flex items-center gap-2.5 ${statusFilter === s ? "bg-[#07074e]/8 text-[#07074e] font-semibold" : "text-[#07074E] hover:bg-[#F3F3FF]"}`}
                         >
-                          {statusFilter === s && <div className="w-1.5 h-1.5 rounded-full bg-[#7387FF]" />}
+                          {statusFilter === s && <div className="w-1.5 h-1.5 rounded-full bg-[#07074e]" />}
                           {s === "All" ? "All Status" : s}
                         </button>
                       ))}
@@ -365,9 +365,9 @@ export default function WithdrawalPage() {
                         <button
                           key={d}
                           onClick={() => { setDateFilter(d); setShowDateDrop(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-[13px] font-medium transition-colors flex items-center gap-2.5 ${dateFilter === d ? "bg-[#7387FF]/8 text-[#7387FF] font-semibold" : "text-[#07074E] hover:bg-[#F3F3FF]"}`}
+                          className={`w-full text-left px-4 py-2.5 text-[13px] font-medium transition-colors flex items-center gap-2.5 ${dateFilter === d ? "bg-[#07074e]/8 text-[#07074e] font-semibold" : "text-[#07074E] hover:bg-[#F3F3FF]"}`}
                         >
-                          {dateFilter === d && <div className="w-1.5 h-1.5 rounded-full bg-[#7387FF]" />}
+                          {dateFilter === d && <div className="w-1.5 h-1.5 rounded-full bg-[#07074e]" />}
                           {d}
                         </button>
                       ))}
@@ -409,7 +409,7 @@ export default function WithdrawalPage() {
                         className="border-b border-[#F3F3FF] last:border-0 hover:bg-[#F3F3FF]/40 transition-colors group"
                       >
                         <td className="px-5 py-4 pl-7">
-                          <span className="text-[12px] font-semibold text-[#7387FF] font-mono bg-[#7387FF]/8 px-2 py-0.5 rounded-[6px]">
+                          <span className="text-[12px] font-semibold text-[#07074e] font-mono bg-[#07074e]/8 px-2 py-0.5 rounded-[6px]">
                             TXN-{row.id.slice(-4).toUpperCase()}
                           </span>
                         </td>
@@ -460,7 +460,7 @@ export default function WithdrawalPage() {
         >
           <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(7,7,78,0.05)] border border-[#E9EBEF]/50 overflow-hidden">
             <div className="bg-gradient-to-r from-[#07074E] to-[#0D0D6B] px-6 py-5 relative overflow-hidden">
-              <div className="absolute right-0 top-0 w-40 h-40 bg-[#7387FF]/15 blur-3xl rounded-full -mr-10 -mt-10 pointer-events-none" />
+              <div className="absolute right-0 top-0 w-40 h-40 bg-[#07074e]/15 blur-3xl rounded-full -mr-10 -mt-10 pointer-events-none" />
               <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-1">Linked Bank Account</p>
@@ -485,7 +485,7 @@ export default function WithdrawalPage() {
               ].map((field, i) => (
                 <div key={i} className="flex items-center gap-3.5">
                   <div className="w-8 h-8 rounded-[9px] bg-[#F3F3FF] flex items-center justify-center flex-shrink-0">
-                    <field.icon strokeWidth={1.5} className="w-3.5 h-3.5 text-[#7387FF]" />
+                    <field.icon strokeWidth={1.5} className="w-3.5 h-3.5 text-[#07074e]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10.5px] font-semibold text-[#9F9FD1] uppercase tracking-wider">{field.label}</p>
@@ -524,8 +524,8 @@ export default function WithdrawalPage() {
                   <h3 className="text-[15px] font-semibold text-[#07074E] font-heading">Payout Speed by Level</h3>
                   <p className="text-[11.5px] text-[#9F9FD1] font-medium mt-0.5">Unlock faster payouts as you grow</p>
                 </div>
-                <div className="w-8 h-8 rounded-[9px] bg-[#7387FF]/10 flex items-center justify-center">
-                  <Zap strokeWidth={1.5} className="w-4 h-4 text-[#7387FF]" />
+                <div className="w-8 h-8 rounded-[9px] bg-[#07074e]/10 flex items-center justify-center">
+                  <Zap strokeWidth={1.5} className="w-4 h-4 text-[#07074e]" />
                 </div>
               </div>
             </div>
@@ -537,7 +537,7 @@ export default function WithdrawalPage() {
                   <div
                     key={lvl.level}
                     className={`flex items-center gap-3.5 px-4 py-3 rounded-[13px] transition-all ${lvl.current
-                      ? "bg-[#7387FF]/8 border border-[#7387FF]/20"
+                      ? "bg-[#07074e]/8 border border-[#07074e]/20"
                       : "hover:bg-[#F3F3FF]/60"
                       }`}
                   >
@@ -548,18 +548,18 @@ export default function WithdrawalPage() {
                       <Icon strokeWidth={1.8} className="w-4 h-4" style={{ color: lvl.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] font-semibold ${lvl.current ? "text-[#7387FF]" : "text-[#07074E]"}`}>
+                      <p className={`text-[13px] font-semibold ${lvl.current ? "text-[#07074e]" : "text-[#07074E]"}`}>
                         {lvl.level}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span
-                        className={`text-[12px] font-semibold ${lvl.current ? "text-[#7387FF]" : "text-[#9F9FD1]"}`}
+                        className={`text-[12px] font-semibold ${lvl.current ? "text-[#07074e]" : "text-[#9F9FD1]"}`}
                       >
                         {lvl.days}
                       </span>
                       {lvl.current && (
-                        <span className="bg-[#7387FF] text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                        <span className="bg-[#07074e] text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
                           You
                         </span>
                       )}
@@ -577,7 +577,7 @@ export default function WithdrawalPage() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-[#7387FF] to-[#4A63FF] rounded-[20px] px-6 py-5 shadow-[0_8px_32px_rgba(115,135,255,0.22)] relative overflow-hidden">
+          <div className="bg-gradient-to-br from-[#07074e] to-[#4A63FF] rounded-[20px] px-6 py-5 shadow-[0_8px_32px_rgba(7,7,78,0.22)] relative overflow-hidden">
             <div className="absolute right-0 bottom-0 w-40 h-40 bg-white/10 blur-3xl rounded-full -mr-10 -mb-10 pointer-events-none" />
             <div className="absolute left-0 top-0 w-24 h-24 bg-[#07074E]/10 blur-2xl rounded-full -ml-6 -mt-6 pointer-events-none" />
             <div className="relative z-10">

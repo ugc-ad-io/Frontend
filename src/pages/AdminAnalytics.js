@@ -149,8 +149,8 @@ export default function AdminAnalytics() {
         .aan-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }
         .aan-header h1 :global(svg) { color: #07074e; }
         .aan-header p { color: #718096; margin: 0; font-size: 0.95rem; }
-        .aan-btn-export { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: #5b6bff; color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; }
-        .aan-btn-export:hover { background: #4452f0; }
+        .aan-btn-export { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: linear-gradient(100deg,#12124f,#07074e); color: #fff; border: none; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
+        .aan-btn-export:hover { background: #2e2e94; }
         .aan-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px 24px; background: white; border-radius: 16px; color: #4a5568; text-align: center; }
         .aan-empty p { margin: 0; font-size: 1.1rem; font-weight: 600; color: #1a202c; }
 

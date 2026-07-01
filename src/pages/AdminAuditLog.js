@@ -266,7 +266,7 @@ export default function AdminAuditLog() {
         .aud-srch input { border:none; outline:none; background:transparent; padding:9px 0; flex:1; font-size:13px; }
         .aud-toolbar select, .aud-toolbar input[type="date"] { padding:8px 10px; border:1px solid #e2e4f0; border-radius:9px; font-size:13px; color:#4b4b66; background:#fff; }
         .aud-toolbar select:focus, .aud-toolbar input:focus, .aud-srch:focus-within { outline:none; border-color:#5b6bff; box-shadow:0 0 0 3px rgba(91,107,255,0.16); }
-        .aud-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border:1px solid transparent; border-radius:9px; background:linear-gradient(135deg,#5b6bff,#4452f0); color:#fff; font-weight:600; cursor:pointer; font-size:13px; box-shadow:0 8px 18px -8px rgba(91,107,255,0.7); }
+        .aud-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border:1px solid transparent; border-radius:9px; background:linear-gradient(100deg,#12124f,#07074e); color:#fff; font-weight:600; cursor:pointer; font-size:13px; box-shadow:0 12px 26px -12px rgba(7,7,78,.7); }
         .aud-btn:hover { transform:translateY(-1px); }
         .aud-btn-ghost { display:inline-flex; align-items:center; justify-content:center; padding:9px 11px; border:1px solid #e2e4f0; border-radius:9px; background:#fff; color:#5b6bff; cursor:pointer; }
         .aud-btn-ghost:hover { background:#f5f6ff; }

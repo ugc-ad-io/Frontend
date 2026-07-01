@@ -269,8 +269,8 @@ export default function CampaignDetails({ embedId, onClose }) {
           padding:7px 16px;border-radius:12px;font-size:13px}
         .cmk-app .bid-submitted-proposal{background:#fff;border:1px solid #e9ebf4;border-radius:14px;padding:16px;margin-top:14px}
         .cmk-app .proposal-text{color:#585c7e;margin:6px 0 0}
-        .cmk-app .btn-bid-now{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border:none;border-radius:14px;
-          padding:13px 24px;font-weight:700;cursor:pointer;box-shadow:0 12px 26px -12px rgba(68,82,240,.6);font-family:inherit}
+        .cmk-app .btn-bid-now{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:14px;
+          padding:13px 24px;font-weight:700;cursor:pointer;box-shadow:0 12px 26px -12px rgba(7,7,78,.7);font-family:inherit}
         .cmk-app .campaign-meta{display:flex;flex-wrap:wrap;gap:22px;padding:18px 0;border-top:1px solid #eef0f6;
           border-bottom:1px solid #eef0f6;margin:20px 0}
         .cmk-app .meta-item{display:flex;align-items:center;gap:8px;color:#585c7e;font-weight:600}
@@ -279,9 +279,9 @@ export default function CampaignDetails({ embedId, onClose }) {
         .cmk-app .campaign-section h3{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;
           font-weight:700;color:#15163a;margin:0 0 12px}
         .cmk-app .brief-text{color:#585c7e;font-size:15px;line-height:1.7}
-        .cmk-app .brief-line{margin:0 0 7px;color:#585c7e;font-size:14.5px;line-height:1.6}
-        .cmk-app .brief-line strong{color:#15163a;font-weight:700}
-        .cmk-app .brief-gap{height:12px}
+        .cmk-app .brief-line{margin:0 0 13px;color:#585c7e;font-size:14.5px;line-height:1.65}
+        .cmk-app .brief-line strong{color:#15163a;font-weight:700;margin-right:2px}
+        .cmk-app .brief-gap{height:20px}
         .cmk-app .objectives-grid{display:flex;flex-wrap:wrap;gap:10px}
         .cmk-app .objective-item{background:#eef0ff;color:#5b6bff;font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:20px}
         .cmk-app .shipment-notice{background:#fff7ed;border:1px solid #ffe0bd;border-radius:14px;padding:16px;color:#9a5b14}
@@ -1132,13 +1132,13 @@ export default function CampaignDetails({ embedId, onClose }) {
         }
 
         .bids-list-compact::-webkit-scrollbar-thumb {
-          background: #7387FF;
+          background: #07074e;
           border-radius: 5px;
           border: 2px solid #f1f5f9;
         }
 
         .bids-list-compact::-webkit-scrollbar-thumb:hover {
-          background: #7387FF;
+          background: #07074e;
         }
 
         /* Firefox scrollbar */
@@ -1262,7 +1262,7 @@ export default function CampaignDetails({ embedId, onClose }) {
 
         .btn-select-small {
           padding: 8px 16px;
-          background: #7387FF;
+          background: #07074e;
           color: white;
           border: none;
           border-radius: 8px;
@@ -1313,7 +1313,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         }
 
         .creator-bid-banner {
-          background: #7387FF;
+          background: #07074e;
           color: white;
           padding: 24px;
           border-radius: 16px;
@@ -1376,7 +1376,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         .bid-submitted-header h3 {
           font-size: 1.25rem;
           font-weight: 700;
-          background: #7387FF;
+          background: #07074e;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -1411,7 +1411,7 @@ export default function CampaignDetails({ embedId, onClose }) {
 
         .detail-value {
           font-weight: 700;
-          background: #7387FF;
+          background: #07074e;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -1419,7 +1419,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         }
 
         .status-badge {
-          background: #7387FF !important;
+          background: #07074e !important;
           color: white !important;
           padding: 8px 16px !important;
           border-radius: 8px !important;
@@ -1590,7 +1590,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         .stat-value {
           font-size: 1.5rem;
           font-weight: 700;
-          background: #7387FF;
+          background: #07074e;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -1855,7 +1855,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         }
 
         .btn-primary {
-          background: #7387FF;
+          background: #07074e;
           color: white;
         }
 

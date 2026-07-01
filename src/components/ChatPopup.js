@@ -126,14 +126,14 @@ export default function ChatPopup({ user, onClose }) {
       <style>{`
         .cpop-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;border-bottom:1px solid #eef0f6}
         .cpop-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #e9ebf4;background:#fff;color:#15163a;border-radius:10px;padding:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s}
-        .cpop-tool.primary{background:linear-gradient(100deg,#5b6bff,#4452f0);border-color:transparent;color:#fff}
+        .cpop-tool.primary{background:linear-gradient(100deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpop-tool:hover{border-color:#cdd2f3}
         .cpop-tool.primary:hover{filter:brightness(1.06)}
         .cpop-prof-ov{position:fixed;inset:0;background:rgba(15,22,58,.55);z-index:1300;display:flex;align-items:center;justify-content:center;padding:20px}
         .cpop-prof{width:min(340px,100%);background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(15,22,58,.4)}
         .cpop-prof-media{position:relative;aspect-ratio:3/4;background:#0b1020}
         .cpop-prof-media video,.cpop-prof-media img,.cpop-prof-fb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-        .cpop-prof-fb{display:grid;place-items:center;color:#fff;font-size:46px;font-weight:800;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+        .cpop-prof-fb{display:grid;place-items:center;color:#fff;font-size:46px;font-weight:800;background:linear-gradient(135deg,#5b6bff,#23236a)}
         .cpop-prof-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.5);color:#fff;cursor:pointer;display:grid;place-items:center;z-index:2}
         .cpop-prof-body{padding:16px 18px}
         .cpop-prof-body h3{margin:0 0 4px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
@@ -147,7 +147,7 @@ export default function ChatPopup({ user, onClose }) {
         @keyframes cpop-in{from{transform:translateY(20px);opacity:.5}to{transform:none;opacity:1}}
         .cpop-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #eef0f6}
         .cpop-ava{width:38px;height:38px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
-          background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800}
+          background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800}
         .cpop-ava img{width:100%;height:100%;object-fit:cover}
         .cpop-head-id strong{display:block;font-size:14.5px;color:#15163a;line-height:1.2}
         .cpop-head-id small{color:#9296ba;font-size:12px;display:flex;align-items:center;gap:5px}
@@ -164,7 +164,7 @@ export default function ChatPopup({ user, onClose }) {
         .cpop-input{display:flex;gap:8px;padding:12px;border-top:1px solid #eef0f6}
         .cpop-input input{flex:1;border:1px solid #e9ebf4;border-radius:30px;padding:10px 16px;font-family:inherit;font-size:14px;outline:none;color:#15163a}
         .cpop-input input:focus{border-color:#c3cbff}
-        .cpop-input button{width:42px;height:42px;flex:none;border:none;border-radius:50%;background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;cursor:pointer;display:grid;place-items:center}
+        .cpop-input button{width:42px;height:42px;flex:none;border:none;border-radius:50%;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;cursor:pointer;display:grid;place-items:center}
         .cpop-input button:disabled{opacity:.5;cursor:not-allowed}
       `}</style>
     </>

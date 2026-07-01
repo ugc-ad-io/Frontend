@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown, X } from 'lucide-react';
+import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown, X, Send, Wallet, Target } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
-import CampaignDetails from './CampaignDetails';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -27,6 +26,23 @@ const CAT_MAP = [
   [/finance|fintech|bank|invest|money/i, 'c-finance'],
 ];
 const catClass = (tag) => (CAT_MAP.find(([re]) => re.test(String(tag || '')))?.[1]) || 'c-default';
+
+// Render the newline-separated brief into a readable definition list.
+const renderBrief = (text) => {
+  const lines = String(text || '').split('\n');
+  const out = [];
+  lines.forEach((line, i) => {
+    const t = line.trim();
+    if (!t) return;
+    const idx = t.indexOf(':');
+    if (idx > 0 && idx <= 28) {
+      out.push(<p key={i} className="bb-bl"><span className="bb-blab">{t.slice(0, idx)}:</span> {t.slice(idx + 1).trim()}</p>);
+    } else {
+      out.push(<p key={i} className="bb-bl">{t}</p>);
+    }
+  });
+  return out.length ? out : <p className="bb-bl">No brief details provided.</p>;
+};
 
 const getCampaignBudget = (c) => {
   if (!c) return 'Rs. 0';
@@ -64,6 +80,7 @@ function normalizeBrief(c, index, myBids) {
 
 export default function BrowseBriefs() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [availableCampaigns, setAvailableCampaigns] = useState([]);
@@ -75,7 +92,7 @@ export default function BrowseBriefs() {
   const [budgetFilter, setBudgetFilter] = useState('any');
   const [deliveryFilter, setDeliveryFilter] = useState('any');
   const [visible, setVisible] = useState(8);
-  const [openBrief, setOpenBrief] = useState(null); // brief id shown in the side drawer
+  const [openBrief, setOpenBrief] = useState(null); // brief object shown in the side drawer
 
   useEffect(() => {
     fetchData();
@@ -208,7 +225,7 @@ export default function BrowseBriefs() {
       {shown.length ? (
         <div className="cmk-bb-grid">
           {shown.map((b) => (
-            <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? setOpenBrief(b.id) : toast.error('This brief is unavailable')}>
+            <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? setOpenBrief(b) : toast.error('This brief is unavailable')}>
               <div className="cmk-bb-top">
                 <span className="cmk-bb-logo">
                   {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
@@ -241,29 +258,92 @@ export default function BrowseBriefs() {
         </div>
       )}
 
-      {openBrief && (
-        <div className="bb-drawer-overlay" onClick={() => setOpenBrief(null)}>
-          <aside className="bb-drawer" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="bb-drawer-close" aria-label="Close" onClick={() => setOpenBrief(null)}><X size={20} /></button>
-            <CampaignDetails embedId={openBrief} onClose={() => setOpenBrief(null)} />
-          </aside>
-          <style>{`
-            .bb-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
-            .bb-drawer{position:relative;width:min(760px,100%);height:100%;background:#fff;overflow:auto;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:bb-slide .28s cubic-bezier(.2,.7,.2,1)}
-            @keyframes bb-slide{from{transform:translateX(48px);opacity:.5}to{transform:none;opacity:1}}
-            .bb-drawer-close{position:absolute;top:16px;right:16px;z-index:5;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:#15163a;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(15,22,58,.2)}
-            .bb-drawer-close:hover{background:#fff}
-            /* scale the embedded campaign page down to fit the drawer */
-            .bb-drawer .campaign-details-page{padding:26px 26px 40px!important}
-            .bb-drawer .campaign-title-section h1{font-size:23px!important;letter-spacing:-.4px!important;line-height:1.2!important}
-            .bb-drawer .campaign-section h3,.bb-drawer .banner-content h3{font-size:16px!important}
-            .bb-drawer .banner-content p{font-size:13.5px!important}
-            .bb-drawer .btn-bid-now{font-size:14px!important;padding:11px 20px!important}
-            .bb-drawer .campaign-section{margin-bottom:18px!important}
-            .bb-drawer .campaign-section p,.bb-drawer .brief-line,.bb-drawer .brief-text{font-size:14px!important;line-height:1.6!important}
-          `}</style>
-        </div>
-      )}
+      {openBrief && (() => {
+        const b = openBrief;
+        const objectives = Array.isArray(b.campaign?.objectives) ? b.campaign.objectives.filter(Boolean) : [];
+        return (
+          <div className="bb-drawer-overlay" onClick={() => setOpenBrief(null)}>
+            <aside className="bb-drawer" onClick={(e) => e.stopPropagation()}>
+              <div className="bb-d-head">
+                <span className="bb-d-logo">
+                  {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
+                </span>
+                <div className="bb-d-id">
+                  <strong>{b.title}</strong>
+                  <small>{b.brand}</small>
+                </div>
+                <button type="button" className="bb-drawer-close" aria-label="Close" onClick={() => setOpenBrief(null)}><X size={18} /></button>
+              </div>
+
+              <div className="bb-d-body">
+                <div className="bb-d-stats">
+                  <div><span className="bb-d-ic"><Wallet size={16} /></span><div><label>Budget</label><strong>{b.budget}</strong></div></div>
+                  <div><span className="bb-d-ic"><Clock size={16} /></span><div><label>Delivery</label><strong>{b.deliveryLabel}</strong></div></div>
+                  <div><span className="bb-d-ic"><Star size={16} /></span><div><label>Match</label><strong>{b.matchScore}%</strong></div></div>
+                </div>
+
+                {b.tags?.length > 0 && (
+                  <div className="bb-d-tags">{b.tags.map((t) => <span key={t} className={catClass(t)}>{t}</span>)}</div>
+                )}
+
+                <div className="bb-d-sec">
+                  <h4>Campaign Brief</h4>
+                  <div className="bb-d-brief">{renderBrief(b.description)}</div>
+                </div>
+
+                {objectives.length > 0 && (
+                  <div className="bb-d-sec">
+                    <h4><Target size={15} /> Objectives</h4>
+                    <div className="bb-d-chips">{objectives.map((o, i) => <span key={i}>{o}</span>)}</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bb-d-foot">
+                <button type="button" className="bb-d-ghost" onClick={() => setOpenBrief(null)}>Close</button>
+                <button type="button" className="bb-d-primary" onClick={() => navigate(`/campaign/${b.id}`)}>
+                  <Send size={16} /> {b.hasBid ? 'View Your Bid' : 'Submit Your Bid'}
+                </button>
+              </div>
+            </aside>
+
+            <style>{`
+              .bb-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
+              .bb-drawer{position:relative;width:min(460px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:bb-slide .28s cubic-bezier(.2,.7,.2,1)}
+              @keyframes bb-slide{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}}
+              .bb-d-head{display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid #e9ebf4}
+              .bb-d-logo{width:44px;height:44px;flex:none;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:17px}
+              .bb-d-logo img{width:100%;height:100%;object-fit:cover}
+              .bb-d-id{flex:1;min-width:0}
+              .bb-d-id strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;color:#15163a;line-height:1.25}
+              .bb-d-id small{color:#9296ba;font-size:13px}
+              .bb-drawer-close{flex:none;width:34px;height:34px;border-radius:10px;border:none;background:#f1f3fa;color:#15163a;cursor:pointer;display:grid;place-items:center}
+              .bb-drawer-close:hover{background:#e7eaf5}
+              .bb-d-body{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+              .bb-d-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+              .bb-d-stats>div{display:flex;align-items:center;gap:9px;background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:11px 12px}
+              .bb-d-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
+              .bb-d-stats label{display:block;color:#9296ba;font-size:11px;font-weight:600}
+              .bb-d-stats strong{color:#15163a;font-size:14px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
+              .bb-d-tags{display:flex;flex-wrap:wrap;gap:7px}
+              .bb-d-tags span{font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
+              .bb-d-sec h4{margin:0 0 9px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
+              .bb-d-brief{display:flex;flex-direction:column;gap:7px}
+              .bb-bl{margin:0;color:#585c7e;font-size:14px;line-height:1.6}
+              .bb-blab{color:#15163a;font-weight:700}
+              .bb-d-chips{display:flex;flex-wrap:wrap;gap:7px}
+              .bb-d-chips span{background:#f1f3fa;color:#585c7e;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:20px}
+              .bb-d-foot{display:flex;gap:10px;padding:16px 22px;border-top:1px solid #e9ebf4}
+              .bb-d-ghost,.bb-d-primary{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent}
+              .bb-d-ghost{background:#fff;border-color:#e9ebf4;color:#15163a}
+              .bb-d-ghost:hover{border-color:#d3d7f0}
+              .bb-d-primary{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
+              .bb-d-primary:hover{transform:translateY(-1px)}
+              @media (max-width:520px){.bb-d-stats{grid-template-columns:1fr}}
+            `}</style>
+          </div>
+        );
+      })()}
     </CreatorTopNavLayout>
   );
 }

@@ -127,7 +127,7 @@ export default function AdminSettings() {
         .as-flag { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px; text-transform:capitalize; }
         .as-card h3 { margin:0 0 12px; font-size:15px; color:#07074e; }
         .as-field input:focus, .as-card textarea:focus { outline:none; border-color:#5b6bff; box-shadow:0 0 0 3px rgba(91,107,255,0.16); }
-        .as-save { margin-top:18px; display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border:1px solid transparent; border-radius:10px; background:linear-gradient(135deg,#5b6bff,#4452f0); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 8px 18px -8px rgba(91,107,255,0.7); }
+        .as-save { margin-top:18px; display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border:1px solid transparent; border-radius:10px; background:linear-gradient(100deg,#12124f,#07074e); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 12px 26px -12px rgba(7,7,78,.7); }
         .as-save:hover { transform:translateY(-1px); }
         .as-save:disabled { background:#c5c5cf; cursor:not-allowed; transform:none; box-shadow:none; }
       `}</style>

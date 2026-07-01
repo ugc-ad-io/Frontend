@@ -9,7 +9,7 @@ const API = `${BACKEND_URL}/api`;
 
 const STATE_LABEL = { pending: 'Pending', more_info: 'More Info', approved: 'Approved', rejected: 'Rejected' };
 const avatarColor = (name) => {
-  const palette = ['#6366f1', '#3b82f6', '#0ea5e9', '#14b8a6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const palette = ['#6366f1', '#3b82f6', '#0ea5e9', '#14b8a6', '#10b981', '#f59e0b', '#ef4444', '#23236a', '#ec4899'];
   let h = 0; for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return palette[h % palette.length];
 };

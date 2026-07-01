@@ -99,7 +99,7 @@ const ACTION_CARD_FORM_FIELDS = {
   ]
 };
 
-const avatarColors = ['#7387ff', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
+const avatarColors = ['#07074e', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
 const avatarColor = (name) => avatarColors[name?.charCodeAt ? (name.charCodeAt(0) % avatarColors.length) : 0];
 
 const timeAgo = (timestamp) => {

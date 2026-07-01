@@ -326,7 +326,7 @@ export default function AdminRoles() {
         .arl-add input { flex: 1; min-width: 220px; border: 1px solid #e6e8ec; border-radius: 8px; padding: 9px 12px; font-size: 0.88rem; }
         .arl-add select, .arl-table select { border: 1px solid #e6e8ec; border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; background: #fff; cursor: pointer; }
         .arl-add input:focus, .arl-add select:focus, .arl-table select:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,0.16); }
-        .arl-add-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid transparent; background: linear-gradient(135deg, #5b6bff, #4452f0); color: #fff; font-weight: 600; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+        .arl-add-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid transparent; background: linear-gradient(100deg,#12124f,#07074e); color: #fff; font-weight: 600; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .arl-add-btn:disabled { opacity: 0.55; cursor: not-allowed; }
         .arl-member { display: flex; align-items: center; gap: 10px; }
         .arl-avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; background: linear-gradient(135deg, #5b6bff, #4452f0); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }

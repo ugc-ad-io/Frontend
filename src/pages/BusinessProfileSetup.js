@@ -363,7 +363,7 @@ function ThemeStyles() {
 
         .bp-step {
           display: block;
-          color: #7387FF;
+          color: #07074e;
           font-size: 0.85rem;
           font-weight: 600;
           margin-bottom: 6px;
@@ -376,7 +376,7 @@ function ThemeStyles() {
           color: #ffffff;
           letter-spacing: -0.01em;
         }
-        .bp-accent { color: #7387FF; }
+        .bp-accent { color: #07074e; }
         .bp-sub {
           margin: 0 0 22px;
           color: rgba(255, 255, 255, 0.62);
@@ -407,9 +407,9 @@ function ThemeStyles() {
         .bp-input::placeholder { color: rgba(255, 255, 255, 0.38); }
         .bp-input:focus {
           outline: none;
-          border-color: #7387FF;
+          border-color: #07074e;
           background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 0 0 3px rgba(115, 135, 255, 0.18);
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.18);
         }
         .bp-input--error { border-color: #f87171; }
         /* Dark dropdown lists for native selects */
@@ -430,9 +430,9 @@ function ThemeStyles() {
           transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
         }
         .bp-input-group:focus-within {
-          border-color: #7387FF;
+          border-color: #07074e;
           background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 0 0 3px rgba(115, 135, 255, 0.18);
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.18);
         }
         .bp-input-group.bp-input--error { border-color: #f87171; }
         .bp-prefix {
@@ -509,7 +509,7 @@ function ThemeStyles() {
           transition: background 0.15s ease;
         }
         .bp-dial-opt:hover { background: rgba(255, 255, 255, 0.07); }
-        .bp-dial-opt--active { background: rgba(115, 135, 255, 0.18); }
+        .bp-dial-opt--active { background: rgba(7, 7, 78, 0.18); }
         .bp-dial-opt__label {
           font-size: 0.82rem;
           font-weight: 600;
@@ -542,7 +542,7 @@ function ThemeStyles() {
           padding: 14px;
           border: none;
           border-radius: 100px;
-          background: linear-gradient(120deg, #7387FF, #4f63e6);
+          background: linear-gradient(120deg, #07074e, #4f63e6);
           color: #ffffff;
           font-size: 1rem;
           font-weight: 700;
@@ -564,9 +564,9 @@ function ThemeStyles() {
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-          color: #7387FF;
-          background: rgba(115, 135, 255, 0.12);
-          border: 1px solid rgba(115, 135, 255, 0.3);
+          color: #07074e;
+          background: rgba(7, 7, 78, 0.12);
+          border: 1px solid rgba(7, 7, 78, 0.3);
         }
         .bp-sub--center { margin-bottom: 26px; }
         .bp-card--thanks .bp-title { margin-bottom: 10px; }

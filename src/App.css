@@ -125,7 +125,7 @@ h3 { font-size: var(--fs-h3); }
 
 /* Button Styles */
 .btn-primary {
-  background: #7387FF;
+  background: #07074e;
   color: white;
   padding: 12px 32px;
   border-radius: 50px;
@@ -134,12 +134,12 @@ h3 { font-size: var(--fs-h3); }
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(115, 135, 255, 0.4);
+  box-shadow: 0 4px 15px rgba(7, 7, 78, 0.4);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(115, 135, 255, 0.6);
+  box-shadow: 0 6px 20px rgba(7, 7, 78, 0.6);
 }
 
 .btn-primary:disabled {
@@ -150,10 +150,10 @@ h3 { font-size: var(--fs-h3); }
 
 .btn-secondary {
   background: white;
-  color: #7387FF;
+  color: #07074e;
   padding: 12px 32px;
   border-radius: 50px;
-  border: 2px solid #7387FF;
+  border: 2px solid #07074e;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
@@ -161,7 +161,7 @@ h3 { font-size: var(--fs-h3); }
 }
 
 .btn-secondary:hover {
-  background: #7387FF;
+  background: #07074e;
   color: white;
   transform: translateY(-2px);
 }
@@ -193,7 +193,7 @@ h3 { font-size: var(--fs-h3); }
 
 .input-field:focus {
   outline: none;
-  border-color: #7387FF;
+  border-color: #07074e;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -262,7 +262,7 @@ h3 { font-size: var(--fs-h3); }
 
 .textarea-field:focus {
   outline: none;
-  border-color: #7387FF;
+  border-color: #07074e;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 

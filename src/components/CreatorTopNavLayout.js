@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
-  Bell, ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X
+  ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X
 } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -93,10 +94,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
-            <button type="button" className="cmk-icon-btn" aria-label="Notifications" onClick={() => navigate('/messages')}>
-              <Bell size={20} />
-              {notifications > 0 && <i className="cmk-badge">{notifications > 9 ? '9+' : notifications}</i>}
-            </button>
+            <NotificationBell />
 
             <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
               <span className="cmk-avatar">

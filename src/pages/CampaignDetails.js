@@ -410,14 +410,6 @@ export default function CampaignDetails({ embedId, onClose }) {
               </div>
             </div>
 
-            {campaign.requires_shipment && (
-              <div className="campaign-section">
-                <div className="shipment-notice">
-                  <strong>Product Shipment Required</strong>
-                  <p>This campaign requires the creator to receive physical products</p>
-                </div>
-              </div>
-            )}
 
             {/* Curated Shortlist (Request Matches path) */}
             {isBusiness && campaign.match_status && (

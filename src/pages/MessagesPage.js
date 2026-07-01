@@ -4,12 +4,13 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PlanBrief from './PlanBrief';
+import CreatorProfileModal from '../components/CreatorProfileModal';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
 
@@ -137,6 +138,14 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [mutedIds, setMutedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('ugcad-muted-convs') || '[]')); }
+    catch { return new Set(); }
+  });
+  const [report, setReport] = useState(null); // { reason, details } when the report modal is open
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const typingSentAtRef = useRef(0);
   const messageContainerRef = useRef(null);
   const userScrolledUpRef = useRef(false);
@@ -225,6 +234,40 @@ export default function MessagesPage() {
     const container = messageContainerRef.current;
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     userScrolledUpRef.current = !isAtBottom;
+  };
+
+  const isMuted = selectedId ? mutedIds.has(selectedId) : false;
+
+  const toggleMute = () => {
+    if (!selectedId) return;
+    setMutedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(selectedId)) next.delete(selectedId); else next.add(selectedId);
+      try { localStorage.setItem('ugcad-muted-convs', JSON.stringify([...next])); } catch { /* ignore */ }
+      toast.success(next.has(selectedId) ? 'Notifications muted for this chat' : 'Notifications unmuted');
+      return next;
+    });
+    setHeaderMenuOpen(false);
+  };
+
+  const submitReport = async (e) => {
+    e.preventDefault();
+    if (!report?.reason) { toast.error('Please choose a reason'); return; }
+    setReportSubmitting(true);
+    try {
+      const res = await axios.post(`${API}/report-user`, {
+        reported_user_id: selectedId,
+        deal_id: selectedConv?.associated_deal_id || null,
+        reason: report.reason,
+        details: report.details || '',
+      });
+      toast.success(res.data?.message || 'Report submitted');
+      setReport(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err) || 'Failed to submit report');
+    } finally {
+      setReportSubmitting(false);
+    }
   };
 
   const fetchConversations = async () => {
@@ -663,10 +706,28 @@ export default function MessagesPage() {
                 </div>
               </div>
               <div className="msg-chat-actions">
-                <button type="button" title="View profile" onClick={() => navigate(`/profile/${selectedId}`)}><User size={18} /></button>
-                <button type="button" title="Report user" onClick={() => toast.info('Report flow coming soon')}><Flag size={18} /></button>
-                <button type="button" title="Mute notifications" onClick={() => toast.success('Notifications muted for this thread')}><BellOff size={18} /></button>
-                <button type="button" title="More actions"><MoreHorizontal size={18} /></button>
+                <button type="button" title="View profile" onClick={() => setProfileOpen(true)}><User size={18} /></button>
+                <button type="button" title="Report user" onClick={() => setReport({ reason: '', details: '' })}><Flag size={18} /></button>
+                <button
+                  type="button"
+                  title={isMuted ? 'Unmute notifications' : 'Mute notifications'}
+                  className={isMuted ? 'is-on' : ''}
+                  onClick={toggleMute}
+                ><BellOff size={18} /></button>
+                <div className="msg-more-wrap">
+                  <button type="button" title="More actions" className={headerMenuOpen ? 'is-on' : ''} onClick={() => setHeaderMenuOpen((o) => !o)}><MoreHorizontal size={18} /></button>
+                  {headerMenuOpen && (
+                    <>
+                      <div className="msg-more-backdrop" onClick={() => setHeaderMenuOpen(false)} />
+                      <div className="msg-more-menu" role="menu">
+                        <button type="button" onClick={() => { setHeaderMenuOpen(false); setProfileOpen(true); }}><User size={15} /> View profile</button>
+                        <button type="button" onClick={toggleMute}><BellOff size={15} /> {isMuted ? 'Unmute chat' : 'Mute chat'}</button>
+                        <button type="button" onClick={() => { setHeaderMenuOpen(false); navigate('/messages'); }}><MessageSquare size={15} /> Back to all chats</button>
+                        <button type="button" className="danger" onClick={() => { setHeaderMenuOpen(false); setReport({ reason: '', details: '' }); }}><Flag size={15} /> Report user</button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -818,9 +879,15 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className="msg-chat-panel msg-empty">
-            <div style={{ textAlign: 'center', color: '#999' }}>
-              <MessageSquare size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-              <p>Select a conversation to start messaging</p>
+            <div className="msg-empty-inner">
+              <div className="msg-empty-icon">
+                <MessageSquare size={44} strokeWidth={1.6} />
+              </div>
+              <h3>Your Messages</h3>
+              <p>Select a conversation to start messaging with brands and creators.</p>
+            </div>
+            <div className="msg-empty-foot">
+              <Lock size={13} /> <span>Your conversations are private and secured.</span>
             </div>
           </div>
         )}
@@ -834,6 +901,55 @@ export default function MessagesPage() {
           onClose={() => setBriefTarget(null)}
           onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
         />
+      )}
+
+      {profileOpen && selectedId && (
+        <CreatorProfileModal
+          id={selectedId}
+          fallbackName={selectedConv?.nickname}
+          onClose={() => setProfileOpen(false)}
+          onMessage={() => setProfileOpen(false)}
+        />
+      )}
+
+      {report && (
+        <div className="msg-report-overlay" onClick={() => !reportSubmitting && setReport(null)}>
+          <form className="msg-report-modal" onClick={(e) => e.stopPropagation()} onSubmit={submitReport}>
+            <div className="msg-report-head">
+              <strong>Report {selectedConv?.nickname || 'user'}</strong>
+              <button type="button" aria-label="Close" onClick={() => setReport(null)}><X size={16} /></button>
+            </div>
+            <p className="msg-report-sub">Our team reviews every report within 5 business days. Don't include phone numbers or emails.</p>
+            <label className="msg-report-label">Reason</label>
+            <select
+              className="msg-report-select"
+              value={report.reason}
+              onChange={(e) => setReport((r) => ({ ...r, reason: e.target.value }))}
+            >
+              <option value="">Select a reason…</option>
+              <option value="spam">Spam or scam</option>
+              <option value="harassment">Harassment or abuse</option>
+              <option value="off_platform">Trying to move off-platform</option>
+              <option value="payment_issue">Payment or fraud issue</option>
+              <option value="inappropriate">Inappropriate content</option>
+              <option value="other">Other</option>
+            </select>
+            <label className="msg-report-label">Details (optional)</label>
+            <textarea
+              className="msg-report-textarea"
+              rows={4}
+              placeholder="Add any context that will help our team…"
+              value={report.details}
+              onChange={(e) => setReport((r) => ({ ...r, details: e.target.value }))}
+            />
+            <div className="msg-report-actions">
+              <button type="button" className="msg-report-cancel" onClick={() => setReport(null)} disabled={reportSubmitting}>Cancel</button>
+              <button type="submit" className="msg-report-submit" disabled={reportSubmitting || !report.reason}>
+                {reportSubmitting ? 'Submitting…' : 'Submit report'}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </Shell>
   );

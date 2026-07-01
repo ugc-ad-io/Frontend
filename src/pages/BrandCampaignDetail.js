@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ChevronRight, Check, FileText, Send, Truck, MessageSquare, User, CheckCircle, Download,
+  ArrowLeft, ChevronRight, Check, FileText, Send, MessageSquare, User, CheckCircle, Download,
   Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -13,7 +13,6 @@ import CreatorProfileModal from '../components/CreatorProfileModal';
 import RevisionRequestModal from '../components/RevisionRequestModal';
 import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
-import ShipmentTracking from './ShipmentTracking';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -99,11 +98,9 @@ export default function BrandCampaignDetail() {
   const [chatOpen, setChatOpen] = useState(false);
   const [profOpen, setProfOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [shipmentOpen, setShipmentOpen] = useState(false);
   const [wsDur, setWsDur] = useState('');
   const [wsMenu, setWsMenu] = useState(false);
   const [videoModal, setVideoModal] = useState(null);
-  const [aboutOpen, setAboutOpen] = useState(false);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [revSubmitting, setRevSubmitting] = useState(false);
 
@@ -225,7 +222,7 @@ export default function BrandCampaignDetail() {
         </div>
 
         <div className="bcd-tabs">
-          {[['overview', 'Overview'], ['work', `Work Review${campaign.work_submission ? ' (1)' : ''}`]].map(([k, l]) => (
+          {[['overview', 'Overview'], ['about', 'About Campaign'], ['work', `Work Review${campaign.work_submission ? ' (1)' : ''}`]].map(([k, l]) => (
             <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{l}</button>
           ))}
         </div>
@@ -311,87 +308,78 @@ export default function BrandCampaignDetail() {
           ) : (
             <div className="cmk-empty">No content has been submitted for review yet.</div>
           )
+        ) : tab === 'about' ? (
+          <div className="bcd-card bcd-about-card">
+            <h3>About Campaign</h3>
+            <div className="bcd-about" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 48px', alignContent: 'start' }}>{renderBrief(campaign.brief_text)}</div>
+          </div>
         ) : (
         <>
-        <div className="bcd-grid">
-          {/* Campaign Progress */}
-          <div className="bcd-card">
+        <div className="bcd-row-main">
+        <div className="bcd-col-left">
+        {/* Campaign Progress — horizontal; shipment folded in */}
+        <div className="bcd-card bcd-progress-card">
+          <div className="bcd-progress-head">
             <h3>Campaign Progress</h3>
+            {(campaign.requires_shipment || ship.required) && (delivered || shipped) && (
+              <div className="bcd-progress-ship">
+                <span className={`bcd-pill ${delivered ? 'ok' : 'info'}`}>{delivered ? 'Delivered' : 'In Transit'}</span>
+                {unboxingUrl && <button type="button" className="bcd-pill-btn" onClick={() => setVideoModal({ src: unboxingUrl, title: 'Unboxing Video' })}><Play size={13} /> Unboxing</button>}
+              </div>
+            )}
+          </div>
+          <div className="bcd-hsteps">
             {steps.map((s, i) => (
-              <div key={i} className={`bcd-step ${s.done ? 'done' : ''} ${s.current ? 'current' : ''} ${!s.done && !s.current ? 'todo' : ''}`}>
-                <span className="bcd-step-dot">{s.done ? <Check size={12} /> : null}</span>
-                <div className="bcd-step-info"><strong>{s.label}</strong><small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '—')}</small></div>
+              <div key={i} className={`bcd-hstep ${s.done ? 'done' : ''} ${s.current ? 'current' : ''} ${!s.done && !s.current ? 'todo' : ''}`}>
+                <span className="bcd-hstep-dot">{s.done ? <Check size={13} /> : null}</span>
+                <strong>{s.label}</strong>
+                <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '—')}</small>
               </div>
             ))}
           </div>
+          {(campaign.requires_shipment || ship.required) && (
+            <div className="bcd-ship-detail">
+              <div className="bcd-kv"><label>Status</label><strong>{delivered ? 'Delivered' : shipped ? 'In Transit' : 'Pending'}</strong></div>
+              <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '—'}</strong></div>
+              <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '—'}</strong></div>
+              {delivered && <div className="bcd-kv"><label>Delivered on</label><strong>{fmtDate(rec.received_at || ship.delivered_at)}</strong></div>}
+            </div>
+          )}
+        </div>
+        <div className="bcd-card bcd-deliver-card">
+          <h3>Deliverables</h3>
+          {(deliverList.length ? deliverList : ['1 UGC video as described in the brief']).map((d, i) => (
+            <div key={i} className="bcd-deliver"><CheckCircle size={16} /> {d}</div>
+          ))}
+        </div>
+        </div>
 
-          {/* Shipment */}
-          <div className="bcd-card">
-            <h3>Shipment Status</h3>
-            {campaign.requires_shipment || ship.required ? (
-              <>
-                <span className={`bcd-pill ${delivered ? 'ok' : shipped ? 'info' : 'warn'}`}>{delivered ? 'Delivered' : shipped ? 'In Transit' : 'Pending'}</span>
-                <p className="bcd-ship-on">{delivered ? 'Delivered to creator on' : 'Awaiting delivery'}</p>
-                {delivered && <div className="bcd-ship-date">{fmtDate(rec.received_at || ship.delivered_at)}</div>}
-                <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '—'}</strong></div>
-                <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '—'}</strong></div>
-
-                {unboxingUrl && (
-                  <button type="button" className="bcd-cta" onClick={() => window.open(unboxingUrl, '_blank')}>
-                    <Play size={15} /> View Unboxing Video
-                  </button>
-                )}
-
-                <button className="bcd-cta bcd-cta-ship" onClick={() => setShipmentOpen(true)}><Truck size={15} /> View Shipment</button>
-              </>
-            ) : <p className="bcd-muted">No physical product for this campaign.</p>}
-          </div>
-
-          {/* Creator */}
-          <div className="bcd-card">
-            <h3>Creator</h3>
+        {/* Creator */}
+        <div className="bcd-card bcd-creator-card">
+          <h3>Creator</h3>
             {creator ? (
               <>
                 <div className="bcd-creator">
                   <span className="bcd-cre-ava">{creator.profile_photo ? <img src={creator.profile_photo.startsWith('http') ? creator.profile_photo : `${BACKEND_URL}${creator.profile_photo}`} alt="" /> : (handle || 'C').replace('@', '').charAt(0).toUpperCase()}</span>
                   <div><strong>{handle}</strong><small>{(cp.category || 'UGC Creator').replace(/_/g, ' ')}</small></div>
                 </div>
-                <div className="bcd-kv"><label>Content Type</label><strong>{safeText(cp.content_type, 'Reels')}</strong></div>
-                <div className="bcd-kv"><label>Platform</label><strong>{safeText(cp.platform, 'Instagram')}</strong></div>
-                <div className="bcd-kv"><label>Followers</label><strong>{safeText(cp.followers, '—')}</strong></div>
-                <button className="bcd-cta" onClick={() => setProfOpen(true)}><User size={15} /> View Creator Profile</button>
-                <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>
+                <div className="bcd-kv-row">
+                  <div className="bcd-kv"><label>Category</label><strong>{(cp.category || creator.primary_category || 'UGC').replace(/_/g, ' ')}</strong></div>
+                  <div className="bcd-kv"><label>Content Type</label><strong>{safeText(cp.content_type, 'Reels')}</strong></div>
+                  <div className="bcd-kv"><label>Platform</label><strong>{safeText(cp.platform, 'Instagram')}</strong></div>
+                </div>
+                <div className="bcd-kv-row">
+                  <div className="bcd-kv"><label>Languages</label><strong>{Array.isArray(cp.languages) && cp.languages.length ? cp.languages.slice(0, 2).join(', ') : safeText(cp.languages, 'English')}</strong></div>
+                  <div className="bcd-kv"><label>Location</label><strong>{safeText(cp.city || cp.location_region || creator.city_tier, 'India')}</strong></div>
+                  <div className="bcd-kv"><label>Level</label><strong>{safeText(creator.level_label || creator.level, 'New')}</strong></div>
+                </div>
+                <div className="bcd-cre-actions">
+                  <button className="bcd-cta" onClick={() => setProfOpen(true)}><User size={15} /> View Creator Profile</button>
+                  <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>
+                </div>
               </>
             ) : <p className="bcd-muted">No creator selected yet.</p>}
-          </div>
         </div>
-
-        <div className="bcd-grid2">
-          <div className="bcd-card bcd-about-card">
-            <h3>About Campaign</h3>
-            {(() => {
-              const rows = renderBrief(campaign.brief_text);
-              const LIMIT = 5;
-              const shown = aboutOpen ? rows : rows.slice(0, LIMIT);
-              return (
-                <>
-                  <div className="bcd-about">{shown}</div>
-                  {rows.length > LIMIT && (
-                    <button type="button" className="bcd-more" onClick={() => setAboutOpen((v) => !v)}>
-                      {aboutOpen ? 'Show less' : `Show more details (+${rows.length - LIMIT})`}
-                      <ChevronRight size={15} className={aboutOpen ? 'bcd-more-up' : 'bcd-more-down'} />
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-          <div className="bcd-card">
-            <h3>Deliverables</h3>
-            {(deliverList.length ? deliverList : ['1 UGC video as described in the brief']).map((d, i) => (
-              <div key={i} className="bcd-deliver"><CheckCircle size={16} /> {d}</div>
-            ))}
-          </div>
         </div>
         </>
         )}
@@ -400,7 +388,6 @@ export default function BrandCampaignDetail() {
       {chatOpen && creator && <ChatPopup user={{ id: creator.id, name: (handle || '').replace('@', ''), photo: creator.profile_photo }} onClose={() => setChatOpen(false)} />}
       {profOpen && creator && <CreatorProfileModal id={creator.id} fallbackName={handle} photo={creator.profile_photo} onClose={() => setProfOpen(false)} onMessage={() => { setProfOpen(false); setChatOpen(true); }} />}
       {detailsOpen && <PageModal bare maxWidth={900} onClose={() => setDetailsOpen(false)}><CampaignDetails embedId={id} onClose={() => setDetailsOpen(false)} /></PageModal>}
-      {shipmentOpen && <PageModal onClose={() => setShipmentOpen(false)} maxWidth={920}><ShipmentTracking embedCampaignId={id} onClose={() => setShipmentOpen(false)} /></PageModal>}
       {revisionOpen && <RevisionRequestModal onClose={() => setRevisionOpen(false)} onSubmit={submitRevision} submitting={revSubmitting} />}
 
       {videoModal && (
@@ -455,14 +442,57 @@ export default function BrandCampaignDetail() {
         .bcd-step.todo .bcd-step-info strong{color:#9296ba}
         .bcd-pill{display:inline-block;font-size:11.5px;font-weight:800;padding:5px 12px;border-radius:20px;text-transform:uppercase}
         .bcd-pill.ok{background:#dcfce7;color:#15a35b}.bcd-pill.info{background:#e0e7ff;color:#4452f0}.bcd-pill.warn{background:#fdf2e0;color:#d98314}
+        /* Left column (Progress + Deliverables stacked) beside the Creator card */
+        /* Shipment details always show, so the layout is static — both columns
+           stretch to equal height and Deliverables fills the left column. */
+        .bcd-row-main{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:stretch}
+        .bcd-col-left{display:flex;flex-direction:column;gap:20px}
+        .bcd-col-left .bcd-deliver-card{flex:1}
+        .bcd-creator-card{display:flex;flex-direction:column}
+        .bcd-creator-card .bcd-creator{margin-bottom:4px}
+        .bcd-creator-card .bcd-cre-actions{margin-top:auto}
+        /* inline shipment detail panel */
+        .bcd-pill-btn.on{background:#eef0ff;border-color:#cdd2f3}
+        .bcd-ship-detail{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid #eef0f6}
+        .bcd-ship-detail .bcd-kv{margin-top:0}
+        .bcd-ship-full{margin-left:auto;border:1px solid #dfe2ff;background:#eef0ff;color:#5b6bff;border-radius:10px;padding:8px 16px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
+        .bcd-ship-full:hover{background:#e2e5ff}
+        @media (max-width:980px){.bcd-row-main{grid-template-columns:1fr;align-items:start}}
+        /* horizontal campaign progress */
+        .bcd-progress-card{margin-bottom:0}
+        .bcd-progress-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+        .bcd-progress-head h3{margin:0}
+        .bcd-progress-ship{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .bcd-pill-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #e0e3f0;background:#fff;color:#5b6bff;border-radius:20px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+        .bcd-pill-btn:hover{border-color:#cdd2f3;background:#f7f8ff}
+        .bcd-hsteps{display:flex;align-items:flex-start;margin-top:20px}
+        .bcd-hstep{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;padding:0 6px}
+        .bcd-hstep::before{content:"";position:absolute;top:13px;left:-50%;width:100%;height:2px;background:#e7e9f7;z-index:0}
+        .bcd-hstep:first-child::before{display:none}
+        .bcd-hstep.done::before{background:#15a35b}
+        .bcd-hstep-dot{width:28px;height:28px;border-radius:50%;border:2px solid #dfe2f0;background:#fff;display:grid;place-items:center;z-index:1;color:#fff}
+        .bcd-hstep.done .bcd-hstep-dot{background:#15a35b;border-color:#15a35b}
+        .bcd-hstep.current .bcd-hstep-dot{border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.2)}
+        .bcd-hstep strong{display:block;margin-top:9px;font-size:13px;color:#15163a;line-height:1.25}
+        .bcd-hstep small{color:#9296ba;font-size:11.5px;margin-top:2px}
+        .bcd-hstep.todo strong{color:#9296ba}
+        @media (max-width:720px){.bcd-hsteps{flex-wrap:wrap;gap:16px}.bcd-hstep{flex:0 0 calc(33.33% - 12px)}.bcd-hstep::before{display:none}}
         .bcd-ship-on{color:#585c7e;font-size:13px;margin:12px 0 2px}
         .bcd-ship-date{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;font-weight:800;color:#15163a;margin-bottom:8px}
         .bcd-kv{display:flex;flex-direction:column;gap:2px;margin-top:12px}
         .bcd-kv label{color:#9296ba;font-size:12px;font-weight:600}
         .bcd-kv strong{color:#15163a;font-size:15px}
+        /* creator detail fields side by side */
+        .bcd-kv-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px;padding:14px 0 0 14px;border-top:1px solid #eef0f6}
+        .bcd-kv-row + .bcd-kv-row{border-top:none;padding-top:0;margin-top:16px}
+        .bcd-kv-row .bcd-kv{margin-top:0}
+        .bcd-cre-actions{display:flex;gap:10px;margin-top:18px}
+        .bcd-cre-actions .bcd-cta{margin-top:0}
+        @media (max-width:520px){.bcd-kv-row{grid-template-columns:1fr 1fr}.bcd-cre-actions{flex-direction:column}}
         .bcd-cta{width:100%;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #e9ebf4;background:#fff;color:#5b6bff;border-radius:12px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .bcd-cta:hover{border-color:#cdd2f3}
-        .bcd-cta.primary{background:#eef0ff;border-color:#dfe2ff}
+        .bcd-cta.primary{background:#07074e;border-color:#07074e;color:#fff}
+        .bcd-cta.primary:hover{background:#12124f;border-color:#12124f}
         .bcd-cta-ship{margin-top:10px}
         .bcd-creator{display:flex;align-items:center;gap:12px;margin-bottom:6px}
         .bcd-cre-ava{width:48px;height:48px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800;font-size:18px}
@@ -470,11 +500,13 @@ export default function BrandCampaignDetail() {
         .bcd-creator strong{display:block;font-size:15.5px;color:#15163a}
         .bcd-creator small{color:#9296ba;font-size:13px;text-transform:capitalize}
         .bcd-about-card h3{color:#5b6bff}
-        .bcd-about{margin:0}
-        .bcd-bl{color:#585c7e;font-size:14px;line-height:1.65;margin:0 0 7px}
-        .bcd-blab{color:#15163a;font-weight:700}
-        .bcd-bsub{color:#5b6bff;font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 7px}
-        .bcd-bl-item{padding-left:14px;position:relative}
+        /* About details laid out in two columns (each "Label: value" is one cell) */
+        .bcd-about{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:14px 48px;align-content:start}
+        .bcd-bl{color:#585c7e;font-size:14px;line-height:1.6;margin:0;padding:10px 0;border-bottom:1px solid #f3f4fb}
+        .bcd-blab{display:block;color:#15163a;font-weight:700;margin-bottom:3px}
+        .bcd-bsub{grid-column:1/-1;color:#5b6bff;font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 2px}
+        .bcd-bl-item{grid-column:1/-1;padding-left:14px;position:relative}
+        @media (max-width:760px){.bcd-about{grid-template-columns:1fr;gap:0}}
         .bcd-bl-item::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:#cdd2f3}
         .bcd-bgap{height:4px}
         .bcd-more{display:inline-flex;align-items:center;gap:5px;margin-top:12px;padding:8px 16px;border-radius:30px;border:1px solid #dfe2ff;background:#eef0ff;color:#5b6bff;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:.18s}

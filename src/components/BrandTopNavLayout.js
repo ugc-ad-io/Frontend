@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Bell, ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu } from 'lucide-react';
+import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
@@ -42,6 +43,20 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
+  // Lock background page scroll while the Post-a-Campaign modal is open so only
+  // the modal's own scrollbar shows. `html` has an always-on `overflow-y: scroll`
+  // (reserved gutter), so we must hide the documentElement's track too — locking
+  // `body` alone leaves that second scrollbar visible.
+  useEffect(() => {
+    if (!briefOpen) return undefined;
+    const html = document.documentElement;
+    const prevHtml = html.style.overflow;
+    const prevBody = document.body.style.overflow;
+    html.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => { html.style.overflow = prevHtml; document.body.style.overflow = prevBody; };
+  }, [briefOpen]);
+
   const displayName = user?.profile?.business_name || user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : user?.email) || 'Brand';
   const photo = user?.profile_photo || user?.brand_logo;
   const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
@@ -80,10 +95,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
-            <button type="button" className="cmk-icon-btn" aria-label="Notifications" onClick={() => navigate('/messages')}>
-              <Bell size={20} />
-              {notifications > 0 && <i className="cmk-badge">{notifications > 9 ? '9+' : notifications}</i>}
-            </button>
+            <NotificationBell />
 
             <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
               <span className="cmk-avatar">

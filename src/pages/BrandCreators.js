@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Search, Play, VolumeX, Volume2, Maximize2, X, Star } from 'lucide-react';
+import { Play, VolumeX, Volume2, Maximize2, X, Star } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
@@ -19,6 +19,34 @@ const FALLBACK_VIDEOS = [
 ];
 const nameOf = (c) => (c.name || '').trim() || (c.full_name || '').trim() || (c.nickname || '').trim() || (c.username ? `@${c.username}` : '') || 'Creator';
 const initialOf = (c) => (nameOf(c).replace('@', '').charAt(0) || 'C').toUpperCase();
+const catOf = (c) => (c.primary_category || c.category || c.niche || 'UGC').replace(/_/g, ' ');
+const catClass = (cat) => {
+  const s = String(cat || '').toLowerCase();
+  if (/beauty|skin|makeup|cosmet/.test(s)) return 'c-beauty';
+  if (/tech|gadget|electronic/.test(s)) return 'c-tech';
+  if (/fashion|apparel|cloth|style|jewel/.test(s)) return 'c-fashion';
+  if (/life ?style|home|decor/.test(s)) return 'c-lifestyle';
+  if (/food|snack|beverage|drink|cook/.test(s)) return 'c-food';
+  if (/fit|gym|health|wellness|yoga/.test(s)) return 'c-fitness';
+  if (/travel|trip|tour/.test(s)) return 'c-travel';
+  return 'c-default';
+};
+
+// Per-creator rate: their set rate (formatted) or a stable level-based price.
+const LEVEL_KEYS = { new: 1, verified: 1, l1: 1, l2: 1, elite: 1 };
+const levelKeyOf = (c) => (LEVEL_KEYS[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new');
+const hashOf = (s) => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+const LEVEL_BASE = { elite: 5000, l2: 3500, l1: 2500, verified: 2200, new: 1500 };
+const priceTextOf = (c) => {
+  const raw = String(c.budget_range || c.price || c.rate || c.expected_payout || (c.rate_card || {}).expected_payout || '').trim();
+  if (raw) {
+    if (/[a-zA-Z₹]/.test(raw) || raw.includes('-')) return raw;
+    const num = raw.replace(/[^0-9]/g, '');
+    if (num) return `Rs. ${Number(num).toLocaleString('en-IN')} / video`;
+  }
+  const derived = (LEVEL_BASE[levelKeyOf(c)] || 1500) + (hashOf(c.id || nameOf(c)) % 9) * 250;
+  return `Rs. ${derived.toLocaleString('en-IN')} / video`;
+};
 
 function ReelCard({ c, onView, onExpand, fallback }) {
   const vref = useRef(null);
@@ -30,9 +58,10 @@ function ReelCard({ c, onView, onExpand, fallback }) {
   const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
   const levelKey = LEVEL_LABEL[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new';
   const tier = LEVEL_LABEL[levelKey];
-  const price = c.budget_range || c.price || c.rate || '';
   const fullName = nameOf(c).replace('@', '');
   const location = c.city_tier || c.location_region || 'India';
+  const priceText = priceTextOf(c);
+  const category = catOf(c);
 
   const togglePlay = () => {
     if (!vref.current) return;
@@ -81,9 +110,75 @@ function ReelCard({ c, onView, onExpand, fallback }) {
           {assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}
         </button>
         <button type="button" className="bc-name bc-name-btn" onClick={() => onView(c)}>
-          <strong>{fullName}</strong>
-          <small className="bc-price-txt">{price || 'Rate on request'}</small>
+          <span className="bc-name-top">
+            <strong>{fullName}</strong>
+            <span className={`bc-cat ${catClass(category)}`}>{category}</span>
+          </span>
+          <small className="bc-price-txt">{priceText}</small>
         </button>
+      </div>
+    </div>
+  );
+}
+
+// Quick-preview card: a peek at a creator (big video + a few details). Hovering a
+// "Recent work" thumbnail plays that clip on the big left screen.
+function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
+  const name = nameOf(c).replace('@', '');
+  const category = catOf(c);
+  const media = assetUrl(c.portfolio_preview);
+  const baseVid = (media && isVideo(media)) ? `${media}#t=0.5` : FALLBACK_VIDEOS[hashOf(c.id || name) % FALLBACK_VIDEOS.length];
+  const thumbs = [0, 1, 2].map((k) => FALLBACK_VIDEOS[(hashOf(c.id || name) + k) % FALLBACK_VIDEOS.length]);
+  const rating = c.avg_rating || c.rating;
+  const [bigVid, setBigVid] = useState(baseVid);
+  const bigRef = useRef(null);
+
+  useEffect(() => { const v = bigRef.current; if (v) { v.play().catch(() => {}); } }, [bigVid]);
+
+  return (
+    <div className="bcq-overlay" onClick={onClose}>
+      <div className="bcq-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="bcq-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
+        <div className="bcq-video">
+          <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} autoPlay muted loop playsInline />
+        </div>
+        <div className="bcq-body">
+          <div className="bcq-head">
+            <span className="bcq-ava">{assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}</span>
+            <div className="bcq-id">
+              <strong>{name}</strong>
+              <span className={`bcq-cat ${catClass(category)}`}>{category}</span>
+            </div>
+          </div>
+          <p className="bcq-bio">{c.bio || c.description || `${category} creator crafting scroll-stopping UGC for brands. Authentic, on-brief, and delivered fast.`}</p>
+          <div className="bcq-facts">
+            <div><label>Price</label><strong>{priceTextOf(c)}</strong></div>
+            <div><label>Rating</label><strong>{rating ? `★ ${Number(rating).toFixed(1)}` : 'New'}</strong></div>
+            <div><label>Deliverables</label><strong>{c.deliverables_completed || 0}</strong></div>
+            <div><label>Location</label><strong>{c.city_tier || c.location_region || 'India'}</strong></div>
+          </div>
+          <div className="bcq-work">
+            <label>Recent work <small>· hover to preview</small></label>
+            <div className="bcq-thumbs">
+              {thumbs.map((tv, k) => (
+                <button
+                  type="button"
+                  key={k}
+                  className={`bcq-thumb ${bigVid === tv ? 'on' : ''}`}
+                  onMouseEnter={() => setBigVid(tv)}
+                  onMouseLeave={() => setBigVid(baseVid)}
+                  onClick={() => onExpand({ src: tv, name })}
+                >
+                  <video src={`${tv}#t=0.5`} muted playsInline preload="metadata" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="bcq-actions">
+            <button type="button" className="bcq-ghost" onClick={onMessage}>Message</button>
+            <button type="button" className="bcq-primary" onClick={onFull}>View full details</button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -99,7 +194,8 @@ export default function BrandCreators() {
   const [chatWith, setChatWith] = useState(null);
   const [briefFor, setBriefFor] = useState(null);
   const [videoCard, setVideoCard] = useState(null);
-  const viewProfile = (c) => navigate(`/dashboard/business/creator/${c.id}`);
+  const [preview, setPreview] = useState(null);   // quick-preview card
+  const viewProfile = (c) => setPreview(c);
 
   useEffect(() => {
     let active = true;
@@ -136,22 +232,17 @@ export default function BrandCreators() {
 
   return (
     <BrandTopNavLayout>
-      <div className="cmk-page-head" style={{ marginBottom: 14 }}>
-        <h1>Browse Creators</h1>
-        <p>Find the perfect creators for your campaign.</p>
-      </div>
-
-      <div className="bc-filters">
-        <div className="bc-search">
-          <Search size={18} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name..." />
+      <div className="bc-head-row">
+        <div className="cmk-page-head">
+          <h1>Browse Creators</h1>
+          <p>Find the perfect creators for your campaign.</p>
         </div>
-      </div>
 
-      <div className="bc-cats">
-        {categories.map((k) => (
-          <button key={k} type="button" className={cat === k ? 'is-active' : ''} onClick={() => setCat(k)}>{k === 'all' ? 'All' : k.replace(/_/g, ' ')}</button>
-        ))}
+        <div className="bc-cats">
+          {categories.map((k) => (
+            <button key={k} type="button" className={cat === k ? 'is-active' : ''} onClick={() => setCat(k)}>{k === 'all' ? 'All' : k.replace(/_/g, ' ')}</button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -172,6 +263,16 @@ export default function BrandCreators() {
             {videoCard.name && <div className="bc-vid-name">{videoCard.name}</div>}
           </div>
         </div>
+      )}
+
+      {preview && (
+        <QuickPreview
+          c={preview}
+          onClose={() => setPreview(null)}
+          onMessage={() => { setPreview(null); openChat(preview); }}
+          onFull={() => navigate(`/dashboard/business/creator/${preview.id}`)}
+          onExpand={setVideoCard}
+        />
       )}
 
       {briefFor && (

@@ -5,27 +5,55 @@
    `pcd-` styles still used by the lower dashboard sections.
    ────────────────────────────────────────────────────────────────────────── */
 .cmk-app{
-  --indigo:#5b6bff;
-  --indigo-strong:#4452f0;
+  /* ── Brand palette ───────────────────────────────────────────────────────
+     Periwinkle Pulse (primary) · Frosted Lilac (bg) · Velvet Mist (accent) ·
+     Midnight Indigo (deep neutral). Everything reads from these tokens so the
+     brand colour flows through cards, buttons, shadows and accents site-wide. */
+  --periwinkle:#7387ff;          /* Periwinkle Pulse — primary */
+  --periwinkle-deep:#5563e6;     /* deeper periwinkle for gradients/hover */
+  --indigo:#7387ff;              /* alias kept for existing rules */
+  --indigo-strong:#5563e6;
   --violet:#8b5cf6;
-  --ink:#15163a;
-  --ink-2:#585c7e;
-  --muted:#9296ba;
-  --bg:#f6f7fc;
+  --midnight:#07074e;            /* Midnight Indigo — deep brand neutral */
+  --lilac:#f3f3ff;               /* Frosted Lilac — soft tint */
+  --accent:#ff8aa6;              /* Velvet Mist — warm accent pop */
+  --accent-soft:#ffe9ef;
+  --ink:#07074e;                 /* headings / strong text (Midnight Indigo) */
+  --ink-2:#4b4f7e;               /* body text, softened toward navy */
+  --muted:#8a8fc0;
+  --bg:#f5f5ff;                  /* light Frosted-Lilac wash (not flat grey) */
   --surface:#ffffff;
-  --line:#e9ebf4;
+  --surface-tint:#fbfbff;        /* faint lilac for inner panels */
+  --line:#e7e8f7;
+  --line-strong:#d7d9f2;
   --ok:#15a35b;
   --warn:#d98314;
   --bad:#e11d48;
-  --shadow-card:0 18px 40px -18px rgba(28,30,80,.30);
-  --shadow-soft:0 10px 30px -12px rgba(28,30,80,.16);
+  /* Indigo-tinted shadows give the flat white cards depth + a brand glow. */
+  --shadow-card:0 20px 44px -20px rgba(67,82,196,.42);
+  --shadow-soft:0 12px 30px -14px rgba(67,82,196,.22);
+  --shadow-pop:0 10px 28px -10px rgba(115,135,255,.55);
 
   min-height:100vh;
-  background:var(--bg);
+  background:
+    radial-gradient(1200px 540px at 88% -8%, rgba(115,135,255,.10), transparent 60%),
+    radial-gradient(900px 480px at -6% 4%, rgba(139,92,246,.07), transparent 55%),
+    var(--bg);
+  background-attachment:fixed;
   color:var(--ink);
   font-family:var(--font-body,'Inter',system-ui,sans-serif);
 }
 .cmk-wrap{max-width:1320px;margin:0 auto;padding:0 28px}
+
+/* ── Heading weight hierarchy ───────────────────────────────────────────────
+   Previously most headings were 700–800, so a page title, a section title and a
+   card title all read as the same heavy bold. Establish three distinct tiers so
+   the hierarchy is visible. Scoped + !important so it overrides the per-page
+   <style> blocks (which load after this file). Page title (h1) stays heaviest. */
+.cmk-app h1{font-weight:800!important;letter-spacing:-.4px}
+.cmk-app h2{font-weight:700!important}
+.cmk-app h3{font-weight:600!important}
+.cmk-app h4,.cmk-app h5,.cmk-app h6{font-weight:600!important}
 
 @media (prefers-reduced-motion:reduce){
   .cmk-app *{animation:none!important;transition:none!important}
@@ -58,7 +86,7 @@
 .cmk-links button.is-active{color:var(--indigo)}
 .cmk-links button.is-active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
   border-radius:3px 3px 0 0;background:linear-gradient(90deg,var(--indigo),var(--violet))}
-.cmk-link-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--indigo);margin-left:5px;vertical-align:middle}
+.cmk-link-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:5px;vertical-align:middle;box-shadow:0 0 0 3px var(--accent-soft)}
 
 .cmk-nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;position:relative}
 .cmk-icon-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:#fff;
@@ -111,9 +139,9 @@
 .cmk-cta-row{display:flex;align-items:center;gap:14px;margin-top:28px;flex-wrap:wrap}
 .cmk-btn{display:inline-flex;align-items:center;gap:10px;font-family:inherit;font-weight:700;font-size:15.5px;
   border-radius:16px;padding:14px 24px;cursor:pointer;border:1px solid transparent;transition:.22s;text-decoration:none}
-.cmk-btn-primary{background:linear-gradient(100deg,var(--indigo),var(--indigo-strong));color:#fff;
-  box-shadow:0 14px 30px -10px rgba(68,82,240,.6)}
-.cmk-btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 38px -10px rgba(68,82,240,.7)}
+.cmk-btn-primary{background:linear-gradient(100deg,#12124f,var(--midnight,#07074e));color:#fff;
+  box-shadow:0 14px 30px -12px rgba(7,7,78,.7)}
+.cmk-btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 38px -12px rgba(7,7,78,.8)}
 .cmk-btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
 .cmk-btn-ghost:hover{transform:translateY(-2px);border-color:#d3d7f0}
 .cmk-btn-profile{background:#fff;border-color:var(--line);color:var(--ink);font-weight:600}
@@ -234,7 +262,7 @@
   font-weight:600;font-size:14px;padding:9px 18px;border-radius:30px;cursor:pointer;transition:.18s;
   display:inline-flex;align-items:center;gap:5px}
 .cmk-cat-bar button:hover{border-color:#cdd2f3;color:var(--ink)}
-.cmk-cat-bar button.is-active{background:#eef0ff;border-color:#cdd4ff;color:var(--indigo)}
+.cmk-cat-bar button.is-active{background:linear-gradient(135deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(7,7,78,.6)}
 .cmk-cat-more{color:var(--muted)!important}
 
 .cmk-filter-row{display:flex;align-items:center;gap:12px;margin:6px 0 22px;flex-wrap:wrap}
@@ -264,7 +292,7 @@
 .cmk-bb-logo{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;overflow:hidden;
   background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;font-weight:800;font-size:15px}
 .cmk-bb-logo img{width:100%;height:100%;object-fit:cover}
-.cmk-bb-brand{flex:1;font-size:14.5px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmk-bb-brand{flex:1;font-size:14.5px;font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmk-bb-save{border:none;background:none;color:var(--muted);cursor:pointer;padding:4px}
 .cmk-bb-save:hover{color:var(--indigo)}
 .cmk-bb-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;font-weight:700;margin-top:14px;line-height:1.3;
@@ -381,8 +409,8 @@
   border-radius:13px;font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer;transition:.18s;border:1px solid transparent}
 .cmk-btn-ghost-sm{background:#fff;border-color:var(--line);color:var(--ink)}
 .cmk-btn-ghost-sm:hover{border-color:#d3d7f0;transform:translateY(-1px)}
-.cmk-btn-primary-sm{background:linear-gradient(100deg,var(--indigo),var(--indigo-strong));color:#fff;
-  box-shadow:0 12px 26px -12px rgba(68,82,240,.6)}
+.cmk-btn-primary-sm{background:linear-gradient(100deg,#12124f,var(--midnight,#07074e));color:#fff;
+  box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
 .cmk-btn-primary-sm:hover{transform:translateY(-1px)}
 
 /* floating "Post a Campaign" action button — bottom-right corner */
@@ -397,7 +425,7 @@
 .cmk-brief-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-start;
   justify-content:center;padding:40px 20px;overflow-y:auto;
   background:rgba(18,20,46,.55);backdrop-filter:blur(4px)}
-.cmk-brief-modal{position:relative;width:100%;max-width:1020px;margin:auto;
+.cmk-brief-modal{position:relative;width:100%;max-width:1120px;margin:auto;
   background:#F4F5FF;border-radius:22px;box-shadow:0 40px 90px -30px rgba(8,10,30,.8);
   padding:32px;overflow:hidden}
 .cmk-brief-close{position:absolute;top:18px;right:18px;z-index:5;display:inline-flex;
@@ -631,13 +659,19 @@
 .bc-search input{flex:1;border:none;background:none;outline:none;font-family:inherit;font-size:14px;color:var(--ink)}
 .bc-filters select{height:46px;border:1px solid var(--line);border-radius:30px;padding:0 16px;background:#fff;
   font-family:inherit;font-weight:600;font-size:13.5px;color:var(--ink-2);cursor:pointer}
-.bc-cats{display:flex;gap:10px;overflow-x:auto;padding:2px 0 18px;scrollbar-width:none}
+.bc-head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:18px;flex-wrap:wrap}
+.bc-head-row .cmk-page-head{margin-bottom:0}
+.bc-cats{display:flex;gap:10px;justify-content:flex-end;overflow-x:auto;padding:2px 0;scrollbar-width:none;flex:1;min-width:0}
+.bc-cats::-webkit-scrollbar{display:none}
+@media (max-width:760px){.bc-head-row{align-items:flex-start}.bc-cats{justify-content:flex-start;flex:1 1 100%}}
 .bc-cats::-webkit-scrollbar{display:none}
 .bc-cats button{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink-2);font-weight:600;font-size:13.5px;
   padding:8px 18px;border-radius:30px;cursor:pointer;font-family:inherit;text-transform:capitalize}
-.bc-cats button.is-active{background:#eef0ff;border-color:#cdd4ff;color:var(--indigo)}
+.bc-cats button.is-active{background:linear-gradient(135deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(7,7,78,.6)}
 .bc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
 .bc-card{display:flex;flex-direction:column;gap:10px}
+.bc-card .bc-reel{transition:transform .2s ease,box-shadow .2s ease}
+.bc-card:hover .bc-reel{transform:translateY(-5px);box-shadow:var(--shadow-card)}
 
 /* full-screen page modal (open pages in-place without navigation) */
 .pm-overlay{position:fixed;inset:0;z-index:200;background:rgba(15,16,40,.55);backdrop-filter:blur(3px);
@@ -661,7 +695,7 @@
 .bc-tier.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
 .bc-tier.l1{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
 .bc-tier.verified{background:linear-gradient(135deg,#2bd47e,#15a35b)}
-.bc-tier.new{background:rgba(20,20,40,.62);backdrop-filter:blur(4px)}
+.bc-tier.new{background:linear-gradient(135deg,var(--periwinkle),var(--violet));box-shadow:var(--shadow-pop)}
 .bc-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;
   background:rgba(255,255,255,.85);display:grid;place-items:center;color:var(--indigo);pointer-events:none;box-shadow:0 6px 16px rgba(0,0,0,.25)}
 .bc-mute,.bc-expand{position:absolute;bottom:10px;width:30px;height:30px;border-radius:50%;border:none;
@@ -680,18 +714,69 @@
 .bc-vid-name{position:absolute;left:0;right:0;top:0;padding:14px 16px;color:#fff;font-weight:700;font-size:15px;
   text-align:left;background:linear-gradient(180deg,rgba(8,10,30,.85),rgba(8,10,30,0));pointer-events:none}
 @media (max-width:600px){.bc-vid-overlay{padding:14px}}
-.bc-meta{display:flex;align-items:center;gap:9px}
+
+/* ── Creator quick-preview card (click a creator → peek, then full details) ── */
+.bcq-overlay{position:fixed;inset:0;z-index:210;background:rgba(8,10,30,.6);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.bcq-card{position:relative;display:flex;background:#fff;border-radius:22px;overflow:hidden;width:min(94vw,640px);
+  box-shadow:0 40px 90px -30px rgba(8,10,30,.7)}
+.bcq-close{position:absolute;top:12px;right:12px;z-index:4;width:36px;height:36px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.92);color:#15163a;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.bcq-close:hover{background:#f1f2f8}
+.bcq-video{flex:none;width:230px;background:#0b1020}
+.bcq-video video{width:100%;height:100%;aspect-ratio:9/16;object-fit:cover;display:block}
+.bcq-body{flex:1;min-width:0;padding:24px 24px 22px;display:flex;flex-direction:column}
+.bcq-head{display:flex;align-items:center;gap:12px}
+.bcq-ava{width:50px;height:50px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
+  background:linear-gradient(135deg,#56b8ff,#5b6bff);color:#fff;font-weight:800;font-size:18px}
+.bcq-ava img{width:100%;height:100%;object-fit:cover}
+.bcq-id strong{display:block;font-size:18px;font-weight:800;color:#15163a}
+.bcq-cat{display:inline-block;margin-top:4px;padding:2px 11px;border-radius:20px;font-size:12px;font-weight:700;text-transform:capitalize}
+.bcq-bio{margin:16px 0 0;color:#585c7e;font-size:13.5px;line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bcq-facts{display:flex;flex-direction:column;gap:11px;margin:16px 0 0;padding:16px 0;border-top:1px solid #eef0f6;border-bottom:1px solid #eef0f6}
+.bcq-facts > div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bcq-facts label{color:#9296ba;font-size:13px;font-weight:600}
+.bcq-facts strong{color:#15163a;font-size:14.5px;font-weight:800}
+.bcq-work{margin-top:16px}
+.bcq-work > label{display:block;color:#9296ba;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:9px}
+.bcq-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.bcq-thumb{position:relative;aspect-ratio:1/1;border-radius:11px;overflow:hidden;border:none;padding:0;cursor:pointer;background:#0b1020}
+.bcq-thumb video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s}
+.bcq-thumb:hover,.bcq-thumb.on{box-shadow:0 0 0 2px var(--periwinkle,#7387ff)}
+.bcq-thumb:hover video,.bcq-thumb.on video{transform:scale(1.05)}
+.bcq-work > label small{color:#b3b6d4;font-weight:600;text-transform:none;letter-spacing:0}
+.bcq-actions{display:flex;gap:10px;margin-top:20px}
+.bcq-ghost,.bcq-primary{flex:1;height:46px;border-radius:13px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:.18s}
+.bcq-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.bcq-ghost:hover{border-color:#cdd2f3;background:#f7f8ff}
+.bcq-primary{border:none;color:#fff;background:linear-gradient(100deg,#12124f,#07074e);box-shadow:0 10px 24px -10px rgba(7,7,78,.6)}
+.bcq-primary:hover{transform:translateY(-1px)}
+@media (max-width:560px){.bcq-card{flex-direction:column;width:min(94vw,360px)}.bcq-video{width:100%;height:200px}.bcq-video video{aspect-ratio:auto;height:200px}}
+
+.bc-meta{display:flex;align-items:flex-start;gap:9px}
 .bc-name{flex:1;min-width:0}
 .bc-ava-btn{border:none;padding:0;cursor:pointer}
-.bc-name-btn{background:none;border:none;padding:0;cursor:pointer;text-align:left;font-family:inherit}
+.bc-name-btn{display:block;width:100%;background:none;border:none;padding:0;cursor:pointer;text-align:left;font-family:inherit}
 .bc-name-btn:hover strong{color:var(--indigo)}
 .bc-name-btn .bc-price-txt{color:var(--indigo);font-weight:700}
+.bc-name-top{display:flex;align-items:center;gap:8px;min-width:0;width:100%}
+.bc-name-top strong{flex:0 1 auto;min-width:0}
+.bc-price-txt{display:block;margin-top:5px}
+.bc-cat{flex:none;margin-left:auto;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:capitalize;white-space:nowrap}
 .bc-price{flex:none;font-weight:800;font-size:13.5px;color:var(--indigo);white-space:nowrap}
 .bc-ava{width:30px;height:30px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
   background:linear-gradient(135deg,#56b8ff,#5b6bff);color:#fff;font-weight:800;font-size:12px}
 .bc-ava img{width:100%;height:100%;object-fit:cover}
 .bc-meta strong{font-size:14px;color:var(--ink);display:block;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bc-meta small{color:var(--muted);font-size:12px}
+/* category chip as the name subtitle */
+.bc-cat-txt{display:inline-block;margin-top:3px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:capitalize;line-height:1.5}
+/* price / delivery detail strip */
+.bc-details{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.bc-det label{display:block;color:var(--muted);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.bc-det strong{display:block;color:var(--ink);font-size:13px;font-weight:700;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bc-det:last-child{text-align:right}
 .bc-actions{display:grid;grid-template-columns:1fr auto;gap:8px}
 .bc-msg{background:#f97316;color:#fff;border:none;border-radius:10px;padding:9px 0;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
 .bc-msg:hover{background:#ea6c0e}
@@ -789,22 +874,24 @@
 .bwr-thumb-fb{width:100%;height:100%;display:grid;place-items:center;color:#9296ba;background:#1a1c34}
 .bwr-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-items:center;color:var(--indigo);box-shadow:0 6px 18px rgba(0,0,0,.3);pointer-events:none}
 .bwr-dur{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.78);color:#fff;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:8px}
-/* tiled watermark on un-approved review previews (protects content until approval) */
-.bwr-wm{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.6;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='96'%3E%3Ctext x='0' y='58' transform='rotate(-28 75 48)' fill='%23ffffff' fill-opacity='0.5' font-family='Arial, sans-serif' font-size='13' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E");
-  background-repeat:repeat}
+/* single-corner watermark (top-right) on un-approved previews (protects content until approval) */
+.bwr-wm{position:absolute;inset:0;z-index:2;pointer-events:none;
+  background-repeat:no-repeat;background-position:top 10px right 12px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E")}
 
 /* watermarked in-app video player (review previews) */
 .bwr-vid-overlay{position:fixed;inset:0;z-index:1400;background:rgba(8,10,30,.74);backdrop-filter:blur(6px);
   display:flex;align-items:center;justify-content:center;padding:24px}
-.bwr-vid-card{position:relative;width:min(92vw,420px)}
-.bwr-vid-frame{position:relative;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
-.bwr-vid-el{display:block;width:100%;max-height:80vh;aspect-ratio:9/16;object-fit:contain;background:#000}
+.bwr-vid-card{position:relative;max-width:96vw;display:flex;flex-direction:column;align-items:center}
+.bwr-vid-frame{position:relative;display:inline-block;line-height:0;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
+.bwr-vid-el{display:block;max-width:96vw;max-height:88vh;width:auto;height:auto;background:#000}
 .bwr-vid-frame .bwr-wm{opacity:.5}
-.bwr-vid-close{position:absolute;top:-46px;right:0;width:38px;height:38px;border-radius:50%;border:none;
-  background:rgba(255,255,255,.92);color:#15163a;font-size:16px;cursor:pointer;display:grid;place-items:center}
+.bwr-vid-close{position:fixed;top:18px;right:18px;width:42px;height:42px;border-radius:50%;border:none;z-index:2;
+  background:rgba(255,255,255,.92);color:#15163a;font-size:17px;cursor:pointer;display:grid;place-items:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.bwr-vid-close:hover{background:#fff}
 .bwr-vid-name{color:#fff;font-weight:700;font-size:14.5px;margin-top:12px;text-align:center}
-@media (max-width:600px){.bwr-vid-overlay{padding:16px}.bwr-vid-close{top:8px;right:8px}}
+@media (max-width:600px){.bwr-vid-overlay{padding:12px}.bwr-vid-close{top:10px;right:10px}}
 
 .bwr-body{min-width:0;display:flex;flex-direction:column;gap:12px}
 .bwr-title{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:700;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1146,3 +1233,51 @@
   .cmk-hero h1{font-size:32px}
   .cmk-dr-ship-grid{grid-template-columns:1fr}
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BRAND POLISH — category-coloured tags · avatar rings · gradient stat icons ·
+   gradient hero band. Adds the Upwork/Fiverr-style colour pop on top of the
+   brand tokens, scoped to the creator + brand app.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Category-coloured pill tags (briefs/creators) ───────────────────────────
+   A consistent colour per niche so cards aren't a wall of identical indigo. */
+.c-beauty   {background:#ffe9f1!important;color:#dd3d83!important}
+.c-tech     {background:#e6f1ff!important;color:#2f7fe0!important}
+.c-fashion  {background:#fdeede!important;color:#d6810f!important}
+.c-lifestyle{background:#e3f7ec!important;color:#119457!important}
+.c-food     {background:#fff2e0!important;color:#e07c0f!important}
+.c-fitness  {background:#eef0ff!important;color:#5563e6!important}
+.c-travel   {background:#e3f6fa!important;color:#0e93ad!important}
+.c-home     {background:#f1ecff!important;color:#7c4dd4!important}
+.c-gaming   {background:#edf9e8!important;color:#4a9a1e!important}
+.c-finance  {background:#e8f7f0!important;color:#0d8a6a!important}
+.c-default  {background:#eef0ff!important;color:#5b6bff!important}
+
+/* ── Avatar accent rings ─────────────────────────────────────────────────────
+   A thin periwinkle halo (white gap + brand ring) lifts avatars off the card. */
+.bc-ava,.cmk-bb-logo,.cmk-dr-creator .cmk-cre-ava,.cmk-rr-ava{
+  box-shadow:0 0 0 2px var(--surface),0 0 0 4px rgba(115,135,255,.32)}
+
+/* ── Gradient stat-card icons ────────────────────────────────────────────────
+   Keep the 2-line cards light (per the payout/reviews look) but give the soft
+   tiles a subtle gradient sheen so they read as crafted, not flat. */
+.cmk-stats-2l .cmk-ic-orange{background:linear-gradient(140deg,#fff3e2,#ffe6c6)}
+.cmk-stats-2l .cmk-ic-indigo{background:linear-gradient(140deg,#eef0ff,#e0e4ff)}
+.cmk-stats-2l .cmk-ic-green {background:linear-gradient(140deg,#e6f8ef,#d4f2e0)}
+.cmk-stats-2l .cmk-ic-blue  {background:linear-gradient(140deg,#e9f2ff,#d8e8ff)}
+.cmk-stats-2l .cmk-ic-violet{background:linear-gradient(140deg,#f3edff,#e7dcff)}
+
+/* ── Gradient hero band (browse pages) ───────────────────────────────────────
+   A colour band behind the page title — the Upwork/Fiverr "marketplace" header. */
+.cmk-hero-band{position:relative;overflow:hidden;border-radius:22px;padding:30px 34px;margin:6px 0 22px;
+  background:linear-gradient(120deg,var(--periwinkle-deep),var(--periwinkle) 48%,var(--violet));
+  color:#fff;box-shadow:0 22px 44px -20px rgba(67,82,196,.6)}
+.cmk-hero-band::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(460px 240px at 94% -30%,rgba(255,255,255,.28),transparent 60%),
+            radial-gradient(360px 220px at 0% 130%,rgba(255,255,255,.14),transparent 60%)}
+.cmk-hero-band::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.16) 1px,transparent 1px);background-size:22px 22px}
+.cmk-hero-band > *{position:relative;z-index:1}
+.cmk-hero-band h1{color:#fff!important;letter-spacing:-.4px}
+.cmk-hero-band p{color:rgba(255,255,255,.85);margin-top:7px;font-size:15px}

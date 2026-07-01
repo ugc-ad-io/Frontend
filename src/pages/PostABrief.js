@@ -24,6 +24,17 @@ const STEPS = [
   'Review & Publish'
 ];
 
+// Each step is split into short sub-sections shown as the top tabs (keeps each card short).
+// Steps without an entry fall back to a single section named after the step.
+const SUBSECTIONS = {
+  1: ['Basics', 'Product Description', 'Objective & Audience'],
+  3: ['Product Visibility', 'Phrases, CTA & Tags'],
+  5: ['Tone & Pacing', 'References'],
+  6: ['Platforms', 'Rights & Licensing'],
+  7: ['Creator Targeting', 'Timeline', 'Budget'],
+};
+const subsFor = (s) => SUBSECTIONS[s] || [STEPS[s - 1]];
+
 const CATEGORIES = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Food', 'Gaming', 'Lifestyle', 'Home Decor', 'Wellness'];
 const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial', 'Tutorial', 'Unboxing', 'Comparison', 'Sale promotion', 'Customer education', 'Other'];
 const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)'];
@@ -179,7 +190,10 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
+  const [subStep, setSubStep] = useState(0);
   const [form, setForm] = useState(initialForm);
+  const subs = subsFor(step);
+  useEffect(() => { setSubStep(0); }, [step]);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [publishMode, setPublishMode] = useState('matches');
@@ -307,6 +321,23 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     if (target === 6) return form.platforms.length > 0 && form.rightsDuration && form.exclusivity && form.modificationRights;
     if (target === 7) return form.productShippingBy && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0 && form.creatorLevel && form.qualityTier;
     return true;
+  };
+
+  // Overall completion across the whole brief — fills continuously toward 100% and
+  // never resets between steps.
+  const stepFillPct = () => {
+    const f = form;
+    const all = [
+      f.campaignName.trim().length >= 3, !!f.category, f.productName.trim().length >= 2, f.campaignHook.trim().length >= 10,
+      f.productDescription.trim().length >= 20, f.keyMessage.trim().length >= 10,
+      f.objectives.length > 0, f.targetAudience.trim().length >= 50,
+      f.deliverables.length > 0 && f.deliverables.every(d => d.type), f.deliverables.every(d => d.aspectRatios.length > 0),
+      !f.productVisible || !!f.visibilitySeconds, !f.verbalMention || !!f.productNames, !!f.callToAction,
+      f.tones.length > 0, !!f.pacing,
+      f.platforms.length > 0, !!f.rightsDuration, !!f.exclusivity, !!f.modificationRights,
+      !!f.creatorLevel, !!f.qualityTier, !!f.productShippingBy, !!f.draftDeliveryBy, !!f.finalDeliveryBy, budget > 0,
+    ];
+    return Math.round((all.filter(Boolean).length / all.length) * 100);
   };
 
   // Human-readable list of what's still blocking the current section.
@@ -545,14 +576,34 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
       <div className="pab-body brief-body">
         <div className="pab-form-panel brief-panel">
+          <div className="pab-tabs">
+            <div className="pab-tabs-row">
+              {subs.map((label, i) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`pab-tab ${subStep === i ? 'active' : ''} ${subStep > i ? 'done' : ''}`}
+                  onClick={() => setSubStep(i)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="pab-approx">Approx Time: 3 Mins</span>
+          </div>
           <div className="step-content">
-            <div className="step-badge">Section {String.fromCharCode(64 + step)} of H</div>
             <div className="step-header">
-              <h2>{STEPS[step - 1]}</h2>
+              <h2>{subs[subStep] || STEPS[step - 1]}</h2>
               <p>{draftSavedAt ? `Autosaved on this device at ${draftSavedAt}${draftId ? ' · synced to your account' : ''}` : 'Partial briefs are saved as drafts automatically.'}</p>
             </div>
 
-            {step === 1 && (
+            <div className="pab-fill">
+              <div className="pab-fill-track"><i style={{ width: `${stepFillPct()}%` }} /></div>
+              <span>{stepFillPct()}% complete</span>
+            </div>
+
+            <div className="step-fields">
+            {step === 1 && subStep === 0 && (
               <>
                 <div className="form-group"><label>Campaign name *</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><small>{form.campaignName.length}/80 characters</small></div>
                 <div className="form-row">
@@ -563,8 +614,16 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
                   <div className="form-group"><label>Product name *</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /></div>
                   <div className="form-group"><label>Campaign hook *</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /></div>
                 </div>
-                <div className="form-group"><label>Product description * (20+ characters)</label><textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={3} /></div>
+              </>
+            )}
+            {step === 1 && subStep === 1 && (
+              <>
+                <div className="form-group"><label>Product description * (20+ characters)</label><textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={4} /></div>
                 <div className="form-group"><label>Key message *</label><input className="input-field" value={form.keyMessage} onChange={e => set('keyMessage', e.target.value)} placeholder="The one message every video should communicate" /></div>
+              </>
+            )}
+            {step === 1 && subStep === 2 && (
+              <>
                 <div className="form-group"><label>Campaign objective *</label><div className="brief-chip-grid">{OBJECTIVES.map(item => <ToggleChip key={item} active={form.objectives.includes(item)} onClick={() => set('objectives', [item])}>{item}</ToggleChip>)}</div></div>
                 <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><small>{form.targetAudience.length}/200 characters</small></div>
                 <div className="brief-switch-row"><div><strong>Budget visibility</strong><p>Show or hide budget from creators. Hidden budgets are flagged to admin.</p></div><button type="button" className={form.budgetVisible ? 'is-on' : ''} onClick={() => set('budgetVisible', !form.budgetVisible)}>{form.budgetVisible ? 'Show' : 'Hide'}</button></div>
@@ -591,12 +650,16 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               </>
             )}
 
-            {step === 3 && (
+            {step === 3 && subStep === 0 && (
               <>
                 <div className="brief-switch-row"><div><strong>Product visible on camera *</strong><p>If yes, specify minimum visibility duration.</p></div><button type="button" className={form.productVisible ? 'is-on' : ''} onClick={() => set('productVisible', !form.productVisible)}>{form.productVisible ? 'Yes' : 'No'}</button></div>
                 {form.productVisible && <div className="form-group"><label>Minimum visibility duration (seconds)</label><input className="input-field" value={form.visibilitySeconds} onChange={e => set('visibilitySeconds', e.target.value)} placeholder="5" /></div>}
                 <div className="brief-switch-row"><div><strong>Verbal product mention *</strong><p>List exact product names to be spoken.</p></div><button type="button" className={form.verbalMention ? 'is-on' : ''} onClick={() => set('verbalMention', !form.verbalMention)}>{form.verbalMention ? 'Yes' : 'No'}</button></div>
                 {form.verbalMention && <div className="form-group"><label>Exact product name(s)</label><input className="input-field" value={form.productNames} onChange={e => set('productNames', e.target.value)} /></div>}
+              </>
+            )}
+            {step === 3 && subStep === 1 && (
+              <>
                 <div className="form-row"><div className="form-group"><label>Required phrases (up to 5)</label>{renderTextList('requiredPhrases', 5, 'Perfect for oily skin')}</div><div className="form-group"><label>Required visual shots (up to 5)</label>{renderTextList('requiredShots', 5, 'Close-up of label')}</div></div>
                 <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}</div>
                 <div className="form-row"><div className="form-group"><label>Required hashtags</label><input className="input-field" value={form.hashtags} onChange={e => handleHashtagsChange(e.target.value)} placeholder="#brand #launch" /><small>Up to 10 hashtags.</small></div><div className="form-group"><label>Brand handle tag *</label><div className="brief-segment"><button className={form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', true)}>Yes</button><button className={!form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', false)}>No</button></div></div></div>
@@ -618,41 +681,52 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               </>
             )}
 
-            {step === 5 && (
+            {step === 5 && subStep === 0 && (
               <>
                 <div className="brief-note"><Info size={18} /> This section is guidance, not grounds for dispute. Creators are expected to interpret style flexibly.</div>
                 <div className="form-group"><label>Tone *</label><div className="brief-chip-grid">{TONES.map(item => <ToggleChip key={item} active={form.tones.includes(item)} onClick={() => toggleArray('tones', item)}>{item}</ToggleChip>)}</div></div>
                 <div className="form-row"><div className="form-group"><label>Pacing preference *</label><select className="input-field" value={form.pacing} onChange={e => set('pacing', e.target.value)}>{['Fast-cut', 'Medium', 'Slow & reflective', 'No preference'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Music preference</label><select className="input-field" value={form.musicPreference} onChange={e => set('musicPreference', e.target.value)}>{['Original creator audio', 'Trending sound', 'Brand-provided audio file', 'No preference'].map(item => <option key={item}>{item}</option>)}</select></div></div>
+              </>
+            )}
+            {step === 5 && subStep === 1 && (
+              <>
                 <div className="form-group"><label>Mood board images (up to 5)</label><label className="mini-upload"><Upload size={18} /> Upload references<input type="file" multiple accept="image/*" onChange={e => set('moodImages', Array.from(e.target.files || []).slice(0, 5).map(file => file.name))} /></label>{form.moodImages.length > 0 && <small>{form.moodImages.join(', ')}</small>}</div>
                 <div className="form-group"><label>Reference videos (up to 3)</label>{renderTextList('referenceVideos', 3, 'Paste reference video link')}</div>
               </>
             )}
 
-            {step === 6 && (
+            {step === 6 && subStep === 0 && (
+              <div className="form-group"><label>Platforms where content can be posted *</label><div className="brief-chip-grid">{PLATFORMS.map(item => <ToggleChip key={item} active={form.platforms.includes(item)} onClick={() => toggleArray('platforms', item)}>{item}</ToggleChip>)}</div></div>
+            )}
+            {step === 6 && subStep === 1 && (
               <>
-                <div className="form-group"><label>Platforms where content can be posted *</label><div className="brief-chip-grid">{PLATFORMS.map(item => <ToggleChip key={item} active={form.platforms.includes(item)} onClick={() => toggleArray('platforms', item)}>{item}</ToggleChip>)}</div></div>
                 <div className="form-row"><div className="form-group"><label>Duration of rights *</label><select className="input-field" value={form.rightsDuration} onChange={e => set('rightsDuration', e.target.value)}><option value="">Select duration</option>{['3 months', '6 months', '1 year', '2 years', 'Perpetual'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Exclusivity period *</label><select className="input-field" value={form.exclusivity} onChange={e => set('exclusivity', e.target.value)}>{['None', '15 days', '30 days', '60 days', '90 days'].map(item => <option key={item}>{item}</option>)}</select></div></div>
                 <div className="form-row"><div className="form-group"><label>Whitelisting / allowlisting *</label><div className="brief-segment"><button className={form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', true)}>Yes (+30%)</button><button className={!form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', false)}>No</button></div></div><div className="form-group"><label>Modification rights *</label><select className="input-field" value={form.modificationRights} onChange={e => set('modificationRights', e.target.value)}><option value="">Select rights</option>{['Yes (full rights)', 'Limited (minor edits only)', 'No (use as-is)'].map(item => <option key={item}>{item}</option>)}</select></div></div>
                 {pricingLifts.length > 0 && <div className="brief-note warning"><AlertTriangle size={18} /> Suggested pricing lifts: {pricingLifts.join('; ')}</div>}
               </>
             )}
 
-            {step === 7 && (
+            {step === 7 && subStep === 0 && (
               <>
-                <div className="deliverable-card">
-                  <div className="deliverable-head"><strong>Creator targeting</strong></div>
-                  <div className="form-row">
-                    <div className="form-group"><label>Minimum creator level *</label><select className="input-field" value={form.creatorLevel} onChange={e => set('creatorLevel', e.target.value)}><option value="">Select level</option>{CREATOR_LEVELS.map(item => <option key={item}>{item}</option>)}</select></div>
-                    <div className="form-group"><label>Content quality tier *</label><select className="input-field" value={form.qualityTier} onChange={e => set('qualityTier', e.target.value)}><option value="">Select tier</option>{QUALITY_TIERS.map(item => <option key={item}>{item}</option>)}</select></div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group"><label>Gender preference</label><select className="input-field" value={form.genderPreference} onChange={e => set('genderPreference', e.target.value)}>{GENDER_OPTIONS.map(item => <option key={item}>{item}</option>)}</select></div>
-                    <div className="form-group"><label>City filter</label><select className="input-field" value={form.cityFilter} onChange={e => set('cityFilter', e.target.value)}>{CITIES.map(item => <option key={item}>{item}</option>)}</select></div>
-                  </div>
-                  <div className="form-group"><label>Creator niche tags</label><div className="brief-chip-grid">{NICHE_TAGS.map(item => <ToggleChip key={item} active={form.nicheTags.includes(item)} onClick={() => toggleArray('nicheTags', item)}>{item}</ToggleChip>)}</div></div>
+                <div className="form-row">
+                  <div className="form-group"><label>Minimum creator level *</label><select className="input-field" value={form.creatorLevel} onChange={e => set('creatorLevel', e.target.value)}><option value="">Select level</option>{CREATOR_LEVELS.map(item => <option key={item}>{item}</option>)}</select></div>
+                  <div className="form-group"><label>Content quality tier *</label><select className="input-field" value={form.qualityTier} onChange={e => set('qualityTier', e.target.value)}><option value="">Select tier</option>{QUALITY_TIERS.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Gender preference</label><select className="input-field" value={form.genderPreference} onChange={e => set('genderPreference', e.target.value)}>{GENDER_OPTIONS.map(item => <option key={item}>{item}</option>)}</select></div>
+                  <div className="form-group"><label>City filter</label><select className="input-field" value={form.cityFilter} onChange={e => set('cityFilter', e.target.value)}>{CITIES.map(item => <option key={item}>{item}</option>)}</select></div>
+                </div>
+                <div className="form-group"><label>Creator niche tags</label><div className="brief-chip-grid">{NICHE_TAGS.map(item => <ToggleChip key={item} active={form.nicheTags.includes(item)} onClick={() => toggleArray('nicheTags', item)}>{item}</ToggleChip>)}</div></div>
+              </>
+            )}
+            {step === 7 && subStep === 1 && (
+              <>
                 <div className="form-row"><div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /></div><div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.'}</small></div></div>
                 <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 creator, Rs. 200 platform)</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
+              </>
+            )}
+            {step === 7 && subStep === 2 && (
+              <>
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
                 {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="number" value={form.fixedBudget} onChange={e => set('fixedBudget', e.target.value)} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMin} onChange={e => set('budgetMin', e.target.value)} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMax} onChange={e => set('budgetMax', e.target.value)} /></div></div>}
                 <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>
@@ -672,14 +746,19 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
                 <Summary title="Timeline & Budget" rows={[['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${LISTING_FEE.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]]} />
               </div>
             )}
+            </div>
           </div>
 
           <div className="pab-footer">
-            <button type="button" className="btn-secondary" onClick={saveDraft} disabled={savingDraft}><Save size={16} /> {savingDraft ? 'Saving…' : 'Save as Draft'}</button>
+            <div className="pab-progress">
+              <div className="pab-progress-track"><i style={{ width: `${Math.round((step / STEPS.length) * 100)}%` }} /></div>
+              <span>{100 - Math.round((step / STEPS.length) * 100)}% Left</span>
+            </div>
             <div className="pab-footer-actions">
-              {step > 1 && <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}><ChevronLeft size={18} /> Back</button>}
+              <button type="button" className="btn-secondary" onClick={saveDraft} disabled={savingDraft}><Save size={16} /> {savingDraft ? 'Saving…' : 'Save Draft'}</button>
+              {(step > 1 || subStep > 0) && <button type="button" className="btn-secondary" onClick={() => { if (subStep > 0) setSubStep(s => s - 1); else setStep(step - 1); }}><ChevronLeft size={18} /> Previous</button>}
               {step < 8 ? (
-                <button type="button" className="btn-primary" onClick={goNext}>Next Section <ChevronRight size={18} /></button>
+                <button type="button" className="btn-primary" onClick={() => { if (subStep < subs.length - 1) setSubStep(s => s + 1); else goNext(); }}>Next <ChevronRight size={18} /></button>
               ) : (embeddedCreatorId || searchParams.get('creator')) ? (
                 <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}><Send size={16} /> Publish & Start Deal</button>
               ) : (
@@ -692,26 +771,6 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           </div>
         </div>
 
-        <aside className="pab-right-rail brief-rail">
-          <div className="rail-card preview-card">
-            <h3><FileText size={16} /> Brief Status</h3>
-            <div className="brief-progress-ring"><strong>{step}/8</strong><span>{STEPS[step - 1]}</span></div>
-            <p className="preview-type">{isStepValid() ? 'Section complete' : 'Required fields pending'}</p>
-          </div>
-          <div className="rail-card tip-card">
-            <div className="tip-head"><span><Info size={16} /></span><h3>Why this matters</h3></div>
-            <p>Must-include and usage-right fields become clear approval criteria, reducing disputes after delivery.</p>
-          </div>
-          <div className="rail-card">
-            <h3>Cost Preview</h3>
-            <div className="summary-items">
-              <div className="summary-item"><span>Budget</span><strong>Rs. {budget.toLocaleString('en-IN')}</strong></div>
-              <div className="summary-item"><span>Commission</span><strong>Rs. {commission.toLocaleString('en-IN')}</strong></div>
-              <div className="summary-item"><span>Listing fee</span><strong>Rs. {LISTING_FEE.toLocaleString('en-IN')}</strong></div>
-              <div className="summary-item"><span>Total debit</span><strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></div>
-            </div>
-          </div>
-        </aside>
       </div>
 
       {showConfirm && (
@@ -728,89 +787,195 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       )}
 
       <style>{`
+        /* top step-tabs (General / Address … style) */
+        .pab-tabs{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #eef0f6;padding:0 4px 0 0;margin-bottom:18px}
+        .pab-tabs-row{display:flex;gap:26px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+        .pab-tabs-row::-webkit-scrollbar{display:none}
+        .pab-tab{background:none;border:none;padding:14px 2px;font-family:inherit;font-size:14.5px;font-weight:700;color:#9aa0c2;white-space:nowrap;cursor:default;border-bottom:2.5px solid transparent;margin-bottom:-1px}
+        .pab-tab.done{color:#5b6bff;cursor:pointer}
+        .pab-tab.active{color:#3730a3;border-bottom-color:#4452f0}
+        .pab-approx{flex:none;font-size:11.5px;font-weight:700;color:#9aa0c2;text-transform:uppercase;letter-spacing:.4px}
+        /* bottom progress bar */
+        .pab-progress{display:flex;align-items:center;gap:14px;flex:1;min-width:120px;max-width:340px}
+        .pab-progress-track{flex:1;height:8px;border-radius:6px;background:#eceefb;overflow:hidden}
+        .pab-progress-track i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#5b6bff,#4452f0);transition:width .3s}
+        .pab-progress span{flex:none;font-size:12.5px;font-weight:700;color:#9aa0c2}
+        /* small circular step-progress ring (top-left of the content) */
+        .pab-ring{position:relative;width:48px;height:48px;display:grid;place-items:center}
+        .pab-ring svg{width:48px;height:48px}
+        .pab-ring-bg{fill:none;stroke:#eceefb;stroke-width:3}
+        .pab-ring-fg{fill:none;stroke:#4452f0;stroke-width:3;stroke-linecap:round;transition:stroke-dasharray .35s}
+        .pab-ring span{position:absolute;font-size:12px;font-weight:800;color:#3730a3}
+        /* ring placed on the purple sidebar */
+        .pab-ring-side{width:76px;height:76px;margin:0 22px 22px 6px;align-self:flex-start}
+        .pab-ring-side svg{width:76px;height:76px}
+        .pab-ring-side .pab-ring-bg{stroke:rgba(255,255,255,0.25)}
+        .pab-ring-side .pab-ring-fg{stroke:#34d399}
+        .pab-ring-side span{color:#fff;font-size:16px}
+        /* compact cost strip below the step */
+        .pab-cost{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;margin-top:22px;padding:12px 16px;border:1px solid #eceefb;border-radius:12px;background:#f7f8ff;font-size:13px;color:#9aa0c2;font-weight:600}
+        .pab-cost b{color:#07074e;font-weight:800;margin-left:4px}
+        .pab-cost-total{margin-left:auto}
+        .pab-cost-total b{color:#4452f0}
+        /* per-step field-completion bar above the form */
+        .pab-fill{display:flex;align-items:center;gap:12px;margin:6px 0 22px}
+        .pab-fill-track{flex:1;height:6px;border-radius:6px;background:#eceefb;overflow:hidden}
+        .pab-fill-track i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#34d399,#10b981);transition:width .3s}
+        .pab-fill span{flex:none;font-size:11.5px;font-weight:700;color:#9aa0c2}
+
         .brief-builder-page {
           color: #07074E;
+          display: grid;
+          grid-template-columns: 252px minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
         }
 
         .brief-stepper {
-          padding: 0 0 24px;
+          padding: 0;
         }
 
         .brief-stepper .stepper-track {
-          width: 100%;
-          display: grid;
-          grid-template-columns: repeat(8, minmax(94px, 1fr));
-          gap: 8px;
-          padding: 14px;
-          background: white;
-          border: 1px solid #E9EBFF;
-          border-radius: 22px;
-          box-shadow: 0 18px 40px rgba(7, 7, 78, 0.05);
-          overflow-x: auto;
-        }
-
-        .brief-step {
-          min-height: 78px;
+          position: relative;
+          height: 100%;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
+          justify-content: flex-start;
+          gap: 14px;
+          padding: 44px 0 30px 22px;
+          background: linear-gradient(165deg, #4f46e5 0%, #4338ca 55%, #3730a3 100%);
+          border: none;
+          border-radius: 24px 0 0 24px;
+          overflow: visible;
+        }
+        /* connector line segment between consecutive numbers (sits on the divider) */
+        .brief-step::before {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: -14px;
+          bottom: 50%;
+          width: 2px;
+          transform: translateX(50%);
+          background: rgba(255, 255, 255, 0.28);
+          z-index: 0;
+        }
+        .brief-step:first-child::before { display: none; }
+
+        .brief-step {
+          position: relative;
+          display: block;
+          padding: 16px 42px 16px 8px;
           border: 0;
-          border-radius: 16px;
           background: transparent;
-          color: #9F9FD1;
-          font-weight: 400;
+          color: rgba(255, 255, 255, 0.72);
+          font-weight: 600;
+          text-align: left;
           cursor: pointer;
         }
 
+        .brief-step small { display: block; font-size: 15.5px; line-height: 1.3; font-weight: 700; }
         .brief-step span {
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translate(50%, -50%);
+          z-index: 2;
           display: grid;
           place-items: center;
-          width: 34px;
-          height: 34px;
+          width: 38px;
+          height: 38px;
           border-radius: 50%;
-          border: 2px dashed #D8D8E8;
+          border: 2px solid #6b63e8;
+          background: #5b54e0;
+          color: #fff;
+          font-weight: 700;
+          font-size: 15px;
+        }
+
+        @media (max-width: 980px) {
+          .brief-builder-page { grid-template-columns: 1fr; }
+          .brief-stepper .stepper-track { flex-direction: row; overflow-x: auto; padding: 14px; border-radius: 18px; justify-content: flex-start; }
+          .brief-stepper .stepper-track::after { display: none; }
+          .brief-step { display: flex; flex-direction: column; gap: 8px; min-width: 104px; text-align: center; padding: 8px; }
+          .brief-step span { position: static; transform: none; }
+          .brief-step small { padding-right: 0; }
+          .brief-panel { border-radius: 18px; border-left: 1px solid #E9EBFF; padding: 28px; }
         }
 
         .brief-step small {
-          font-size: 11px;
-          line-height: 1.25;
-          text-align: center;
+          font-size: 17.5px;
+          line-height: 1.3;
+          text-align: left;
+          font-weight: 700;
         }
+
+        .brief-step:hover { background: rgba(255, 255, 255, 0.08); }
 
         .brief-step.active {
-          background: #EEF0FF;
-          color: #7387FF;
+          color: #fff;
+          font-weight: 800;
         }
 
-        .brief-step.active span,
+        .brief-step.active span {
+          border-color: #fff;
+          background: #fff;
+          color: #4338ca;
+          box-shadow: 0 0 0 3px #34d399;
+        }
+
+        .brief-step.done {
+          color: #fff;
+        }
+
         .brief-step.done span {
-          border-color: #7387FF;
-          background: #7387FF;
-          color: white;
+          border-color: #c7d2fe;
+          background: #c7d2fe;
+          color: #4338ca;
+        }
+
+        @media (max-width: 1280px) {
+          .brief-body { grid-template-columns: 1fr; }
         }
 
         .brief-body {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) 360px;
+          grid-template-columns: minmax(0, 1fr);
           gap: 26px;
           padding: 0;
         }
+        /* Reference layout is two-column (sidebar + content); the cost rail is hidden here. */
+        .brief-rail { display: none; }
 
         .brief-panel {
           background: white;
           border: 1px solid #E9EBFF;
-          border-radius: 22px;
-          padding: 34px 36px;
+          border-left: none;
+          border-radius: 0 22px 22px 0;
+          padding: 34px 36px 34px 44px;
           box-shadow: 0 18px 40px rgba(7, 7, 78, 0.05);
+          /* Flex column with a stable height so the footer can sit pinned to the bottom. */
+          display: flex;
+          flex-direction: column;
+          min-height: 560px;
         }
 
         .step-content {
           display: flex;
           flex-direction: column;
-          gap: 22px;
+          gap: 18px;
         }
+        /* fixed-height field area → the card stays the same size on every step/sub-section */
+        .step-fields {
+          height: 388px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          padding-right: 8px;
+        }
+        .step-fields::-webkit-scrollbar { width: 6px; }
+        .step-fields::-webkit-scrollbar-thumb { background: #d8d8ec; border-radius: 6px; }
 
         .step-badge {
           width: fit-content;
@@ -1096,7 +1261,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          margin: 30px -36px -34px;
+          margin: auto -36px -34px;
           padding: 22px 36px;
           border-top: 1px solid #EEF0FF;
           background: white;

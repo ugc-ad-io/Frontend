@@ -150,7 +150,7 @@ export default function WorkReview({ embedId, onClose }) {
                         <img src={url} alt={`Submission ${idx + 1}`} className="file-media" />
                       )}
                       {work.watermark_protected && (
-                        <img className="file-watermark" src="/watermark.png" alt="" aria-hidden="true" />
+                        <span className="file-watermark" aria-hidden="true" />
                       )}
                     </div>
                   ) : (
@@ -410,12 +410,10 @@ export default function WorkReview({ embedId, onClose }) {
         .file-watermark {
           position: absolute;
           inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          opacity: 0.42;
           pointer-events: none;
-          padding: 10px;
+          background-repeat: no-repeat;
+          background-position: top 10px right 12px;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E");
         }
 
         .watermark-note {

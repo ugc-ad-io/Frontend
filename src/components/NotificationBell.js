@@ -169,30 +169,38 @@ const NotificationBell = () => {
 
         .notification-bell-button {
           position: relative;
-          background: none;
-          border: none;
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          background: #fff;
+          border: 1px solid #e7e9f1;
+          border-radius: 12px;
           cursor: pointer;
-          padding: 8px;
-          border-radius: 8px;
-          transition: background-color 0.2s;
+          color: #6b7088;
+          transition: border-color 0.2s, transform 0.2s;
         }
 
         .notification-bell-button:hover {
-          background-color: rgba(0, 0, 0, 0.05);
+          border-color: #d6d9ee;
+          transform: translateY(-1px);
         }
 
         .notification-badge {
           position: absolute;
-          top: 2px;
-          right: 2px;
+          top: -6px;
+          right: -6px;
           background: #ef4444;
           color: white;
-          border-radius: 10px;
-          padding: 2px 6px;
-          font-size: 0.7rem;
-          font-weight: 600;
+          border: 2px solid #fff;
+          border-radius: 9px;
+          padding: 0 4px;
+          font-size: 0.68rem;
+          font-weight: 700;
           min-width: 18px;
-          text-align: center;
+          height: 18px;
+          display: grid;
+          place-items: center;
         }
 
         .notification-dropdown {

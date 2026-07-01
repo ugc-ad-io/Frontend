@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown } from 'lucide-react';
+import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown, X } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import CampaignDetails from './CampaignDetails';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -12,6 +13,20 @@ const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 const formatMoney = (value) => `Rs. ${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+
+// Map a niche/tag to a consistent colour class so each category reads distinctly.
+const CAT_MAP = [
+  [/beauty|skin|makeup|cosmet/i, 'c-beauty'],
+  [/tech|gadget|electronic|app|software/i, 'c-tech'],
+  [/fashion|apparel|cloth|style|jewel/i, 'c-fashion'],
+  [/life ?style|home|decor|interior/i, 'c-lifestyle'],
+  [/food|snack|beverage|drink|recipe|cook/i, 'c-food'],
+  [/fit|gym|health|wellness|yoga|sport/i, 'c-fitness'],
+  [/travel|trip|tour|hotel|destination/i, 'c-travel'],
+  [/game|gaming|esport/i, 'c-gaming'],
+  [/finance|fintech|bank|invest|money/i, 'c-finance'],
+];
+const catClass = (tag) => (CAT_MAP.find(([re]) => re.test(String(tag || '')))?.[1]) || 'c-default';
 
 const getCampaignBudget = (c) => {
   if (!c) return 'Rs. 0';
@@ -49,7 +64,6 @@ function normalizeBrief(c, index, myBids) {
 
 export default function BrowseBriefs() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [availableCampaigns, setAvailableCampaigns] = useState([]);
@@ -61,6 +75,7 @@ export default function BrowseBriefs() {
   const [budgetFilter, setBudgetFilter] = useState('any');
   const [deliveryFilter, setDeliveryFilter] = useState('any');
   const [visible, setVisible] = useState(8);
+  const [openBrief, setOpenBrief] = useState(null); // brief id shown in the side drawer
 
   useEffect(() => {
     fetchData();
@@ -139,20 +154,20 @@ export default function BrowseBriefs() {
       <div className="cmk-page-head">
         <h1>Browse Campaigns</h1>
         <p>Find exciting brands to collaborate with and create content.</p>
-        {search.trim() && (
-          <div className="cmk-search-note">
-            Showing results for <strong>“{search.trim()}”</strong>
-            <span className="cmk-search-count">· {filtered.length} match{filtered.length === 1 ? '' : 'es'}</span>
-            <button
-              type="button"
-              className="cmk-search-clear"
-              onClick={() => { setSearch(''); setSearchParams({}, { replace: true }); setVisible(8); }}
-            >
-              Clear search
-            </button>
-          </div>
-        )}
       </div>
+      {search.trim() && (
+        <div className="cmk-search-note">
+          Showing results for <strong>“{search.trim()}”</strong>
+          <span className="cmk-search-count">· {filtered.length} match{filtered.length === 1 ? '' : 'es'}</span>
+          <button
+            type="button"
+            className="cmk-search-clear"
+            onClick={() => { setSearch(''); setSearchParams({}, { replace: true }); setVisible(8); }}
+          >
+            Clear search
+          </button>
+        </div>
+      )}
 
       {/* filter row */}
       <div className="cmk-filter-row">
@@ -193,7 +208,7 @@ export default function BrowseBriefs() {
       {shown.length ? (
         <div className="cmk-bb-grid">
           {shown.map((b) => (
-            <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? navigate(`/campaign/${b.id}`) : toast.error('This brief is unavailable')}>
+            <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? setOpenBrief(b.id) : toast.error('This brief is unavailable')}>
               <div className="cmk-bb-top">
                 <span className="cmk-bb-logo">
                   {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
@@ -205,7 +220,7 @@ export default function BrowseBriefs() {
               </div>
               <h3 className="cmk-bb-title">{b.title}</h3>
               <div className="cmk-bb-tags">
-                {b.tags.map((t) => <span key={t}>{t}</span>)}
+                {b.tags.map((t) => <span key={t} className={catClass(t)}>{t}</span>)}
               </div>
               <p className="cmk-bb-desc">{b.description}</p>
               <div className="cmk-bb-meta">
@@ -223,6 +238,30 @@ export default function BrowseBriefs() {
       {visible < filtered.length && (
         <div className="cmk-loadmore">
           <button type="button" onClick={() => setVisible((v) => v + 8)}>Load more briefs</button>
+        </div>
+      )}
+
+      {openBrief && (
+        <div className="bb-drawer-overlay" onClick={() => setOpenBrief(null)}>
+          <aside className="bb-drawer" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="bb-drawer-close" aria-label="Close" onClick={() => setOpenBrief(null)}><X size={20} /></button>
+            <CampaignDetails embedId={openBrief} onClose={() => setOpenBrief(null)} />
+          </aside>
+          <style>{`
+            .bb-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
+            .bb-drawer{position:relative;width:min(760px,100%);height:100%;background:#fff;overflow:auto;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:bb-slide .28s cubic-bezier(.2,.7,.2,1)}
+            @keyframes bb-slide{from{transform:translateX(48px);opacity:.5}to{transform:none;opacity:1}}
+            .bb-drawer-close{position:absolute;top:16px;right:16px;z-index:5;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:#15163a;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(15,22,58,.2)}
+            .bb-drawer-close:hover{background:#fff}
+            /* scale the embedded campaign page down to fit the drawer */
+            .bb-drawer .campaign-details-page{padding:26px 26px 40px!important}
+            .bb-drawer .campaign-title-section h1{font-size:23px!important;letter-spacing:-.4px!important;line-height:1.2!important}
+            .bb-drawer .campaign-section h3,.bb-drawer .banner-content h3{font-size:16px!important}
+            .bb-drawer .banner-content p{font-size:13.5px!important}
+            .bb-drawer .btn-bid-now{font-size:14px!important;padding:11px 20px!important}
+            .bb-drawer .campaign-section{margin-bottom:18px!important}
+            .bb-drawer .campaign-section p,.bb-drawer .brief-line,.bb-drawer .brief-text{font-size:14px!important;line-height:1.6!important}
+          `}</style>
         </div>
       )}
     </CreatorTopNavLayout>

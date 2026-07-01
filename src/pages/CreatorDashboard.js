@@ -368,39 +368,6 @@ export default function CreatorDashboard() {
             activeDeal={heroActiveDeal}
           />
 
-          <section className="cmk-stats">
-            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.10s' }}>
-              <div className="cmk-ic cmk-ic-indigo"><IndianRupee size={22} /></div>
-              <div className="cmk-stat-lbl">Total Earnings</div>
-              <div className="cmk-stat-val">{formatMoney(totalEarned)}</div>
-              <div className="cmk-stat-meta cmk-up"><TrendingUp size={14} /> 18% <span>this month</span></div>
-            </article>
-            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.16s' }}>
-              <div className="cmk-ic cmk-ic-green"><Briefcase size={22} /></div>
-              <div className="cmk-stat-lbl">Active Deals</div>
-              <div className="cmk-stat-val">{activeCampaigns.length}</div>
-              <div className="cmk-stat-meta"><span>{availableCampaigns.length} open briefs</span></div>
-            </article>
-            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.22s' }}>
-              <div className="cmk-ic cmk-ic-orange"><Bookmark size={22} /></div>
-              <div className="cmk-stat-lbl">Pending Bids</div>
-              <div className="cmk-stat-val">{myBids.length}</div>
-              <div className="cmk-stat-meta"><span>awaiting response</span></div>
-            </article>
-            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.28s' }}>
-              <div className="cmk-ic cmk-ic-blue"><Star size={22} /></div>
-              <div className="cmk-stat-lbl">Creator Rating</div>
-              <div className="cmk-stat-val">{rating ? rating.toFixed(1) : 'N/A'}</div>
-              <div className="cmk-stat-meta"><span>{user?.total_reviews || reviews.length} reviews</span></div>
-            </article>
-            <article className="cmk-stat cmk-rise" style={{ animationDelay: '.34s' }}>
-              <div className="cmk-ic cmk-ic-violet"><Wallet size={22} /></div>
-              <div className="cmk-stat-lbl">Pending Payout</div>
-              <div className="cmk-stat-val">{formatMoney(user?.balance)}</div>
-              <div className="cmk-stat-meta"><span>Processing</span></div>
-            </article>
-          </section>
-
           {isNewCreator && (
             <section className="pcd-onboarding">
               <div className="pcd-onboarding-hero">

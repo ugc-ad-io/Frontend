@@ -1717,20 +1717,30 @@
   flex: 1;
 }
 
-.ps-photo-actions label {
+.ps-photo-actions label,
+.ps-upload-btn {
   display: inline-block;
   padding: 10px 20px;
   background: #07074e;
   color: white;
+  border: none;
   border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.ps-photo-actions label:hover {
+.ps-photo-actions label:hover,
+.ps-upload-btn:hover:not(:disabled) {
   background: #1F1F4E;
   transform: translateY(-2px);
+}
+
+.ps-upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .ps-photo-actions input[type="file"] {

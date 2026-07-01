@@ -776,9 +776,9 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  opacity: 0.6;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='96'%3E%3Ctext x='0' y='58' transform='rotate(-28 75 48)' fill='%23ffffff' fill-opacity='0.5' font-family='Arial, sans-serif' font-size='13' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E");
-  background-repeat: repeat;
+  background-repeat: no-repeat;
+  background-position: top 10px right 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E");
 }
 
 .deal-upload-preview-label {
@@ -861,9 +861,9 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  opacity: 0.6;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='96'%3E%3Ctext x='0' y='58' transform='rotate(-28 75 48)' fill='%23ffffff' fill-opacity='0.5' font-family='Arial, sans-serif' font-size='13' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E");
-  background-repeat: repeat;
+  background-repeat: no-repeat;
+  background-position: top 8px right 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E");
 }
 
 .deal-preview-tile a {

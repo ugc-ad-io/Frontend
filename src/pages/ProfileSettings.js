@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -161,6 +161,7 @@ export default function ProfileSettings() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profileBanner, setProfileBanner] = useState(user?.banner || user?.profile?.banner || '');
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const bannerInputRef = useRef(null);
   const [gender, setGender] = useState('');
   const [languages, setLanguages] = useState([]);
   const [country, setCountry] = useState('');
@@ -916,18 +917,37 @@ export default function ProfileSettings() {
                   <div className="ps-form-group">
                     <label>Banner Image</label>
                     <div className="ps-banner-upload">
-                      <label htmlFor="banner-upload" className="ps-banner-preview" style={{ cursor: 'pointer' }}>
+                      <div
+                        className="ps-banner-preview"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => bannerInputRef.current?.click()}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') bannerInputRef.current?.click(); }}
+                      >
                         {profileBanner ? (
                           <img src={profileBanner.startsWith('http') ? profileBanner : `${BACKEND_URL}${profileBanner}`} alt="Banner" />
                         ) : (
                           <div className="ps-banner-placeholder"><Camera size={28} /> Add a banner</div>
                         )}
-                      </label>
+                      </div>
                       <div className="ps-photo-actions">
-                        <input type="file" accept="image/*" onChange={handleBannerUpload} id="banner-upload" />
-                        <label htmlFor="banner-upload">
+                        <input
+                          ref={bannerInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerUpload}
+                          id="banner-upload"
+                          style={{ display: 'none' }}
+                        />
+                        <button
+                          type="button"
+                          className="ps-upload-btn"
+                          onClick={() => bannerInputRef.current?.click()}
+                          disabled={uploadingBanner}
+                        >
                           {uploadingBanner ? 'Uploading...' : (profileBanner ? 'Change Banner' : 'Upload Banner')}
-                        </label>
+                        </button>
                         <p className="ps-hint">Wide cover image. JPG, PNG or WebP. Max 5MB.</p>
                       </div>
                     </div>

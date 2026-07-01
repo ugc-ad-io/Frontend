@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check } from 'lucide-react';
+import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star } from 'lucide-react';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
 
@@ -92,6 +92,24 @@ function ChipsPick({ label, values, options, onToggle }) {
   );
 }
 
+function Stars({ n = 0, size = 14 }) {
+  return (
+    <span className="cpm-stars">
+      {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={size} fill={i <= Math.round(n) ? '#f5b301' : 'none'} color={i <= Math.round(n) ? '#f5b301' : '#cfd2e6'} />)}
+    </span>
+  );
+}
+
+const relTime = (ts) => {
+  if (!ts) return '';
+  const d = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+  if (d < 1) return 'today';
+  if (d < 7) return `${d}d ago`;
+  if (d < 30) return `${Math.floor(d / 7)}w ago`;
+  if (d < 365) return `${Math.floor(d / 30)}mo ago`;
+  return `${Math.floor(d / 365)}y ago`;
+};
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
@@ -122,6 +140,35 @@ function VideoTile({ url, onRemove }) {
   );
 }
 
+// Small playable clip shown inside a review's fact row (watermarked, like the
+// brand work-review preview). Click toggles play; only one clip plays at a time.
+function RevClip({ src }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="cpm-rev-clip" onClick={(e) => { e.stopPropagation(); setOpen(true); }} aria-label="Play delivered clip">
+        <video src={`${src}#t=0.5`} muted playsInline preload="metadata" />
+        <span className="cpm-rev-wm" aria-hidden="true" />
+        <span className="cpm-rev-clip-play"><Play size={16} fill="currentColor" /></span>
+      </button>
+      {open && (
+        <div className="cpm-clip-ov" onClick={() => setOpen(false)}>
+          <div className="cpm-clip-box" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="cpm-clip-x" onClick={() => setOpen(false)} aria-label="Close"><X size={18} /></button>
+            <div className="cpm-clip-frame">
+              <video src={src} controls autoPlay playsInline className="cpm-clip-vid" />
+              <div className="cpm-clip-wm" aria-hidden="true">
+                <img src="/watermark.jpeg" alt="" />
+                <span>UGC.io</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /**
  * Rich creator profile — banner + avatar + stats + Videos/Details tabs.
  * Fetches /profile/:id. `asPage` renders it inline (no overlay) for the route page.
@@ -146,11 +193,73 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const bannerRef = useRef(null);
   const workRef = useRef(null);
 
+  // Scroll-spy: tabs double as anchors — clicking scrolls to the section, and
+  // scrolling between stacked sections updates the active tab.
+  const videosRef = useRef(null);
+  const detailsRef = useRef(null);
+  const reviewsRef = useRef(null);
+  const scrollLock = useRef(false);
+  const goTab = (t) => {
+    const map = { videos: videosRef, details: detailsRef, reviews: reviewsRef };
+    setTab(t);
+    const el = map[t]?.current;
+    if (el) {
+      scrollLock.current = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => { scrollLock.current = false; }, 650);
+    }
+  };
+
+  const [reviews, setReviews] = useState([]);
+
   useEffect(() => {
     let a = true;
     axios.get(`${API}/profile/${id}`).then((r) => { if (a) setData(r.data); }).catch(() => {}).finally(() => { if (a) setLoading(false); });
+    axios.get(`${API}/reviews/creator/${id}`).then((r) => { if (a) setReviews(Array.isArray(r.data) ? r.data : []); }).catch(() => {});
     return () => { a = false; };
   }, [id]);
+
+  const [reviewers, setReviewers] = useState({});
+  const reviewCount = reviews.length;
+  const avgRating = reviewCount ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviewCount) : 0;
+
+  // Resolve reviewer (brand) names + avatars for the review cards.
+  useEffect(() => {
+    const ids = [...new Set(reviews.map((r) => r.reviewer_id).filter(Boolean))];
+    if (!ids.length) return undefined;
+    let a = true;
+    Promise.all(ids.map((rid) => axios.get(`${API}/profile/${rid}`).then((r) => [rid, r.data]).catch(() => [rid, null])))
+      .then((pairs) => {
+        if (!a) return;
+        const m = {};
+        pairs.forEach(([rid, d]) => {
+          if (!d) return;
+          m[rid] = {
+            name: d.nickname || d.business_name || (d.profile && d.profile.business_name) || (d.username ? `@${d.username}` : '') || 'Brand',
+            photo: assetUrl(d.profile_photo || d.logo || (d.profile && d.profile.logo)),
+          };
+        });
+        setReviewers(m);
+      });
+    return () => { a = false; };
+  }, [reviews]);
+
+  // Resolve the campaign behind each review for the Fiverr-style detail row
+  // (price · delivery time · category · delivered video).
+  const [revCampaigns, setRevCampaigns] = useState({});
+  useEffect(() => {
+    const ids = [...new Set(reviews.map((r) => r.campaign_id).filter(Boolean))];
+    if (!ids.length) return undefined;
+    let a = true;
+    Promise.all(ids.map((cid) => axios.get(`${API}/campaigns/${cid}`).then((r) => [cid, r.data]).catch(() => [cid, null])))
+      .then((pairs) => {
+        if (!a) return;
+        const m = {};
+        pairs.forEach(([cid, d]) => { if (d) m[cid] = d; });
+        setRevCampaigns(m);
+      });
+    return () => { a = false; };
+  }, [reviews]);
 
   // Seed the editable copies once data arrives.
   useEffect(() => {
@@ -199,18 +308,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     if (file.size > 5 * 1024 * 1024) { toast.error('Image too large. Maximum 5MB.'); return; }
     setBusy('banner');
     try {
-      const up = await uploadFile(file, '/upload/file');
-      const url = up.file_url || up.url || '';
+      // Dedicated endpoint that validates + persists in one step (mirrors the
+      // profile-photo upload), so the banner can't silently fail mid-flow.
+      const r = await uploadFile(file, '/profile/upload-banner');
+      const url = r.banner || '';
       if (!url) { toast.error('Upload failed — no file URL returned.'); return; }
-      // Show the new banner immediately; persistence is best-effort so a backend
-      // hiccup (missing /profile/banner route, etc.) doesn't hide the upload.
       setLocalBanner(url);
-      try {
-        await axios.patch(`${API}/profile/banner`, { banner: url });
-        toast.success('Banner updated');
-      } catch (err) {
-        toast.error(apiErrorMessage(err, 'Banner uploaded but could not be saved to your profile'));
-      }
+      toast.success('Banner updated');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Could not upload banner'));
     } finally {
@@ -309,6 +413,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const skills = Array.isArray(p.skills) ? p.skills : (Array.isArray(data?.tags) ? data.tags : []);
   const social = p.social_links || {};
   const rc = p.rate_card || {};
+  // Quick-look highlights shown on the profile (price / category / delivery).
+  const hlCategory = (categoryTxt || 'UGC').replace(/_/g, ' ');
+  const hlPrice = priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On request');
+  // Single concrete day count (defaults to 1), not a "3–5 days" range.
+  const hlDays = Number(p.delivery_days || p.avg_delivery_days || rc.delivery_days || 1) || 1;
+  const hlDelivery = `${hlDays} day${hlDays > 1 ? 's' : ''}`;
   const Row = (label, value) => {
     const text = Array.isArray(value) ? value.filter(Boolean).join(', ') : value;
     if (text === '' || text === null || text === undefined) return null;
@@ -363,6 +473,31 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     },
   ].filter((s) => s.rows.length > 0 || s.bio);
 
+  // Scroll-spy: highlight the tab for whichever stacked section the reader is on.
+  useEffect(() => {
+    if (loading || editing) return undefined;
+    const order = [['videos', videosRef], ['details', detailsRef], ['reviews', reviewsRef]].filter(([, r]) => r.current);
+    if (!order.length) return undefined;
+    const onScroll = () => {
+      if (scrollLock.current) return;
+      const line = 150; // reference line just below the sticky tab bar
+      let active = order[0][0];
+      order.forEach(([key, r]) => { if (r.current && r.current.getBoundingClientRect().top - line <= 0) active = key; });
+      setTab((prev) => (prev === active ? prev : active));
+    };
+    onScroll();
+    // window catches page/body scroll; capture-phase document catches any nested
+    // scroll container (e.g. the modal overlay), since scroll events don't bubble.
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('scroll', onScroll, { capture: true });
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [loading, editing, editable, reviewCount, detailSections.length]);
+
   const content = (
       <div className="cpm" onClick={(e) => e.stopPropagation()}>
         <div className={`cpm-banner ${editable ? 'is-editable' : ''}`} style={banner ? { backgroundImage: `url(${banner})` } : undefined} onClick={editable ? () => bannerRef.current?.click() : undefined}>
@@ -372,7 +507,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           {editable && (
             <>
               <span className="cpm-banner-edit"><Camera size={15} /> {busy === 'banner' ? 'Uploading…' : 'Change banner'}</span>
-              <input ref={bannerRef} type="file" accept="image/*" hidden onChange={onPickBanner} />
+              <input ref={bannerRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={onPickBanner} />
             </>
           )}
         </div>
@@ -403,6 +538,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
               <button type="button" className="cpm-msg" onClick={onEdit}><Pencil size={15} /> Edit Profile</button>
             ) : (
               <>
+                {onBegin && <button type="button" className="cpm-brief-btn" onClick={onBegin}>Send a Brief</button>}
                 {onMessage && <button type="button" className="cpm-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
                 <button type="button" className={`cpm-save ${saved ? 'is-saved' : ''}`} onClick={() => setSaved((v) => !v)} aria-label={saved ? 'Saved' : 'Save'} title={saved ? 'Saved' : 'Save'}>
                   <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
@@ -418,52 +554,24 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             <span><strong>{deliverables}</strong> deliverables</span>
             <span><strong>{languages.length}</strong> languages</span>
             <span><strong className={`cpm-lvl ${levelKey}`}>{levelLabel}</strong> level</span>
-            <span><strong>{priceNum ? inr(priceNum) : '—'}</strong> {priceNum ? 'per video' : 'rate'}</span>
           </div>
 
-          <div className="cpm-tabs">
-            <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => setTab('videos')}>Videos</button>
-            <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => setTab('details')}>Details</button>
+          <div className="cpm-highlights">
+            <div className="cpm-hl"><label>Category</label><strong>{hlCategory}</strong></div>
+            <div className="cpm-hl"><label>Price / video</label><strong>{hlPrice}</strong></div>
+            <div className="cpm-hl"><label>Delivery</label><strong>{hlDelivery}</strong></div>
           </div>
+
+        </div>
+
+        <div className="cpm-tabs">
+          <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
+          <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
+          {!editable && reviewCount > 0 && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews ({reviewCount})</button>}
         </div>
 
         <div className="cpm-tab-body">
-          {loading ? <div className="cpm-empty">Loading…</div> : tab === 'videos' ? (
-            editable ? (
-              <>
-                {addOpen && (
-                  <div className="cpm-addwork">
-                    {addForm.url ? (
-                      <div className="cpm-aw-preview">
-                        <VideoTile url={addForm.url} />
-                        <button type="button" className="cpm-aw-change" onClick={() => workRef.current?.click()}>{busy === 'work' ? 'Uploading…' : 'Change video'}</button>
-                      </div>
-                    ) : (
-                      <button type="button" className="cpm-aw-up" onClick={() => workRef.current?.click()}>
-                        <span>{busy === 'work' ? 'Uploading…' : <><Plus size={22} /> Upload video</>}</span>
-                      </button>
-                    )}
-                    <input ref={workRef} type="file" accept="video/*,image/*" hidden onChange={onPickWork} />
-                    <div className="cpm-aw-fields">
-                      <input placeholder="Title" value={addForm.title} onChange={(e) => setAddForm((f) => ({ ...f, title: e.target.value }))} />
-                      <input placeholder="Brand (optional)" value={addForm.brand} onChange={(e) => setAddForm((f) => ({ ...f, brand: e.target.value }))} />
-                      <textarea placeholder="Description (optional)" rows={2} value={addForm.desc} onChange={(e) => setAddForm((f) => ({ ...f, desc: e.target.value }))} />
-                      <div className="cpm-aw-actions">
-                        <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> Save work</button>
-                        <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); setAddForm({ title: '', brand: '', desc: '', url: '' }); }}>Cancel</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="cpm-vids">
-                  {!addOpen && <button type="button" className="cpm-vid cpm-add-tile" onClick={() => setAddOpen(true)}><Plus size={26} /><span>Add Work</span></button>}
-                  {(pf || []).map((it, i) => { const u = pfUrl(it); return u ? <VideoTile key={i} url={u} onRemove={() => removeWork(i)} /> : null; })}
-                </div>
-              </>
-            ) : (
-              <div className="cpm-vids">{vids.slice(0, 12).map((v, i) => <VideoTile key={i} url={v} />)}</div>
-            )
-          ) : editing ? (
+          {loading ? <div className="cpm-empty">Loading…</div> : editing ? (
             <div className="cpm-editform">
               {(() => {
                 const fld = (k) => ({ value: form[k] || '', onChange: (e) => setForm((f) => ({ ...f, [k]: e.target.value })) });
@@ -524,27 +632,140 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
               })()}
               <p className="cpm-ef-note">Saving updates your profile and re-submits it for admin review.</p>
             </div>
-          ) : detailSections.length === 0 ? (
-            <div className="cpm-empty">This creator hasn't shared more details yet.</div>
           ) : (
-            <div className="cpm-sections">
-              {detailSections.map((s) => (
-                <section key={s.title}>
-                  <div className="cpm-sec-h"><span className="cpm-sec-ic"><s.Icon size={15} /></span><h4>{s.title}</h4></div>
-                  {s.bio && <p className="cpm-bio">{s.bio}</p>}
-                  {s.rows.length > 0 && <div className="cpm-grid">{s.rows}</div>}
+            <>
+              <section className="cpm-sec-block" data-sec="videos" ref={videosRef}>
+                {editable ? (
+                  <>
+                    {addOpen && (
+                      <div className="cpm-addwork">
+                        {addForm.url ? (
+                          <div className="cpm-aw-preview">
+                            <VideoTile url={addForm.url} />
+                            <button type="button" className="cpm-aw-change" onClick={() => workRef.current?.click()}>{busy === 'work' ? 'Uploading…' : 'Change video'}</button>
+                          </div>
+                        ) : (
+                          <button type="button" className="cpm-aw-up" onClick={() => workRef.current?.click()}>
+                            <span>{busy === 'work' ? 'Uploading…' : <><Plus size={22} /> Upload video</>}</span>
+                          </button>
+                        )}
+                        <input ref={workRef} type="file" accept="video/*,image/*" hidden onChange={onPickWork} />
+                        <div className="cpm-aw-fields">
+                          <input placeholder="Title" value={addForm.title} onChange={(e) => setAddForm((f) => ({ ...f, title: e.target.value }))} />
+                          <input placeholder="Brand (optional)" value={addForm.brand} onChange={(e) => setAddForm((f) => ({ ...f, brand: e.target.value }))} />
+                          <textarea placeholder="Description (optional)" rows={2} value={addForm.desc} onChange={(e) => setAddForm((f) => ({ ...f, desc: e.target.value }))} />
+                          <div className="cpm-aw-actions">
+                            <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> Save work</button>
+                            <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); setAddForm({ title: '', brand: '', desc: '', url: '' }); }}>Cancel</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="cpm-vids">
+                      {!addOpen && <button type="button" className="cpm-vid cpm-add-tile" onClick={() => setAddOpen(true)}><Plus size={26} /><span>Add Work</span></button>}
+                      {(pf || []).map((it, i) => { const u = pfUrl(it); return u ? <VideoTile key={i} url={u} onRemove={() => removeWork(i)} /> : null; })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="cpm-vids">
+                    {vids.slice(0, 12).map((v, i) => (
+                      <div className="cpm-vid-item" key={i}>
+                        <VideoTile url={v} />
+                        <div className="cpm-vid-cap">
+                          <span className="cpm-vid-cat">{hlCategory}</span>
+                          <div className="cpm-vid-pd">
+                            <span><strong>{hlPrice}</strong><label>Price</label></span>
+                            <span><strong>{hlDelivery}</strong><label>Delivered in</label></span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="cpm-sec-block" data-sec="details" ref={detailsRef}>
+                <h4 className="cpm-sec-title">Details</h4>
+                {detailSections.length === 0 ? (
+                  <div className="cpm-empty">This creator hasn't shared more details yet.</div>
+                ) : (
+                  <div className="cpm-sections">
+                    {detailSections.map((s) => (
+                      <section key={s.title}>
+                        <div className="cpm-sec-h"><span className="cpm-sec-ic"><s.Icon size={15} /></span><h4>{s.title}</h4></div>
+                        {s.bio && <p className="cpm-bio">{s.bio}</p>}
+                        {s.rows.length > 0 && <div className="cpm-grid">{s.rows}</div>}
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {!editable && reviewCount > 0 && (
+                <section className="cpm-sec-block" data-sec="reviews" ref={reviewsRef}>
+                  <h4 className="cpm-sec-title">Reviews ({reviewCount})</h4>
+                  {(
+                    <div className="cpm-reviews">
+                      <div className="cpm-rev-head">
+                        <h3>{reviewCount} Review{reviewCount > 1 ? 's' : ''}</h3>
+                        <div className="cpm-rev-overall"><Stars n={avgRating} size={16} /> <b>{avgRating.toFixed(1)}</b></div>
+                      </div>
+                      <div className="cpm-rev-bars">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const c = reviews.filter((r) => Math.round(r.rating || 0) === star).length;
+                          const pct = reviewCount ? (c / reviewCount) * 100 : 0;
+                          return (
+                            <div className="cpm-rev-bar" key={star}>
+                              <span>{star} Star{star > 1 ? 's' : ''}</span>
+                              <div className="cpm-rev-track"><i style={{ width: `${pct}%` }} /></div>
+                              <em>({c})</em>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="cpm-rev-list">
+                        {reviews.map((rv, i) => {
+                          const text = rv.review || rv.review_text || rv.comment || '';
+                          const who = reviewers[rv.reviewer_id]?.name || rv.reviewer_name || 'Brand';
+                          const photo = reviewers[rv.reviewer_id]?.photo;
+                          const camp = revCampaigns[rv.campaign_id] || {};
+                          const ws = camp.work_submission || {};
+                          const selBid = (camp.bids || []).find((b) => b.creator_id === camp.selected_creator) || {};
+                          const cat = (camp.category || camp.industry_type || 'UGC').replace(/_/g, ' ');
+                          const price = (camp.budget_max || camp.budget_min)
+                            ? `Up to ${inr(camp.budget_max || camp.budget_min)}` : 'On request';
+                          const days = selBid.estimated_delivery_days || camp.estimated_delivery_days;
+                          const duration = days ? `${days} day${Number(days) > 1 ? 's' : ''}` : '—';
+                          const vid = (ws.work_files || []).find((f) => isVideo(f)) || (ws.work_files || [])[0] || '';
+                          const vidUrl = vid ? assetUrl(vid) : '';
+                          return (
+                            <div className="cpm-rev-card" key={rv.id || i}>
+                              <div className="cpm-rev-main">
+                                <div className="cpm-rev-who">
+                                  <span className="cpm-rev-ava">{photo ? <img src={photo} alt="" /> : (String(who).replace('@', '')[0] || 'B').toUpperCase()}</span>
+                                  <strong>{String(who).replace('@', '')}</strong>
+                                </div>
+                                <div className="cpm-rev-meta"><Stars n={rv.rating} size={13} /> <b>{(rv.rating || 0).toFixed(0)}</b> <span>· {relTime(rv.created_at)}</span></div>
+                                {text && <p className="cpm-rev-text">{text}</p>}
+                                <div className="cpm-rev-facts">
+                                  <div className="cpm-rev-fact"><strong>{price}</strong><label>Price</label></div>
+                                  <div className="cpm-rev-fact"><strong>{duration}</strong><label>Duration</label></div>
+                                  <div className="cpm-rev-fact"><span className="cpm-rev-cat">{cat}</span><label>Service</label></div>
+                                </div>
+                              </div>
+                              {vidUrl && isVideo(vidUrl) && <div className="cpm-rev-media"><RevClip src={vidUrl} /></div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </section>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
 
-        {onBegin && (
-          <div className="cpm-foot">
-            <div className="cpm-foot-text"><span>🧑‍🎤</span><div><strong>Ready to Get Started?</strong><p>Send a brief to start work instantly and stay on track.</p></div></div>
-            <button type="button" className="cpm-begin" onClick={onBegin}>Send a Brief</button>
-          </div>
-        )}
 
       <style>{`
         .cpm-ov{position:fixed;inset:0;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);z-index:1400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto}
@@ -561,6 +782,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-actions{position:absolute;right:28px;top:122px;display:flex;align-items:center;gap:10px}
         .cpm-msg{display:inline-flex;align-items:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-msg:hover{filter:brightness(1.12)}
+        .cpm-brief-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(68,82,240,.7)}
+        .cpm-brief-btn:hover{transform:translateY(-1px)}
         .cpm-save{width:44px;height:44px;border-radius:50%;border:1px solid #e6e8f3;background:#fff;color:#585c7e;cursor:pointer;display:grid;place-items:center}
         .cpm-save:hover{border-color:#cdd4ff;color:#4452f0}
         .cpm-save.is-saved{background:#eef0ff;border-color:#cdd4ff;color:#4452f0}
@@ -569,18 +792,93 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px}
         .cpm-stats span{color:#9296ba;font-size:12.5px;font-weight:600}
         .cpm-stats strong{color:#15163a;font-size:17px;font-weight:800;margin-right:4px}
+        .cpm-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;
+          padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
+        .cpm-hl{min-width:0}
+        .cpm-hl label{display:block;color:#9296ba;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+        .cpm-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        @media (max-width:520px){.cpm-highlights{grid-template-columns:1fr 1fr}}
         .cpm-lvl{padding:2px 10px;border-radius:20px;color:#fff!important;font-size:13px!important}
         .cpm-lvl.elite{background:linear-gradient(135deg,#8b5cf6,#5b6bff)}
         .cpm-lvl.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
         .cpm-lvl.l1{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
         .cpm-lvl.verified{background:linear-gradient(135deg,#2bd47e,#15a35b)}
         .cpm-lvl.new{background:#6b7090}
-        .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px}
-        .cpm-tabs button{background:none;border:none;padding:10px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
+        .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
+        .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
         .cpm-tab-body{padding:22px 28px 4px}
-        .cpm-vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+        /* scroll-spy: each tab maps to a stacked section; the tab bar sticks while scrolling */
+        .cpm-sec-block{scroll-margin-top:130px;padding-top:4px}
+        .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
+        .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
+        .cpm-page .cpm{overflow:visible}
+        .cpm-page .cpm-tabs{position:sticky;top:72px;z-index:6;margin-top:0}
+        @media (max-width:760px){.cpm-page .cpm-tabs{top:0}}
+        .cpm-stars{display:inline-flex;gap:2px;vertical-align:middle}
+        .cpm-reviews{display:flex;flex-direction:column;gap:18px}
+        .cpm-rev-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .cpm-rev-head h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:19px;font-weight:800;color:#15163a}
+        .cpm-rev-overall{display:inline-flex;align-items:center;gap:8px}
+        .cpm-rev-overall b{font-size:16px;color:#15163a}
+        .cpm-rev-bars{display:flex;flex-direction:column;gap:7px;max-width:420px}
+        .cpm-rev-bar{display:grid;grid-template-columns:58px 1fr 44px;align-items:center;gap:10px;font-size:13px;color:#585c7e;font-weight:600}
+        .cpm-rev-track{height:8px;border-radius:6px;background:#eef0f6;overflow:hidden}
+        .cpm-rev-track i{display:block;height:100%;background:#15163a;border-radius:6px}
+        .cpm-rev-bar em{font-style:normal;color:#9296ba;text-align:right}
+        .cpm-rev-list{display:flex;flex-direction:column;gap:14px;border-top:1px solid #eef0f6;padding-top:18px}
+        .cpm-rev-card{border:1px solid #eef0f6;border-radius:14px;padding:16px 18px;background:#fff;display:flex;gap:20px;align-items:center}
+        .cpm-rev-main{flex:1;min-width:0}
+        .cpm-rev-media{flex:none}
+        .cpm-rev-who{display:flex;align-items:center;gap:10px}
+        .cpm-rev-ava{width:38px;height:38px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800;font-size:15px}
+        .cpm-rev-ava img{width:100%;height:100%;object-fit:cover}
+        .cpm-rev-who strong{font-size:14.5px;color:#15163a}
+        .cpm-rev-meta{display:flex;align-items:center;gap:6px;margin-top:10px;color:#9296ba;font-size:12.5px}
+        .cpm-rev-meta b{color:#15163a;font-size:13px}
+        .cpm-rev-card p{margin:10px 0 0;color:#3a3d63;font-size:14px;line-height:1.6}
+        /* Fiverr-style review facts: Price | Duration | clip + Category, with
+           thin vertical divider lines between each cell. */
+        .cpm-rev-text{margin:10px 0 0!important}
+        .cpm-rev-facts{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-top:16px;padding-top:16px;border-top:1px solid #eef0f6}
+        .cpm-rev-fact{display:flex;flex-direction:column-reverse;min-width:0;padding:2px 22px}
+        .cpm-rev-fact:first-child{padding-left:0}
+        .cpm-rev-fact + .cpm-rev-fact{border-left:1px solid #e7e8f3}
+        .cpm-rev-fact strong{color:#07074e;font-size:15px;font-weight:800;white-space:nowrap}
+        .cpm-rev-fact label{color:#9296ba;font-size:12px;font-weight:600}
+        .cpm-rev-fact-cat{flex-direction:row;align-items:center;gap:12px}
+        .cpm-rev-cat{color:#15163a;font-size:14px;font-weight:700;text-transform:capitalize}
+        /* inline playable, watermarked clip (matches the brand work-review preview) */
+        .cpm-rev-clip{position:relative;flex:none;width:230px;aspect-ratio:16/10;border-radius:12px;overflow:hidden;
+          border:1px solid #e7e8f3;background:#0b1020;cursor:pointer;padding:0}
+        .cpm-rev-clip video{width:100%;height:100%;object-fit:cover;display:block}
+        .cpm-rev-wm{position:absolute;inset:0;pointer-events:none;background-repeat:no-repeat;background-position:top 8px right 10px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E")}
+        /* small clip thumbnail keeps the subtle tiled text watermark (badge is too big here) */
+        .cpm-rev-clip .cpm-rev-wm{opacity:.5;background-repeat:repeat;background-position:0 0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80'%3E%3Ctext x='0' y='50' transform='rotate(-28 60 40)' fill='%23ffffff' fill-opacity='0.55' font-family='Arial' font-size='12' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E")}
+        .cpm-clip-ov{position:fixed;inset:0;z-index:1600;background:rgba(8,10,30,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
+        .cpm-clip-box{position:relative;width:min(900px,96vw)}
+        .cpm-clip-frame{position:relative;border-radius:16px;overflow:hidden;background:#000;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
+        .cpm-clip-vid{display:block;width:100%;max-height:82vh;background:#000}
+        .cpm-clip-x{position:absolute;top:-46px;right:0;width:38px;height:38px;border-radius:50%;border:none;background:#fff;color:#15163a;cursor:pointer;display:grid;place-items:center;z-index:2}
+        .cpm-clip-wm{position:absolute;top:12px;right:14px;z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:3px}
+        .cpm-clip-wm img{width:46px;height:46px;object-fit:contain;border-radius:10px;opacity:.92;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+        .cpm-clip-wm span{color:#fff;font-size:12px;font-weight:800;letter-spacing:.3px;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+        .cpm-rev-clip-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;
+          border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--indigo,#5b6bff);box-shadow:0 3px 10px rgba(0,0,0,.3)}
+        @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:12px}.cpm-rev-fact{padding:2px 14px}.cpm-rev-fact + .cpm-rev-fact{border-left:none}}
+        .cpm-vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
         .cpm-vid{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#0b1020;cursor:pointer;box-shadow:0 8px 22px -12px rgba(15,22,58,.4)}
+        /* per-video caption: category chip + price / duration */
+        .cpm-vid-item{display:flex;flex-direction:column;gap:8px}
+        .cpm-vid-cap{padding:0 2px}
+        .cpm-vid-cat{display:inline-block;padding:2px 10px;border-radius:20px;background:#eef0ff;color:#5b6bff;
+          font-size:11.5px;font-weight:700;text-transform:capitalize}
+        .cpm-vid-pd{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
+        .cpm-vid-pd span{display:flex;flex-direction:column-reverse;min-width:0}
+        .cpm-vid-pd strong{color:#07074e;font-size:13.5px;font-weight:800;white-space:nowrap}
+        .cpm-vid-pd label{color:#9296ba;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+        .cpm-vid-pd span:last-child{text-align:right;align-items:flex-end}
         .cpm-vid video,.cpm-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         .cpm-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#5b6bff;pointer-events:none}
         .cpm-empty{text-align:center;color:#9296ba;padding:30px 0;font-size:14px}
@@ -623,7 +921,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-editform .cpm-ef-sec:first-child{border-top:none;padding-top:0}
         .cpm-ef-check{flex-direction:row!important;align-items:center;gap:8px!important;text-transform:none!important;letter-spacing:0!important;font-size:13.5px!important;color:#15163a!important;font-weight:600!important}
         .cpm-ef-check input{width:16px;height:16px;accent-color:#5b6bff}
-        .cpm-sections{display:flex;flex-direction:column;gap:14px}
+        .cpm-sections{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+        @media (max-width:760px){.cpm-sections{grid-template-columns:1fr}}
         .cpm-sections section{border:1px solid #eef0f6;border-radius:16px;padding:18px 20px;background:#fff;box-shadow:0 1px 2px rgba(15,22,58,.04)}
         .cpm-sec-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
         .cpm-sec-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}

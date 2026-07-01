@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu } from 'lucide-react';
+import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import HoverSideRail from './HoverSideRail';
 import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
@@ -10,10 +11,10 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
 const PRIMARY_LINKS = [
-  { name: 'Creators', to: '/dashboard/business/browse-creator' },
-  { name: 'Campaigns', to: '/dashboard/business/all-campaigns' },
-  { name: 'Work Review', to: '/dashboard/business/work-review' },
-  { name: 'Messages', to: '/messages', dot: true },
+  { name: 'Creators', to: '/dashboard/business/browse-creator', icon: Users },
+  { name: 'Campaigns', to: '/dashboard/business/all-campaigns', icon: Megaphone },
+  { name: 'Work Review', to: '/dashboard/business/work-review', icon: ClipboardCheck },
+  { name: 'Messages', to: '/messages', dot: true, icon: MessageSquare },
 ];
 
 const MENU_LINKS = [
@@ -63,7 +64,16 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const handleLogout = () => { logout(); navigate('/'); };
 
   return (
-    <div className="cmk-app">
+    <div className="cmk-app has-rail">
+      <HoverSideRail
+        brandMark="U"
+        onLogoClick={() => navigate('/dashboard/business/browse-creator')}
+        primary={PRIMARY_LINKS}
+        secondary={MENU_LINKS.filter((i) => !i.sep)}
+        isActive={isActive}
+        onNavigate={navigate}
+        onLogout={handleLogout}
+      />
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">

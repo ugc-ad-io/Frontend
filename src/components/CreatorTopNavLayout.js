@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
-  ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X
+  ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X,
+  Zap, Compass, FileText, MessageSquare
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import HoverSideRail from './HoverSideRail';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -12,10 +14,10 @@ const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 
 // Primary links live in the top bar; account/secondary links live in the avatar menu.
 const PRIMARY_LINKS = [
-  { name: 'Active Work', to: '/my-active-work' },
-  { name: 'Browse Campaigns', to: '/browse-briefs' },
-  { name: 'My Bids', to: '/my-bids' },
-  { name: 'Messages', to: '/messages', dot: true }
+  { name: 'Active Work', to: '/my-active-work', icon: Zap },
+  { name: 'Browse Campaigns', to: '/browse-briefs', icon: Compass },
+  { name: 'My Bids', to: '/my-bids', icon: FileText },
+  { name: 'Messages', to: '/messages', dot: true, icon: MessageSquare }
 ];
 
 const MENU_LINKS = [
@@ -58,7 +60,16 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const handleLogout = () => { logout(); navigate('/'); };
 
   return (
-    <div className="cmk-app">
+    <div className="cmk-app has-rail">
+      <HoverSideRail
+        brandMark="U"
+        onLogoClick={() => navigate('/dashboard/creator')}
+        primary={PRIMARY_LINKS}
+        secondary={MENU_LINKS.filter((i) => !i.sep)}
+        isActive={isActive}
+        onNavigate={navigate}
+        onLogout={handleLogout}
+      />
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">

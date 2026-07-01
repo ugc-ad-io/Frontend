@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Check, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 
@@ -11,24 +11,48 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—');
 
-const STAGES = ['Brief Received', 'Content Submitted', 'Under Review', 'Payment'];
+// "3 Nov, 2:00pm" — date + short time (time omitted if the source has none meaningful).
+const fmtDT = (d) => {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '—';
+  const day = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(/\s/g, '');
+  return `${day}, ${time}`;
+};
 
-// Map a campaign status to step progress + status chip + CTA.
-function stageInfo(c) {
+// Fallback % when a status has no time window; used by the timeline bar.
+function baseProgress(c) {
   const s = c.status;
-  if (s === 'completed') return { done: 4, label: 'Completed', tone: 'ok', progress: 100, cta: 'View' };
-  if (s === 'cancelled') return { done: 0, label: 'Cancelled', tone: 'bad', progress: 0, cta: 'View' };
-  if (s === 'work_submitted' || s === 'under_review') return { done: 2, label: 'In Review', tone: 'warn', progress: 100, cta: 'View' };
-  return { done: 1, label: 'In Progress', tone: 'warn', progress: 65, cta: 'Continue' }; // in_progress / active
+  if (s === 'completed') return 100;
+  if (s === 'cancelled') return 0;
+  if (s === 'work_submitted' || s === 'under_review') return 100;
+  return 65;
 }
 
-function dueLabel(c) {
-  if (!c.due_date) return null;
-  const diff = Math.ceil((new Date(c.due_date) - Date.now()) / 86400000);
-  if (diff < 0) return { text: 'Overdue', tone: 'bad' };
-  return { text: `Due in ${diff} ${diff === 1 ? 'day' : 'days'}`, tone: 'warn' };
+// Elapsed fraction of the start→due window, else the status fallback.
+function timeProgress(c) {
+  const start = c.start_date || c.created_at;
+  const end = c.due_date || c.end_date;
+  if (start && end) {
+    const s = new Date(start).getTime(), e = new Date(end).getTime(), n = Date.now();
+    if (e > s) return Math.min(100, Math.max(0, Math.round(((n - s) / (e - s)) * 100)));
+  }
+  return baseProgress(c);
+}
+
+// Reference-style status badge: label + accent colour + icon.
+function statusMeta(c) {
+  const s = c.status;
+  const due = c.due_date ? Math.ceil((new Date(c.due_date) - Date.now()) / 86400000) : null;
+  const startFuture = (c.start_date || c.scheduled_at) && new Date(c.start_date || c.scheduled_at) > Date.now();
+  if (s === 'completed') return { label: 'Completed', color: '#22c55e', Icon: CheckCircle2 };
+  if (s === 'cancelled') return { label: 'Cancelled', color: '#ef4444', Icon: XCircle };
+  if (s === 'work_submitted' || s === 'under_review') return { label: 'In Review', color: '#f59e0b', Icon: Hourglass };
+  if (due !== null && due < 0) return { label: 'Over Time', color: '#ef4444', Icon: AlertTriangle };
+  if (startFuture) return { label: 'Upcoming', color: '#f97316', Icon: Hourglass };
+  return { label: 'Active', color: '#3b82f6', Icon: Zap };
 }
 
 const TABS = [
@@ -94,46 +118,57 @@ export default function MyActiveWorkPage() {
       {loading ? (
         <div className="cmk-empty">Loading…</div>
       ) : rows.length ? (
-        <div className="cmk-aw-list">
+        <div className="cmk-awc-grid">
           {rows.map((c) => {
-            const st = stageInfo(c);
-            const due = dueLabel(c);
+            const meta = statusMeta(c);
+            const pct = timeProgress(c);
             const brand = c.business_nickname || c.brand_handle || 'Brand';
-            const tags = (Array.isArray(c.objectives) && c.objectives.length ? c.objectives.slice(0, 1) : [c.industry_type || 'Lifestyle']).concat('UGC Video');
-            const stepDates = [c.created_at, c.work_submitted_at || c.submitted_at, c.reviewed_at, c.paid_at];
+            const channel = (Array.isArray(c.objectives) && c.objectives[0]) || c.industry_type || 'UGC Video';
+            const shortId = `#${String(c.id).slice(-4).toUpperCase()}`;
+            const start = c.start_date || c.created_at;
+            const end = c.due_date || c.end_date;
             return (
-              <article key={c.id} className="cmk-aw-row cmk-rise cmk-aw-clickable" onClick={() => navigate(`/my-deals?campaign=${c.id}`)} role="button" tabIndex={0}>
-                <div className="cmk-aw-brand">
-                  <span className="cmk-aw-logo">
+              <article
+                key={c.id}
+                className="cmk-awc cmk-rise"
+                style={{ '--awc': meta.color }}
+                onClick={() => navigate(`/my-deals?campaign=${c.id}`)}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="cmk-awc-top">
+                  <span className="cmk-awc-id">{shortId}</span>
+                  <span className="cmk-awc-div" />
+                  <span className="cmk-awc-badge"><meta.Icon size={14} /> {meta.label}</span>
+                </div>
+
+                <h3 className="cmk-awc-title">{c.title || 'Campaign'}</h3>
+
+                <div className="cmk-awc-dates">
+                  <span>{fmtDT(start)}</span>
+                  <span>{fmtDT(end)}</span>
+                </div>
+                <div className="cmk-awc-track">
+                  <i className="cmk-awc-fill" style={{ width: `${pct}%` }} />
+                  <span className="cmk-awc-dot start" />
+                  <span className="cmk-awc-dot end" />
+                </div>
+
+                <div className="cmk-awc-foot">
+                  <span className="cmk-awc-ava">
                     {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
                   </span>
-                  <div>
-                    <strong>{c.title || 'Campaign'}</strong>
-                    <div className="cmk-aw-tags">{tags.map((t, i) => <span key={i}>{t}</span>)}</div>
+                  <div className="cmk-awc-who">
+                    <strong>{brand}</strong>
+                    <small>Via {channel}</small>
                   </div>
-                </div>
-
-                <div className="cmk-aw-steps">
-                  {STAGES.map((label, i) => {
-                    const state = i < st.done ? 'done' : i === st.done ? 'active' : 'todo';
-                    return (
-                      <div key={label} className={`cmk-step ${state}`}>
-                        <span className="cmk-step-dot">{state === 'done' ? <Check size={12} /> : i + 1}</span>
-                        <span className="cmk-step-label">{label}</span>
-                        <span className="cmk-step-date">{i < st.done ? fmtDate(stepDates[i]) : '—'}</span>
-                        {i < STAGES.length - 1 && <i className={`cmk-step-line ${i < st.done ? 'on' : ''}`} />}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="cmk-aw-right">
-                  {due && st.tone !== 'ok' ? <span className={`cmk-aw-status ${due.tone}`}>{due.text}</span>
-                    : <span className={`cmk-aw-status ${st.tone}`}>{st.label}</span>}
-                  <div className="cmk-aw-prog"><span>Progress</span><b>{st.progress}%</b></div>
-                  <div className="cmk-aw-bar"><i style={{ width: `${st.progress}%` }} /></div>
-                  <button type="button" className={st.cta === 'Continue' ? 'cmk-btn-sm-primary' : 'cmk-btn-sm-ghost'} onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}>
-                    {st.cta}
+                  <button
+                    type="button"
+                    className="cmk-awc-go"
+                    aria-label="Open campaign"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
+                  >
+                    <ArrowRight size={18} />
                   </button>
                 </div>
               </article>

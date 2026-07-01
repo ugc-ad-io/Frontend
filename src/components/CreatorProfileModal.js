@@ -311,12 +311,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       // Dedicated endpoint that validates + persists in one step (mirrors the
       // profile-photo upload), so the banner can't silently fail mid-flow.
       const r = await uploadFile(file, '/profile/upload-banner');
-      const url = r.banner || '';
+      const url = r.banner || r.file_url || '';
       if (!url) { toast.error('Upload failed — no file URL returned.'); return; }
       setLocalBanner(url);
+      setData((d) => (d ? { ...d, banner: url } : d));
       toast.success('Banner updated');
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Could not upload banner'));
+      // Surface the real reason (status + server message) so failures aren't silent.
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail || err?.response?.data?.message || err?.message;
+      toast.error(`Banner failed${status ? ` (${status})` : ''}: ${detail || 'unknown error'}`);
     } finally {
       setBusy(''); if (bannerRef.current) bannerRef.current.value = '';
     }
@@ -506,8 +510,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             : <button type="button" className="cpm-x" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close"><X size={18} /></button>}
           {editable && (
             <>
-              <span className="cpm-banner-edit"><Camera size={15} /> {busy === 'banner' ? 'Uploading…' : 'Change banner'}</span>
-              <input ref={bannerRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={onPickBanner} />
+              <button
+                type="button"
+                className="cpm-banner-edit"
+                disabled={busy === 'banner'}
+                onClick={(e) => { e.stopPropagation(); bannerRef.current && bannerRef.current.click(); }}
+              >
+                <Camera size={15} /> {busy === 'banner' ? 'Uploading…' : 'Change banner'}
+              </button>
+              <input ref={bannerRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{ display: 'none' }} onChange={onPickBanner} />
             </>
           )}
         </div>
@@ -892,7 +903,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-ghost{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8f3;color:#15163a;border-radius:30px;padding:10px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-ghost:hover{border-color:#cdd4ff;color:#4452f0;background:#f6f7ff}
         .cpm-banner.is-editable{cursor:pointer}
-        .cpm-banner-edit{position:absolute;right:16px;bottom:14px;display:inline-flex;align-items:center;gap:6px;background:rgba(15,22,58,.55);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;backdrop-filter:blur(4px)}
+        .cpm-banner-edit{position:absolute;right:16px;bottom:14px;z-index:3;display:inline-flex;align-items:center;gap:6px;background:rgba(15,22,58,.7);color:#fff;font-size:12px;font-weight:600;padding:8px 14px;border:none;border-radius:20px;cursor:pointer;font-family:inherit;backdrop-filter:blur(4px)}
+        .cpm-banner-edit:hover{background:rgba(15,22,58,.9)}
+        .cpm-banner-edit:disabled{opacity:.7;cursor:default}
         .cpm-avatar-lg.is-editable{cursor:pointer}
         .cpm-avatar-cam{position:absolute;right:2px;bottom:2px;width:30px;height:30px;border:2px solid #fff;border-radius:50%;background:#15163a;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 6px rgba(15,22,58,.3);z-index:2}
         .cpm-vid-del{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(15,22,58,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:3}

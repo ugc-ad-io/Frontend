@@ -360,6 +360,10 @@ export default function CreatorDashboard() {
           <CreatorHero
             name={heroName}
             photo={user?.profile_photo}
+            category={user?.niche || user?.primary_category || user?.content_category || 'UGC'}
+            rating={rating}
+            completedDeals={completedWorks}
+            level={levelInfo.title}
             activeDeals={activeCampaigns.length}
             newBriefs={availableCampaigns.length}
             totalEarned={Number(totalEarned || 0)}

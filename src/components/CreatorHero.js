@@ -5,13 +5,21 @@ import { ArrowUpRight, Star, Check, Sparkles } from 'lucide-react';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 
-// Trending UGC reels (high-res portrait clips from /public) + their details.
-// The right-side reel auto-plays in rotation and the left details cycle with it.
-const FEATURED = [
-  { reel: '/17811912-uhd_2160_3840_24fps.mp4', creator: '@rohan.creator', category: 'Fashion',   price: 'Rs. 2,000', delivery: '1 day',  rating: 4.9 },
-  { reel: '/7690504-hd_1080_1920_30fps.mp4',    creator: '@priya.moves',   category: 'Fitness',   price: 'Rs. 1,800', delivery: '2 days', rating: 4.8 },
-  { reel: '/6944288-uhd_2160_3840_24fps-sm.mp4', creator: '@arjun.fit',    category: 'Lifestyle', price: 'Rs. 2,200', delivery: '1 day',  rating: 5.0 },
+// Portrait showcase reels (high-res clips from /public). These auto-play in
+// rotation on the right purely as visual eye-candy — all the text on the hero
+// reflects the logged-in creator's own details (passed in via props).
+const REELS = [
+  '/17811912-uhd_2160_3840_24fps.mp4',
+  '/7690504-hd_1080_1920_30fps.mp4',
+  '/6944288-uhd_2160_3840_24fps-sm.mp4',
 ];
+
+// Rs. 21,900 for smaller amounts, Rs. 4.2L once we cross a lakh.
+const fmtMoney = (n) => {
+  const v = Number(n) || 0;
+  if (v >= 100000) return `Rs. ${(v / 100000).toFixed(v % 100000 === 0 ? 0 : 1)}L`;
+  return `Rs. ${v.toLocaleString('en-IN')}`;
+};
 
 const CAT_CLASS = (c) => ({
   fashion: 'c-fashion', fitness: 'c-fitness', beauty: 'c-beauty', tech: 'c-tech',
@@ -19,24 +27,28 @@ const CAT_CLASS = (c) => ({
 }[String(c || '').toLowerCase()] || 'c-default');
 
 /**
- * Creator dashboard hero — a live "Trending UGC" showcase: the featured reel's
- * details (creator · category · price · delivery) on the left, the auto-playing
- * reel with floating chat / stat cards on the right. Both cycle together.
+ * Creator dashboard hero — a personalised header for the signed-in creator:
+ * their name, category, rating and earnings on the left, with an auto-playing
+ * showcase reel and floating cards (earnings + active deal) on the right.
  */
 const CLIP_SECONDS = 4; // only show a short 4s snippet of each reel before moving on
 
-export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, newBriefs = 0, handle, category = 'UGC', price = 'On request', deliveryLabel = '1 day', rating = 4.9 }) {
+export default function CreatorHero({
+  name = 'Creator', photo, category = 'UGC', rating = 0,
+  totalEarned = 0, nextPayout = 0, completedDeals = 0, level,
+  activeDeals = 0, newBriefs = 0, activeDeal = null,
+}) {
   const navigate = useNavigate();
   const reelRef = useRef(null);
   const advancingRef = useRef(false);         // guard so one clip advances only once
-  const [idx, setIdx] = useState(0);          // current featured reel
+  const [idx, setIdx] = useState(0);          // current showcase reel
   const [progress, setProgress] = useState(0); // 0→1 fill of the active reel dot
 
   const nextReel = () => {
     if (advancingRef.current) return;
     advancingRef.current = true;
     setProgress(0);
-    setIdx((i) => (i + 1) % FEATURED.length);
+    setIdx((i) => (i + 1) % REELS.length);
   };
 
   const goToReel = (i) => {
@@ -45,39 +57,43 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
     setIdx(i);
   };
 
-  const f = FEATURED[idx];
-  const firstName = String(name).replace(/^@/, '').split(' ')[0];
   const photoSrc = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : null;
+  const dealLogo = activeDeal?.logo
+    ? (activeDeal.logo.startsWith('http') ? activeDeal.logo : `${BACKEND_URL}${activeDeal.logo}`)
+    : null;
 
   return (
     <section className="chero">
-      {/* ── LEFT — featured UGC details (cycles with the reel) ── */}
+      {/* ── LEFT — the signed-in creator's own details ── */}
       <div className="chero-left">
         <div className="chero-badge">
           <span className="chero-badge-ic"><Sparkles size={16} /></span>
           <div>
-            <strong>Trending UGC</strong>
-            <button type="button" onClick={() => navigate('/browse-briefs')}>Find work like this</button>
+            <strong>Creator Studio</strong>
+            <button type="button" onClick={() => navigate('/browse-briefs')}>Find new work</button>
           </div>
         </div>
 
-        <h1 key={`n-${idx}`} className="chero-title chero-fade">{f.creator}</h1>
+        <h1 className="chero-title chero-fade">{name}</h1>
 
-        <div key={`m-${idx}`} className="chero-meta chero-fade" style={{ animationDelay: '.08s' }}>
-          <span className={`chero-cat ${CAT_CLASS(f.category)}`}>{f.category}</span>
-          <span className="chero-rate"><Star size={14} fill="#f5b301" color="#f5b301" /> {f.rating.toFixed(1)}</span>
+        <div className="chero-meta chero-fade" style={{ animationDelay: '.08s' }}>
+          {level && <span className="chero-rank">{level}</span>}
+          <span className={`chero-cat ${CAT_CLASS(category)}`}>{category}</span>
+          {rating > 0 && (
+            <span className="chero-rate"><Star size={14} fill="#f5b301" color="#f5b301" /> {rating.toFixed(1)}</span>
+          )}
         </div>
 
         <div className="chero-rule" />
 
-        <div key={`f-${idx}`} className="chero-facts chero-fade" style={{ animationDelay: '.16s' }}>
-          <div className="chero-fact"><label>Price</label><strong>{f.price}</strong></div>
-          <div className="chero-fact"><label>Delivered in</label><strong>{f.delivery}</strong></div>
-          <div className="chero-fact"><label>Category</label><strong>{f.category}</strong></div>
+        <div className="chero-facts chero-fade" style={{ animationDelay: '.16s' }}>
+          <div className="chero-fact"><label>Total earned</label><strong>{fmtMoney(totalEarned)}</strong></div>
+          <div className="chero-fact"><label>Deals closed</label><strong>{completedDeals}</strong></div>
+          <div className="chero-fact"><label>Category</label><strong style={{ textTransform: 'capitalize' }}>{category}</strong></div>
         </div>
 
         <p className="chero-sub">
-          AI-matched brand deals and faster payouts — turn content like this into income, up to <b>50× faster.</b>
+          Your AI-matched brand deals and payouts, all in one place — keep creating to earn <b>up to 50× faster.</b>
         </p>
 
         <div className="chero-cta">
@@ -90,14 +106,14 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
         </div>
       </div>
 
-      {/* ── RIGHT — auto-playing reel + floating cards ── */}
+      {/* ── RIGHT — auto-playing reel + the creator's floating cards ── */}
       <div className="chero-stage">
         <div className="chero-photo">
           <div className="chero-photo-bg" />
           <video
             key={idx}
             ref={reelRef}
-            src={`${f.reel}#t=0.1`}
+            src={`${REELS[idx]}#t=0.1`}
             autoPlay
             muted
             playsInline
@@ -111,7 +127,7 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
             onEnded={nextReel}
           />
           <span className="chero-reel-dots">
-            {FEATURED.map((_, i) => (
+            {REELS.map((_, i) => (
               <i
                 key={i}
                 className={i === idx ? 'on' : (i < idx ? 'done' : '')}
@@ -125,24 +141,38 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
           </span>
         </div>
 
-        <div className="chero-bubble chero-b1"><i className="chero-chk orange"><Check size={11} /></i> How is the fit?</div>
-        <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> Do you like the design?</div>
+        <div className="chero-bubble chero-b1"><i className="chero-chk green"><Check size={11} /></i> Next payout {fmtMoney(nextPayout)}</div>
+        <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {activeDeals} active deal{activeDeals === 1 ? '' : 's'}</div>
 
-        <div className="chero-stat">
-          <small>UP TO</small>
-          <strong>{activeDeals + newBriefs || 12}+</strong>
-          <span>matches for you this week</span>
+        <div className="chero-stat chero-fade" style={{ animationDelay: '.1s' }}>
+          <small>TOTAL EARNED</small>
+          <strong>{fmtMoney(totalEarned)}</strong>
+          <span>on UGCad so far</span>
         </div>
 
-        <div key={`d-${idx}`} className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
-          <span className="chero-deal-logo">{photoSrc ? <img src={photoSrc} alt="" /> : getInitial(f.creator.replace('@', ''))}</span>
-          <div className="chero-deal-info">
-            <strong>{f.creator}</strong>
-            <small>{f.category} creator</small>
-            <b className="chero-deal-amt">{f.price}</b>
-            <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {f.rating.toFixed(1)}</span>
+        {activeDeal ? (
+          <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
+            <span className="chero-deal-logo">{dealLogo ? <img src={dealLogo} alt="" /> : getInitial((activeDeal.brand || '').replace('@', ''))}</span>
+            <div className="chero-deal-info">
+              <strong>{activeDeal.title}</strong>
+              <small>{activeDeal.brand}</small>
+              <b className="chero-deal-amt">{activeDeal.budgetLabel}</b>
+              <span className="chero-deal-rate">{activeDeal.progress}% done</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
+            <span className="chero-deal-logo">{photoSrc ? <img src={photoSrc} alt="" /> : getInitial(String(name).replace('@', ''))}</span>
+            <div className="chero-deal-info">
+              <strong>{name}</strong>
+              <small>{category} creator</small>
+              <b className="chero-deal-amt">{completedDeals} deals closed</b>
+              {rating > 0 && (
+                <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {rating.toFixed(1)}</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -161,6 +191,8 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
         .chero-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:54px;line-height:1;
           font-weight:800!important;letter-spacing:-1.5px;color:#07074e;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .chero-meta{display:flex;align-items:center;gap:12px;margin-top:14px}
+        .chero-rank{display:inline-flex;align-items:center;padding:4px 13px;border-radius:30px;font-size:13px;font-weight:800;
+          background:linear-gradient(100deg,#12124f,#07074e);color:#fff;box-shadow:0 8px 18px -8px rgba(7,7,78,.6);text-transform:capitalize}
         .chero-cat{display:inline-block;padding:4px 14px;border-radius:30px;font-size:13px;font-weight:700;text-transform:capitalize}
         .chero-rate{display:inline-flex;align-items:center;gap:5px;font-weight:800;color:#07074e;font-size:15px}
         .chero-rule{height:1px;background:#d8d6ee;margin:22px 0 18px;max-width:440px}
@@ -198,13 +230,14 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
         .chero-b2{top:33%;left:-4%;animation-delay:-2.5s}
         .chero-chk{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none}
         .chero-chk.orange{background:#ff7a3d}
+        .chero-chk.green{background:#15a35b}
         .chero-chk.blue{background:#4a90ff}
 
-        .chero-stat{position:absolute;top:6%;right:-2%;z-index:4;width:158px;padding:16px 18px;border-radius:18px;
+        .chero-stat{position:absolute;top:6%;right:-2%;z-index:4;width:auto;min-width:158px;max-width:220px;padding:16px 18px;border-radius:18px;
           background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.7);
           box-shadow:0 18px 40px -16px rgba(20,20,50,.4);animation:cheroFloat 6s ease-in-out infinite;animation-delay:-1s}
         .chero-stat small{color:#9296ba;font-size:11px;font-weight:700;letter-spacing:.06em}
-        .chero-stat strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:38px;font-weight:800;color:#07074e;line-height:1;margin:4px 0}
+        .chero-stat strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:32px;font-weight:800;color:#07074e;line-height:1;margin:4px 0;white-space:nowrap}
         .chero-stat span{color:#585c7e;font-size:12.5px;font-weight:600}
 
         .chero-deal{position:absolute;bottom:4%;right:-3%;z-index:4;display:flex;align-items:center;gap:13px;width:240px;padding:14px;border-radius:18px;
@@ -231,7 +264,7 @@ export default function CreatorHero({ name = 'Creator', photo, activeDeals = 0, 
         @media (max-width:560px){
           .chero-title{font-size:34px}
           .chero-photo{width:88%}
-          .chero-stat{right:0;width:140px}
+          .chero-stat{right:0;min-width:140px}
           .chero-deal{right:0;width:210px}
           .chero-fact{padding:0 14px}
         }

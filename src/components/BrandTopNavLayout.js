@@ -73,6 +73,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         isActive={isActive}
         onNavigate={navigate}
         onLogout={handleLogout}
+        account={{ name: displayName, role: 'Brand Account', photo }}
       />
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
@@ -105,6 +106,10 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
+            <button type="button" className="cmk-btn-primary-sm cmk-nav-post" onClick={() => setBriefOpen(true)} title="Post a Campaign">
+              <Plus size={18} /><span className="cmk-btn-label">Post a Campaign</span>
+            </button>
+
             <NotificationBell />
 
             <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
@@ -162,9 +167,10 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       <button
         type="button"
         className="cmk-btn-primary-sm cmk-post-fab"
-        onClick={() => setBriefOpen(true)}
+        onClick={() => navigate('/messages')}
+        title="Messages"
       >
-        <Plus size={18} /> Post a Campaign
+        <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
       </button>
 
       {briefOpen && (

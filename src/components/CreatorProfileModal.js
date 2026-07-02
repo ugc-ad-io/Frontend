@@ -135,7 +135,7 @@ function VideoTile({ url, onRemove }) {
     <div className="cpm-vid" onClick={toggle}>
       {isVideo(src) ? <video ref={ref} src={`${src}#t=0.5`} playsInline loop /> : <img src={src} alt="" />}
       {!playing && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
-      {onRemove && <button type="button" className="cpm-vid-del" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
+      {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
     </div>
   );
 }
@@ -908,8 +908,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-banner-edit:disabled{opacity:.7;cursor:default}
         .cpm-avatar-lg.is-editable{cursor:pointer}
         .cpm-avatar-cam{position:absolute;right:2px;bottom:2px;width:30px;height:30px;border:2px solid #fff;border-radius:50%;background:#15163a;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 6px rgba(15,22,58,.3);z-index:2}
-        .cpm-vid-del{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(15,22,58,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:3}
-        .cpm-vid-del:hover{background:#e5484d}
+        .cpm-vid-remove{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(15,22,58,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:3}
+        .cpm-vid-remove:hover{background:#e5484d}
         .cpm-add-tile{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#f6f7ff!important;border:2px dashed #cdd4ff;color:#5b6bff;font-weight:700;font-size:13px;cursor:pointer}
         .cpm-add-tile span{font-size:13px}
         .cpm-addwork{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding:16px;border:1px solid #eef0f6;border-radius:14px;background:#fbfbfe}

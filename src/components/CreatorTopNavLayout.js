@@ -69,6 +69,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
         isActive={isActive}
         onNavigate={navigate}
         onLogout={handleLogout}
+        account={{ name: displayName, role: 'Creator', photo }}
       />
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">

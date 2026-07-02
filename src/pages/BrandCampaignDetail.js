@@ -394,7 +394,7 @@ export default function BrandCampaignDetail() {
                   <div className="bcd-kv"><label>Starting Rate</label><strong>{safeText((cp.rate_card && cp.rate_card.expected_payout) || cp.expectedPayout || creator.budget_range, 'On request')}</strong></div>
                   <div className="bcd-kv"><label>Skills</label><strong>{Array.isArray(cp.skills) && cp.skills.length ? cp.skills.slice(0, 2).join(', ') : safeText(creator.content_style, '—')}</strong></div>
                 </div>
-                <p className="bcd-cre-bio">{safeText(cp.bio, 'This creator hasn’t added a bio yet — open their profile to see full portfolio, reviews and past work.')}</p>
+                {cp.bio && <p className="bcd-cre-bio">{cp.bio}</p>}
                 <div className="bcd-cre-actions">
                   <button className="bcd-cta" onClick={() => creator.id && navigate(`/dashboard/business/creator/${creator.id}`)}><User size={15} /> View Creator Profile</button>
                   <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { LogOut, Bell, Menu, X } from 'lucide-react';
+import { LogOut, Bell, X } from 'lucide-react';
+
+const LOGO_SRC = '/ugcad-logo_-_Edited-removebg-preview.png';
 
 // Persist the open/closed state across route changes — navigating remounts the
 // layout, and without this the rail would snap back to collapsed every click.
@@ -22,27 +24,31 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
   };
 
   const Item = (l) => (
-    <button key={l.name} type="button" className={`hsr-item ${isActive(l.to) ? 'is-active' : ''}`} onClick={() => onNavigate(l.to)}>
+    <button key={l.name} type="button" className={`hsr-item ${isActive(l.to) ? 'is-active' : ''}`} onClick={() => { if (open) onNavigate(l.to); }}>
       <span className="hsr-ic"><l.icon size={20} />{l.dot && <i className="hsr-dot" />}</span>
       <span className="hsr-label">{l.name}</span>
     </button>
   );
 
   return (
-    <aside className={`hsr ${open ? 'is-open' : ''}`} aria-label="Sidebar">
-      <div className="hsr-top">
-        <button
-          type="button"
-          className="hsr-toggle"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
-          aria-expanded={open}
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
+    // collapsed: a click anywhere on the rail opens it (icons navigate only once
+    // open); open: clicks fall through to the individual buttons.
+    <aside
+      className={`hsr ${open ? 'is-open' : ''}`}
+      aria-label="Sidebar"
+      onClick={open ? undefined : () => setOpen(true)}
+    >
+      {open && (
+        <button type="button" className="hsr-close" onClick={() => setOpen(false)} aria-label="Collapse sidebar">
+          <X size={18} />
         </button>
-        <button type="button" className="hsr-brand" onClick={onLogoClick} aria-label="Home">
-          <span className="hsr-mark">{brandMark}</span>
-          <span className="hsr-label hsr-brand-txt">UGCad.io</span>
+      )}
+      <div className="hsr-top">
+        {/* the logo shows when collapsed (click to open); when open it also shows
+            the "UGCad.io" wordmark and a click navigates home */}
+        <button type="button" className="hsr-brand" onClick={() => (open ? onLogoClick() : setOpen(true))} aria-label="UGCad.io">
+          <span className="hsr-mark"><img src={LOGO_SRC} alt="UGCad.io" /></span>
+          <span className="hsr-label hsr-brand-txt">UGC<span className="hsr-brand-ad">ad.io</span></span>
         </button>
       </div>
 
@@ -52,12 +58,12 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         {secondary.map(Item)}
       </nav>
 
-      <button type="button" className="hsr-item hsr-notif" onClick={() => onNavigate('/messages')}>
+      <button type="button" className="hsr-item hsr-notif" onClick={() => { if (open) onNavigate('/messages'); }}>
         <span className="hsr-ic"><Bell size={20} /></span>
         <span className="hsr-label">Notifications</span>
       </button>
 
-      <button type="button" className="hsr-item hsr-logout" onClick={onLogout}>
+      <button type="button" className="hsr-item hsr-logout" onClick={() => { if (open) onLogout(); }}>
         <span className="hsr-ic"><LogOut size={20} /></span>
         <span className="hsr-label">Log out</span>
       </button>
@@ -67,18 +73,20 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           background:#fff;color:#15163a;padding:14px;border-right:1px solid #eef0f6;
           overflow:hidden;transition:width .22s cubic-bezier(.2,.7,.2,1);box-shadow:6px 0 34px -18px rgba(15,22,58,.3)}
         .hsr.is-open{width:240px}
+        /* collapsed rail is one big click target — hint it's clickable to open */
+        .hsr:not(.is-open){cursor:pointer}
         .hsr-top{display:flex;align-items:center;gap:6px;padding-bottom:16px}
-        .hsr-toggle{width:44px;height:44px;flex:none;border:none;background:none;cursor:pointer;color:#585c7e;
-          border-radius:12px;display:grid;place-items:center;transition:background .15s,color .15s}
-        .hsr-toggle:hover{background:#f2f3fb;color:#15163a}
+        /* close (collapse) button in the top-right corner, only when open */
+        .hsr-close{position:absolute;top:8px;right:8px;z-index:3;width:34px;height:34px;border:none;background:none;
+          cursor:pointer;color:#585c7e;border-radius:10px;display:grid;place-items:center;transition:background .15s,color .15s}
+        .hsr-close:hover{background:#f2f3fb;color:#15163a}
         .hsr-brand{display:flex;align-items:center;gap:12px;background:none;border:none;cursor:pointer;color:#15163a;
           padding:0;white-space:nowrap;min-width:0}
-        /* collapsed rail is too narrow for both the toggle and the logo — show
-           just the toggle when collapsed, reveal the logo once opened */
-        .hsr:not(.is-open) .hsr-brand{display:none}
-        .hsr-mark{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;
-          background:linear-gradient(135deg,#5b6bff,#8b5cf6);color:#fff;font-weight:800;font-size:18px}
-        .hsr-brand-txt{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-weight:800;font-size:18px;color:#15163a}
+        .hsr-mark{width:44px;height:44px;flex:none;display:grid;place-items:center}
+        .hsr-mark img{width:100%;height:100%;object-fit:contain;display:block}
+        /* wordmark colours match the official logo: "UGC" periwinkle, "ad.io" navy */
+        .hsr-brand-txt{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-weight:800;font-size:19px;color:#5b6bff;letter-spacing:-.2px}
+        .hsr-brand-ad{color:#07074e}
         .hsr-nav{flex:1;display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
         .hsr-nav::-webkit-scrollbar{display:none}
         .hsr-item{display:flex;align-items:center;gap:12px;width:100%;height:48px;padding:0 6px;border:none;background:none;

@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
+import MessagesPopup from './MessagesPopup';
 import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
@@ -36,6 +37,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
+  const [msgOpen, setMsgOpen] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -167,11 +169,13 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       <button
         type="button"
         className="cmk-btn-primary-sm cmk-post-fab"
-        onClick={() => navigate('/messages')}
+        onClick={() => setMsgOpen((v) => !v)}
         title="Messages"
       >
         <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
       </button>
+
+      {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
 
       {briefOpen && (
         <div className="cmk-brief-overlay" onClick={() => setBriefOpen(false)}>

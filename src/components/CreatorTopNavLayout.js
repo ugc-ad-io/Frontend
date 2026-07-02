@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
+import MessagesPopup from './MessagesPopup';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -40,6 +41,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [msgOpen, setMsgOpen] = useState(false);
   const menuRef = useRef(null);
 
   const runSearch = () => {
@@ -159,6 +161,17 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
       <main className="cmk-wrap cmk-page">
         {children}
       </main>
+
+      <button
+        type="button"
+        className="cmk-btn-primary-sm cmk-post-fab"
+        onClick={() => setMsgOpen((v) => !v)}
+        title="Messages"
+      >
+        <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
+      </button>
+
+      {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
     </div>
   );
 }

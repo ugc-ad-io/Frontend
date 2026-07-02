@@ -12,34 +12,17 @@ const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
-// "3 Nov, 2:00pm" — date + short time (time omitted if the source has none meaningful).
-const fmtDT = (d) => {
-  if (!d) return '—';
-  const dt = new Date(d);
-  if (Number.isNaN(dt.getTime())) return '—';
-  const day = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(/\s/g, '');
-  return `${day}, ${time}`;
-};
-
-// Fallback % when a status has no time window; used by the timeline bar.
-function baseProgress(c) {
+// Deal lifecycle stages, rendered as a segmented progress bar on each row.
+const STAGES = ['Accepted', 'Shipment', 'Video Submission', 'Review', 'Payout'];
+// A distinct colour per stage; the final stage (Payout) is green.
+const STAGE_COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#f59e0b', '#22c55e'];
+function stageIndex(c) {
   const s = c.status;
-  if (s === 'completed') return 100;
+  if (s === 'completed') return 4;          // Payout
+  if (s === 'under_review') return 3;        // Review
+  if (s === 'work_submitted') return 2;      // Video Submission
   if (s === 'cancelled') return 0;
-  if (s === 'work_submitted' || s === 'under_review') return 100;
-  return 65;
-}
-
-// Elapsed fraction of the start→due window, else the status fallback.
-function timeProgress(c) {
-  const start = c.start_date || c.created_at;
-  const end = c.due_date || c.end_date;
-  if (start && end) {
-    const s = new Date(start).getTime(), e = new Date(end).getTime(), n = Date.now();
-    if (e > s) return Math.min(100, Math.max(0, Math.round(((n - s) / (e - s)) * 100)));
-  }
-  return baseProgress(c);
+  return 1; // accepted / active / in_progress → Shipment stage
 }
 
 // Reference-style status badge: label + accent colour + icon.
@@ -121,12 +104,10 @@ export default function MyActiveWorkPage() {
         <div className="cmk-awc-grid">
           {rows.map((c) => {
             const meta = statusMeta(c);
-            const pct = timeProgress(c);
             const brand = c.business_nickname || c.brand_handle || 'Brand';
             const channel = (Array.isArray(c.objectives) && c.objectives[0]) || c.industry_type || 'UGC Video';
             const shortId = `#${String(c.id).slice(-4).toUpperCase()}`;
-            const start = c.start_date || c.created_at;
-            const end = c.due_date || c.end_date;
+            const cur = stageIndex(c);
             return (
               <article
                 key={c.id}
@@ -136,41 +117,41 @@ export default function MyActiveWorkPage() {
                 role="button"
                 tabIndex={0}
               >
-                <div className="cmk-awc-top">
-                  <span className="cmk-awc-id">{shortId}</span>
-                  <span className="cmk-awc-div" />
-                  <span className="cmk-awc-badge"><meta.Icon size={14} /> {meta.label}</span>
-                </div>
+                <span className="cmk-awc-ava">
+                  {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
+                </span>
 
-                <h3 className="cmk-awc-title">{c.title || 'Campaign'}</h3>
-
-                <div className="cmk-awc-dates">
-                  <span>{fmtDT(start)}</span>
-                  <span>{fmtDT(end)}</span>
-                </div>
-                <div className="cmk-awc-track">
-                  <i className="cmk-awc-fill" style={{ width: `${pct}%` }} />
-                  <span className="cmk-awc-dot start" />
-                  <span className="cmk-awc-dot end" />
-                </div>
-
-                <div className="cmk-awc-foot">
-                  <span className="cmk-awc-ava">
-                    {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
-                  </span>
-                  <div className="cmk-awc-who">
-                    <strong>{brand}</strong>
-                    <small>Via {channel}</small>
+                <div className="cmk-awc-lead">
+                  <div className="cmk-awc-top">
+                    <span className="cmk-awc-id">{shortId}</span>
+                    <span className="cmk-awc-div" />
+                    <span className="cmk-awc-badge"><meta.Icon size={14} /> {meta.label}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="cmk-awc-go"
-                    aria-label="Open campaign"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
-                  >
-                    <ArrowRight size={18} />
-                  </button>
+                  <h3 className="cmk-awc-title">{c.title || 'Campaign'}</h3>
+                  <small className="cmk-awc-sub">{brand} · Via {channel}</small>
                 </div>
+
+                <div className="cmk-awc-steps">
+                  {STAGES.map((label, i) => (
+                    <div
+                      key={label}
+                      className={`awc-step ${i < cur ? 'done' : ''} ${i === cur ? 'current' : ''}`}
+                      style={{ '--s': STAGE_COLORS[i] }}
+                    >
+                      <span className="awc-step-lbl">{label}</span>
+                      <i className="awc-step-bar" />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="cmk-awc-go"
+                  aria-label="Open campaign"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
+                >
+                  <ArrowRight size={18} />
+                </button>
               </article>
             );
           })}

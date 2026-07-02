@@ -52,6 +52,8 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         </button>
       </div>
 
+      <div className="hsr-sep hsr-sep-logo" />
+
       <nav className="hsr-nav">
         {primary.map(Item)}
         {secondary.length > 0 && <div className="hsr-sep" />}
@@ -75,13 +77,15 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         .hsr.is-open{width:240px}
         /* collapsed rail is one big click target — hint it's clickable to open */
         .hsr:not(.is-open){cursor:pointer}
-        .hsr-top{display:flex;align-items:center;gap:6px;padding-bottom:16px}
+        /* height set so the divider below lines up with the top nav's bottom
+           border (rail padding-top 14 + this 58 = 72 = the header height) */
+        .hsr-top{display:flex;align-items:center;gap:6px;height:58px;padding-bottom:0;box-sizing:border-box}
         /* close (collapse) button in the top-right corner, only when open */
-        .hsr-close{position:absolute;top:8px;right:8px;z-index:3;width:34px;height:34px;border:none;background:none;
+        .hsr-close{position:absolute;top:3px;right:3px;z-index:3;width:34px;height:34px;border:none;background:none;
           cursor:pointer;color:#585c7e;border-radius:10px;display:grid;place-items:center;transition:background .15s,color .15s}
         .hsr-close:hover{background:#f2f3fb;color:#15163a}
         .hsr-brand{display:flex;align-items:center;gap:12px;background:none;border:none;cursor:pointer;color:#15163a;
-          padding:0;white-space:nowrap;min-width:0}
+          padding:0 0 0 8px;white-space:nowrap;min-width:0}
         .hsr-mark{width:44px;height:44px;flex:none;display:grid;place-items:center}
         .hsr-mark img{width:100%;height:100%;object-fit:contain;display:block}
         /* wordmark colours match the official logo: "UGC" periwinkle, "ad.io" navy */
@@ -102,6 +106,9 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
         .hsr.is-open .hsr-label{opacity:1;transform:none}
         .hsr-sep{height:1px;background:#eef0f6;margin:9px 10px}
+        /* divider spans the full rail width (negative margins cancel the rail's
+           14px padding) so it meets the top nav's bottom border in one line */
+        .hsr-sep-logo{margin:0 -14px 10px}
         .hsr-notif{margin-top:4px}
         .hsr-logout{margin-top:6px;color:#585c7e}
 

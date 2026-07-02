@@ -140,7 +140,7 @@ export default function MyBidsPage() {
                     <td>{formatMoney(bid.amount || c.budget_max || c.budget)}</td>
                     <td><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{STATUS_LABEL[status] || (status.charAt(0).toUpperCase() + status.slice(1))}</span></td>
                     <td className="cmk-td-muted">{fmtDate(item.submitted_at || bid.submitted_at)}</td>
-                    <td className="cmk-td-right">
+                    <td className="cmk-td-right" style={['selected', 'accepted'].includes(status) ? undefined : { textAlign: 'center' }}>
                       {['selected', 'accepted'].includes(status) && (
                         <button
                           type="button"

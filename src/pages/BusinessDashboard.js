@@ -1874,7 +1874,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 <section className="wallet-panel wallet-recharge-card">
                   <div className="wallet-side-title">
                     <h2>Quick Recharge</h2>
-                    <button type="button" onClick={() => setWalletAmount('')} aria-label="Clear amount"><Plus size={18} /></button>
                   </div>
                   <label htmlFor="wallet-amount">Enter Amount</label>
                   <div className="wallet-amount-input">

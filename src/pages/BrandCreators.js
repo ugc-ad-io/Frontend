@@ -69,9 +69,20 @@ function ReelCard({ c, onView, onExpand, fallback }) {
     else { vref.current.pause(); setPlaying(false); }
   };
 
+  // Hover to preview: play the clip (which hides the play icon) on enter,
+  // pause + reset on leave.
+  const hoverPlay = () => {
+    const v = vref.current; if (!v) return;
+    v.play().then(() => setPlaying(true)).catch(() => {});
+  };
+  const hoverStop = () => {
+    const v = vref.current; if (!v) return;
+    v.pause(); setPlaying(false);
+  };
+
   return (
     <div className="bc-card">
-      <div className="bc-reel" onClick={togglePlay}>
+      <div className="bc-reel" onClick={togglePlay} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
         <video ref={vref} src={videoSrc} muted={muted} loop playsInline preload="metadata" />
         <div className="bc-rate">
           <span className={`bc-tier ${tier.toLowerCase()}`}>{tier}</span>

@@ -200,6 +200,14 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
   const v = videos[activeVideo] || newVideo();
 
+  // Dynamic steps: a "Brand Guidelines" step only appears once guidelines are
+  // added to any video — otherwise step 2 is Payment directly.
+  const hasGuidelines = videos.some((vid) => vid.guidelinesOpen);
+  const steps = hasGuidelines
+    ? ['Plan & Videos', 'Brand Guidelines', 'Payment']
+    : ['Plan & Videos', 'Payment'];
+  const currentStep = stage === 'setup' ? 0 : stage === 'guidelines' ? 1 : steps.length - 1;
+
   return (
     <div className="pb-overlay" onClick={onClose}>
       <div className="pb-modal" onClick={(e) => e.stopPropagation()}>
@@ -252,10 +260,19 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         <section className="pb-content">
           <button className="pb-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
 
+          {/* Progress stepper — reflects whether a Brand Guidelines step exists */}
+          <div className="pb-stepper">
+            {steps.map((label, i) => (
+              <div key={label} className={`pb-stepper-item ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`}>
+                <span className="pb-stepper-num">{i < currentStep ? <Check size={13} /> : i + 1}</span>
+                <span className="pb-stepper-label">{label}</span>
+              </div>
+            ))}
+          </div>
+
           {stage === 'setup' ? (
           <>
           <div className="pb-head">
-            <span className="pb-step">Step 1</span>
             <h2>Choose your plan &amp; set up your videos</h2>
             <p>Start fast — select a plan and basic preferences so we can tailor your project instantly.</p>
           </div>
@@ -290,45 +307,14 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <Field label="Does it feature a product"><Select value={v.product} onChange={(val) => updateVideo({ product: val })} options={PRODUCTS} placeholder="Select" /></Field>
             </div>
 
-            <button type="button" className="pb-guidelines-toggle" onClick={() => updateVideo({ guidelinesOpen: !v.guidelinesOpen })}>
-              <Plus size={15} /> Add Brand Guidelines
-            </button>
-
-            {v.guidelinesOpen && (
-              <div className="pb-guidelines">
-                <p className="pb-guidelines-help">Upload your brand files: logo, assets, visuals, and supporting links.</p>
-                <label className="pb-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}>
-                  <span className="pb-dropzone-icon"><UploadCloud size={22} /></span>
-                  <strong>Choose a file or drag &amp; drop here</strong>
-                  <small>JPEG, PNG, PDF, and MP4 formats, up to 500MB</small>
-                  <span className="pb-browse">{uploading ? 'Uploading…' : 'Browse'}</span>
-                  <input type="file" multiple hidden accept="image/*,application/pdf,video/mp4" onChange={(e) => handleFiles(e.target.files)} />
-                </label>
-                {(v.files || []).length > 0 && (
-                  <div className="pb-files">
-                    {v.files.map((f, i) => <span key={i} className="pb-file-chip"><FileText size={13} /> {f.name}</span>)}
-                  </div>
-                )}
-
-                <div className="pb-or"><span>or</span></div>
-                <Field label="Supporting links"><input type="text" value={v.links} onChange={(e) => updateVideo({ links: e.target.value })} placeholder="Paste reference / asset links" /></Field>
-
-                <Field label="Preferred logo position in Video"><Select value={v.logoPosition} onChange={(val) => updateVideo({ logoPosition: val })} options={LOGO_POSITIONS} /></Field>
-
-                <div className="pb-field">
-                  <span>Add Brand Name Pronunciation (Optional)</span>
-                  <div className="pb-pronounce">
-                    <input type="text" value={v.pronunciation} onChange={(e) => updateVideo({ pronunciation: e.target.value })} placeholder="Type how the brand name is pronounced" />
-                    <span className="pb-mic" title="Type the pronunciation"><Mic size={15} /></span>
-                  </div>
-                </div>
-
-                <div className="pb-field">
-                  <span>Additional Instructions (Optional)</span>
-                  <div className="pb-notes-tabs"><span className="active"><FileText size={13} /> Add Notes</span><span><Link2 size={13} /> Upload files &amp; Links</span></div>
-                  <textarea value={v.notes} onChange={(e) => updateVideo({ notes: e.target.value })} rows={3} placeholder="Add notes and additional details to be noted of.." />
-                </div>
-              </div>
+            {v.guidelinesOpen ? (
+              <button type="button" className="pb-guidelines-toggle is-added" onClick={() => setStage('guidelines')}>
+                <Check size={15} /> Brand Guidelines added — Edit
+              </button>
+            ) : (
+              <button type="button" className="pb-guidelines-toggle" onClick={() => { updateVideo({ guidelinesOpen: true }); setStage('guidelines'); }}>
+                <Plus size={15} /> Add Brand Guidelines
+              </button>
             )}
           </div>
 
@@ -337,13 +323,60 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <input type="checkbox" checked={copyToRest} onChange={(e) => { setCopyToRest(e.target.checked); if (e.target.checked) setVideos((cur) => cur.map(() => ({ ...cur[activeVideo] }))); }} />
               <span>Copy these responses to the rest videos</span>
             </label>
+            <button type="button" className="pb-proceed" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'payment')} disabled={submitting}>Proceed</button>
+          </div>
+          </>
+          ) : stage === 'guidelines' ? (
+          <>
+          <div className="pb-head">
+            <h2>Brand Guidelines</h2>
+            <p>Upload your brand files: logo, assets, visuals, and supporting links.</p>
+          </div>
+
+          <div className="pb-scroll">
+            <div className="pb-guidelines">
+              <label className="pb-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}>
+                <span className="pb-dropzone-icon"><UploadCloud size={22} /></span>
+                <strong>Choose a file or drag &amp; drop here</strong>
+                <small>JPEG, PNG, PDF, and MP4 formats, up to 500MB</small>
+                <span className="pb-browse">{uploading ? 'Uploading…' : 'Browse'}</span>
+                <input type="file" multiple hidden accept="image/*,application/pdf,video/mp4" onChange={(e) => handleFiles(e.target.files)} />
+              </label>
+              {(v.files || []).length > 0 && (
+                <div className="pb-files">
+                  {v.files.map((f, i) => <span key={i} className="pb-file-chip"><FileText size={13} /> {f.name}</span>)}
+                </div>
+              )}
+
+              <div className="pb-or"><span>or</span></div>
+              <Field label="Supporting links"><input type="text" value={v.links} onChange={(e) => updateVideo({ links: e.target.value })} placeholder="Paste reference / asset links" /></Field>
+
+              <Field label="Preferred logo position in Video"><Select value={v.logoPosition} onChange={(val) => updateVideo({ logoPosition: val })} options={LOGO_POSITIONS} /></Field>
+
+              <div className="pb-field">
+                <span>Add Brand Name Pronunciation (Optional)</span>
+                <div className="pb-pronounce">
+                  <input type="text" value={v.pronunciation} onChange={(e) => updateVideo({ pronunciation: e.target.value })} placeholder="Type how the brand name is pronounced" />
+                  <span className="pb-mic" title="Type the pronunciation"><Mic size={15} /></span>
+                </div>
+              </div>
+
+              <div className="pb-field">
+                <span>Additional Instructions (Optional)</span>
+                <div className="pb-notes-tabs"><span className="active"><FileText size={13} /> Add Notes</span><span><Link2 size={13} /> Upload files &amp; Links</span></div>
+                <textarea value={v.notes} onChange={(e) => updateVideo({ notes: e.target.value })} rows={3} placeholder="Add notes and additional details to be noted of.." />
+              </div>
+            </div>
+          </div>
+
+          <div className="pb-footer">
+            <button type="button" className="pb-goback" onClick={() => { updateVideo({ guidelinesOpen: false }); setStage('setup'); }} disabled={submitting}>Remove &amp; Go Back</button>
             <button type="button" className="pb-proceed" onClick={() => setStage('payment')} disabled={submitting}>Proceed</button>
           </div>
           </>
           ) : (
           <>
           <div className="pb-head">
-            <span className="pb-step">Step 3</span>
             <h2>Payment</h2>
             <p>You&apos;re one step away from getting your video in motion 🎬</p>
           </div>
@@ -385,7 +418,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
 
           <div className="pb-footer">
-            <button type="button" className="pb-goback" onClick={() => setStage('setup')} disabled={submitting}>Go Back</button>
+            <button type="button" className="pb-goback" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'setup')} disabled={submitting}>Go Back</button>
             <button type="button" className="pb-proceed" onClick={proceed} disabled={submitting}>{submitting ? 'Processing…' : 'Proceed to payment'}</button>
           </div>
           </>
@@ -434,7 +467,16 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-content { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
         .pb-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border: 0; border-radius: 999px; background: #f1f5f9; color: #0f172a; cursor: pointer; display: grid; place-items: center; z-index: 2; }
         .pb-head { padding: 22px 28px 14px; border-bottom: 1px solid #f1f5f9; }
-        .pb-step { display: inline-block; color: #07074e; border: 1px solid #c3cbff; border-radius: 999px; padding: 2px 12px; font-weight: 800; font-size: 0.78rem; margin-bottom: 8px; }
+        /* progress stepper */
+        .pb-stepper { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 20px 28px 0; }
+        .pb-stepper-item { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px; background: #f1f2fb; color: #8a8fc0; font-weight: 700; font-size: 0.8rem; }
+        .pb-stepper-item + .pb-stepper-item { position: relative; margin-left: 10px; }
+        .pb-stepper-item + .pb-stepper-item::before { content: "›"; position: absolute; left: -14px; color: #c3cbff; font-weight: 800; }
+        .pb-stepper-num { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #d7d9f2; color: #fff; font-size: 0.72rem; font-weight: 800; }
+        .pb-stepper-item.active { background: #07074e; color: #fff; }
+        .pb-stepper-item.active .pb-stepper-num { background: #5b6bff; color: #fff; }
+        .pb-stepper-item.done { background: #eafaf1; color: #15a35b; }
+        .pb-stepper-item.done .pb-stepper-num { background: #15a35b; color: #fff; }
         .pb-head h2 { margin: 0; color: #0f172a; font-size: 1.3rem; }
         .pb-head p { margin: 6px 0 0; color: #94a3b8; font-size: 0.88rem; }
         .pb-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 28px; }
@@ -457,6 +499,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 600; }
         .pb-select svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
         .pb-guidelines-toggle { margin-top: 18px; background: none; border: 0; color: #07074e; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 0; }
+        .pb-guidelines-toggle.is-added { color: #15a35b; }
         .pb-guidelines { margin-top: 16px; display: grid; gap: 16px; }
         .pb-guidelines-help { margin: 0; color: #475569; font-size: 0.88rem; }
         .pb-dropzone { border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 22px; display: grid; place-items: center; gap: 6px; text-align: center; cursor: pointer; background: #fbfcff; }

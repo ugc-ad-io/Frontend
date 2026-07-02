@@ -35,14 +35,15 @@
   --shadow-pop:0 10px 28px -10px rgba(7,7,78,.55);
 
   min-height:100vh;
-  /* Soft on-brand background wash so the pages aren't flat white — faint indigo
-     + violet glows in the corners fading into a barely-lilac base. The white
-     cards sit on top and pop against it. Purely a backdrop; components unchanged. */
-  background:
-    radial-gradient(1200px 620px at 92% -8%, rgba(123,97,255,.13), transparent 60%),
-    radial-gradient(1000px 560px at -6% 2%, rgba(91,107,255,.11), transparent 58%),
-    radial-gradient(900px 520px at 60% 108%, rgba(255,138,166,.07), transparent 60%),
-    linear-gradient(180deg,#f5f5ff 0%, #fafaff 42%, var(--bg) 100%);
+  /* Smooth diagonal linear-gradient background wash (on-brand periwinkle → lilac
+     → near-white) so the pages aren't flat white. The white cards sit on top and
+     pop against it. Purely a backdrop; components unchanged. */
+  background:linear-gradient(150deg,
+    #e9ebff 0%,
+    #eff0ff 22%,
+    #f5f5ff 46%,
+    #fafaff 70%,
+    var(--bg) 100%);
   background-attachment:fixed;
   color:var(--ink);
   font-family:var(--font-body,'Inter',system-ui,sans-serif);

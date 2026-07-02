@@ -293,10 +293,14 @@
   box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s;display:flex;flex-direction:row;align-items:center;
   gap:20px;height:auto;overflow:hidden;flex-wrap:wrap}
 /* list-row layout for each card's parts */
-.cmk-bb-card .cmk-bb-top{flex:0 0 210px;min-width:0}
-.cmk-bb-card .cmk-bb-title{margin-top:0;min-height:0;flex:1 1 240px;-webkit-line-clamp:1}
+.cmk-bb-card .cmk-bb-top{flex:0 0 200px;min-width:0}
+.cmk-bb-card .cmk-bb-title{margin-top:0;min-height:0;flex:0 1 240px;min-width:0;-webkit-line-clamp:1;font-weight:600}
+/* short one-line description so EVERY row shows a bit of detail; keep the
+   -webkit-box display (needed for the line-clamp) and min-width:0 so it truncates
+   to one line and stays on the row instead of dumping the whole brief. */
+.cmk-bb-card .cmk-bb-desc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;
+  flex:1 1 160px;min-width:0;margin-top:0;min-height:0;font-size:13px;white-space:normal}
 .cmk-bb-card .cmk-bb-tags{margin-top:0;flex:0 0 auto}
-.cmk-bb-card .cmk-bb-desc{display:none}
 .cmk-bb-card .cmk-bb-meta{margin-top:0;padding-top:0;flex:0 0 auto;justify-content:flex-end;gap:16px}
 .cmk-bb-card .cmk-bb-match{margin-top:0;flex:0 0 auto}
 .cmk-bb-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card);border-color:#dfe2f4}
@@ -326,8 +330,8 @@
 .cmk-loadmore button:hover{background:#e2e5ff}
 
 @media (max-width:900px){.cmk-sort{margin-left:0}}
-/* on narrow screens let the row wrap and hide tags to stay tidy */
-@media (max-width:700px){.cmk-bb-card{gap:10px 16px}.cmk-bb-card .cmk-bb-tags{display:none}}
+/* on narrow screens let the row wrap; hide the long desc to stay tidy */
+@media (max-width:700px){.cmk-bb-card{gap:10px 16px}.cmk-bb-card .cmk-bb-desc{display:none}}
 
 /* ── tabs (shared by Active Work / Bids / Portfolio) ─────────────────────── */
 .cmk-tabs-row{display:flex;align-items:center;justify-content:space-between;gap:16px;

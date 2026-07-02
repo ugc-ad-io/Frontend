@@ -1227,6 +1227,12 @@
     #f5f4ff;
 }
 
+/* align the "Settings" heading with the dashboard content below it, which is
+   inset by the .bs-dashboard-page left padding (40px) */
+.cmk-page-head:has(+ .bs-dashboard-page) {
+  padding-left: 40px;
+}
+
 .bs-dashboard-page .bs-left {
   min-width: 0;
 }
@@ -1452,6 +1458,10 @@
   .bs-dashboard-page {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .cmk-page-head:has(+ .bs-dashboard-page) {
+    padding-left: 16px;
   }
 }
 

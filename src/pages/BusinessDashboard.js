@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
@@ -616,6 +616,22 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   };
 
+  // Duplicate a brief: pre-fill the create form with the source's details and
+  // open it, so the brand can tweak anything before publishing the copy.
+  const duplicateCampaign = (campaign) => {
+    setFormData({
+      title: `${campaign.title || 'Campaign'} (Copy)`,
+      objectives: Array.isArray(campaign.objectives) ? [...campaign.objectives] : [],
+      budget_min: campaign.budget_min != null ? String(campaign.budget_min) : '',
+      budget_max: campaign.budget_max != null ? String(campaign.budget_max) : '',
+      brief_text: campaign.brief_text || '',
+      requires_shipment: Boolean(campaign.requires_shipment),
+      shipment_option: campaign.requires_shipment ? 'yes' : 'no',
+    });
+    setShowCreateModal(true);
+    toast.info('Editing a copy — review the details and publish when ready.');
+  };
+
   const fetchCreatorDirectory = async () => {
     setCreatorDirectoryLoading(true);
     setCreatorDirectoryError('');
@@ -985,12 +1001,35 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const filteredCampaigns = campaigns.filter(campaign => {
     return dashboardItemMatches(campaign.title, campaign.brief_text, campaign.category, campaign.status, campaign.deliverables);
   });
-  const walletTransactions = walletData.transactions.filter((transaction) => {
+  // Demo fallback so the panel isn't empty before any real wallet activity.
+  const DUMMY_WALLET_TXNS = [
+    { id: 'dw1', date: '2026-06-28T10:12:00Z', type: 'Wallet Recharge', reference: 'RCG-10241', amount: 10000, direction: 'credit', status: 'success' },
+    { id: 'dw2', date: '2026-06-28T10:12:05Z', type: 'Recharge Bonus', reference: 'BON-10241', amount: 500, direction: 'credit', status: 'success' },
+    { id: 'dw3', date: '2026-06-26T15:40:00Z', type: 'Escrow Hold', reference: 'jumbo sandwich', amount: 998, direction: 'debit', status: 'success' },
+    { id: 'dw4', date: '2026-06-25T09:05:00Z', type: 'Campaign Payout', reference: 'Creator Canvas · 1 video', amount: 3899, direction: 'debit', status: 'success' },
+    { id: 'dw5', date: '2026-06-24T18:22:00Z', type: 'Platform Fee', reference: 'FEE-9932', amount: 975, direction: 'debit', status: 'success' },
+    { id: 'dw6', date: '2026-06-22T12:00:00Z', type: 'Escrow Release', reference: 'launch', amount: 1000, direction: 'credit', status: 'success' },
+  ];
+  const walletTxnSource = walletData.transactions.length ? walletData.transactions : DUMMY_WALLET_TXNS;
+  const walletTransactions = walletTxnSource.filter((transaction) => {
     if (walletFilter === 'credits') return transaction.direction === 'credit';
     if (walletFilter === 'debits') return transaction.direction === 'debit';
     return true;
   });
-  const walletBonus = walletData.recharge_bonus || {};
+  // Demo fallback so the bonus panel shows tiers before any real config loads.
+  const DUMMY_BONUS_TIERS = [
+    { amount: 5000, label: 'Rs. 5,000', bonus_percent: 3 },
+    { amount: 10000, label: 'Rs. 10,000', bonus_percent: 5 },
+    { amount: 25000, label: 'Rs. 25,000', bonus_percent: 8 },
+    { amount: 50000, label: 'Rs. 50,000', bonus_percent: 12 },
+  ];
+  const DUMMY_BONUS = {
+    current_tier_percent: 5, next_tier_percent: 8,
+    current_tier_amount: 10000, next_tier_amount: 25000,
+    amount_to_next_tier: 15000, progress_percent: 40,
+  };
+  const walletBonusTiers = walletData.bonus_tiers.length ? walletData.bonus_tiers : DUMMY_BONUS_TIERS;
+  const walletBonus = Object.keys(walletData.recharge_bonus || {}).length ? walletData.recharge_bonus : DUMMY_BONUS;
   const walletProgress = Math.min(Math.max(Number(walletBonus.progress_percent || 0), 0), 100);
   const performanceLeftMax = 120;
   const performanceRightMax = 80;
@@ -1442,6 +1481,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         >
                           <Eye size={18} /> View Details
                         </button>
+                        <button
+                          className="btn-secondary"
+                          onClick={() => duplicateCampaign(campaign)}
+                          data-testid={`duplicate-campaign-${campaign.id}`}
+                        >
+                          <Copy size={18} /> Duplicate
+                        </button>
                         {campaign.status === 'work_submitted' && (() => {
                           const work = workSubmissions.find(w => w.campaign_id === campaign.id);
                           return (
@@ -1744,10 +1790,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <h2>{walletLoading ? 'Loading...' : formatMoney(walletData.available_balance)}</h2>
                     <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
                   </div>
-                  <div className="wallet-hero-badges">
-                    <span><Zap size={16} /> +{walletBonus.next_tier_percent || 0}% Recharge Bonus Live</span>
-                    <strong><CheckCircle size={16} /> {walletData.plan_name} Active</strong>
-                  </div>
                 </section>
 
                 {!walletData.chat_unlocked && (
@@ -1768,7 +1810,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   </div>
                   <span>Active: +{walletBonus.current_tier_percent || 0}%</span>
                   <div className="wallet-tier-grid">
-                    {walletData.bonus_tiers.map((tier) => (
+                    {walletBonusTiers.map((tier) => (
                       <button key={tier.amount} type="button" onClick={() => setWalletAmount(String(tier.amount))}>
                         <strong>{tier.label || formatMoney(tier.amount)}</strong>
                         <small>+{tier.bonus_percent}% bonus</small>
@@ -5730,7 +5772,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .wallet-tier-grid {
           grid-column: 1 / -1;
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 12px;
         }
 
@@ -5756,7 +5798,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .wallet-tier-grid small {
           margin-top: 6px;
-          color: #9296ba;
+          color: #15a35b;
+          font-size: 15px;
+          font-weight: 700;
         }
 
         .wallet-history {
@@ -5820,7 +5864,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .wallet-debit {
-          color: #F59E0B;
+          color: #E11D48;
         }
 
         .wallet-status {
@@ -5922,11 +5966,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
           gap: 9px;
           border: 0;
           border-radius: 15px;
-          background: #6677FF;
+          background: linear-gradient(100deg, #12124f, #07074e);
           color: white;
           font-weight: 400;
           cursor: pointer;
-          box-shadow: 0 16px 30px rgba(102, 119, 255, 0.25);
+          box-shadow: 0 16px 30px rgba(7, 7, 78, 0.28);
         }
 
         .wallet-add-funds:disabled {

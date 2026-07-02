@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, Bell, X } from 'lucide-react';
+import { LogOut, Bell, X, LifeBuoy, Mail, Phone, MessageCircle } from 'lucide-react';
 
 const LOGO_SRC = '/ugcad-logo_-_Edited-removebg-preview.png';
 
@@ -17,6 +17,7 @@ let RAIL_OPEN = false;
  */
 export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = [], secondary = [], isActive, onNavigate, onLogout }) {
   const [open, setOpenState] = useState(RAIL_OPEN);
+  const [help, setHelp] = useState(false);
   const setOpen = (v) => {
     const next = typeof v === 'function' ? v(RAIL_OPEN) : v;
     RAIL_OPEN = next;
@@ -31,8 +32,9 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
   );
 
   return (
-    // collapsed: a click anywhere on the rail opens it (icons navigate only once
-    // open); open: clicks fall through to the individual buttons.
+    <>
+    {/* collapsed: a click anywhere on the rail opens it (icons navigate only once
+        open); open: clicks fall through to the individual buttons. */}
     <aside
       className={`hsr ${open ? 'is-open' : ''}`}
       aria-label="Sidebar"
@@ -63,6 +65,11 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
       <button type="button" className="hsr-item hsr-notif" onClick={() => { if (open) onNavigate('/messages'); }}>
         <span className="hsr-ic"><Bell size={20} /></span>
         <span className="hsr-label">Notifications</span>
+      </button>
+
+      <button type="button" className="hsr-item hsr-help" onClick={() => { if (open) setHelp(true); }}>
+        <span className="hsr-ic"><LifeBuoy size={20} /></span>
+        <span className="hsr-label">Need help?</span>
       </button>
 
       <button type="button" className="hsr-item hsr-logout" onClick={() => { if (open) onLogout(); }}>
@@ -146,5 +153,56 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         }
       `}</style>
     </aside>
+
+    {help && (
+      <div className="hsr-help-overlay" onClick={() => setHelp(false)}>
+        <div className="hsr-help-card" onClick={(e) => e.stopPropagation()}>
+          <button type="button" className="hsr-help-x" onClick={() => setHelp(false)} aria-label="Close"><X size={18} /></button>
+          <div className="hsr-help-head">
+            <span className="hsr-help-badge"><LifeBuoy size={22} /></span>
+            <div><strong>Need help?</strong><small>Our team is here for you.</small></div>
+          </div>
+
+          <a className="hsr-help-row" href="mailto:support@ugcad.io">
+            <span className="hsr-help-ic"><Mail size={18} /></span>
+            <div><label>Email us</label><span>support@ugcad.io</span></div>
+          </a>
+          <a className="hsr-help-row" href="tel:+919000000000">
+            <span className="hsr-help-ic"><Phone size={18} /></span>
+            <div><label>Call us</label><span>+91 90000 00000</span></div>
+          </a>
+          <a className="hsr-help-row" href="https://wa.me/919000000000" target="_blank" rel="noreferrer">
+            <span className="hsr-help-ic"><MessageCircle size={18} /></span>
+            <div><label>WhatsApp</label><span>Chat with support</span></div>
+          </a>
+
+          <p className="hsr-help-note">Support hours: Mon–Sat, 10:00 AM – 7:00 PM IST</p>
+        </div>
+
+        <style>{`
+          .hsr-help-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);
+            display:flex;align-items:center;justify-content:center;padding:20px}
+          .hsr-help-card{position:relative;width:min(420px,100%);background:#fff;border-radius:20px;padding:24px;
+            box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:hsrHelpIn .2s ease}
+          @keyframes hsrHelpIn{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
+          .hsr-help-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border:none;background:#f1f3fa;color:#15163a;
+            border-radius:10px;cursor:pointer;display:grid;place-items:center}
+          .hsr-help-x:hover{background:#e7eaf5}
+          .hsr-help-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+          .hsr-help-badge{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;color:#fff;
+            background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+          .hsr-help-head strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
+          .hsr-help-head small{color:#9296ba;font-size:13px}
+          .hsr-help-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #eef0f6;border-radius:14px;
+            margin-bottom:10px;text-decoration:none;transition:.15s}
+          .hsr-help-row:hover{border-color:#cdd4ff;background:#f7f8ff}
+          .hsr-help-ic{width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
+          .hsr-help-row label{display:block;color:#9296ba;font-size:12px;font-weight:600}
+          .hsr-help-row span{color:#15163a;font-size:14.5px;font-weight:700}
+          .hsr-help-note{margin:14px 0 0;color:#9296ba;font-size:12.5px;text-align:center}
+        `}</style>
+      </div>
+    )}
+    </>
   );
 }

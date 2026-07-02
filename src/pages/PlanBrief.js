@@ -263,8 +263,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           {/* Progress stepper — reflects whether a Brand Guidelines step exists */}
           <div className="pb-stepper">
             {steps.map((label, i) => (
-              <div key={label} className={`pb-stepper-item ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`}>
-                <span className="pb-stepper-num">{i < currentStep ? <Check size={13} /> : i + 1}</span>
+              <div key={label} className={`pb-stepper-item ${i === currentStep ? 'active' : ''}`}>
+                <span className="pb-stepper-num">{i + 1}</span>
                 <span className="pb-stepper-label">{label}</span>
               </div>
             ))}

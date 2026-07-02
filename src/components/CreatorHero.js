@@ -5,13 +5,13 @@ import { ArrowUpRight, Star, Check, Sparkles } from 'lucide-react';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 
-// Portrait showcase reels (high-res clips from /public). These auto-play in
-// rotation on the right purely as visual eye-candy — all the text on the hero
-// reflects the logged-in creator's own details (passed in via props).
+// Top-creator showcase reels (high-res clips from /public). These auto-play in
+// rotation on the right, and the floating cards show THAT creator's headline
+// stats (top earnings + a few details) — a mini leaderboard, not the user's data.
 const REELS = [
-  '/17811912-uhd_2160_3840_24fps.mp4',
-  '/7690504-hd_1080_1920_30fps.mp4',
-  '/6944288-uhd_2160_3840_24fps-sm.mp4',
+  { src: '/17811912-uhd_2160_3840_24fps.mp4', name: '@priya.moves',   category: 'Fashion',   earned: 420000, deals: 128, rating: 4.9, level: 'Elite' },
+  { src: '/7690504-hd_1080_1920_30fps.mp4',    name: '@rohan.creator', category: 'Fitness',   earned: 360000, deals: 112, rating: 4.8, level: 'L2' },
+  { src: '/6944288-uhd_2160_3840_24fps-sm.mp4', name: '@arjun.fit',    category: 'Lifestyle', earned: 310000, deals: 98,  rating: 5.0, level: 'L2' },
 ];
 
 // Rs. 21,900 for smaller amounts, Rs. 4.2L once we cross a lakh.
@@ -57,6 +57,7 @@ export default function CreatorHero({
     setIdx(i);
   };
 
+  const tc = REELS[idx]; // the top creator whose reel is currently playing
   const photoSrc = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : null;
   const dealLogo = activeDeal?.logo
     ? (activeDeal.logo.startsWith('http') ? activeDeal.logo : `${BACKEND_URL}${activeDeal.logo}`)
@@ -113,7 +114,7 @@ export default function CreatorHero({
           <video
             key={idx}
             ref={reelRef}
-            src={`${REELS[idx]}#t=0.1`}
+            src={`${REELS[idx].src}#t=0.1`}
             autoPlay
             muted
             playsInline
@@ -141,38 +142,24 @@ export default function CreatorHero({
           </span>
         </div>
 
-        <div className="chero-bubble chero-b1"><i className="chero-chk green"><Check size={11} /></i> Next payout {fmtMoney(nextPayout)}</div>
-        <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {activeDeals} active deal{activeDeals === 1 ? '' : 's'}</div>
+        <div className="chero-bubble chero-b1"><i className="chero-chk green"><Star size={11} fill="currentColor" /></i> {tc.rating.toFixed(1)} rating</div>
+        <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {tc.deals} deals done</div>
 
         <div className="chero-stat chero-fade" style={{ animationDelay: '.1s' }}>
-          <small>TOTAL EARNED</small>
-          <strong>{fmtMoney(totalEarned)}</strong>
-          <span>on UGCad so far</span>
+          <small>TOP EARNER</small>
+          <strong>{fmtMoney(tc.earned)}</strong>
+          <span>on UGCad</span>
         </div>
 
-        {activeDeal ? (
-          <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
-            <span className="chero-deal-logo">{dealLogo ? <img src={dealLogo} alt="" /> : getInitial((activeDeal.brand || '').replace('@', ''))}</span>
-            <div className="chero-deal-info">
-              <strong>{activeDeal.title}</strong>
-              <small>{activeDeal.brand}</small>
-              <b className="chero-deal-amt">{activeDeal.budgetLabel}</b>
-              <span className="chero-deal-rate">{activeDeal.progress}% done</span>
-            </div>
+        <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
+          <span className="chero-deal-logo">{getInitial(tc.name.replace('@', ''))}</span>
+          <div className="chero-deal-info">
+            <strong>{tc.name}</strong>
+            <small>{tc.category} creator</small>
+            <b className="chero-deal-amt">{tc.level} level</b>
+            <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {tc.rating.toFixed(1)} · {tc.deals} deals</span>
           </div>
-        ) : (
-          <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
-            <span className="chero-deal-logo">{photoSrc ? <img src={photoSrc} alt="" /> : getInitial(String(name).replace('@', ''))}</span>
-            <div className="chero-deal-info">
-              <strong>{name}</strong>
-              <small>{category} creator</small>
-              <b className="chero-deal-amt">{completedDeals} deals closed</b>
-              {rating > 0 && (
-                <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {rating.toFixed(1)}</span>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       <style>{`

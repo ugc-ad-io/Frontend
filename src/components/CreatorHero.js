@@ -75,7 +75,7 @@ export default function CreatorHero({
           </div>
         </div>
 
-        <h1 className="chero-title chero-fade">{name}</h1>
+        <h1 className="chero-title chero-fade"><span className="chero-hi">Hi!</span> {name} <span className="chero-wave">👋</span></h1>
 
         <div className="chero-meta chero-fade" style={{ animationDelay: '.08s' }}>
           {level && <span className="chero-rank">{level}</span>}
@@ -184,6 +184,8 @@ export default function CreatorHero({
 
         .chero-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:54px;line-height:1;
           font-weight:800!important;letter-spacing:-1.5px;color:#07074e;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .chero-hi{color:#5b6bff}
+        .chero-wave{-webkit-text-fill-color:initial}
         .chero-meta{display:flex;align-items:center;gap:12px;margin-top:14px}
         .chero-rank{display:inline-flex;align-items:center;padding:4px 13px;border-radius:30px;font-size:13px;font-weight:800;
           background:linear-gradient(100deg,#12124f,#07074e);color:#fff;box-shadow:0 8px 18px -8px rgba(7,7,78,.6);text-transform:capitalize}

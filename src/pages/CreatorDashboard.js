@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
+import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -346,6 +347,12 @@ export default function CreatorDashboard() {
 
   const profilePct = Math.round((profileDone / profileChecklist.length) * 100);
   const heroName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : 'Creator');
+  // The primary content category the creator picked on the signup form (stored as
+  // a value key like "product_demo"); resolve it to its human label for display.
+  const rawCategory = user?.category || user?.profile?.category
+    || user?.niche || user?.primary_category || user?.content_category || '';
+  const heroCategory = (CONTENT_CATEGORIES.find((c) => c.value === rawCategory)?.label
+    || String(rawCategory).replace(/_/g, ' ')).trim();
   const heroDeal = activeCampaigns[0];
   const heroActiveDeal = heroDeal ? {
     brand: heroDeal.business_nickname ? `@${heroDeal.business_nickname}` : (heroDeal.brand_handle ? `@${heroDeal.brand_handle}` : 'Brand'),
@@ -360,7 +367,7 @@ export default function CreatorDashboard() {
           <CreatorHero
             name={heroName}
             photo={user?.profile_photo}
-            category={user?.niche || user?.primary_category || user?.content_category || 'UGC'}
+            category={heroCategory}
             rating={rating}
             completedDeals={completedWorks}
             level={levelInfo.title}

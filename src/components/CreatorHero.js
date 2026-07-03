@@ -34,7 +34,7 @@ const CAT_CLASS = (c) => ({
 const CLIP_SECONDS = 4; // only show a short 4s snippet of each reel before moving on
 
 export default function CreatorHero({
-  name = 'Creator', photo, category = 'UGC', rating = 0,
+  name = 'Creator', photo, category = '', rating = 0,
   totalEarned = 0, nextPayout = 0, completedDeals = 0, level,
   activeDeals = 0, newBriefs = 0, activeDeal = null,
 }) {
@@ -79,7 +79,7 @@ export default function CreatorHero({
 
         <div className="chero-meta chero-fade" style={{ animationDelay: '.08s' }}>
           {level && <span className="chero-rank">{level}</span>}
-          <span className={`chero-cat ${CAT_CLASS(category)}`}>{category}</span>
+          {category && <span className={`chero-cat ${CAT_CLASS(category)}`}>{category}</span>}
           {rating > 0 && (
             <span className="chero-rate"><Star size={14} fill="#f5b301" color="#f5b301" /> {rating.toFixed(1)}</span>
           )}
@@ -90,7 +90,7 @@ export default function CreatorHero({
         <div className="chero-facts chero-fade" style={{ animationDelay: '.16s' }}>
           <div className="chero-fact"><label>Total earned</label><strong>{fmtMoney(totalEarned)}</strong></div>
           <div className="chero-fact"><label>Deals closed</label><strong>{completedDeals}</strong></div>
-          <div className="chero-fact"><label>Category</label><strong style={{ textTransform: 'capitalize' }}>{category}</strong></div>
+          {category && <div className="chero-fact"><label>Category</label><strong style={{ textTransform: 'capitalize' }}>{category}</strong></div>}
         </div>
 
         <p className="chero-sub">
@@ -101,7 +101,7 @@ export default function CreatorHero({
           <button type="button" className="chero-btn-dark" onClick={() => navigate('/browse-briefs')}>
             Browse Campaigns — It’s Free
           </button>
-          <button type="button" className="chero-link" onClick={() => navigate('/my-deals')}>
+          <button type="button" className="chero-link" onClick={() => navigate('/my-active-work')}>
             My Deals <ArrowUpRight size={16} />
           </button>
         </div>

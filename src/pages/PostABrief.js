@@ -160,7 +160,75 @@ function mapCampaignToForm(c) {
   put('productDescription', c.product_description);
   put('campaignHook', c.campaign_hook);
   put('keyMessage', c.key_message);
+  put('pacing', c.pacing || c.tone_reference);
+  put('targetAudience', c.target_audience);
   if (Array.isArray(c.objectives) && c.objectives.length) out.objectives = c.objectives;
+
+  const putBool = (key, value) => { if (typeof value === 'boolean') out[key] = value; };
+  const putArr = (key, value) => { if (Array.isArray(value) && value.length) out[key] = value; };
+
+  // Must-Include
+  putBool('productVisible', c.product_visible);
+  put('visibilitySeconds', c.product_visible_seconds);
+  putBool('verbalMention', c.verbal_mention);
+  put('productNames', c.verbal_mention_text);
+  putArr('requiredPhrases', c.required_phrases);
+  putArr('requiredShots', c.required_shots);
+  put('callToAction', c.call_to_action);
+  put('promoCode', c.promo_code);
+  put('hashtags', c.hashtags);
+  putBool('brandHandleTag', c.brand_handle_tag);
+  // Must-Avoid
+  putBool('noCompetitors', c.no_competitors);
+  put('competitors', c.competitors_text);
+  putBool('noOtherProducts', c.no_other_products);
+  putBool('noProfanity', c.no_profanity);
+  putBool('noPolitical', c.no_political);
+  putBool('avoidFilters', c.avoid_filters);
+  put('filterTypes', c.filter_types_text);
+  put('avoidText', c.avoid_text);
+  // Style Guidance
+  put('musicPreference', c.music_preference);
+  putArr('referenceVideos', c.reference_videos);
+  putArr('moodImages', c.mood_images);
+  // Usage Rights
+  putArr('platforms', c.usage_platforms);
+  put('rightsDuration', c.rights_duration);
+  put('exclusivity', c.exclusivity);
+  putBool('whitelisting', c.whitelisting);
+  put('modificationRights', c.modification_rights);
+  // Timeline
+  put('productShippingBy', c.product_shipping_by);
+  put('draftDeliveryBy', c.draft_delivery_by);
+  putBool('budgetVisible', c.budget_visible);
+
+  // Deliverables — prefer the structured list; fall back to the primary
+  // fields + "N x Type" additional strings for older briefs.
+  if (Array.isArray(c.deliverable_items) && c.deliverable_items.length) {
+    out.deliverables = c.deliverable_items.map((d) => ({
+      ...createDeliverable(),
+      type: d.type || '',
+      quantity: d.quantity || 1,
+      duration: d.duration || '',
+      aspectRatios: Array.isArray(d.aspect_ratios) && d.aspect_ratios.length ? d.aspect_ratios : ['9:16'],
+      rawRequired: Boolean(d.raw_required),
+    }));
+  } else {
+    const primaryType = c.brief_type || c.video_format;
+    if (primaryType) {
+      const primary = {
+        ...createDeliverable(),
+        type: primaryType,
+        aspectRatios: c.aspect_ratio ? [c.aspect_ratio] : ['9:16'],
+        duration: c.duration_seconds ? `${c.duration_seconds} seconds` : '',
+      };
+      const extra = (Array.isArray(c.additional_deliverables) ? c.additional_deliverables : []).map((str) => {
+        const m = String(str).match(/^\s*(\d+)\s*x\s*(.+)$/i);
+        return { ...createDeliverable(), quantity: m ? Number(m[1]) : 1, type: m ? m[2].trim() : String(str).trim() };
+      });
+      out.deliverables = [primary, ...extra];
+    }
+  }
   put('finalDeliveryBy', c.final_delivery_by || c.due_date || c.deadline);
   put('creatorLevel', c.creator_level);
   put('qualityTier', c.content_quality_tier);
@@ -185,7 +253,7 @@ function mapCampaignToForm(c) {
   return out;
 }
 
-export default function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null } = {}) {
+export default function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, duplicateId = null } = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -242,6 +310,24 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       .catch(() => toast.error('Could not load that draft'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Duplicate an existing campaign into a fresh, editable brief (?duplicate=<id>).
+  // We do NOT set draftId, so publishing creates a brand-new copy — the source
+  // brief is untouched.
+  useEffect(() => {
+    const dupId = duplicateId || searchParams.get('duplicate');
+    if (!dupId) return;
+    setDraftId(null);
+    localStorage.removeItem(DRAFT_ID_KEY);
+    axios.get(`${API}/campaigns/${dupId}`)
+      .then(res => {
+        const mapped = mapCampaignToForm(res.data);
+        setForm(current => ({ ...current, ...mapped }));
+        toast.success('Copied brief loaded — edit the details and publish.');
+      })
+      .catch(() => toast.error('Could not load that brief to duplicate'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, duplicateId]);
 
   useEffect(() => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
@@ -482,7 +568,50 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       creator_niche_tags: form.nicheTags,
       per_video_budget: budget,
       total_budget: budget,
-      currency: 'INR'
+      currency: 'INR',
+
+      // Full structured brief so a duplicate can be rebuilt exactly (the backend
+      // persists all of these via BriefSectionsMixin).
+      target_audience: form.targetAudience,
+      budget_visible: form.budgetVisible,
+      budget_mode: form.budgetMode,
+      deliverable_items: form.deliverables.map(item => ({
+        type: item.type,
+        quantity: item.quantity,
+        duration: item.duration,
+        aspect_ratios: item.aspectRatios,
+        raw_required: item.rawRequired,
+      })),
+      product_visible: form.productVisible,
+      product_visible_seconds: form.visibilitySeconds,
+      verbal_mention: form.verbalMention,
+      verbal_mention_text: form.productNames,
+      required_phrases: form.requiredPhrases,
+      required_shots: form.requiredShots,
+      call_to_action: form.callToAction,
+      promo_code: form.promoCode,
+      hashtags: form.hashtags,
+      brand_handle_tag: form.brandHandleTag,
+      no_competitors: form.noCompetitors,
+      competitors_text: form.competitors,
+      no_other_products: form.noOtherProducts,
+      no_profanity: form.noProfanity,
+      no_political: form.noPolitical,
+      avoid_filters: form.avoidFilters,
+      filter_types_text: form.filterTypes,
+      avoid_text: form.avoidText,
+      pacing: form.pacing,
+      music_preference: form.musicPreference,
+      reference_videos: form.referenceVideos,
+      mood_images: form.moodImages,
+      usage_platforms: form.platforms,
+      rights_duration: form.rightsDuration,
+      exclusivity: form.exclusivity,
+      whitelisting: form.whitelisting,
+      modification_rights: form.modificationRights,
+      product_shipping_by: form.productShippingBy,
+      draft_delivery_by: form.draftDeliveryBy,
+      final_delivery_by: form.finalDeliveryBy,
     };
   };
 
@@ -558,6 +687,16 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
   return (
     <div className="pab-page brief-builder-page">
+      <div style={{ display: 'flex', marginBottom: 14, gridColumn: '1 / -1' }}>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => (onClose ? onClose() : navigate(-1))}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          <ChevronLeft size={18} /> Back
+        </button>
+      </div>
       <div className="pab-stepper brief-stepper">
         <div className="stepper-track">
           {STEPS.map((label, index) => {
@@ -777,7 +916,9 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         <div className="brief-modal-backdrop">
           <div className="brief-modal">
             <h3>Confirm publishing</h3>
-            <p>Rs. {totalDebit.toLocaleString('en-IN')} will be put <strong>on hold</strong> from your wallet (held securely in escrow): Rs. {budget.toLocaleString('en-IN')} budget + Rs. {commission.toLocaleString('en-IN')} platform commission + Rs. {LISTING_FEE.toLocaleString('en-IN')} listing fee. The budget is only released to the creator after you approve their work — nothing is paid out until then. It cannot be modified after a creator accepts. Continue?</p>
+            <p className="brief-hold-callout">
+              <strong>Rs. {totalDebit.toLocaleString('en-IN')} will be placed ON HOLD</strong> in your wallet, locked in secure escrow — this money is <strong>held, not spent</strong>.
+            </p>
             <div>
               <button type="button" className="btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
               <button type="button" className="btn-primary" onClick={publish} disabled={submitting}>{submitting ? 'Publishing...' : 'Continue'}</button>
@@ -1424,6 +1565,15 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           font-weight: 400;
           line-height: 1.55;
         }
+        .brief-modal .brief-hold-callout {
+          background: #eef0ff;
+          border: 1px solid #d7dbff;
+          border-left: 4px solid #4452f0;
+          border-radius: 12px;
+          padding: 12px 14px;
+          color: #23236a;
+        }
+        .brief-modal .brief-hold-callout strong { color: #07074e; }
 
         .brief-modal div {
           display: flex;

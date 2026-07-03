@@ -5,9 +5,10 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   ArrowLeft, ChevronRight, Check, FileText, Send, MessageSquare, User, CheckCircle, Download,
-  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal,
+  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import PostABrief from './PostABrief';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import RevisionRequestModal from '../components/RevisionRequestModal';
@@ -119,6 +120,7 @@ export default function BrandCampaignDetail() {
   const [videoModal, setVideoModal] = useState(null);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [revSubmitting, setRevSubmitting] = useState(false);
+  const [dupOpen, setDupOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -213,6 +215,10 @@ export default function BrandCampaignDetail() {
     else window.open(url, '_blank');
   };
 
+  // Open the brief form (as a modal card on this page) pre-filled with this
+  // campaign's details so the brand can edit before publishing the copy.
+  const duplicateBrief = () => setDupOpen(true);
+
   return (
     <BrandTopNavLayout>
       <div className="bcd">
@@ -233,6 +239,7 @@ export default function BrandCampaignDetail() {
             <strong>{inr(spent)} <small>/ {inr(total)}</small></strong>
           </div>
           <div className="bcd-actions">
+            <button className="cmk-btn-ghost-sm" onClick={duplicateBrief}><Copy size={16} /> Duplicate</button>
             <button className="cmk-btn-ghost-sm" onClick={() => setDetailsOpen(true)}>View Details</button>
           </div>
         </div>
@@ -569,6 +576,19 @@ export default function BrandCampaignDetail() {
         .bcd-muted{color:#9296ba;font-size:14px;margin:0}
         @media (max-width:980px){.bcd-grid{grid-template-columns:1fr}.bcd-grid2{grid-template-columns:1fr}}
       `}</style>
+
+      {dupOpen && (
+        <div className="cmk-brief-overlay" onClick={() => setDupOpen(false)}>
+          <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="cmk-brief-close" aria-label="Close" onClick={() => setDupOpen(false)}>✕</button>
+            <PostABrief
+              duplicateId={campaign.id || campaign._id}
+              onClose={() => setDupOpen(false)}
+              onPublished={() => { setDupOpen(false); navigate('/dashboard/business/all-campaigns'); }}
+            />
+          </div>
+        </div>
+      )}
     </BrandTopNavLayout>
   );
 }

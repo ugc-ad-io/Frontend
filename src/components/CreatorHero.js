@@ -142,7 +142,14 @@ export default function CreatorHero({
           </span>
         </div>
 
-        <div className="chero-bubble chero-b1"><i className="chero-chk green"><Star size={11} fill="currentColor" /></i> {tc.rating.toFixed(1)} rating</div>
+        <div className="chero-bubble chero-b1">
+          <span className="chero-stars" style={{ display: 'inline-flex', gap: 1 }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star key={n} size={12} fill={n <= Math.round(tc.rating) ? '#f5b301' : 'none'} color="#f5b301" />
+            ))}
+          </span>
+          {tc.rating.toFixed(1)} rating
+        </div>
         <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {tc.deals} deals done</div>
 
         <div className="chero-stat chero-fade" style={{ animationDelay: '.1s' }}>

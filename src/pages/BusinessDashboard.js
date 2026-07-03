@@ -193,8 +193,14 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
     return next;
   });
 
-  const nameOf = (b) => b.creator_nickname || b.public_creator_id || b.creator_id || 'Creator';
-  const handleOf = (b) => { const n = String(nameOf(b)); return n.startsWith('@') ? n : `@${n}`; };
+  // A raw 24-char hex string is a Mongo ObjectId, not a real handle — never show it.
+  const isObjectId = (s) => /^[0-9a-f]{24}$/i.test(String(s || ''));
+  const realName = (b) => {
+    const n = b.creator_nickname || b.creator_name || b.public_creator_id || '';
+    return isObjectId(n) ? '' : n;
+  };
+  const nameOf = (b) => realName(b) || 'Creator';
+  const handleOf = (b) => { const n = String(realName(b)); return n ? (n.startsWith('@') ? n : `@${n}`) : 'Creator'; };
   const initialOf = (b) => (String(nameOf(b)).replace(/[^A-Za-z0-9]/g, '').charAt(0) || 'C').toUpperCase();
 
   return (

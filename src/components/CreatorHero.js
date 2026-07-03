@@ -75,7 +75,7 @@ export default function CreatorHero({
           </div>
         </div>
 
-        <h1 className="chero-title chero-fade"><span className="chero-hi">Hi!</span> {name} <span className="chero-wave">👋</span></h1>
+        <h1 className="chero-title chero-fade"><span className="chero-hi">Hi!</span> {name}</h1>
 
         <div className="chero-meta chero-fade" style={{ animationDelay: '.08s' }}>
           {level && <span className="chero-rank">{level}</span>}

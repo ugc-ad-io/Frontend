@@ -5792,19 +5792,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         .wallet-tier-grid button {
-          padding: 16px;
+          padding: 14px 12px;
           text-align: left;
         }
 
         .wallet-tier-grid strong,
         .wallet-tier-grid small {
           display: block;
+          white-space: nowrap;
         }
 
         .wallet-tier-grid small {
           margin-top: 6px;
           color: #15a35b;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
         }
 

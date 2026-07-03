@@ -131,9 +131,12 @@ function VideoTile({ url, onRemove }) {
     if (ref.current.paused) { ref.current.play().then(() => setPlaying(true)).catch(() => {}); }
     else { ref.current.pause(); setPlaying(false); }
   };
+  // Hover to preview: play the clip (hides the play icon) + zoom, pause on leave.
+  const hoverPlay = () => { const v = ref.current; if (v && isVideo(src)) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
+  const hoverStop = () => { const v = ref.current; if (v) { v.pause(); setPlaying(false); } };
   return (
-    <div className="cpm-vid" onClick={toggle}>
-      {isVideo(src) ? <video ref={ref} src={`${src}#t=0.5`} playsInline loop /> : <img src={src} alt="" />}
+    <div className="cpm-vid" onClick={toggle} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
+      {isVideo(src) ? <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop /> : <img src={src} alt="" />}
       {!playing && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
       {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
     </div>
@@ -185,7 +188,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const [form, setForm] = useState({});            // editable detail fields
   const [pf, setPf] = useState([]);                // editable portfolio list
   const [addOpen, setAddOpen] = useState(false);
-  const [addForm, setAddForm] = useState({ title: '', brand: '', desc: '', url: '' });
+  const [addForm, setAddForm] = useState({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' });
   const [busy, setBusy] = useState('');            // 'photo' | 'banner' | 'work'
   const [localPhoto, setLocalPhoto] = useState('');
   const [localBanner, setLocalBanner] = useState('');
@@ -345,9 +348,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const saveWork = async () => {
     if (!addForm.url) { toast.error('Upload a video first'); return; }
-    const item = { title: addForm.title || 'Untitled', brand: addForm.brand || '', description: addForm.desc || '', videoUrl: addForm.url, urls: [addForm.url] };
+    const item = { title: addForm.title || 'Untitled', brand: addForm.brand || '', description: addForm.desc || '', category: addForm.category || '', price: addForm.price || '', delivery: addForm.delivery || '', videoUrl: addForm.url, urls: [addForm.url] };
     await persistPortfolio([...(pf || []), item]);
-    setAddForm({ title: '', brand: '', desc: '', url: '' });
+    setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' });
     setAddOpen(false);
     toast.success('Work added');
   };
@@ -406,10 +409,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const levelKey = LEVEL_LABEL[String(data?.level || '').toLowerCase()] ? String(data.level).toLowerCase() : 'new';
   const levelLabel = data?.level_label || LEVEL_LABEL[levelKey];
   const deliverables = Number(data?.deliverables_completed ?? p.deliverables_completed ?? 0);
+  // Keep each portfolio item's own metadata (category / price / delivery) so the
+  // video cards can show per-video values, falling back to the profile defaults.
   const realVids = (data?.portfolio || [])
-    .map((it) => (typeof it === 'string' ? it : ((Array.isArray(it.urls) && it.urls[0]) || it.original_url || it.url || it.video || '')))
-    .filter((u) => u && !String(u).startsWith('blob:'));
-  const vids = realVids.length ? realVids : FALLBACK_VIDEOS.slice(0, 6);
+    .map((it) => {
+      const url = typeof it === 'string' ? it : ((Array.isArray(it.urls) && it.urls[0]) || it.original_url || it.url || it.video || it.videoUrl || '');
+      const meta = typeof it === 'string' ? {} : it;
+      return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '' };
+    })
+    .filter((v) => v.url && !String(v.url).startsWith('blob:'));
+  const vids = realVids.length ? realVids : FALLBACK_VIDEOS.slice(0, 6).map((u) => ({ url: u }));
 
   // All the signup-form details (stored under user.profile via extra="allow").
   const phone = [p.dialCode, p.phone].filter(Boolean).join(' ');
@@ -664,30 +673,55 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                         <div className="cpm-aw-fields">
                           <input placeholder="Title" value={addForm.title} onChange={(e) => setAddForm((f) => ({ ...f, title: e.target.value }))} />
                           <input placeholder="Brand (optional)" value={addForm.brand} onChange={(e) => setAddForm((f) => ({ ...f, brand: e.target.value }))} />
+                          <div className="cpm-aw-row">
+                            <input placeholder="Category (e.g. Beauty)" value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))} />
+                            <input placeholder="Price / video (₹)" inputMode="numeric" value={addForm.price} onChange={(e) => setAddForm((f) => ({ ...f, price: e.target.value }))} />
+                          </div>
+                          <input placeholder="Delivered in (e.g. 2 days)" value={addForm.delivery} onChange={(e) => setAddForm((f) => ({ ...f, delivery: e.target.value }))} />
                           <textarea placeholder="Description (optional)" rows={2} value={addForm.desc} onChange={(e) => setAddForm((f) => ({ ...f, desc: e.target.value }))} />
                           <div className="cpm-aw-actions">
                             <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> Save work</button>
-                            <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); setAddForm({ title: '', brand: '', desc: '', url: '' }); }}>Cancel</button>
+                            <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' }); }}>Cancel</button>
                           </div>
                         </div>
                       </div>
                     )}
                     <div className="cpm-vids">
                       {!addOpen && <button type="button" className="cpm-vid cpm-add-tile" onClick={() => setAddOpen(true)}><Plus size={26} /><span>Add Work</span></button>}
-                      {(pf || []).map((it, i) => { const u = pfUrl(it); return u ? <VideoTile key={i} url={u} onRemove={() => removeWork(i)} /> : null; })}
+                      {(pf || []).map((it, i) => {
+                        const u = pfUrl(it);
+                        if (!u) return null;
+                        const meta = typeof it === 'string' ? {} : it;
+                        return (
+                          <div className="cpm-vid-item" key={i}>
+                            <VideoTile url={u} onRemove={() => removeWork(i)} />
+                            <div className="cpm-vid-cap">
+                              <div className="cpm-vid-catrow">
+                                <span className="cpm-vid-cat">{meta.category || hlCategory}</span>
+                              </div>
+                              <div className="cpm-vid-pricerow">
+                                <div className="cpm-vid-price"><label>Price</label><strong>{meta.price ? (String(meta.price).match(/^\d+$/) ? inr(meta.price) : meta.price) : hlPrice}</strong></div>
+                                <span className="cpm-vid-del"><label>Delivered in</label><strong>{meta.delivery || hlDelivery}</strong></span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 ) : (
                   <div className="cpm-vids">
                     {vids.slice(0, 12).map((v, i) => (
                       <div className="cpm-vid-item" key={i}>
-                        <VideoTile url={v} />
+                        <VideoTile url={v.url} />
                         <div className="cpm-vid-cap">
                           <div className="cpm-vid-catrow">
-                            <span className="cpm-vid-cat">{hlCategory}</span>
-                            <span className="cpm-vid-del"><label>Delivered in</label><strong>{hlDelivery}</strong></span>
+                            <span className="cpm-vid-cat">{v.category || hlCategory}</span>
                           </div>
-                          <div className="cpm-vid-price"><label>Price</label><strong>{hlPrice}</strong></div>
+                          <div className="cpm-vid-pricerow">
+                            <div className="cpm-vid-price"><label>Price</label><strong>{v.price ? (String(v.price).match(/^\d+$/) ? inr(v.price) : v.price) : hlPrice}</strong></div>
+                            <span className="cpm-vid-del"><label>Delivered in</label><strong>{v.delivery || hlDelivery}</strong></span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -891,13 +925,18 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-vid-pd label{color:#9296ba;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
         .cpm-vid-pd span:last-child{text-align:right;align-items:flex-end}
         /* Videos tab caption: category + delivered on one line, price below */
-        .cpm-vid-catrow{display:flex;align-items:center;justify-content:flex-start;gap:12px;flex-wrap:wrap;margin-top:8px}
-        .cpm-vid-del{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
-        .cpm-vid-price{display:flex;flex-direction:column;margin-top:8px}
+        .cpm-vid-catrow{display:flex;align-items:center;margin-top:8px}
+        .cpm-vid-cat{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        /* price + delivered on one line */
+        .cpm-vid-pricerow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:8px}
+        .cpm-vid-del{display:inline-flex;flex-direction:column;align-items:flex-end;text-align:right;white-space:nowrap;flex:none}
+        .cpm-vid-price{display:flex;flex-direction:column}
         .cpm-vid-del label,.cpm-vid-price label{color:#9296ba;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
         .cpm-vid-del strong,.cpm-vid-price strong{color:#07074e;font-size:13.5px;font-weight:800;white-space:nowrap}
-        .cpm-vid video,.cpm-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-        .cpm-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#5b6bff;pointer-events:none}
+        .cpm-vid video,.cpm-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+        .cpm-vid:hover video,.cpm-vid:hover img{transform:scale(1.07)}
+        .cpm-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#5b6bff;pointer-events:none;transition:opacity .2s ease}
+        .cpm-vid:hover .cpm-play{opacity:0}
         .cpm-empty{text-align:center;color:#9296ba;padding:30px 0;font-size:14px}
         /* editable */
         .cpm-ghost{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8f3;color:#15163a;border-radius:30px;padding:10px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
@@ -920,6 +959,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-aw-change{border:1px solid #e6e8f3;background:#fff;color:#585c7e;border-radius:9px;padding:7px 10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
         .cpm-aw-change:hover{border-color:#cdd4ff;color:#4452f0}
         .cpm-aw-fields{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px}
+        .cpm-aw-row{display:flex;gap:10px}
+        .cpm-aw-row input{flex:1;min-width:0}
         .cpm-aw-fields input,.cpm-aw-fields textarea{border:1px solid #e6e8f3;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;color:#15163a;background:#fff;outline:none}
         .cpm-aw-fields input:focus,.cpm-aw-fields textarea:focus{border-color:#5b6bff}
         .cpm-aw-actions{display:flex;gap:10px;margin-top:2px}

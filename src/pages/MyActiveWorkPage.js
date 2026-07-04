@@ -35,7 +35,7 @@ function statusMeta(c) {
   if (s === 'work_submitted' || s === 'under_review') return { label: 'In Review', color: '#f59e0b', Icon: Hourglass };
   if (due !== null && due < 0) return { label: 'Over Time', color: '#ef4444', Icon: AlertTriangle };
   if (startFuture) return { label: 'Upcoming', color: '#f97316', Icon: Hourglass };
-  return { label: 'Active', color: '#3b82f6', Icon: Zap };
+  return { label: 'Active', color: '#16a34a', Icon: Zap };
 }
 
 const TABS = [

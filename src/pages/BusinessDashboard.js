@@ -1036,7 +1036,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
   };
   const walletBonusTiers = walletData.bonus_tiers.length ? walletData.bonus_tiers : DUMMY_BONUS_TIERS;
   const walletBonus = Object.keys(walletData.recharge_bonus || {}).length ? walletData.recharge_bonus : DUMMY_BONUS;
-  const walletProgress = Math.min(Math.max(Number(walletBonus.progress_percent || 0), 0), 100);
   const performanceLeftMax = 120;
   const performanceRightMax = 80;
   const chartTop = 28;
@@ -1902,28 +1901,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <Zap size={18} /> {rechargingWallet ? 'Creating Order...' : 'Add Funds'}
                   </button>
                   <small>Minimum {formatMoney(5000)} • Instant credit after payment verification</small>
-                </section>
-
-                <section className="wallet-panel wallet-progress-card">
-                  <div className="wallet-side-title">
-                    <h2>Bonus Progress</h2>
-                    <span><Zap size={18} /></span>
-                  </div>
-                  <div className="wallet-progress-body">
-                    <div className="wallet-progress-ring" style={{ '--wallet-progress': `${walletProgress}%` }}>
-                      <strong>+{walletBonus.current_tier_percent || 0}%</strong>
-                    </div>
-                    <div>
-                      <p>Current Bonus Tier</p>
-                      <h3>+{walletBonus.current_tier_percent || 0}% Live</h3>
-                      <span>Recharge {formatMoney(walletBonus.next_tier_amount || 0)} to unlock +{walletBonus.next_tier_percent || 0}% tier</span>
-                    </div>
-                  </div>
-                  <div className="wallet-progress-track">
-                    <div><span>{formatMoney(walletBonus.current_tier_amount || 0)} tier</span><span>{formatMoney(walletBonus.next_tier_amount || 0)} tier</span></div>
-                    <i><b style={{ width: `${walletProgress}%` }} /></i>
-                    <small>{formatMoney(walletBonus.amount_to_next_tier || 0)} more to unlock best value tier</small>
-                  </div>
                 </section>
               </aside>
             </div>
@@ -5777,7 +5754,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .wallet-tier-grid {
           grid-column: 1 / -1;
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
           gap: 12px;
         }
 
@@ -5867,10 +5844,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .wallet-credit {
           color: #27AE60;
+          white-space: nowrap;
         }
 
         .wallet-debit {
           color: #E11D48;
+          white-space: nowrap;
         }
 
         .wallet-status {
@@ -7064,7 +7043,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
 
       {modalView && (
-        <PageModal onClose={() => setModalView(null)} bare={modalView.type === 'campaign'} maxWidth={modalView.type === 'campaign' ? 900 : modalView.type === 'shipment' ? 920 : 1100}>
+        <PageModal onClose={() => setModalView(null)} bare={modalView.type === 'campaign'} drawer={modalView.type === 'shipment'} maxWidth={modalView.type === 'campaign' ? 900 : modalView.type === 'shipment' ? 560 : 1100}>
           {modalView.type === 'campaign' && <CampaignDetails embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'review' && <WorkReview embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} onClose={() => setModalView(null)} />}

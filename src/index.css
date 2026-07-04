@@ -2,12 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
 body {
     margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
+    /* Use the brand body font (Inter, via --font-body) site-wide so every page
+       matches the creator-marketplace pages (e.g. My Active Work). */
+    font-family: var(--font-body, 'Inter', system-ui, sans-serif);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }

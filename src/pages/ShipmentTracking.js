@@ -558,7 +558,7 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
           max-width: 1000px;
           margin: 0 auto;
           background: white;
-          padding: 48px;
+          padding: 26px 28px;
           border-radius: 24px;
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
         }
@@ -566,9 +566,9 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
         .st-header {
           display: flex;
           align-items: center;
-          gap: 16px;
-          margin-bottom: 28px;
-          padding-bottom: 22px;
+          gap: 13px;
+          margin-bottom: 18px;
+          padding-bottom: 16px;
           border-bottom: 1px solid #eef0f7;
         }
 
@@ -576,25 +576,25 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
           flex-shrink: 0;
           display: grid;
           place-items: center;
-          width: 52px;
-          height: 52px;
-          border-radius: 15px;
+          width: 44px;
+          height: 44px;
+          border-radius: 13px;
           background: linear-gradient(135deg, #eef1ff 0%, #e6e9ff 100%);
           color: #667eea;
         }
 
         .st-head-text h1 {
-          font-size: 1.6rem;
+          font-size: 1.3rem;
           font-weight: 700;
           color: #1a202c;
           margin: 0;
-          line-height: 1.1;
+          line-height: 1.15;
         }
 
         .st-head-text p {
           color: #718096;
-          font-size: 0.95rem;
-          margin: 3px 0 0;
+          font-size: 0.85rem;
+          margin: 2px 0 0;
         }
 
         .no-shipment {
@@ -616,53 +616,57 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
         .status-card {
           display: flex;
           align-items: center;
-          gap: 18px;
-          padding: 22px 24px;
+          gap: 14px;
+          padding: 14px 18px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-radius: 16px;
+          border-radius: 14px;
           color: white;
         }
 
         .status-icon {
-          width: 64px;
-          height: 64px;
+          width: 46px;
+          height: 46px;
           background: rgba(255, 255, 255, 0.2);
-          border-radius: 16px;
+          border-radius: 13px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
+        .status-icon svg { width: 24px; height: 24px; }
 
         .status-label {
-          font-size: 0.875rem;
-          opacity: 0.9;
-          margin-bottom: 4px;
+          font-size: 0.72rem;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+          opacity: 0.85;
+          margin-bottom: 2px;
         }
 
         .status-value {
-          font-size: 1.75rem;
+          font-size: 1.3rem;
           font-weight: 700;
+          line-height: 1.1;
         }
 
         .details-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 18px;
+          gap: 14px;
           align-items: start;
         }
 
         .detail-card {
-          padding: 20px 22px;
+          padding: 16px 18px;
           background: #fbfcff;
           border-radius: 14px;
           border: 1px solid #e8ebf5;
         }
 
         .detail-card h3 {
-          font-size: 1.1rem;
-          font-weight: 600;
+          font-size: 0.98rem;
+          font-weight: 700;
           color: #2d3748;
-          margin: 0 0 14px;
+          margin: 0 0 10px;
         }
 
         .detail-card--row {
@@ -681,8 +685,9 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
           justify-content: space-between;
           align-items: center;
           gap: 16px;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
+          font-size: 0.9rem;
+          margin-bottom: 8px;
+          padding-bottom: 8px;
           border-bottom: 1px solid #eceef5;
         }
 
@@ -715,7 +720,8 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
         .checklist {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 9px;
+          font-size: 0.9rem;
         }
 
         .checklist-item {

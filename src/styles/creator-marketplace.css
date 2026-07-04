@@ -733,7 +733,7 @@
   font-family:inherit;font-weight:600;font-size:13.5px;color:var(--ink-2);cursor:pointer}
 .bc-head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:18px;flex-wrap:wrap}
 .bc-head-row .cmk-page-head{margin-bottom:0}
-.bc-cats{display:flex;gap:10px;justify-content:flex-end;overflow-x:auto;padding:2px 0;scrollbar-width:none;flex:1;min-width:0;margin-right:160px}
+.bc-cats{display:flex;gap:10px;justify-content:flex-start;overflow-x:auto;padding:2px 2px;scrollbar-width:none;flex:1;min-width:0}
 .bc-cats::-webkit-scrollbar{display:none}
 @media (max-width:760px){.bc-head-row{align-items:flex-start}.bc-cats{justify-content:flex-start;flex:1 1 100%}}
 .bc-cats::-webkit-scrollbar{display:none}
@@ -762,7 +762,12 @@
 .pm-modal.pm-bare{background:transparent;box-shadow:none;border-radius:0}
 .pm-modal.pm-bare .pm-body{padding:0}
 .pm-modal.pm-bare .pm-close{top:6px;right:6px}
-@media (max-width:640px){.pm-body{padding:16px}.pm-overlay{padding:12px 8px}.pm-modal.pm-bare .pm-body{padding:0}}
+/* right-side drawer variant: panel slides in from the right, full height */
+.pm-overlay.pm-drawer{align-items:stretch;justify-content:flex-end;padding:0;overflow:hidden}
+.pm-drawer .pm-modal{height:100vh;max-height:100vh;margin:0;border-radius:0;overflow-y:auto;
+  box-shadow:-24px 0 60px -24px rgba(0,0,0,.5);animation:pm-slide-in .28s cubic-bezier(.2,.7,.2,1)}
+@keyframes pm-slide-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@media (max-width:640px){.pm-body{padding:16px}.pm-overlay{padding:12px 8px}.pm-overlay.pm-drawer{padding:0}.pm-modal.pm-bare .pm-body{padding:0}}
 .bc-reel{position:relative;aspect-ratio:9/16;border-radius:16px;overflow:hidden;background:#0b1020;cursor:pointer;box-shadow:var(--shadow-soft)}
 .bc-reel video,.bc-reel img,.bc-reel .bc-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
 /* hover to preview: zoom the clip in a little and fade the play icon out */
@@ -840,7 +845,7 @@
 .bc-ava-btn{border:none;padding:0;cursor:pointer}
 .bc-name-btn{display:block;width:100%;background:none;border:none;padding:0;cursor:pointer;text-align:left;font-family:inherit}
 .bc-name-btn:hover strong{color:var(--indigo)}
-.bc-name-btn .bc-price-txt{color:var(--indigo);font-weight:700}
+.bc-name-btn .bc-price-txt{color:#5b6bff;font-weight:700}
 .bc-name-top{display:flex;align-items:center;gap:8px;min-width:0;width:100%}
 .bc-name-top strong{flex:0 1 auto;min-width:0}
 .bc-price-txt{display:block;margin-top:5px}

@@ -121,12 +121,12 @@ const CREATOR_TABS = [
   { id: 'follow', label: 'Follow Us', icon: Heart }
 ];
 
-// ugcad.io official social profiles.
+// ugcad.io official social profiles (real brand logos as inline SVG).
 const SOCIAL_LINKS = [
-  { name: 'Instagram', handle: '@ugcad.io', url: 'https://instagram.com/ugcad.io', icon: Instagram },
-  { name: 'Twitter / X', handle: '@ugcad_io', url: 'https://twitter.com/ugcad_io', icon: Twitter },
-  { name: 'LinkedIn', handle: 'UGCad.io', url: 'https://linkedin.com/company/ugcad', icon: Linkedin },
-  { name: 'YouTube', handle: 'UGCad.io', url: 'https://youtube.com/@ugcad', icon: Youtube }
+  { name: 'Instagram', handle: '@ugcad.app', url: 'https://www.instagram.com/ugcad.app?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==', color: 'linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888)', path: 'M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153a4.908 4.908 0 0 1 1.153 1.772c.247.637.415 1.363.465 2.428.048 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 0 1-1.153 1.772 4.915 4.915 0 0 1-1.772 1.153c-.637.247-1.363.415-2.428.465-1.066.048-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 0 1-1.772-1.153 4.904 4.904 0 0 1-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 0 1 1.153-1.772A4.897 4.897 0 0 1 5.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm6.5-.25a1.25 1.25 0 0 0-2.5 0 1.25 1.25 0 0 0 2.5 0zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z' },
+  { name: 'Twitter / X', handle: '@ugcad_io', comingSoon: true, color: '#000000', path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
+  { name: 'LinkedIn', handle: 'UGCad.io', comingSoon: true, color: '#0a66c2', path: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z' },
+  { name: 'YouTube', handle: 'UGCad.io', comingSoon: true, color: '#ff0000', path: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' }
 ];
 
 const CREATOR_NOTIF_ROWS = [
@@ -1422,12 +1422,19 @@ export default function ProfileSettings() {
                   <h2>Follow us</h2>
                   <p className="ps-panel-desc">Stay updated with UGCad.io on social media.</p>
                   <div className="ps-social-grid">
-                    {SOCIAL_LINKS.map((s) => (
-                      <a key={s.name} className="ps-social-card" href={s.url} target="_blank" rel="noreferrer">
-                        <span className="ps-social-ic"><s.icon size={22} /></span>
-                        <div><strong>{s.name}</strong><small>{s.handle}</small></div>
-                      </a>
-                    ))}
+                    {SOCIAL_LINKS.map((s) => {
+                      const inner = (
+                        <>
+                          <span className="ps-social-ic" style={{ background: s.color }}>
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d={s.path} /></svg>
+                          </span>
+                          <div><strong>{s.name}{s.comingSoon ? ' (Coming soon)' : ''}</strong><small>{s.handle}</small></div>
+                        </>
+                      );
+                      return s.comingSoon
+                        ? <div key={s.name} className="ps-social-card is-soon">{inner}</div>
+                        : <a key={s.name} className="ps-social-card" href={s.url} target="_blank" rel="noreferrer">{inner}</a>;
+                    })}
                   </div>
                 </>
               )}
@@ -1470,6 +1477,10 @@ export default function ProfileSettings() {
         .ps-social-card{display:flex;align-items:center;gap:13px;padding:16px;border:1px solid #eef0f6;border-radius:14px;text-decoration:none;transition:.16s;background:#fff}
         .ps-social-card:hover{border-color:#cdd4ff;background:#f7f8ff;transform:translateY(-2px)}
         .ps-social-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+        .ps-social-ic svg{display:block}
+        .ps-social-card.is-soon{cursor:default}
+        .ps-social-card.is-soon:hover{transform:none;border-color:#eef0f6;background:#fff}
+        .ps-social-card.is-soon strong{color:#585c7e}
         .ps-social-card strong{display:block;font-size:14.5px;color:#15163a}
         .ps-social-card small{color:#9296ba;font-size:12.5px}
         @media (max-width:640px){.ps-social-grid{grid-template-columns:1fr}}

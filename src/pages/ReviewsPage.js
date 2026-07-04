@@ -85,7 +85,12 @@ export default function ReviewsPage() {
         <p>See what brands think about your work and build your reputation.</p>
       </div>
 
-      <div className="cmk-stats cmk-stats-sm cmk-stats-2l cmk-rev-stats">
+      {loading ? (
+        <div className="cmk-empty">Loading reviews…</div>
+      ) : (
+      <>
+      <div className="cmk-rev-top">
+      <div className="cmk-stats cmk-stats-sm cmk-stats-2l cmk-rev-stats cmk-rev-stats-2x2">
         <div className="cmk-stat">
           <div className="cmk-stat-head"><div className="cmk-ic cmk-ic-orange"><Star size={20} /></div><div className="cmk-stat-lbl">Average Rating</div></div>
           <div className="cmk-stat-row">
@@ -116,12 +121,7 @@ export default function ReviewsPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="cmk-empty">Loading reviews…</div>
-      ) : (
-        <div className="cmk-rev-layout">
-          {/* ── Rating Breakdown ── */}
-          <section className="cmk-rev-panel cmk-rev-panel--fit">
+          <section className="cmk-rev-panel cmk-rev-top-breakdown">
             <h3 className="cmk-rev-h">Rating Breakdown</h3>
             <div className="cmk-rb-list">
               {[5, 4, 3, 2, 1].map((star) => {
@@ -137,9 +137,10 @@ export default function ReviewsPage() {
               })}
             </div>
           </section>
+      </div>
 
-          {/* ── Recent Reviews ── */}
-          <section className="cmk-rev-panel">
+          {/* Recent Reviews (full width, below) */}
+          <section className="cmk-rev-panel cmk-rev-recent">
             <div className="cmk-rev-phead">
               <h3 className="cmk-rev-h">Recent Reviews</h3>
               {count > 3 && (
@@ -183,7 +184,7 @@ export default function ReviewsPage() {
               </div>
             )}
           </section>
-        </div>
+      </>
       )}
     </CreatorTopNavLayout>
   );

@@ -2275,9 +2275,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           /* Compact, SaaS-grade type scale — overrides the oversized global clamp()
              sizes just inside this dashboard (matches the creator dashboard). */
-          --fs-h1: 27px;   /* page title (was up to 48px) */
-          --fs-h2: 19px;   /* section / card titles (was up to 32px) */
-          --fs-h3: 15px;   /* component titles (was up to 22px) */
+          --fs-h1: 24px;   /* page title (reduced ~11%) */
+          --fs-h2: 17px;   /* section / card titles (reduced ~11%) */
+          --fs-h3: 14px;   /* component titles (reduced ~11%) */
           --fw-head: 600;  /* real semibold weight for hierarchy */
         }
 
@@ -5188,7 +5188,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .ship-status{font-weight:700;font-size:13px}
         .ship-status.delivered{color:#15a35b}
         .ship-status.transit{color:#2f8de0}
-        .ship-status.ready{color:#4452f0}
+        .ship-status.ready{color:#e0851b}
         .ship-status.awaiting{color:#8a8fc0}
         .ship-status.pending{color:#d98314}
         .ship-action button{background:#fff;border:1px solid #e5e7ff;border-radius:9px;padding:7px 16px;font-weight:700;font-size:13px;color:#5b6bff;cursor:pointer;font-family:inherit}

@@ -11,15 +11,16 @@
   --font-head: 'Readex Pro', 'Instrument Sans', system-ui, sans-serif;
   --font-body: 'Just Sans', 'Inter', system-ui, sans-serif;
 
-  /* Type scale (brand spec, pt→responsive clamp). Every heading maps to one of these. */
-  --fs-hero:      clamp(2.5rem, 7vw, 5.25rem);      /* Hero title      72–84pt, homepage hero only */
-  --fs-h1:        clamp(2rem, 4vw, 3rem);           /* Page title      36–48pt, screen H1 / section headlines */
-  --fs-h2:        clamp(1.6rem, 3vw, 2rem);         /* Section title   28–32pt, card titles / sub-section headers */
-  --fs-h3:        clamp(1.125rem, 2vw, 1.375rem);   /* Component title 18–22pt, card H3 / sidebar labels */
-  --fs-body:      clamp(0.9375rem, 1.2vw, 1rem);    /* Body            14–16pt */
-  --fs-label:     0.8125rem;                        /* UI label        12–13pt */
-  --fs-caption:   0.75rem;                          /* Caption / hint  11–12pt */
-  --fs-badge:     0.6875rem;                        /* Badge / tag     10–11pt */
+  /* Type scale (brand spec, pt→responsive clamp). Every heading maps to one of these.
+     Sizes reduced ~10–12% site-wide for a tighter, less oversized look. */
+  --fs-hero:      clamp(2.15rem, 6vw, 4.5rem);      /* Hero title      homepage hero only */
+  --fs-h1:        clamp(1.75rem, 3.4vw, 2.6rem);    /* Page title      screen H1 / section headlines */
+  --fs-h2:        clamp(1.4rem, 2.6vw, 1.75rem);    /* Section title   card titles / sub-section headers */
+  --fs-h3:        clamp(1rem, 1.7vw, 1.2rem);       /* Component title card H3 / sidebar labels */
+  --fs-body:      clamp(0.875rem, 1.1vw, 0.95rem);  /* Body */
+  --fs-label:     0.78rem;                          /* UI label */
+  --fs-caption:   0.72rem;                          /* Caption / hint */
+  --fs-badge:     0.66rem;                          /* Badge / tag */
 
   /* Weights — headings are Medium (500) across the whole scale; 600 for bold emphasis. */
   --fw-head: 500;

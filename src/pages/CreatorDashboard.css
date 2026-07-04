@@ -43,9 +43,9 @@
   --sh-lg: 0 18px 48px -22px rgba(18, 22, 60, 0.28);
 
   /* ---- compact type scale ---- */
-  --fs-h1: 22px;
-  --fs-h2: 16px;
-  --fs-h3: 14px;
+  --fs-h1: 20px;
+  --fs-h2: 15px;
+  --fs-h3: 13px;
   --fw-head: 650;
 
   min-height: 100vh;

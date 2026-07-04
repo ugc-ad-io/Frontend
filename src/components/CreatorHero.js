@@ -182,7 +182,7 @@ export default function CreatorHero({
         .chero-badge strong{display:block;font-size:14px;color:#07074e;font-weight:800}
         .chero-badge button{background:none;border:none;padding:0;cursor:pointer;font:inherit;color:#5b6bff;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
 
-        .chero-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:54px;line-height:1;
+        .chero-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:44px;line-height:1;
           font-weight:800!important;letter-spacing:-1.5px;color:#07074e;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .chero-hi{color:#5b6bff}
         .chero-wave{-webkit-text-fill-color:initial}
@@ -253,12 +253,12 @@ export default function CreatorHero({
 
         @media (max-width:980px){
           .chero{grid-template-columns:1fr;gap:10px;padding:32px 26px}
-          .chero-title{font-size:42px}
+          .chero-title{font-size:36px}
           .chero-stage{min-height:380px;margin-top:8px}
           .chero-b2{left:0}
         }
         @media (max-width:560px){
-          .chero-title{font-size:34px}
+          .chero-title{font-size:30px}
           .chero-photo{width:88%}
           .chero-stat{right:0;min-width:140px}
           .chero-deal{right:0;width:210px}

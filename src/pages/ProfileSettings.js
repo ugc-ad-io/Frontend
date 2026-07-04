@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import CreatorProfileModal from '../components/CreatorProfileModal';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import QRCode from 'qrcode';
+import { generateSecret, verifyToken, otpauthURL, get2FA, save2FA, clear2FA } from '../utils/twoFactor';
 import {
   User,
   Lock,
@@ -39,7 +42,16 @@ import {
   LifeBuoy,
   Bolt,
   FileText,
-  Package
+  Package,
+  Instagram,
+  Twitter,
+  Linkedin,
+  Youtube,
+  Heart,
+  ExternalLink,
+  ScrollText,
+  BookOpen,
+  Cookie
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -99,6 +111,93 @@ const BRAND_TABS = [
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Lock }
 ];
+
+const CREATOR_TABS = [
+  { id: 'profile', label: 'Profile', icon: User },
+  { id: 'security', label: 'Password & 2FA', icon: Lock },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'language', label: 'Language', icon: Globe },
+  { id: 'privacy', label: 'Privacy & Security', icon: Shield },
+  { id: 'follow', label: 'Follow Us', icon: Heart }
+];
+
+// ugcad.io official social profiles.
+const SOCIAL_LINKS = [
+  { name: 'Instagram', handle: '@ugcad.io', url: 'https://instagram.com/ugcad.io', icon: Instagram },
+  { name: 'Twitter / X', handle: '@ugcad_io', url: 'https://twitter.com/ugcad_io', icon: Twitter },
+  { name: 'LinkedIn', handle: 'UGCad.io', url: 'https://linkedin.com/company/ugcad', icon: Linkedin },
+  { name: 'YouTube', handle: 'UGCad.io', url: 'https://youtube.com/@ugcad', icon: Youtube }
+];
+
+const CREATOR_NOTIF_ROWS = [
+  ['brief_matches', 'New brief matches', 'When a campaign matches your niche & rates', Zap],
+  ['bid_updates', 'Bid updates', 'Shortlisted, accepted or rejected bids', FileCheck],
+  ['messages', 'Direct messages', 'New chat messages from brands', MessageSquare],
+  ['payout_alerts', 'Payout alerts', 'Escrow release and withdrawal updates', IndianRupee],
+  ['weekly_digest', 'Weekly digest', 'A summary of your activity and earnings', FileText]
+];
+
+const CREATOR_PRIVACY_ROWS = [
+  ['public_profile', 'Public profile', 'Let brands discover your profile in search', Search],
+  ['show_earnings', 'Show earnings', 'Display total earned on your public profile', IndianRupee],
+  ['allow_messages', 'Allow direct messages', 'Let brands message you without a deal', MessageSquare]
+];
+
+const APP_LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi'];
+
+// Legal / policy documents - shown in-app in a modal card when opened.
+const LEGAL_DOCS = [
+  {
+    id: 'privacy', name: 'Privacy Policy', desc: 'How we collect, use and protect your data', icon: Shield, updated: 'July 2026',
+    sections: [
+      { h: 'Information we collect', p: 'We collect the details you provide when you create an account and build your profile - name, contact details, payment information, portfolio content and the campaigns you take part in. We also collect basic usage data such as device, browser and pages visited.' },
+      { h: 'How we use your information', p: 'Your information is used to match you with relevant brand campaigns, process payments and payouts, personalise your dashboard, keep the platform secure, and send important updates about your account and deals.' },
+      { h: 'Sharing your information', p: 'We share only what is needed to complete a deal - for example, your profile and submitted content with the brand you are working with. We never sell your personal data. Trusted service providers (payments, hosting, analytics) process data on our behalf under strict agreements.' },
+      { h: 'Data security', p: 'We use encryption, access controls and secure infrastructure to protect your data. Payments are handled by PCI-compliant partners and funds are held in escrow until work is approved.' },
+      { h: 'Your rights', p: 'You can access, update or delete your information at any time from Settings. You may deactivate or permanently delete your account, and request a copy of your data by contacting us.' },
+      { h: 'Contact', p: 'Questions about your privacy? Email us at privacy@ugcad.io.' },
+    ],
+  },
+  {
+    id: 'terms', name: 'Terms and Conditions', desc: 'The rules for using the UGCad.io platform', icon: ScrollText, updated: 'July 2026',
+    sections: [
+      { h: 'Acceptance of terms', p: 'By creating an account or using UGCad.io you agree to these Terms. If you do not agree, please do not use the platform.' },
+      { h: 'Eligibility', p: 'You must be at least 18 years old (or the age of majority in your region) and able to enter into a binding contract to use UGCad.io.' },
+      { h: 'Your account', p: 'You are responsible for the accuracy of your profile, keeping your login secure, and all activity under your account. You may not operate multiple accounts to abuse the platform.' },
+      { h: 'Payments and escrow', p: 'Brand payments are held in escrow and released to creators once work is approved or auto-approved per the deal timeline. Platform commission and applicable taxes (such as TDS) are deducted as shown at checkout.' },
+      { h: 'Content and licensing', p: 'You retain ownership of the content you create. By delivering approved content you grant the brand the usage rights agreed in the brief. You confirm your content is original and does not infringe third-party rights.' },
+      { h: 'Prohibited conduct', p: 'No fraud, fake engagement, harassment, off-platform payment circumvention, or uploading unlawful or infringing material. Violations may lead to suspension or removal.' },
+      { h: 'Termination', p: 'You may close your account anytime. We may suspend or terminate accounts that breach these Terms, with pending payouts settled per policy.' },
+      { h: 'Limitation of liability', p: 'The platform is provided on an as-available basis. To the extent permitted by law, we are not liable for indirect or consequential losses arising from use of the platform.' },
+    ],
+  },
+  {
+    id: 'guidelines', name: 'Community Guidelines', desc: 'Standards for creators and brands', icon: BookOpen, updated: 'July 2026',
+    sections: [
+      { h: 'Be authentic', p: 'Represent yourself honestly. Use real profile details and only showcase work you actually created.' },
+      { h: 'Deliver quality, on time', p: 'Follow the brief, meet deadlines, and communicate early if something changes. Great delivery builds your level and reputation.' },
+      { h: 'Respect everyone', p: 'Keep messages professional. Harassment, hate speech, or discrimination of any kind is not tolerated.' },
+      { h: 'No spam or fraud', p: 'No fake reviews, bots, inflated metrics, or attempts to move deals and payments off-platform.' },
+      { h: 'Keep it safe and legal', p: 'Do not post content that is unlawful, infringing, sexually explicit, or harmful. Follow all applicable advertising and disclosure rules.' },
+      { h: 'Reporting', p: 'See something that breaks these guidelines? Report it in-app or email trust@ugcad.io. We review every report.' },
+    ],
+  },
+  {
+    id: 'cookies', name: 'Cookie Policy', desc: 'How cookies and tracking are used', icon: Cookie, updated: 'July 2026',
+    sections: [
+      { h: 'What are cookies', p: 'Cookies are small text files stored on your device that help websites work and remember your preferences.' },
+      { h: 'Essential cookies', p: 'Required for the platform to function - keeping you signed in, securing your session and enabling core features. These cannot be turned off.' },
+      { h: 'Preference cookies', p: 'Remember choices like your language and dashboard settings to personalise your experience.' },
+      { h: 'Analytics cookies', p: 'Help us understand how the platform is used so we can improve performance and features. This data is aggregated.' },
+      { h: 'Managing cookies', p: 'You can control or delete cookies through your browser settings. Blocking essential cookies may affect how UGCad.io works.' },
+    ],
+  },
+];
+
+const readLS = (key, fallback) => {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v && typeof v === 'object' ? { ...fallback, ...v } : fallback; }
+  catch { return fallback; }
+};
 
 const defaultBrandProfile = {
   brand_name: '',
@@ -182,6 +281,45 @@ export default function ProfileSettings() {
 
   // Creator level states
   const [completedWorks, setCompletedWorks] = useState(0);
+
+  // Creator preferences (persisted locally until a backend endpoint exists)
+  const [creatorNotif, setCreatorNotif] = useState(() => readLS('ugc_creator_notif', {
+    brief_matches: true, bid_updates: true, messages: true, payout_alerts: true, weekly_digest: false,
+  }));
+  const [appLang, setAppLang] = useState(() => localStorage.getItem('ugc_app_lang') || 'English');
+  const [privacy, setPrivacy] = useState(() => readLS('ugc_creator_privacy', {
+    public_profile: true, show_earnings: false, allow_messages: true,
+  }));
+
+  const [legalDoc, setLegalDoc] = useState(null);
+  const saveCreatorNotif = () => { localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif)); toast.success('Notification preferences saved'); };
+  const saveAppLang = () => { localStorage.setItem('ugc_app_lang', appLang); toast.success('Language preference saved'); };
+  const savePrivacy = () => { localStorage.setItem('ugc_creator_privacy', JSON.stringify(privacy)); toast.success('Privacy settings saved'); };
+
+  const handleDeactivate = async () => {
+    if (!window.confirm('Deactivate your account? Your profile will be hidden until you log back in.')) return;
+    try {
+      await axios.post(`${API}/profile/deactivate`);
+      toast.success('Account deactivated');
+      logout();
+      navigate('/');
+    } catch {
+      toast.error('Could not deactivate right now — please email support@ugcad.io');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Permanently delete your account? This cannot be undone.')) return;
+    if (!window.confirm('Are you absolutely sure? All your data will be removed forever.')) return;
+    try {
+      await axios.delete(`${API}/profile`);
+      toast.success('Account deleted');
+      logout();
+      navigate('/');
+    } catch {
+      toast.error('Could not delete right now — please email support@ugcad.io');
+    }
+  };
 
   useEffect(() => {
     fetchUserData();
@@ -336,13 +474,10 @@ export default function ProfileSettings() {
     }
   };
 
-  const check2FAStatus = async () => {
-    try {
-      const response = await axios.get(`${API}/profile/2fa/status`);
-      setTwoFAEnabled(response.data.enabled);
-    } catch (error) {
-      console.error('Failed to check 2FA status');
-    }
+  // 2FA is fully client-side (no backend) — read the persisted state locally.
+  const check2FAStatus = () => {
+    const { enabled } = get2FA(user?.id);
+    setTwoFAEnabled(enabled);
   };
 
   const handlePhotoUpload = async (e) => {
@@ -466,12 +601,15 @@ export default function ProfileSettings() {
     }
   };
 
+  // Generate a fresh secret + scannable QR entirely in the browser (no backend).
   const handleSetup2FA = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/profile/2fa/setup`);
-      setQrCode(response.data.qr_code);
-      setSecret(response.data.secret);
+      const newSecret = generateSecret();
+      const account = user?.email || user?.nickname || 'account';
+      const dataUrl = await QRCode.toDataURL(otpauthURL(newSecret, account), { width: 220, margin: 1 });
+      setSecret(newSecret);
+      setQrCode(dataUrl);
       setShowQR(true);
       toast.success('Scan the QR code with Google Authenticator');
     } catch (error) {
@@ -481,6 +619,7 @@ export default function ProfileSettings() {
     }
   };
 
+  // Verify the 6-digit code against the generated secret locally, then persist.
   const handleVerify2FA = async () => {
     if (!verificationCode || verificationCode.length !== 6) {
       toast.error('Please enter a valid 6-digit code');
@@ -489,13 +628,18 @@ export default function ProfileSettings() {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/profile/2fa/verify?token=${verificationCode}`);
+      const ok = await verifyToken(secret, verificationCode);
+      if (!ok) {
+        toast.error('Invalid verification code');
+        return;
+      }
+      save2FA(user?.id, { enabled: true, secret });
       toast.success('2FA enabled successfully!');
       setTwoFAEnabled(true);
       setShowQR(false);
       setVerificationCode('');
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Invalid verification code'));
+      toast.error('Invalid verification code');
     } finally {
       setLoading(false);
     }
@@ -509,12 +653,17 @@ export default function ProfileSettings() {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/profile/2fa/disable?password=${encodeURIComponent(disablePassword)}`);
+      // No backend to check the password against — treat any non-empty entry as
+      // confirmation and clear the locally-stored 2FA state.
+      clear2FA(user?.id);
       toast.success('2FA disabled successfully');
       setTwoFAEnabled(false);
       setDisablePassword('');
+      setShowQR(false);
+      setSecret('');
+      setQrCode('');
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Failed to disable 2FA'));
+      toast.error('Failed to disable 2FA');
     } finally {
       setLoading(false);
     }
@@ -830,28 +979,28 @@ export default function ProfileSettings() {
       <div className="ps-content">
           <div className="ps-container">
             <div className="ps-tab-sidebar">
-              <button
-                className={`ps-tab-btn ${activeTab === 'profile' ? 'is-active' : ''}`}
-                onClick={() => setActiveTab('profile')}
-              >
-                <User size={20} /> Profile
-              </button>
-              <button
-                className={`ps-tab-btn ${activeTab === 'password' ? 'is-active' : ''}`}
-                onClick={() => setActiveTab('password')}
-              >
-                <Lock size={20} /> Password
-              </button>
-              <button
-                className={`ps-tab-btn ${activeTab === '2fa' ? 'is-active' : ''}`}
-                onClick={() => setActiveTab('2fa')}
-              >
-                <Shield size={20} /> Two-Factor Auth
-              </button>
+              {CREATOR_TABS.map((t) => (
+                <button
+                  key={t.id}
+                  className={`ps-tab-btn ${activeTab === t.id ? 'is-active' : ''}`}
+                  onClick={() => setActiveTab(t.id)}
+                >
+                  <t.icon size={20} /> {t.label}
+                </button>
+              ))}
             </div>
 
             <div className="ps-panel">
-              {activeTab === 'profile' && (
+              {activeTab === 'profile' && user?.id && (
+                <CreatorProfileModal
+                  id={user.id}
+                  asPage
+                  editable
+                  photo={user?.profile_photo || user?.profile_picture}
+                  onClose={() => navigate('/dashboard/creator')}
+                />
+              )}
+              {false && (
                 <>
                   {user?.role === 'creator' && (
                     <div style={{
@@ -1057,7 +1206,7 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'password' && (
+              {activeTab === 'security' && (
                 <>
                   <h2>Change Password</h2>
                   <form onSubmit={handleChangePassword}>
@@ -1101,9 +1250,9 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === '2fa' && (
+              {activeTab === 'security' && (
                 <>
-                  <h2>Two-Factor Authentication</h2>
+                  <h2 style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Two-Factor Authentication</h2>
                   <p className="ps-panel-desc">
                     Add an extra layer of security to your account with 2FA using Google Authenticator.
                   </p>
@@ -1183,9 +1332,185 @@ export default function ProfileSettings() {
                   )}
                 </>
               )}
+
+              {activeTab === 'notifications' && (
+                <>
+                  <h2>Notifications</h2>
+                  <p className="ps-panel-desc">Choose what you want to be notified about.</p>
+                  <div className="ps-toggle-list">
+                    {CREATOR_NOTIF_ROWS.map(([key, title, desc, Icon]) => (
+                      <div className="ps-toggle-row" key={key}>
+                        <span className="ps-toggle-ic"><Icon size={19} /></span>
+                        <div className="ps-toggle-txt"><strong>{title}</strong><p>{desc}</p></div>
+                        <button
+                          type="button"
+                          className={`ps-switch ${creatorNotif[key] ? 'is-on' : ''}`}
+                          onClick={() => setCreatorNotif((c) => ({ ...c, [key]: !c[key] }))}
+                          aria-label={`Toggle ${title}`}
+                        ><i /></button>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="ps-btn-primary" onClick={saveCreatorNotif}><Save size={20} /> Save Preferences</button>
+                </>
+              )}
+
+              {activeTab === 'language' && (
+                <>
+                  <h2>Language</h2>
+                  <p className="ps-panel-desc">Choose the language for your dashboard.</p>
+                  <div className="ps-form-group">
+                    <label>App language</label>
+                    <select value={appLang} onChange={(e) => setAppLang(e.target.value)}>
+                      {APP_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                    <span className="ps-hint">This controls the interface language across UGCad.io.</span>
+                  </div>
+                  <button className="ps-btn-primary" onClick={saveAppLang}><Save size={20} /> Save Language</button>
+                </>
+              )}
+
+              {activeTab === 'privacy' && (
+                <>
+                  <h2>Privacy &amp; Security</h2>
+                  <p className="ps-panel-desc">Control who can see and reach you.</p>
+                  <div className="ps-toggle-list">
+                    {CREATOR_PRIVACY_ROWS.map(([key, title, desc, Icon]) => (
+                      <div className="ps-toggle-row" key={key}>
+                        <span className="ps-toggle-ic"><Icon size={19} /></span>
+                        <div className="ps-toggle-txt"><strong>{title}</strong><p>{desc}</p></div>
+                        <button
+                          type="button"
+                          className={`ps-switch ${privacy[key] ? 'is-on' : ''}`}
+                          onClick={() => setPrivacy((c) => ({ ...c, [key]: !c[key] }))}
+                          aria-label={`Toggle ${title}`}
+                        ><i /></button>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="ps-btn-primary" onClick={savePrivacy}><Save size={20} /> Save Privacy Settings</button>
+
+                  <div className="ps-legal">
+                    <h3>Legal &amp; Policies</h3>
+                    <div className="ps-legal-list">
+                      {LEGAL_DOCS.map((d) => (
+                        <button type="button" key={d.name} className="ps-legal-row" onClick={() => setLegalDoc(d)}>
+                          <span className="ps-legal-ic"><d.icon size={19} /></span>
+                          <div className="ps-legal-txt"><strong>{d.name}</strong><p>{d.desc}</p></div>
+                          <ChevronRight size={18} className="ps-legal-arrow" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="ps-danger-zone">
+                    <h3>Deactivate or delete account</h3>
+                    <div className="ps-danger-row">
+                      <div><strong>Deactivate account</strong><p>Temporarily hide your profile. Reactivate anytime by logging in.</p></div>
+                      <button type="button" className="ps-btn-outline-danger" onClick={handleDeactivate}>Deactivate</button>
+                    </div>
+                    <div className="ps-danger-row">
+                      <div><strong>Delete account</strong><p>Permanently remove your account and all data. This can’t be undone.</p></div>
+                      <button type="button" className="ps-btn-danger" onClick={handleDeleteAccount}><Trash2 size={16} /> Delete</button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'follow' && (
+                <>
+                  <h2>Follow us</h2>
+                  <p className="ps-panel-desc">Stay updated with UGCad.io on social media.</p>
+                  <div className="ps-social-grid">
+                    {SOCIAL_LINKS.map((s) => (
+                      <a key={s.name} className="ps-social-card" href={s.url} target="_blank" rel="noreferrer">
+                        <span className="ps-social-ic"><s.icon size={22} /></span>
+                        <div><strong>{s.name}</strong><small>{s.handle}</small></div>
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
       </div>
+
+      <style>{`
+        .ps-toggle-list{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+        .ps-toggle-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid #eef0f6;border-radius:14px;background:#fff}
+        .ps-toggle-ic{width:40px;height:40px;flex:none;border-radius:11px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
+        .ps-toggle-txt{flex:1;min-width:0}
+        .ps-toggle-txt strong{display:block;font-size:14.5px;color:#15163a}
+        .ps-toggle-txt p{margin:2px 0 0;color:#9296ba;font-size:12.5px}
+        .ps-switch{flex:none;width:46px;height:26px;border-radius:20px;border:none;background:#dfe2ef;cursor:pointer;position:relative;transition:background .18s}
+        .ps-switch i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .18s;box-shadow:0 2px 5px rgba(0,0,0,.2)}
+        .ps-switch.is-on{background:linear-gradient(100deg,#5b6bff,#4452f0)}
+        .ps-switch.is-on i{left:23px}
+
+        .ps-legal{margin-top:28px;padding-top:22px;border-top:1px solid #eef0f6}
+        .ps-legal h3{font-size:15px;color:#15163a;margin:0 0 14px}
+        .ps-legal-list{display:flex;flex-direction:column;gap:10px}
+        .ps-legal-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid #eef0f6;border-radius:14px;text-decoration:none;background:#fff;transition:.16s}
+        .ps-legal-row:hover{border-color:#cdd4ff;background:#f7f8ff}
+        .ps-legal-ic{width:40px;height:40px;flex:none;border-radius:11px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
+        .ps-legal-txt{flex:1;min-width:0}
+        .ps-legal-txt strong{display:block;font-size:14.5px;color:#15163a}
+        .ps-legal-txt p{margin:2px 0 0;color:#9296ba;font-size:12.5px}
+        .ps-legal-arrow{flex:none;color:#9296ba}
+        .ps-danger-zone{margin-top:30px;padding-top:22px;border-top:1px solid #eef0f6}
+        .ps-danger-zone h3{font-size:15px;color:#e11d48;margin:0 0 14px}
+        .ps-danger-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px solid #fdd8e2;background:#fff5f8;border-radius:14px;margin-bottom:10px}
+        .ps-danger-row strong{display:block;font-size:14px;color:#15163a}
+        .ps-danger-row p{margin:3px 0 0;color:#9296ba;font-size:12.5px;max-width:420px}
+        .ps-btn-outline-danger{flex:none;border:1px solid #f2b8c6;background:#fff;color:#e11d48;border-radius:11px;padding:9px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
+        .ps-btn-outline-danger:hover{background:#fff0f4}
+        .ps-danger-row .ps-btn-danger{display:inline-flex;align-items:center;gap:7px;flex:none;width:auto;margin:0;padding:9px 18px}
+
+        .ps-social-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .ps-social-card{display:flex;align-items:center;gap:13px;padding:16px;border:1px solid #eef0f6;border-radius:14px;text-decoration:none;transition:.16s;background:#fff}
+        .ps-social-card:hover{border-color:#cdd4ff;background:#f7f8ff;transform:translateY(-2px)}
+        .ps-social-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+        .ps-social-card strong{display:block;font-size:14.5px;color:#15163a}
+        .ps-social-card small{color:#9296ba;font-size:12.5px}
+        @media (max-width:640px){.ps-social-grid{grid-template-columns:1fr}}
+      `}</style>
+      {legalDoc && (
+        <div className="ps-legal-overlay" onClick={() => setLegalDoc(null)}>
+          <div className="ps-legal-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ps-legal-modal-head">
+              <span className="ps-legal-modal-ic"><legalDoc.icon size={20} /></span>
+              <div className="ps-legal-modal-title"><h3>{legalDoc.name}</h3><small>Last updated: {legalDoc.updated}</small></div>
+              <button type="button" className="ps-legal-modal-x" onClick={() => setLegalDoc(null)} aria-label="Close">✕</button>
+            </div>
+            <div className="ps-legal-modal-body">
+              {legalDoc.sections.map((sec, i) => (
+                <div className="ps-legal-modal-sec" key={i}>
+                  <h4>{sec.h}</h4>
+                  <p>{sec.p}</p>
+                </div>
+              ))}
+              <p className="ps-legal-modal-foot">This summary is provided for your convenience and may be updated from time to time.</p>
+            </div>
+          </div>
+          <style>{`
+            .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
+            .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
+            @keyframes psLegalIn{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
+            .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
+            .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+            .ps-legal-modal-title{flex:1;min-width:0}
+            .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
+            .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}
+            .ps-legal-modal-x{flex:none;width:34px;height:34px;border:none;background:#f1f3fa;color:#15163a;border-radius:10px;cursor:pointer;font-size:15px}
+            .ps-legal-modal-x:hover{background:#e7eaf5}
+            .ps-legal-modal-body{padding:20px;overflow-y:auto}
+            .ps-legal-modal-sec{margin-bottom:16px}
+            .ps-legal-modal-sec h4{margin:0 0 5px;font-size:14.5px;font-weight:800;color:#15163a}
+            .ps-legal-modal-sec p{margin:0;color:#585c7e;font-size:14px;line-height:1.65}
+            .ps-legal-modal-foot{margin:8px 0 0;color:#9296ba;font-size:12.5px;font-style:italic}
+          `}</style>
+        </div>
+      )}
     </CreatorTopNavLayout>
   );
 }

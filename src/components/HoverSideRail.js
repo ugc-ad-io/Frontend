@@ -112,6 +112,12 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         .hsr-label{opacity:0;transform:translateX(-6px);transition:opacity .18s,transform .18s;
           flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
         .hsr.is-open .hsr-label{opacity:1;transform:none}
+        /* collapsed: hide the label completely and centre the icon in the rail so
+           it isn't nudged right by the label's leftover flex space + item padding */
+        .hsr:not(.is-open) .hsr-item,
+        .hsr:not(.is-open) .hsr-brand{gap:0;padding:0;justify-content:center}
+        .hsr:not(.is-open) .hsr-top{justify-content:center}
+        .hsr:not(.is-open) .hsr-label{display:none}
         .hsr-sep{height:1px;background:#eef0f6;margin:9px 10px}
         /* divider spans the full rail width (negative margins cancel the rail's
            14px padding) so it meets the top nav's bottom border in one line */

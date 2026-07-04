@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
@@ -9,6 +9,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+
+// Load the Google Identity Services script once, shared across renders/mounts.
+let gisScriptPromise = null;
+function loadGoogleScript() {
+  if (window.google?.accounts?.id) return Promise.resolve();
+  if (gisScriptPromise) return gisScriptPromise;
+  gisScriptPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.defer = true;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load Google Sign-In'));
+    document.head.appendChild(s);
+  });
+  return gisScriptPromise;
+}
 
 // Route a freshly-authenticated user by role + onboarding state.
 function routeForUser(navigate, role, profileCompleted) {
@@ -31,6 +49,55 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Google button target + a ref mirroring the selected role, so the GIS
+  // callback (created once) always reads the latest signup role choice.
+  const googleBtnRef = useRef(null);
+  const roleRef = useRef(role);
+  useEffect(() => { roleRef.current = role; }, [role]);
+
+  // Exchange the Google credential for our own JWT via the backend.
+  const handleGoogleCredential = async (response) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/auth/google`, {
+        credential: response.credential,
+        role: roleRef.current
+      });
+      const { token, ...userData } = data;
+      login(token, userData);
+      toast.success('Signed in with Google');
+      routeForUser(navigate, userData.role, userData.profile_completed);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Google sign-in failed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return; // not configured — button simply won't render
+    let cancelled = false;
+    loadGoogleScript()
+      .then(() => {
+        if (cancelled || !googleBtnRef.current) return;
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredential
+        });
+        googleBtnRef.current.innerHTML = '';
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: 'outline',
+          size: 'large',
+          width: 360,
+          text: 'continue_with',
+          logo_alignment: 'center'
+        });
+      })
+      .catch(() => { /* offline / blocked — email login still works */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -214,6 +281,19 @@ export default function Auth() {
             )}
           </motion.button>
         </form>
+
+        {/* Google sign-in — only when a client id is configured */}
+        {GOOGLE_CLIENT_ID && (
+          <motion.div
+            className="ap-oauth"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.48, duration: 0.4 }}
+          >
+            <div className="ap-divider"><span>or</span></div>
+            <div ref={googleBtnRef} className="ap-google" />
+          </motion.div>
+        )}
 
         {/* Footer toggle */}
         <motion.div
@@ -494,6 +574,40 @@ export default function Auth() {
         }
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+
+        /* ── OAuth / Google ──────────────────────────────────────── */
+        .ap-oauth {
+          margin-top: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+        }
+        .ap-divider {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          text-align: center;
+          color: #94A3B8;
+          font-size: 0.8rem;
+        }
+        .ap-divider::before,
+        .ap-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: #E2E8F0;
+        }
+        .ap-divider span {
+          padding: 0 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        .ap-google {
+          display: flex;
+          justify-content: center;
+          min-height: 40px;
         }
 
         /* ── Footer ──────────────────────────────────────────────── */

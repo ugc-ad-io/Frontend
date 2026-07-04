@@ -172,7 +172,7 @@ export default function CreatorHero({
       <style>{`
         .chero{position:relative;display:grid;grid-template-columns:1.05fr 1fr;gap:32px;align-items:center;
           background:linear-gradient(135deg,#f3f3ff,#ececfa 60%,#f5eee9);border:1px solid #e9e7f6;border-radius:26px;
-          padding:42px 44px;overflow:hidden;box-shadow:0 30px 60px -34px rgba(7,7,78,.35)}
+          padding:42px 44px;transform:translate(40px,22px);overflow:hidden}
         .chero::before{content:"";position:absolute;inset:0;pointer-events:none;
           background:radial-gradient(520px 280px at 86% -10%,rgba(7,7,78,.16),transparent 60%)}
         .chero-left{position:relative;z-index:1}

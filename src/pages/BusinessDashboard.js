@@ -1970,7 +1970,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                                 <td className="ship-strong">{c.title}</td>
                                 <td>{s?.courier || s?.courier_name || '—'}</td>
                                 <td>{s?.tracking_number || '—'}</td>
-                                <td><span className={`ship-status ${st}`}>{st === 'delivered' ? 'Delivered' : st === 'transit' ? 'In Transit' : (c.selected_creator ? 'Ready to Ship' : 'Awaiting Creator')}</span></td>
+                                <td><span className={`ship-status ${st === 'delivered' || st === 'transit' ? st : (c.selected_creator ? 'ready' : 'awaiting')}`}>{st === 'delivered' ? 'Delivered' : st === 'transit' ? 'In Transit' : (c.selected_creator ? 'Ready to Ship' : 'Awaiting Creator')}</span></td>
                                 <td className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '—'}</td>
                                 <td className="ship-action">
                                   {c.selected_creator
@@ -5188,6 +5188,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .ship-status{font-weight:700;font-size:13px}
         .ship-status.delivered{color:#15a35b}
         .ship-status.transit{color:#2f8de0}
+        .ship-status.ready{color:#4452f0}
+        .ship-status.awaiting{color:#8a8fc0}
         .ship-status.pending{color:#d98314}
         .ship-action button{background:#fff;border:1px solid #e5e7ff;border-radius:9px;padding:7px 16px;font-weight:700;font-size:13px;color:#5b6bff;cursor:pointer;font-family:inherit}
         .ship-action button:hover{background:#eef0ff}

@@ -23,7 +23,6 @@ const PRIMARY_LINKS = [
 
 const MENU_LINKS = [
   { name: 'Reviews', to: '/reviews', icon: Star },
-  { name: 'Profile', to: '/profile', icon: User },
   { name: 'Earnings', to: '/withdrawal', icon: Wallet },
   { sep: true },
   { name: 'Settings', to: '/settings', icon: Settings }

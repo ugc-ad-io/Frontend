@@ -296,28 +296,12 @@
 
 /* ── brief cards ─────────────────────────────────────────────────────────── */
 /* Browse Campaigns as a vertical LIST — one card per row, stacked below each other */
-.cmk-bb-grid{display:grid;grid-template-columns:1fr;gap:12px}
-.cmk-bb-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 22px 16px 26px;
-  box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s;display:flex;flex-direction:row;align-items:center;
-  gap:20px;height:auto;overflow:hidden;flex-wrap:wrap}
-/* gradient accent bar down the left edge of every row */
-.cmk-bb-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
-  background:linear-gradient(180deg,#5b6bff,#8b5cf6);opacity:.9;transition:width .2s,opacity .2s}
-/* list-row layout for each card's parts */
-.cmk-bb-card .cmk-bb-top{flex:0 0 200px;min-width:0}
-.cmk-bb-card .cmk-bb-title{margin-top:0;min-height:0;flex:0 1 240px;min-width:0;-webkit-line-clamp:1;font-weight:600}
-/* short one-line description so EVERY row shows a bit of detail; keep the
-   -webkit-box display (needed for the line-clamp) and min-width:0 so it truncates
-   to one line and stays on the row instead of dumping the whole brief. */
-.cmk-bb-card .cmk-bb-desc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;
-  flex:1 1 160px;min-width:0;margin-top:0;min-height:0;font-size:13px;white-space:normal}
-.cmk-bb-card .cmk-bb-tags{margin-top:0;flex:0 0 auto}
-.cmk-bb-card .cmk-bb-meta{margin-top:0;padding-top:0;flex:0 0 auto;justify-content:flex-end;gap:16px}
+.cmk-bb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:20px}
+.cmk-bb-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;
+  box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s;display:flex;flex-direction:column}
+.cmk-bb-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card);border-color:#dfe2f4}
 /* match score as a soft green pill */
-.cmk-bb-card .cmk-bb-match{margin-top:0;flex:0 0 auto;background:#e8f8ef;color:#15a35b;padding:6px 12px;border-radius:20px}
-/* subtle, list-appropriate hover: gentle tint + widen the accent, no big lift */
-.cmk-bb-card:hover{background:linear-gradient(90deg,#f7f8ff,#ffffff 22%);box-shadow:var(--shadow-card);border-color:#cdd2f3}
-.cmk-bb-card:hover::before{width:6px;opacity:1}
+.cmk-bb-card .cmk-bb-match{align-self:flex-start;background:#e8f8ef;color:#15a35b;padding:6px 12px;border-radius:20px}
 .cmk-bb-top{display:flex;align-items:center;gap:10px}
 .cmk-bb-logo{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;overflow:hidden;
   background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;font-weight:800;font-size:15px}
@@ -344,8 +328,6 @@
 .cmk-loadmore button:hover{background:#e2e5ff}
 
 @media (max-width:900px){.cmk-sort{margin-left:0}}
-/* on narrow screens let the row wrap; hide the long desc to stay tidy */
-@media (max-width:700px){.cmk-bb-card{gap:10px 16px}.cmk-bb-card .cmk-bb-desc{display:none}}
 
 /* ── tabs (shared by Active Work / Bids / Portfolio) ─────────────────────── */
 .cmk-tabs-row{display:flex;align-items:center;justify-content:space-between;gap:16px;
@@ -1006,8 +988,10 @@
 .bwr-side{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:210px;flex:none}
 .bwr-side .bwr-btn{flex:0 0 auto;width:100%}
 .bwr-side-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none;margin-bottom:auto}
-.bwr-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:12.5px;font-weight:700}
-.bwr-pill.ok{background:#e7f6ee;color:#15a35b}
+/* status pill — soft tinted tag (rounded, light fill, no border) so it reads as
+   a status badge, not a clickable button */
+.bwr-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;border:none;font-size:12.5px;font-weight:600}
+.bwr-pill.ok{background:#e9f9f0;color:#15a35b}
 .bwr-pill.pending{background:#fff4e0;color:#d98a16}
 .bwr-pill.warn{background:#fdeede;color:var(--warn)}
 .bwr-more-wrap{position:relative}

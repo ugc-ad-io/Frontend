@@ -117,6 +117,13 @@ const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[
 const pfUrl = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.link || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || ''));
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
+const LEVEL_META = {
+  new: { title: 'New Creator', badge: 'New' },
+  verified: { title: 'Verified Creator', badge: 'Verified' },
+  l1: { title: 'L1 Rising Star', badge: 'L1 (Rising)' },
+  l2: { title: 'L2 Pro Creator', badge: 'L2 (Pro)' },
+  elite: { title: 'Elite Creator', badge: 'Elite' },
+};
 const FALLBACK_VIDEOS = [
   '/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4',
   '/creator/video_29.mp4', '/creator/video_30.mp4', '/creator/video_32.mp4', '/creator/video_33.mp4',
@@ -408,6 +415,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const banner = assetUrl(localBanner || data?.banner || p.banner || '');
   const levelKey = LEVEL_LABEL[String(data?.level || '').toLowerCase()] ? String(data.level).toLowerCase() : 'new';
   const levelLabel = data?.level_label || LEVEL_LABEL[levelKey];
+  const levelMeta = LEVEL_META[levelKey] || LEVEL_META.new;
   const deliverables = Number(data?.deliverables_completed ?? p.deliverables_completed ?? 0);
   // Keep each portfolio item's own metadata (category / price / delivery) so the
   // video cards can show per-video values, falling back to the profile defaults.
@@ -731,6 +739,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
               <section className="cpm-sec-block" data-sec="details" ref={detailsRef}>
                 <h4 className="cpm-sec-title">Details</h4>
+                <div className="cpm-level-card">
+                  <div className="cpm-level-info">
+                    <label>Creator Level</label>
+                    <strong>{levelMeta.title}</strong>
+                    <small>{deliverables} completed works</small>
+                  </div>
+                  <span className={`cpm-level-badge ${levelKey}`}>{levelMeta.badge}</span>
+                </div>
                 {detailSections.length === 0 ? (
                   <div className="cpm-empty">This creator hasn't shared more details yet.</div>
                 ) : (
@@ -858,6 +874,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-sec-block{scroll-margin-top:130px;padding-top:4px}
         .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
         .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
+        .cpm-level-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border:1px solid #eef0f6;border-radius:16px;background:#fafbff;margin-bottom:20px}
+        .cpm-level-info label{display:block;color:#9296ba;font-size:12px;font-weight:600}
+        .cpm-level-info strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;font-weight:800;color:#15163a;margin:4px 0 2px}
+        .cpm-level-info small{color:#9296ba;font-size:13px}
+        .cpm-level-badge{flex:none;padding:9px 18px;border-radius:999px;color:#fff;font-weight:700;font-size:14px;background:linear-gradient(135deg,#2bd47e,#15a35b)}
+        .cpm-level-badge.elite{background:linear-gradient(135deg,#8b5cf6,#5b6bff)}
+        .cpm-level-badge.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
+        .cpm-level-badge.l1{background:linear-gradient(135deg,#2bd47e,#15a35b)}
+        .cpm-level-badge.verified{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
+        .cpm-level-badge.new{background:#6b7090}
         .cpm-page .cpm{overflow:visible}
         .cpm-page .cpm-tabs{position:sticky;top:72px;z-index:6;margin-top:0}
         @media (max-width:760px){.cpm-page .cpm-tabs{top:0}}

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -157,7 +158,7 @@ export default function MyActiveWorkPage() {
           })}
         </div>
       ) : (
-        <div className="cmk-empty">No campaigns in “{TABS.find((t) => t.key === tab).label}”.</div>
+        <EmptyState title={`No work in “${TABS.find((t) => t.key === tab).label}”`} message="Once a brand selects your bid, your active deals will appear here to manage." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
       )}
     </CreatorTopNavLayout>
   );

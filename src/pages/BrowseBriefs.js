@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown, X, Send, Wallet, Target } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -249,7 +250,7 @@ export default function BrowseBriefs() {
           ))}
         </div>
       ) : (
-        <div className="cmk-empty">{loading ? 'Loading briefs…' : 'No briefs found in this category.'}</div>
+        loading ? <div className="cmk-empty">Loading briefs…</div> : <EmptyState title="No campaigns found" message="No campaigns match your search or filters right now. Try a different category or check back soon." />
       )}
 
       {visible < filtered.length && (

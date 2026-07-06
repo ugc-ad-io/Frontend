@@ -1,5 +1,5 @@
 import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck } from 'lucide-react';
-import { can } from '../utils/adminRoles';
+import { can, isFounder } from '../utils/adminRoles';
 
 function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose }) {
   const adminTabs = [
@@ -7,10 +7,10 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
     { id: 'applications', label: 'Applications',   icon: FileText,     testId: 'tab-applications', slug: 'applications', cap: 'review_applications' },
     { id: 'briefs',       label: 'Briefs',         icon: ClipboardCheck, testId: 'tab-briefs',     slug: 'campaigns',    cap: 'review_applications' },
     { id: 'assigned',     label: 'My Users',       icon: UserCheck,    testId: 'tab-assigned',     slug: 'my-creators',  cap: 'review_applications' },
+    { id: 'users',        label: 'Users',          icon: Users,        testId: 'tab-users',        slug: 'users',        cap: 'user_management' },
     { id: 'deals',        label: 'Deals',          icon: Briefcase,    testId: 'tab-deals',        slug: 'deals',        cap: 'manage_deals' },
     { id: 'disputes',     label: 'Disputes',       icon: Scale,        testId: 'tab-disputes',     slug: 'disputes',     cap: 'rule_disputes' },
     { id: 'shipping',     label: 'Shipping Queue', icon: Package,      testId: 'tab-shipping',     slug: 'shipping',     cap: 'manage_shipping' },
-    { id: 'users',        label: 'Users',          icon: Users,        testId: 'tab-users',        slug: 'users',        cap: 'user_management' },
     { id: 'financials',   label: 'Financials',     icon: IndianRupee,  testId: 'tab-financials',   slug: 'financials',   cap: 'view_financials' },
     { id: 'chat',         label: 'Chat Oversight', icon: MessageSquare,testId: 'tab-chat',         slug: 'chat-oversight', cap: 'content_moderation' },
     { id: 'reports',      label: 'Reports',        icon: BarChart,     testId: 'tab-reports',      slug: 'reports',      cap: 'generate_reports' },
@@ -31,7 +31,12 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
         </div>
         <nav className="admin-sidebar-nav" aria-label="Admin dashboard">
           <span className="admin-nav-label">Admin</span>
-          {adminTabs.filter((tab) => !tab.cap || can(user, tab.cap)).map((tab) => {
+          {adminTabs
+            .filter((tab) => !tab.cap || can(user, tab.cap))
+            // "My Users" is for role-limited admins with assigned categories; a
+            // founder already has the full "Users" tab, so hide it for founders.
+            .filter((tab) => !(tab.id === 'assigned' && isFounder(user)))
+            .map((tab) => {
             const Icon = tab.icon;
             return (
               <button

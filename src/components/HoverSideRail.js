@@ -62,7 +62,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         {secondary.map(Item)}
       </nav>
 
-      <button type="button" className="hsr-item hsr-notif" onClick={() => { if (open) onNavigate('/messages'); }}>
+      <button type="button" className="hsr-item hsr-notif" onClick={() => { if (open) onNavigate('/notifications'); }}>
         <span className="hsr-ic"><Bell size={20} /></span>
         <span className="hsr-label">Notifications</span>
       </button>

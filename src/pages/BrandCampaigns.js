@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Megaphone, Plus, X } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import PostABrief from './PostABrief';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -44,19 +45,18 @@ export default function BrandCampaigns() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
+  const [briefOpen, setBriefOpen] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
-        const mine = (res.data || []).filter((c) => String(c.business_id) === String(user?.id));
-        if (active) setCampaigns(mine);
-      } catch { /* ignore */ }
-      finally { if (active) setLoading(false); }
-    })();
-    return () => { active = false; };
+  const loadCampaigns = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
+      const mine = (res.data || []).filter((c) => String(c.business_id) === String(user?.id));
+      setCampaigns(mine);
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
   }, [user?.id]);
+
+  useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
 
   const counts = useMemo(() => {
     const o = {};
@@ -90,7 +90,34 @@ export default function BrandCampaigns() {
       {loading ? (
         <div className="cmk-empty">Loading…</div>
       ) : rows.length === 0 ? (
-        <div className="cmk-empty">No campaigns in “{TABS.find((t) => t.key === tab).label}”.</div>
+        <div className="bcam-empty">
+          <span className="bcam-empty-ic"><Megaphone size={30} /></span>
+          {tab === 'all' ? (
+            <>
+              <h3>No campaigns yet</h3>
+              <p>Launch your first campaign to start collaborating with creators and getting authentic content.</p>
+              <button type="button" className="bcam-empty-btn" onClick={() => setBriefOpen(true)}>
+                <Plus size={18} /> Post your first campaign
+              </button>
+            </>
+          ) : (
+            <>
+              <h3>Nothing in “{TABS.find((t) => t.key === tab).label}”</h3>
+              <p>Campaigns will appear here once they reach this stage.</p>
+            </>
+          )}
+          <style>{`
+            .bcam-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 20px 40px;max-width:440px;margin:0 auto}
+            .bcam-empty-ic{width:72px;height:72px;border-radius:22px;display:grid;place-items:center;margin-bottom:20px;
+              color:#5b6bff;background:linear-gradient(135deg,#eef0ff,#f4f0ff);border:1px solid #e6e9ff}
+            .bcam-empty h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:22px;font-weight:800;color:#15163a}
+            .bcam-empty p{margin:8px 0 0;color:#9296ba;font-size:14.5px;line-height:1.6}
+            .bcam-empty-btn{margin-top:22px;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-family:inherit;
+              font-weight:700;font-size:14.5px;color:#fff;padding:13px 24px;border-radius:14px;
+              background:linear-gradient(100deg,#5b6bff,#4452f0);box-shadow:0 14px 30px -12px rgba(68,82,240,.7);transition:.18s}
+            .bcam-empty-btn:hover{transform:translateY(-2px)}
+          `}</style>
+        </div>
       ) : (
         <div className="bcam-grid">
           {rows.map((c) => {
@@ -114,6 +141,20 @@ export default function BrandCampaigns() {
               </article>
             );
           })}
+        </div>
+      )}
+
+      {briefOpen && (
+        <div className="cmk-brief-overlay" onClick={() => setBriefOpen(false)}>
+          <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="cmk-brief-close" aria-label="Close" onClick={() => setBriefOpen(false)}>
+              <X size={20} />
+            </button>
+            <PostABrief
+              onClose={() => setBriefOpen(false)}
+              onPublished={() => { setBriefOpen(false); loadCampaigns(); }}
+            />
+          </div>
         </div>
       )}
     </BrandTopNavLayout>

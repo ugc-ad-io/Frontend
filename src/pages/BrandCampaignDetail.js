@@ -14,6 +14,7 @@ import CreatorProfileModal from '../components/CreatorProfileModal';
 import RevisionRequestModal from '../components/RevisionRequestModal';
 import CampaignDetails from './CampaignDetails';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -329,7 +330,7 @@ export default function BrandCampaignDetail() {
               })()}
             </div>
           ) : (
-            <div className="cmk-empty">No content has been submitted for review yet.</div>
+            <EmptyState title="Nothing to review yet" message="Once the creator submits their content, it will appear here for you to review and approve." />
           )
         ) : tab === 'about' ? (
           <div className="bcd-card bcd-about-card">

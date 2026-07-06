@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useMemo, useEffect } from 'react';
+﻿import { useState, useRef, useMemo, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -118,6 +118,36 @@ const PLATFORMS = [
   { key: 'instagram', label: 'Instagram', Icon: Instagram, color: 'linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)' },
   { key: 'tiktok', label: 'TikTok', Icon: Music2, color: '#111111' },
 ];
+// Platform link validators — only accept genuine links/handles for each network,
+// so a creator can't paste a random website where a specific profile is asked.
+const LINK_RE = {
+  youtube:   /^(https?:\/\/)?(www\.)?(youtube\.com\/(@[\w.-]+|channel\/|c\/|user\/)[\w./-]*|youtu\.be\/[\w-]+)\/?$/i,
+  linkedin:  /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|company|pub|school)\/[\w%.-]+\/?$/i,
+  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$|^@?[a-z0-9._]{1,30}$/i,
+  tiktok:    /^(https?:\/\/)?(www\.)?tiktok\.com\/@?[\w.-]+\/?$|^@?[a-z0-9._]{1,30}$/i,
+  facebook:  /^(https?:\/\/)?(www\.|m\.)?(facebook\.com|fb\.com|fb\.me)\/[^\s]+$/i,
+  twitter:   /^(https?:\/\/)?(www\.)?(twitter\.com|x\.com)\/[a-z0-9_]{1,15}\/?$|^@?[a-z0-9_]{1,15}$/i,
+  // Website / custom platforms: at least a real URL or a @handle, not gibberish.
+  generic:   /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+([/?#][^\s]*)?$|^@?[a-z0-9._]{1,30}$/i,
+};
+// Map a platform label (from PLATFORMS or a user-added link) to a validator key.
+const platformKey = (label) => {
+  const s = String(label || '').toLowerCase();
+  if (s.includes('youtube')) return 'youtube';
+  if (s.includes('linkedin')) return 'linkedin';
+  if (s.includes('instagram')) return 'instagram';
+  if (s.includes('tiktok')) return 'tiktok';
+  if (s.includes('facebook')) return 'facebook';
+  if (s.includes('twitter') || s === 'x' || s.startsWith('x ')) return 'twitter';
+  return 'generic'; // website / custom
+};
+// Returns an error string if a filled link doesn't match its platform (empty is OK).
+const linkError = (label, value) => {
+  const v = String(value || '').trim();
+  if (!v) return '';
+  return LINK_RE[platformKey(label)].test(v) ? '' : `Enter a valid ${label} link or handle`;
+};
+
 // Picker options for "Add another social link".
 const ADD_PLATFORMS = ['YouTube', 'Facebook', 'X (Twitter)', 'Website', 'Custom'];
 const badgeFor = (label) => ({
@@ -299,13 +329,13 @@ export default function CreatorProfileSetup() {
   const bannerRef = useRef(null);
   const pfFileRef = useRef(null);
 
-  // App theme paints html/#root/body light (App.css gradient + Tailwind --background).
-  // Force them dark while this dark page is mounted; restore on unmount.
+  // Paint html/#root/body the same lavender as this page while it's mounted, so
+  // the backdrop / overscroll matches the light-purple theme; restore on unmount.
   useEffect(() => {
     const root = document.getElementById('root');
     const targets = [document.documentElement, document.body, root].filter(Boolean);
     const prev = targets.map((el) => el.style.background);
-    targets.forEach((el) => { el.style.background = '#0a0a0a'; });
+    targets.forEach((el) => { el.style.background = '#0a0a16'; });
     return () => { targets.forEach((el, i) => { el.style.background = prev[i]; }); };
   }, []);
 
@@ -378,6 +408,9 @@ export default function CreatorProfileSetup() {
     if (s === 3) return {
       skills: data.skills.length > 0,
       profileLink: PLATFORMS.some((p) => isFilled(data.links[p.key])) || data.extraLinks.some((l) => isFilled(l.url)),
+      // Every link that IS filled must be a genuine link for its platform.
+      linksValid: PLATFORMS.every((p) => !linkError(p.label, data.links[p.key]))
+        && data.extraLinks.every((l) => !linkError(l.platform, l.url)),
       portfolio: data.portfolio.length > 0,
       languages: data.languages.length > 0,
       expectedPayout: isFilled(data.expectedPayout),
@@ -614,42 +647,45 @@ export default function CreatorProfileSetup() {
     if (step === 1) {
       return (
         <>
-          {/* Photo upload (optional) */}
-          <div className="ps-field">
-            <button type="button" className="ps-upload" onClick={() => fileRef.current?.click()}>
-              <span className="ps-upload__icon">
-                {data.photoPreview
-                  ? <img src={data.photoPreview} alt="" className="ps-upload__preview" />
-                  : <ImagePlus size={22} />}
-              </span>
-              <span className="ps-upload__text">
-                <span className="ps-upload__title">
-                  {photoUploading ? 'Uploading…' : (data.photoPreview ? 'Change profile photo' : 'Upload profile photo')}
+          {/* Profile photo + banner, side by side */}
+          <div className="ps-upload-row">
+            {/* Photo upload (optional) */}
+            <div className="ps-field">
+              <button type="button" className="ps-upload" onClick={() => fileRef.current?.click()}>
+                <span className="ps-upload__icon">
+                  {data.photoPreview
+                    ? <img src={data.photoPreview} alt="" className="ps-upload__preview" />
+                    : <ImagePlus size={22} />}
                 </span>
-                <span className="ps-upload__hint">Allowed images · Max 5MB</span>
-              </span>
-              <span className="ps-upload__cta">{photoUploading ? 'Wait…' : 'Browse'}</span>
-              <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />
-            </button>
-          </div>
+                <span className="ps-upload__text">
+                  <span className="ps-upload__title">
+                    {photoUploading ? 'Uploading…' : (data.photoPreview ? 'Change profile photo' : 'Upload profile photo')}
+                  </span>
+                  <span className="ps-upload__hint">Allowed images · Max 5MB</span>
+                </span>
+                <span className="ps-upload__cta">{photoUploading ? 'Wait…' : 'Browse'}</span>
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />
+              </button>
+            </div>
 
-          {/* Banner upload (optional) */}
-          <div className="ps-field">
-            <button type="button" className="ps-upload" onClick={() => bannerRef.current?.click()}>
-              <span className="ps-upload__icon">
-                {data.bannerPreview
-                  ? <img src={data.bannerPreview} alt="" className="ps-upload__preview" />
-                  : <ImagePlus size={22} />}
-              </span>
-              <span className="ps-upload__text">
-                <span className="ps-upload__title">
-                  {bannerUploading ? 'Uploading…' : (data.bannerPreview ? 'Change banner image' : 'Upload banner image')}
+            {/* Banner upload (optional) */}
+            <div className="ps-field">
+              <button type="button" className="ps-upload" onClick={() => bannerRef.current?.click()}>
+                <span className="ps-upload__icon">
+                  {data.bannerPreview
+                    ? <img src={data.bannerPreview} alt="" className="ps-upload__preview" />
+                    : <ImagePlus size={22} />}
                 </span>
-                <span className="ps-upload__hint">Wide cover image · Max 5MB</span>
-              </span>
-              <span className="ps-upload__cta">{bannerUploading ? 'Wait…' : 'Browse'}</span>
-              <input ref={bannerRef} type="file" accept="image/*" hidden onChange={onPickBanner} />
-            </button>
+                <span className="ps-upload__text">
+                  <span className="ps-upload__title">
+                    {bannerUploading ? 'Uploading…' : (data.bannerPreview ? 'Change banner image' : 'Upload banner image')}
+                  </span>
+                  <span className="ps-upload__hint">Wide cover image · Max 5MB</span>
+                </span>
+                <span className="ps-upload__cta">{bannerUploading ? 'Wait…' : 'Browse'}</span>
+                <input ref={bannerRef} type="file" accept="image/*" hidden onChange={onPickBanner} />
+              </button>
+            </div>
           </div>
 
           {/* Full name */}
@@ -897,46 +933,56 @@ export default function CreatorProfileSetup() {
             <label className="ps-label">Profile links</label>
             <p className="ps-hinttext">Add at least one profile link. Brands shortlist creators by skills, not followers.</p>
             <div className="ps-links">
-              {PLATFORMS.map((p) => (
-                <div key={p.key} className="ps-link">
-                  <span className="ps-link__badge" style={{ background: p.color }}>
-                    {p.Icon ? <p.Icon size={18} color="#fff" /> : p.badge}
-                  </span>
-                  <input
-                    ref={(el) => { linkRefs.current[p.key] = el; }}
-                    className="ps-link__input"
-                    placeholder={`${p.label} profile`}
-                    value={data.links[p.key]}
-                    onChange={(e) => setLink(p.key, e.target.value)}
-                  />
-                  {/* Show "+Add social link" only while the field is empty; once a
-                      link is typed/pasted the button disappears. */}
-                  {!data.links[p.key] && (
-                    <button
-                      type="button"
-                      className="ps-link__add"
-                      onClick={() => linkRefs.current[p.key]?.focus()}
-                    >
-                      +Add social link
-                    </button>
-                  )}
-                </div>
-              ))}
+              {PLATFORMS.map((p) => {
+                const linkErr = showErrors ? linkError(p.label, data.links[p.key]) : '';
+                return (
+                  <Fragment key={p.key}>
+                    <div className={`ps-link${linkErr ? ' ps-link--error' : ''}`}>
+                      <span className="ps-link__badge" style={{ background: p.color }}>
+                        {p.Icon ? <p.Icon size={18} color="#fff" /> : p.badge}
+                      </span>
+                      <input
+                        ref={(el) => { linkRefs.current[p.key] = el; }}
+                        className="ps-link__input"
+                        placeholder={`${p.label} profile`}
+                        value={data.links[p.key]}
+                        onChange={(e) => setLink(p.key, e.target.value)}
+                      />
+                      {/* Show "+Add social link" only while the field is empty; once a
+                          link is typed/pasted the button disappears. */}
+                      {!data.links[p.key] && (
+                        <button
+                          type="button"
+                          className="ps-link__add"
+                          onClick={() => linkRefs.current[p.key]?.focus()}
+                        >
+                          +Add social link
+                        </button>
+                      )}
+                    </div>
+                    {linkErr && <span className="ps-error ps-link-err">{linkErr}</span>}
+                  </Fragment>
+                );
+              })}
 
               {/* User-added social links */}
               {data.extraLinks.map((l) => {
                 const b = badgeFor(l.platform);
+                const linkErr = showErrors ? linkError(l.platform, l.url) : '';
                 return (
-                  <div key={l.id} className="ps-link">
-                    <span className="ps-link__badge" style={{ background: b.bg }}>{b.c}</span>
-                    <input
-                      className="ps-link__input"
-                      placeholder={`${l.platform} link`}
-                      value={l.url}
-                      onChange={(e) => setExtraUrl(l.id, e.target.value)}
-                    />
-                    <button type="button" className="ps-link__remove" onClick={() => removeExtra(l.id)}><X size={16} /></button>
-                  </div>
+                  <Fragment key={l.id}>
+                    <div className={`ps-link${linkErr ? ' ps-link--error' : ''}`}>
+                      <span className="ps-link__badge" style={{ background: b.bg }}>{b.c}</span>
+                      <input
+                        className="ps-link__input"
+                        placeholder={`${l.platform} link`}
+                        value={l.url}
+                        onChange={(e) => setExtraUrl(l.id, e.target.value)}
+                      />
+                      <button type="button" className="ps-link__remove" onClick={() => removeExtra(l.id)}><X size={16} /></button>
+                    </div>
+                    {linkErr && <span className="ps-error ps-link-err">{linkErr}</span>}
+                  </Fragment>
                 );
               })}
             </div>
@@ -1278,18 +1324,19 @@ export default function CreatorProfileSetup() {
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
         .ps-root {
-          --ps-purple: #07074e;
-          --ps-purple-deep: #07074e;
+          /* Dark backdrop with a light-purple card floating on top. */
+          --ps-purple: #5b6bff;
+          --ps-purple-deep: #4452f0;
           min-height: 100vh;
-          background: #0a0a0a;
-          color: #fff;
+          background: #0a0a16;
+          color: #15163a;
           font-family: var(--font-body);
           position: relative;
           overflow-x: hidden;
         }
         .ps-root *, .ps-root *::before, .ps-root *::after { box-sizing: border-box; }
         /* Guaranteed full-viewport dark backdrop behind everything. */
-        .ps-root::before { content: ''; position: fixed; inset: 0; background: #0a0a0a; z-index: -1; }
+        .ps-root::before { content: ''; position: fixed; inset: 0; background: #0a0a16; z-index: -1; }
         .ps-topbar, .ps-main { background: transparent; }
 
         /* Background atmosphere */
@@ -1305,16 +1352,16 @@ export default function CreatorProfileSetup() {
 
         /* Topbar */
         .ps-topbar { position: relative; z-index: 1; display: flex; align-items: center; gap: 16px;
-          padding: 20px 7%; border-bottom: 1px solid rgba(255,255,255,0.06); }
+          padding: 20px 7%; border-bottom: 1px solid rgba(7,7,78,0.06); }
         .ps-brand { display: inline-flex; align-items: center; gap: 10px; background: none; border: none; cursor: pointer; padding: 0; }
         .ps-brand__logo { height: 28px; width: auto; display: block; }
         .ps-brand__mark { width: 24px; height: 24px; border-radius: 7px;
           background: linear-gradient(135deg, #07074e, #07074e); box-shadow: 0 4px 16px rgba(7,7,78,0.55); }
-        .ps-brand__name { color: #fff; font-size: 1.25rem; font-weight: 700; }
-        .ps-brand__name-2 { color: rgba(255,255,255,0.7); font-weight: 500; }
+        .ps-brand__name { color: #15163a; font-size: 1.25rem; font-weight: 700; }
+        .ps-brand__name-2 { color: rgba(7,7,78,0.7); font-weight: 500; }
         .ps-topbar__tag { margin-left: auto; font-size: 0.82rem; font-weight: 500; letter-spacing: 0.02em;
-          color: rgba(255,255,255,0.45); padding: 6px 14px; border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.1); }
+          color: rgba(7,7,78,0.45); padding: 6px 14px; border-radius: 999px;
+          border: 1px solid rgba(7,7,78,0.1); }
 
         /* Layout */
         .ps-main { position: relative; z-index: 1; max-width: 660px; margin: 0 auto; padding: 26px 5% 80px; }
@@ -1322,67 +1369,80 @@ export default function CreatorProfileSetup() {
         /* Top progress bar */
         .ps-bar { margin-bottom: 22px; }
         .ps-bar__top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-        .ps-bar__label { font-size: 0.98rem; font-weight: 600; color: #fff; }
+        .ps-bar__label { font-size: 0.98rem; font-weight: 600; color: #15163a; }
         .ps-bar__label strong { color: var(--ps-purple); }
-        .ps-bar__hint { font-size: 0.82rem; color: rgba(255,255,255,0.45); }
-        .ps-bar__track { width: 100%; height: 9px; border-radius: 999px; background: rgba(255,255,255,0.09);
-          overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+        .ps-bar__hint { font-size: 0.82rem; color: rgba(7,7,78,0.45); }
+        .ps-bar__track { width: 100%; height: 9px; border-radius: 999px; background: rgba(7,7,78,0.09);
+          overflow: hidden; border: 1px solid rgba(7,7,78,0.06); }
         .ps-bar__fill { display: block; height: 100%; border-radius: 999px;
-          background: linear-gradient(90deg, #07074e, #07074e); box-shadow: 0 0 14px rgba(7,7,78,0.55); }
+          background: linear-gradient(90deg, #5b6bff, #4452f0); box-shadow: 0 0 14px rgba(91,107,255,0.4); }
 
         /* Form card */
         .ps-card { position: relative; border-radius: 18px; padding: 26px 28px 22px;
-          border: 1px solid rgba(255,255,255,0.09);
+          border: 1px solid #e6e9ff;
           background:
-            radial-gradient(120% 100% at 50% -10%, rgba(7,7,78,0.14), transparent 55%),
-            rgba(255,255,255,0.028);
-          box-shadow: 0 24px 60px rgba(0,0,0,0.5); overflow: hidden; }
+            radial-gradient(120% 100% at 50% -10%, rgba(91,107,255,0.06), transparent 55%),
+            #ffffff;
+          box-shadow: 0 20px 50px rgba(18,22,60,0.10); overflow: hidden; }
         .ps-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
           background: linear-gradient(90deg, transparent, rgba(7,7,78,0.7), transparent); }
         .ps-card__head { margin-bottom: 18px; }
         .ps-step { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 0.68rem; font-weight: 700;
-          background: linear-gradient(120deg, #07074e, #4f63e6); color: #fff; }
-        .ps-title { font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); margin: 11px 0 0; color: #fff; letter-spacing: -0.01em; }
-        .ps-sub { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 5px 0 0; }
+          background: linear-gradient(120deg, #07074e, #4f63e6); color: #15163a; }
+        .ps-title { font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); margin: 11px 0 0; color: #15163a; letter-spacing: -0.01em; }
+        .ps-sub { font-size: 0.85rem; color: rgba(7,7,78,0.55); margin: 5px 0 0; }
         .ps-body { display: flex; flex-direction: column; gap: 16px; }
 
         /* Upload */
-        .ps-upload { display: flex; align-items: center; gap: 16px; width: 100%; text-align: left;
+        .ps-upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .ps-upload-row .ps-field { margin: 0; }
+        .ps-upload { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
           padding: 16px 18px; border-radius: 16px; cursor: pointer;
-          border: 1px dashed rgba(7,7,78,0.4); background: rgba(7,7,78,0.06); transition: all 0.2s; }
+          border: 1px dashed rgba(7,7,78,0.4); background: rgba(7,7,78,0.05); transition: all 0.2s; }
         .ps-upload:hover { background: rgba(7,7,78,0.11); border-color: rgba(7,7,78,0.65); }
         .ps-upload__icon { width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0; overflow: hidden;
           display: flex; align-items: center; justify-content: center;
           background: rgba(7,7,78,0.14); border: 1px solid rgba(7,7,78,0.25); color: var(--ps-purple); }
         .ps-upload__preview { width: 100%; height: 100%; object-fit: cover; }
         .ps-upload__text { display: flex; flex-direction: column; gap: 3px; }
-        .ps-upload__title { font-size: 0.98rem; font-weight: 600; color: #fff; }
-        .ps-optional { font-weight: 500; color: rgba(255,255,255,0.4); }
-        .ps-upload__hint { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
-        .ps-upload__cta { margin-left: auto; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem;
-          font-weight: 600; color: #fff; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); }
+        .ps-upload__title { font-size: 0.98rem; font-weight: 600; color: #15163a; }
+        .ps-optional { font-weight: 500; color: rgba(7,7,78,0.4); }
+        .ps-upload__hint { font-size: 0.8rem; color: rgba(7,7,78,0.45); }
+        .ps-upload__cta { margin-left: 0; margin-top: 2px; padding: 8px 18px; border-radius: 10px; font-size: 0.85rem;
+          font-weight: 600; color: #fff; background: var(--ps-purple); border: 1px solid var(--ps-purple); }
+        /* Light theme: keep white text on the coloured / gradient surfaces. */
+        .ps-step, .ps-btn-primary, .ps-btn-soft, .ps-thanks__icon,
+        .ps-link__badge, .ps-pf__thumb, .ps-pf__play, .ps-vid__thumb { color: #fff; }
+        /* Dark backdrop: elements OUTSIDE the white card need light text. */
+        .ps-brand__name { color: #fff; }
+        .ps-brand__name-2 { color: rgba(255,255,255,0.7); }
+        .ps-topbar { border-bottom-color: rgba(255,255,255,0.08); }
+        .ps-topbar__tag { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.18); }
+        .ps-bar__label { color: #fff; }
+        .ps-bar__hint { color: rgba(255,255,255,0.55); }
+        .ps-bar__track { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.08); }
 
         /* Fields */
         .ps-field { display: flex; flex-direction: column; gap: 7px; }
         .ps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .ps-label { font-size: 0.88rem; font-weight: 600; color: #fff; }
+        .ps-label { font-size: 0.88rem; font-weight: 600; color: #15163a; }
         .ps-input { width: 100%; padding: 10px 13px; border-radius: 10px; font-size: 0.88rem;
-          color: #fff; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.12);
+          color: #15163a; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12);
           outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; font-family: inherit; }
-        .ps-input::placeholder { color: rgba(255,255,255,0.38); }
+        .ps-input::placeholder { color: rgba(7,7,78,0.38); }
         .ps-input:focus { border-color: var(--ps-purple); background: rgba(7,7,78,0.06);
           box-shadow: 0 0 0 4px rgba(7,7,78,0.16); }
 
         .ps-select { position: relative; }
         .ps-select__el { width: 100%; padding: 10px 38px 10px 13px; border-radius: 10px; font-size: 0.88rem;
-          color: #fff; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.12);
+          color: #15163a; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12);
           outline: none; appearance: none; -webkit-appearance: none; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-        .ps-select__el--empty { color: rgba(255,255,255,0.38); }
+        .ps-select__el--empty { color: rgba(7,7,78,0.38); }
         .ps-select__el:disabled { opacity: 0.5; cursor: not-allowed; }
         .ps-select__el:focus { border-color: var(--ps-purple); box-shadow: 0 0 0 4px rgba(7,7,78,0.16); }
         .ps-select__el option { color: #111; }
         .ps-select__chev { position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-          color: rgba(255,255,255,0.5); pointer-events: none; }
+          color: rgba(7,7,78,0.5); pointer-events: none; }
 
         /* Phone number — dial-code picker + number input */
         .ps-phone { display: flex; gap: 12px; }
@@ -1392,81 +1452,81 @@ export default function CreatorProfileSetup() {
         .ps-dial { position: relative; flex-shrink: 0; }
         .ps-dial__btn { display: flex; align-items: center; gap: 8px; height: 100%; min-height: 50px;
           padding: 0 14px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.98rem;
-          color: #fff; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.12); transition: all 0.2s; }
+          color: #15163a; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12); transition: all 0.2s; }
         .ps-dial__btn:hover { border-color: rgba(7,7,78,0.5); }
         .ps-dial__flag { width: 22px; height: 16px; border-radius: 3px; object-fit: cover; display: block;
-          box-shadow: 0 0 0 1px rgba(255,255,255,0.12); }
-        .ps-dial__chev { color: rgba(255,255,255,0.5); margin-left: 2px; }
+          box-shadow: 0 0 0 1px rgba(7,7,78,0.12); }
+        .ps-dial__chev { color: rgba(7,7,78,0.5); margin-left: 2px; }
         .ps-dial__menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; min-width: 120px;
-          padding: 6px; border-radius: 12px; background: #15151c; border: 1px solid rgba(255,255,255,0.12);
+          padding: 6px; border-radius: 12px; background: #ffffff; border: 1px solid rgba(7,7,78,0.12);
           box-shadow: 0 20px 50px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
         .ps-dial__opt { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 9px;
-          cursor: pointer; font-family: inherit; font-size: 0.94rem; color: #fff; background: none; border: none; text-align: left; }
-        .ps-dial__opt:hover { background: rgba(255,255,255,0.06); }
+          cursor: pointer; font-family: inherit; font-size: 0.94rem; color: #15163a; background: none; border: none; text-align: left; }
+        .ps-dial__opt:hover { background: rgba(7,7,78,0.06); }
         .ps-dial__opt--on { background: rgba(7,7,78,0.16); }
 
         /* Chips */
         .ps-chips { display: flex; flex-wrap: wrap; gap: 12px; }
         .ps-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
-          font-size: 0.83rem; font-weight: 500; color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.18s;
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); font-family: inherit; }
-        .ps-chip:hover { border-color: rgba(7,7,78,0.55); color: #fff; transform: translateY(-1px); }
-        .ps-chip--on { background: rgba(7,7,78,0.18); border-color: var(--ps-purple); color: #fff;
+          font-size: 0.83rem; font-weight: 500; color: rgba(7,7,78,0.85); cursor: pointer; transition: all 0.18s;
+          background: rgba(7,7,78,0.04); border: 1px solid rgba(7,7,78,0.12); font-family: inherit; }
+        .ps-chip:hover { border-color: rgba(7,7,78,0.55); color: #15163a; transform: translateY(-1px); }
+        .ps-chip--on { background: rgba(7,7,78,0.18); border-color: var(--ps-purple); color: #15163a;
           box-shadow: 0 0 0 3px rgba(7,7,78,0.16); }
         .ps-chip__icon { display: inline-flex; align-items: center; font-size: 0.98rem; }
 
         /* Selected language chip with fluency picker */
         .ps-langchip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; border-radius: 10px;
-          background: rgba(7,7,78,0.16); border: 1px solid var(--ps-purple); color: #fff; font-size: 0.83rem; }
+          background: rgba(7,7,78,0.16); border: 1px solid var(--ps-purple); color: #15163a; font-size: 0.83rem; }
         .ps-langchip__name { font-weight: 500; }
-        .ps-langchip__x { display: flex; background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.7); padding: 2px; }
-        .ps-langchip__x:hover { color: #fff; }
+        .ps-langchip__x { display: flex; background: none; border: none; cursor: pointer; color: rgba(7,7,78,0.7); padding: 2px; }
+        .ps-langchip__x:hover { color: #15163a; }
         .ps-flu { position: relative; }
         .ps-flu__btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 7px;
-          background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: #fff; cursor: pointer;
+          background: rgba(7,7,78,0.1); border: 1px solid rgba(7,7,78,0.18); color: #15163a; cursor: pointer;
           font-family: inherit; font-size: 0.76rem; font-weight: 500; }
-        .ps-flu__btn:hover { background: rgba(255,255,255,0.16); }
+        .ps-flu__btn:hover { background: rgba(7,7,78,0.16); }
         .ps-flu__menu { position: absolute; top: calc(100% + 5px); left: 0; z-index: 30; min-width: 150px; padding: 5px;
-          border-radius: 10px; background: #15151c; border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 10px; background: #ffffff; border: 1px solid rgba(7,7,78,0.12);
           box-shadow: 0 18px 44px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
         .ps-flu__opt { padding: 8px 12px; border-radius: 7px; text-align: left; background: none; border: none; cursor: pointer;
-          color: #fff; font-family: inherit; font-size: 0.85rem; }
-        .ps-flu__opt:hover { background: rgba(255,255,255,0.07); }
+          color: #15163a; font-family: inherit; font-size: 0.85rem; }
+        .ps-flu__opt:hover { background: rgba(7,7,78,0.07); }
         .ps-flu__opt--on { background: rgba(7,7,78,0.18); }
 
         /* Stub steps */
         .ps-stub { text-align: center; padding: 34px 10px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
         .ps-stub__icon { width: 62px; height: 62px; border-radius: 18px; display: flex; align-items: center;
           justify-content: center; background: rgba(7,7,78,0.14); color: var(--ps-purple); }
-        .ps-stub__title { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); margin: 0; color: #fff; }
-        .ps-stub__text { font-size: 0.97rem; line-height: 1.6; color: rgba(255,255,255,0.55); max-width: 420px; margin: 0; }
-        .ps-stub__text strong { color: #fff; }
+        .ps-stub__title { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); margin: 0; color: #15163a; }
+        .ps-stub__text { font-size: 0.97rem; line-height: 1.6; color: rgba(7,7,78,0.55); max-width: 420px; margin: 0; }
+        .ps-stub__text strong { color: #15163a; }
 
         /* Actions */
         .ps-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 24px;
-          padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.07); }
+          padding-top: 18px; border-top: 1px solid rgba(7,7,78,0.07); }
         .ps-btn-ghost { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 999px;
-          font-size: 0.88rem; font-weight: 600; color: #fff; cursor: pointer; font-family: inherit;
-          background: transparent; border: 1px solid rgba(255,255,255,0.22); margin-right: auto; transition: all 0.2s; }
-        .ps-btn-ghost:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.04); }
+          font-size: 0.88rem; font-weight: 600; color: #15163a; cursor: pointer; font-family: inherit;
+          background: transparent; border: 1px solid rgba(7,7,78,0.22); margin-right: auto; transition: all 0.2s; }
+        .ps-btn-ghost:hover { border-color: rgba(7,7,78,0.5); background: rgba(7,7,78,0.04); }
         .ps-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 10px 26px; border-radius: 999px;
-          font-size: 0.9rem; font-weight: 600; color: #fff; cursor: pointer; border: none; font-family: inherit;
+          font-size: 0.9rem; font-weight: 600; color: #15163a; cursor: pointer; border: none; font-family: inherit;
           background: linear-gradient(120deg, #07074e, #4f63e6);
           transition: all 0.2s; }
         .ps-btn-primary:hover { transform: translateY(-2px); }
         .ps-btn-primary:disabled, .ps-btn-ghost:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .ps-spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4);
-          border-top-color: #fff; animation: psSpin 0.7s linear infinite; }
+        .ps-spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(7,7,78,0.4);
+          border-top-color: #15163a; animation: psSpin 0.7s linear infinite; }
         @keyframes psSpin { to { transform: rotate(360deg); } }
 
         /* Thank-you / submitted card */
         .ps-thanks { text-align: center; padding: 48px 36px; display: flex; flex-direction: column; align-items: center; }
         .ps-thanks__icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center;
-          justify-content: center; color: #fff; margin-bottom: 22px;
+          justify-content: center; color: #15163a; margin-bottom: 22px;
           background: linear-gradient(135deg, #07074e, #07074e); box-shadow: 0 0 0 10px rgba(7,7,78,0.14), 0 16px 40px rgba(7,7,78,0.5); }
-        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); color: #fff; margin: 0 0 12px; }
-        .ps-thanks__text { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.65); max-width: 420px; margin: 0 0 28px; }
-        .ps-thanks__text strong { color: #fff; }
+        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); color: #15163a; margin: 0 0 12px; }
+        .ps-thanks__text { font-size: 0.95rem; line-height: 1.6; color: rgba(7,7,78,0.65); max-width: 420px; margin: 0 0 28px; }
+        .ps-thanks__text strong { color: #15163a; }
         .ps-thanks__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
         .ps-thanks__home { margin-right: 0; }
         /* Validation */
@@ -1478,11 +1538,11 @@ export default function CreatorProfileSetup() {
           box-shadow: 0 0 0 1px #ef4444, 0 0 0 4px rgba(239,68,68,0.14); }
 
         /* ── Step 4 — Build Your Creator Portfolio ── */
-        .ps-muted { font-weight: 500; color: rgba(255,255,255,0.42); }
-        .ps-hinttext { font-size: 0.78rem; line-height: 1.5; color: rgba(255,255,255,0.5); margin: -2px 0 3px; }
+        .ps-muted { font-weight: 500; color: rgba(7,7,78,0.42); }
+        .ps-hinttext { font-size: 0.78rem; line-height: 1.5; color: rgba(7,7,78,0.5); margin: -2px 0 3px; }
         .ps-section { display: flex; flex-direction: column; gap: 9px; padding-top: 6px;
-          border-top: 1px solid rgba(255,255,255,0.07); }
-        .ps-h3 { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); color: #fff; margin: 4px 0 0; }
+          border-top: 1px solid rgba(7,7,78,0.07); }
+        .ps-h3 { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); color: #15163a; margin: 4px 0 0; }
         .ps-chip--add { color: var(--ps-purple); border-style: dashed; }
         .ps-chip--add svg { color: var(--ps-purple); }
         .ps-chip--add-on { background: rgba(7,7,78,0.16); border-style: solid; border-color: var(--ps-purple); }
@@ -1492,22 +1552,24 @@ export default function CreatorProfileSetup() {
         .ps-custom__row { display: flex; gap: 10px; }
         .ps-custom__row .ps-input { flex: 1; }
         .ps-custom__add { padding: 0 24px; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: 600;
-          font-size: 0.92rem; color: #fff; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); transition: all 0.2s; }
+          font-size: 0.92rem; color: #15163a; background: rgba(7,7,78,0.07); border: 1px solid rgba(7,7,78,0.14); transition: all 0.2s; }
         .ps-custom__add:hover { background: rgba(7,7,78,0.2); border-color: rgba(7,7,78,0.45); }
-        .ps-custom__hint { font-size: 0.82rem; color: rgba(255,255,255,0.45); margin: 8px 0 0; }
-        .ps-custom__hint strong { color: #fff; }
+        .ps-custom__hint { font-size: 0.82rem; color: rgba(7,7,78,0.45); margin: 8px 0 0; }
+        .ps-custom__hint strong { color: #15163a; }
 
         /* Profile links */
         .ps-links { display: flex; flex-direction: column; gap: 10px; }
         .ps-link { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 12px; border-radius: 14px;
-          border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
-        .ps-link__badge { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; color: #fff;
+          border: 1px solid rgba(7,7,78,0.12); background: rgba(7,7,78,0.03); }
+        .ps-link--error { border-color: #ef4444; }
+        .ps-link-err { margin-top: -4px; }
+        .ps-link__badge { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; color: #15163a;
           display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; }
-        .ps-link__input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #fff;
+        .ps-link__input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #15163a;
           font-family: inherit; font-size: 0.95rem; }
-        .ps-link__input::placeholder { color: rgba(255,255,255,0.4); }
-        .ps-link__followers { width: 110px; flex-shrink: 0; padding: 8px 12px; border-radius: 9px; color: #fff;
-          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14); outline: none; font-family: inherit; font-size: 0.88rem; }
+        .ps-link__input::placeholder { color: rgba(7,7,78,0.4); }
+        .ps-link__followers { width: 110px; flex-shrink: 0; padding: 8px 12px; border-radius: 9px; color: #15163a;
+          background: rgba(7,7,78,0.05); border: 1px solid rgba(7,7,78,0.14); outline: none; font-family: inherit; font-size: 0.88rem; }
         .ps-link__add { flex-shrink: 0; padding: 8px 14px; border-radius: 9px; cursor: pointer; font-family: inherit;
           font-size: 0.85rem; font-weight: 600; color: var(--ps-purple); background: rgba(7,7,78,0.12);
           border: 1px solid rgba(7,7,78,0.3); }
@@ -1515,8 +1577,8 @@ export default function CreatorProfileSetup() {
         .ps-addlink { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 2px;
           background: none; border: none; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 600; color: var(--ps-purple); }
         .ps-link__remove { flex-shrink: 0; display: flex; background: none; border: none; cursor: pointer;
-          color: rgba(255,255,255,0.5); padding: 6px; }
-        .ps-link__remove:hover { color: #fff; }
+          color: rgba(7,7,78,0.5); padding: 6px; }
+        .ps-link__remove:hover { color: #15163a; }
 
         /* Add-another-social-link picker */
         .ps-addbox { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; padding: 14px; border-radius: 14px;
@@ -1524,135 +1586,136 @@ export default function CreatorProfileSetup() {
         .ps-addbox__row { display: flex; gap: 10px; align-items: center; }
         .ps-addbox__select { flex: 1; }
         .ps-addbox__cancel { padding: 11px 22px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600;
-          font-size: 0.9rem; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); }
-        .ps-addbox__cancel:hover { border-color: rgba(255,255,255,0.4); }
+          font-size: 0.9rem; color: #15163a; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
+        .ps-addbox__cancel:hover { border-color: rgba(7,7,78,0.4); }
         .ps-addbox__add { align-self: flex-end; }
 
         /* Permissions */
         .ps-perm { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px;
-          border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+          border: 1px solid rgba(7,7,78,0.1); background: rgba(7,7,78,0.025); }
         .ps-perm--error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.14); }
-        .ps-perm__title { font-size: 0.9rem; font-weight: 600; color: #fff; }
+        .ps-perm__title { font-size: 0.9rem; font-weight: 600; color: #15163a; }
         .ps-perm__note { font-size: 0.74rem; color: var(--ps-purple); margin-bottom: 4px; }
         .ps-radio { display: flex; align-items: center; gap: 9px; padding: 5px 0; cursor: pointer;
-          font-size: 0.86rem; color: rgba(255,255,255,0.85); }
+          font-size: 0.86rem; color: rgba(7,7,78,0.85); }
         .ps-radio input { position: absolute; opacity: 0; pointer-events: none; }
         .ps-radio__dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
-          border: 2px solid rgba(255,255,255,0.3); transition: all 0.15s; }
+          border: 2px solid rgba(7,7,78,0.3); transition: all 0.15s; }
         .ps-radio input:checked + .ps-radio__dot { border-color: var(--ps-purple);
           box-shadow: inset 0 0 0 3.5px var(--ps-purple); }
 
         /* Portfolio uploader */
         .ps-pf { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 16px; border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+          border: 1px solid rgba(7,7,78,0.1); background: rgba(7,7,78,0.025); }
         .ps-pf__left { display: flex; flex-direction: column; gap: 10px; }
         .ps-pf__thumb { position: relative; height: 90px; border-radius: 12px; overflow: hidden;
           display: flex; align-items: center; justify-content: center;
-          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #fff; }
+          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #15163a; }
         .ps-pf__thumbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         /* Section divider */
-        .ps-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 6px 0 4px; }
+        .ps-divider { height: 1px; background: rgba(7,7,78,0.1); margin: 6px 0 4px; }
         .ps-pf__play { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center; color: #fff;
-          background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.4); }
+          display: flex; align-items: center; justify-content: center; color: #15163a;
+          background: rgba(0,0,0,0.4); border: 1px solid rgba(7,7,78,0.4); }
         .ps-pf__change { padding: 8px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.82rem;
-          font-weight: 600; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); }
+          font-weight: 600; color: #15163a; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
         .ps-pf__change:hover { border-color: var(--ps-purple); }
         .ps-pf__upload { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
           padding: 9px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.85rem;
-          font-weight: 600; color: #fff; background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.22); }
-        .ps-pf__or { text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+          font-weight: 600; color: #15163a; background: rgba(7,7,78,0.05); border: 1px dashed rgba(7,7,78,0.22); }
+        .ps-pf__or { text-align: center; font-size: 0.78rem; color: rgba(7,7,78,0.4); }
         .ps-pf__right { display: flex; flex-direction: column; gap: 10px; }
         .ps-textarea { min-height: 80px; resize: vertical; padding-top: 12px; }
         .ps-btn-soft { align-self: flex-start; padding: 10px 22px; border-radius: 999px; cursor: pointer;
-          white-space: nowrap; font-family: inherit; font-size: 0.92rem; font-weight: 600; color: #fff; border: none;
+          white-space: nowrap; font-family: inherit; font-size: 0.92rem; font-weight: 600; color: #15163a; border: none;
           background: linear-gradient(120deg, #07074e, #4f63e6); }
         /* Added portfolio video cards */
         .ps-vids { display: flex; flex-direction: column; gap: 14px; }
         .ps-vid { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 14px; border-radius: 14px;
-          border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+          border: 1px solid rgba(7,7,78,0.1); background: rgba(7,7,78,0.025); }
         .ps-vid__thumb { position: relative; align-self: start; height: 120px; border-radius: 10px; overflow: hidden;
           display: flex; align-items: center; justify-content: center;
-          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #fff; }
+          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #15163a; }
         .ps-vid__thumbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .ps-vid__body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-        .ps-vid__name { font-size: 0.92rem; font-weight: 600; color: #fff; }
-        .ps-vid__desc { font-size: 0.82rem; color: rgba(255,255,255,0.8); min-height: 46px; padding: 10px 12px;
-          border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); }
+        .ps-vid__name { font-size: 0.92rem; font-weight: 600; color: #15163a; }
+        .ps-vid__desc { font-size: 0.82rem; color: rgba(7,7,78,0.8); min-height: 46px; padding: 10px 12px;
+          border-radius: 10px; border: 1px solid rgba(7,7,78,0.08); background: rgba(7,7,78,0.02); }
         .ps-vid__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .ps-vid__actions--read { justify-content: space-between; }
         .ps-vid__left { display: flex; align-items: center; gap: 12px; }
         .ps-vid__btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
-          font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); }
+          font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #15163a; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
         .ps-vid__btn:hover { border-color: var(--ps-purple); }
         .ps-vid__del { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
           font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #f06d6d; background: none; border: none; }
         .ps-vid__del--out { border: 1px solid rgba(240,109,109,0.4); }
         .ps-vid__del:hover { background: rgba(240,109,109,0.1); }
         .ps-vid__cancel { padding: 8px 14px; background: none; border: none; cursor: pointer; font-family: inherit;
-          font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.7); }
-        .ps-vid__cancel:hover { color: #fff; }
+          font-size: 0.83rem; font-weight: 600; color: rgba(7,7,78,0.7); }
+        .ps-vid__cancel:hover { color: #15163a; }
         .ps-vid__added { display: inline-flex; align-items: center; gap: 5px; font-size: 0.83rem; font-weight: 600; color: #4ade80; }
 
         /* Info note (final step) */
         .ps-note { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; line-height: 1.5;
-          color: rgba(255,255,255,0.6); padding: 12px 14px;
-          border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.025); }
+          color: rgba(7,7,78,0.6); padding: 12px 14px;
+          border-radius: 12px; border: 1px solid rgba(7,7,78,0.1); background: rgba(7,7,78,0.025); }
         .ps-note svg { flex-shrink: 0; }
 
         /* Checkbox */
         .ps-check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.92rem;
-          color: rgba(255,255,255,0.8); margin-top: 4px; }
+          color: rgba(7,7,78,0.8); margin-top: 4px; }
         .ps-check input { position: absolute; opacity: 0; pointer-events: none; }
         .ps-check__box { width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
-          border: 2px solid rgba(255,255,255,0.3); transition: all 0.15s; }
+          border: 2px solid rgba(7,7,78,0.3); transition: all 0.15s; }
         .ps-check input:checked + .ps-check__box { background: var(--ps-purple); border-color: var(--ps-purple);
-          box-shadow: inset 0 0 0 2px #0e0e14; }
-        .ps-check strong { color: #fff; }
+          box-shadow: inset 0 0 0 2px #ffffff; }
+        .ps-check strong { color: #15163a; }
 
         /* Compensation */
         .ps-comp { display: flex; align-items: center; gap: 12px; }
-        .ps-comp__label { width: 130px; flex-shrink: 0; font-size: 0.92rem; color: rgba(255,255,255,0.7); }
+        .ps-comp__label { width: 130px; flex-shrink: 0; font-size: 0.92rem; color: rgba(7,7,78,0.7); }
         .ps-comp .ps-input { flex: 1; }
         .ps-comp__period { width: 150px; flex-shrink: 0; }
 
         /* Sidebar */
         .ps-side { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 18px; }
         .ps-progress { display: flex; align-items: center; gap: 16px; padding: 20px;
-          border-radius: 20px; border: 1px solid rgba(255,255,255,0.09);
-          background: radial-gradient(120% 120% at 100% 0%, rgba(7,7,78,0.16), transparent 60%), rgba(255,255,255,0.03); }
+          border-radius: 20px; border: 1px solid rgba(7,7,78,0.09);
+          background: radial-gradient(120% 120% at 100% 0%, rgba(7,7,78,0.16), transparent 60%), rgba(7,7,78,0.03); }
         .ps-progress__ring { position: relative; width: 66px; height: 66px; border-radius: 50%; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
-          background: conic-gradient(var(--ps-purple) var(--p), rgba(255,255,255,0.1) 0); }
-        .ps-progress__ring::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: #0e0e14; }
-        .ps-progress__pct { position: relative; z-index: 1; font-size: 0.9rem; font-weight: 700; color: #fff; }
-        .ps-progress__title { font-size: 0.95rem; font-weight: 600; color: #fff; line-height: 1.3; }
-        .ps-progress__hint { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 5px; }
+          background: conic-gradient(var(--ps-purple) var(--p), rgba(7,7,78,0.1) 0); }
+        .ps-progress__ring::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: #ffffff; }
+        .ps-progress__pct { position: relative; z-index: 1; font-size: 0.9rem; font-weight: 700; color: #15163a; }
+        .ps-progress__title { font-size: 0.95rem; font-weight: 600; color: #15163a; line-height: 1.3; }
+        .ps-progress__hint { font-size: 0.8rem; color: rgba(7,7,78,0.5); margin-top: 5px; }
 
         .ps-tracker { display: flex; flex-direction: column; padding: 8px;
-          border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.025); }
+          border-radius: 20px; border: 1px solid rgba(7,7,78,0.08); background: rgba(7,7,78,0.025); }
         .ps-track { position: relative; display: flex; align-items: center; gap: 13px; padding: 11px 12px;
           border-radius: 14px; background: none; border: none; cursor: default; text-align: left; transition: background 0.2s; }
         .ps-track--done { cursor: pointer; }
-        .ps-track--done:hover { background: rgba(255,255,255,0.04); }
+        .ps-track--done:hover { background: rgba(7,7,78,0.04); }
         .ps-track:not(:last-child)::before { content: ''; position: absolute; left: 28px; top: 38px; bottom: -3px;
-          width: 2px; background: rgba(255,255,255,0.1); }
+          width: 2px; background: rgba(7,7,78,0.1); }
         .ps-track--done::before { background: rgba(7,7,78,0.5); }
         .ps-track__dot { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700;
-          background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.12); }
-        .ps-track--active .ps-track__dot { background: linear-gradient(120deg, #07074e, #4f63e6); color: #fff;
+          background: rgba(7,7,78,0.08); color: rgba(7,7,78,0.55); border: 1px solid rgba(7,7,78,0.12); }
+        .ps-track--active .ps-track__dot { background: linear-gradient(120deg, #07074e, #4f63e6); color: #15163a;
           border-color: transparent; box-shadow: 0 0 0 4px rgba(7,7,78,0.18); }
         .ps-track--done .ps-track__dot { background: rgba(7,7,78,0.22); color: var(--ps-purple); border-color: rgba(7,7,78,0.5); }
         .ps-track__text { display: flex; flex-direction: column; }
-        .ps-track__title { font-size: 0.92rem; font-weight: 600; color: rgba(255,255,255,0.6); }
-        .ps-track--active .ps-track__title, .ps-track--done .ps-track__title { color: #fff; }
-        .ps-track__sub { font-size: 0.74rem; color: rgba(255,255,255,0.4); }
+        .ps-track__title { font-size: 0.92rem; font-weight: 600; color: rgba(7,7,78,0.6); }
+        .ps-track--active .ps-track__title, .ps-track--done .ps-track__title { color: #15163a; }
+        .ps-track__sub { font-size: 0.74rem; color: rgba(7,7,78,0.4); }
 
         /* Responsive */
         @media (max-width: 560px) {
           .ps-card { padding: 26px 22px; }
           .ps-row { grid-template-columns: 1fr; }
+          .ps-upload-row { grid-template-columns: 1fr; }
           .ps-upload__cta { display: none; }
           /* Portfolio upload: stack the upload box above the brand/description
              fields instead of forcing them side-by-side (which overflowed). */
@@ -1672,6 +1735,51 @@ export default function CreatorProfileSetup() {
             padding: 13px 20px;
           }
         }
+
+        /* ── Dark navy card theme (like the brand form) + light-purple accents ── */
+        .ps-root { --ps-purple: #b9a8ff; --ps-purple-deep: #8b7bff; }
+        .ps-card {
+          background: rgba(18,18,26,0.72) !important;
+          -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+          border: 1px solid rgba(255,255,255,0.10) !important;
+          box-shadow: 0 30px 70px rgba(0,0,0,0.55) !important;
+        }
+        .ps-card::after { background: linear-gradient(90deg, transparent, rgba(185,168,255,0.55), transparent) !important; }
+        .ps-title, .ps-card h1, .ps-card h2, .ps-card h3, .ps-card h4 { color: #ffffff !important; }
+        .ps-title-accent { color: #ffffff !important; }
+        .ps-sub, .ps-card > p, .ps-help, .ps-hint { color: rgba(255,255,255,0.66) !important; }
+        .ps-label, .ps-card label { color: #ffffff !important; }
+        .ps-input, .ps-select__el, .ps-card input, .ps-card textarea, .ps-card select {
+          background: rgba(255,255,255,0.04) !important;
+          border-color: rgba(255,255,255,0.14) !important;
+          color: #ffffff !important;
+        }
+        .ps-input::placeholder, .ps-card input::placeholder, .ps-card textarea::placeholder { color: rgba(255,255,255,0.4) !important; }
+        .ps-input:focus, .ps-select__el:focus, .ps-card input:focus, .ps-card textarea:focus {
+          border-color: #b9a8ff !important; background: rgba(255,255,255,0.06) !important;
+          box-shadow: 0 0 0 4px rgba(185,168,255,0.18) !important;
+        }
+        .ps-chip { color: #ffffff !important; border-color: rgba(255,255,255,0.16) !important; background: rgba(255,255,255,0.03) !important; }
+        .ps-chip--on, .ps-chip--add-on { background: rgba(185,168,255,0.20) !important; border-color: #b9a8ff !important; color: #ffffff !important; }
+        .ps-chip--add { color: #b9a8ff !important; }
+        .ps-step { color: #ffffff !important; }
+        /* topbar + progress sit on the dark backdrop — white text */
+        .ps-brand__name { color: #ffffff !important; }
+        .ps-brand__name-2 { color: rgba(255,255,255,0.66) !important; }
+        .ps-topbar__tag { color: rgba(255,255,255,0.6) !important; border-color: rgba(255,255,255,0.12) !important; }
+        .ps-bar__label { color: #ffffff !important; }
+        .ps-bar__label strong { color: #ffffff !important; }
+        .ps-bar__hint { color: rgba(255,255,255,0.6) !important; }
+        .ps-bar__track { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.10) !important; }
+        /* upload / banner dropzones — white text + purple icon on the dark card */
+        .ps-upload { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.20) !important; }
+        .ps-upload:hover { background: rgba(255,255,255,0.07) !important; border-color: #b9a8ff !important; }
+        .ps-upload__icon { background: rgba(185,168,255,0.14) !important; border-color: rgba(185,168,255,0.32) !important; color: #b9a8ff !important; }
+        .ps-upload__title { color: #ffffff !important; }
+        .ps-upload__hint, .ps-optional { color: rgba(255,255,255,0.6) !important; }
+        /* buttons stay light purple */
+        .ps-btn-primary, .ps-upload__cta { background: #b9a8ff !important; border-color: #b9a8ff !important; color: #1a1030 !important; }
+        .ps-btn-primary:hover, .ps-upload__cta:hover { background: #a793ff !important; }
       `}</style>
     </div>
   );

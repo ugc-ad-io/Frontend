@@ -31,6 +31,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const CampaignDetails = lazy(() => import('./pages/CampaignDetails'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const WorkSubmission = lazy(() => import('./pages/WorkSubmission'));
 const WorkReview = lazy(() => import('./pages/WorkReview'));
@@ -587,6 +588,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['creator', 'business']}>
                   <MessagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute allowedRoles={['creator', 'business']}>
+                  <NotificationsPage />
                 </ProtectedRoute>
               }
             />

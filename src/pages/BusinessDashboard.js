@@ -479,6 +479,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [selectedCreatorProfile, setSelectedCreatorProfile] = useState(null);
   const [chatWith, setChatWith] = useState(null); // opens the in-page chat popup
   const [modalView, setModalView] = useState(null); // { type: 'campaign'|'review'|'shipment', id } -> opens a page in a modal
+  const [bidCampaignId, setBidCampaignId] = useState(null); // Creator Bids: which campaign's bids are shown
   const [profileView, setProfileView] = useState(null); // { id, name, photo } -> opens a creator profile modal
   const [shipmentsMap, setShipmentsMap] = useState({}); // campaignId -> shipment record (for the shipments table)
   const [shipTab, setShipTab] = useState('all'); // all | transit | delivered
@@ -1544,19 +1545,33 @@ export default function BusinessDashboard({ page = 'overview' }) {
             </div>
           )}
 
-          {activeTab === 'pending-bids' && (
+          {activeTab === 'pending-bids' && (() => {
+            const bidCampaigns = campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator);
+            const current = bidCampaigns.find(c => c.id === bidCampaignId) || bidCampaigns[0];
+            return (
             <div className="cb-section">
-              {campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).length === 0 ? (
+              {bidCampaigns.length === 0 ? (
                 <div className="empty-state">
                   <Users size={64} />
                   <p>No pending bids at the moment</p>
                 </div>
               ) : (
+                <>
+                {bidCampaigns.length > 1 && (
+                  <div className="cb-campaign-filter">
+                    <span>Campaign</span>
+                    <select value={current.id} onChange={(e) => setBidCampaignId(e.target.value)}>
+                      {bidCampaigns.map(c => (
+                        <option key={c.id} value={c.id}>{c.title} · {(c.bids || []).length} bid{(c.bids || []).length === 1 ? '' : 's'}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="cb-list">
-                  {campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).map(campaign => (
+                  {current && (
                     <BidsCampaignCard
-                      key={campaign.id}
-                      campaign={campaign}
+                      key={current.id}
+                      campaign={current}
                       onAccept={handleAcceptBid}
                       onViewCampaign={(id) => setModalView({ type: 'campaign', id })}
                       onViewProfile={(id, bid) => {
@@ -1565,11 +1580,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         setProfileView({ id: creatorId, name: bid?.creator_nickname || bid?.public_creator_id, photo: bid?.creator_photo || bid?.profile_photo });
                       }}
                     />
-                  ))}
+                  )}
                 </div>
+                </>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'browse-creator' && (
             <div className="creator-directory-section">
@@ -4728,6 +4745,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex-direction: column;
           gap: 22px;
         }
+
+        /* Creator Bids — campaign picker (one campaign's bids at a time) */
+        .cb-campaign-filter { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .cb-campaign-filter span { color: #8a8fc0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+        .cb-campaign-filter select {
+          flex: 1; max-width: 460px; border: 1px solid #e6e8f3; border-radius: 12px;
+          padding: 11px 14px; font-family: inherit; font-size: 14px; font-weight: 600;
+          color: #15163a; background: #fff; cursor: pointer; outline: none;
+        }
+        .cb-campaign-filter select:focus { border-color: #5b6bff; }
 
         /* ---- Creator Bids (redesigned) ---- */
         .cb-section { display: flex; flex-direction: column; gap: 20px; }

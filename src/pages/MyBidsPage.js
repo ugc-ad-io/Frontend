@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -159,7 +160,7 @@ export default function MyBidsPage() {
           </table>
         </div>
       ) : (
-        <div className="cmk-empty">No bids in “{TABS.find((t) => t.key === tab).label}”.</div>
+        <EmptyState title={`No bids in “${TABS.find((t) => t.key === tab).label}”`} message="Browse open campaigns and submit a proposal to start winning brand deals." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
       )}
 
       {selected && (() => {

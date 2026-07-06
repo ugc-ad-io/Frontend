@@ -6,6 +6,7 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -259,7 +260,7 @@ export default function BrandCreators() {
       {loading ? (
         <div className="cmk-empty">Loading creators…</div>
       ) : filtered.length === 0 ? (
-        <div className="cmk-empty">No creators match your filters.</div>
+        <EmptyState title="No creators found" message="No creators match your current search or filters. Try clearing them to see everyone." />
       ) : (
         <div className="bc-grid">
           {filtered.map((c, i) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={viewProfile} onExpand={setVideoCard} fallback={FALLBACK_VIDEOS[i % FALLBACK_VIDEOS.length]} />)}

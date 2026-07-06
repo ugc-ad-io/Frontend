@@ -56,12 +56,6 @@ export default function CreatorSignup() {
 
   return (
     <div className="cs-root">
-      {/* Background blobs — match the creator landing's navy glow */}
-      <div className="cs-bg" aria-hidden="true">
-        <div className="cs-blob cs-blob--1" />
-        <div className="cs-blob cs-blob--2" />
-      </div>
-
       {/* Back button */}
       <button
         className="cs-back"

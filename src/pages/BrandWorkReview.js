@@ -12,6 +12,7 @@ import ChatPopup from '../components/ChatPopup';
 import RevisionRequestModal from '../components/RevisionRequestModal';
 import { DEMO_WORK_REVIEW } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -173,7 +174,7 @@ export default function BrandWorkReview() {
       {loading ? (
         <div className="cmk-empty">Loading…</div>
       ) : total === 0 ? (
-        <div className="cmk-empty">Nothing in “{TABS.find((t) => t.key === tab).label}”.</div>
+        <EmptyState title={`Nothing in “${TABS.find((t) => t.key === tab).label}”`} message="Submitted creator content will show up here for you to review and approve." />
       ) : (
         <>
           <div className="bwr-list">

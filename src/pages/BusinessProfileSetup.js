@@ -10,6 +10,13 @@ import { CONTENT_CATEGORIES, resolveCategory } from '../constants/contentCategor
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+// Only accept genuine platform links / handles — no random URLs.
+const URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/\S*)?$/i;                       // any valid website
+const FB_RE = /^(https?:\/\/)?(www\.|m\.)?(facebook\.com|fb\.com|fb\.me)\/[^\s]+$/i;      // facebook page link
+const IG_URL_RE = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$/i;              // instagram profile link
+const IG_USER_RE = /^@?[a-z0-9._]{1,30}$/i;                                               // instagram handle
+const isInstagram = (v) => IG_URL_RE.test(v) || IG_USER_RE.test(v);
+
 // iso = flagcdn country code (flags are image-based so they render on Windows too).
 const DIAL_CODES = [
   { iso: 'in', label: 'IN', code: '+91' },
@@ -62,8 +69,14 @@ export default function BusinessProfileSetup() {
 
   const errors = {
     businessName: !form.businessName.trim() ? 'Business name is required.' : '',
-    website: !form.website.trim() ? 'Website is required' : '',
-    instagram: !form.instagram.trim() ? 'Instagram is required' : '',
+    facebook: form.facebook.trim() && !FB_RE.test(form.facebook.trim())
+      ? 'Enter a valid Facebook page link (facebook.com/...).' : '',
+    website: !form.website.trim()
+      ? 'Website is required'
+      : (!URL_RE.test(form.website.trim()) ? 'Enter a valid website URL.' : ''),
+    instagram: !form.instagram.trim()
+      ? 'Instagram is required'
+      : (!isInstagram(form.instagram.trim()) ? 'Enter a valid Instagram username or profile link.' : ''),
     phone: !form.phone.trim() ? 'Phone number is required' : '',
     country: !form.country ? 'Country is required.' : '',
   };
@@ -113,6 +126,13 @@ export default function BusinessProfileSetup() {
   if (done) {
     return (
       <div className="bp-page">
+        <header className="bp-topbar">
+          <button type="button" className="bp-brand" onClick={() => navigate('/')}>
+            <img src="/newlogo-tight.png" alt="UGCad.io" className="bp-brand__logo" />
+          </button>
+          <span className="bp-topbar__tag">Brand onboarding</span>
+        </header>
+
         <div className="bp-card bp-card--thanks">
           <div className="bp-check"><CheckCircle size={56} strokeWidth={1.75} /></div>
           <h1 className="bp-title">Thank You!</h1>
@@ -131,6 +151,13 @@ export default function BusinessProfileSetup() {
 
   return (
     <div className="bp-page">
+      <header className="bp-topbar">
+        <button type="button" className="bp-brand" onClick={() => navigate('/')}>
+          <img src="/newlogo-tight.png" alt="UGCad.io" className="bp-brand__logo" />
+        </button>
+        <span className="bp-topbar__tag">Brand onboarding</span>
+      </header>
+
       <form className="bp-card" onSubmit={handleSubmit} noValidate>
         <h1 className="bp-title">Add your <span className="bp-accent">Brand</span> Details</h1>
         <p className="bp-sub">
@@ -155,11 +182,12 @@ export default function BusinessProfileSetup() {
           <label className="bp-label" htmlFor="bp-fb">Facebook URL</label>
           <input
             id="bp-fb"
-            className="bp-input"
+            className={`bp-input${err('facebook') ? ' bp-input--error' : ''}`}
             placeholder="Paste the link to your Facebook business page."
             value={form.facebook}
             onChange={(e) => set('facebook', e.target.value)}
           />
+          {err('facebook') && <span className="bp-err">{err('facebook')}</span>}
         </div>
 
         {/* Website URL */}
@@ -321,12 +349,49 @@ function ThemeStyles() {
           position: relative;
           min-height: 100vh;
           display: flex;
-          justify-content: center;
-          align-items: flex-start;
-          padding: 32px 20px;
+          flex-direction: column;
+          justify-content: flex-start;
+          align-items: center;
+          padding: 24px 20px 32px;
           background: linear-gradient(160deg, #050510 0%, #0b0a26 55%, #07074e 100%);
           font-family: var(--font-body);
           overflow: hidden;
+        }
+
+        /* Top bar — UGCad.io logo, matches the creator onboarding page */
+        .bp-topbar {
+          position: relative;
+          z-index: 1;
+          width: 100vw;
+          max-width: 100vw;
+          margin-left: calc(50% - 50vw);
+          margin-right: calc(50% - 50vw);
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 28px;
+          padding: 0 clamp(20px, 6vw, 90px) 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .bp-brand {
+          display: inline-flex;
+          align-items: center;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+        }
+        .bp-brand__logo { height: 30px; width: auto; display: block; }
+        .bp-topbar__tag {
+          margin-left: auto;
+          font-size: 0.82rem;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+          color: rgba(255, 255, 255, 0.6);
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
         }
         .bp-page::before,
         .bp-page::after {
@@ -376,7 +441,7 @@ function ThemeStyles() {
           color: #ffffff;
           letter-spacing: -0.01em;
         }
-        .bp-accent { color: #07074e; }
+        .bp-accent { color: #A78BFA; }
         .bp-sub {
           margin: 0 0 22px;
           color: rgba(255, 255, 255, 0.62);

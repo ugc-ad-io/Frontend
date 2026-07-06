@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Search, Wallet, Clock, TrendingUp, IndianRupee, ChevronDown } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -99,7 +100,7 @@ export default function PayoutWithLayout() {
         {loading ? (
           <div className="cmk-empty">Loading earnings…</div>
         ) : filtered.length === 0 ? (
-          <div className="cmk-empty">No withdrawals yet. Your payouts will appear here once deals are paid.</div>
+          <EmptyState title="No withdrawals yet" message="Your payouts will appear here once your completed deals are paid out." />
         ) : (
           <table className="cmk-table">
             <thead>

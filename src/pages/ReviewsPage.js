@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Star, Trophy, MessagesSquare, TrendingUp, Briefcase, ArrowRight } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -151,7 +152,7 @@ export default function ReviewsPage() {
             </div>
 
             {count === 0 ? (
-              <div className="cmk-empty" style={{ padding: '40px 0' }}>No reviews yet. Complete campaigns to start receiving reviews from brands.</div>
+              <EmptyState icon={Star} title="No reviews yet" message="Complete campaigns and deliver great work to start earning reviews from brands." />
             ) : (
               <div className="cmk-rr-list">
                 {(showAll ? reviews : reviews.slice(0, 3)).map((review) => {

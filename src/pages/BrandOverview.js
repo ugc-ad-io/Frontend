@@ -4,6 +4,7 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import { DEMO_OVERVIEW_CREATORS } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -81,7 +82,7 @@ export default function BrandOverview() {
       {loading ? (
         <div className="cmk-empty">Loading creators…</div>
       ) : shown.length === 0 ? (
-        <div className="cmk-empty">No creators available yet.</div>
+        <EmptyState title="No creators yet" message="Approved creators will appear here. Check back soon to start collaborating." />
       ) : (
         <div className="bo-cre-grid bov-reels">
           {shown.map((c, i) => <CreatorCard key={i} c={c} onMessage={messageCreator} fallback={FALLBACK_VIDEOS[i % FALLBACK_VIDEOS.length]} />)}

@@ -34,13 +34,15 @@ const renderBrief = (text) => {
   });
 };
 
-const STATUS_TONE = { shortlisted: 'info', accepted: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
+// "Won" bids (brand picked this creator) — green pill + a Deal Room shortcut.
+const WON_STATUSES = ['selected', 'accepted', 'approved'];
+const STATUS_TONE = { shortlisted: 'info', accepted: 'ok', approved: 'ok', selected: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
 const STATUS_LABEL = { bid_submitted: 'Pending', submitted: 'Pending' };
 
 const TABS = [
   { key: 'all', label: 'All', match: () => true },
   { key: 'shortlisted', label: 'Shortlisted', match: (s) => s === 'shortlisted' },
-  { key: 'accepted', label: 'Accepted', match: (s) => s === 'accepted' },
+  { key: 'accepted', label: 'Accepted', match: (s) => WON_STATUSES.includes(s) },
   { key: 'rejected', label: 'Rejected', match: (s) => s === 'rejected' },
 ];
 
@@ -141,8 +143,8 @@ export default function MyBidsPage() {
                     <td>{formatMoney(bid.amount || c.budget_max || c.budget)}</td>
                     <td><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{STATUS_LABEL[status] || (status.charAt(0).toUpperCase() + status.slice(1))}</span></td>
                     <td className="cmk-td-muted">{fmtDate(item.submitted_at || bid.submitted_at)}</td>
-                    <td className="cmk-td-right" style={['selected', 'accepted'].includes(status) ? undefined : { textAlign: 'center' }}>
-                      {['selected', 'accepted'].includes(status) && (
+                    <td className="cmk-td-right" style={WON_STATUSES.includes(status) ? undefined : { textAlign: 'center' }}>
+                      {WON_STATUSES.includes(status) && (
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}

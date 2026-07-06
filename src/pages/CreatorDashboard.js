@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
+import { toggleSavedBrief, isBriefSaved } from '../utils/savedBriefs';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -717,12 +718,23 @@ function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
 }
 
 function BriefOpportunityCard({ brief, viewMode, onView, onPitch }) {
+  const [saved, setSaved] = useState(() => isBriefSaved(brief.id));
   const handlePitch = () => {
     if (brief.hasBid) {
       onView(brief.campaign);
       return;
     }
     onPitch(brief.campaign);
+  };
+  const handleSave = (e) => {
+    e.stopPropagation();
+    const now = toggleSavedBrief({
+      id: brief.id, title: brief.title, description: brief.description,
+      brand: brief.brand, logo: brief.logo, tags: brief.tags, budget: brief.budget,
+      deliveryLabel: brief.deliveryLabel || brief.deadline || '3 - 5 Days', matchScore: brief.matchScore,
+    });
+    setSaved(now);
+    toast.success(now ? 'Saved to your list' : 'Removed from saved');
   };
 
   return (
@@ -731,7 +743,7 @@ function BriefOpportunityCard({ brief, viewMode, onView, onPitch }) {
       <div className="pcd-brief-media">
         <img src={brief.cover} alt={brief.title} />
         <div className="pcd-brief-media-shade" />
-        <button type="button" aria-label="Save brief"><Bookmark size={15} /></button>
+        <button type="button" aria-label={saved ? 'Remove from saved' : 'Save brief'} onClick={handleSave} style={saved ? { color: '#5b6bff' } : undefined}><Bookmark size={15} fill={saved ? 'currentColor' : 'none'} /></button>
         {brief.featured && (
           <span className="pcd-best-match"><Sparkles size={12} /> Best Match</span>
         )}

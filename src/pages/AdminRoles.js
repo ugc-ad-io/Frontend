@@ -6,9 +6,13 @@ import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown } from 'lucide-reac
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_MATRIX, isFounder as roleIsFounder } from '../utils/adminRoles';
+import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+// Canonical category labels — the fallback list shown in the assign-categories
+// picker when the /admin/categories endpoint returns nothing.
+const FALLBACK_CATEGORIES = CONTENT_CATEGORIES.map((c) => c.label);
 
 const ROLE_TONE = {
   founder: 'founder',
@@ -38,9 +42,13 @@ export default function AdminRoles() {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(`${API}/admin/categories`);
-      setCategoryOptions(res.data?.categories || []);
+      const fromApi = res.data?.categories || [];
+      // Merge any extra values present in real applications with the canonical
+      // list, and fall back to the canonical list if the API returns nothing.
+      const merged = [...new Set([...(fromApi.length ? fromApi : FALLBACK_CATEGORIES), ...(res.data?.present || [])])];
+      setCategoryOptions(merged.length ? merged : FALLBACK_CATEGORIES);
     } catch {
-      setCategoryOptions([]);
+      setCategoryOptions(FALLBACK_CATEGORIES);
     }
   };
 

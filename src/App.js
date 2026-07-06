@@ -38,6 +38,7 @@ const WorkReview = lazy(() => import('./pages/WorkReview'));
 const PayoutWithLayout = lazy(() => import('./pages/PayoutWithLayout'));
 const ShipmentTracking = lazy(() => import('./pages/ShipmentTracking'));
 const BrowseBriefs = lazy(() => import('./pages/BrowseBriefs'));
+const SavedBriefs = lazy(() => import('./pages/SavedBriefs'));
 const MyDealsPage = lazy(() => import('./pages/MyDealsPage'));
 const MyBidsPage = lazy(() => import('./pages/MyBidsPage'));
 const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
@@ -274,6 +275,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
                   <BrowseBriefs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saved"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <SavedBriefs />
                 </ProtectedRoute>
               }
             />

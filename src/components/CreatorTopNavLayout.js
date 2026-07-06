@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
   ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X,
-  Zap, Compass, FileText, MessageSquare
+  Zap, Compass, FileText, MessageSquare, Bookmark
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
@@ -17,6 +17,7 @@ const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 const PRIMARY_LINKS = [
   { name: 'Active Work', to: '/my-active-work', icon: Zap },
   { name: 'Browse Campaigns', to: '/browse-briefs', icon: Compass },
+  { name: 'Saved', to: '/saved', icon: Bookmark },
   { name: 'My Bids', to: '/my-bids', icon: FileText },
   { name: 'Messages', to: '/messages', dot: true, icon: MessageSquare }
 ];

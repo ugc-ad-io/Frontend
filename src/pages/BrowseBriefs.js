@@ -7,6 +7,7 @@ import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown, X, Send, Wallet,
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -94,12 +95,20 @@ export default function BrowseBriefs() {
   const [deliveryFilter, setDeliveryFilter] = useState('any');
   const [visible, setVisible] = useState(8);
   const [openBrief, setOpenBrief] = useState(null); // brief object shown in the side drawer
+  const [savedIds, setSavedIds] = useState(() => getSavedIds()); // ids of saved briefs
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the bookmark state in sync if saves change here or on the Saved page.
+  useEffect(() => {
+    const sync = () => setSavedIds(getSavedIds());
+    window.addEventListener('ugc-saved-changed', sync);
+    return () => window.removeEventListener('ugc-saved-changed', sync);
+  }, []);
 
   // Keep the search box in sync when arriving from the top-nav search (?q=...)
   useEffect(() => {
@@ -124,6 +133,15 @@ export default function BrowseBriefs() {
     () => availableCampaigns.map((c, i) => normalizeBrief(c, i, myBids)),
     [availableCampaigns, myBids]
   );
+
+  // Deep-link: open a specific brief's drawer when arriving from Saved (?open=<id>).
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (openId && briefs.length) {
+      const b = briefs.find((x) => String(x.id) === String(openId));
+      if (b) setOpenBrief(b);
+    }
+  }, [briefs, searchParams]);
 
   const filtered = useMemo(() => {
     const cat = category.toLowerCase();
@@ -232,8 +250,14 @@ export default function BrowseBriefs() {
                   {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
                 </span>
                 <strong className="cmk-bb-brand">{b.brand}</strong>
-                <button type="button" className="cmk-bb-save" onClick={(e) => { e.stopPropagation(); toast.success('Saved'); }} aria-label="Save brief">
-                  <Bookmark size={16} />
+                <button
+                  type="button"
+                  className={`cmk-bb-save${savedIds.has(String(b.id)) ? ' is-saved' : ''}`}
+                  style={savedIds.has(String(b.id)) ? { color: '#5b6bff' } : undefined}
+                  onClick={(e) => { e.stopPropagation(); const s = toggleSavedBrief(b); toast.success(s ? 'Saved to your list' : 'Removed from saved'); }}
+                  aria-label={savedIds.has(String(b.id)) ? 'Remove from saved' : 'Save brief'}
+                >
+                  <Bookmark size={16} fill={savedIds.has(String(b.id)) ? 'currentColor' : 'none'} />
                 </button>
               </div>
               <h3 className="cmk-bb-title">{b.title}</h3>

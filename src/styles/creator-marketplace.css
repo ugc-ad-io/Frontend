@@ -1362,11 +1362,11 @@
 .cmk-post-fab{width:52px;padding:0;justify-content:center}
 .cmk-nav-post .cmk-btn-label,.cmk-post-fab .cmk-btn-label{max-width:0;opacity:0;overflow:hidden;
   transition:max-width .22s cubic-bezier(.2,.7,.2,1),opacity .18s,margin .22s}
-.cmk-nav-post:hover{width:190px}
+/* nav "+" stays a static icon button — no expand/fill on hover. */
 .cmk-post-fab:hover{width:168px}
-.cmk-nav-post:hover .cmk-btn-label,.cmk-post-fab:hover .cmk-btn-label{max-width:150px;opacity:1;margin-left:9px}
-/* hover → blue fill, white label */
-.cmk-nav-post:hover,.cmk-post-fab:hover{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border-color:transparent;
+.cmk-post-fab:hover .cmk-btn-label{max-width:150px;opacity:1;margin-left:9px}
+/* hover → blue fill, white label (mobile message FAB only) */
+.cmk-post-fab:hover{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border-color:transparent;
   box-shadow:0 14px 30px -12px rgba(68,82,240,.6)}
 
 /* ── Reviews: stats (2x2) + rating breakdown top row, reviews below ──────── */

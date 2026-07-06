@@ -1039,8 +1039,6 @@ export default function CreatorProfileSetup() {
                     <button type="button" className="ps-pf__upload" onClick={() => pfFileRef.current?.click()}>
                       <Upload size={15} /> Upload <span className="ps-muted">(max 200 MB)</span>
                     </button>
-                    <div className="ps-pf__or">OR</div>
-                    <input className="ps-input" placeholder="Add link" value={data.pfLink} onChange={(e) => set('pfLink', e.target.value)} />
                   </>
                 )}
               </div>
@@ -1780,6 +1778,44 @@ export default function CreatorProfileSetup() {
         /* buttons stay light purple */
         .ps-btn-primary, .ps-upload__cta { background: #b9a8ff !important; border-color: #b9a8ff !important; color: #1a1030 !important; }
         .ps-btn-primary:hover, .ps-upload__cta:hover { background: #a793ff !important; }
+
+        /* ── Fixes: elements the dark override missed (were dark-navy = invisible) ── */
+        /* Hints / muted / notes / descriptions → readable light grey. */
+        .ps-hinttext, .ps-muted, .ps-custom__hint, .ps-pf__or, .ps-note,
+        .ps-comp__label, .ps-thanks__text { color: rgba(255,255,255,0.6) !important; }
+        .ps-thanks__text strong { color: #ffffff !important; }
+        /* Section / item headings + values → white (match the other headings). */
+        .ps-h3, .ps-vid__name, .ps-perm__title, .ps-thanks__title,
+        .ps-check strong, .ps-custom__hint strong { color: #ffffff !important; }
+        .ps-radio, .ps-check, .ps-vid__desc { color: rgba(255,255,255,0.85) !important; }
+        .ps-dial__chev, .ps-select__chev { color: rgba(255,255,255,0.5) !important; }
+        /* Profile-link rows: light text + visible placeholder / border. */
+        .ps-link { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.12) !important; }
+        .ps-link__input { color: #ffffff !important; }
+        .ps-link__input::placeholder { color: rgba(255,255,255,0.4) !important; }
+        .ps-langchip { color: #ffffff !important; background: rgba(185,168,255,0.16) !important; border-color: #b9a8ff !important; }
+        .ps-flu__btn { color: #ffffff !important; }
+        /* Phone dial code (+91) and Go Back → light purple. */
+        .ps-dial__btn { color: #b9a8ff !important; background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; }
+        .ps-btn-ghost { color: #b9a8ff !important; border-color: rgba(185,168,255,0.5) !important; }
+        .ps-btn-ghost:hover { border-color: #b9a8ff !important; background: rgba(185,168,255,0.08) !important; }
+        /* Success card: green tick, and a purple "Back to Home" with white text + arrow. */
+        .ps-thanks__icon { background: rgba(34,197,94,0.15) !important; color: #22c55e !important;
+          box-shadow: 0 0 0 10px rgba(34,197,94,0.10), 0 16px 40px rgba(34,197,94,0.22) !important; }
+        .ps-thanks__home { background: #7c5cff !important; border-color: #7c5cff !important; color: #ffffff !important; }
+        .ps-thanks__home:hover { background: #6b4cff !important; }
+
+        /* ── Make all accent action text + icons WHITE (per request) ── */
+        .ps-dial__btn, .ps-btn-ghost, .ps-link__add, .ps-addlink, .ps-pf__upload,
+        .ps-pf__change, .ps-btn-soft, .ps-vid__btn, .ps-flu__btn, .ps-chip--add,
+        .ps-link__badge, .ps-pf__play { color: #ffffff !important; }
+        .ps-dial__btn svg, .ps-btn-ghost svg, .ps-link__add svg, .ps-addlink svg,
+        .ps-pf__upload svg, .ps-pf__change svg, .ps-vid__btn svg, .ps-chip--add svg,
+        .ps-btn-soft svg, .ps-flu__btn svg {
+          color: #ffffff !important; stroke: #ffffff !important;
+        }
+        /* Play triangle is a filled glyph — keep it filled white. */
+        .ps-pf__play svg { color: #ffffff !important; fill: #ffffff !important; stroke: #ffffff !important; }
       `}</style>
     </div>
   );

@@ -114,7 +114,7 @@ const BRAND_TABS = [
 
 const CREATOR_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'security', label: 'Password & 2FA', icon: Lock },
+  { id: 'security', label: 'Password', icon: Lock },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'language', label: 'Language', icon: Globe },
   { id: 'privacy', label: 'Privacy & Security', icon: Shield },

@@ -182,7 +182,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
             <div><label>WhatsApp</label><span>Chat with support</span></div>
           </a>
 
-          <p className="hsr-help-note">Support hours: Mon–Sat, 10:00 AM – 7:00 PM IST</p>
+          <p className="hsr-help-note">Support hours: Mon–Fri, 10:00 AM – 7:00 PM IST</p>
         </div>
 
         <style>{`

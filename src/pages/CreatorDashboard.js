@@ -320,6 +320,34 @@ export default function CreatorDashboard() {
     );
   }
 
+  // Admin requested more info — show the request + let the creator update & resubmit.
+  if (user?.approval_status === 'more_info') {
+    const review = user.review || {};
+    const items = Array.isArray(review.more_info_items) ? review.more_info_items : [];
+    return (
+      <div className="pcd-status-page">
+        <section className="pcd-status-card">
+          <MessageSquare size={68} />
+          <p className="pcd-eyebrow">Creator verification</p>
+          <h1>More information needed</h1>
+          <p>Our team needs a few more details before approving your creator profile. Please update your profile with the info below.</p>
+          {review.more_info_message && (
+            <div style={{ textAlign: 'left', background: '#f4f5ff', border: '1px solid #e6e8f8', borderRadius: '14px', padding: '16px 18px', margin: '8px 0 4px', maxWidth: '460px' }}>
+              <strong style={{ color: '#07074e', display: 'block', marginBottom: '6px' }}>What we need</strong>
+              <span style={{ color: '#4b4f7e', fontSize: '14.5px', lineHeight: 1.55 }}>{review.more_info_message}</span>
+            </div>
+          )}
+          {items.length > 0 && (
+            <ul style={{ textAlign: 'left', margin: '4px 0 6px', paddingLeft: '20px', color: '#4b4f7e', fontSize: '14px', lineHeight: 1.8, maxWidth: '460px' }}>
+              {items.map((it, i) => <li key={i}>{typeof it === 'string' ? it : (it.label || it.name || it.field || '')}</li>)}
+            </ul>
+          )}
+          <button type="button" onClick={() => navigate('/profile-setup/creator')}>Update my profile</button>
+        </section>
+      </div>
+    );
+  }
+
   // Show pending message if user is not approved (but only if approval_status is explicitly set to something other than 'approved')
   if (user && user.approval_status && user.approval_status !== 'approved') {
     return (

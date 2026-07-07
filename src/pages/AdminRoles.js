@@ -30,6 +30,7 @@ export default function AdminRoles() {
   const [savingId, setSavingId] = useState(null);
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('ops_regular');
+  const [newPassword, setNewPassword] = useState('');
   const [adding, setAdding] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [editingMember, setEditingMember] = useState(null);
@@ -81,15 +82,22 @@ export default function AdminRoles() {
   const addAdmin = async () => {
     const email = newEmail.trim().toLowerCase();
     if (!email) { toast.error('Enter an email'); return; }
+    const pwd = newPassword.trim();
+    if (pwd && pwd.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setAdding(true);
     try {
-      const res = await axios.post(`${API}/admin/staff/role`, { email, admin_role: newRole });
+      const res = await axios.post(`${API}/admin/staff/role`, { email, admin_role: newRole, ...(pwd ? { password: pwd } : {}) });
       if (res.data?.created && res.data?.temp_password) {
         toast.success(`${email} created as ${ROLE_LABELS[newRole]}. Temp password: ${res.data.temp_password}`, { duration: 12000 });
+      } else if (res.data?.created) {
+        toast.success(`${email} created as ${ROLE_LABELS[newRole]} with the password you set.`, { duration: 8000 });
+      } else if (res.data?.password_set) {
+        toast.success(`${email} set to ${ROLE_LABELS[newRole]} · password updated`);
       } else {
         toast.success(`${email} set to ${ROLE_LABELS[newRole]}`);
       }
       setNewEmail('');
+      setNewPassword('');
       fetchStaff();
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to add admin'));
@@ -181,6 +189,14 @@ export default function AdminRoles() {
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 data-testid="roles-new-email"
+              />
+              <input
+                type="text"
+                placeholder="Password (optional — auto-generated if blank)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                data-testid="roles-new-password"
               />
               <select value={newRole} onChange={(e) => setNewRole(e.target.value)} data-testid="roles-new-role">
                 {ADMIN_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}

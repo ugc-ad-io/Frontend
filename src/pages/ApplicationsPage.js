@@ -145,13 +145,19 @@ const MORE_INFO_ITEMS = {
 function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   const p = profile.profile || {};
   const brand = isBrandRole(profile.role);
-  const displayName = profile.username ? `@${profile.username}` : (profile.nickname || p.fullName || p.business_name || p.full_name || '—');
+  // Show the applicant's REAL name for review (not their @username/id) — the
+  // reviewer verifies a real person/business; the public id comes after approval.
+  const realName = brand ? (p.business_name || p.businessName) : (p.fullName || p.full_name);
+  const displayName = (realName && String(realName).trim()) || profile.nickname || (profile.username ? `@${profile.username}` : '—');
   const email = profile.email || p.business_email || '—';
   const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '—';
   const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
   const sla = slaInfo(submitted, nowMs);
   const state = STATE_META[profile.approval_status] || STATE_META.pending;
-  const flagName = !brand && looksLikeRealName(displayName);
+  // Already-decided applications (approved / rejected) are read-only — only
+  // "View" remains; Approve/Reject are hidden so a decision can't be re-made here.
+  const decided = ['approved', 'rejected'].includes(profile.approval_status);
+  const flagName = !brand && looksLikeRealName(profile.username || '');
   const stop = (e, fn) => { e.stopPropagation(); fn(); };
 
   // Role-specific middle columns
@@ -201,8 +207,12 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
       </div>
 
       <div className="apps-action-group">
-        <button className="btn-decision btn-approve" onClick={(e) => stop(e, () => onApprove(profile.id))}>✓ Approve</button>
-        <button className="btn-decision btn-reject" onClick={(e) => stop(e, () => onReject(profile.id))}>✕ Reject</button>
+        {!decided && (
+          <>
+            <button className="btn-decision btn-approve" onClick={(e) => stop(e, () => onApprove(profile.id))}>✓ Approve</button>
+            <button className="btn-decision btn-reject" onClick={(e) => stop(e, () => onReject(profile.id))}>✕ Reject</button>
+          </>
+        )}
         <button className="apps-row-action" onClick={(e) => stop(e, () => onOpen(profile))}><Eye size={14} /> View</button>
       </div>
     </div>
@@ -277,9 +287,11 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   (p.extraLinks || []).forEach((l) => { if (l && l.url) socials.push([l.platform || 'link', l.url]); });
 
   const uname = full.username || profile.username;
-  const displayName = uname ? `@${uname}` : (full.nickname || p.fullName || p.business_name || profile.nickname || '—');
+  // Real name is the review identity; the @username/id is secondary (shown after approval).
+  const realName = brand ? (p.business_name || p.businessName || full.business_name) : (p.fullName || p.full_name || full.full_name);
+  const displayName = (realName && String(realName).trim()) || full.nickname || profile.nickname || (uname ? `@${uname}` : '—');
   const headerEmail = full.email || p.business_email || profile.email;
-  const flagName = !brand && looksLikeRealName(displayName);
+  const flagName = !brand && looksLikeRealName(uname || '');
   const gst = gstStatus(p);
   const flags = brand ? brandFlags(p, headerEmail) : [];
   const website = brand ? (p.website || p.website_url) : null;
@@ -493,7 +505,9 @@ function ApplicationsPage() {
   const fetchApplications = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/admin/pending-profiles`);
+      // `status=all` returns every state (incl. rejected) so the State filter and
+      // rejection details stay available after a decision is made.
+      const res = await axios.get(`${API}/admin/pending-profiles?status=all`);
       setApplications(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch {
       toast.error('Failed to load applications');

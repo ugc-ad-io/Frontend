@@ -305,6 +305,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   }
 
   const decide = (action, payload) => { onDecide(profile.id, action, payload); onBack(); };
+  const decided = ['approved', 'rejected'].includes(full?.approval_status);
   const toggleItem = (it) => setInfoItems((cur) => cur.includes(it) ? cur.filter((x) => x !== it) : [...cur, it]);
 
   return (
@@ -455,11 +456,17 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 
         <div className="apps-modal-foot">
           {mode === null && (
-            <>
-              <button className="btn-decision btn-moreinfo" onClick={() => setMode('more_info')}><MessageSquarePlus size={15} /> Request More Info</button>
-              <button className="btn-decision btn-reject" onClick={() => setMode('reject')}>✕ Reject</button>
-              <button className="btn-decision btn-approve" onClick={() => decide('approve')}>✓ Approve</button>
-            </>
+            decided ? (
+              <span className="apps-decided-note" style={{ color: '#585c7e', fontSize: 13.5, fontWeight: 600, padding: '4px 2px' }}>
+                This profile is already {(STATE_META[full.approval_status] || {}).label || full.approval_status} — no further action needed.
+              </span>
+            ) : (
+              <>
+                <button className="btn-decision btn-moreinfo" onClick={() => setMode('more_info')}><MessageSquarePlus size={15} /> Request More Info</button>
+                <button className="btn-decision btn-reject" onClick={() => setMode('reject')}>✕ Reject</button>
+                <button className="btn-decision btn-approve" onClick={() => decide('approve')}>✓ Approve</button>
+              </>
+            )
           )}
           {mode === 'more_info' && (
             <>

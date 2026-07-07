@@ -800,11 +800,20 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
 }
 
 function Row({ label, value, reveal, revealed }) {
+  // Some profile fields (e.g. socials / per-platform followers) are objects like
+  // { youtube, instagram, ... }. Rendering an object directly crashes React
+  // (error #31), so flatten it to a readable string first.
+  const display = (value !== null && typeof value === 'object' && !Array.isArray(value))
+    ? (Object.entries(value)
+        .filter(([, v]) => v !== null && v !== undefined && v !== '')
+        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+        .join(' · ') || '—')
+    : (Array.isArray(value) ? value.join(', ') : value);
   return (
     <div className="aud-row">
       <span>{label}</span>
       <strong>
-        {value}
+        {display}
         {reveal && <button className="aud-reveal" onClick={reveal}>{revealed ? 'hide' : 'reveal'}</button>}
       </strong>
     </div>

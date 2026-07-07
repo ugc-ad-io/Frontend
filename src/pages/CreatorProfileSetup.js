@@ -192,6 +192,28 @@ const STEP2_FIELDS = ['phone', 'pincode', 'country', 'state', 'city', 'address']
 const STEP_FIELDS = { 1: STEP1_FIELDS, 2: STEP2_FIELDS };
 const isFilled = (v) => String(v ?? '').trim() !== '';
 
+// Indian PIN codes: the first digit is a postal zone mapping to a group of states.
+// A gross cross-zone mismatch (e.g. a Kerala PIN with Himachal selected) is rejected;
+// same-zone neighbours are allowed (finer precision would false-reject valid PINs).
+const STATE_ZONE = {
+  'Delhi': '1', 'Haryana': '1', 'Punjab': '1', 'Himachal Pradesh': '1', 'Jammu and Kashmir': '1', 'Ladakh': '1', 'Chandigarh': '1',
+  'Uttar Pradesh': '2', 'Uttarakhand': '2',
+  'Rajasthan': '3', 'Gujarat': '3', 'Dadra and Nagar Haveli and Daman and Diu': '3',
+  'Chhattisgarh': '4', 'Madhya Pradesh': '4', 'Maharashtra': '4', 'Goa': '4',
+  'Andhra Pradesh': '5', 'Telangana': '5', 'Karnataka': '5',
+  'Kerala': '6', 'Tamil Nadu': '6', 'Puducherry': '6', 'Lakshadweep': '6',
+  'West Bengal': '7', 'Odisha': '7', 'Arunachal Pradesh': '7', 'Assam': '7', 'Manipur': '7', 'Meghalaya': '7', 'Mizoram': '7', 'Nagaland': '7', 'Tripura': '7', 'Sikkim': '7', 'Andaman and Nicobar Islands': '7',
+  'Bihar': '8', 'Jharkhand': '8',
+};
+const pinZoneMismatch = (pincode, state, country) => {
+  if (country && !/india/i.test(country)) return false;
+  const pin = String(pincode || '').replace(/\D/g, '');
+  if (pin.length < 6) return false;               // only validate a complete 6-digit PIN
+  const zone = STATE_ZONE[state];
+  if (!zone) return false;                          // unknown state → don't block
+  return pin[0] !== zone;
+};
+
 // Custom dial-code picker that shows real flag images (native <option> can't).
 function DialCodeSelect({ value, onChange }) {
   const [open, setOpen] = useState(false);
@@ -404,7 +426,11 @@ export default function CreatorProfileSetup() {
   // (stubs) return {} and count as complete.
   const checksFor = (s) => {
     const f = STEP_FIELDS[s];
-    if (f) return Object.fromEntries(f.map((k) => [k, isFilled(data[k])]));
+    if (f) {
+      const base = Object.fromEntries(f.map((k) => [k, isFilled(data[k])]));
+      if (s === 2) base.pincode = base.pincode && !pinZoneMismatch(data.pincode, data.state, data.country);
+      return base;
+    }
     if (s === 3) return {
       skills: data.skills.length > 0,
       profileLink: PLATFORMS.some((p) => isFilled(data.links[p.key])) || data.extraLinks.some((l) => isFilled(l.url)),
@@ -819,12 +845,14 @@ export default function CreatorProfileSetup() {
           <div className="ps-field">
             <label className="ps-label">Pincode</label>
             <input
-              className={`ps-input${err('pincode') ? ' ps-input--error' : ''}`}
+              className={`ps-input${(err('pincode') || pinZoneMismatch(data.pincode, data.state, data.country)) ? ' ps-input--error' : ''}`}
               placeholder="e.g- 800001"
               value={data.pincode}
               onChange={(e) => set('pincode', e.target.value)}
             />
-            {reqError('pincode')}
+            {pinZoneMismatch(data.pincode, data.state, data.country)
+              ? <span className="ps-error">This PIN code doesn’t match {data.state || 'the selected state'}.</span>
+              : reqError('pincode')}
           </div>
 
           {/* Country */}
@@ -1252,7 +1280,7 @@ export default function CreatorProfileSetup() {
             <h1 className="ps-thanks__title">Application Submitted <PartyPopper size={24} /></h1>
             <p className="ps-thanks__text">
               Thanks for submitting your creator profile. Our team will review it and get back to
-              you within <strong>48 hours</strong>. Keep an eye on your inbox!
+              you within <strong>24-48 hours</strong>. Keep an eye on your inbox!
             </p>
             <div className="ps-thanks__actions">
               <button className="ps-btn-primary ps-thanks__home" onClick={() => navigate('/')}>

@@ -5,7 +5,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown } from 'lucide-react';
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
-import { ADMIN_ROLES, ROLE_LABELS, ROLE_MATRIX, isFounder as roleIsFounder } from '../utils/adminRoles';
+import { ADMIN_ROLES, ROLE_LABELS, ROLE_MATRIX, CAP_LABELS, ALL_CAPS, SCOPE_LABELS, isFounder as roleIsFounder } from '../utils/adminRoles';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -19,6 +19,7 @@ const ROLE_TONE = {
   ops_senior: 'senior',
   ops_regular: 'regular',
   finance: 'finance',
+  custom: 'custom',
 };
 
 export default function AdminRoles() {
@@ -37,6 +38,14 @@ export default function AdminRoles() {
   const [selectedCats, setSelectedCats] = useState([]);
   const [savingCats, setSavingCats] = useState(false);
   const [customCat, setCustomCat] = useState('');
+  // Custom-admin config (new-admin form)
+  const [newCaps, setNewCaps] = useState([]);
+  const [newScope, setNewScope] = useState('all');
+  // Custom-access editor for an existing member
+  const [accessMember, setAccessMember] = useState(null);
+  const [accessCaps, setAccessCaps] = useState([]);
+  const [accessScope, setAccessScope] = useState('all');
+  const [savingAccess, setSavingAccess] = useState(false);
 
   useEffect(() => { fetchStaff(); fetchCategories(); }, []);
 
@@ -67,6 +76,8 @@ export default function AdminRoles() {
 
   const changeRole = async (member, admin_role) => {
     if (admin_role === member.admin_role) return;
+    // Custom needs a capability + scope selection — open the access editor.
+    if (admin_role === 'custom') { openAccessEditor(member); return; }
     setSavingId(member.id);
     try {
       await axios.post(`${API}/admin/staff/role`, { user_id: member.id, admin_role });
@@ -79,6 +90,29 @@ export default function AdminRoles() {
     }
   };
 
+  // ── Custom-admin access editor (capabilities + creator/brand scope) ──
+  const openAccessEditor = (m) => {
+    setAccessMember(m);
+    setAccessCaps(m.admin_caps || []);
+    setAccessScope(m.admin_scope || 'all');
+  };
+  const toggleAccessCap = (c) => setAccessCaps((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]);
+  const saveAccess = async () => {
+    setSavingAccess(true);
+    try {
+      await axios.post(`${API}/admin/staff/role`, {
+        user_id: accessMember.id, admin_role: 'custom', admin_caps: accessCaps, admin_scope: accessScope,
+      });
+      toast.success(`Custom access saved for ${accessMember.email}`);
+      setAccessMember(null);
+      fetchStaff();
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Failed to save custom access'));
+    } finally {
+      setSavingAccess(false);
+    }
+  };
+
   const addAdmin = async () => {
     const email = newEmail.trim().toLowerCase();
     if (!email) { toast.error('Enter an email'); return; }
@@ -86,7 +120,9 @@ export default function AdminRoles() {
     if (pwd && pwd.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setAdding(true);
     try {
-      const res = await axios.post(`${API}/admin/staff/role`, { email, admin_role: newRole, ...(pwd ? { password: pwd } : {}) });
+      const payload = { email, admin_role: newRole, ...(pwd ? { password: pwd } : {}) };
+      if (newRole === 'custom') { payload.admin_caps = newCaps; payload.admin_scope = newScope; }
+      const res = await axios.post(`${API}/admin/staff/role`, payload);
       if (res.data?.created && res.data?.temp_password) {
         toast.success(`${email} created as ${ROLE_LABELS[newRole]}. Temp password: ${res.data.temp_password}`, { duration: 12000 });
       } else if (res.data?.created) {
@@ -98,6 +134,8 @@ export default function AdminRoles() {
       }
       setNewEmail('');
       setNewPassword('');
+      setNewCaps([]);
+      setNewScope('all');
       fetchStaff();
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to add admin'));
@@ -207,6 +245,29 @@ export default function AdminRoles() {
             </div>
           )}
 
+          {founder && newRole === 'custom' && (
+            <div className="arl-custom-box">
+              <div className="arl-custom-scope">
+                <label>This admin manages</label>
+                <select value={newScope} onChange={(e) => setNewScope(e.target.value)}>
+                  {Object.entries(SCOPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <label className="arl-custom-title">Features this admin can use</label>
+              <div className="arl-cap-grid">
+                {ALL_CAPS.map((c) => (
+                  <label key={c} className={`arl-cap-opt ${newCaps.includes(c) ? 'on' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={newCaps.includes(c)}
+                      onChange={() => setNewCaps((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c])}
+                    /> {CAP_LABELS[c]}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <p className="arl-muted">Loading team…</p>
           ) : staff.length === 0 ? (
@@ -248,7 +309,13 @@ export default function AdminRoles() {
                           )}
                         </td>
                         <td>
-                          {seesAllCategories(m) ? (
+                          {m.admin_role === 'custom' ? (
+                            <div className="arl-custom-cell">
+                              <span className="arl-scope-chip">{SCOPE_LABELS[m.admin_scope || 'all']}</span>
+                              <span className="arl-muted">{(m.admin_caps || []).length} feature{(m.admin_caps || []).length === 1 ? '' : 's'}</span>
+                              {founder && <button className="arl-cat-edit" onClick={() => openAccessEditor(m)}>Edit access</button>}
+                            </div>
+                          ) : seesAllCategories(m) ? (
                             <span className="arl-allcats"><Check size={12} /> All categories</span>
                           ) : (m.assigned_categories && m.assigned_categories.length) ? (
                             <div className="arl-cats">{m.assigned_categories.map((c) => <span key={c} className="arl-cat-chip">{c}</span>)}</div>
@@ -321,6 +388,42 @@ export default function AdminRoles() {
             </div>
           </div>
         )}
+
+        {accessMember && (
+          <div className="arl-modal-overlay" onClick={() => setAccessMember(null)}>
+            <div className="arl-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="arl-modal-head">
+                <h3>Custom access — {accessMember.nickname || accessMember.email.split('@')[0]}</h3>
+                <button onClick={() => setAccessMember(null)} aria-label="Close"><X size={18} /></button>
+              </div>
+              <p className="arl-modal-sub">Pick which side of the marketplace this admin manages and exactly which features they can use.</p>
+
+              <div className="arl-custom-scope">
+                <label>This admin manages</label>
+                <select value={accessScope} onChange={(e) => setAccessScope(e.target.value)}>
+                  {Object.entries(SCOPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+
+              <label className="arl-custom-title">Features</label>
+              <div className="arl-cap-grid">
+                {ALL_CAPS.map((c) => (
+                  <label key={c} className={`arl-cap-opt ${accessCaps.includes(c) ? 'on' : ''}`}>
+                    <input type="checkbox" checked={accessCaps.includes(c)} onChange={() => toggleAccessCap(c)} /> {CAP_LABELS[c]}
+                  </label>
+                ))}
+              </div>
+
+              <div className="arl-modal-foot">
+                <span className="arl-muted">{accessCaps.length} feature{accessCaps.length === 1 ? '' : 's'} · {SCOPE_LABELS[accessScope]}</span>
+                <div>
+                  <button className="arl-revoke" onClick={() => setAccessCaps([])}>Clear</button>
+                  <button className="arl-add-btn" onClick={saveAccess} disabled={savingAccess}>{savingAccess ? 'Saving…' : 'Save access'}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -346,7 +449,22 @@ export default function AdminRoles() {
         .arl-badge.senior  { background: #e0e7ff; color: #3730a3; }
         .arl-badge.regular { background: #ecfdf3; color: #067647; }
         .arl-badge.finance { background: #f3e8ff; color: #6b21a8; }
+        .arl-badge.custom { background: #e0f2fe; color: #075985; }
         .arl-add { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+
+        /* Custom-admin config (add form + editor modal) */
+        .arl-custom-box { border: 1px solid #e8ecff; background: #f8f9ff; border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; }
+        .arl-custom-scope { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .arl-custom-scope label { font-size: 12.5px; font-weight: 700; color: #4a5568; }
+        .arl-custom-scope select { padding: 8px 12px; border: 1px solid #d7dbf0; border-radius: 10px; font-family: inherit; font-size: 14px; color: #1a202c; background: #fff; }
+        .arl-custom-title { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9296ba; margin: 6px 0 10px; }
+        .arl-cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+        .arl-cap-opt { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #e6e8f5; border-radius: 10px; font-size: 13.5px; color: #2d3155; cursor: pointer; background: #fff; transition: .15s; }
+        .arl-cap-opt:hover { border-color: #c9cffb; }
+        .arl-cap-opt.on { border-color: #5b6bff; background: #eef0ff; color: #1e2a78; font-weight: 600; }
+        .arl-cap-opt input { accent-color: #5b6bff; }
+        .arl-custom-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .arl-scope-chip { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #e0f2fe; color: #075985; }
         .arl-add input { flex: 1; min-width: 220px; border: 1px solid #e6e8ec; border-radius: 8px; padding: 9px 12px; font-size: 0.88rem; }
         .arl-add select, .arl-table select { border: 1px solid #e6e8ec; border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; background: #fff; cursor: pointer; }
         .arl-add input:focus, .arl-add select:focus, .arl-table select:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,0.16); }

@@ -70,7 +70,7 @@ export default function AdminUsers() {
   // edit modal (kept from before)
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editData, setEditData] = useState({ nickname: '', full_name: '', email: '', role: '' });
+  const [editData, setEditData] = useState({ nickname: '', full_name: '', email: '', role: '', username: '', public_creator_id: '' });
 
   // profile detail drawer (admin view) + per-user activity
   const [detailUser, setDetailUser] = useState(null);
@@ -117,7 +117,7 @@ export default function AdminUsers() {
 
   const handleEdit = (u) => {
     setSelectedUser(u);
-    setEditData({ nickname: u.nickname || '', full_name: u.full_name || '', email: u.email, role: u.role });
+    setEditData({ nickname: u.nickname || '', full_name: u.full_name || '', email: u.email, role: u.role, username: u.username || '', public_creator_id: u.public_creator_id || '' });
     setShowEditModal(true);
   };
 
@@ -127,7 +127,7 @@ export default function AdminUsers() {
       toast.success('User updated successfully');
       // Reflect the change immediately, then reconcile with the server.
       setAllUsers((prev) => prev.map((x) => x.id === selectedUser.id
-        ? { ...x, nickname: editData.nickname, full_name: editData.full_name, email: editData.email, role: editData.role }
+        ? { ...x, nickname: editData.nickname, full_name: editData.full_name, email: editData.email, role: editData.role, username: editData.username, public_creator_id: editData.public_creator_id }
         : x));
       setShowEditModal(false);
       fetchAllUsers();
@@ -430,6 +430,8 @@ export default function AdminUsers() {
             <div className="au-modal-body">
               <label>Full Name<input type="text" value={editData.full_name} onChange={(e) => setEditData({ ...editData, full_name: e.target.value })} /></label>
               <label>Nickname / Handle<input type="text" value={editData.nickname} onChange={(e) => setEditData({ ...editData, nickname: e.target.value })} /></label>
+              <label>Username (@handle)<input type="text" value={editData.username} onChange={(e) => setEditData({ ...editData, username: e.target.value })} placeholder="username" /></label>
+              <label>User ID<input type="text" value={editData.public_creator_id} onChange={(e) => setEditData({ ...editData, public_creator_id: e.target.value })} placeholder="public id" /></label>
               <label>Email<input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} /></label>
               <label>Role
                 <select value={editData.role} onChange={(e) => setEditData({ ...editData, role: e.target.value })}>

@@ -1841,55 +1841,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   </div>
                 </section>
 
-                <section className="wallet-panel wallet-history">
-                  <div className="wallet-history-head">
-                    <div>
-                      <h2>Transaction History</h2>
-                      <p>All wallet activity across recharges, escrow, and fees.</p>
-                    </div>
-                    <div className="wallet-filter-tabs">
-                      {['all', 'credits', 'debits'].map((filter) => (
-                        <button
-                          key={filter}
-                          type="button"
-                          className={walletFilter === filter ? 'active' : ''}
-                          onClick={() => setWalletFilter(filter)}
-                        >
-                          {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {walletError ? (
-                    <div className="wallet-empty">{walletError}</div>
-                  ) : walletLoading ? (
-                    <div className="wallet-empty">Loading wallet activity...</div>
-                  ) : walletTransactions.length === 0 ? (
-                    <div className="wallet-empty">No wallet transactions yet.</div>
-                  ) : (
-                    <div className="wallet-table">
-                      <div className="wallet-row wallet-head">
-                        <span>Date</span>
-                        <span>Type</span>
-                        <span>Reference</span>
-                        <span>Amount</span>
-                        <span>Status</span>
-                      </div>
-                      {walletTransactions.slice(0, 8).map((transaction) => (
-                        <div className="wallet-row" key={transaction.id}>
-                          <span>{formatWalletDate(transaction.date)}</span>
-                          <strong>{transaction.type}</strong>
-                          <span>{transaction.reference || '-'}</span>
-                          <strong className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
-                            {transaction.direction === 'debit' ? '-' : '+'}{formatMoney(transaction.amount)}
-                          </strong>
-                          <span className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
               </div>
 
               <aside className="wallet-side-column">
@@ -1920,6 +1871,56 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <small>Minimum {formatMoney(5000)} • Instant credit after payment verification</small>
                 </section>
               </aside>
+
+              <section className="wallet-panel wallet-history wallet-history-full">
+                <div className="wallet-history-head">
+                  <div>
+                    <h2>Transaction History</h2>
+                    <p>All wallet activity across recharges, escrow, and fees.</p>
+                  </div>
+                  <div className="wallet-filter-tabs">
+                    {['all', 'credits', 'debits'].map((filter) => (
+                      <button
+                        key={filter}
+                        type="button"
+                        className={walletFilter === filter ? 'active' : ''}
+                        onClick={() => setWalletFilter(filter)}
+                      >
+                        {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {walletError ? (
+                  <div className="wallet-empty">{walletError}</div>
+                ) : walletLoading ? (
+                  <div className="wallet-empty">Loading wallet activity...</div>
+                ) : walletTransactions.length === 0 ? (
+                  <div className="wallet-empty">No wallet transactions yet.</div>
+                ) : (
+                  <div className="wallet-table">
+                    <div className="wallet-row wallet-head">
+                      <span>Date</span>
+                      <span>Type</span>
+                      <span>Reference</span>
+                      <span>Amount</span>
+                      <span>Status</span>
+                    </div>
+                    {walletTransactions.slice(0, 8).map((transaction) => (
+                      <div className="wallet-row" key={transaction.id}>
+                        <span>{formatWalletDate(transaction.date)}</span>
+                        <strong>{transaction.type}</strong>
+                        <span>{transaction.reference || '-'}</span>
+                        <strong className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
+                          {transaction.direction === 'debit' ? '-' : '+'}{formatMoney(transaction.amount)}
+                        </strong>
+                        <span className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
           )}
 
@@ -5650,6 +5651,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex-direction: column;
           gap: 24px;
         }
+        /* Transaction History spans the full width below the two columns */
+        .wallet-history-full { grid-column: 1 / -1; }
 
         .wallet-hero-card {
           display: flex;

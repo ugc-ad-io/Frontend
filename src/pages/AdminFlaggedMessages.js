@@ -229,7 +229,6 @@ export default function AdminFlaggedMessages() {
                       onChange={e => setDraftRule({ ...draftRule, type: e.target.value })}
                     >
                       <option value="keyword">Keyword list</option>
-                      <option value="regex">Regex</option>
                     </select>
                   </label>
                   <label className="afm-grow">

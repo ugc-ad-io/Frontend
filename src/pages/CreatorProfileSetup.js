@@ -123,12 +123,12 @@ const PLATFORMS = [
 const LINK_RE = {
   youtube:   /^(https?:\/\/)?(www\.)?(youtube\.com\/(@[\w.-]+|channel\/|c\/|user\/)[\w./-]*|youtu\.be\/[\w-]+)\/?$/i,
   linkedin:  /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|company|pub|school)\/[\w%.-]+\/?$/i,
-  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$|^@?[a-z0-9._]{1,30}$/i,
-  tiktok:    /^(https?:\/\/)?(www\.)?tiktok\.com\/@?[\w.-]+\/?$|^@?[a-z0-9._]{1,30}$/i,
+  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$|^@[a-z0-9._]{1,30}$/i,
+  tiktok:    /^(https?:\/\/)?(www\.)?tiktok\.com\/@?[\w.-]+\/?$|^@[a-z0-9._]{1,30}$/i,
   facebook:  /^(https?:\/\/)?(www\.|m\.)?(facebook\.com|fb\.com|fb\.me)\/[^\s]+$/i,
-  twitter:   /^(https?:\/\/)?(www\.)?(twitter\.com|x\.com)\/[a-z0-9_]{1,15}\/?$|^@?[a-z0-9_]{1,15}$/i,
+  twitter:   /^(https?:\/\/)?(www\.)?(twitter\.com|x\.com)\/[a-z0-9_]{1,15}\/?$|^@[a-z0-9_]{1,15}$/i,
   // Website / custom platforms: at least a real URL or a @handle, not gibberish.
-  generic:   /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+([/?#][^\s]*)?$|^@?[a-z0-9._]{1,30}$/i,
+  generic:   /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+([/?#][^\s]*)?$|^@[a-z0-9._]{1,30}$/i,
 };
 // Map a platform label (from PLATFORMS or a user-added link) to a validator key.
 const platformKey = (label) => {
@@ -145,7 +145,9 @@ const platformKey = (label) => {
 const linkError = (label, value) => {
   const v = String(value || '').trim();
   if (!v) return '';
-  return LINK_RE[platformKey(label)].test(v) ? '' : `Enter a valid ${label} link or handle`;
+  // Each field must be an actual link on that platform (or an @handle) — reject
+  // random text or a link to a different site.
+  return LINK_RE[platformKey(label)].test(v) ? '' : `Enter a valid ${label} link or @handle`;
 };
 
 // Picker options for "Add another social link".
@@ -212,6 +214,33 @@ const pinZoneMismatch = (pincode, state, country) => {
   const zone = STATE_ZONE[state];
   if (!zone) return false;                          // unknown state → don't block
   return pin[0] !== zone;
+};
+
+// Normalize a city/district name for comparison (case/space/dot-insensitive).
+const normCity = (s) => String(s || '').toLowerCase().replace(/[.\s]+/g, '').trim();
+
+// Look up an Indian PIN code's District + State via India Post's free API.
+// Returns { district, state } or null. No API key required.
+const lookupPincode = async (pin) => {
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+    const json = await res.json();
+    const office = json?.[0]?.PostOffice?.[0];
+    if (!office) return null;
+    return { district: office.District || '', state: office.State || '' };
+  } catch {
+    return null;
+  }
+};
+
+// True when a complete PIN resolves to a district that clearly differs from the
+// selected city. Only flags when the PIN's district is itself a selectable city
+// for that state (so we never false-reject on naming quirks / small towns).
+const cityPinMismatch = (city, pinInfo) => {
+  if (!pinInfo || !pinInfo.district || !city) return false;
+  const stateCities = (CITIES_BY_STATE[pinInfo.state] || []).map(normCity);
+  if (!stateCities.includes(normCity(pinInfo.district))) return false; // district not a known option → don't block
+  return normCity(city) !== normCity(pinInfo.district);
 };
 
 // Custom dial-code picker that shows real flag images (native <option> can't).
@@ -300,7 +329,7 @@ export default function CreatorProfileSetup() {
   const [submitting, setSubmitting] = useState(false);     // Submit Application in progress
   const [submitted, setSubmitted] = useState(false);       // show the thank-you card
   const [editingId, setEditingId] = useState(null);        // portfolio item being edited
-  const [editDraft, setEditDraft] = useState({ brand: '', desc: '' });
+  const [editDraft, setEditDraft] = useState({ brand: '', price: '', category: '' });
   const [justAddedId, setJustAddedId] = useState(null);    // shows the "Added" badge
   const pfIdRef = useRef(0);
   const brandRef = useRef(null);
@@ -332,7 +361,7 @@ export default function CreatorProfileSetup() {
     runAds: '',
     newAccount: '',
     portfolio: [],
-    pfBrand: '', pfDesc: '', pfLink: '', pfVideo: '', pfVideoUrl: '',
+    pfBrand: '', pfPrice: '', pfCategory: '', pfLink: '', pfVideo: '', pfVideoUrl: '',
     languages: [],
     langFluency: {}, // { language: 'Native' | 'Fluent' | 'Conversational' }
     // Step 5 — Recording Setup & Equipment
@@ -362,6 +391,37 @@ export default function CreatorProfileSetup() {
   }, []);
 
   const set = (field, value) => setData((d) => ({ ...d, [field]: value }));
+
+  // Resolve the City/State from the PIN code (India Post API) once it's a
+  // complete 6-digit Indian PIN. Auto-fills empty State/City and enables the
+  // City-vs-PIN mismatch check so a wrong city (e.g. Gwalior for an Indore PIN)
+  // is caught the same way a wrong State already is.
+  const [pinLookup, setPinLookup] = useState(null); // { district, state } | null
+  useEffect(() => {
+    const pin = String(data.pincode || '').replace(/\D/g, '');
+    if (pin.length !== 6 || (data.country && !/india/i.test(data.country))) {
+      setPinLookup(null);
+      return;
+    }
+    let cancelled = false;
+    lookupPincode(pin).then((info) => {
+      if (cancelled || !info) { if (!cancelled) setPinLookup(null); return; }
+      setPinLookup(info);
+      // Auto-fill only when the fields are still empty (never override a choice).
+      setData((d) => {
+        const next = { ...d };
+        if (!d.state && info.state && STATES.includes(info.state)) next.state = info.state;
+        const cityState = next.state || info.state;
+        const options = CITIES_BY_STATE[cityState] || [];
+        if (!d.city) {
+          const match = options.find((c) => normCity(c) === normCity(info.district));
+          if (match) next.city = match;
+        }
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [data.pincode, data.country]);
   // Toggle a value in an array field (multi-select chips).
   const toggleIn = (field, value) => setData((d) => {
     const arr = d[field];
@@ -379,14 +439,14 @@ export default function CreatorProfileSetup() {
   const addPortfolio = () => {
     if (!isFilled(data.pfBrand) && !isFilled(data.pfLink) && !isFilled(data.pfVideo)) return;
     const id = `p${pfIdRef.current++}`;
-    setData((d) => ({ ...d, portfolio: [...d.portfolio, { id, brand: d.pfBrand, desc: d.pfDesc, link: d.pfLink, video: d.pfVideo, videoUrl: d.pfVideoUrl }], pfBrand: '', pfDesc: '', pfLink: '', pfVideo: '', pfVideoUrl: '' }));
+    setData((d) => ({ ...d, portfolio: [...d.portfolio, { id, brand: d.pfBrand, price: d.pfPrice, category: d.pfCategory, link: d.pfLink, video: d.pfVideo, videoUrl: d.pfVideoUrl }], pfBrand: '', pfPrice: '', pfCategory: '', pfLink: '', pfVideo: '', pfVideoUrl: '' }));
     setJustAddedId(id);
     setEditingId(null);
   };
-  const startModify = (item) => { setEditingId(item.id); setEditDraft({ brand: item.brand, desc: item.desc }); setJustAddedId(null); };
+  const startModify = (item) => { setEditingId(item.id); setEditDraft({ brand: item.brand, price: item.price, category: item.category }); setJustAddedId(null); };
   const cancelModify = () => setEditingId(null);
   const saveModify = () => {
-    setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: editDraft.brand, desc: editDraft.desc } : it)) }));
+    setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: editDraft.brand, price: editDraft.price, category: editDraft.category } : it)) }));
     setEditingId(null);
   };
   const deleteItem = (id) => {
@@ -429,6 +489,7 @@ export default function CreatorProfileSetup() {
     if (f) {
       const base = Object.fromEntries(f.map((k) => [k, isFilled(data[k])]));
       if (s === 2) base.pincode = base.pincode && !pinZoneMismatch(data.pincode, data.state, data.country);
+      if (s === 2) base.city = base.city && !cityPinMismatch(data.city, pinLookup);
       return base;
     }
     if (s === 3) return {
@@ -893,7 +954,7 @@ export default function CreatorProfileSetup() {
               <label className="ps-label">City</label>
               <div className="ps-select">
                 <select
-                  className={`ps-select__el${data.city ? '' : ' ps-select__el--empty'}${err('city') ? ' ps-select__el--error' : ''}`}
+                  className={`ps-select__el${data.city ? '' : ' ps-select__el--empty'}${(err('city') || cityPinMismatch(data.city, pinLookup)) ? ' ps-select__el--error' : ''}`}
                   value={data.city}
                   disabled={!data.state}
                   onChange={(e) => set('city', e.target.value)}
@@ -903,7 +964,9 @@ export default function CreatorProfileSetup() {
                 </select>
                 <ChevronDown size={18} className="ps-select__chev" />
               </div>
-              {reqError('city')}
+              {cityPinMismatch(data.city, pinLookup)
+                ? <span className="ps-error">This city doesn’t match PIN {data.pincode} ({pinLookup.district}).</span>
+                : reqError('city')}
             </div>
           </div>
 
@@ -1072,7 +1135,8 @@ export default function CreatorProfileSetup() {
               </div>
               <div className="ps-pf__right">
                 <input ref={brandRef} className="ps-input" placeholder="Brand name" value={data.pfBrand} onChange={(e) => set('pfBrand', e.target.value)} />
-                <textarea className="ps-input ps-textarea" placeholder="Description (Optional - not visible to clients)" value={data.pfDesc} onChange={(e) => set('pfDesc', e.target.value)} />
+                <input className="ps-input" placeholder="Price" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value)} />
+                <input className="ps-input" placeholder="Category" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)} />
                 <button type="button" className="ps-btn-soft" onClick={addPortfolio}>Add to Profile</button>
               </div>
             </div>
@@ -1092,7 +1156,8 @@ export default function CreatorProfileSetup() {
                       {editingId === it.id ? (
                         <div className="ps-vid__body">
                           <input className="ps-input" placeholder="Brand name" value={editDraft.brand} onChange={(e) => setEditDraft((d) => ({ ...d, brand: e.target.value }))} />
-                          <textarea className="ps-input ps-textarea" placeholder="What was this video for and what was your role?" value={editDraft.desc} onChange={(e) => setEditDraft((d) => ({ ...d, desc: e.target.value }))} />
+                          <input className="ps-input" placeholder="Price" value={editDraft.price} onChange={(e) => setEditDraft((d) => ({ ...d, price: e.target.value }))} />
+                          <input className="ps-input" placeholder="Category" value={editDraft.category} onChange={(e) => setEditDraft((d) => ({ ...d, category: e.target.value }))} />
                           <div className="ps-vid__actions">
                             <button type="button" className="ps-btn-soft" onClick={saveModify}>Save Changes</button>
                             <button type="button" className="ps-vid__del" onClick={() => deleteItem(it.id)}><Trash2 size={14} /> Delete</button>
@@ -1102,7 +1167,11 @@ export default function CreatorProfileSetup() {
                       ) : (
                         <div className="ps-vid__body">
                           <div className="ps-vid__name">{it.brand || it.link || it.video || 'Untitled'}</div>
-                          <div className="ps-vid__desc">{isFilled(it.desc) ? it.desc : <span className="ps-muted">No description added yet.</span>}</div>
+                          <div className="ps-vid__desc">
+                            {isFilled(it.price) || isFilled(it.category)
+                              ? [isFilled(it.price) ? it.price : null, isFilled(it.category) ? it.category : null].filter(Boolean).join(' · ')
+                              : <span className="ps-muted">No price or category added yet.</span>}
+                          </div>
                           <div className="ps-vid__actions ps-vid__actions--read">
                             <div className="ps-vid__left">
                               {justAddedId === it.id && <span className="ps-vid__added"><Check size={14} /> Added</span>}

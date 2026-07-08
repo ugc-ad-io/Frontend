@@ -5,7 +5,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import {
   Users, Search, X, Eye, Download, Send, Ban, ShieldAlert, AlertTriangle,
   ArrowUpCircle, ArrowDownCircle, Wallet, Percent, Crown, MessageSquare,
-  FileText, CreditCard, CalendarClock, Flag,
+  FileText, CreditCard, CalendarClock, Flag, Trash2, ShieldCheck,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useAuth } from '../App';
@@ -117,7 +117,7 @@ export default function AdminUsers() {
 
   const handleEdit = (u) => {
     setSelectedUser(u);
-    setEditData({ nickname: u.nickname || '', full_name: u.full_name || '', email: u.email, role: u.role, username: u.username || '', public_creator_id: u.public_creator_id || '' });
+    setEditData({ nickname: u.nickname || '', full_name: u.full_name || '', email: u.email, role: u.role, username: u.username || '', public_creator_id: u.public_creator_id || u.id || '' });
     setShowEditModal(true);
   };
 
@@ -355,7 +355,16 @@ export default function AdminUsers() {
             >
               <Send size={14} /> Announce to selected
             </button>
-            {selectedIds.size > 0 && <button type="button" className="au-bulk-clear" onClick={() => setSelectedIds(new Set())}>Clear</button>}
+            {selectedIds.size > 0 && (
+              <button
+                type="button"
+                className="au-bulk-delete"
+                disabled={!selectedUsers.length}
+                onClick={() => setAction({ type: 'delete', users: selectedUsers })}
+              >
+                <Trash2 size={14} /> Delete selected
+              </button>
+            )}
           </div>
         </div>
 
@@ -429,19 +438,9 @@ export default function AdminUsers() {
             </div>
             <div className="au-modal-body">
               <label>Full Name<input type="text" value={editData.full_name} onChange={(e) => setEditData({ ...editData, full_name: e.target.value })} /></label>
-              <label>Nickname / Handle<input type="text" value={editData.nickname} onChange={(e) => setEditData({ ...editData, nickname: e.target.value })} /></label>
               <label>Username (@handle)<input type="text" value={editData.username} onChange={(e) => setEditData({ ...editData, username: e.target.value })} placeholder="username" /></label>
               <label>User ID<input type="text" value={editData.public_creator_id} onChange={(e) => setEditData({ ...editData, public_creator_id: e.target.value })} placeholder="public id" /></label>
               <label>Email<input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} /></label>
-              <label>Role
-                <select value={editData.role} onChange={(e) => setEditData({ ...editData, role: e.target.value })}>
-                  <option value="creator">Creator</option>
-                  <option value="business">Business</option>
-                  <option value="admin">Admin</option>
-                  <option value="campaign_manager">Campaign Manager</option>
-                  <option value="support_staff">Support Staff</option>
-                </select>
-              </label>
             </div>
             <div className="au-modal-actions">
               <button className="au-btn au-btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
@@ -475,7 +474,7 @@ export default function AdminUsers() {
         <ActionModal
           action={action}
           onClose={() => setAction(null)}
-          onDone={() => { setAction(null); fetchAllUsers(); }}
+          onDone={() => { setAction(null); fetchAllUsers(); setSelectedIds(new Set()); }}
           adminPost={adminPost}
         />
       )}
@@ -516,6 +515,8 @@ export default function AdminUsers() {
         .au-bulk-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border: 1.5px solid #e2e8f0; background: white; border-radius: 9px; font-size: 0.8rem; font-weight: 600; color: #4a5568; cursor: pointer; }
         .au-bulk-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
         .au-bulk-clear { color: #b42318 !important; }
+        .au-bulk-delete { color: #b42318 !important; border-color: #f2b8c6 !important; background: #fff5f8 !important; }
+        .au-bulk-delete:hover:not(:disabled) { background: #ffe4ec !important; }
 
         .au-table-wrap { background: white; border: 1.5px solid #e8ecff; border-radius: 14px; overflow-x: auto; }
         .au-table { width: 100%; border-collapse: collapse; }
@@ -551,7 +552,7 @@ export default function AdminUsers() {
         .au-btn-secondary { background: #e2e8f0; color: #4a5568; padding: 10px 18px; font-size: 0.9rem; }
         .au-btn-secondary:hover { background: #cbd5e0; }
 
-        .au-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .au-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1300; padding: 20px; }
         .au-modal { background: white; border-radius: 16px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; }
         .au-modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1.5px solid #e8ecff; }
         .au-modal-head h2 { margin: 0; font-size: var(--fs-h2); color: #07074e; }
@@ -780,6 +781,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
         {/* Actions (spec 11.10) — gated by admin role capabilities (PRD 11) */}
         <div className="aud-actions-bar">
           {caps.warnSuspend && <button className="aud-action-btn" onClick={() => onAction('warn')}><AlertTriangle size={14} /> Warn</button>}
+          {caps.warnSuspend && (u.suspended || u.status === 'suspended') && <button className="aud-action-btn" onClick={() => onAction('unsuspend')}><ShieldCheck size={14} /> Unsuspend</button>}
           {caps.warnSuspend && <button className="aud-action-btn danger" onClick={() => onAction('suspend')}><ShieldAlert size={14} /> Suspend</button>}
           {caps.ban && <button className="aud-action-btn danger" onClick={onBan}><Ban size={14} /> {banned ? 'Unban' : 'Ban'}</button>}
           {!brand && <>
@@ -793,6 +795,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
           </>}
           {caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust {brand ? 'Wallet' : 'Payout'}</button>}
           <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
+          {caps.ban && <button className="aud-action-btn danger" onClick={() => onAction('delete')}><Trash2 size={14} /> Delete</button>}
         </div>
       </div>
     </div>
@@ -840,6 +843,8 @@ const ACTION_META = {
   demote: { title: 'Demote Level', kind: 'confirm', btn: 'Demote', icon: ArrowDownCircle, msg: 'Demote this creator one level?' },
   convertpro: { title: 'Convert to Pro', kind: 'confirm', btn: 'Convert', icon: Crown, msg: 'Upgrade this brand to a Pro account? (V2 feature.)' },
   announce: { title: 'Send Announcement', label: 'Announcement', kind: 'text', btn: 'Send to selected', icon: Send },
+  delete: { title: 'Delete User', kind: 'confirm', btn: 'Delete Permanently', icon: Trash2, msg: 'This permanently deletes the user and all their data. This cannot be undone.' },
+  unsuspend: { title: 'Lift Suspension', kind: 'confirm', btn: 'Unsuspend', icon: ShieldCheck, msg: 'Lift this user’s suspension and restore their account access?' },
 };
 
 function ActionModal({ action, onClose, onDone, adminPost }) {
@@ -866,6 +871,9 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
         if (!reason.trim()) { setBusy(false); return toast.error('Reason is required'); }
         ok = await adminPost('/admin/user/suspend', { user_id: u.id, reason, duration_days: Number(duration) || 0 }, `Suspended for ${duration} day(s)`);
         break;
+      case 'unsuspend':
+        ok = await adminPost('/admin/user/unsuspend', { user_id: u.id }, 'Suspension lifted');
+        break;
       case 'message':
         if (!text.trim()) { setBusy(false); return toast.error('Enter a message'); }
         ok = await adminPost('/admin/user/message', { user_id: u.id, message: text }, 'Message sent');
@@ -889,6 +897,23 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
       case 'convertpro':
         ok = await adminPost('/admin/user/convert-pro', { user_id: u.id }, 'Converted to Pro');
         break;
+      case 'delete': {
+        // Supports both single (action.user) and bulk (action.users) delete.
+        const targets = action.users ? action.users : (action.user ? [action.user] : []);
+        const results = await Promise.allSettled(
+          targets.map((t) => axios.delete(`${API}/admin/user/${t.id}`))
+        );
+        const rejected = results.filter((r) => r.status === 'rejected');
+        const failed = rejected.length;
+        const done = targets.length - failed;
+        if (done) toast.success(`${done} user${done > 1 ? 's' : ''} deleted`);
+        if (failed) {
+          const why = apiErrorMessage(rejected[0].reason, 'Failed to delete');
+          toast.error(`${failed} user${failed > 1 ? 's' : ''} could not be deleted — ${why}`);
+        }
+        ok = done > 0;
+        break;
+      }
       case 'announce':
         if (!text.trim()) { setBusy(false); return toast.error('Enter an announcement'); }
         ok = await adminPost('/admin/broadcast-notification', { user_ids: action.users.map((x) => x.id), message: text }, `Announcement sent to ${action.users.length} user(s)`);

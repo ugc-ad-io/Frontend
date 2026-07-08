@@ -332,14 +332,14 @@ export default function CreatorDashboard() {
           <h1>More information needed</h1>
           <p>Our team needs a few more details before approving your creator profile. Please update your profile with the info below.</p>
           {review.more_info_message && (
-            <div style={{ textAlign: 'left', background: '#f4f5ff', border: '1px solid #e6e8f8', borderRadius: '14px', padding: '16px 18px', margin: '8px 0 4px', maxWidth: '460px' }}>
-              <strong style={{ color: '#07074e', display: 'block', marginBottom: '6px' }}>What we need</strong>
-              <span style={{ color: '#4b4f7e', fontSize: '14.5px', lineHeight: 1.55 }}>{review.more_info_message}</span>
+            <div style={{ textAlign: 'left', background: 'rgba(139,151,255,0.08)', border: '1px solid rgba(139,151,255,0.25)', borderRadius: '14px', padding: '16px 18px', margin: '8px auto 4px', maxWidth: '460px', width: '100%' }}>
+              <strong style={{ color: '#8b97ff', display: 'block', marginBottom: '6px', fontSize: '13px', letterSpacing: '0.3px' }}>What we need</strong>
+              <span style={{ color: '#d6d7ec', fontSize: '14.5px', lineHeight: 1.55 }}>{review.more_info_message}</span>
             </div>
           )}
           {items.length > 0 && (
-            <ul style={{ textAlign: 'left', margin: '4px 0 6px', paddingLeft: '20px', color: '#4b4f7e', fontSize: '14px', lineHeight: 1.8, maxWidth: '460px' }}>
-              {items.map((it, i) => <li key={i}>{typeof it === 'string' ? it : (it.label || it.name || it.field || '')}</li>)}
+            <ul style={{ textAlign: 'left', margin: '4px auto 6px', paddingLeft: '20px', color: '#b6b6cc', fontSize: '14px', lineHeight: 1.8, maxWidth: '460px' }}>
+              {items.map((it, i) => <li key={i}><strong style={{ color: '#8b97ff' }}>Note:</strong> {typeof it === 'string' ? it : (it.label || it.name || it.field || '')}</li>)}
             </ul>
           )}
           <button type="button" onClick={() => navigate('/profile-setup/creator')}>Update my profile</button>

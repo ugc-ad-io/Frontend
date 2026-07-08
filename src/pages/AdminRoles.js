@@ -46,6 +46,13 @@ export default function AdminRoles() {
   const [accessCaps, setAccessCaps] = useState([]);
   const [accessScope, setAccessScope] = useState('all');
   const [savingAccess, setSavingAccess] = useState(false);
+  // Which custom-admin rows have their full feature list expanded inline.
+  const [expandedCaps, setExpandedCaps] = useState(() => new Set());
+  const toggleExpandCaps = (id) => setExpandedCaps((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   useEffect(() => { fetchStaff(); fetchCategories(); }, []);
 
@@ -276,7 +283,7 @@ export default function AdminRoles() {
             <div className="arl-table-wrap">
               <table className="arl-table">
                 <thead>
-                  <tr><th>Member</th><th>Role</th><th>Categories handled</th><th></th></tr>
+                  <tr><th>Member</th><th>Role</th><th></th></tr>
                 </thead>
                 <tbody>
                   {staff.map((m) => {
@@ -293,40 +300,54 @@ export default function AdminRoles() {
                           </div>
                         </td>
                         <td>
-                          {founder && !locked ? (
-                            <select
-                              value={m.admin_role}
-                              disabled={savingId === m.id}
-                              onChange={(e) => changeRole(m, e.target.value)}
-                              data-testid={`staff-role-${m.id}`}
-                            >
-                              {ADMIN_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                            </select>
-                          ) : (
-                            <span className={`arl-badge ${ROLE_TONE[m.admin_role]}`}>
-                              {m.admin_role === 'founder' && <Crown size={12} />} {ROLE_LABELS[m.admin_role]}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {m.admin_role === 'custom' ? (
-                            <div className="arl-custom-cell">
-                              <span className="arl-scope-chip">{SCOPE_LABELS[m.admin_scope || 'all']}</span>
-                              <span className="arl-muted">{(m.admin_caps || []).length} feature{(m.admin_caps || []).length === 1 ? '' : 's'}</span>
-                              {founder && <button className="arl-cat-edit" onClick={() => openAccessEditor(m)}>Edit access</button>}
-                            </div>
-                          ) : seesAllCategories(m) ? (
-                            <span className="arl-allcats"><Check size={12} /> All categories</span>
-                          ) : (m.assigned_categories && m.assigned_categories.length) ? (
-                            <div className="arl-cats">{m.assigned_categories.map((c) => <span key={c} className="arl-cat-chip">{c}</span>)}</div>
-                          ) : (
-                            <span className="arl-muted">None assigned</span>
-                          )}
-                          {founder && !seesAllCategories(m) && (
-                            <button className="arl-cat-edit" onClick={() => openCatEditor(m)} data-testid={`staff-cats-${m.id}`}>
-                              {m.assigned_categories && m.assigned_categories.length ? 'Edit' : 'Assign'} categories
-                            </button>
-                          )}
+                          <div className="arl-role-cell">
+                            {founder && !locked ? (
+                              <select
+                                value={m.admin_role}
+                                disabled={savingId === m.id}
+                                onChange={(e) => changeRole(m, e.target.value)}
+                                data-testid={`staff-role-${m.id}`}
+                              >
+                                {ADMIN_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                              </select>
+                            ) : (
+                              <span className={`arl-badge ${ROLE_TONE[m.admin_role]}`}>
+                                {m.admin_role === 'founder' && <Crown size={12} />} {ROLE_LABELS[m.admin_role]}
+                              </span>
+                            )}
+                            {/* For a Custom Admin, surface their scope + granted features
+                                inline (fills the space next to the dropdown) + an edit shortcut. */}
+                            {m.admin_role === 'custom' && (
+                              <div className="arl-custom-inline">
+                                <span className="arl-scope-chip">{SCOPE_LABELS[m.admin_scope || 'all']}</span>
+                                {(m.admin_caps && m.admin_caps.length) ? (
+                                  (() => {
+                                    const expanded = expandedCaps.has(m.id);
+                                    const shown = expanded ? m.admin_caps : m.admin_caps.slice(0, 3);
+                                    const hidden = m.admin_caps.length - shown.length;
+                                    return (
+                                      <>
+                                        {shown.map((c) => (
+                                          <span key={c} className="arl-feat-chip">{CAP_LABELS[c] || c}</span>
+                                        ))}
+                                        {hidden > 0 && (
+                                          <button type="button" className="arl-feat-chip arl-feat-more" onClick={() => toggleExpandCaps(m.id)}>+{hidden} more</button>
+                                        )}
+                                        {expanded && m.admin_caps.length > 3 && (
+                                          <button type="button" className="arl-feat-chip arl-feat-more" onClick={() => toggleExpandCaps(m.id)}>Show less</button>
+                                        )}
+                                      </>
+                                    );
+                                  })()
+                                ) : (
+                                  <span className="arl-muted arl-nofeat">No features yet</span>
+                                )}
+                                {founder && (
+                                  <button className="arl-cat-edit arl-inline-edit" onClick={() => openAccessEditor(m)}>Edit access</button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="arl-row-actions">
                           {founder && !locked && (
@@ -398,20 +419,31 @@ export default function AdminRoles() {
               </div>
               <p className="arl-modal-sub">Pick which side of the marketplace this admin manages and exactly which features they can use.</p>
 
-              <div className="arl-custom-scope">
-                <label>This admin manages</label>
-                <select value={accessScope} onChange={(e) => setAccessScope(e.target.value)}>
-                  {Object.entries(SCOPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
+              <div className="arl-modal-body">
+                <div className="arl-custom-scope">
+                  <label>This admin manages</label>
+                  <select value={accessScope} onChange={(e) => setAccessScope(e.target.value)}>
+                    {Object.entries(SCOPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
 
-              <label className="arl-custom-title">Features</label>
-              <div className="arl-cap-grid">
-                {ALL_CAPS.map((c) => (
-                  <label key={c} className={`arl-cap-opt ${accessCaps.includes(c) ? 'on' : ''}`}>
-                    <input type="checkbox" checked={accessCaps.includes(c)} onChange={() => toggleAccessCap(c)} /> {CAP_LABELS[c]}
-                  </label>
-                ))}
+                <div className="arl-custom-title-row">
+                  <label className="arl-custom-title">Features</label>
+                  <button
+                    type="button"
+                    className="arl-selectall"
+                    onClick={() => setAccessCaps(accessCaps.length === ALL_CAPS.length ? [] : [...ALL_CAPS])}
+                  >
+                    {accessCaps.length === ALL_CAPS.length ? 'Deselect all' : 'Select all'}
+                  </button>
+                </div>
+                <div className="arl-cap-grid">
+                  {ALL_CAPS.map((c) => (
+                    <label key={c} className={`arl-cap-opt ${accessCaps.includes(c) ? 'on' : ''}`}>
+                      <input type="checkbox" checked={accessCaps.includes(c)} onChange={() => toggleAccessCap(c)} /> {CAP_LABELS[c]}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="arl-modal-foot">
@@ -458,6 +490,14 @@ export default function AdminRoles() {
         .arl-custom-scope label { font-size: 12.5px; font-weight: 700; color: #4a5568; }
         .arl-custom-scope select { padding: 8px 12px; border: 1px solid #d7dbf0; border-radius: 10px; font-family: inherit; font-size: 14px; color: #1a202c; background: #fff; }
         .arl-custom-title { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9296ba; margin: 6px 0 10px; }
+        /* Scrollable, padded body for the custom-access modal */
+        .arl-modal-body { padding: 12px 20px 4px; overflow-y: auto; }
+        .arl-modal-body .arl-custom-scope { margin-bottom: 16px; }
+        .arl-modal-body .arl-custom-scope select { flex: 1; }
+        .arl-custom-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .arl-custom-title-row .arl-custom-title { margin: 6px 0; }
+        .arl-selectall { border: 1px solid #d6dbff; background: #fff; color: #4452f0; font-weight: 600; font-size: 12px; padding: 5px 11px; border-radius: 7px; cursor: pointer; }
+        .arl-selectall:hover { background: #eef0ff; }
         .arl-cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
         .arl-cap-opt { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #e6e8f5; border-radius: 10px; font-size: 13.5px; color: #2d3155; cursor: pointer; background: #fff; transition: .15s; }
         .arl-cap-opt:hover { border-color: #c9cffb; }
@@ -465,6 +505,14 @@ export default function AdminRoles() {
         .arl-cap-opt input { accent-color: #5b6bff; }
         .arl-custom-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .arl-scope-chip { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #e0f2fe; color: #075985; }
+        /* Custom-admin features shown inline next to the role dropdown */
+        .arl-role-cell { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .arl-custom-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .arl-feat-chip { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #eef0ff; color: #3730a3; white-space: nowrap; }
+        .arl-feat-more { background: #eef1f6; color: #5b6573; border: none; cursor: pointer; font-family: inherit; }
+        .arl-feat-more:hover { background: #e2e6ee; color: #3a4250; }
+        .arl-nofeat { padding: 0; font-size: 12px; font-style: italic; }
+        .arl-inline-edit { margin-top: 0; margin-left: 2px; }
         .arl-add input { flex: 1; min-width: 220px; border: 1px solid #e6e8ec; border-radius: 8px; padding: 9px 12px; font-size: 0.88rem; }
         .arl-add select, .arl-table select { border: 1px solid #e6e8ec; border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; background: #fff; cursor: pointer; }
         .arl-add input:focus, .arl-add select:focus, .arl-table select:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,0.16); }

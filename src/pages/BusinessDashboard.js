@@ -1992,7 +1992,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                                 <td className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '—'}</td>
                                 <td className="ship-action">
                                   {c.selected_creator
-                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id })}>{st === 'delivered' ? 'View' : 'Track'}</button>
+                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id, ship: st !== 'delivered' && st !== 'transit' })}>{st === 'delivered' ? 'View' : st === 'transit' ? 'Track' : 'Ship'}</button>
                                     : <button type="button" onClick={() => setModalView({ type: 'campaign', id: c.id })}>Select</button>}
                                 </td>
                               </tr>
@@ -2293,9 +2293,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           /* Compact, SaaS-grade type scale — overrides the oversized global clamp()
              sizes just inside this dashboard (matches the creator dashboard). */
-          --fs-h1: 24px;   /* page title (reduced ~11%) */
-          --fs-h2: 17px;   /* section / card titles (reduced ~11%) */
-          --fs-h3: 14px;   /* component titles (reduced ~11%) */
+          --fs-h1: 22px;   /* page title */
+          --fs-h2: 16px;   /* section / card titles */
+          --fs-h3: 13.5px; /* component titles */
           --fw-head: 600;  /* real semibold weight for hierarchy */
         }
 
@@ -7078,7 +7078,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         <PageModal onClose={() => setModalView(null)} bare={modalView.type === 'campaign'} drawer={modalView.type === 'shipment'} maxWidth={modalView.type === 'campaign' ? 900 : modalView.type === 'shipment' ? 560 : 1100}>
           {modalView.type === 'campaign' && <CampaignDetails embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'review' && <WorkReview embedId={modalView.id} onClose={() => setModalView(null)} />}
-          {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} onClose={() => setModalView(null)} />}
+          {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} autoShip={modalView.ship} onClose={() => setModalView(null)} />}
         </PageModal>
       )}
 

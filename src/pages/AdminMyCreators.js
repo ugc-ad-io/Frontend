@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Users, Search, Eye } from 'lucide-react';
+import { Users, Search, Eye, UserRound } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import CreatorProfileModal from '../components/CreatorProfileModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -22,6 +23,7 @@ export default function AdminMyCreators() {
   const [data, setData] = useState({ scoped: false, assigned_categories: [], users: [] });
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
+  const [view, setView] = useState(null); // { id, name, photo } — profile modal for decided applicants
 
   useEffect(() => {
     (async () => {
@@ -102,7 +104,11 @@ export default function AdminMyCreators() {
                       <td className="amc-email">{u.email}</td>
                       <td><span className={`amc-state amc-state-${u.approval_status}`}>{STATE_LABEL[u.approval_status] || u.approval_status}</span></td>
                       <td className="amc-actions">
-                        <a className="amc-view" href="/dashboard/admin/applications"><Eye size={14} /> Review</a>
+                        {['approved', 'rejected'].includes(u.approval_status) ? (
+                          <button type="button" className="amc-view" onClick={() => setView({ id: u.id, name, photo: p.profile_photo || p.photo })}><UserRound size={14} /> View Profile</button>
+                        ) : (
+                          <a className="amc-view" href="/dashboard/admin/applications"><Eye size={14} /> Review</a>
+                        )}
                       </td>
                     </tr>
                   );
@@ -138,12 +144,21 @@ export default function AdminMyCreators() {
         .amc-state-approved { background: #dcfce7; color: #166534; }
         .amc-state-rejected { background: #fee2e2; color: #991b1b; }
         .amc-actions { text-align: right; }
-        .amc-view { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #d6dbff; color: #4452f0; background: #fff; padding: 6px 11px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; text-decoration: none; }
+        .amc-view { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #d6dbff; color: #4452f0; background: #fff; padding: 6px 11px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; text-decoration: none; cursor: pointer; }
         .amc-view:hover { background: #eef0ff; }
         .amc-empty { text-align: center; padding: 60px 20px; color: #98a1ad; display: flex; flex-direction: column; align-items: center; gap: 10px; background: #fff; border: 1px solid #eef0f4; border-radius: 12px; }
         .amc-empty h3 { margin: 0; color: #334155; font-size: 1rem; }
         .amc-empty p { margin: 0; font-size: 0.86rem; }
       `}</style>
+
+      {view && (
+        <CreatorProfileModal
+          id={view.id}
+          fallbackName={view.name}
+          photo={view.photo}
+          onClose={() => setView(null)}
+        />
+      )}
     </AdminLayout>
   );
 }

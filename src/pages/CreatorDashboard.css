@@ -2263,8 +2263,8 @@
 }
 
 .pcd-status-card button {
-  border: 0;
-  border-radius: var(--r-sm);
+  border: 1px solid rgba(139, 151, 255, 0.55);
+  border-radius: 12px;
   padding: 12px 22px;
   background: linear-gradient(135deg, var(--pcd-brand), var(--pcd-brand-strong));
   color: #fff;
@@ -2275,7 +2275,6 @@
 
 .pcd-status-card button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 26px -10px rgba(91, 107, 255, 0.8);
 }
 
 /* ============================================================

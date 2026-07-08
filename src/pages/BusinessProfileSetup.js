@@ -60,6 +60,7 @@ export default function BusinessProfileSetup() {
     phone: '',
     country: '',
     industry: '',
+    customIndustry: '',    // free-text industry when "Other" is selected
     category: '',          // primary UGC content category (work-distribution tag)
     customCategory: '',
     gstin: '',
@@ -104,7 +105,7 @@ export default function BusinessProfileSetup() {
       business_name: form.businessName,
       website: withScheme(form.website),
       social_links: { facebook: withScheme(form.facebook), instagram: form.instagram, linkedin: '' },
-      industry_category: form.industry,
+      industry_category: form.industry === 'Other' ? (form.customIndustry.trim() || 'Other') : form.industry,
       category: resolveCategory(form.category, form.customCategory),
       business_description: '',
       product_type: '',
@@ -292,6 +293,15 @@ export default function BusinessProfileSetup() {
             <option value="" disabled>Select industry...</option>
             {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
+          {form.industry === 'Other' && (
+            <input
+              className="bp-input"
+              style={{ marginTop: 10 }}
+              placeholder="Enter your industry"
+              value={form.customIndustry}
+              onChange={(e) => set('customIndustry', e.target.value)}
+            />
+          )}
         </div>
 
         {/* Content category — the kind of UGC you want (routes the application) */}

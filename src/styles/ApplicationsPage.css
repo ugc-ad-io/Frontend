@@ -565,7 +565,7 @@
 
 /* ---- Generic "All Submitted Details" (shows every form field) ---- */
 .all-details-grid {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .all-details-value {

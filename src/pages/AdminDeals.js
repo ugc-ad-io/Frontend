@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -7,6 +7,8 @@ import {
   Clock3, Eye, Scale, IndianRupee, RotateCcw, Send, ExternalLink, Truck, Wallet, Users, FileText
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import CreatorProfileModal from '../components/CreatorProfileModal';
+import BrandProfileModal from '../components/BrandProfileModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -66,6 +68,29 @@ const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '—');
 const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
 
+// Known section titles that may appear in a flattened brief. Rendered as headings.
+const BRIEF_HEADINGS = new Set([
+  'deliverable', 'brief', 'deliverables', 'campaign basics', 'creative requirements',
+  'creative restrictions', 'style guidance', 'usage rights', 'timeline & budget', 'review summary'
+]);
+
+// Render a brief string with visual hierarchy: section titles become headings and
+// "Label: value" lines get a bold label, instead of one flat block of same-weight text.
+const renderBrief = (text) => {
+  const lines = String(text || '').split(/\r?\n/);
+  return lines.map((line, i) => {
+    const t = line.trim();
+    if (!t) return <div key={i} className="adl-brief-gap" />;
+    const bare = t.replace(/:$/, '').trim();
+    const m = t.match(/^([A-Za-z][^:]{0,40}):\s*(.+)$/);
+    if (BRIEF_HEADINGS.has(bare.toLowerCase()) || (/:$/.test(t) && !m)) {
+      return <h4 key={i} className="adl-brief-h">{bare}</h4>;
+    }
+    if (m) return <p key={i} className="adl-brief-row"><strong>{m[1]}:</strong> {m[2]}</p>;
+    return <p key={i} className="adl-brief-row">{t}</p>;
+  });
+};
+
 const stateTone = (state) => {
   const k = stateKey(state);
   if (k.includes('disputed') || k.includes('damaged')) return 'danger';
@@ -100,6 +125,7 @@ export default function AdminDeals() {
   const [dateTo, setDateTo] = useState('');
 
   const [selected, setSelected] = useState(null);
+  const [profileView, setProfileView] = useState(null); // { type: 'brand'|'creator', id, name }
   const [noteDraft, setNoteDraft] = useState('');
   const [targetState, setTargetState] = useState('');
   const [reasonCode, setReasonCode] = useState('');
@@ -108,8 +134,28 @@ export default function AdminDeals() {
   const [contactParty, setContactParty] = useState('both');
   const [contactMessage, setContactMessage] = useState('');
   const [working, setWorking] = useState(false);
+  const [disputeDeal, setDisputeDeal] = useState(null);   // deal a dispute is being raised on
+  const [disputeReason, setDisputeReason] = useState('');
+  const [confirmBox, setConfirmBox] = useState(null);     // { title, message, confirmLabel, tone, icon, run }
+  // When opened via "Intervene in chat", jump straight to the chat instead of
+  // landing on the brief/description at the top of the drawer.
+  const [focusChat, setFocusChat] = useState(false);
+  const chatSectionRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   useEffect(() => { fetchDeals(); }, []);
+
+  // After the drawer opens for a chat intervention, scroll to the chat section
+  // and focus the compose box.
+  useEffect(() => {
+    if (!selected || !focusChat) return;
+    const t = setTimeout(() => {
+      chatSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      chatInputRef.current?.focus();
+      setFocusChat(false);
+    }, 150);
+    return () => clearTimeout(t);
+  }, [selected, focusChat]);
 
   const fetchDeals = async () => {
     setLoading(true);
@@ -124,10 +170,11 @@ export default function AdminDeals() {
     }
   };
 
-  const openDeal = async (deal) => {
+  const openDeal = async (deal, opts = {}) => {
     setSelected(deal);
     setNoteDraft(''); setTargetState(''); setReasonCode(''); setTransitionReason('');
     setChatDraft(''); setContactParty('both'); setContactMessage('');
+    setFocusChat(!!opts.focusChat); // "Intervene in chat" jumps straight to the chat
     try {
       const res = await axios.get(`${API}/admin/deals/${getId(deal)}`);
       if (res.data) setSelected({ ...deal, ...res.data });
@@ -175,44 +222,73 @@ export default function AdminDeals() {
     }
   };
 
+  // Run the pending confirm-box action, then close the card.
+  const runConfirm = async () => {
+    if (!confirmBox) return;
+    const action = confirmBox.run;
+    setConfirmBox(null);
+    await action();
+  };
+
   // ---- Elevated-privilege actions (logged + both parties notified) ----
-  const releasePayment = async (deal) => {
-    if (!window.confirm(`Release escrow (${money(getEscrow(deal))}) to ${getCreator(deal)} now? This pays the creator immediately.`)) return;
-    setWorking(true);
-    try {
-      await axios.post(`${API}/admin/deals/${getId(deal)}/release-payment`, {});
-      toast.success('Payment released to creator');
-      fetchDeals();
-      setSelected((s) => (s && getId(s) === getId(deal) ? { ...s, current_state: 'Paid - Complete' } : s));
-    } catch (e) {
-      toast.error(apiErrorMessage(e, 'Failed to release payment'));
-    } finally {
-      setWorking(false);
-    }
+  const releasePayment = (deal) => {
+    setConfirmBox({
+      title: 'Release payment',
+      message: `Release escrow (${money(getEscrow(deal))}) to ${getCreator(deal)} now? This pays the creator immediately.`,
+      confirmLabel: 'Release payment',
+      tone: 'primary',
+      icon: 'wallet',
+      run: async () => {
+        setWorking(true);
+        try {
+          await axios.post(`${API}/admin/deals/${getId(deal)}/release-payment`, {});
+          toast.success('Payment released to creator');
+          fetchDeals();
+          setSelected((s) => (s && getId(s) === getId(deal) ? { ...s, current_state: 'Paid - Complete' } : s));
+        } catch (e) {
+          toast.error(apiErrorMessage(e, 'Failed to release payment'));
+        } finally {
+          setWorking(false);
+        }
+      },
+    });
   };
 
-  const refundBrand = async (deal) => {
-    if (!window.confirm(`Refund the full escrow (${money(getEscrow(deal))}) to ${getBrand(deal)}? The deal will be closed.`)) return;
-    setWorking(true);
-    try {
-      await axios.post(`${API}/admin/deals/${getId(deal)}/refund`, { amount: getEscrow(deal), reason: 'admin_refund' });
-      toast.success('Escrow refunded to brand');
-      fetchDeals();
-    } catch (e) {
-      toast.error(apiErrorMessage(e, 'Failed to refund'));
-    } finally {
-      setWorking(false);
-    }
+  const refundBrand = (deal) => {
+    setConfirmBox({
+      title: 'Refund brand',
+      message: `Refund the full escrow (${money(getEscrow(deal))}) to ${getBrand(deal)}? The deal will be closed.`,
+      confirmLabel: 'Refund brand',
+      tone: 'danger',
+      icon: 'refund',
+      run: async () => {
+        setWorking(true);
+        try {
+          await axios.post(`${API}/admin/deals/${getId(deal)}/refund`, { amount: getEscrow(deal), reason: 'admin_refund' });
+          toast.success('Escrow refunded to brand');
+          fetchDeals();
+        } catch (e) {
+          toast.error(apiErrorMessage(e, 'Failed to refund'));
+        } finally {
+          setWorking(false);
+        }
+      },
+    });
   };
 
-  const raiseDispute = async (deal) => {
-    const reason = window.prompt('Raise a dispute on behalf of the parties. Describe the issue:');
-    if (reason === null) return;
-    if (!reason.trim()) { toast.error('A reason is required'); return; }
+  const raiseDispute = (deal) => {
+    setDisputeReason('');
+    setDisputeDeal(deal);
+  };
+
+  const submitDispute = async () => {
+    if (!disputeReason.trim()) { toast.error('A reason is required'); return; }
     setWorking(true);
     try {
-      await axios.post(`${API}/admin/deals/${getId(deal)}/raise-dispute`, { reason: reason.trim() });
+      await axios.post(`${API}/admin/deals/${getId(disputeDeal)}/raise-dispute`, { reason: disputeReason.trim() });
       toast.success('Dispute opened on behalf of the parties');
+      setDisputeDeal(null);
+      setDisputeReason('');
       fetchDeals();
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to raise dispute'));
@@ -404,7 +480,7 @@ export default function AdminDeals() {
                       <td>
                         <div className="adl-actions">
                           <button className="adl-qa" title="View deal" onClick={() => openDeal(d)} data-testid={`view-deal-${getId(d)}`}><Eye size={15} /></button>
-                          <button className="adl-qa" title="Intervene in chat" onClick={() => openDeal(d)} data-testid={`chat-deal-${getId(d)}`}><MessageSquare size={15} /></button>
+                          <button className="adl-qa" title="Intervene in chat" onClick={() => openDeal(d, { focusChat: true })} data-testid={`chat-deal-${getId(d)}`}><MessageSquare size={15} /></button>
                           <button className="adl-qa danger" title="Raise dispute on behalf" disabled={working} onClick={() => raiseDispute(d)} data-testid={`dispute-deal-${getId(d)}`}><Scale size={15} /></button>
                           <button className="adl-qa ok" title="Release payment" disabled={working} onClick={() => releasePayment(d)} data-testid={`release-deal-${getId(d)}`}><IndianRupee size={15} /></button>
                         </div>
@@ -439,7 +515,12 @@ export default function AdminDeals() {
               <section className="adl-block">
                 <h3><FileText size={15} /> Brief summary</h3>
                 <p className="adl-brief-title">{brief.title || getTitle(selected)}</p>
-                <p className="adl-brief-text">{brief.brief_text || brief.description || selected?.description || 'No brief text provided.'}</p>
+                <div className="adl-brief-text">
+                  {(() => {
+                    const text = brief.brief_text || brief.description || selected?.brief_text || selected?.description;
+                    return text ? renderBrief(text) : <p className="adl-brief-row">No brief text provided.</p>;
+                  })()}
+                </div>
                 <div className="adl-brief-meta">
                   {(brief.per_video_budget != null || brief.budget_max != null) && <span>Budget: <b>{money(brief.per_video_budget ?? brief.budget_max)}</b></span>}
                   {(brief.deliverables_count ?? brief.num_videos) != null && <span>Deliverables: <b>{brief.deliverables_count ?? brief.num_videos}</b></span>}
@@ -451,16 +532,16 @@ export default function AdminDeals() {
                 <h3><Users size={15} /> Parties</h3>
                 <div className="adl-parties">
                   {brandId ? (
-                    <a className="adl-party" href={`/profile/${brandId}`} target="_blank" rel="noreferrer">
+                    <button type="button" className="adl-party" onClick={() => setProfileView({ type: 'brand', id: brandId, name: getBrand(selected) })}>
                       <span>Brand</span><strong>{getBrand(selected)}</strong><ExternalLink size={13} />
-                    </a>
+                    </button>
                   ) : (
                     <div className="adl-party adl-party-static"><span>Brand</span><strong>{getBrand(selected)}</strong></div>
                   )}
                   {creatorId ? (
-                    <a className="adl-party" href={`/profile/${creatorId}`} target="_blank" rel="noreferrer">
+                    <button type="button" className="adl-party" onClick={() => setProfileView({ type: 'creator', id: creatorId, name: getCreator(selected) })}>
                       <span>Creator</span><strong>{getCreator(selected)}</strong><ExternalLink size={13} />
-                    </a>
+                    </button>
                   ) : (
                     <div className="adl-party adl-party-static"><span>Creator</span><strong>{getCreator(selected)}</strong></div>
                   )}
@@ -551,7 +632,7 @@ export default function AdminDeals() {
                 )}
               </section>
 
-              <section className="adl-block">
+              <section className="adl-block" ref={chatSectionRef}>
                 <h3><MessageSquare size={15} /> Chat transcript</h3>
                 {chat.length === 0 ? (
                   <p className="adl-muted">No messages in this deal room.</p>
@@ -570,6 +651,7 @@ export default function AdminDeals() {
                 )}
                 <div className="adl-chat-compose">
                   <textarea
+                    ref={chatInputRef}
                     value={chatDraft}
                     onChange={(e) => setChatDraft(e.target.value)}
                     placeholder="Intervene — post an admin message in the deal room…"
@@ -659,6 +741,57 @@ export default function AdminDeals() {
         </>
       )}
 
+      {disputeDeal && (
+        <div className="adl-scrim" onClick={() => !working && setDisputeDeal(null)}>
+          <div className="adl-dispute" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} data-testid="dispute-modal">
+            <header className="adl-dispute-head">
+              <div className="adl-dispute-title"><span className="adl-dispute-ic"><Scale size={18} /></span> Raise a dispute</div>
+              <button className="adl-icon" onClick={() => setDisputeDeal(null)} disabled={working} aria-label="Close"><X size={18} /></button>
+            </header>
+            <p className="adl-dispute-sub">
+              Opening a dispute on behalf of both parties for <strong>{getBrand(disputeDeal)}</strong> ↔ <strong>{getCreator(disputeDeal)}</strong>. Describe the issue below.
+            </p>
+            <textarea
+              className="adl-dispute-input"
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              placeholder="Describe the issue (e.g. product not delivered, content not as briefed)…"
+              rows={4}
+              autoFocus
+              data-testid="dispute-reason"
+            />
+            <div className="adl-dispute-actions">
+              <button className="adl-secondary" onClick={() => setDisputeDeal(null)} disabled={working}>Cancel</button>
+              <button className="adl-warn-btn" onClick={submitDispute} disabled={working || !disputeReason.trim()} data-testid="dispute-submit">
+                <Scale size={15} /> {working ? 'Opening…' : 'Open dispute'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmBox && (
+        <div className="adl-scrim" onClick={() => !working && setConfirmBox(null)}>
+          <div className={`adl-dispute adl-confirm--${confirmBox.tone}`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} data-testid="confirm-modal">
+            <header className="adl-dispute-head">
+              <div className="adl-dispute-title">
+                <span className={`adl-dispute-ic adl-ic--${confirmBox.tone}`}>
+                  {confirmBox.icon === 'refund' ? <RotateCcw size={18} /> : <Wallet size={18} />}
+                </span> {confirmBox.title}
+              </div>
+              <button className="adl-icon" onClick={() => setConfirmBox(null)} disabled={working} aria-label="Close"><X size={18} /></button>
+            </header>
+            <p className="adl-dispute-sub">{confirmBox.message}</p>
+            <div className="adl-dispute-actions">
+              <button className="adl-secondary" onClick={() => setConfirmBox(null)} disabled={working}>Cancel</button>
+              <button className={confirmBox.tone === 'danger' ? 'adl-danger' : 'adl-primary'} onClick={runConfirm} disabled={working} data-testid="confirm-submit">
+                {working ? 'Working…' : confirmBox.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .adl { padding: 24px 28px; max-width: 1480px; margin: 0 auto; }
         .adl-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
@@ -706,7 +839,19 @@ export default function AdminDeals() {
         .adl-empty p { margin: 0; font-weight: 600; color: #111827; }
         .adl-empty span { font-size: 0.85rem; color: #98a1ad; }
 
-        .adl-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 40; }
+        .adl-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 40; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .adl-dispute { width: 460px; max-width: 100%; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(16,24,40,0.28); z-index: 60; padding: 22px; display: flex; flex-direction: column; gap: 14px; animation: adlPop 140ms ease-out; }
+        @keyframes adlPop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+        .adl-dispute-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .adl-dispute-title { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; font-weight: 700; color: #07074e; }
+        .adl-dispute-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #fffaf0; color: #b54708; border: 1px solid #fdd9a8; }
+        .adl-ic--primary { background: #eef0ff; color: #3730a3; border-color: #d6dbff; }
+        .adl-ic--danger { background: #fff5f4; color: #b42318; border-color: #f3aaa3; }
+        .adl-dispute-sub { margin: 0; font-size: 0.86rem; line-height: 1.5; color: #5b6573; }
+        .adl-dispute-sub strong { color: #111827; }
+        .adl-dispute-input { width: 100%; border: 1px solid #e6e8ec; border-radius: 10px; padding: 11px 12px; font-size: 0.9rem; color: #111827; font-family: inherit; resize: vertical; outline: 0; }
+        .adl-dispute-input:focus { border-color: #b54708; box-shadow: 0 0 0 3px rgba(181,71,8,0.12); }
+        .adl-dispute-actions { display: flex; justify-content: flex-end; gap: 10px; }
         .adl-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: 540px; max-width: 94vw; background: #f6f7f9; box-shadow: -12px 0 40px rgba(16,24,40,0.18); z-index: 50; display: flex; flex-direction: column; }
         .adl-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px; background: #fff; border-bottom: 1px solid #e6e8ec; }
         .adl-drawer-head h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; color: #07074e; }
@@ -763,12 +908,18 @@ export default function AdminDeals() {
         .adl-ship span { font-size: 0.7rem; color: #98a1ad; text-transform: uppercase; letter-spacing: 0.03em; }
         .adl-ship strong { font-size: 0.85rem; color: #111827; }
         .adl-ship-addr { grid-column: 1 / -1; }
-        .adl-brief-title { margin: 0 0 6px; font-weight: 700; color: #111827; font-size: 0.9rem; }
-        .adl-brief-text { margin: 0 0 10px; font-size: 0.83rem; color: #5b6573; white-space: pre-wrap; }
+        .adl-brief-title { margin: 0 0 10px; font-weight: 700; color: #111827; font-size: 0.95rem; }
+        .adl-brief-text { margin: 0 0 10px; font-size: 0.83rem; color: #5b6573; }
+        .adl-brief-text .adl-brief-h { margin: 12px 0 4px; font-size: 0.8rem; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.03em; }
+        .adl-brief-text .adl-brief-h:first-child { margin-top: 0; }
+        .adl-brief-text .adl-brief-row { margin: 0 0 4px; line-height: 1.5; color: #5b6573; }
+        .adl-brief-text .adl-brief-row strong { color: #111827; font-weight: 600; }
+        .adl-brief-text .adl-brief-gap { height: 8px; }
         .adl-brief-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.8rem; color: #5b6573; }
         .adl-brief-meta b { color: #111827; }
         .adl-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .adl-party { display: flex; flex-direction: column; gap: 2px; border: 1px solid #e6e8ec; border-radius: 10px; padding: 10px 12px; text-decoration: none; position: relative; }
+        .adl-party { display: flex; flex-direction: column; gap: 2px; border: 1px solid #e6e8ec; border-radius: 10px; padding: 10px 12px; text-decoration: none; position: relative; background: #fff; text-align: left; font: inherit; width: 100%; cursor: pointer; }
+        button.adl-party:hover { cursor: pointer; }
         .adl-party:hover { border-color: #5b6bff; background: #f4f5ff; }
         .adl-party-static:hover { border-color: #e6e8ec; background: #fff; }
         .adl-party span { font-size: 0.7rem; color: #98a1ad; text-transform: uppercase; }
@@ -792,6 +943,21 @@ export default function AdminDeals() {
         .adl-notes small { font-size: 0.7rem; color: #b54708; }
         @media (max-width: 720px) { .adl { padding: 18px; } .adl-ship, .adl-parties { grid-template-columns: 1fr; } }
       `}</style>
+
+      {profileView && profileView.type === 'brand' && (
+        <BrandProfileModal
+          id={profileView.id}
+          fallbackName={profileView.name}
+          onClose={() => setProfileView(null)}
+        />
+      )}
+      {profileView && profileView.type === 'creator' && (
+        <CreatorProfileModal
+          id={profileView.id}
+          fallbackName={profileView.name}
+          onClose={() => setProfileView(null)}
+        />
+      )}
     </AdminLayout>
   );
 }

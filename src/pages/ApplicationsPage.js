@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useAuth } from '../App';
 import '../styles/ApplicationsPage.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -422,7 +423,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
             {entries.length > 0 ? (
               <div className="info-grid all-details-grid">
                 {entries.map(([k, v]) => (
-                  <div key={k} className="info-item full-width"><label>{prettifyKey(k)}</label><div className="all-details-value"><DetailValue value={v} /></div></div>
+                  <div key={k} className={`info-item ${(v && typeof v === 'object') ? 'full-width' : ''}`}><label>{prettifyKey(k)}</label><div className="all-details-value"><DetailValue value={v} /></div></div>
                 ))}
               </div>
             ) : (
@@ -492,9 +493,22 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 // Page
 // ===========================================================================
 function ApplicationsPage() {
+  const { user } = useAuth();
+  // Custom-admin data scope: 'all' | 'creator' | 'business'. Limits which
+  // application tabs this admin may see (creators-only / brands-only).
+  const scope = user?.admin_scope || 'all';
+  const canSeeCreators = scope !== 'business';
+  const canSeeBrands = scope !== 'creator';
+
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [applicationType, setApplicationType] = useState('creators');
+  const [applicationType, setApplicationType] = useState(scope === 'business' ? 'brands' : 'creators');
+  // If the admin's scope forbids the active tab (e.g. scope loaded after mount),
+  // snap to the one they're allowed to see.
+  useEffect(() => {
+    if (!canSeeBrands && applicationType === 'brands') setApplicationType('creators');
+    else if (!canSeeCreators && applicationType === 'creators') setApplicationType('brands');
+  }, [canSeeBrands, canSeeCreators, applicationType]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfile, setSelectedProfile] = useState(null);
   // filters
@@ -603,12 +617,16 @@ function ApplicationsPage() {
 
       <div className="apps-toolbar">
         <div className="apps-tabs">
-          <button className={`apps-tab ${!isBrands ? 'active' : ''}`} onClick={() => setApplicationType('creators')}>
-            <Users size={16} /> Creators {creatorCount > 0 && <span className="apps-tab-count">{creatorCount}</span>}
-          </button>
-          <button className={`apps-tab ${isBrands ? 'active' : ''}`} onClick={() => setApplicationType('brands')}>
-            <Briefcase size={16} /> Brands {brandCount > 0 && <span className="apps-tab-count">{brandCount}</span>}
-          </button>
+          {canSeeCreators && (
+            <button className={`apps-tab ${!isBrands ? 'active' : ''}`} onClick={() => setApplicationType('creators')}>
+              <Users size={16} /> Creators {creatorCount > 0 && <span className="apps-tab-count">{creatorCount}</span>}
+            </button>
+          )}
+          {canSeeBrands && (
+            <button className={`apps-tab ${isBrands ? 'active' : ''}`} onClick={() => setApplicationType('brands')}>
+              <Briefcase size={16} /> Brands {brandCount > 0 && <span className="apps-tab-count">{brandCount}</span>}
+            </button>
+          )}
         </div>
         <div className="apps-controls">
           <div className="apps-search">

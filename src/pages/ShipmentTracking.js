@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -9,7 +9,7 @@ import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
-export default function ShipmentTracking({ embedCampaignId, onClose }) {
+export default function ShipmentTracking({ embedCampaignId, autoShip, onClose }) {
   const [searchParams] = useSearchParams();
   const campaignId = embedCampaignId || searchParams.get('campaign');
   const navigate = useNavigate();
@@ -37,6 +37,14 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
   const [unboxingFile, setUnboxingFile] = useState(null);
   const [courierFile, setCourierFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  // "Ship Product" (Shiprocket) flow — brand enters product details + their pickup
+  // address; the platform generates a pre-paid label. The creator's delivery address
+  // is pulled server-side and never shown to the brand.
+  const [showShipModal, setShowShipModal] = useState(false);
+  const [shipForm, setShipForm] = useState({
+    description: '', weight: '', length: '', width: '', height: '',
+    full_name: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '',
+  });
 
   // Uploaded files come back as a relative "/uploads/..." path; absolute URLs
   // (legacy/cloud) are used as-is.
@@ -62,6 +70,23 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
       fetchShipment();
     }
   }, [campaignId]);
+
+  // When opened via the "Ship" action, jump straight to the Ship Product form
+  // (skip the tracking page) — but only if nothing has actually shipped yet.
+  const autoShipDone = useRef(false);
+  useEffect(() => {
+    if (!autoShip || autoShipDone.current || loading || !campaign || !user) return;
+    const isBrand = user.role === 'business' && campaign.business_id === user.id;
+    const status = String(shipment?.status || '').toLowerCase();
+    const alreadyShipped = !!shipment && (
+      !!shipment.tracking_number || !!shipment.label_url ||
+      ['awaiting_pickup', 'label_generated', 'shipped', 'in_transit', 'delivered', 'received'].includes(status)
+    );
+    if (isBrand && !alreadyShipped) {
+      autoShipDone.current = true;
+      setShowShipModal(true);
+    }
+  }, [autoShip, loading, campaign, shipment, user]);
 
   const fetchCampaign = async () => {
     try {
@@ -138,6 +163,54 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
     }
   };
 
+  const setShip = (field, value) => setShipForm((f) => ({ ...f, [field]: value }));
+
+  const handleShipProduct = async (e) => {
+    e.preventDefault();
+    setUploading(true);
+    try {
+      const res = await axios.post(`${API}/deals/${campaignId}/ship-label`, {
+        description: shipForm.description,
+        weight: Number(shipForm.weight),
+        dimensions: {
+          length: shipForm.length ? Number(shipForm.length) : null,
+          width: shipForm.width ? Number(shipForm.width) : null,
+          height: shipForm.height ? Number(shipForm.height) : null,
+        },
+        pickup_address: {
+          full_name: shipForm.full_name,
+          phone: shipForm.phone,
+          line1: shipForm.line1,
+          line2: shipForm.line2,
+          city: shipForm.city,
+          state: shipForm.state,
+          pincode: shipForm.pincode,
+          country: 'India',
+        },
+      });
+      toast.success(`Label generated · ${res.data.tracking_number}`);
+      setShowShipModal(false);
+      fetchShipment();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to generate shipping label'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleMarkPickedUp = async () => {
+    setUploading(true);
+    try {
+      await axios.post(`${API}/deals/${campaignId}/mark-picked-up`, {});
+      toast.success('Marked as shipped — in transit');
+      fetchShipment();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to update shipment'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleChecklistChange = (field) => {
     setShipmentData({
       ...shipmentData,
@@ -203,6 +276,16 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
 
   const nextSteps = getNextSteps();
 
+  // A shipment only counts as "real" once a label/tracking exists or it's actually
+  // moving. A stale/empty record (e.g. an old "completed" doc with no tracking) still
+  // needs shipping, so the brand should see the "Ship Product" action, not the details.
+  const shipStatus = String(shipment?.status || '').toLowerCase();
+  const hasRealShipment = !!shipment && (
+    !!shipment.tracking_number ||
+    !!shipment.label_url ||
+    ['awaiting_pickup', 'label_generated', 'shipped', 'in_transit', 'delivered', 'received'].includes(shipStatus)
+  );
+
   const embedded = !!onClose;
 
   return (
@@ -222,17 +305,17 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
           </div>
         </div>
 
-        {!shipment ? (
+        {!hasRealShipment ? (
           <div className="no-shipment">
             <Package size={64} />
-            <p>No shipment details available yet</p>
+            <p>{isBusiness ? 'Ready to ship — generate a pre-paid label to send the product to the creator.' : 'No shipment details available yet'}</p>
             {isBusiness && (
               <button
-                className="btn-primary"
-                onClick={() => setShowUpdateModal(true)}
-                data-testid="add-shipment-btn"
+                className="btn-primary ship-cta"
+                onClick={() => setShowShipModal(true)}
+                data-testid="ship-product-btn"
               >
-                Add Shipment Details
+                <Package size={18} /> Ship Product
               </button>
             )}
           </div>
@@ -244,7 +327,7 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
               </div>
               <div>
                 <p className="status-label">Status</p>
-                <p className="status-value">{shipment.status.toUpperCase()}</p>
+                <p className="status-value">{String(shipment.status || '').replace(/_/g, ' ').toUpperCase()}</p>
               </div>
             </div>
 
@@ -253,12 +336,28 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
                 <h3>Tracking Information</h3>
                 <div className="detail-item">
                   <span className="label">Tracking Number:</span>
-                  <span className="value">{shipment.tracking_number}</span>
+                  <span className="value">{shipment.tracking_number || '—'}</span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Expected Delivery:</span>
-                  <span className="value">{new Date(shipment.expected_delivery).toLocaleDateString()}</span>
-                </div>
+                {shipment.courier_name && (
+                  <div className="detail-item">
+                    <span className="label">Courier:</span>
+                    <span className="value">{shipment.courier_name}</span>
+                  </div>
+                )}
+                {shipment.expected_delivery && (
+                  <div className="detail-item">
+                    <span className="label">Expected Delivery:</span>
+                    <span className="value">{new Date(shipment.expected_delivery).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {shipment.label_url && isBusiness && (
+                  <div className="detail-item">
+                    <span className="label">Shipping Label:</span>
+                    <a href={resolveMediaUrl(shipment.label_url)} target="_blank" rel="noopener noreferrer" className="link">
+                      Download &amp; print
+                    </a>
+                  </div>
+                )}
                 {shipment.courier_slip && (
                   <div className="detail-item">
                     <span className="label">Courier Slip:</span>
@@ -337,7 +436,17 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
             )}
 
             <div className="action-buttons">
-              {isBusiness && shipment.status !== 'received' && (
+              {isBusiness && shipment.status === 'awaiting_pickup' && (
+                <button
+                  className="btn-primary"
+                  onClick={handleMarkPickedUp}
+                  disabled={uploading}
+                  data-testid="mark-picked-up-btn"
+                >
+                  <Truck size={18} /> {uploading ? 'Updating…' : 'Mark as Picked Up'}
+                </button>
+              )}
+              {isBusiness && !['received', 'awaiting_pickup'].includes(shipment.status) && (
                 <button
                   className="btn-secondary"
                   onClick={() => setShowUpdateModal(true)}
@@ -359,6 +468,93 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
           </div>
         )}
       </div>
+
+      {/* Ship Product Modal — product details + pickup address → pre-paid label */}
+      {showShipModal && (
+        <div className="modal-overlay" onClick={() => !uploading && setShowShipModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Ship Product</h2>
+            <p className="ship-help">Enter the product details and your pickup address. We'll generate a pre-paid label to send it to the creator. The creator's delivery address is handled securely by the courier — you don't need it.</p>
+            <form onSubmit={handleShipProduct} className="shipment-form">
+              <div className="form-group">
+                <label htmlFor="s-desc">Product description</label>
+                <input id="s-desc" type="text" className="input-field" required
+                  placeholder="e.g. Skincare gift box"
+                  value={shipForm.description} onChange={(e) => setShip('description', e.target.value)} />
+              </div>
+
+              <div className="ship-row">
+                <div className="form-group">
+                  <label htmlFor="s-weight">Weight (kg)</label>
+                  <input id="s-weight" type="number" step="0.01" min="0" className="input-field" required
+                    placeholder="0.5" value={shipForm.weight} onChange={(e) => setShip('weight', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Dimensions L×W×H (cm)</label>
+                  <div className="ship-dims">
+                    <input type="number" min="0" className="input-field" placeholder="L" value={shipForm.length} onChange={(e) => setShip('length', e.target.value)} />
+                    <input type="number" min="0" className="input-field" placeholder="W" value={shipForm.width} onChange={(e) => setShip('width', e.target.value)} />
+                    <input type="number" min="0" className="input-field" placeholder="H" value={shipForm.height} onChange={(e) => setShip('height', e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="ship-divider">Pickup address</div>
+
+              <div className="ship-row">
+                <div className="form-group">
+                  <label htmlFor="s-name">Full name</label>
+                  <input id="s-name" type="text" className="input-field" required
+                    value={shipForm.full_name} onChange={(e) => setShip('full_name', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="s-phone">Phone</label>
+                  <input id="s-phone" type="tel" className="input-field" required
+                    value={shipForm.phone} onChange={(e) => setShip('phone', e.target.value)} />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="s-line1">Address line 1</label>
+                <input id="s-line1" type="text" className="input-field" required
+                  value={shipForm.line1} onChange={(e) => setShip('line1', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label htmlFor="s-line2">Address line 2 (optional)</label>
+                <input id="s-line2" type="text" className="input-field"
+                  value={shipForm.line2} onChange={(e) => setShip('line2', e.target.value)} />
+              </div>
+
+              <div className="ship-row ship-row--3">
+                <div className="form-group">
+                  <label htmlFor="s-city">City</label>
+                  <input id="s-city" type="text" className="input-field" required
+                    value={shipForm.city} onChange={(e) => setShip('city', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="s-state">State</label>
+                  <input id="s-state" type="text" className="input-field" required
+                    value={shipForm.state} onChange={(e) => setShip('state', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="s-pin">Pincode</label>
+                  <input id="s-pin" type="text" className="input-field" required
+                    value={shipForm.pincode} onChange={(e) => setShip('pincode', e.target.value)} />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowShipModal(false)} disabled={uploading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" data-testid="submit-ship-btn" disabled={uploading}>
+                  {uploading ? 'Generating label…' : 'Generate Label'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Update Shipment Modal */}
       {showUpdateModal && (
@@ -871,6 +1067,45 @@ export default function ShipmentTracking({ embedCampaignId, onClose }) {
           border-radius: 12px;
           color: #3730a3;
           font-size: 0.95rem;
+        }
+
+        .ship-cta {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+        }
+
+        .ship-help {
+          font-size: 0.9rem;
+          color: #64748b;
+          line-height: 1.5;
+          margin: -18px 0 4px;
+        }
+        .ship-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .ship-row--3 {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+        .ship-dims {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 8px;
+        }
+        .ship-divider {
+          font-size: 0.8rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #94a3b8;
+          padding-top: 6px;
+          border-top: 1px solid #eceef5;
+        }
+        @media (max-width: 600px) {
+          .ship-row, .ship-row--3 { grid-template-columns: 1fr; }
         }
 
         .checkbox-label {

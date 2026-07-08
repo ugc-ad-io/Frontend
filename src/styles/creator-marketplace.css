@@ -259,7 +259,7 @@
 
 /* ── shared page header / category bar / filters ─────────────────────────── */
 .cmk-page-head{margin-top:6px}
-.cmk-page-head h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:34px;font-weight:800;letter-spacing:-.6px}
+.cmk-page-head h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:26px;font-weight:800;letter-spacing:-.5px}
 .cmk-page-head p{color:var(--ink-2);font-size:15px;margin-top:6px}
 .cmk-search-note{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:14px;color:var(--ink-2)}
 .cmk-search-note strong{color:var(--ink)}
@@ -456,7 +456,7 @@
 
 /* ── portfolio ───────────────────────────────────────────────────────────── */
 .cmk-pf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-top:6px;flex-wrap:wrap}
-.cmk-pf-head h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:34px;font-weight:800;letter-spacing:-.6px}
+.cmk-pf-head h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:26px;font-weight:800;letter-spacing:-.5px}
 .cmk-pf-head p{color:var(--ink-2);font-size:15px;margin-top:6px}
 .cmk-pf-actions{display:flex;gap:12px}
 .cmk-btn-ghost-sm,.cmk-btn-primary-sm{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;
@@ -618,7 +618,7 @@
 .bo-hero{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;background:#fff;border:1px solid var(--line);
   border-radius:24px;padding:34px 36px;box-shadow:var(--shadow-soft);margin-top:6px;align-items:center}
 .bo-hello{color:var(--ink-2);font-weight:600;font-size:15px}
-.bo-hero h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:38px;font-weight:800;letter-spacing:-.8px;margin:10px 0 0;line-height:1.12}
+.bo-hero h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:29px;font-weight:800;letter-spacing:-.6px;margin:10px 0 0;line-height:1.15}
 .bo-hero h1 em{font-style:normal;background:linear-gradient(100deg,var(--indigo),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
 .bo-hero .bo-sub{color:var(--ink-2);font-size:15px;margin:14px 0 0;max-width:430px;line-height:1.6}
 .bo-hero-cta{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}

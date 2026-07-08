@@ -451,6 +451,19 @@ export default function ProfileSettings() {
     }
   };
 
+  const removeMember = async (member) => {
+    if (!member.id) { toast.error('Cannot remove this member'); return; }
+    if (!window.confirm(`Remove ${member.name || member.email} from your team?`)) return;
+    try {
+      await axios.delete(`${API}/business/settings/team/${member.id}`);
+      toast.success('Team member removed');
+      const res = await axios.get(`${API}/business/settings/team`);
+      setTeam({ ...defaultTeam, ...(res.data || {}) });
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to remove member'));
+    }
+  };
+
   const fetchUserData = async () => {
     try {
       const response = await axios.get(`${API}/auth/me`);
@@ -809,7 +822,7 @@ export default function ProfileSettings() {
                 </div>
                 <span className="bs-role">{member.role}</span>
                 <span className={`bs-status ${member.status}`}><b /> {member.status}</span>
-                <button type="button" className="bs-icon-only"><MoreVertical size={18} /></button>
+                <button type="button" className="bs-icon-only" title="Remove member" onClick={() => removeMember(member)}><Trash2 size={18} /></button>
               </div>
             ))}
           </div>

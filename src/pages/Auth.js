@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { User, Building2, Lock, Mail, ArrowLeft, KeyRound } from 'lucide-react';
+import { User, Building2, Lock, Mail, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -51,13 +51,15 @@ export default function Auth() {
   const { login } = useAuth();
 
   // Password-reset flow: 'auth' (sign in / sign up) → 'forgot' (request a code)
-  // → 'reset' (enter the code + a new password). `devCode` holds the code the
-  // backend returns in non-production (no SMTP configured) so the flow is testable.
+  // → 'reset' (enter the emailed code + a new password).
   const [view, setView] = useState('auth');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [devCode, setDevCode] = useState('');
+
+  // Per-field password visibility (show/hide eye toggle).
+  const [showPass, setShowPass] = useState({});
+  const togglePass = (key) => setShowPass((s) => ({ ...s, [key]: !s[key] }));
 
   // Google button target + a ref mirroring the selected role, so the GIS
   // callback (created once) always reads the latest signup role choice.
@@ -140,7 +142,6 @@ export default function Auth() {
     setResetCode('');
     setNewPassword('');
     setConfirmPassword('');
-    setDevCode('');
     setView('forgot');
   };
 
@@ -155,13 +156,8 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API}/auth/forgot-password`, { email });
-      // In dev the backend returns the code so we can prefill it and show a hint.
-      if (data?.dev_code) {
-        setDevCode(data.dev_code);
-        setResetCode(data.dev_code);
-      }
-      toast.success('If that email exists, a reset code has been sent.');
+      await axios.post(`${API}/auth/forgot-password`, { email });
+      toast.success('Code sent');
       setView('reset');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Could not send reset code'));
@@ -170,7 +166,25 @@ export default function Auth() {
     }
   };
 
-  // Step 2 — verify the code and set a new password; the backend signs us in.
+  // Step 2 — verify the emailed code before revealing the new-password fields.
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    if (resetCode.length !== 6) {
+      toast.error('Enter the 6-digit code');
+      return;
+    }
+    setLoading(true);
+    try {
+      await axios.post(`${API}/auth/verify-reset-code`, { email, code: resetCode });
+      setView('newpass');
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Invalid or expired reset code'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 3 — set the new password; the backend re-checks the code and signs us in.
   const handleResetSubmit = async (e) => {
     e.preventDefault();
     if (newPassword.length < 6) {
@@ -244,6 +258,8 @@ export default function Auth() {
                 ? 'Reset password'
                 : view === 'reset'
                 ? 'Enter your code'
+                : view === 'newpass'
+                ? 'New password'
                 : isLogin
                 ? 'Welcome back'
                 : 'Create account'}
@@ -252,7 +268,9 @@ export default function Auth() {
               {view === 'forgot'
                 ? "Enter your email and we'll send you a reset code"
                 : view === 'reset'
-                ? 'Enter the 6-digit code and choose a new password'
+                ? 'Enter the 6-digit code we emailed you'
+                : view === 'newpass'
+                ? 'Choose a new password for your account'
                 : isLogin
                 ? 'Sign in to continue your journey on UGCad.io'
                 : 'Join thousands of creators and brands on UGCad.io'}
@@ -335,16 +353,21 @@ export default function Auth() {
             <label className="ap-label" htmlFor="password">
               <Lock size={15} /> Password
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="ap-input input-field"
-              placeholder="••••••••"
-              required
-              data-testid="password-input"
-            />
+            <div className="ap-input-wrap">
+              <input
+                id="password"
+                type={showPass.login ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="ap-input input-field"
+                placeholder="••••••••"
+                required
+                data-testid="password-input"
+              />
+              <button type="button" className="ap-eye" onClick={() => togglePass('login')} aria-label={showPass.login ? 'Hide password' : 'Show password'} tabIndex={-1}>
+                {showPass.login ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
             {isLogin && (
               <button
                 type="button"
@@ -454,24 +477,18 @@ export default function Auth() {
           </motion.form>
         )}
 
-        {/* ── Reset password — enter code + new password ─────────────── */}
+        {/* ── Reset step 1 — verify the emailed code ─────────────────── */}
         {view === 'reset' && (
           <motion.form
-            onSubmit={handleResetSubmit}
+            onSubmit={handleVerifyCode}
             className="ap-form"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {devCode && (
-              <div className="ap-devcode" data-testid="dev-code-hint">
-                Dev mode — your reset code is <strong>{devCode}</strong>
-              </div>
-            )}
-
             <div className="ap-field">
               <label className="ap-label" htmlFor="reset-code">
-                <KeyRound size={15} /> Reset code
+                Code
               </label>
               <input
                 id="reset-code"
@@ -481,42 +498,84 @@ export default function Auth() {
                 value={resetCode}
                 onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
                 className="ap-input input-field"
-                placeholder="123456"
+                placeholder="Enter your code"
                 required
+                autoFocus
                 data-testid="reset-code-input"
               />
             </div>
 
+            <button
+              type="submit"
+              className="ap-submit btn-primary"
+              disabled={loading}
+              data-testid="verify-code-btn"
+            >
+              {loading ? <span className="ap-spinner" /> : 'Verify code'}
+            </button>
+
+            <div className="ap-footer">
+              <button type="button" className="ap-toggle" onClick={goToForgot}>
+                Resend code
+              </button>
+              {'  ·  '}
+              <button type="button" className="ap-toggle" onClick={backToLogin}>
+                Back to sign in
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ── Reset step 2 — set a new password (after code verified) ──── */}
+        {view === 'newpass' && (
+          <motion.form
+            onSubmit={handleResetSubmit}
+            className="ap-form"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <div className="ap-field">
               <label className="ap-label" htmlFor="new-password">
                 <Lock size={15} /> New password
               </label>
-              <input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="ap-input input-field"
-                placeholder="At least 6 characters"
-                required
-                data-testid="new-password-input"
-              />
+              <div className="ap-input-wrap">
+                <input
+                  id="new-password"
+                  type={showPass.newPass ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="ap-input input-field"
+                  placeholder="At least 6 characters"
+                  required
+                  autoFocus
+                  data-testid="new-password-input"
+                />
+                <button type="button" className="ap-eye" onClick={() => togglePass('newPass')} aria-label={showPass.newPass ? 'Hide password' : 'Show password'} tabIndex={-1}>
+                  {showPass.newPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <div className="ap-field">
               <label className="ap-label" htmlFor="confirm-password">
                 <Lock size={15} /> Confirm password
               </label>
-              <input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="ap-input input-field"
-                placeholder="Re-enter new password"
-                required
-                data-testid="confirm-password-input"
-              />
+              <div className="ap-input-wrap">
+                <input
+                  id="confirm-password"
+                  type={showPass.confirm ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="ap-input input-field"
+                  placeholder="Re-enter new password"
+                  required
+                  data-testid="confirm-password-input"
+                />
+                <button type="button" className="ap-eye" onClick={() => togglePass('confirm')} aria-label={showPass.confirm ? 'Hide password' : 'Show password'} tabIndex={-1}>
+                  {showPass.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <button
@@ -529,8 +588,8 @@ export default function Auth() {
             </button>
 
             <div className="ap-footer">
-              <button type="button" className="ap-toggle" onClick={goToForgot}>
-                Resend code
+              <button type="button" className="ap-toggle" onClick={() => setView('reset')}>
+                Back to code
               </button>
               {'  ·  '}
               <button type="button" className="ap-toggle" onClick={backToLogin}>
@@ -765,6 +824,38 @@ export default function Auth() {
           box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
         }
 
+        /* Password field show/hide toggle */
+        .ap-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .ap-input-wrap .ap-input.input-field {
+          width: 100%;
+          padding-right: 44px;
+        }
+        .ap-eye {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border: none;
+          background: transparent;
+          color: #94A3B8;
+          cursor: pointer;
+          border-radius: 8px;
+          transition: color 0.2s ease, background 0.2s ease;
+        }
+        .ap-eye:hover {
+          color: #475569;
+          background: #F1F5F9;
+        }
+
         /* Submit button override */
         .ap-submit.btn-primary {
           width: 100%;
@@ -857,20 +948,6 @@ export default function Auth() {
           text-underline-offset: 3px;
         }
 
-        /* Dev-mode reset-code hint */
-        .ap-devcode {
-          background: rgba(99, 102, 241, 0.08);
-          border: 1px dashed rgba(99, 102, 241, 0.4);
-          border-radius: 10px;
-          padding: 10px 14px;
-          color: #4338CA;
-          font-size: 0.82rem;
-          text-align: center;
-        }
-        .ap-devcode strong {
-          font-size: 0.95rem;
-          letter-spacing: 0.08em;
-        }
 
         /* ── Footer ──────────────────────────────────────────────── */
         .ap-footer {

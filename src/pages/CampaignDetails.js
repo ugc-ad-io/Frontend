@@ -672,7 +672,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   value={proposal}
                   onChange={(e) => setProposal(e.target.value)}
                   placeholder="Describe your approach, experience, and why you're the right fit for this campaign..."
-                  rows="6"
+                  rows="4"
                   required
                   data-testid="proposal-textarea"
                 />
@@ -1480,15 +1480,16 @@ export default function CampaignDetails({ embedId, onClose }) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 24px 32px;
-          border-bottom: 2px solid #e2e8f0;
+          padding: 18px 28px;
+          border-bottom: 1px solid #eceef5;
         }
 
         .modal-header h2 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a202c;
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #07074e;
           margin: 0;
+          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
         }
 
         .modal-close {
@@ -1793,55 +1794,66 @@ export default function CampaignDetails({ embedId, onClose }) {
         }
 
         .bid-form {
-          padding: 32px;
+          padding: 20px 28px 24px;
         }
 
         .form-group {
-          margin-bottom: 24px;
+          margin-bottom: 15px;
         }
 
         .form-group label {
           display: block;
-          font-weight: 600;
-          color: #1a202c;
-          margin-bottom: 8px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          color: #15163a;
+          margin-bottom: 6px;
         }
 
         .form-group input,
         .form-group textarea {
           width: 100%;
-          padding: 12px 16px;
-          border: 2px solid #e2e8f0;
+          padding: 11px 15px;
+          border: 1.5px solid #e2e4f0;
           border-radius: 12px;
-          font-size: 1rem;
-          transition: border-color 0.3s ease;
+          font-size: 0.95rem;
+          color: #1f2330;
+          font-family: inherit;
+          background: #fbfbfe;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
           box-sizing: border-box;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+          color: #9aa0b4;
         }
 
         .form-group input:focus,
         .form-group textarea:focus {
           outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          border-color: #5b6bff;
+          background: #fff;
+          box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.12);
         }
 
         .form-group small {
           display: block;
-          color: #718096;
-          font-size: 0.875rem;
-          margin-top: 4px;
+          color: #5b6bff;
+          font-weight: 600;
+          font-size: 0.83rem;
+          margin-top: 5px;
         }
 
         .form-group textarea {
           resize: vertical;
-          min-height: 120px;
+          min-height: 82px;
         }
 
         .modal-actions {
           display: flex;
           gap: 12px;
           justify-content: flex-end;
-          margin-top: 32px;
+          margin-top: 18px;
         }
 
         .btn-primary,

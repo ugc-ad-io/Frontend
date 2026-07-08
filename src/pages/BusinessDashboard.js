@@ -1812,6 +1812,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <h2>{walletLoading ? 'Loading...' : formatMoney(walletData.available_balance)}</h2>
                     <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
                   </div>
+                  <div className="wallet-hero-side">
+                    <div className="whs-panel">
+                      <div className="whs-row"><span>Plan</span><strong>{walletData.plan_name}</strong></div>
+                      <div className="whs-row"><span>Platform chat</span><b className={walletData.chat_unlocked ? 'ok' : 'warn'}>{walletData.chat_unlocked ? 'Unlocked' : 'Locked'}</b></div>
+                      {(walletBonus.current_tier_percent || 0) > 0 && (
+                        <div className="whs-row"><span>Recharge bonus</span><b className="ok">+{walletBonus.current_tier_percent}%</b></div>
+                      )}
+                    </div>
+                  </div>
                 </section>
 
                 {!walletData.chat_unlocked && (
@@ -5696,28 +5705,63 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 400;
         }
 
-        .wallet-hero-badges {
+        .wallet-hero-side {
           display: flex;
           flex-direction: column;
-          align-items: flex-end;
           gap: 12px;
+          min-width: 234px;
+          align-self: center;
         }
 
-        .wallet-hero-badges span,
-        .wallet-hero-badges strong {
-          display: inline-flex;
+        .whs-panel {
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          overflow: hidden;
+        }
+
+        .whs-row {
+          display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 11px 18px;
-          border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: rgba(255, 255, 255, 0.09);
-          color: #B7B7E6;
-          font-weight: 400;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 10px 15px;
         }
+        .whs-row + .whs-row {
+          border-top: 1px solid rgba(255, 255, 255, 0.09);
+        }
+        .whs-row span {
+          color: rgba(255, 255, 255, 0.58);
+          font-size: 12.5px;
+        }
+        .whs-row strong {
+          color: #fff;
+          font-size: 13.5px;
+          font-weight: 600;
+        }
+        .whs-row b {
+          font-size: 13px;
+          font-weight: 700;
+        }
+        .whs-row b.ok { color: #4ade80; }
+        .whs-row b.warn { color: #fbbf24; }
 
-        .wallet-hero-badges strong {
-          color: #27AE60;
+        .wallet-hero-cta {
+          width: 100%;
+          padding: 12px 22px;
+          border-radius: 13px;
+          border: 0;
+          background: #fff;
+          color: #171184;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: transform 160ms ease, box-shadow 160ms ease;
+        }
+        .wallet-hero-cta:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.55);
         }
 
         .wallet-warning {
@@ -6824,6 +6868,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .wallet-warning {
             flex-direction: column;
             align-items: stretch;
+          }
+
+          .wallet-hero-side {
+            min-width: 0;
+            align-self: stretch;
           }
 
           .wallet-hero-card h2 {

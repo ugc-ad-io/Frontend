@@ -18,6 +18,7 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
   const [campaign, setCampaign] = useState(null);
   const [shipment, setShipment] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [shipmentLoaded, setShipmentLoaded] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [shipmentData, setShipmentData] = useState({
@@ -75,18 +76,20 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
   // (skip the tracking page) — but only if nothing has actually shipped yet.
   const autoShipDone = useRef(false);
   useEffect(() => {
-    if (!autoShip || autoShipDone.current || loading || !campaign || !user) return;
+    // Wait until BOTH campaign and the shipment lookup have resolved — otherwise
+    // the form would flash open for an already-shipped deal (shipment still null).
+    if (!autoShip || autoShipDone.current || loading || !shipmentLoaded || !campaign || !user) return;
     const isBrand = user.role === 'business' && campaign.business_id === user.id;
     const status = String(shipment?.status || '').toLowerCase();
     const alreadyShipped = !!shipment && (
-      !!shipment.tracking_number || !!shipment.label_url ||
-      ['awaiting_pickup', 'label_generated', 'shipped', 'in_transit', 'delivered', 'received'].includes(status)
+      !!shipment.requested || !!shipment.tracking_number || !!shipment.label_url ||
+      ['requested', 'awaiting_pickup', 'label_generated', 'shipped', 'in_transit', 'delivered', 'received'].includes(status)
     );
     if (isBrand && !alreadyShipped) {
       autoShipDone.current = true;
       setShowShipModal(true);
     }
-  }, [autoShip, loading, campaign, shipment, user]);
+  }, [autoShip, loading, shipmentLoaded, campaign, shipment, user]);
 
   const fetchCampaign = async () => {
     try {
@@ -106,6 +109,8 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
     } catch (error) {
       // Shipment might not exist yet
       console.log('No shipment found yet');
+    } finally {
+      setShipmentLoaded(true);
     }
   };
 
@@ -169,7 +174,7 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
     e.preventDefault();
     setUploading(true);
     try {
-      const res = await axios.post(`${API}/deals/${campaignId}/ship-label`, {
+      await axios.post(`${API}/deals/${campaignId}/request-shipment`, {
         description: shipForm.description,
         weight: Number(shipForm.weight),
         dimensions: {
@@ -188,24 +193,11 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
           country: 'India',
         },
       });
-      toast.success(`Label generated · ${res.data.tracking_number}`);
+      toast.success('Shipment requested — our team will prepare your label shortly.');
       setShowShipModal(false);
       fetchShipment();
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to generate shipping label'));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleMarkPickedUp = async () => {
-    setUploading(true);
-    try {
-      await axios.post(`${API}/deals/${campaignId}/mark-picked-up`, {});
-      toast.success('Marked as shipped — in transit');
-      fetchShipment();
-    } catch (error) {
-      toast.error(apiErrorMessage(error, 'Failed to update shipment'));
     } finally {
       setUploading(false);
     }
@@ -262,12 +254,22 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
           ],
         };
       }
+      if (status === 'requested') {
+        return {
+          title: 'What to do next',
+          steps: [
+            'Your shipment request has been submitted.',
+            'Our team is preparing your pre-paid shipping label.',
+            'Tracking will appear here once the package is dispatched.',
+          ],
+        };
+      }
       return {
         title: 'What to do next',
         steps: [
           'The product is on its way to the creator.',
           'Wait for the creator to confirm receipt.',
-          'You can update the tracking details above if anything changes.',
+          'Tracking updates will appear here as the courier scans the package.',
         ],
       };
     }
@@ -281,10 +283,13 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
   // needs shipping, so the brand should see the "Ship Product" action, not the details.
   const shipStatus = String(shipment?.status || '').toLowerCase();
   const hasRealShipment = !!shipment && (
+    !!shipment.requested ||
     !!shipment.tracking_number ||
     !!shipment.label_url ||
-    ['awaiting_pickup', 'label_generated', 'shipped', 'in_transit', 'delivered', 'received'].includes(shipStatus)
+    ['requested', 'awaiting_pickup', 'label_generated', 'shipped', 'in_transit', 'delivered', 'received'].includes(shipStatus)
   );
+  // The brand is still waiting on the platform to generate the label.
+  const awaitingLabel = shipStatus === 'requested' && !shipment?.label_url && !shipment?.tracking_number;
 
   const embedded = !!onClose;
 
@@ -308,7 +313,7 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
         {!hasRealShipment ? (
           <div className="no-shipment">
             <Package size={64} />
-            <p>{isBusiness ? 'Ready to ship — generate a pre-paid label to send the product to the creator.' : 'No shipment details available yet'}</p>
+            <p>{isBusiness ? 'Ready to ship — submit your product & pickup details and our team will prepare the shipping label.' : 'No shipment details available yet'}</p>
             {isBusiness && (
               <button
                 className="btn-primary ship-cta"
@@ -327,9 +332,19 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
               </div>
               <div>
                 <p className="status-label">Status</p>
-                <p className="status-value">{String(shipment.status || '').replace(/_/g, ' ').toUpperCase()}</p>
+                <p className="status-value">{awaitingLabel ? 'AWAITING LABEL' : String(shipment.status || '').replace(/_/g, ' ').toUpperCase()}</p>
               </div>
             </div>
+
+            {awaitingLabel && (
+              <div className="await-banner">
+                <ClipboardList size={20} />
+                <div>
+                  <strong>Shipment requested</strong>
+                  <p>Our team is preparing your pre-paid label. Tracking will appear here once the package is dispatched.</p>
+                </div>
+              </div>
+            )}
 
             <div className="details-grid">
               <div className="detail-card">
@@ -436,25 +451,6 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
             )}
 
             <div className="action-buttons">
-              {isBusiness && shipment.status === 'awaiting_pickup' && (
-                <button
-                  className="btn-primary"
-                  onClick={handleMarkPickedUp}
-                  disabled={uploading}
-                  data-testid="mark-picked-up-btn"
-                >
-                  <Truck size={18} /> {uploading ? 'Updating…' : 'Mark as Picked Up'}
-                </button>
-              )}
-              {isBusiness && !['received', 'awaiting_pickup'].includes(shipment.status) && (
-                <button
-                  className="btn-secondary"
-                  onClick={() => setShowUpdateModal(true)}
-                  data-testid="update-shipment-btn"
-                >
-                  Update Shipment Details
-                </button>
-              )}
               {isCreator && shipment.status === 'shipped' && (
                 <button
                   className="btn-primary"
@@ -474,7 +470,7 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
         <div className="modal-overlay" onClick={() => !uploading && setShowShipModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Ship Product</h2>
-            <p className="ship-help">Enter the product details and your pickup address. We'll generate a pre-paid label to send it to the creator. The creator's delivery address is handled securely by the courier — you don't need it.</p>
+            <p className="ship-help">Enter the product details and your pickup address. Our team will prepare a pre-paid label and dispatch it to the creator. The creator's delivery address is handled securely — you don't need it.</p>
             <form onSubmit={handleShipProduct} className="shipment-form">
               <div className="form-group">
                 <label htmlFor="s-desc">Product description</label>
@@ -548,7 +544,7 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary" data-testid="submit-ship-btn" disabled={uploading}>
-                  {uploading ? 'Generating label…' : 'Generate Label'}
+                  {uploading ? 'Submitting…' : 'Submit Request'}
                 </button>
               </div>
             </form>
@@ -1036,27 +1032,32 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
 
         .modal-content {
           background: white;
-          padding: 40px;
-          border-radius: 24px;
+          padding: 26px 28px;
+          border-radius: 22px;
           max-width: 600px;
           width: 100%;
-          max-height: 90vh;
+          max-height: 94vh;
           overflow-y: auto;
         }
 
         .modal-content h2 {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: #1a202c;
-          margin-bottom: 32px;
+          font-size: 1.45rem;
+          font-weight: 800;
+          color: #07074e;
+          margin-bottom: 10px;
         }
 
         .shipment-form,
         .receive-form {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 12px;
         }
+
+        /* Scoped compression so the Ship Product form fits without scrolling */
+        .modal-content .form-group { display: flex; flex-direction: column; gap: 5px; margin: 0; }
+        .modal-content .form-group label { margin: 0; font-size: 0.9rem; font-weight: 700; color: #15163a; }
+        .modal-content .input-field { padding: 9px 13px; font-size: 0.92rem; border-radius: 11px; }
 
         .info-note {
           display: flex;
@@ -1076,16 +1077,29 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
           gap: 9px;
         }
 
+        .await-banner {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          padding: 16px 18px;
+          background: #fff8ec;
+          border: 1px solid #f5d99b;
+          border-radius: 14px;
+          color: #92400e;
+        }
+        .await-banner strong { display: block; margin-bottom: 3px; font-size: 0.98rem; }
+        .await-banner p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: #a16207; }
+
         .ship-help {
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           color: #64748b;
-          line-height: 1.5;
-          margin: -18px 0 4px;
+          line-height: 1.45;
+          margin: 0 0 2px;
         }
         .ship-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 12px;
         }
         .ship-row--3 {
           grid-template-columns: 1fr 1fr 1fr;
@@ -1096,12 +1110,13 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
           gap: 8px;
         }
         .ship-divider {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.04em;
           color: #94a3b8;
-          padding-top: 6px;
+          padding-top: 4px;
+          margin-top: 2px;
           border-top: 1px solid #eceef5;
         }
         @media (max-width: 600px) {

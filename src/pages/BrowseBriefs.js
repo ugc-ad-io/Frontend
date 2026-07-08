@@ -96,6 +96,39 @@ export default function BrowseBriefs() {
   const [visible, setVisible] = useState(8);
   const [openBrief, setOpenBrief] = useState(null); // brief object shown in the side drawer
   const [savedIds, setSavedIds] = useState(() => getSavedIds()); // ids of saved briefs
+  // Bid form — opened straight from the drawer so no redirect to the detail page.
+  const [bidBrief, setBidBrief] = useState(null);   // brief being bid on
+  const [bidAmount, setBidAmount] = useState('');
+  const [deliveryDays, setDeliveryDays] = useState('');
+  const [proposal, setProposal] = useState('');
+  const [submittingBid, setSubmittingBid] = useState(false);
+
+  const openBidForm = (b) => {
+    setBidAmount(''); setDeliveryDays(''); setProposal('');
+    setBidBrief(b);
+  };
+
+  const handleSubmitBid = async (e) => {
+    e.preventDefault();
+    setSubmittingBid(true);
+    try {
+      await axios.post(`${API}/campaigns/${bidBrief.id}/bid`, {
+        campaign_id: bidBrief.id,
+        amount: parseFloat(bidAmount),
+        proposal,
+        estimated_delivery_days: parseInt(deliveryDays, 10),
+      });
+      toast.success('Bid submitted successfully!');
+      setBidBrief(null);
+      setOpenBrief(null);
+      fetchData();
+    } catch (error) {
+      const msg = error?.response?.data?.detail || 'Failed to submit bid';
+      toast.error(typeof msg === 'string' ? msg : 'Failed to submit bid');
+    } finally {
+      setSubmittingBid(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -326,16 +359,16 @@ export default function BrowseBriefs() {
 
               <div className="bb-d-foot">
                 <button type="button" className="bb-d-ghost" onClick={() => setOpenBrief(null)}>Close</button>
-                <button type="button" className="bb-d-primary" onClick={() => navigate(`/campaign/${b.id}`)}>
+                <button type="button" className="bb-d-primary" onClick={() => b.hasBid ? navigate(`/campaign/${b.id}`) : openBidForm(b)}>
                   <Send size={16} /> {b.hasBid ? 'View Your Bid' : 'Submit Your Bid'}
                 </button>
               </div>
             </aside>
 
             <style>{`
-              .bb-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
-              .bb-drawer{position:relative;width:min(460px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:bb-slide .28s cubic-bezier(.2,.7,.2,1)}
-              @keyframes bb-slide{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}}
+              .bb-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px}
+              .bb-drawer{position:relative;width:min(680px,100%);max-height:88vh;height:auto;background:#fff;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px rgba(15,22,58,.42);animation:bb-pop .24s ease}
+              @keyframes bb-pop{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
               .bb-d-head{display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid #e9ebf4}
               .bb-d-logo{width:44px;height:44px;flex:none;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:17px}
               .bb-d-logo img{width:100%;height:100%;object-fit:cover}
@@ -344,7 +377,7 @@ export default function BrowseBriefs() {
               .bb-d-id small{color:#9296ba;font-size:13px}
               .bb-drawer-close{flex:none;width:34px;height:34px;border-radius:10px;border:none;background:#f1f3fa;color:#15163a;cursor:pointer;display:grid;place-items:center}
               .bb-drawer-close:hover{background:#e7eaf5}
-              .bb-d-body{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+              .bb-d-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
               .bb-d-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
               .bb-d-stats>div{display:flex;align-items:center;gap:9px;background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:11px 12px}
               .bb-d-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
@@ -354,7 +387,7 @@ export default function BrowseBriefs() {
               .bb-d-tags span{font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
               .bb-d-sec h4{margin:0 0 9px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
               .bb-d-brief{display:flex;flex-direction:column;gap:7px}
-              .bb-bl{margin:0;color:#585c7e;font-size:14px;line-height:1.6}
+              .bb-bl{margin:0;color:#585c7e;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
               .bb-blab{color:#15163a;font-weight:700}
               .bb-d-chips{display:flex;flex-wrap:wrap;gap:7px}
               .bb-d-chips span{background:#f1f3fa;color:#585c7e;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:20px}
@@ -369,6 +402,50 @@ export default function BrowseBriefs() {
           </div>
         );
       })()}
+
+      {bidBrief && (
+        <div className="bb-bid-overlay" onClick={() => !submittingBid && setBidBrief(null)}>
+          <div className="bb-bid-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="bb-bid-head">
+              <h2>Submit Your Bid</h2>
+              <button type="button" className="bb-bid-x" aria-label="Close" onClick={() => setBidBrief(null)}><X size={18} /></button>
+            </div>
+            <p className="bb-bid-sub">{bidBrief.title || 'Campaign'} · {bidBrief.brand || 'Brand'}</p>
+            <form onSubmit={handleSubmitBid} className="bb-bid-form">
+              <label>Bid Amount (₹)
+                <input type="number" min="1" required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
+              </label>
+              <label>Estimated Delivery (days)
+                <input type="number" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />
+              </label>
+              <label>Your Proposal
+                <textarea rows={4} required value={proposal} onChange={(e) => setProposal(e.target.value)} placeholder="Describe your approach, experience, and why you're the right fit..." />
+              </label>
+              <div className="bb-bid-actions">
+                <button type="button" className="bb-d-ghost" onClick={() => setBidBrief(null)} disabled={submittingBid}>Cancel</button>
+                <button type="submit" className="bb-d-primary" disabled={submittingBid}>
+                  <Send size={16} /> {submittingBid ? 'Submitting…' : 'Submit Bid'}
+                </button>
+              </div>
+            </form>
+          </div>
+          <style>{`
+            .bb-bid-overlay { position: fixed; inset: 0; background: rgba(15,18,40,.5); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 1200; padding: 20px; }
+            .bb-bid-modal { width: 100%; max-width: 460px; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(7,7,78,.28); padding: 22px; }
+            .bb-bid-head { display: flex; align-items: center; justify-content: space-between; }
+            .bb-bid-head h2 { margin: 0; font-size: 1.15rem; color: #0f1132; }
+            .bb-bid-x { border: 0; background: #f3f4f8; color: #5b6573; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; }
+            .bb-bid-x:hover { background: #e8eaf1; }
+            .bb-bid-sub { margin: 4px 0 16px; font-size: .86rem; color: #8a8fb5; }
+            .bb-bid-form { display: flex; flex-direction: column; gap: 14px; }
+            .bb-bid-form label { display: flex; flex-direction: column; gap: 6px; font-size: .84rem; font-weight: 600; color: #3a3f63; }
+            .bb-bid-form input, .bb-bid-form textarea { border: 1px solid #e6e8f2; border-radius: 11px; padding: 11px 13px; font-size: .92rem; font-family: inherit; color: #15163a; outline: 0; font-weight: 400; }
+            .bb-bid-form input:focus, .bb-bid-form textarea:focus { border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,.14); }
+            .bb-bid-form textarea { resize: vertical; }
+            .bb-bid-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+          `}</style>
+        </div>
+      )}
     </CreatorTopNavLayout>
   );
 }

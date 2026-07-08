@@ -109,7 +109,8 @@ const BRAND_TABS = [
   { id: 'team', label: 'Team Members', icon: Users },
   { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'security', label: 'Security', icon: Lock }
+  { id: 'privacy', label: 'Privacy & Security', icon: Shield },
+  { id: 'follow', label: 'Follow Us', icon: Heart }
 ];
 
 const CREATOR_TABS = [
@@ -845,14 +846,21 @@ export default function ProfileSettings() {
             </div>
           </div>
           <div className="bs-card-body">
-            <div className="bs-plan-card">
-              <div><small>Current Plan</small><h3>{billing.plan_name || 'Brand Pro'}</h3><p>Next billing: <strong>{billing.next_billing_date ? new Date(billing.next_billing_date).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Not scheduled'}</strong></p></div>
-              <div><small>Commission Rate</small><h4>{billing.commission_rate || 0}%</h4><button type="button">Upgrade to Enterprise</button></div>
+            <div className="bs-ws-row">
+              <div className="bs-ws-item"><small>Active Plan</small><strong>{summary.active_plan || billing.plan_name || 'Pro'}</strong></div>
+              <div className="bs-ws-item"><small>Wallet</small><strong>{money(summary.wallet_balance)}</strong></div>
+              <div className="bs-ws-item"><small>Team Count</small><strong>{summary.team_count || team.members?.length || 0} Members</strong></div>
             </div>
-            <div className="bs-budget-card">
-              <div><strong>Monthly Campaign Budget Progress</strong><b>{money(used)} / {money(limit)}</b></div>
-              <span><i style={{ width: `${percent}%` }} /></span>
-              <p>{percent}% of budget used this month <em><CheckCircle size={14} /> Normal usage</em></p>
+            <div className="bs-billing-grid">
+              <div className="bs-plan-card">
+                <div><small>Current Plan</small><h3>{billing.plan_name || 'Brand Pro'}</h3><p>Next billing: <strong>{billing.next_billing_date ? new Date(billing.next_billing_date).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Not scheduled'}</strong></p></div>
+                <div><small>Commission Rate</small><h4>{billing.commission_rate || 0}%</h4><button type="button">Upgrade to Enterprise</button></div>
+              </div>
+              <div className="bs-budget-card">
+                <div><strong>Monthly Campaign Budget Progress</strong><b>{money(used)} / {money(limit)}</b></div>
+                <span><i style={{ width: `${percent}%` }} /></span>
+                <p>{percent}% of budget used this month <em><CheckCircle size={14} /> Normal usage</em></p>
+              </div>
             </div>
             <div className="bs-billing-tabs">
               <button type="button"><RefreshCw size={16} /> Billing History</button>
@@ -896,6 +904,78 @@ export default function ProfileSettings() {
           </div>
           <div className="bs-card-actions">
             <button type="button" className="bs-primary" onClick={saveNotifications} disabled={loading}>{loading ? 'Saving...' : 'Save Preferences'}</button>
+          </div>
+        </section>
+      );
+    }
+
+    if (brandTab === 'privacy') {
+      return (
+        <section className="bs-card">
+          <div className="bs-card-head">
+            <span><Shield size={20} /></span>
+            <div>
+              <h2>Privacy &amp; Security</h2>
+              <p>Control who can see and reach your workspace</p>
+            </div>
+          </div>
+          <div className="bs-toggle-list">
+            {CREATOR_PRIVACY_ROWS.map(([key, title, desc, Icon]) => (
+              <div className="bs-toggle-row" key={key}>
+                <span><Icon size={20} /></span>
+                <div><strong>{title}</strong><p>{desc}</p></div>
+                <button
+                  type="button"
+                  className={privacy[key] ? 'is-on' : ''}
+                  onClick={() => setPrivacy((c) => ({ ...c, [key]: !c[key] }))}
+                  aria-label={`Toggle ${title}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="bs-card-actions">
+            <button type="button" className="bs-primary" onClick={savePrivacy}>Save Privacy Settings</button>
+          </div>
+          <div className="bs-legal">
+            <h3>Legal &amp; Policies</h3>
+            {LEGAL_DOCS.map((d) => (
+              <button type="button" key={d.name} className="bs-legal-row" onClick={() => setLegalDoc(d)}>
+                <span className="bs-legal-ic"><d.icon size={18} /></span>
+                <div><strong>{d.name}</strong><p>{d.desc}</p></div>
+                <ChevronRight size={17} />
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    if (brandTab === 'follow') {
+      return (
+        <section className="bs-card">
+          <div className="bs-card-head">
+            <span><Heart size={20} /></span>
+            <div>
+              <h2>Follow us</h2>
+              <p>Stay updated with UGCad.io on social media</p>
+            </div>
+          </div>
+          <div className="bs-social-grid">
+            {SOCIAL_LINKS.map((s) => {
+              const inner = (
+                <>
+                  <span className="bs-social-ic" style={{ background: s.color }}>
+                    {s.icon
+                      ? <s.icon size={22} />
+                      : <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" clipRule="evenodd" d={s.path} /></svg>}
+                  </span>
+                  <div><strong>{s.name}{s.comingSoon ? ' (Coming soon)' : ''}</strong><small>{s.handle}</small></div>
+                </>
+              );
+              return s.comingSoon
+                ? <div key={s.name} className="bs-social-card is-soon">{inner}</div>
+                : <a key={s.name} className="bs-social-card" href={s.url} target="_blank" rel="noreferrer">{inner}</a>;
+            })}
           </div>
         </section>
       );
@@ -954,31 +1034,43 @@ export default function ProfileSettings() {
             </div>
             {renderBrandPanel()}
           </section>
-          <aside className="bs-rail">
-            <section className="bs-status-card">
-              <Shield size={16} />
-              <h3>Workspace Status</h3>
-              <dl>
-                <div><dt>Active Plan</dt><dd>{summary.active_plan || 'Pro'}</dd></div>
-                <div><dt>Wallet</dt><dd>{money(summary.wallet_balance)}</dd></div>
-                <div><dt>Team Count</dt><dd>{summary.team_count || team.members?.length || 0} Members</dd></div>
-              </dl>
-              <button type="button"><BarChart3 size={16} /> View Workspace Analytics</button>
-            </section>
-            <section className="bs-quick-card">
-              <h3>Quick Actions</h3>
-              <button type="button" onClick={inviteMember}><span><UserPlus size={18} /></span>Invite Team<ChevronRight size={17} /></button>
-              <button type="button"><span className="warm"><Bolt size={18} /></span>Upgrade Plan<ChevronRight size={17} /></button>
-              <button type="button"><span className="green"><LifeBuoy size={18} /></span>Contact Support<ChevronRight size={17} /></button>
-            </section>
-            <section className="bs-help-card">
-              <span><HelpCircle size={20} /></span>
-              <h3>Need Help?</h3>
-              <p>Our support team is here to help you optimize your workspace.</p>
-              <button type="button">Visit Help Center</button>
-            </section>
-          </aside>
         </div>
+        {legalDoc && (
+          <div className="ps-legal-overlay" onClick={() => setLegalDoc(null)}>
+            <div className="ps-legal-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ps-legal-modal-head">
+                <span className="ps-legal-modal-ic"><legalDoc.icon size={20} /></span>
+                <div className="ps-legal-modal-title"><h3>{legalDoc.name}</h3><small>Last updated: {legalDoc.updated}</small></div>
+                <button type="button" className="ps-legal-modal-x" onClick={() => setLegalDoc(null)} aria-label="Close">✕</button>
+              </div>
+              <div className="ps-legal-modal-body">
+                {legalDoc.sections.map((sec, i) => (
+                  <div className="ps-legal-modal-sec" key={i}>
+                    <h4>{sec.h}</h4>
+                    <p>{sec.p}</p>
+                  </div>
+                ))}
+                <p className="ps-legal-modal-foot">This summary is provided for your convenience and may be updated from time to time.</p>
+              </div>
+            </div>
+            <style>{`
+              .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
+              .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
+              .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
+              .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+              .ps-legal-modal-title{flex:1;min-width:0}
+              .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
+              .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}
+              .ps-legal-modal-x{flex:none;width:34px;height:34px;border:none;background:#f1f3fa;color:#15163a;border-radius:10px;cursor:pointer;font-size:15px}
+              .ps-legal-modal-x:hover{background:#e7eaf5}
+              .ps-legal-modal-body{padding:20px;overflow-y:auto}
+              .ps-legal-modal-sec{margin-bottom:16px}
+              .ps-legal-modal-sec h4{margin:0 0 5px;font-size:14.5px;font-weight:800;color:#15163a}
+              .ps-legal-modal-sec p{margin:0;color:#585c7e;font-size:14px;line-height:1.65}
+              .ps-legal-modal-foot{margin:8px 0 0;color:#9296ba;font-size:12.5px;font-style:italic}
+            `}</style>
+          </div>
+        )}
       </BrandTopNavLayout>
     );
   }

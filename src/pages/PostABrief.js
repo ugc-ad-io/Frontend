@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -29,6 +30,7 @@ const STEPS = [
 const SUBSECTIONS = {
   1: ['Basics', 'Product Description', 'Objective & Audience'],
   3: ['Product Visibility', 'Phrases, CTA & Tags'],
+  4: ['Checklist', 'Competitors & Avoid'],
   5: ['Tone & Pacing', 'References'],
   6: ['Platforms', 'Rights & Licensing'],
   7: ['Creator Targeting', 'Timeline', 'Budget'],
@@ -259,6 +261,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [subStep, setSubStep] = useState(0);
+  const [reviewTab, setReviewTab] = useState(0);   // active section on Review & Publish
   const [form, setForm] = useState(initialForm);
   const subs = subsFor(step);
   useEffect(() => { setSubStep(0); }, [step]);
@@ -322,8 +325,13 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     axios.get(`${API}/campaigns/${dupId}`)
       .then(res => {
         const mapped = mapCampaignToForm(res.data);
+        const n = Object.keys(mapped).length;
+        // Diagnostic: how many fields actually carried over. If this is ~1–3, the
+        // source campaign was saved WITHOUT the structured brief (backend wasn't
+        // running the strict:false Campaign model when it was created).
+        console.log('[Duplicate] fields copied:', n, mapped, '\nraw campaign:', res.data);
         setForm(current => ({ ...current, ...mapped }));
-        toast.success('Copied brief loaded — edit the details and publish.');
+        toast.success(`Copied brief loaded — ${n} field${n === 1 ? '' : 's'} carried over. Edit and publish.`);
       })
       .catch(() => toast.error('Could not load that brief to duplicate'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -733,7 +741,6 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           <div className="step-content">
             <div className="step-header">
               <h2>{subs[subStep] || STEPS[step - 1]}</h2>
-              <p>{draftSavedAt ? `Autosaved on this device at ${draftSavedAt}${draftId ? ' · synced to your account' : ''}` : 'Partial briefs are saved as drafts automatically.'}</p>
             </div>
 
             <div className="pab-fill">
@@ -805,7 +812,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               </>
             )}
 
-            {step === 4 && (
+            {step === 4 && subStep === 0 && (
               <>
                 {[
                   ['noCompetitors', 'No competitor brands visible'],
@@ -814,8 +821,13 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
                   ['noPolitical', 'No political or religious content'],
                   ['avoidFilters', 'Avoid filters / effects']
                 ].map(([field, label]) => <label key={field} className="brief-check"><input type="checkbox" checked={form[field]} onChange={e => set(field, e.target.checked)} /> {label}</label>)}
-                {form.noCompetitors && <div className="form-group"><label>Competitor list</label><input className="input-field" value={form.competitors} onChange={e => set('competitors', e.target.value)} /></div>}
                 {form.avoidFilters && <div className="form-group"><label>Which filters/effects?</label><input className="input-field" value={form.filterTypes} onChange={e => set('filterTypes', e.target.value)} /></div>}
+              </>
+            )}
+
+            {step === 4 && subStep === 1 && (
+              <>
+                {form.noCompetitors && <div className="form-group"><label>Competitor list</label><input className="input-field" value={form.competitors} onChange={e => set('competitors', e.target.value)} /></div>}
                 <div className="form-group"><label>Specific things to avoid (200 max)</label><textarea className="textarea-field" rows={3} value={form.avoidText} onChange={e => set('avoidText', e.target.value.slice(0, 200))} /><small>{form.avoidText.length}/200</small></div>
               </>
             )}
@@ -839,7 +851,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             )}
             {step === 6 && subStep === 1 && (
               <>
-                <div className="form-row"><div className="form-group"><label>Duration of rights *</label><select className="input-field" value={form.rightsDuration} onChange={e => set('rightsDuration', e.target.value)}><option value="">Select duration</option>{['3 months', '6 months', '1 year', '2 years', 'Perpetual'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Exclusivity period *</label><select className="input-field" value={form.exclusivity} onChange={e => set('exclusivity', e.target.value)}>{['None', '15 days', '30 days', '60 days', '90 days'].map(item => <option key={item}>{item}</option>)}</select></div></div>
+                <div className="form-row"><div className="form-group"><label>Duration of rights *</label><select className="input-field" value={form.rightsDuration} onChange={e => set('rightsDuration', e.target.value)}><option value="">Select duration</option>{['1 month', '3 months', '6 months', '1 year', '2 years', 'Perpetual'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Exclusivity period *</label><select className="input-field" value={form.exclusivity} onChange={e => set('exclusivity', e.target.value)}>{['None', '15 days', '30 days', '60 days', '90 days'].map(item => <option key={item}>{item}</option>)}</select></div></div>
                 <div className="form-row"><div className="form-group"><label>Whitelisting / allowlisting *</label><div className="brief-segment"><button className={form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', true)}>Yes (+30%)</button><button className={!form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', false)}>No</button></div></div><div className="form-group"><label>Modification rights *</label><select className="input-field" value={form.modificationRights} onChange={e => set('modificationRights', e.target.value)}><option value="">Select rights</option>{['Yes (full rights)', 'Limited (minor edits only)', 'No (use as-is)'].map(item => <option key={item}>{item}</option>)}</select></div></div>
                 {pricingLifts.length > 0 && <div className="brief-note warning"><AlertTriangle size={18} /> Suggested pricing lifts: {pricingLifts.join('; ')}</div>}
               </>
@@ -860,8 +872,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             )}
             {step === 7 && subStep === 1 && (
               <>
-                <div className="form-row"><div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /></div><div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.'}</small></div></div>
-                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 creator, Rs. 200 platform)</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
+                <div className="form-row"><div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today — earliest is tomorrow.</small></div><div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.'}</small></div></div>
+                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 creator, Rs. 200 platform)</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
               </>
             )}
             {step === 7 && subStep === 2 && (
@@ -873,18 +885,30 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               </>
             )}
 
-            {step === 8 && (
-              <div className="review-summary">
-                <Summary title="Campaign Basics" rows={[['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']]} />
-                <Summary title="Deliverables" rows={form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`])} />
-                <Summary title="Must-Include Checklist" rows={[['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']]} />
-                <Summary title="Must-Avoid Checklist" rows={[['Restrictions', avoidRules]]} />
-                <Summary title="Style Guidance" rows={[['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']]} />
-                <Summary title="Usage Rights" rows={[['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]]} />
-                <Summary title="Creator Targeting" rows={[['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']]} />
-                <Summary title="Timeline & Budget" rows={[['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${LISTING_FEE.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]]} />
-              </div>
-            )}
+            {step === 8 && (() => {
+              const reviewSections = [
+                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
+                { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`]) },
+                { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
+                { title: 'Must-Avoid Checklist', rows: [['Restrictions', avoidRules]] },
+                { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
+                { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
+                { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
+                { title: 'Timeline & Budget', rows: [['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${LISTING_FEE.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+              ];
+              const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
+              const active = reviewSections[activeIdx];
+              return (
+                <div className="review-summary">
+                  <div className="review-tabs" role="tablist">
+                    {reviewSections.map((s, i) => (
+                      <button key={s.title} type="button" role="tab" aria-selected={i === activeIdx} className={i === activeIdx ? 'on' : ''} onClick={() => setReviewTab(i)}>{s.title}</button>
+                    ))}
+                  </div>
+                  <Summary title={active.title} rows={active.rows} />
+                </div>
+              );
+            })()}
             </div>
           </div>
 
@@ -912,7 +936,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
       </div>
 
-      {showConfirm && (
+      {showConfirm && createPortal(
         <div className="brief-modal-backdrop">
           <div className="brief-modal">
             <h3>Confirm publishing</h3>
@@ -924,7 +948,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               <button type="button" className="btn-primary" onClick={publish} disabled={submitting}>{submitting ? 'Publishing...' : 'Continue'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`
@@ -1106,17 +1131,16 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           flex-direction: column;
           gap: 18px;
         }
-        /* fixed-height field area → the card stays the same size on every step/sub-section */
+        /* Fields flow naturally; the CARD itself scrolls (see .cmk-brief-modal),
+           so there's a single scrollbar inside the card, not on the page. */
         .step-fields {
-          height: 388px;
-          overflow-y: auto;
+          min-height: 280px;
+          overflow: visible;
           display: flex;
           flex-direction: column;
           gap: 18px;
           padding-right: 8px;
         }
-        .step-fields::-webkit-scrollbar { width: 6px; }
-        .step-fields::-webkit-scrollbar-thumb { background: #d8d8ec; border-radius: 6px; }
 
         .step-badge {
           width: fit-content;
@@ -1362,8 +1386,39 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
 
         .review-summary {
-          display: grid;
+          display: flex;
+          flex-direction: column;
           gap: 16px;
+        }
+
+        .review-tabs {
+          display: flex;
+          gap: 4px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          border-bottom: 1px solid #E9EBFF;
+          scrollbar-width: thin;
+        }
+        .review-tabs::-webkit-scrollbar { height: 4px; }
+        .review-tabs::-webkit-scrollbar-thumb { background: #D8DBFF; border-radius: 4px; }
+        .review-tabs button {
+          flex: 0 0 auto;
+          border: 0;
+          background: transparent;
+          padding: 10px 14px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #9F9FD1;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -1px;
+          white-space: nowrap;
+          transition: color 0.15s ease, border-color 0.15s ease;
+        }
+        .review-tabs button:hover { color: #5B6BFF; }
+        .review-tabs button.on {
+          color: #07074E;
+          border-bottom-color: #4F46E5;
         }
 
         .summary-box {
@@ -1381,7 +1436,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
         .summary-box div {
           display: grid;
-          grid-template-columns: 190px 1fr;
+          grid-template-columns: 150px minmax(0, 1fr);
           gap: 16px;
           padding: 12px 16px;
           border-top: 1px solid #EEF0FF;
@@ -1390,6 +1445,12 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         .summary-box span {
           color: #9F9FD1;
           font-weight: 400;
+        }
+
+        .summary-box strong {
+          min-width: 0;
+          word-break: break-word;
+          overflow-wrap: anywhere;
         }
 
         .summary-box strong {
@@ -1538,11 +1599,13 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         .brief-modal-backdrop {
           position: fixed;
           inset: 0;
-          z-index: 1000;
+          z-index: 5000;
           display: grid;
           place-items: center;
           padding: 20px;
-          background: rgba(7, 7, 78, 0.45);
+          background: transparent;
+          backdrop-filter: blur(3px);
+          -webkit-backdrop-filter: blur(3px);
         }
 
         .brief-modal {
@@ -1551,7 +1614,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           padding: 28px;
           border-radius: 22px;
           background: white;
-          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.18);
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+          transform: translateY(48px);
         }
 
         .brief-modal h3 {

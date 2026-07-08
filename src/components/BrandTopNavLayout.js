@@ -108,7 +108,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
-            <button type="button" className="cmk-btn-primary-sm cmk-nav-post" onClick={() => setBriefOpen(true)} title="Post a Campaign">
+            <button type="button" className="cmk-btn-primary-sm cmk-nav-post-full" onClick={() => setBriefOpen(true)} title="Post a Campaign" aria-label="Post a Campaign">
               <Plus size={18} /><span className="cmk-btn-label">Post a Campaign</span>
             </button>
 

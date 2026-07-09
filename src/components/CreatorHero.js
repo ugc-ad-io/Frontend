@@ -39,22 +39,30 @@ export default function CreatorHero({
   activeDeals = 0, newBriefs = 0, activeDeal = null,
 }) {
   const navigate = useNavigate();
-  const reelRef = useRef(null);
   const advancingRef = useRef(false);         // guard so one clip advances only once
-  const [idx, setIdx] = useState(0);          // current showcase reel
+  // Two stacked video layers so the next reel can load HIDDEN and crossfade in —
+  // this avoids the orange background flashing during a reel change.
+  const [layerReel, setLayerReel] = useState([0, null]); // reel index held by each layer
+  const [front, setFront] = useState(0);      // which layer is currently visible
   const [progress, setProgress] = useState(0); // 0→1 fill of the active reel dot
+  const idx = layerReel[front];               // the reel currently shown
 
-  const nextReel = () => {
-    if (advancingRef.current) return;
+  const startTransition = (nextI) => {
+    if (advancingRef.current || nextI === idx) return;
     advancingRef.current = true;
-    setProgress(0);
-    setIdx((i) => (i + 1) % REELS.length);
+    const back = front ^ 1;
+    if (layerReel[back] === nextI) { promote(back); return; }   // already loaded → just crossfade
+    setLayerReel((lr) => { const n = [...lr]; n[back] = nextI; return n; }); // loads hidden
   };
+  const nextReel = () => startTransition((idx + 1) % REELS.length);
+  const goToReel = (i) => startTransition(i);
 
-  const goToReel = (i) => {
-    advancingRef.current = false;
+  // Back layer finished loading the next reel → crossfade it to the front.
+  const promote = (layer) => {
+    if (layer === front) return;
+    setFront(layer);
     setProgress(0);
-    setIdx(i);
+    advancingRef.current = false;
   };
 
   const tc = REELS[idx]; // the top creator whose reel is currently playing
@@ -111,22 +119,26 @@ export default function CreatorHero({
       <div className="chero-stage">
         <div className="chero-photo">
           <div className="chero-photo-bg" />
-          <video
-            key={idx}
-            ref={reelRef}
-            src={`${REELS[idx].src}#t=0.1`}
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            onLoadedData={() => { advancingRef.current = false; setProgress(0); }}
-            onTimeUpdate={(e) => {
-              const t = e.currentTarget.currentTime;
-              if (t >= CLIP_SECONDS) { nextReel(); return; }
-              setProgress(t / CLIP_SECONDS);
-            }}
-            onEnded={nextReel}
-          />
+          {[0, 1].map((layer) => (
+            layerReel[layer] == null ? null : (
+              <video
+                key={layer}
+                className={`chero-reel ${layer === front ? 'is-front' : 'is-back'}`}
+                src={`${REELS[layerReel[layer]].src}#t=0.1`}
+                autoPlay
+                muted
+                playsInline
+                preload="auto"
+                onLoadedData={() => { if (layer !== front) promote(layer); }}
+                onTimeUpdate={layer === front ? (e) => {
+                  const t = e.currentTarget.currentTime;
+                  if (t >= CLIP_SECONDS) { nextReel(); return; }
+                  setProgress(t / CLIP_SECONDS);
+                } : undefined}
+                onEnded={layer === front ? nextReel : undefined}
+              />
+            )
+          ))}
           <span className="chero-reel-dots">
             {REELS.map((_, i) => (
               <i
@@ -213,7 +225,9 @@ export default function CreatorHero({
         .chero-stage{position:relative;z-index:1;min-height:430px}
         .chero-photo{position:relative;width:74%;margin:0 auto;aspect-ratio:3/4;border-radius:26px;overflow:hidden;box-shadow:0 36px 70px -28px rgba(20,20,50,.5)}
         .chero-photo-bg{position:absolute;inset:0;background:linear-gradient(160deg,#ff8a47,#ff6a3d 55%,#e85d35);z-index:0}
-        .chero-photo video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+        .chero-reel{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s ease}
+        .chero-reel.is-front{opacity:1;z-index:2}
+        .chero-reel.is-back{opacity:0;z-index:1}
         .chero-reel-dots{position:absolute;top:14px;left:0;right:0;z-index:3;display:flex;justify-content:center;gap:6px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
         .chero-reel-dots i{position:relative;overflow:hidden;width:18px;height:4px;border-radius:3px;background:rgba(255,255,255,.55);cursor:pointer;transition:width .35s ease}
         .chero-reel-dots i.done{background:#fff}

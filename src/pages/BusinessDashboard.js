@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -503,8 +504,27 @@ export default function BusinessDashboard({ page = 'overview' }) {
     budget_max: '',
     brief_text: '',
     requires_shipment: false,
-    shipment_option: 'no'
+    shipment_option: 'no',
+    image_url: ''
   });
+  const [campaignImgUploading, setCampaignImgUploading] = useState(false);
+
+  const handleCampaignImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image too large. Max 5MB.'); return; }
+    setCampaignImgUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      handleInputChange('image_url', data.file_url || data.url || '');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not upload image'));
+    } finally {
+      setCampaignImgUploading(false);
+    }
+  };
   const [objectiveInput, setObjectiveInput] = useState('');
 
   useEffect(() => {
@@ -615,7 +635,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         budget_max: '',
         brief_text: '',
         requires_shipment: false,
-        shipment_option: 'no'
+        shipment_option: 'no',
+        image_url: ''
       });
       fetchCampaigns();
     } catch (error) {
@@ -2039,6 +2060,25 @@ export default function BusinessDashboard({ page = 'overview' }) {
               </div>
 
               <div className="form-group">
+                <label>Campaign Banner / Image</label>
+                <label className="campaign-img-drop">
+                  {formData.image_url ? (
+                    <>
+                      <img src={formData.image_url.startsWith('http') ? formData.image_url : `${BACKEND_URL}${formData.image_url}`} alt="" className="campaign-img-preview" />
+                      <span className="campaign-img-change">{campaignImgUploading ? 'Uploading…' : 'Change image'}</span>
+                    </>
+                  ) : (
+                    <span className="campaign-img-empty">
+                      <ImageIcon size={22} />
+                      <strong>{campaignImgUploading ? 'Uploading…' : 'Add a banner or image for your campaign'}</strong>
+                      <small>Make it look more exciting for creators · JPG/PNG, up to 5MB (optional)</small>
+                    </span>
+                  )}
+                  <input type="file" accept="image/*" hidden onChange={handleCampaignImage} />
+                </label>
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="objectives">Campaign Objectives</label>
                 <div className="objective-input-wrapper">
                   <input
@@ -2070,9 +2110,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <label htmlFor="budget_min">Min Budget (₹)</label>
                   <input
                     id="budget_min"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.budget_min}
-                    onChange={(e) => handleInputChange('budget_min', e.target.value)}
+                    onKeyDown={blockNonDigitKey}
+                    onChange={(e) => handleInputChange('budget_min', digitsOnly(e.target.value))}
                     className="input-field"
                     placeholder="100"
                     required
@@ -2083,9 +2125,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <label htmlFor="budget_max">Max Budget (₹)</label>
                   <input
                     id="budget_max"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.budget_max}
-                    onChange={(e) => handleInputChange('budget_max', e.target.value)}
+                    onKeyDown={blockNonDigitKey}
+                    onChange={(e) => handleInputChange('budget_max', digitsOnly(e.target.value))}
                     className="input-field"
                     placeholder="500"
                     required
@@ -6516,6 +6560,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex-direction: column;
           gap: 20px;
         }
+        /* campaign banner / image upload */
+        .campaign-img-drop {
+          display: block; position: relative; cursor: pointer; border-radius: 14px; overflow: hidden;
+          border: 1.5px dashed #cdd2f3; background: linear-gradient(140deg, #f7f8ff, #f2f3ff); transition: border-color .15s, background .15s;
+        }
+        .campaign-img-drop:hover { border-color: #5b6bff; background: #eef0ff; }
+        .campaign-img-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 26px 18px; color: #5b6bff; }
+        .campaign-img-empty strong { color: #07074e; font-size: 14.5px; }
+        .campaign-img-empty small { color: #8a8fc0; font-weight: 500; font-size: 12.5px; }
+        .campaign-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
+        .campaign-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
+          font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
 
         .objective-input-wrapper {
           display: flex;

@@ -75,7 +75,11 @@ export default function NotificationsPage() {
       </div>
 
       <style>{`
-        .np-wrap{max-width:820px;margin-top:6px}
+        /* Widen ONLY the notifications page's content container (self-scoped via
+           :has) past the app's default 1320px, so the cards use more of the
+           screen and the empty right-hand gap shrinks. Other pages are untouched. */
+        .cmk-wrap:has(.np-wrap){max-width:1600px}
+        .np-wrap{max-width:none;width:100%;margin-top:6px}
         .np-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;color:var(--muted);font-size:14px;font-weight:600}
         .np-allread{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--indigo);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
         .np-allread:hover{border-color:#cdd2f3}

@@ -15,6 +15,22 @@ const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 const formatMoney = (value) => `Rs. ${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
+// Cover banner gradient — deterministic per brand so each card reads distinctly
+// (mirrors the brand-side campaign cards' thumbnail look).
+const COVER_GRADIENTS = [
+  'linear-gradient(135deg,#c7d2fe,#a5b4fc)',
+  'linear-gradient(135deg,#fbcfe8,#f9a8d4)',
+  'linear-gradient(135deg,#bfdbfe,#93c5fd)',
+  'linear-gradient(135deg,#bbf7d0,#86efac)',
+  'linear-gradient(135deg,#fde68a,#fcd34d)',
+  'linear-gradient(135deg,#ddd6fe,#c4b5fd)',
+];
+const coverBg = (name) => {
+  let h = 0;
+  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return COVER_GRADIENTS[h % COVER_GRADIENTS.length];
+};
+
 // Map a niche/tag to a consistent colour class so each category reads distinctly.
 const CAT_MAP = [
   [/beauty|skin|makeup|cosmet/i, 'c-beauty'],
@@ -294,31 +310,28 @@ export default function BrowseBriefs() {
         <div className="cmk-bb-grid">
           {shown.map((b) => (
             <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? setOpenBrief(b) : toast.error('This brief is unavailable')}>
-              <div className="cmk-bb-top">
-                <span className="cmk-bb-logo">
-                  {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
-                </span>
-                <strong className="cmk-bb-brand">{b.brand}</strong>
+              <div className="cmk-bb-cover" style={{ background: coverBg(b.brand) }}>
+                <span className="cmk-bb-badge"><Star size={11} /> {b.matchScore}% Match</span>
                 <button
                   type="button"
                   className={`cmk-bb-save${savedIds.has(String(b.id)) ? ' is-saved' : ''}`}
-                  style={savedIds.has(String(b.id)) ? { color: '#5b6bff' } : undefined}
                   onClick={(e) => { e.stopPropagation(); const s = toggleSavedBrief(b); toast.success(s ? 'Saved to your list' : 'Removed from saved'); }}
                   aria-label={savedIds.has(String(b.id)) ? 'Remove from saved' : 'Save brief'}
                 >
                   <Bookmark size={16} fill={savedIds.has(String(b.id)) ? 'currentColor' : 'none'} />
                 </button>
               </div>
-              <h3 className="cmk-bb-title">{b.title}</h3>
-              <div className="cmk-bb-tags">
-                {b.tags.map((t) => <span key={t} className={catClass(t)}>{t}</span>)}
+              <div className="cmk-bb-body">
+                <div className="cmk-bb-brandrow">
+                  <span className="cmk-bb-logo">
+                    {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
+                  </span>
+                  <strong className="cmk-bb-brand">{b.brand}</strong>
+                </div>
+                <h3 className="cmk-bb-title">{b.title}</h3>
+                <p className="cmk-bb-sub">{[b.tags[0], b.deliveryLabel].filter(Boolean).join(' · ')}</p>
+                <div className="cmk-bb-budget">{b.budget}</div>
               </div>
-              <p className="cmk-bb-desc">{b.description}</p>
-              <div className="cmk-bb-meta">
-                <strong>{b.budget}</strong>
-                <span><Clock size={14} /> {b.deliveryLabel}</span>
-              </div>
-              <div className="cmk-bb-match"><Star size={13} /> {b.matchScore}% Match</div>
             </article>
           ))}
         </div>
@@ -334,7 +347,62 @@ export default function BrowseBriefs() {
 
       {openBrief && (() => {
         const b = openBrief;
-        const objectives = Array.isArray(b.campaign?.objectives) ? b.campaign.objectives.filter(Boolean) : [];
+        const c = b.campaign || {};
+        const objectives = Array.isArray(c.objectives) ? c.objectives.filter(Boolean) : [];
+        const listVal = (v) => (Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || ''));
+        const deliverables = Array.isArray(c.deliverable_items) ? c.deliverable_items : [];
+        // Full structured brief — grouped sections, empty rows filtered out.
+        const detailSections = [
+          { h: 'Product', rows: [
+            ['Product', c.product_name],
+            ['Category', c.product_category || c.category],
+            ['Description', c.product_description],
+            ['Hook', c.campaign_hook],
+            ['Key message', c.key_message],
+            ['Target audience', c.target_audience],
+          ] },
+          { h: 'Deliverables', rows: deliverables.map((d, i) => [
+            `Deliverable ${i + 1}`,
+            `${d.quantity || 1} x ${d.type || ''}${d.duration ? `; ${d.duration}` : ''}${d.aspect_ratios?.length ? `; ${d.aspect_ratios.join(', ')}` : ''}${d.raw_required ? '; raw files required' : ''}`,
+          ]) },
+          { h: 'Must include', rows: [
+            ['Product visible', c.product_visible ? `${c.product_visible_seconds || ''}s minimum` : ''],
+            ['Verbal mention', c.verbal_mention ? (c.verbal_mention_text || 'Yes') : ''],
+            ['Required phrases', listVal(c.required_phrases)],
+            ['Required shots', listVal(c.required_shots)],
+            ['Call to action', c.call_to_action],
+            ['Promo code', c.promo_code],
+            ['Hashtags', c.hashtags],
+            ['Brand tag', c.brand_handle_tag ? 'Yes' : ''],
+          ] },
+          { h: 'Must avoid', rows: [
+            ['Competitors', c.no_competitors ? (c.competitors_text || 'No competitor brands') : ''],
+            ['Other products', c.no_other_products ? 'Not allowed' : ''],
+            ['Profanity', c.no_profanity ? 'Not allowed' : ''],
+            ['Political/religious', c.no_political ? 'Not allowed' : ''],
+            ['Filters/effects', c.avoid_filters ? (c.filter_types_text || 'Avoid') : ''],
+            ['Other', c.avoid_text],
+          ] },
+          { h: 'Style guidance', rows: [
+            ['Tone', listVal(c.tone_tags)],
+            ['Pacing', c.pacing],
+            ['Music', c.music_preference],
+            ['Reference videos', listVal(c.reference_videos)],
+          ] },
+          { h: 'Usage rights', rows: [
+            ['Platforms', listVal(c.usage_platforms)],
+            ['Rights duration', c.rights_duration],
+            ['Exclusivity', c.exclusivity],
+            ['Whitelisting', c.whitelisting ? 'Yes' : ''],
+            ['Modification', c.modification_rights],
+          ] },
+          { h: 'Timeline', rows: [
+            ['Ship by', c.product_shipping_by],
+            ['Final delivery', c.due_date || c.deadline],
+            ['Revisions included', c.revision_limit],
+          ] },
+        ].map((s) => ({ ...s, rows: s.rows.filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '') }))
+         .filter((s) => s.rows.length);
         return (
           <div className="bb-drawer-overlay" onClick={() => setOpenBrief(null)}>
             <aside className="bb-drawer" onClick={(e) => e.stopPropagation()}>
@@ -360,10 +428,12 @@ export default function BrowseBriefs() {
                   <div className="bb-d-tags">{b.tags.map((t) => <span key={t} className={catClass(t)}>{t}</span>)}</div>
                 )}
 
-                <div className="bb-d-sec">
-                  <h4>Campaign Brief</h4>
-                  <div className="bb-d-brief">{renderBrief(b.description)}</div>
-                </div>
+                {b.description && b.description !== 'Create engaging UGC content for this brand.' && (
+                  <div className="bb-d-sec">
+                    <h4>Campaign Brief</h4>
+                    <div className="bb-d-brief">{renderBrief(b.description)}</div>
+                  </div>
+                )}
 
                 {objectives.length > 0 && (
                   <div className="bb-d-sec">
@@ -371,6 +441,20 @@ export default function BrowseBriefs() {
                     <div className="bb-d-chips">{objectives.map((o, i) => <span key={i}>{o}</span>)}</div>
                   </div>
                 )}
+
+                {detailSections.map((s) => (
+                  <div className="bb-d-sec" key={s.h}>
+                    <h4>{s.h}</h4>
+                    <div className="bb-d-rows">
+                      {s.rows.map(([label, value]) => (
+                        <div className="bb-d-row" key={label}>
+                          <span className="bb-d-row-k">{label}</span>
+                          <span className="bb-d-row-v">{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="bb-d-foot">
@@ -407,6 +491,11 @@ export default function BrowseBriefs() {
               .bb-blab{color:#15163a;font-weight:700}
               .bb-d-chips{display:flex;flex-wrap:wrap;gap:7px}
               .bb-d-chips span{background:#f1f3fa;color:#585c7e;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:20px}
+              .bb-d-rows{display:flex;flex-direction:column;gap:8px}
+              .bb-d-row{display:grid;grid-template-columns:150px 1fr;gap:14px;font-size:14px;line-height:1.5}
+              .bb-d-row-k{color:#9296ba;font-weight:600}
+              .bb-d-row-v{color:#15163a;overflow-wrap:anywhere}
+              @media (max-width:560px){.bb-d-row{grid-template-columns:120px 1fr;gap:10px}}
               .bb-d-foot{display:flex;gap:10px;padding:16px 22px;border-top:1px solid #e9ebf4}
               .bb-d-ghost,.bb-d-primary{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent}
               .bb-d-ghost{background:#fff;border-color:#e9ebf4;color:#15163a}

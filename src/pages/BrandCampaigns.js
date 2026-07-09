@@ -122,7 +122,8 @@ export default function BrandCampaigns() {
         <div className="bcam-grid">
           {rows.map((c) => {
             const s = STATUS[c.status] || STATUS.active;
-            const cover = c.cover_image ? (c.cover_image.startsWith('http') ? c.cover_image : `${BACKEND_URL}${c.cover_image}`) : '';
+            const coverRaw = c.image_url || c.cover_image || c.brand_cover_image_url || '';
+            const cover = coverRaw ? (coverRaw.startsWith('http') ? coverRaw : `${BACKEND_URL}${coverRaw}`) : '';
             const spent = c.escrow_amount || c.budget_min || 0;
             const total = c.budget_max || c.budget_min || 0;
             return (

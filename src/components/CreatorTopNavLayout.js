@@ -162,16 +162,21 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
         {children}
       </main>
 
-      <button
-        type="button"
-        className="cmk-btn-primary-sm cmk-post-fab"
-        onClick={() => setMsgOpen((v) => !v)}
-        title="Messages"
-      >
-        <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
-      </button>
+      {/* Floating Message button — hidden on the Messages page itself (redundant there). */}
+      {!(pathname === '/messages' || pathname.startsWith('/messages/')) && (
+        <>
+          <button
+            type="button"
+            className="cmk-btn-primary-sm cmk-post-fab"
+            onClick={() => setMsgOpen((v) => !v)}
+            title="Messages"
+          >
+            <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
+          </button>
 
-      {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
+          {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
+        </>
+      )}
     </div>
   );
 }

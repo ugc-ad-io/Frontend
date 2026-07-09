@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare } from 'lucide-react';
+import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
@@ -19,6 +19,7 @@ const PRIMARY_LINKS = [
 ];
 
 const MENU_LINKS = [
+  { name: 'Saved Creators', to: '/dashboard/business/saved-creators', icon: Bookmark },
   { name: 'Creator Bids', to: '/dashboard/business/pending-bids', icon: UserRoundSearch },
   { name: 'Manage Shipment', to: '/dashboard/business/shipments', icon: Package },
   { name: 'Wallet', to: '/dashboard/business/wallet', icon: Wallet },
@@ -201,16 +202,21 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         {children}
       </main>
 
-      <button
-        type="button"
-        className="cmk-btn-primary-sm cmk-post-fab"
-        onClick={() => setMsgOpen((v) => !v)}
-        title="Messages"
-      >
-        <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
-      </button>
+      {/* Floating Message button — hidden on the Messages page itself (redundant there). */}
+      {!(pathname === '/messages' || pathname.startsWith('/messages/')) && (
+        <>
+          <button
+            type="button"
+            className="cmk-btn-primary-sm cmk-post-fab"
+            onClick={() => setMsgOpen((v) => !v)}
+            title="Messages"
+          >
+            <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
+          </button>
 
-      {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
+          {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
+        </>
+      )}
 
       {briefOpen && (
         <div className="cmk-brief-overlay" onClick={() => setBriefOpen(false)}>

@@ -24,6 +24,7 @@ const BrandOverview = lazy(() => import('./pages/BrandOverview'));
 const BrandCreators = lazy(() => import('./pages/BrandCreators'));
 const BrandWorkReview = lazy(() => import('./pages/BrandWorkReview'));
 const BrandCampaigns = lazy(() => import('./pages/BrandCampaigns'));
+const SavedCreators = lazy(() => import('./pages/SavedCreators'));
 const BrandCampaignDetail = lazy(() => import('./pages/BrandCampaignDetail'));
 const CreatorProfilePage = lazy(() => import('./pages/CreatorProfilePage'));
 const CreatorMyProfilePage = lazy(() => import('./pages/CreatorMyProfilePage'));
@@ -233,6 +234,37 @@ function App() {
     return () => obs.disconnect();
   }, []);
 
+  // Site-wide guard: number inputs (type=number or inputMode=numeric) accept only
+  // digits (+ a decimal point) — letters/symbols are blocked at the keystroke, so
+  // price / days / age / amount fields everywhere can never contain alphabets.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const el = e.target;
+      if (!el || el.tagName !== 'INPUT') return;
+      const numeric = el.type === 'number' || el.inputMode === 'numeric' || el.getAttribute('inputmode') === 'numeric';
+      if (!numeric) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const nav = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+      if (nav.includes(e.key)) return;
+      if (e.key.length === 1 && !/[0-9.]/.test(e.key)) e.preventDefault();
+    };
+    // block pasting non-numeric text into number inputs too
+    const onPaste = (e) => {
+      const el = e.target;
+      if (!el || el.tagName !== 'INPUT') return;
+      const numeric = el.type === 'number' || el.inputMode === 'numeric' || el.getAttribute('inputmode') === 'numeric';
+      if (!numeric) return;
+      const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      if (/[^0-9.]/.test(text)) e.preventDefault();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('paste', onPaste, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('paste', onPaste, true);
+    };
+  }, []);
+
   return (
     <div className="App">
       <BrowserRouter>
@@ -355,6 +387,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['business']}>
                   <BrandCampaigns />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/saved-creators"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <SavedCreators />
                 </ProtectedRoute>
               }
             />

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
+import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
 import { useAuth } from '../App';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -42,11 +43,28 @@ const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial
 const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)'];
 const ASPECTS = ['9:16', '1:1', '16:9', '4:5'];
 const CTAS = ['Visit website', 'Use code', 'Swipe up', 'Follow brand', 'None'];
+// CTAs that need a link/handle value (Use code has its own promoCode field; None needs nothing).
+const CTA_INPUT = {
+  'Visit website': { label: 'Website link', ph: 'https://yourbrand.com', type: 'url' },
+  'Swipe up': { label: 'Swipe-up link', ph: 'https://yourbrand.com/offer', type: 'url' },
+  'Follow brand': { label: 'Brand handle to follow', ph: '@yourbrand', type: 'handle' },
+};
+// Only proper links / handles allowed — no random text.
+const CTA_URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s]*)?$/i;
+const CTA_HANDLE_RE = /^@?[a-z0-9._]{2,30}$/i;
+const ctaLinkValid = (cta, v) => {
+  const s = String(v || '').trim();
+  if (!s) return false;
+  const t = CTA_INPUT[cta]?.type;
+  if (t === 'url') return CTA_URL_RE.test(s);
+  if (t === 'handle') return CTA_HANDLE_RE.test(s) || CTA_URL_RE.test(s);
+  return true;
+};
 const TONES = ['Casual', 'Energetic', 'Informative', 'Humorous', 'Aspirational', 'Authentic', 'Educational', 'Trustworthy'];
 const CREATOR_LEVELS = ['New', 'Verified', 'L1', 'L2', 'Elite'];
 const QUALITY_TIERS = ['A', 'A+', 'A++'];
 const GENDER_OPTIONS = ['No Preference', 'Female', 'Male', 'Non-binary'];
-const CITIES = ['Any City', 'Mumbai', 'Delhi NCR', 'Bengaluru', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur'];
+const CITIES = ['Any City', 'Mumbai', 'Delhi NCR', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot', 'Varanasi', 'Srinagar', 'Aurangabad', 'Amritsar', 'Navi Mumbai', 'Prayagraj', 'Ranchi', 'Coimbatore', 'Jabalpur', 'Gwalior', 'Vijayawada', 'Jodhpur', 'Madurai', 'Raipur', 'Kota', 'Guwahati', 'Chandigarh', 'Noida', 'Gurugram', 'Thiruvananthapuram', 'Kochi', 'Mysuru', 'Bhubaneswar', 'Dehradun', 'Mangaluru', 'Tiruchirappalli', 'Jamshedpur', 'Panaji (Goa)', 'Puducherry', 'Udaipur', 'Salem', 'Warangal', 'Guntur', 'Bhilai', 'Jalandhar', 'Bikaner', 'Siliguri', 'Nellore', 'Ajmer', 'Shimla', 'Other'];
 const NICHE_TAGS = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food', 'Lifestyle', 'Tech', 'Travel', 'Home Decor', 'Wellness', 'Parenting', 'Gaming'];
 const VIDEO_DELIVERABLES = ['Reel', 'Short-form', 'YouTube Short', 'Long-form video'];
 const PLATFORMS = [
@@ -74,6 +92,7 @@ const createDeliverable = () => ({
 
 const initialForm = {
   campaignName: '',
+  image: '',
   brandName: '',
   category: '',
   productName: '',
@@ -92,6 +111,7 @@ const initialForm = {
   requiredShots: [''],
   callToAction: 'Visit website',
   promoCode: '',
+  ctaLink: '',
   hashtags: '',
   brandHandleTag: true,
   noCompetitors: true,
@@ -177,6 +197,7 @@ function mapCampaignToForm(c) {
   putArr('requiredPhrases', c.required_phrases);
   putArr('requiredShots', c.required_shots);
   put('callToAction', c.call_to_action);
+  put('ctaLink', c.cta_link);
   put('promoCode', c.promo_code);
   put('hashtags', c.hashtags);
   putBool('brandHandleTag', c.brand_handle_tag);
@@ -265,6 +286,23 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   const [form, setForm] = useState(initialForm);
   const subs = subsFor(step);
   useEffect(() => { setSubStep(0); }, [step]);
+  const [campaignImgUploading, setCampaignImgUploading] = useState(false);
+  const uploadCampaignImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image too large. Max 5MB.'); return; }
+    setCampaignImgUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setForm((f) => ({ ...f, image: data.file_url || data.url || '' }));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not upload image'));
+    } finally {
+      setCampaignImgUploading(false);
+    }
+  };
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [publishMode, setPublishMode] = useState('matches');
@@ -406,10 +444,15 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     set(field, form[field].map((item, idx) => idx === index ? value : item));
   };
 
+  const removeTextItem = (field, index) => {
+    const next = form[field].filter((_, idx) => idx !== index);
+    set(field, next.length ? next : ['']);   // keep at least one empty input
+  };
+
   const isStepValid = (target = step) => {
     if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.productName.trim().length >= 2 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
     if (target === 2) return form.deliverables.length > 0 && form.deliverables.every(item => item.type && item.quantity >= 1 && item.quantity <= 5 && item.aspectRatios.length > 0 && (!isVideoDeliverable(item.type) || item.duration));
-    if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode);
+    if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode) && (!CTA_INPUT[form.callToAction] || ctaLinkValid(form.callToAction, form.ctaLink));
     if (target === 4) return form.avoidText.length <= 200;
     if (target === 5) return form.tones.length > 0 && form.pacing;
     if (target === 6) return form.platforms.length > 0 && form.rightsDuration && form.exclusivity && form.modificationRights;
@@ -454,6 +497,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       if (form.verbalMention && !form.productNames) m.push('Product names to mention');
       if (!form.callToAction) m.push('Call to action');
       if (form.callToAction === 'Use code' && !form.promoCode) m.push('Promo code');
+      if (CTA_INPUT[form.callToAction] && !ctaLinkValid(form.callToAction, form.ctaLink)) m.push(`${CTA_INPUT[form.callToAction].label} (valid ${CTA_INPUT[form.callToAction].type === 'handle' ? 'handle or link' : 'link'})`);
     } else if (target === 5) {
       if (form.tones.length === 0) m.push('Tone tags');
       if (!form.pacing) m.push('Pacing reference');
@@ -492,7 +536,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         await axios.patch(`${API}/campaigns/${draftId}`, payload);
       } else {
         const res = await axios.post(`${API}/campaigns/draft`, payload);
-        const newId = res.data?.campaign_id;
+        const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
         if (newId) {
           setDraftId(newId);
           localStorage.setItem(DRAFT_ID_KEY, newId);
@@ -506,6 +550,70 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       setSavingDraft(false);
     }
   };
+
+  // ── Auto-draft ─────────────────────────────────────────────────────────────
+  // The form is already mirrored to localStorage on every change (below). On top
+  // of that, silently save it as an ACCOUNT draft a few seconds after the user
+  // stops editing — so nothing is lost if they hit Cancel, switch tabs, or close
+  // the tab. Reuses draftId, so it keeps updating one draft (no duplicates).
+  const briefHasContent = (f) =>
+    (f.campaignName || '').trim().length >= 2 ||
+    (f.productName || '').trim().length >= 2 ||
+    (f.productDescription || '').trim().length >= 10;
+
+  const lastAutoSaveRef = useRef('');
+  const publishedRef = useRef(false);   // set once the brief is published/cleared — stop auto-saving
+  const autoSaveDraftSilent = async () => {
+    if (publishedRef.current || savingDraft || submitting) return;
+    if (!briefHasContent(form)) return;
+    const snapshot = JSON.stringify(form);
+    if (snapshot === lastAutoSaveRef.current) return;   // nothing changed
+    lastAutoSaveRef.current = snapshot;
+    try {
+      const payload = buildPayload();
+      if (draftId) {
+        await axios.patch(`${API}/campaigns/${draftId}`, payload);
+      } else {
+        const res = await axios.post(`${API}/campaigns/draft`, payload);
+        const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
+        if (newId) { setDraftId(newId); localStorage.setItem(DRAFT_ID_KEY, newId); }
+      }
+      setDraftSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } catch {
+      // Server save failed — the localStorage copy still has everything.
+      lastAutoSaveRef.current = '';   // retry on next change
+    }
+  };
+
+  // Keep a ref to the latest auto-save closure so the unmount handler saves the
+  // CURRENT form (not a stale one from first render).
+  const autoSaveRef = useRef(autoSaveDraftSilent);
+  autoSaveRef.current = autoSaveDraftSilent;
+
+  // Debounce: auto-save ~1.5s after the last edit (only once there's real content).
+  useEffect(() => {
+    if (!briefHasContent(form)) return undefined;
+    const t = setTimeout(() => autoSaveRef.current(), 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
+
+  // Save on leave — fires when the form unmounts (Cancel, tab switch, navigate),
+  // so work isn't lost even if you leave before the debounce runs.
+  useEffect(() => () => { autoSaveRef.current(); }, []);
+
+  // Warn before closing/refreshing the tab if there are unsaved edits in flight.
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (briefHasContent(form) && JSON.stringify(form) !== lastAutoSaveRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
 
   const handleHashtagsChange = (value) => {
     const tags = value.split(/\s+/).filter(Boolean).slice(0, 10);
@@ -545,6 +653,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     const primaryDeliverable = form.deliverables[0] || {};
     return {
       title: form.campaignName,
+      image_url: form.image || '',
       brief_text: briefText(),
       budget_min: form.budgetMode === 'fixed' ? budget : Number(form.budgetMin || 0),
       budget_max: budget,
@@ -597,6 +706,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       required_phrases: form.requiredPhrases,
       required_shots: form.requiredShots,
       call_to_action: form.callToAction,
+      cta_link: form.ctaLink,
       promo_code: form.promoCode,
       hashtags: form.hashtags,
       brand_handle_tag: form.brandHandleTag,
@@ -624,6 +734,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   };
 
   const clearDraftStorage = () => {
+    publishedRef.current = true;   // brief published — don't auto-save on unmount
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(DRAFT_ID_KEY);
     setDraftId(null);
@@ -675,9 +786,14 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   const renderTextList = (field, max, placeholder) => (
     <div className="brief-list-inputs">
       {form[field].map((item, index) => (
-        <input key={index} value={item} onChange={(event) => updateTextItem(field, index, event.target.value)} placeholder={placeholder} />
+        <div key={index} className="brief-list-row">
+          <input value={item} onChange={(event) => updateTextItem(field, index, event.target.value)} placeholder={placeholder} />
+          {(form[field].length > 1 || item) && (
+            <button type="button" className="brief-list-del" aria-label="Remove" onClick={() => removeTextItem(field, index)}><Trash2 size={15} /></button>
+          )}
+        </div>
       ))}
-      {form[field].length < max && <button type="button" onClick={() => addTextItem(field, max)}><Plus size={15} /> Add item</button>}
+      {form[field].length < max && <button type="button" className="brief-list-add" onClick={() => addTextItem(field, max)}><Plus size={15} /> Add item</button>}
     </div>
   );
 
@@ -743,15 +859,28 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               <h2>{subs[subStep] || STEPS[step - 1]}</h2>
             </div>
 
-            <div className="pab-fill">
-              <div className="pab-fill-track"><i style={{ width: `${stepFillPct()}%` }} /></div>
-              <span>{stepFillPct()}% complete</span>
-            </div>
-
             <div className="step-fields">
             {step === 1 && subStep === 0 && (
               <>
                 <div className="form-group"><label>Campaign name *</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><small>{form.campaignName.length}/80 characters</small></div>
+                <div className="form-group">
+                  <label>Campaign Banner / Image</label>
+                  <label className="pab-img-drop">
+                    {form.image ? (
+                      <>
+                        <img src={form.image.startsWith('http') ? form.image : `${BACKEND_URL}${form.image}`} alt="" className="pab-img-preview" />
+                        <span className="pab-img-change">{campaignImgUploading ? 'Uploading…' : 'Change image'}</span>
+                      </>
+                    ) : (
+                      <span className="pab-img-empty">
+                        <ImageIcon size={22} />
+                        <strong>{campaignImgUploading ? 'Uploading…' : 'Add a banner or image for your campaign'}</strong>
+                        <small>Make it look more exciting for creators · JPG/PNG, up to 5MB (optional)</small>
+                      </span>
+                    )}
+                    <input type="file" accept="image/*" hidden onChange={uploadCampaignImage} />
+                  </label>
+                </div>
                 <div className="form-row">
                   <div className="form-group"><label>Brand name</label><input className="input-field" value={form.brandName} disabled /></div>
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
@@ -807,7 +936,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             {step === 3 && subStep === 1 && (
               <>
                 <div className="form-row"><div className="form-group"><label>Required phrases (up to 5)</label>{renderTextList('requiredPhrases', 5, 'Perfect for oily skin')}</div><div className="form-group"><label>Required visual shots (up to 5)</label>{renderTextList('requiredShots', 5, 'Close-up of label')}</div></div>
-                <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}</div>
+                <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}{CTA_INPUT[form.callToAction] && <div className="form-group"><label>{CTA_INPUT[form.callToAction].label} *</label><input className="input-field" placeholder={CTA_INPUT[form.callToAction].ph} value={form.ctaLink} onChange={e => set('ctaLink', e.target.value)} />{form.ctaLink && !ctaLinkValid(form.callToAction, form.ctaLink) && <small style={{ color: '#ef4444', fontSize: 12, marginTop: 4, display: 'block' }}>{CTA_INPUT[form.callToAction].type === 'handle' ? 'Enter a valid @handle or profile link — no random text.' : 'Enter a valid link (e.g. https://yourbrand.com) — no random text.'}</small>}</div>}</div>
                 <div className="form-row"><div className="form-group"><label>Required hashtags</label><input className="input-field" value={form.hashtags} onChange={e => handleHashtagsChange(e.target.value)} placeholder="#brand #launch" /><small>Up to 10 hashtags.</small></div><div className="form-group"><label>Brand handle tag *</label><div className="brief-segment"><button className={form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', true)}>Yes</button><button className={!form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', false)}>No</button></div></div></div>
               </>
             )}
@@ -879,7 +1008,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             {step === 7 && subStep === 2 && (
               <>
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
-                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="number" value={form.fixedBudget} onChange={e => set('fixedBudget', e.target.value)} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMin} onChange={e => set('budgetMin', e.target.value)} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMax} onChange={e => set('budgetMax', e.target.value)} /></div></div>}
+                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>
                 <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p><p>Creator receives on approval <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><small>Creator amount is pre-tax. TDS may apply.</small></div>
               </>
@@ -889,7 +1018,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               const reviewSections = [
                 { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
                 { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`]) },
-                { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
+                { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ...(CTA_INPUT[form.callToAction] ? [[CTA_INPUT[form.callToAction].label, form.ctaLink || 'None']] : []), ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
                 { title: 'Must-Avoid Checklist', rows: [['Restrictions', avoidRules]] },
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
                 { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
@@ -1130,6 +1259,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           display: flex;
           flex-direction: column;
           gap: 18px;
+          padding-bottom: 20px;
         }
         /* Fields flow naturally; the CARD itself scrolls (see .cmk-brief-modal),
            so there's a single scrollbar inside the card, not on the page. */
@@ -1176,6 +1306,15 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           flex-direction: column;
           gap: 8px;
         }
+        .pab-img-drop { display: block; position: relative; cursor: pointer; border-radius: 14px; overflow: hidden;
+          border: 1.5px dashed #cdd2f3; background: linear-gradient(140deg, #f7f8ff, #f2f3ff); transition: border-color .15s, background .15s; }
+        .pab-img-drop:hover { border-color: #5b6bff; background: #eef0ff; }
+        .pab-img-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 24px 18px; color: #5b6bff; }
+        .pab-img-empty strong { color: #07074e; font-size: 14.5px; }
+        .pab-img-empty small { color: #8a8fc0; font-weight: 500; font-size: 12.5px; }
+        .pab-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
+        .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
+          font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
 
         .form-group label {
           color: #07074E;
@@ -1337,6 +1476,25 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           flex-direction: column;
           gap: 9px;
         }
+
+        .brief-list-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .brief-list-row input { flex: 1; min-width: 0; }
+        .brief-list-inputs button.brief-list-del {
+          flex: none;
+          width: 42px;
+          height: 42px;
+          padding: 0;
+          display: grid;
+          place-items: center;
+          background: #fdeeee;
+          color: #d64545;
+          border-radius: 11px;
+        }
+        .brief-list-inputs button.brief-list-del:hover { background: #fbdcdc; }
 
         .brief-check {
           display: flex;

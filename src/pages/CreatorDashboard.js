@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
@@ -468,11 +469,11 @@ export default function CreatorDashboard() {
             <p>{selectedCampaign.title}</p>
             <label>
               Bid Amount
-              <input type="number" value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} required min="1" />
+              <input type="text" inputMode="numeric" value={bidAmount} onKeyDown={blockNonDigitKey} onChange={(event) => setBidAmount(digitsOnly(event.target.value))} required />
             </label>
             <label>
               Delivery Days
-              <input type="number" value={deliveryDays} onChange={(event) => setDeliveryDays(event.target.value)} required min="1" />
+              <input type="text" inputMode="numeric" value={deliveryDays} onKeyDown={blockNonDigitKey} onChange={(event) => setDeliveryDays(digitsOnly(event.target.value))} required />
             </label>
             <label>
               Proposal

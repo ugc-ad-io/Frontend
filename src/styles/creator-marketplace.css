@@ -301,29 +301,27 @@
 /* ── brief cards ─────────────────────────────────────────────────────────── */
 /* Browse Campaigns as a vertical LIST — one card per row, stacked below each other */
 .cmk-bb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:20px}
-.cmk-bb-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;
+.cmk-bb-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:0;overflow:hidden;
   box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s;display:flex;flex-direction:column}
 .cmk-bb-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card);border-color:#dfe2f4}
-/* match score as a soft green pill */
-.cmk-bb-card .cmk-bb-match{align-self:flex-start;background:#e8f8ef;color:#15a35b;padding:6px 12px;border-radius:20px}
-.cmk-bb-top{display:flex;align-items:center;gap:10px}
-.cmk-bb-logo{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;overflow:hidden;
-  background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;font-weight:800;font-size:15px}
-.cmk-bb-logo img{width:100%;height:100%;object-fit:cover}
-.cmk-bb-brand{flex:1;font-size:14.5px;font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cmk-bb-save{border:none;background:none;color:var(--muted);cursor:pointer;padding:4px}
+/* full-bleed cover banner (like the brand campaign cards) */
+.cmk-bb-cover{position:relative;height:150px;flex:none}
+.cmk-bb-badge{position:absolute;top:12px;left:12px;display:inline-flex;align-items:center;gap:4px;
+  background:#e8f8ef;color:#15a35b;font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px}
+.cmk-bb-save{position:absolute;top:10px;right:10px;border:none;background:rgba(255,255,255,.9);color:var(--muted);
+  width:32px;height:32px;border-radius:50%;display:grid;place-items:center;cursor:pointer;transition:.15s;box-shadow:0 2px 8px rgba(15,18,40,.15)}
 .cmk-bb-save:hover{color:var(--indigo)}
-.cmk-bb-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;font-weight:700;margin-top:14px;line-height:1.3;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:44px}
-.cmk-bb-tags{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
-.cmk-bb-tags span{background:#eef0ff;color:var(--indigo);font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px}
-.cmk-bb-desc{color:var(--ink-2);font-size:13.5px;line-height:1.5;margin-top:12px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:40px}
-.cmk-bb-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:14px}
-.cmk-bb-meta strong{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:15.5px;font-weight:800;color:var(--ink);white-space:nowrap}
-.cmk-bb-meta span{flex:none}
-.cmk-bb-meta span{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:13px;font-weight:500}
-.cmk-bb-match{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-size:13px;font-weight:700;margin-top:12px}
+.cmk-bb-save.is-saved{color:#5b6bff}
+.cmk-bb-body{padding:14px 18px 18px;display:flex;flex-direction:column;gap:7px}
+.cmk-bb-brandrow{display:flex;align-items:center;gap:9px}
+.cmk-bb-logo{width:28px;height:28px;border-radius:8px;flex:none;display:grid;place-items:center;overflow:hidden;
+  background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;font-weight:800;font-size:13px}
+.cmk-bb-logo img{width:100%;height:100%;object-fit:cover}
+.cmk-bb-brand{flex:1;font-size:13.5px;font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmk-bb-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;font-weight:700;margin-top:2px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cmk-bb-sub{color:var(--muted);font-size:13px;font-weight:500;margin:0}
+.cmk-bb-budget{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;font-weight:800;color:var(--ink);margin-top:4px}
 
 .cmk-empty{text-align:center;color:var(--muted);padding:60px 0;font-size:15px}
 .cmk-loadmore{display:flex;justify-content:center;margin:30px 0 0}
@@ -950,10 +948,10 @@
 .bwr-thumb-fb{width:100%;height:100%;display:grid;place-items:center;color:#9296ba;background:#1a1c34}
 .bwr-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-items:center;color:var(--indigo);box-shadow:0 6px 18px rgba(0,0,0,.3);pointer-events:none}
 .bwr-dur{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.78);color:#fff;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:8px}
-/* single-corner watermark (top-right) on un-approved previews (protects content until approval) */
+/* slanted, tiled "UGC" watermark across the whole preview (protects content until approval) */
 .bwr-wm{position:absolute;inset:0;z-index:2;pointer-events:none;
-  background-repeat:no-repeat;background-position:top 10px right 12px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E")}
+  background-repeat:repeat;background-position:center;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Cg fill='%23ffffff' fill-opacity='0.3' font-family='Arial' font-size='19' font-weight='800' text-anchor='middle'%3E%3Ctext x='45' y='34' transform='rotate(-30 45 34)'%3EUGC%3C/text%3E%3Ctext x='135' y='94' transform='rotate(-30 135 94)'%3EUGC%3C/text%3E%3C/g%3E%3C/svg%3E")}
 
 /* watermarked in-app video player (review previews) */
 .bwr-vid-overlay{position:fixed;inset:0;z-index:1400;background:rgba(8,10,30,.74);backdrop-filter:blur(6px);

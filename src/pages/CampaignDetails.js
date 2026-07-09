@@ -258,6 +258,7 @@ export default function CampaignDetails({ embedId, onClose }) {
           font-size:32px;font-weight:800;letter-spacing:-.5px;color:#15163a;margin:0}
         .cmk-app .badge{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;padding:6px 14px;
           border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
+        .cmk-app .badge-active,.cmk-app .badge-live,.cmk-app .badge-in_progress{background:#e7f7ef;color:#16a34a}
         .cmk-app .bid-submitted-banner,.cmk-app .creator-bid-banner{background:linear-gradient(135deg,#eef0ff,#f4f0ff);
           border:1px solid #e0e3ff;border-radius:18px;padding:22px;margin:20px 0}
         .cmk-app .bid-submitted-header h3,.cmk-app .creator-bid-banner h3{color:#4452f0}

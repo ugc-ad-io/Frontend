@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star } from 'lucide-react';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
+import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
 // uses the exact same choices instead of free text.
@@ -203,7 +204,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('videos');
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(() => isCreatorSaved(id));
 
   // ── Own-profile editing (only when `editable`) ──────────────────────────────
   const [editing, setEditing] = useState(false);
@@ -361,6 +362,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const onPickWork = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
+    // Portfolio work must be a video only — reject images/other files.
+    if (!(file.type || '').startsWith('video/')) {
+      toast.error('Please upload a video file only.');
+      if (workRef.current) workRef.current.value = '';
+      return;
+    }
     setBusy('work');
     try {
       const up = await uploadFile(file, '/upload/file');
@@ -458,7 +465,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     .map((it) => {
       const url = typeof it === 'string' ? it : ((Array.isArray(it.urls) && it.urls[0]) || it.original_url || it.url || it.video || it.videoUrl || '');
       const meta = typeof it === 'string' ? {} : it;
-      return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '' };
+      return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '', brand: meta.brand || '' };
     })
     .filter((v) => v.url && !String(v.url).startsWith('blob:'));
   const vids = realVids.length ? realVids : FALLBACK_VIDEOS.slice(0, 6).map((u) => ({ url: u }));
@@ -603,7 +610,21 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
               <>
                 {onBegin && <button type="button" className="cpm-brief-btn" onClick={onBegin}>Send a Brief</button>}
                 {onMessage && <button type="button" className="cpm-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
-                <button type="button" className={`cpm-save ${saved ? 'is-saved' : ''}`} onClick={() => setSaved((v) => !v)} aria-label={saved ? 'Saved' : 'Save'} title={saved ? 'Saved' : 'Save'}>
+                <button
+                  type="button"
+                  className={`cpm-save ${saved ? 'is-saved' : ''}`}
+                  onClick={() => {
+                    const now = toggleSavedCreator({
+                      id: id || data?.id, name, public_creator_id: publicId, photo: avatar,
+                      category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
+                      deliverables, delivery: hlDelivery,
+                    });
+                    setSaved(now);
+                    toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+                  }}
+                  aria-label={saved ? 'Saved' : 'Save creator'}
+                  title={saved ? 'Saved' : 'Save creator'}
+                >
                   <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
                 </button>
               </>
@@ -712,16 +733,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                             <span>{busy === 'work' ? 'Uploading…' : <><Plus size={22} /> Upload video</>}</span>
                           </button>
                         )}
-                        <input ref={workRef} type="file" accept="video/*,image/*" hidden onChange={onPickWork} />
+                        <input ref={workRef} type="file" accept="video/*" hidden onChange={onPickWork} />
                         <div className="cpm-aw-fields">
-                          <input placeholder="Title" value={addForm.title} onChange={(e) => setAddForm((f) => ({ ...f, title: e.target.value }))} />
-                          <input placeholder="Brand (optional)" value={addForm.brand} onChange={(e) => setAddForm((f) => ({ ...f, brand: e.target.value }))} />
+                          <input placeholder="Brand name" value={addForm.brand} onChange={(e) => setAddForm((f) => ({ ...f, brand: e.target.value }))} />
                           <div className="cpm-aw-row">
                             <input placeholder="Category (e.g. Beauty)" value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))} />
                             <input placeholder="Price / video (₹)" inputMode="numeric" value={addForm.price} onChange={(e) => setAddForm((f) => ({ ...f, price: e.target.value }))} />
                           </div>
                           <input placeholder="Delivered in (e.g. 2 days)" value={addForm.delivery} onChange={(e) => setAddForm((f) => ({ ...f, delivery: e.target.value }))} />
-                          <textarea placeholder="Description (optional)" rows={2} value={addForm.desc} onChange={(e) => setAddForm((f) => ({ ...f, desc: e.target.value }))} />
                           <div className="cpm-aw-actions">
                             <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> {editIdx != null ? 'Update work' : 'Save work'}</button>
                             <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); resetAddForm(); }}>Cancel</button>
@@ -739,7 +758,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                           <div className="cpm-vid-item" key={i}>
                             <VideoTile url={u} onRemove={() => removeWork(i)} onEdit={() => editWork(i)} />
                             <div className="cpm-vid-cap">
-                              <div className="cpm-vid-catrow">
+                              <div className="cpm-vid-headrow">
+                                {meta.brand && <strong className="cpm-vid-brand">{meta.brand}</strong>}
                                 <span className="cpm-vid-cat">{meta.category || hlCategory}</span>
                               </div>
                               <div className="cpm-vid-pricerow">
@@ -758,7 +778,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       <div className="cpm-vid-item" key={i}>
                         <VideoTile url={v.url} />
                         <div className="cpm-vid-cap">
-                          <div className="cpm-vid-catrow">
+                          <div className="cpm-vid-headrow">
+                            {v.brand && <strong className="cpm-vid-brand">{v.brand}</strong>}
                             <span className="cpm-vid-cat">{v.category || hlCategory}</span>
                           </div>
                           <div className="cpm-vid-pricerow">
@@ -832,8 +853,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                             ? `Up to ${inr(camp.budget_max || camp.budget_min)}` : 'On request';
                           const days = selBid.estimated_delivery_days || camp.estimated_delivery_days;
                           const duration = days ? `${days} day${Number(days) > 1 ? 's' : ''}` : '—';
+                          // Prefer the actually-delivered work video; if the campaign
+                          // has none stored, fall back to one of the creator's portfolio
+                          // videos so every review still shows a (watermarked) clip.
                           const vid = (ws.work_files || []).find((f) => isVideo(f)) || (ws.work_files || [])[0] || '';
-                          const vidUrl = vid ? assetUrl(vid) : '';
+                          const fallbackVid = (vids[i % (vids.length || 1)] || {}).url || '';
+                          const vidUrl = vid ? assetUrl(vid) : (fallbackVid ? assetUrl(fallbackVid) : '');
                           return (
                             <div className="cpm-rev-card" key={rv.id || i}>
                               <div className="cpm-rev-main">
@@ -978,6 +1003,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         /* per-video caption: category chip + price / duration */
         .cpm-vid-item{display:flex;flex-direction:column;gap:8px}
         .cpm-vid-cap{padding:0 2px}
+        /* Brand on the left, category chip pushed to the right — same line. */
+        .cpm-vid-headrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
+        .cpm-vid-headrow .cpm-vid-brand{margin-top:0;min-width:0;flex:1}
+        .cpm-vid-headrow .cpm-vid-cat{flex:none}
+        .cpm-vid-brand{display:block;margin-top:9px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:14.5px;font-weight:800;color:#15163a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .cpm-vid-brand + .cpm-vid-catrow{margin-top:5px}
         .cpm-vid-cat{display:inline-block;padding:2px 10px;border-radius:20px;background:#eef0ff;color:#5b6bff;
           font-size:11.5px;font-weight:700;text-transform:capitalize}
         .cpm-vid-pd{display:flex;justify-content:space-between;gap:8px;margin-top:8px}

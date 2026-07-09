@@ -438,7 +438,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     finally { setSaving(false); }
   };
 
-  const p = data?.profile || {};
+  // Prefer the nested profile, but fall back to any same-named field stored at the
+  // user root so details still render for records that aren't fully nested.
+  const p = { ...(data || {}), ...(data?.profile || {}) };
   // Show the website username/handle the admin assigns — never the creator's real name.
   const name = (data?.nickname || '').trim()
     || (data?.username ? `@${data.username}` : '')

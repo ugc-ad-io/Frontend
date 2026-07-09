@@ -10,7 +10,6 @@ import {
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import RevisionRequestModal from '../components/RevisionRequestModal';
-import { DEMO_WORK_REVIEW } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 
@@ -93,10 +92,9 @@ export default function BrandWorkReview() {
           status,
         };
       });
-      // Demo fallback: only when this brand has no real submissions yet.
-      setItems(list.length ? list : DEMO_WORK_REVIEW);
+      setItems(list);
     } catch (e) {
-      setItems(DEMO_WORK_REVIEW);
+      setItems([]);
     } finally { setLoading(false); }
   };
 

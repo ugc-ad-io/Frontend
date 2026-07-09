@@ -305,7 +305,8 @@
   box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s;display:flex;flex-direction:column}
 .cmk-bb-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card);border-color:#dfe2f4}
 /* full-bleed cover banner (like the brand campaign cards) */
-.cmk-bb-cover{position:relative;height:150px;flex:none}
+.cmk-bb-cover{position:relative;height:150px;flex:none;overflow:hidden}
+.cmk-bb-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .cmk-bb-badge{position:absolute;top:12px;left:12px;display:inline-flex;align-items:center;gap:4px;
   background:#e8f8ef;color:#15a35b;font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px}
 .cmk-bb-save{position:absolute;top:10px;right:10px;border:none;background:rgba(255,255,255,.9);color:var(--muted);
@@ -871,8 +872,8 @@
 .bcam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
 .bcam-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s}
 .bcam-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card)}
-.bcam-img{position:relative;height:150px;background:linear-gradient(135deg,#e9ebff,#efeaff);display:grid;place-items:center;color:#b9c0e8;font-size:32px;font-weight:800}
-.bcam-img img{width:100%;height:100%;object-fit:cover}
+.bcam-img{position:relative;height:150px;overflow:hidden;background:linear-gradient(135deg,#e9ebff,#efeaff);display:grid;place-items:center;color:#b9c0e8;font-size:32px;font-weight:800}
+.bcam-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .bcam-badge{position:absolute;top:12px;left:12px;font-size:10.5px;font-weight:800;padding:5px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
 .bcam-badge.live{background:#dcfce7;color:#15a35b}
 .bcam-badge.review{background:#e0e7ff;color:#4452f0}

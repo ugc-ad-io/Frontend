@@ -100,6 +100,7 @@ function normalizeBrief(c, index, myBids) {
     description: cardDescription(c),
     brand: c.business_nickname || c.brand_handle || 'Brand',
     logo: c.brand_logo,
+    image_url: c.image_url || c.cover_image || '',
     tags: objectives.length ? objectives.slice(0, 2) : [(c.industry_type || 'UGC'), 'UGC Video'],
     budget: getCampaignBudget(c),
     budgetMax,
@@ -310,7 +311,8 @@ export default function BrowseBriefs() {
         <div className="cmk-bb-grid">
           {shown.map((b) => (
             <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? setOpenBrief(b) : toast.error('This brief is unavailable')}>
-              <div className="cmk-bb-cover" style={{ background: coverBg(b.brand) }}>
+              <div className="cmk-bb-cover" style={b.image_url ? undefined : { background: coverBg(b.brand) }}>
+                {b.image_url && <img className="cmk-bb-cover-img" src={b.image_url.startsWith('http') ? b.image_url : `${BACKEND_URL}${b.image_url}`} alt="" />}
                 <span className="cmk-bb-badge"><Star size={11} /> {b.matchScore}% Match</span>
                 <button
                   type="button"

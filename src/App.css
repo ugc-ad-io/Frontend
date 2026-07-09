@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Readex+Pro:wght@200;300;400;500;600;700&display=swap');
 
+/* Toast notifications must sit above every modal/overlay (some modals use very
+   high z-indexes), so error/success toasts are never hidden behind them. */
+[data-sonner-toaster] { z-index: 2147483647 !important; }
+
 /* ── Brand typography (single source of truth) ───────────────────────────────
    Display / headlines  → Readex Pro (500 medium, 600 bold) — loaded from Google Fonts.
    Body / UI / labels   → Just Sans, with Inter as the loaded web fallback.

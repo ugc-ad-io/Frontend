@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
-import { DEMO_OVERVIEW_CREATORS } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 
@@ -62,9 +61,8 @@ export default function BrandOverview() {
       try {
         const res = await axios.get(`${API}/business/creator-directory`);
         const list = Array.isArray(res.data) ? res.data : (res.data?.creators || []);
-        // Demo fallback: only when no real creators come back.
-        if (active) setCreators(list.length ? list : DEMO_OVERVIEW_CREATORS);
-      } catch { if (active) setCreators(DEMO_OVERVIEW_CREATORS); }
+        if (active) setCreators(list);
+      } catch { if (active) setCreators([]); }
       finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };

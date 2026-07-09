@@ -244,6 +244,8 @@ function App() {
       const numeric = el.type === 'number' || el.inputMode === 'numeric' || el.getAttribute('inputmode') === 'numeric';
       if (!numeric) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // e.key can be undefined during IME composition / some synthetic events.
+      if (typeof e.key !== 'string') return;
       const nav = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
       if (nav.includes(e.key)) return;
       if (e.key.length === 1 && !/[0-9.]/.test(e.key)) e.preventDefault();

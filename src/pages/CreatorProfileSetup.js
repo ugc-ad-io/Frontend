@@ -536,7 +536,7 @@ export default function CreatorProfileSetup() {
 
   // Field-granular completion: Sign Up counts as 1 done step; every other step adds
   // its filled-check fraction, so each detail the user fills nudges the ring up live.
-  const percent = useMemo(() => {
+  const percent = useMemo(() => {ab
     let credit = 1;
     for (let s = 1; s <= TOTAL_STEPS; s++) {
       const vals = Object.values(completionFor(s));

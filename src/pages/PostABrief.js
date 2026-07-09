@@ -1347,6 +1347,16 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         .textarea-field {
           resize: vertical;
         }
+        /* selects: custom chevron sitting a bit left of the edge (not flush) */
+        select.input-field {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2307074E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6l4 4 4-4'/></svg>");
+          background-repeat: no-repeat;
+          background-position: right 18px center;
+          padding-right: 44px;
+        }
 
         .brief-chip-grid {
           display: flex;

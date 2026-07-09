@@ -14,7 +14,6 @@ import CampaignDetails from './CampaignDetails';
 import WorkReview from './WorkReview';
 import ShipmentTracking from './ShipmentTracking';
 import CreatorProfileModal from '../components/CreatorProfileModal';
-import { DEMO_CAMPAIGNS, DEMO_WORK_SUBMISSIONS, DEMO_CREATOR_DIRECTORY, DEMO_WALLET, DEMO_DASHBOARD } from '../data/brandDemo';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -556,21 +555,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
       // Filter to only show this business's campaigns
       const realCampaigns = allCampaigns.filter(c => c.business_id === user.id);
-      // Demo fallback: only when this brand has no real campaigns yet.
-      const myCampaigns = realCampaigns.length ? realCampaigns : DEMO_CAMPAIGNS;
-      const usingDemo = realCampaigns.length === 0;
+      const myCampaigns = realCampaigns;
       setCampaigns(myCampaigns);
 
-      setDashboardData(dashboardRes.data?.metrics ? dashboardRes.data : (usingDemo ? DEMO_DASHBOARD : (dashboardRes.data || null)));
+      setDashboardData(dashboardRes.data?.metrics ? dashboardRes.data : (dashboardRes.data || null));
       setDrafts((draftsRes.data || []).filter(c => c.business_id === user.id));
 
       // Get work submissions for campaigns with work_submitted status
       const workSubmittedCampaigns = myCampaigns.filter(c => c.status === 'work_submitted');
-      if (!usingDemo && workSubmittedCampaigns.length > 0) {
+      if (workSubmittedCampaigns.length > 0) {
         const workRes = await axios.get(`${API}/work/pending-review`);
-        setWorkSubmissions((workRes.data || []).length ? workRes.data : (usingDemo ? DEMO_WORK_SUBMISSIONS : []));
+        setWorkSubmissions(workRes.data || []);
       } else {
-        setWorkSubmissions(usingDemo ? DEMO_WORK_SUBMISSIONS : []);
+        setWorkSubmissions([]);
       }
 
       // Categorize campaigns
@@ -579,12 +576,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setCompletedCampaigns(myCampaigns.filter(c => c.status === 'completed'));
     } catch (error) {
       console.error('Failed to load campaigns:', error);
-      // Backend unavailable → populate brand sections with demo data instead of a blank error state.
-      setCampaigns(DEMO_CAMPAIGNS);
-      setDashboardData(DEMO_DASHBOARD);
-      setWorkSubmissions(DEMO_WORK_SUBMISSIONS);
-      setActiveCampaigns(DEMO_CAMPAIGNS.filter(c => c.status === 'active' || c.status === 'in_progress'));
-      setCompletedCampaigns(DEMO_CAMPAIGNS.filter(c => c.status === 'completed'));
+      setCampaigns([]);
+      setDashboardData(null);
+      setWorkSubmissions([]);
+      setActiveCampaigns([]);
+      setCompletedCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -673,11 +669,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
       };
       const response = await axios.get(`${API}/business/creator-directory`, { params });
       const items = Array.isArray(response.data) ? response.data : response.data?.creators || [];
-      // Demo fallback: only when the curated pool comes back empty.
-      setCreatorDirectory(items.length ? items.map(normalizeCreatorDirectoryItem) : DEMO_CREATOR_DIRECTORY);
+      setCreatorDirectory(items.map(normalizeCreatorDirectoryItem));
     } catch (error) {
-      // Backend unavailable → still show demo creators so the section isn't blank.
-      setCreatorDirectory(DEMO_CREATOR_DIRECTORY);
+      setCreatorDirectory([]);
       setCreatorDirectoryError('');
     } finally {
       setCreatorDirectoryLoading(false);
@@ -754,12 +748,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
     setWalletError('');
     try {
       const response = await axios.get(`${API}/business/wallet`);
-      // Demo fallback: only when there's no balance and no transactions yet.
-      const hasRealWallet = response.data && (Number(response.data.available_balance) > 0 || (response.data.transactions || []).length > 0);
-      setWalletData(normalizeWalletData(hasRealWallet ? response.data : DEMO_WALLET));
+      setWalletData(normalizeWalletData(response.data || {}));
     } catch (error) {
-      // Backend unavailable → show demo wallet instead of an error.
-      setWalletData(normalizeWalletData(DEMO_WALLET));
+      setWalletData(normalizeWalletData({}));
       setWalletError('');
     } finally {
       setWalletLoading(false);
@@ -768,8 +759,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   const handleWalletRecharge = async (amountOverride) => {
     const amount = Number(amountOverride || walletAmount);
-    if (!amount || amount < 5000) {
-      toast.error('Minimum recharge amount is Rs. 5,000');
+    const minRecharge = Number(walletData?.minimum_chat_balance) || 2500;
+    if (!amount || amount < minRecharge) {
+      toast.error(`Minimum recharge amount is ${formatMoney(minRecharge)}`);
       return;
     }
     setRechargingWallet(true);
@@ -1030,35 +1022,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const filteredCampaigns = campaigns.filter(campaign => {
     return dashboardItemMatches(campaign.title, campaign.brief_text, campaign.category, campaign.status, campaign.deliverables);
   });
-  // Demo fallback so the panel isn't empty before any real wallet activity.
-  const DUMMY_WALLET_TXNS = [
-    { id: 'dw1', date: '2026-06-28T10:12:00Z', type: 'Wallet Recharge', reference: 'RCG-10241', amount: 10000, direction: 'credit', status: 'success' },
-    { id: 'dw2', date: '2026-06-28T10:12:05Z', type: 'Recharge Bonus', reference: 'BON-10241', amount: 500, direction: 'credit', status: 'success' },
-    { id: 'dw3', date: '2026-06-26T15:40:00Z', type: 'Escrow Hold', reference: 'jumbo sandwich', amount: 998, direction: 'debit', status: 'success' },
-    { id: 'dw4', date: '2026-06-25T09:05:00Z', type: 'Campaign Payout', reference: 'Creator Canvas · 1 video', amount: 3899, direction: 'debit', status: 'success' },
-    { id: 'dw5', date: '2026-06-24T18:22:00Z', type: 'Platform Fee', reference: 'FEE-9932', amount: 975, direction: 'debit', status: 'success' },
-    { id: 'dw6', date: '2026-06-22T12:00:00Z', type: 'Escrow Release', reference: 'launch', amount: 1000, direction: 'credit', status: 'success' },
-  ];
-  const walletTxnSource = walletData.transactions.length ? walletData.transactions : DUMMY_WALLET_TXNS;
-  const walletTransactions = walletTxnSource.filter((transaction) => {
+  const walletTransactions = walletData.transactions.filter((transaction) => {
     if (walletFilter === 'credits') return transaction.direction === 'credit';
     if (walletFilter === 'debits') return transaction.direction === 'debit';
     return true;
   });
-  // Demo fallback so the bonus panel shows tiers before any real config loads.
-  const DUMMY_BONUS_TIERS = [
-    { amount: 5000, label: 'Rs. 5,000', bonus_percent: 3 },
-    { amount: 10000, label: 'Rs. 10,000', bonus_percent: 5 },
-    { amount: 25000, label: 'Rs. 25,000', bonus_percent: 8 },
-    { amount: 50000, label: 'Rs. 50,000', bonus_percent: 12 },
-  ];
-  const DUMMY_BONUS = {
-    current_tier_percent: 5, next_tier_percent: 8,
-    current_tier_amount: 10000, next_tier_amount: 25000,
-    amount_to_next_tier: 15000, progress_percent: 40,
-  };
-  const walletBonusTiers = walletData.bonus_tiers.length ? walletData.bonus_tiers : DUMMY_BONUS_TIERS;
-  const walletBonus = Object.keys(walletData.recharge_bonus || {}).length ? walletData.recharge_bonus : DUMMY_BONUS;
+  const walletBonusTiers = walletData.bonus_tiers || [];
+  const walletBonus = walletData.recharge_bonus || {};
   const performanceLeftMax = 120;
   const performanceRightMax = 80;
   const chartTop = 28;
@@ -1837,7 +1807,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <div className="wallet-hero-side">
                     <div className="whs-panel">
                       <div className="whs-row"><span>Plan</span><strong>{walletData.plan_name}</strong></div>
-                      <div className="whs-row"><span>Platform chat</span><b className={walletData.chat_unlocked ? 'ok' : 'warn'}>{walletData.chat_unlocked ? 'Unlocked' : 'Locked'}</b></div>
+                      <div className="whs-row"><span>Platform chat</span><b className={walletData.chat_unlocked ? 'ok' : 'warn'} style={walletData.chat_unlocked ? undefined : { color: '#ff4d6d' }}>{walletData.chat_unlocked ? 'Unlocked' : 'Locked'}</b></div>
                       {(walletBonus.current_tier_percent || 0) > 0 && (
                         <div className="whs-row"><span>Recharge bonus</span><b className="ok">+{walletBonus.current_tier_percent}%</b></div>
                       )}
@@ -1885,7 +1855,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <input
                       id="wallet-amount"
                       type="number"
-                      min="5000"
+                      min={walletData.minimum_chat_balance || 2500}
                       value={walletAmount}
                       onChange={(event) => setWalletAmount(event.target.value)}
                       placeholder="Enter amount"
@@ -1899,7 +1869,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <button type="button" className="wallet-add-funds" onClick={() => handleWalletRecharge()} disabled={rechargingWallet}>
                     <Zap size={18} /> {rechargingWallet ? 'Creating Order...' : 'Add Funds'}
                   </button>
-                  <small>Minimum {formatMoney(5000)} • Instant credit after payment verification</small>
+                  <small>Minimum {formatMoney(walletData.minimum_chat_balance || 2500)} • Instant credit after payment verification</small>
                 </section>
               </aside>
 

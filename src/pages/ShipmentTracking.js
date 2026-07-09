@@ -10,6 +10,20 @@ import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+// Resolve a 6-digit Indian PIN → { city, state } via India Post so the pickup
+// City/State always match the Pincode (they're auto-filled, not free text).
+const lookupPincode = async (pin) => {
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+    const json = await res.json();
+    const office = json?.[0]?.PostOffice?.[0];
+    if (!office) return null;
+    return { city: office.District || '', state: office.State || '' };
+  } catch {
+    return null;
+  }
+};
+
 export default function ShipmentTracking({ embedCampaignId, autoShip, onClose }) {
   const [searchParams] = useSearchParams();
   const campaignId = embedCampaignId || searchParams.get('campaign');
@@ -170,6 +184,18 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
   };
 
   const setShip = (field, value) => setShipForm((f) => ({ ...f, [field]: value }));
+
+  // Auto-fill City + State from the Pincode so they can never mismatch.
+  useEffect(() => {
+    const pin = String(shipForm.pincode || '').replace(/\D/g, '');
+    if (pin.length !== 6) return;
+    let cancelled = false;
+    lookupPincode(pin).then((info) => {
+      if (cancelled || !info) return;
+      setShipForm((f) => ({ ...f, city: info.city || f.city, state: info.state || f.state }));
+    });
+    return () => { cancelled = true; };
+  }, [shipForm.pincode]);
 
   const handleShipProduct = async (e) => {
     e.preventDefault();
@@ -508,8 +534,8 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
                 </div>
                 <div className="form-group">
                   <label htmlFor="s-phone">Phone</label>
-                  <input id="s-phone" type="tel" className="input-field" required
-                    value={shipForm.phone} onChange={(e) => setShip('phone', e.target.value)} />
+                  <input id="s-phone" type="tel" inputMode="numeric" maxLength={15} className="input-field" required
+                    value={shipForm.phone} onChange={(e) => setShip('phone', e.target.value.replace(/[^0-9]/g, ''))} />
                 </div>
               </div>
 
@@ -526,9 +552,9 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
 
               <div className="ship-row ship-row--3">
                 <div className="form-group">
-                  <label htmlFor="s-city">City</label>
-                  <input id="s-city" type="text" className="input-field" required
-                    value={shipForm.city} onChange={(e) => setShip('city', e.target.value)} />
+                  <label htmlFor="s-pin">Pincode</label>
+                  <input id="s-pin" type="text" inputMode="numeric" maxLength={6} className="input-field" required
+                    value={shipForm.pincode} onChange={(e) => setShip('pincode', e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} />
                 </div>
                 <div className="form-group">
                   <label htmlFor="s-state">State</label>
@@ -536,9 +562,9 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
                     value={shipForm.state} onChange={(e) => setShip('state', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="s-pin">Pincode</label>
-                  <input id="s-pin" type="text" className="input-field" required
-                    value={shipForm.pincode} onChange={(e) => setShip('pincode', e.target.value)} />
+                  <label htmlFor="s-city">City</label>
+                  <input id="s-city" type="text" className="input-field" required
+                    value={shipForm.city} onChange={(e) => setShip('city', e.target.value)} />
                 </div>
               </div>
 

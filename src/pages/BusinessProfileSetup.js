@@ -420,7 +420,7 @@ function ThemeStyles() {
         .bp-page::after {
           width: 460px; height: 460px;
           bottom: -10%; right: -4%;
-          background: rgba(139, 92, 246, 0.16);
+          background: rgba(109,123,255, 0.16);
         }
 
         .bp-card {
@@ -451,7 +451,7 @@ function ThemeStyles() {
           color: #ffffff;
           letter-spacing: -0.01em;
         }
-        .bp-accent { color: #A78BFA; }
+        .bp-accent { color: #6d7bff; }
         .bp-sub {
           margin: 0 0 22px;
           color: rgba(255, 255, 255, 0.62);

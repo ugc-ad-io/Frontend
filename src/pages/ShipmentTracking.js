@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -465,9 +466,11 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
         )}
       </div>
 
-      {/* Ship Product Modal — product details + pickup address → pre-paid label */}
-      {showShipModal && (
-        <div className="modal-overlay" onClick={() => !uploading && setShowShipModal(false)}>
+      {/* Ship Product Modal — product details + pickup address → pre-paid label.
+          Portaled to <body> so it's a true full-screen modal (not trapped inside
+          the animating PageModal) — fixes off-center jump + background card peek. */}
+      {showShipModal && createPortal(
+        <div className="modal-overlay ship-portal-overlay" onClick={() => !uploading && setShowShipModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Ship Product</h2>
             <p className="ship-help">Enter the product details and your pickup address. Our team will prepare a pre-paid label and dispatch it to the creator. The creator's delivery address is handled securely — you don't need it.</p>
@@ -549,7 +552,8 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Update Shipment Modal */}
@@ -1029,6 +1033,20 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
           z-index: 1000;
           padding: 20px;
         }
+
+        /* Portaled to <body>: dimmed, blurred backdrop above everything. */
+        .ship-portal-overlay {
+          z-index: 2147483000;
+          background: rgba(9, 11, 40, 0.5);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          animation: shipFade .18s ease;
+        }
+        .ship-portal-overlay .modal-content {
+          animation: shipPop .22s cubic-bezier(.2, .7, .2, 1);
+        }
+        @keyframes shipFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shipPop { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 
         .modal-content {
           background: white;

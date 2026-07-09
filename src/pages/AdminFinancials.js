@@ -592,8 +592,8 @@ export default function AdminFinancials() {
         .afn-badge.danger { background: #fef3f2; color: #b42318; }
         .afn-row-actions { display: flex; gap: 8px; }
         .afn-approve, .afn-reject { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 8px; font-weight: 600; font-size: 0.8rem; padding: 7px 12px; cursor: pointer; }
-        .afn-approve { background: #ecfdf3; color: #067647; } .afn-approve:hover { background: #d3f8df; }
-        .afn-reject { background: #fef3f2; color: #b42318; } .afn-reject:hover { background: #fee4e2; }
+        .afn-approve { background: #ecfdf3; color: #067647; } .afn-approve:hover { background: #16a34a; color: #fff; }
+        .afn-reject { background: #fef3f2; color: #b42318; } .afn-reject:hover { background: #dc2626; color: #fff; }
         .afn-hold { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 8px; font-weight: 600; font-size: 0.8rem; padding: 7px 12px; cursor: pointer; background: #fffaeb; color: #b54708; } .afn-hold:hover { background: #fef0c7; }
         .afn-tds { color: #b42318; font-weight: 600; }
         .afn-credit { color: #067647; font-weight: 600; }

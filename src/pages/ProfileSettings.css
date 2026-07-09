@@ -1988,7 +1988,7 @@
 .bs-legal-ic {
   width: 40px; height: 40px; flex: none; border-radius: 11px;
   display: grid; place-items: center; color: #fff;
-  background: linear-gradient(135deg, #5b6bff, #8b5cf6);
+  background: linear-gradient(135deg, #5b6bff, #6d7bff);
 }
 .bs-legal-row > div { flex: 1; min-width: 0; }
 .bs-legal-row strong { display: block; font-size: 14px; color: #15163a; }

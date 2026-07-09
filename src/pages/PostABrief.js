@@ -1603,7 +1603,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           display: grid;
           place-items: center;
           padding: 20px;
-          background: transparent;
+          background: rgba(15, 18, 40, 0.45);
           backdrop-filter: blur(3px);
           -webkit-backdrop-filter: blur(3px);
         }

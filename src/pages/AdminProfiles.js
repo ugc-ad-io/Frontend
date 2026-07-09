@@ -395,7 +395,7 @@ export default function AdminProfiles() {
           overflow: hidden;
           display: grid;
           place-items: center;
-          background: #ede9fe;
+          background: #e9ecff;
           border: 1.5px solid #e8ecff;
         }
 
@@ -412,7 +412,7 @@ export default function AdminProfiles() {
         .ap-avatar-fallback {
           font-size: 1.05rem;
           font-weight: 800;
-          color: #6d28d9;
+          color: #6d7bff;
           letter-spacing: 0.02em;
         }
 
@@ -438,8 +438,8 @@ export default function AdminProfiles() {
         }
 
         .ap-badge-creator {
-          background: #ede9fe;
-          color: #6d28d9;
+          background: #e9ecff;
+          color: #6d7bff;
         }
 
         .ap-badge-business {
@@ -535,7 +535,7 @@ export default function AdminProfiles() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: #6d28d9;
+          color: #6d7bff;
         }
 
         /* Stacked: small caption label on top, value below — no more squished columns. */
@@ -606,7 +606,8 @@ export default function AdminProfiles() {
         }
 
         .ap-btn-approve:hover {
-          background: #bbf7d0;
+          background: #16a34a;
+          color: #fff;
         }
 
         .ap-btn-reject {
@@ -615,7 +616,8 @@ export default function AdminProfiles() {
         }
 
         .ap-btn-reject:hover {
-          background: #fecaca;
+          background: #dc2626;
+          color: #fff;
         }
 
         @media (max-width: 720px) {

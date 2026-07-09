@@ -196,7 +196,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           .hsr-help-x:hover{background:#e7eaf5}
           .hsr-help-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
           .hsr-help-badge{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;color:#fff;
-            background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+            background:linear-gradient(135deg,#5b6bff,#6d7bff)}
           .hsr-help-head strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
           .hsr-help-head small{color:#9296ba;font-size:13px}
           .hsr-help-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #eef0f6;border-radius:14px;

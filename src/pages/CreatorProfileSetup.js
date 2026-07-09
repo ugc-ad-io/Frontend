@@ -156,7 +156,7 @@ const badgeFor = (label) => ({
   'YouTube': { c: '▶', bg: '#FF0000' },
   'Facebook': { c: 'f', bg: '#1877F2' },
   'X (Twitter)': { c: '𝕏', bg: '#111111' },
-  'Website': { c: <Globe size={15} color="#fff" />, bg: '#6d28d9' },
+  'Website': { c: <Globe size={15} color="#fff" />, bg: '#6d7bff' },
 }[label] || { c: (label || '?').charAt(0).toUpperCase(), bg: '#07074e' });
 const LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi', 'Bhojpuri'];
 const WEEKLY = ['1–5 hrs / week', '6–10 hrs / week', '11–20 hrs / week', '20+ hrs / week'];
@@ -329,7 +329,7 @@ export default function CreatorProfileSetup() {
   const [submitting, setSubmitting] = useState(false);     // Submit Application in progress
   const [submitted, setSubmitted] = useState(false);       // show the thank-you card
   const [editingId, setEditingId] = useState(null);        // portfolio item being edited
-  const [editDraft, setEditDraft] = useState({ brand: '', price: '', category: '' });
+  const [editDraft, setEditDraft] = useState({ brand: '', price: '', category: '', videoUrl: '', video: '' });
   const [justAddedId, setJustAddedId] = useState(null);    // shows the "Added" badge
   const pfIdRef = useRef(0);
   const brandRef = useRef(null);
@@ -346,7 +346,7 @@ export default function CreatorProfileSetup() {
     dialCode: '+91',
     phone: '',
     pincode: '',
-    country: '',
+    country: 'India',
     state: '',
     city: '',
     address: '',
@@ -379,6 +379,28 @@ export default function CreatorProfileSetup() {
   const [bannerUploading, setBannerUploading] = useState(false);
   const bannerRef = useRef(null);
   const pfFileRef = useRef(null);
+  const editFileRef = useRef(null);
+  const prefilledRef = useRef(false);
+
+  // Prefill the form with any previously-submitted profile so a creator asked
+  // for "more info" (or just re-editing) doesn't have to re-enter everything.
+  // The submit spreads `...data` into the saved profile, so its keys line up
+  // 1:1 with the form state; portfolio is restored from the structured items.
+  useEffect(() => {
+    const pr = user?.profile;
+    if (prefilledRef.current || !pr || typeof pr !== 'object' || !Object.keys(pr).length) return;
+    prefilledRef.current = true;
+    setData((d) => {
+      const merged = { ...d };
+      for (const k of Object.keys(d)) {
+        if (pr[k] !== undefined && pr[k] !== null && pr[k] !== '') merged[k] = pr[k];
+      }
+      if (Array.isArray(pr.portfolio_items) && pr.portfolio_items.length) merged.portfolio = pr.portfolio_items;
+      return merged;
+    });
+    // Keep new portfolio ids from colliding with the restored ones.
+    if (Array.isArray(pr.portfolio_items)) pfIdRef.current = pr.portfolio_items.length + 1;
+  }, [user?.id, user?.profile]);
 
   // Paint html/#root/body the same lavender as this page while it's mounted, so
   // the backdrop / overscroll matches the light-purple theme; restore on unmount.
@@ -437,16 +459,17 @@ export default function CreatorProfileSetup() {
   const setFollowers = (key, value) => setData((d) => ({ ...d, followers: { ...d.followers, [key]: value } }));
   const toggleFollowers = (key) => setData((d) => ({ ...d, showFollowers: { ...d.showFollowers, [key]: !d.showFollowers[key] } }));
   const addPortfolio = () => {
-    if (!isFilled(data.pfBrand) && !isFilled(data.pfLink) && !isFilled(data.pfVideo)) return;
+    // A portfolio item must have a video — that's the whole point of the card.
+    if (!data.pfVideoUrl) { toast.error('Please upload a video before adding it to your profile.'); return; }
     const id = `p${pfIdRef.current++}`;
     setData((d) => ({ ...d, portfolio: [...d.portfolio, { id, brand: d.pfBrand, price: d.pfPrice, category: d.pfCategory, link: d.pfLink, video: d.pfVideo, videoUrl: d.pfVideoUrl }], pfBrand: '', pfPrice: '', pfCategory: '', pfLink: '', pfVideo: '', pfVideoUrl: '' }));
     setJustAddedId(id);
     setEditingId(null);
   };
-  const startModify = (item) => { setEditingId(item.id); setEditDraft({ brand: item.brand, price: item.price, category: item.category }); setJustAddedId(null); };
+  const startModify = (item) => { setEditingId(item.id); setEditDraft({ brand: item.brand, price: item.price, category: item.category, videoUrl: item.videoUrl, video: item.video }); setJustAddedId(null); };
   const cancelModify = () => setEditingId(null);
   const saveModify = () => {
-    setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: editDraft.brand, price: editDraft.price, category: editDraft.category } : it)) }));
+    setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: editDraft.brand, price: editDraft.price, category: editDraft.category, videoUrl: editDraft.videoUrl, video: editDraft.video } : it)) }));
     setEditingId(null);
   };
   const deleteItem = (id) => {
@@ -613,6 +636,27 @@ export default function CreatorProfileSetup() {
       }
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Video upload failed'));
+    }
+  };
+
+  // Replace the video on the portfolio item currently being modified.
+  const onPickEditVideo = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { toast.error('Video is too large. Maximum 50MB.'); return; }
+    setEditDraft((d) => ({ ...d, video: file.name, videoUrl: URL.createObjectURL(file) }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      let url = res.data?.file_url || res.data?.url;
+      if (url && url.startsWith('/')) url = `${BACKEND_URL}${url}`;
+      if (url) setEditDraft((d) => ({ ...d, videoUrl: url }));
+      else toast.error('Video upload failed. Please try again.');
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Video upload failed'));
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -1135,7 +1179,7 @@ export default function CreatorProfileSetup() {
               </div>
               <div className="ps-pf__right">
                 <input ref={brandRef} className="ps-input" placeholder="Brand name" value={data.pfBrand} onChange={(e) => set('pfBrand', e.target.value)} />
-                <input className="ps-input" placeholder="Price" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value)} />
+                <input className="ps-input" placeholder="Price" inputMode="decimal" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value.replace(/[^0-9.]/g, ''))} />
                 <input className="ps-input" placeholder="Category" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)} />
                 <button type="button" className="ps-btn-soft" onClick={addPortfolio}>Add to Profile</button>
               </div>
@@ -1147,16 +1191,24 @@ export default function CreatorProfileSetup() {
                 <div className="ps-vids">
                   {data.portfolio.map((it) => (
                     <div key={it.id} className="ps-vid">
-                      <div className="ps-vid__thumb">
-                        {it.videoUrl
-                          ? <video src={`${it.videoUrl}#t=0.1`} muted preload="metadata" className="ps-vid__thumbimg" />
-                          : <img src="/uplaod.png" alt="" className="ps-vid__thumbimg" />}
-                        <span className="ps-pf__play"><Play size={18} /></span>
+                      <div className="ps-vid__media">
+                        <div className="ps-vid__thumb">
+                          {(editingId === it.id ? editDraft.videoUrl : it.videoUrl)
+                            ? <video src={`${editingId === it.id ? editDraft.videoUrl : it.videoUrl}#t=0.1`} muted preload="metadata" className="ps-vid__thumbimg" />
+                            : <img src="/uplaod.png" alt="" className="ps-vid__thumbimg" />}
+                          <span className="ps-pf__play"><Play size={18} /></span>
+                        </div>
+                        {editingId === it.id && (
+                          <>
+                            <input ref={editFileRef} type="file" accept="video/*" hidden onChange={onPickEditVideo} />
+                            <button type="button" className="ps-vid__changebtn" onClick={() => editFileRef.current?.click()}>Change video</button>
+                          </>
+                        )}
                       </div>
                       {editingId === it.id ? (
                         <div className="ps-vid__body">
                           <input className="ps-input" placeholder="Brand name" value={editDraft.brand} onChange={(e) => setEditDraft((d) => ({ ...d, brand: e.target.value }))} />
-                          <input className="ps-input" placeholder="Price" value={editDraft.price} onChange={(e) => setEditDraft((d) => ({ ...d, price: e.target.value }))} />
+                          <input className="ps-input" placeholder="Price" inputMode="decimal" value={editDraft.price} onChange={(e) => setEditDraft((d) => ({ ...d, price: e.target.value.replace(/[^0-9.]/g, '') }))} />
                           <input className="ps-input" placeholder="Category" value={editDraft.category} onChange={(e) => setEditDraft((d) => ({ ...d, category: e.target.value }))} />
                           <div className="ps-vid__actions">
                             <button type="button" className="ps-btn-soft" onClick={saveModify}>Save Changes</button>
@@ -1226,16 +1278,11 @@ export default function CreatorProfileSetup() {
               <span className="ps-comp__label">Expected payout</span>
               <input
                 className={`ps-input${err('expectedPayout') ? ' ps-input--error' : ''}`}
-                placeholder="Per video or per month (e.g. ₹4,000 / video)"
+                placeholder="e.g. ₹4,000 per video"
                 value={data.expectedPayout}
                 onChange={(e) => set('expectedPayout', e.target.value)}
               />
-              <div className="ps-select ps-comp__period">
-                <select className="ps-select__el" value={data.payoutPeriod} onChange={(e) => set('payoutPeriod', e.target.value)}>
-                  {PAYOUT_PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <ChevronDown size={18} className="ps-select__chev" />
-              </div>
+              <span className="ps-comp__period ps-comp__period--static">Per Video</span>
             </div>
             {err('expectedPayout') && <span className="ps-error">Enter your expected payout</span>}
           </div>
@@ -1424,7 +1471,7 @@ export default function CreatorProfileSetup() {
           --ps-purple-deep: #4452f0;
           min-height: 100vh;
           background: #0a0a16;
-          color: #7c5cff;
+          color: #6d7bff;
           font-family: var(--font-body);
           position: relative;
           overflow-x: hidden;
@@ -1437,10 +1484,10 @@ export default function CreatorProfileSetup() {
         /* Background atmosphere */
         .ps-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .ps-blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.45;
-          background: linear-gradient(135deg, #2a1a6e, #11103f); }
+          background: linear-gradient(135deg, #1c2570, #11103f); }
         .ps-blob--1 { width: 520px; height: 520px; top: -12%; left: -6%; }
         .ps-blob--2 { width: 460px; height: 460px; bottom: -14%; right: -4%;
-          background: linear-gradient(135deg, #3b1a6e, #0c0c33); }
+          background: linear-gradient(135deg, #1f2a72, #0c0c33); }
         .ps-grid { position: absolute; inset: 0; opacity: 0.25;
           background-image: radial-gradient(rgba(7,7,78,0.10) 1px, transparent 1px);
           background-size: 26px 26px; mask-image: radial-gradient(120% 80% at 50% 0%, #000, transparent 70%); }
@@ -1452,7 +1499,7 @@ export default function CreatorProfileSetup() {
         .ps-brand__logo { height: 28px; width: auto; display: block; }
         .ps-brand__mark { width: 24px; height: 24px; border-radius: 7px;
           background: linear-gradient(135deg, #07074e, #07074e); box-shadow: 0 4px 16px rgba(7,7,78,0.55); }
-        .ps-brand__name { color: #7c5cff; font-size: 1.25rem; font-weight: 700; }
+        .ps-brand__name { color: #6d7bff; font-size: 1.25rem; font-weight: 700; }
         .ps-brand__name-2 { color: rgba(7,7,78,0.7); font-weight: 500; }
         .ps-topbar__tag { margin-left: auto; font-size: 0.82rem; font-weight: 500; letter-spacing: 0.02em;
           color: rgba(7,7,78,0.45); padding: 6px 14px; border-radius: 999px;
@@ -1464,7 +1511,7 @@ export default function CreatorProfileSetup() {
         /* Top progress bar */
         .ps-bar { margin-bottom: 22px; }
         .ps-bar__top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-        .ps-bar__label { font-size: 0.98rem; font-weight: 600; color: #7c5cff; }
+        .ps-bar__label { font-size: 0.98rem; font-weight: 600; color: #6d7bff; }
         .ps-bar__label strong { color: var(--ps-purple); }
         .ps-bar__hint { font-size: 0.82rem; color: rgba(7,7,78,0.45); }
         .ps-bar__track { width: 100%; height: 9px; border-radius: 999px; background: rgba(7,7,78,0.09);
@@ -1483,8 +1530,8 @@ export default function CreatorProfileSetup() {
           background: linear-gradient(90deg, transparent, rgba(7,7,78,0.7), transparent); }
         .ps-card__head { margin-bottom: 18px; }
         .ps-step { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 0.68rem; font-weight: 700;
-          background: linear-gradient(120deg, #07074e, #4f63e6); color: #7c5cff; }
-        .ps-title { font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); margin: 11px 0 0; color: #7c5cff; letter-spacing: -0.01em; }
+          background: linear-gradient(120deg, #07074e, #4f63e6); color: #6d7bff; }
+        .ps-title { font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); margin: 11px 0 0; color: #6d7bff; letter-spacing: -0.01em; }
         .ps-sub { font-size: 0.85rem; color: rgba(7,7,78,0.55); margin: 5px 0 0; }
         .ps-body { display: flex; flex-direction: column; gap: 16px; }
 
@@ -1500,7 +1547,7 @@ export default function CreatorProfileSetup() {
           background: rgba(7,7,78,0.14); border: 1px solid rgba(7,7,78,0.25); color: var(--ps-purple); }
         .ps-upload__preview { width: 100%; height: 100%; object-fit: cover; }
         .ps-upload__text { display: flex; flex-direction: column; gap: 3px; }
-        .ps-upload__title { font-size: 0.98rem; font-weight: 600; color: #7c5cff; }
+        .ps-upload__title { font-size: 0.98rem; font-weight: 600; color: #6d7bff; }
         .ps-optional { font-weight: 500; color: rgba(7,7,78,0.4); }
         .ps-upload__hint { font-size: 0.8rem; color: rgba(7,7,78,0.45); }
         .ps-upload__cta { margin-left: 0; margin-top: 2px; padding: 8px 18px; border-radius: 10px; font-size: 0.85rem;
@@ -1520,9 +1567,9 @@ export default function CreatorProfileSetup() {
         /* Fields */
         .ps-field { display: flex; flex-direction: column; gap: 7px; }
         .ps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .ps-label { font-size: 0.88rem; font-weight: 600; color: #7c5cff; }
+        .ps-label { font-size: 0.88rem; font-weight: 600; color: #6d7bff; }
         .ps-input { width: 100%; padding: 10px 13px; border-radius: 10px; font-size: 0.88rem;
-          color: #7c5cff; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12);
+          color: #6d7bff; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12);
           outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; font-family: inherit; }
         .ps-input::placeholder { color: rgba(7,7,78,0.38); }
         .ps-input:focus { border-color: var(--ps-purple); background: rgba(7,7,78,0.06);
@@ -1530,12 +1577,16 @@ export default function CreatorProfileSetup() {
 
         .ps-select { position: relative; }
         .ps-select__el { width: 100%; padding: 10px 38px 10px 13px; border-radius: 10px; font-size: 0.88rem;
-          color: #7c5cff; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12);
+          color: #6d7bff; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12);
           outline: none; appearance: none; -webkit-appearance: none; cursor: pointer; font-family: inherit; transition: all 0.2s; }
         .ps-select__el--empty { color: rgba(7,7,78,0.38); }
         .ps-select__el:disabled { opacity: 0.5; cursor: not-allowed; }
         .ps-select__el:focus { border-color: var(--ps-purple); box-shadow: 0 0 0 4px rgba(7,7,78,0.16); }
-        .ps-select__el option { color: #111; }
+        /* Native dropdown list — dark to match the form (bg/colour is all the
+           browser lets us style on a native <select> popup). */
+        .ps-select__el option { background-color: #17171f; color: #eef; }
+        .ps-select__el option:checked,
+        .ps-select__el option:hover { background-color: #2a2a3a; color: #fff; }
         .ps-select__chev { position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
           color: rgba(7,7,78,0.5); pointer-events: none; }
 
@@ -1547,7 +1598,7 @@ export default function CreatorProfileSetup() {
         .ps-dial { position: relative; flex-shrink: 0; }
         .ps-dial__btn { display: flex; align-items: center; gap: 8px; height: 100%; min-height: 50px;
           padding: 0 14px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.98rem;
-          color: #7c5cff; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12); transition: all 0.2s; }
+          color: #6d7bff; background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12); transition: all 0.2s; }
         .ps-dial__btn:hover { border-color: rgba(7,7,78,0.5); }
         .ps-dial__flag { width: 22px; height: 16px; border-radius: 3px; object-fit: cover; display: block;
           box-shadow: 0 0 0 1px rgba(7,7,78,0.12); }
@@ -1556,7 +1607,7 @@ export default function CreatorProfileSetup() {
           padding: 6px; border-radius: 12px; background: #ffffff; border: 1px solid rgba(7,7,78,0.12);
           box-shadow: 0 20px 50px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
         .ps-dial__opt { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 9px;
-          cursor: pointer; font-family: inherit; font-size: 0.94rem; color: #7c5cff; background: none; border: none; text-align: left; }
+          cursor: pointer; font-family: inherit; font-size: 0.94rem; color: #6d7bff; background: none; border: none; text-align: left; }
         .ps-dial__opt:hover { background: rgba(7,7,78,0.06); }
         .ps-dial__opt--on { background: rgba(7,7,78,0.16); }
 
@@ -1565,63 +1616,63 @@ export default function CreatorProfileSetup() {
         .ps-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
           font-size: 0.83rem; font-weight: 500; color: rgba(7,7,78,0.85); cursor: pointer; transition: all 0.18s;
           background: rgba(7,7,78,0.04); border: 1px solid rgba(7,7,78,0.12); font-family: inherit; }
-        .ps-chip:hover { border-color: rgba(7,7,78,0.55); color: #7c5cff; transform: translateY(-1px); }
-        .ps-chip--on { background: rgba(7,7,78,0.18); border-color: var(--ps-purple); color: #7c5cff;
+        .ps-chip:hover { border-color: rgba(7,7,78,0.55); color: #6d7bff; transform: translateY(-1px); }
+        .ps-chip--on { background: rgba(7,7,78,0.18); border-color: var(--ps-purple); color: #6d7bff;
           box-shadow: 0 0 0 3px rgba(7,7,78,0.16); }
         .ps-chip__icon { display: inline-flex; align-items: center; font-size: 0.98rem; }
 
         /* Selected language chip with fluency picker */
         .ps-langchip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; border-radius: 10px;
-          background: rgba(7,7,78,0.16); border: 1px solid var(--ps-purple); color: #7c5cff; font-size: 0.83rem; }
+          background: rgba(7,7,78,0.16); border: 1px solid var(--ps-purple); color: #6d7bff; font-size: 0.83rem; }
         .ps-langchip__name { font-weight: 500; }
         .ps-langchip__x { display: flex; background: none; border: none; cursor: pointer; color: rgba(7,7,78,0.7); padding: 2px; }
-        .ps-langchip__x:hover { color: #7c5cff; }
+        .ps-langchip__x:hover { color: #6d7bff; }
         .ps-flu { position: relative; }
         .ps-flu__btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 7px;
-          background: rgba(7,7,78,0.1); border: 1px solid rgba(7,7,78,0.18); color: #7c5cff; cursor: pointer;
+          background: rgba(7,7,78,0.1); border: 1px solid rgba(7,7,78,0.18); color: #6d7bff; cursor: pointer;
           font-family: inherit; font-size: 0.76rem; font-weight: 500; }
         .ps-flu__btn:hover { background: rgba(7,7,78,0.16); }
         .ps-flu__menu { position: absolute; top: calc(100% + 5px); left: 0; z-index: 30; min-width: 150px; padding: 5px;
-          border-radius: 10px; background: #ffffff; border: 1px solid rgba(7,7,78,0.12);
+          border-radius: 10px; background: #17173a; border: 1px solid rgba(255,255,255,0.12);
           box-shadow: 0 18px 44px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
         .ps-flu__opt { padding: 8px 12px; border-radius: 7px; text-align: left; background: none; border: none; cursor: pointer;
-          color: #7c5cff; font-family: inherit; font-size: 0.85rem; }
-        .ps-flu__opt:hover { background: rgba(7,7,78,0.07); }
-        .ps-flu__opt--on { background: rgba(7,7,78,0.18); }
+          color: #ffffff; font-family: inherit; font-size: 0.85rem; }
+        .ps-flu__opt:hover { background: rgba(255,255,255,0.08); }
+        .ps-flu__opt--on { background: rgba(91,107,255,0.32); color: #fff; }
 
         /* Stub steps */
         .ps-stub { text-align: center; padding: 34px 10px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
         .ps-stub__icon { width: 62px; height: 62px; border-radius: 18px; display: flex; align-items: center;
           justify-content: center; background: rgba(7,7,78,0.14); color: var(--ps-purple); }
-        .ps-stub__title { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); margin: 0; color: #7c5cff; }
+        .ps-stub__title { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); margin: 0; color: #6d7bff; }
         .ps-stub__text { font-size: 0.97rem; line-height: 1.6; color: rgba(7,7,78,0.55); max-width: 420px; margin: 0; }
-        .ps-stub__text strong { color: #7c5cff; }
+        .ps-stub__text strong { color: #6d7bff; }
 
         /* Actions */
         .ps-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 24px;
           padding-top: 18px; border-top: 1px solid rgba(7,7,78,0.07); }
         .ps-btn-ghost { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 999px;
-          font-size: 0.88rem; font-weight: 600; color: #7c5cff; cursor: pointer; font-family: inherit;
+          font-size: 0.88rem; font-weight: 600; color: #6d7bff; cursor: pointer; font-family: inherit;
           background: transparent; border: 1px solid rgba(7,7,78,0.22); margin-right: auto; transition: all 0.2s; }
         .ps-btn-ghost:hover { border-color: rgba(7,7,78,0.5); background: rgba(7,7,78,0.04); }
         .ps-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 10px 26px; border-radius: 999px;
-          font-size: 0.9rem; font-weight: 600; color: #7c5cff; cursor: pointer; border: none; font-family: inherit;
+          font-size: 0.9rem; font-weight: 600; color: #6d7bff; cursor: pointer; border: none; font-family: inherit;
           background: linear-gradient(120deg, #07074e, #4f63e6);
           transition: all 0.2s; }
         .ps-btn-primary:hover { transform: translateY(-2px); }
         .ps-btn-primary:disabled, .ps-btn-ghost:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .ps-spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(7,7,78,0.4);
-          border-top-color: #7c5cff; animation: psSpin 0.7s linear infinite; }
+          border-top-color: #6d7bff; animation: psSpin 0.7s linear infinite; }
         @keyframes psSpin { to { transform: rotate(360deg); } }
 
         /* Thank-you / submitted card */
         .ps-thanks { text-align: center; padding: 48px 36px; display: flex; flex-direction: column; align-items: center; }
         .ps-thanks__icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center;
-          justify-content: center; color: #7c5cff; margin-bottom: 22px;
+          justify-content: center; color: #6d7bff; margin-bottom: 22px;
           background: linear-gradient(135deg, #07074e, #07074e); box-shadow: 0 0 0 10px rgba(7,7,78,0.14), 0 16px 40px rgba(7,7,78,0.5); }
-        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); color: #7c5cff; margin: 0 0 12px; }
+        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); color: #6d7bff; margin: 0 0 12px; }
         .ps-thanks__text { font-size: 0.95rem; line-height: 1.6; color: rgba(7,7,78,0.65); max-width: 420px; margin: 0 0 28px; }
-        .ps-thanks__text strong { color: #7c5cff; }
+        .ps-thanks__text strong { color: #6d7bff; }
         .ps-thanks__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
         .ps-thanks__home { margin-right: 0; }
         /* Validation */
@@ -1637,7 +1688,7 @@ export default function CreatorProfileSetup() {
         .ps-hinttext { font-size: 0.78rem; line-height: 1.5; color: rgba(7,7,78,0.5); margin: -2px 0 3px; }
         .ps-section { display: flex; flex-direction: column; gap: 9px; padding-top: 6px;
           border-top: 1px solid rgba(7,7,78,0.07); }
-        .ps-h3 { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); color: #7c5cff; margin: 4px 0 0; }
+        .ps-h3 { font-family: var(--font-head); font-size: var(--fs-h3); font-weight: var(--fw-head); color: #6d7bff; margin: 4px 0 0; }
         .ps-chip--add { color: var(--ps-purple); border-style: dashed; }
         .ps-chip--add svg { color: var(--ps-purple); }
         .ps-chip--add-on { background: rgba(7,7,78,0.16); border-style: solid; border-color: var(--ps-purple); }
@@ -1647,10 +1698,10 @@ export default function CreatorProfileSetup() {
         .ps-custom__row { display: flex; gap: 10px; }
         .ps-custom__row .ps-input { flex: 1; }
         .ps-custom__add { padding: 0 24px; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: 600;
-          font-size: 0.92rem; color: #7c5cff; background: rgba(7,7,78,0.07); border: 1px solid rgba(7,7,78,0.14); transition: all 0.2s; }
+          font-size: 0.92rem; color: #6d7bff; background: rgba(7,7,78,0.07); border: 1px solid rgba(7,7,78,0.14); transition: all 0.2s; }
         .ps-custom__add:hover { background: rgba(7,7,78,0.2); border-color: rgba(7,7,78,0.45); }
         .ps-custom__hint { font-size: 0.82rem; color: rgba(7,7,78,0.45); margin: 8px 0 0; }
-        .ps-custom__hint strong { color: #7c5cff; }
+        .ps-custom__hint strong { color: #6d7bff; }
 
         /* Profile links */
         .ps-links { display: flex; flex-direction: column; gap: 10px; }
@@ -1658,12 +1709,12 @@ export default function CreatorProfileSetup() {
           border: 1px solid rgba(7,7,78,0.12); background: rgba(7,7,78,0.03); }
         .ps-link--error { border-color: #ef4444; }
         .ps-link-err { margin-top: -4px; }
-        .ps-link__badge { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; color: #7c5cff;
+        .ps-link__badge { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; color: #6d7bff;
           display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; }
-        .ps-link__input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #7c5cff;
+        .ps-link__input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #6d7bff;
           font-family: inherit; font-size: 0.95rem; }
         .ps-link__input::placeholder { color: rgba(7,7,78,0.4); }
-        .ps-link__followers { width: 110px; flex-shrink: 0; padding: 8px 12px; border-radius: 9px; color: #7c5cff;
+        .ps-link__followers { width: 110px; flex-shrink: 0; padding: 8px 12px; border-radius: 9px; color: #6d7bff;
           background: rgba(7,7,78,0.05); border: 1px solid rgba(7,7,78,0.14); outline: none; font-family: inherit; font-size: 0.88rem; }
         .ps-link__add { flex-shrink: 0; padding: 8px 14px; border-radius: 9px; cursor: pointer; font-family: inherit;
           font-size: 0.85rem; font-weight: 600; color: var(--ps-purple); background: rgba(7,7,78,0.12);
@@ -1673,7 +1724,7 @@ export default function CreatorProfileSetup() {
           background: none; border: none; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 600; color: var(--ps-purple); }
         .ps-link__remove { flex-shrink: 0; display: flex; background: none; border: none; cursor: pointer;
           color: rgba(7,7,78,0.5); padding: 6px; }
-        .ps-link__remove:hover { color: #7c5cff; }
+        .ps-link__remove:hover { color: #6d7bff; }
 
         /* Add-another-social-link picker */
         .ps-addbox { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; padding: 14px; border-radius: 14px;
@@ -1681,7 +1732,7 @@ export default function CreatorProfileSetup() {
         .ps-addbox__row { display: flex; gap: 10px; align-items: center; }
         .ps-addbox__select { flex: 1; }
         .ps-addbox__cancel { padding: 11px 22px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600;
-          font-size: 0.9rem; color: #7c5cff; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
+          font-size: 0.9rem; color: #6d7bff; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
         .ps-addbox__cancel:hover { border-color: rgba(7,7,78,0.4); }
         .ps-addbox__add { align-self: flex-end; }
 
@@ -1689,7 +1740,7 @@ export default function CreatorProfileSetup() {
         .ps-perm { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px;
           border: 1px solid rgba(7,7,78,0.1); background: rgba(7,7,78,0.025); }
         .ps-perm--error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.14); }
-        .ps-perm__title { font-size: 0.9rem; font-weight: 600; color: #7c5cff; }
+        .ps-perm__title { font-size: 0.9rem; font-weight: 600; color: #6d7bff; }
         .ps-perm__note { font-size: 0.74rem; color: var(--ps-purple); margin-bottom: 4px; }
         .ps-radio { display: flex; align-items: center; gap: 9px; padding: 5px 0; cursor: pointer;
           font-size: 0.86rem; color: rgba(7,7,78,0.85); }
@@ -1705,50 +1756,55 @@ export default function CreatorProfileSetup() {
         .ps-pf__left { display: flex; flex-direction: column; gap: 10px; }
         .ps-pf__thumb { position: relative; height: 90px; border-radius: 12px; overflow: hidden;
           display: flex; align-items: center; justify-content: center;
-          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #7c5cff; }
+          background: linear-gradient(135deg, #1e2570, #2733a0); color: #6d7bff; }
         .ps-pf__thumbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         /* Section divider */
         .ps-divider { height: 1px; background: rgba(7,7,78,0.1); margin: 6px 0 4px; }
         .ps-pf__play { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center; color: #7c5cff;
+          display: flex; align-items: center; justify-content: center; color: #6d7bff;
           background: rgba(0,0,0,0.4); border: 1px solid rgba(7,7,78,0.4); }
         .ps-pf__change { padding: 8px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.82rem;
-          font-weight: 600; color: #7c5cff; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
+          font-weight: 600; color: #6d7bff; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
         .ps-pf__change:hover { border-color: var(--ps-purple); }
         .ps-pf__upload { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
           padding: 9px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.85rem;
-          font-weight: 600; color: #7c5cff; background: rgba(7,7,78,0.05); border: 1px dashed rgba(7,7,78,0.22); }
+          font-weight: 600; color: #6d7bff; background: rgba(7,7,78,0.05); border: 1px dashed rgba(7,7,78,0.22); }
         .ps-pf__or { text-align: center; font-size: 0.78rem; color: rgba(7,7,78,0.4); }
         .ps-pf__right { display: flex; flex-direction: column; gap: 10px; }
         .ps-textarea { min-height: 80px; resize: vertical; padding-top: 12px; }
         .ps-btn-soft { align-self: flex-start; padding: 10px 22px; border-radius: 999px; cursor: pointer;
-          white-space: nowrap; font-family: inherit; font-size: 0.92rem; font-weight: 600; color: #7c5cff; border: none;
+          white-space: nowrap; font-family: inherit; font-size: 0.92rem; font-weight: 600; color: #6d7bff; border: none;
           background: linear-gradient(120deg, #07074e, #4f63e6); }
         /* Added portfolio video cards */
         .ps-vids { display: flex; flex-direction: column; gap: 14px; }
         .ps-vid { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 14px; border-radius: 14px;
           border: 1px solid rgba(7,7,78,0.1); background: rgba(7,7,78,0.025); }
-        .ps-vid__thumb { position: relative; align-self: start; height: 120px; border-radius: 10px; overflow: hidden;
+        /* left media column: thumbnail + (when editing) the Change-video button */
+        .ps-vid__media { display: flex; flex-direction: column; gap: 8px; align-self: start; }
+        .ps-vid__changebtn { width: 100%; padding: 7px 8px; border-radius: 9px; border: 1px solid #5b6bff;
+          background: #eef0ff; color: #3a45c9; font-family: inherit; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .ps-vid__changebtn:hover { background: #e2e6ff; }
+        .ps-vid__thumb { position: relative; width: 100%; align-self: stretch; height: 150px; border-radius: 10px; overflow: hidden;
           display: flex; align-items: center; justify-content: center;
-          background: linear-gradient(135deg, #2d1b69, #4c1d95); color: #7c5cff; }
+          background: linear-gradient(135deg, #1e2570, #2733a0); color: #6d7bff; }
         .ps-vid__thumbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .ps-vid__body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-        .ps-vid__name { font-size: 0.92rem; font-weight: 600; color: #7c5cff; }
+        .ps-vid__name { font-size: 0.92rem; font-weight: 600; color: #6d7bff; }
         .ps-vid__desc { font-size: 0.82rem; color: rgba(7,7,78,0.8); min-height: 46px; padding: 10px 12px;
           border-radius: 10px; border: 1px solid rgba(7,7,78,0.08); background: rgba(7,7,78,0.02); }
         .ps-vid__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .ps-vid__actions--read { justify-content: space-between; }
         .ps-vid__left { display: flex; align-items: center; gap: 12px; }
         .ps-vid__btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
-          font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #7c5cff; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
+          font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #6d7bff; background: rgba(7,7,78,0.06); border: 1px solid rgba(7,7,78,0.18); }
         .ps-vid__btn:hover { border-color: var(--ps-purple); }
         .ps-vid__del { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
           font-family: inherit; font-size: 0.83rem; font-weight: 600; color: #f06d6d; background: none; border: none; }
         .ps-vid__del--out { border: 1px solid rgba(240,109,109,0.4); }
         .ps-vid__del:hover { background: rgba(240,109,109,0.1); }
         .ps-vid__cancel { padding: 8px 14px; background: none; border: none; cursor: pointer; font-family: inherit;
-          font-size: 0.83rem; font-weight: 600; color: rgba(7,7,78,0.7); }
-        .ps-vid__cancel:hover { color: #7c5cff; }
+          font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.72); }
+        .ps-vid__cancel:hover { color: #fff; }
         .ps-vid__added { display: inline-flex; align-items: center; gap: 5px; font-size: 0.83rem; font-weight: 600; color: #4ade80; }
 
         /* Info note (final step) */
@@ -1765,13 +1821,16 @@ export default function CreatorProfileSetup() {
           border: 2px solid rgba(7,7,78,0.3); transition: all 0.15s; }
         .ps-check input:checked + .ps-check__box { background: var(--ps-purple); border-color: var(--ps-purple);
           box-shadow: inset 0 0 0 2px #ffffff; }
-        .ps-check strong { color: #7c5cff; }
+        .ps-check strong { color: #6d7bff; }
 
         /* Compensation */
         .ps-comp { display: flex; align-items: center; gap: 12px; }
         .ps-comp__label { width: 130px; flex-shrink: 0; font-size: 0.92rem; color: rgba(7,7,78,0.7); }
         .ps-comp .ps-input { flex: 1; }
         .ps-comp__period { width: 150px; flex-shrink: 0; }
+        .ps-comp__period--static { display: grid; place-items: center; width: 120px; padding: 10px 13px;
+          border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #fff;
+          background: rgba(109,123,255,0.08); border: 1px solid rgba(109,123,255,0.45); white-space: nowrap; }
 
         /* Sidebar */
         .ps-side { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 18px; }
@@ -1782,8 +1841,8 @@ export default function CreatorProfileSetup() {
           display: flex; align-items: center; justify-content: center;
           background: conic-gradient(var(--ps-purple) var(--p), rgba(7,7,78,0.1) 0); }
         .ps-progress__ring::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: #ffffff; }
-        .ps-progress__pct { position: relative; z-index: 1; font-size: 0.9rem; font-weight: 700; color: #7c5cff; }
-        .ps-progress__title { font-size: 0.95rem; font-weight: 600; color: #7c5cff; line-height: 1.3; }
+        .ps-progress__pct { position: relative; z-index: 1; font-size: 0.9rem; font-weight: 700; color: #6d7bff; }
+        .ps-progress__title { font-size: 0.95rem; font-weight: 600; color: #6d7bff; line-height: 1.3; }
         .ps-progress__hint { font-size: 0.8rem; color: rgba(7,7,78,0.5); margin-top: 5px; }
 
         .ps-tracker { display: flex; flex-direction: column; padding: 8px;
@@ -1798,12 +1857,12 @@ export default function CreatorProfileSetup() {
         .ps-track__dot { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700;
           background: rgba(7,7,78,0.08); color: rgba(7,7,78,0.55); border: 1px solid rgba(7,7,78,0.12); }
-        .ps-track--active .ps-track__dot { background: linear-gradient(120deg, #07074e, #4f63e6); color: #7c5cff;
+        .ps-track--active .ps-track__dot { background: linear-gradient(120deg, #07074e, #4f63e6); color: #6d7bff;
           border-color: transparent; box-shadow: 0 0 0 4px rgba(7,7,78,0.18); }
         .ps-track--done .ps-track__dot { background: rgba(7,7,78,0.22); color: var(--ps-purple); border-color: rgba(7,7,78,0.5); }
         .ps-track__text { display: flex; flex-direction: column; }
         .ps-track__title { font-size: 0.92rem; font-weight: 600; color: rgba(7,7,78,0.6); }
-        .ps-track--active .ps-track__title, .ps-track--done .ps-track__title { color: #7c5cff; }
+        .ps-track--active .ps-track__title, .ps-track--done .ps-track__title { color: #6d7bff; }
         .ps-track__sub { font-size: 0.74rem; color: rgba(7,7,78,0.4); }
 
         /* Responsive */
@@ -1832,14 +1891,14 @@ export default function CreatorProfileSetup() {
         }
 
         /* ── Dark navy card theme (like the brand form) + light-purple accents ── */
-        .ps-root { --ps-purple: #b9a8ff; --ps-purple-deep: #8b7bff; }
+        .ps-root { --ps-purple: #6d7bff; --ps-purple-deep: #6d7bff; }
         .ps-card {
           background: rgba(18,18,26,0.72) !important;
           -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
           border: 1px solid rgba(255,255,255,0.10) !important;
           box-shadow: 0 30px 70px rgba(0,0,0,0.55) !important;
         }
-        .ps-card::after { background: linear-gradient(90deg, transparent, rgba(185,168,255,0.55), transparent) !important; }
+        .ps-card::after { background: linear-gradient(90deg, transparent, rgba(109,123,255,0.55), transparent) !important; }
         .ps-title, .ps-card h1, .ps-card h2, .ps-card h3, .ps-card h4 { color: #ffffff !important; }
         .ps-title-accent { color: #ffffff !important; }
         .ps-sub, .ps-card > p, .ps-help, .ps-hint { color: rgba(255,255,255,0.66) !important; }
@@ -1851,12 +1910,12 @@ export default function CreatorProfileSetup() {
         }
         .ps-input::placeholder, .ps-card input::placeholder, .ps-card textarea::placeholder { color: rgba(255,255,255,0.4) !important; }
         .ps-input:focus, .ps-select__el:focus, .ps-card input:focus, .ps-card textarea:focus {
-          border-color: #b9a8ff !important; background: rgba(255,255,255,0.06) !important;
-          box-shadow: 0 0 0 4px rgba(185,168,255,0.18) !important;
+          border-color: #6d7bff !important; background: rgba(255,255,255,0.06) !important;
+          box-shadow: 0 0 0 4px rgba(109,123,255,0.18) !important;
         }
         .ps-chip { color: #ffffff !important; border-color: rgba(255,255,255,0.16) !important; background: rgba(255,255,255,0.03) !important; }
-        .ps-chip--on, .ps-chip--add-on { background: rgba(185,168,255,0.20) !important; border-color: #b9a8ff !important; color: #ffffff !important; }
-        .ps-chip--add { color: #b9a8ff !important; }
+        .ps-chip--on, .ps-chip--add-on { background: rgba(109,123,255,0.20) !important; border-color: #6d7bff !important; color: #ffffff !important; }
+        .ps-chip--add { color: #6d7bff !important; }
         .ps-step { color: #ffffff !important; }
         /* topbar + progress sit on the dark backdrop — white text */
         .ps-brand__name { color: #ffffff !important; }
@@ -1868,13 +1927,13 @@ export default function CreatorProfileSetup() {
         .ps-bar__track { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.10) !important; }
         /* upload / banner dropzones — white text + purple icon on the dark card */
         .ps-upload { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.20) !important; }
-        .ps-upload:hover { background: rgba(255,255,255,0.07) !important; border-color: #b9a8ff !important; }
-        .ps-upload__icon { background: rgba(185,168,255,0.14) !important; border-color: rgba(185,168,255,0.32) !important; color: #b9a8ff !important; }
+        .ps-upload:hover { background: rgba(255,255,255,0.07) !important; border-color: #6d7bff !important; }
+        .ps-upload__icon { background: rgba(109,123,255,0.14) !important; border-color: rgba(109,123,255,0.32) !important; color: #6d7bff !important; }
         .ps-upload__title { color: #ffffff !important; }
         .ps-upload__hint, .ps-optional { color: rgba(255,255,255,0.6) !important; }
-        /* buttons stay light purple */
-        .ps-btn-primary, .ps-upload__cta { background: #b9a8ff !important; border-color: #b9a8ff !important; color: #1a1030 !important; }
-        .ps-btn-primary:hover, .ps-upload__cta:hover { background: #a793ff !important; }
+        /* primary action buttons — brand blue with white text */
+        .ps-btn-primary, .ps-upload__cta { background: #6d7bff !important; border-color: #6d7bff !important; color: #ffffff !important; }
+        .ps-btn-primary:hover, .ps-upload__cta:hover { background: #5a63f5 !important; }
 
         /* ── Fixes: elements the dark override missed (were dark-navy = invisible) ── */
         /* Hints / muted / notes / descriptions → readable light grey. */
@@ -1890,17 +1949,28 @@ export default function CreatorProfileSetup() {
         .ps-link { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.12) !important; }
         .ps-link__input { color: #ffffff !important; }
         .ps-link__input::placeholder { color: rgba(255,255,255,0.4) !important; }
-        .ps-langchip { color: #ffffff !important; background: rgba(185,168,255,0.16) !important; border-color: #b9a8ff !important; }
-        .ps-flu__btn { color: #ffffff !important; }
+        .ps-langchip { color: #ffffff !important; background: rgba(109,123,255,0.16) !important; border-color: #6d7bff !important; }
+        /* Fluency pill: white border + subtle fill so it reads as its own control
+           (not blended with the language name); the remove (×) is white too. */
+        .ps-flu__btn { color: #ffffff !important; border: 1px solid rgba(255,255,255,0.45) !important; background: rgba(255,255,255,0.08) !important; }
+        .ps-flu__btn:hover { background: rgba(255,255,255,0.16) !important; }
+        .ps-langchip__x { color: #ffffff !important; }
+        .ps-langchip__x:hover { color: #ffffff !important; }
         /* Phone dial code (+91) and Go Back → light purple. */
-        .ps-dial__btn { color: #b9a8ff !important; background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; }
-        .ps-btn-ghost { color: #b9a8ff !important; border-color: rgba(185,168,255,0.5) !important; }
-        .ps-btn-ghost:hover { border-color: #b9a8ff !important; background: rgba(185,168,255,0.08) !important; }
+        .ps-dial__btn { color: #6d7bff !important; background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; }
+        .ps-btn-ghost { color: #6d7bff !important; border-color: rgba(109,123,255,0.5) !important; }
+        .ps-btn-ghost:hover { border-color: #6d7bff !important; background: rgba(109,123,255,0.08) !important; }
+        /* Modify button: visible blue border on the dark card (was dark-navy = invisible). */
+        .ps-vid__btn { background: rgba(109,123,255,0.08) !important; border-color: rgba(109,123,255,0.5) !important; }
+        .ps-vid__btn:hover { background: rgba(109,123,255,0.16) !important; border-color: #6d7bff !important; }
+        /* Saved-work card + its description box: visible outline on the dark background. */
+        .ps-vid { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.16) !important; }
+        .ps-vid__desc { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.14) !important; }
         /* Success card: green tick, and a purple "Back to Home" with white text + arrow. */
         .ps-thanks__icon { background: rgba(34,197,94,0.15) !important; color: #22c55e !important;
           box-shadow: 0 0 0 10px rgba(34,197,94,0.10), 0 16px 40px rgba(34,197,94,0.22) !important; }
-        .ps-thanks__home { background: #7c5cff !important; border-color: #7c5cff !important; color: #ffffff !important; }
-        .ps-thanks__home:hover { background: #6b4cff !important; }
+        .ps-thanks__home { background: #6d7bff !important; border-color: #6d7bff !important; color: #ffffff !important; }
+        .ps-thanks__home:hover { background: #5a63f5 !important; }
 
         /* ── Make all accent action text + icons WHITE (per request) ── */
         .ps-dial__btn, .ps-btn-ghost, .ps-link__add, .ps-addlink, .ps-pf__upload,

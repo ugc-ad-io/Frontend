@@ -100,7 +100,7 @@ export default function Auth() {
         window.google.accounts.id.renderButton(googleBtnRef.current, {
           theme: 'outline',
           size: 'large',
-          width: 360,
+          width: 320,
           text: 'continue_with',
           logo_alignment: 'center'
         });
@@ -221,10 +221,19 @@ export default function Auth() {
       <div className="ap-orb ap-orb--3" aria-hidden="true" />
       <div className="ap-grid" aria-hidden="true" />
 
-      {/* Back button */}
-      <button className="ap-back" onClick={() => navigate('/')}>
-        <ArrowLeft size={16} />
-        Back to home
+      {/* Brand logo — top-left corner of the page */}
+      <img src="/newlogo-tight.png" alt="UGCad.io" className="ap-page-logo" />
+
+      {/* ── the auth card (form + promo, one floating shell) ── */}
+      {/* Sign In → form on the right; Sign Up → form on the left. */}
+      <div className={`ap-shell ${isLogin ? 'is-signin' : 'is-signup'}`}>
+
+      {/* ── LEFT: the sign-in / sign-up form ── */}
+      <div className="ap-left">
+
+      {/* Back button — arrow only, top-left */}
+      <button className="ap-back" onClick={() => navigate('/')} aria-label="Back to home">
+        <ArrowLeft size={18} />
       </button>
 
       <motion.div
@@ -599,6 +608,36 @@ export default function Auth() {
           </motion.form>
         )}
       </motion.div>
+      </div>
+
+      {/* ── RIGHT: UGC promo panel ── */}
+      <aside className="ap-promo">
+        <span className="ap-promo-logobg" aria-hidden="true" />
+        <span className="ap-promo-shine" aria-hidden="true" />
+        <div className="ap-promo-inner">
+          <div>
+            <span className="ap-promo-brand">UGCad.io</span>
+            <h2 className="ap-promo-title">Where brands meet real creators.</h2>
+            <p className="ap-promo-text">
+              UGCad connects brands with authentic UGC creators — post a campaign,
+              get matched with the right talent, and turn real content into results,
+              all in one place.
+            </p>
+            <p className="ap-promo-stat">More than 17k creators &amp; brands joined — it&apos;s your turn.</p>
+          </div>
+          <div className="ap-promo-card">
+            <h3>Launch your first campaign today</h3>
+            <p>Be among the first brands and creators building authentic content that actually converts.</p>
+            <div className="ap-promo-people">
+              <span className="ap-promo-ava" style={{ background: 'linear-gradient(135deg,#f9a8d4,#ec4899)' }} />
+              <span className="ap-promo-ava" style={{ background: 'linear-gradient(135deg,#a5b4fc,#6366f1)' }} />
+              <span className="ap-promo-ava" style={{ background: 'linear-gradient(135deg,#fcd34d,#f59e0b)' }} />
+              <span className="ap-promo-ava ap-promo-ava--more">+2</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+      </div>
 
       <style>{`
         /* ── Root ────────────────────────────────────────────────── */
@@ -982,6 +1021,158 @@ export default function Auth() {
             top: 16px;
             left: 16px;
           }
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           Split auth layout — form on the left, UGC promo panel on the right
+           ══════════════════════════════════════════════════════════════ */
+        .ap-root {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 26px;
+          background: linear-gradient(160deg, #050510 0%, #0D0B26 100%);
+          overflow: hidden;
+        }
+        .ap-grid { display: none; }
+
+        .ap-shell {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          width: 100%;
+          max-width: 980px;
+          max-height: calc(100vh - 52px);
+          background: #f2f3f7;
+          border-radius: 26px;
+          overflow: hidden;
+          box-shadow: 0 40px 90px -34px rgba(15,18,45,0.4);
+        }
+
+        .ap-left {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 34px 48px 34px 74px;
+          background: #f2f3f7;
+          overflow-y: auto;
+        }
+        .ap-card {
+          background: transparent;
+          box-shadow: none;
+          max-width: 336px;
+          margin: 0;
+          padding: 0;
+        }
+        /* In-card logo hidden — the brand mark now lives at the page's top-left. */
+        .ap-logo-wrap { display: none; }
+        .ap-page-logo {
+          position: absolute;
+          top: 24px;
+          left: 34px;
+          height: 32px !important;
+          width: auto !important;
+          max-height: none !important;
+          z-index: 6;
+          pointer-events: none;
+        }
+        .ap-header { text-align: left; margin-bottom: 18px; }
+        .ap-title { font-size: 25px; }
+        .ap-subtitle { font-size: 12.5px; }
+        .ap-input { padding: 10px 13px; font-size: 13.5px; }
+        .ap-submit { padding: 12px; font-size: 14px; }
+        .ap-back {
+          position: relative;
+          top: auto;
+          left: auto;
+          align-self: flex-start;
+          margin-bottom: 14px;
+          margin-left: -34px;
+          width: 38px;
+          height: 38px;
+          padding: 0;
+          gap: 0;
+          display: grid;
+          place-items: center;
+          background: rgba(15,18,45,0.06);
+          border-color: rgba(15,18,45,0.12);
+          color: #4b4f6b;
+          backdrop-filter: none;
+        }
+        .ap-back:hover { background: rgba(15,18,45,0.1); color: #15163a; border-color: rgba(15,18,45,0.22); }
+
+        /* Promo panel (right) */
+        /* Animated swap — Sign Up: form left · Sign In: form right.
+           Panels slide with transform (grid order can't animate). Form (z-index 2)
+           slides over the promo. On sign-in the form shifts one column right and
+           the promo one column left; sign-up is the resting (no-transform) state. */
+        .ap-left, .ap-promo { transition: transform .55s cubic-bezier(.76, 0, .24, 1); }
+        .ap-shell.is-signin .ap-left { transform: translateX(100%); }
+        .ap-shell.is-signin .ap-promo { transform: translateX(-100%); }
+
+        .ap-promo {
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          color: #fff;
+          border-radius: 0;
+          margin: 0;
+          background: radial-gradient(120% 120% at 82% 0%, #17182c 0%, #0b0b16 58%, #050509 100%);
+        }
+        .ap-promo-logobg {
+          position: absolute; left: -8%; top: -4%;
+          width: 78%; height: 66%;
+          background: url('/ugcad-logo.png') no-repeat left top/contain;
+          opacity: 0.05; filter: grayscale(1) brightness(4);
+          pointer-events: none;
+        }
+        .ap-promo-shine {
+          position: absolute; top: -12%; right: -22%;
+          width: 58%; height: 130%;
+          background: linear-gradient(120deg, transparent, rgba(130,150,190,0.14), transparent);
+          transform: rotate(18deg); pointer-events: none;
+        }
+        .ap-promo-inner {
+          position: relative; z-index: 1; width: 100%;
+          display: flex; flex-direction: column; justify-content: space-between;
+          gap: 24px; padding: 38px 34px;
+        }
+        .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
+        .ap-promo-title {
+          font-family: var(--font-head, inherit);
+          font-size: 26px; font-weight: 800; line-height: 1.16; margin: 26px 0 12px; color: #fff;
+        }
+        .ap-promo-text { color: rgba(255,255,255,0.58); font-size: 13px; line-height: 1.65; max-width: 380px; margin: 0 0 13px; }
+        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: 0; }
+        .ap-promo-card {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.09);
+          border-radius: 18px; padding: 20px 22px;
+          -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+        }
+        .ap-promo-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: #fff; }
+        .ap-promo-card p { margin: 0 0 14px; color: rgba(255,255,255,0.58); font-size: 13px; line-height: 1.55; max-width: 320px; }
+        .ap-promo-people { display: flex; align-items: center; }
+        .ap-promo-ava {
+          width: 32px; height: 32px; border-radius: 50%; border: 2px solid #14141f;
+          margin-left: -9px; display: inline-flex; flex: none;
+        }
+        .ap-promo-ava:first-child { margin-left: 0; }
+        .ap-promo-ava--more {
+          background: #23233a !important; color: #cfd2e6;
+          font-size: 12px; font-weight: 700; align-items: center; justify-content: center;
+        }
+
+        @media (max-width: 860px) {
+          .ap-shell { grid-template-columns: 1fr; max-width: 420px; max-height: none; }
+          .ap-promo { display: none; }
+          /* single column — never slide the form off-screen */
+          .ap-shell.is-signin .ap-left, .ap-shell.is-signin .ap-promo { transform: none !important; }
+          .ap-left { padding: 40px 28px; align-items: center; }
+          .ap-card { margin: 0 auto; }
+          .ap-header { text-align: center; }
+          .ap-logo-wrap { justify-content: center; }
         }
       `}</style>
     </div>

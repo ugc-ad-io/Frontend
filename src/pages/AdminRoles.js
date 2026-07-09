@@ -480,7 +480,7 @@ export default function AdminRoles() {
         .arl-badge.founder { background: #fef3c7; color: #92400e; }
         .arl-badge.senior  { background: #e0e7ff; color: #3730a3; }
         .arl-badge.regular { background: #ecfdf3; color: #067647; }
-        .arl-badge.finance { background: #f3e8ff; color: #6b21a8; }
+        .arl-badge.finance { background: #eaeeff; color: #6b21a8; }
         .arl-badge.custom { background: #e0f2fe; color: #075985; }
         .arl-add { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 

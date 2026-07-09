@@ -129,24 +129,40 @@ const FALLBACK_VIDEOS = [
   '/creator/video_29.mp4', '/creator/video_30.mp4', '/creator/video_32.mp4', '/creator/video_33.mp4',
 ];
 
-function VideoTile({ url, onRemove }) {
+function VideoTile({ url, onRemove, onEdit }) {
   const ref = useRef(null);
   const [playing, setPlaying] = useState(false);
+  const [open, setOpen] = useState(false);   // big lightbox with real playback + sound
   const src = assetUrl(url);
-  const toggle = () => {
-    if (!ref.current) return;
-    if (ref.current.paused) { ref.current.play().then(() => setPlaying(true)).catch(() => {}); }
-    else { ref.current.pause(); setPlaying(false); }
-  };
-  // Hover to preview: play the clip (hides the play icon) + zoom, pause on leave.
-  const hoverPlay = () => { const v = ref.current; if (v && isVideo(src)) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
-  const hoverStop = () => { const v = ref.current; if (v) { v.pause(); setPlaying(false); } };
+  const video = isVideo(src);
+  // Hover to preview: play the clip muted (hides the play icon) + zoom, reset on leave.
+  const hoverPlay = () => { const v = ref.current; if (v && video) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
+  const hoverStop = () => { const v = ref.current; if (v) { v.pause(); try { v.currentTime = 0.5; } catch {} setPlaying(false); } };
   return (
-    <div className="cpm-vid" onClick={toggle} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
-      {isVideo(src) ? <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop /> : <img src={src} alt="" />}
-      {!playing && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
-      {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
-    </div>
+    <>
+      <div className="cpm-vid" onClick={() => setOpen(true)} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
+        {video ? <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop /> : <img src={src} alt="" />}
+        {!playing && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
+        {onEdit && <button type="button" className="cpm-vid-edit" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit"><Pencil size={14} /></button>}
+        {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
+      </div>
+      {open && (
+        <div className="cpm-clip-ov" onClick={() => setOpen(false)}>
+          <div className="cpm-clip-box" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="cpm-clip-x" onClick={() => setOpen(false)} aria-label="Close"><X size={18} /></button>
+            <div className="cpm-clip-frame">
+              {video
+                ? <video src={src} controls autoPlay playsInline className="cpm-clip-vid" />
+                : <img src={src} alt="" className="cpm-clip-vid" />}
+              <div className="cpm-clip-wm" aria-hidden="true">
+                <img src="/watermark.jpeg" alt="" />
+                <span>UGC.io</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -195,6 +211,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const [form, setForm] = useState({});            // editable detail fields
   const [pf, setPf] = useState([]);                // editable portfolio list
   const [addOpen, setAddOpen] = useState(false);
+  const [editIdx, setEditIdx] = useState(null);    // index being edited, or null when adding new
   const [addForm, setAddForm] = useState({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' });
   const [busy, setBusy] = useState('');            // 'photo' | 'banner' | 'work'
   const [localPhoto, setLocalPhoto] = useState('');
@@ -353,13 +370,31 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     finally { setBusy(''); if (workRef.current) workRef.current.value = ''; }
   };
 
+  const resetAddForm = () => { setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' }); setEditIdx(null); };
+
   const saveWork = async () => {
     if (!addForm.url) { toast.error('Upload a video first'); return; }
     const item = { title: addForm.title || 'Untitled', brand: addForm.brand || '', description: addForm.desc || '', category: addForm.category || '', price: addForm.price || '', delivery: addForm.delivery || '', videoUrl: addForm.url, urls: [addForm.url] };
-    await persistPortfolio([...(pf || []), item]);
-    setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' });
+    const next = editIdx != null
+      ? (pf || []).map((x, i) => (i === editIdx ? item : x))
+      : [...(pf || []), item];
+    await persistPortfolio(next);
+    resetAddForm();
     setAddOpen(false);
-    toast.success('Work added');
+    toast.success(editIdx != null ? 'Work updated' : 'Work added');
+  };
+
+  // Open the Add-Work form pre-filled with an existing item so it can be edited.
+  const editWork = (idx) => {
+    const it = (pf || [])[idx];
+    const meta = typeof it === 'string' ? {} : (it || {});
+    const url = meta.videoUrl || (Array.isArray(meta.urls) ? meta.urls[0] : '') || (typeof it === 'string' ? it : '');
+    setAddForm({
+      title: meta.title || '', brand: meta.brand || '', desc: meta.description || meta.desc || '',
+      url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '',
+    });
+    setEditIdx(idx);
+    setAddOpen(true);
   };
 
   const removeWork = (idx) => { persistPortfolio((pf || []).filter((_, i) => i !== idx)); };
@@ -558,7 +593,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                 </>
               ) : (
                 <>
-                  <button type="button" className="cpm-ghost" onClick={() => { setTab('videos'); setAddOpen(true); }}><Plus size={16} /> Add Work</button>
+                  <button type="button" className="cpm-ghost" onClick={() => { setTab('videos'); resetAddForm(); setAddOpen(true); }}><Plus size={16} /> Add Work</button>
                   <button type="button" className="cpm-msg" onClick={() => { setTab('details'); setEditing(true); }}><Pencil size={15} /> Edit Profile</button>
                 </>
               )
@@ -652,7 +687,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     <h5 className="cpm-ef-sec">Pricing</h5>
                     <div className="cpm-ef-grid">
                       <label>Expected Payout<input {...fld('expectedPayout')} /></label>
-                      <Sel label="Payout Period" value={form.payoutPeriod} onChange={set('payoutPeriod')} options={PAYOUT_PERIODS} />
+                      <label>Payout Period<input value="Per Video" readOnly /></label>
                       <label>Budget Range<input {...fld('budgetRange')} /></label>
                     </div>
                   </>
@@ -688,21 +723,21 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                           <input placeholder="Delivered in (e.g. 2 days)" value={addForm.delivery} onChange={(e) => setAddForm((f) => ({ ...f, delivery: e.target.value }))} />
                           <textarea placeholder="Description (optional)" rows={2} value={addForm.desc} onChange={(e) => setAddForm((f) => ({ ...f, desc: e.target.value }))} />
                           <div className="cpm-aw-actions">
-                            <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> Save work</button>
-                            <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' }); }}>Cancel</button>
+                            <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> {editIdx != null ? 'Update work' : 'Save work'}</button>
+                            <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); resetAddForm(); }}>Cancel</button>
                           </div>
                         </div>
                       </div>
                     )}
                     <div className="cpm-vids">
-                      {!addOpen && <button type="button" className="cpm-vid cpm-add-tile" onClick={() => setAddOpen(true)}><Plus size={26} /><span>Add Work</span></button>}
+                      {!addOpen && <button type="button" className="cpm-vid cpm-add-tile" onClick={() => { resetAddForm(); setAddOpen(true); }}><Plus size={26} /><span>Add Work</span></button>}
                       {(pf || []).map((it, i) => {
                         const u = pfUrl(it);
                         if (!u) return null;
                         const meta = typeof it === 'string' ? {} : it;
                         return (
                           <div className="cpm-vid-item" key={i}>
-                            <VideoTile url={u} onRemove={() => removeWork(i)} />
+                            <VideoTile url={u} onRemove={() => removeWork(i)} onEdit={() => editWork(i)} />
                             <div className="cpm-vid-cap">
                               <div className="cpm-vid-catrow">
                                 <span className="cpm-vid-cat">{meta.category || hlCategory}</span>
@@ -879,7 +914,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-level-info strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;font-weight:800;color:#15163a;margin:4px 0 2px}
         .cpm-level-info small{color:#9296ba;font-size:13px}
         .cpm-level-badge{flex:none;padding:9px 18px;border-radius:999px;color:#fff;font-weight:700;font-size:14px;background:linear-gradient(135deg,#2bd47e,#15a35b)}
-        .cpm-level-badge.elite{background:linear-gradient(135deg,#8b5cf6,#5b6bff)}
+        .cpm-level-badge.elite{background:linear-gradient(135deg,#6d7bff,#5b6bff)}
         .cpm-level-badge.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
         .cpm-level-badge.l1{background:linear-gradient(135deg,#2bd47e,#15a35b)}
         .cpm-level-badge.verified{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
@@ -975,6 +1010,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-avatar-cam{position:absolute;right:2px;bottom:2px;width:30px;height:30px;border:2px solid #fff;border-radius:50%;background:#15163a;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 6px rgba(15,22,58,.3);z-index:2}
         .cpm-vid-remove{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(15,22,58,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:3}
         .cpm-vid-remove:hover{background:#e5484d}
+        .cpm-vid-edit{position:absolute;top:8px;right:44px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(15,22,58,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:3}
+        .cpm-vid-edit:hover{background:#6d7bff}
         .cpm-add-tile{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#f6f7ff!important;border:2px dashed #cdd4ff;color:#5b6bff;font-weight:700;font-size:13px;cursor:pointer}
         .cpm-add-tile span{font-size:13px}
         .cpm-addwork{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding:16px;border:1px solid #eef0f6;border-radius:14px;background:#fbfbfe}

@@ -206,9 +206,9 @@ export default function AdminCampaigns() {
         @media (max-width: 560px) { .ac-row { grid-template-columns: 1fr; gap: 2px; } }
         .ac-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: none; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; }
         .ac-btn-approve { background: #dcfce7; color: #166534; }
-        .ac-btn-approve:hover { background: #bbf7d0; }
+        .ac-btn-approve:hover { background: #16a34a; color: #fff; }
         .ac-btn-reject { background: #fee2e2; color: #991b1b; }
-        .ac-btn-reject:hover { background: #fecaca; }
+        .ac-btn-reject:hover { background: #dc2626; color: #fff; }
         @media (max-width: 720px) {
           .ac-container { padding: 20px; }
           .ac-header { flex-direction: column; align-items: stretch; }

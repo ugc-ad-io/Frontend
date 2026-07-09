@@ -474,7 +474,7 @@ export default function AdminFlaggedMessages() {
         .afm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px dashed #f1d4a3; }
         .afm-act { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; border: 1.5px solid transparent; transition: all 0.15s ease; }
         .afm-act-approve { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
-        .afm-act-approve:hover { background: #d1fae5; }
+        .afm-act-approve:hover { background: #16a34a; color: #fff; border-color: #16a34a; }
         .afm-act-confirm { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
         .afm-act-confirm:hover { background: #ffedd5; }
         .afm-act-escalate { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
@@ -516,7 +516,7 @@ export default function AdminFlaggedMessages() {
         .afm-rule-title { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; flex-wrap: wrap; }
         .afm-rule-title strong { color: #07074e; font-size: 0.92rem; }
         .afm-rule-type { font-size: 0.66rem; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em; }
-        .afm-rule-type-regex { background: #ede9fe; color: #6d28d9; }
+        .afm-rule-type-regex { background: #e9ecff; color: #6d7bff; }
         .afm-rule-type-keyword { background: #e0f2fe; color: #0369a1; }
         .afm-rule-pending { font-size: 0.66rem; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-weight: 700; letter-spacing: 0.04em; }
         .afm-rule-pattern { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 760px; }

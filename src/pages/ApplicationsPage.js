@@ -1,5 +1,21 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2 } from 'lucide-react';
+
+// Map a social-handle key/platform to its real brand logo (simpleicons slug + brand
+// colour). Falls back to a globe for unknown / custom links.
+const SOCIAL_LOGOS = [
+  [/instagram|insta|ig\b/i, 'instagram', 'E4405F'],
+  [/youtube|yt\b/i, 'youtube', 'FF0000'],
+  [/tiktok|tik\s?tok/i, 'tiktok', '000000'],
+  [/twitter|x\.com|^x$|\bx\b/i, 'x', '000000'],
+  [/facebook|fb\b/i, 'facebook', '1877F2'],
+  [/linkedin/i, 'linkedin', '0A66C2'],
+];
+const SocialLogo = ({ platform }) => {
+  const hit = SOCIAL_LOGOS.find(([re]) => re.test(String(platform || '')));
+  if (!hit) return <Globe size={14} className="apps-social-ic" />;
+  return <img src={`https://cdn.simpleicons.org/${hit[1]}/${hit[2]}`} alt="" width={14} height={14} className="apps-social-ic" />;
+};
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
@@ -227,6 +243,10 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   const [full, setFull] = useState(profile);
   const [loadingFull, setLoadingFull] = useState(true);
   const [mode, setMode] = useState(null);             // null | 'more_info' | 'reject'
+  // Auto-scroll the reveal panel into view when Request More Info / Reject is clicked.
+  const scrollToBuilder = useCallback((el) => {
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
   const [reasonCode, setReasonCode] = useState('');
   const [reasonDetails, setReasonDetails] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
@@ -351,7 +371,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
                   <video key={`v${i}`} src={resolveUrl(u)} controls preload="metadata" style={{ width: '100%', borderRadius: 10, background: '#000', aspectRatio: '16 / 9' }} />
                 ))}
                 {portfolioPhotos.map((u, i) => (
-                  <a key={`p${i}`} href={resolveUrl(u)} target="_blank" rel="noopener noreferrer"><img src={resolveUrl(u)} alt="" style={{ width: '100%', borderRadius: 10, objectFit: 'cover', aspectRatio: '1 / 1' }} /></a>
+                  <a key={`p${i}`} href={resolveUrl(u)} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}><img src={resolveUrl(u)} alt="" style={{ width: '100%', height: 'auto', borderRadius: 10, objectFit: 'contain', background: '#f2f4f7', display: 'block' }} /></a>
                 ))}
               </div>
             </section>
@@ -403,7 +423,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
               <h3><Link2 size={16} className="apps-h3-ic" />{brand ? 'Social Media' : 'Social Handles'} <span className="apps-h3-note">for cross-verification</span></h3>
               <div className="apps-social-row">
                 {socials.map(([k, u], i) => (
-                  <a key={i} href={isUrl(u) ? u : `https://${u}`} target="_blank" rel="noopener noreferrer" className="apps-social-chip">{prettifyKey(k)}</a>
+                  <a key={i} href={isUrl(u) ? u : `https://${u}`} target="_blank" rel="noopener noreferrer" className="apps-social-chip"><SocialLogo platform={k} />{prettifyKey(k)}</a>
                 ))}
               </div>
             </section>
@@ -433,7 +453,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 
           {/* Decision builder panels */}
           {mode === 'more_info' && (
-            <section className="detail-section full-width apps-builder">
+            <section ref={scrollToBuilder} className="detail-section full-width apps-builder">
               <h3><MessageSquarePlus size={16} className="apps-h3-ic" />Request More Information</h3>
               <div className="apps-builder-items">
                 {MORE_INFO_ITEMS[roleKey].map((it) => (
@@ -444,7 +464,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
             </section>
           )}
           {mode === 'reject' && (
-            <section className="detail-section full-width apps-builder">
+            <section ref={scrollToBuilder} className="detail-section full-width apps-builder">
               <h3><XCircle size={16} className="apps-h3-ic" />Reject — reason</h3>
               <select className="apps-select" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
                 <option value="">Select a reason code…</option>
@@ -598,8 +618,10 @@ function ApplicationsPage() {
     return rows;
   }, [roleList, stateFilter, categoryFilter, dateFrom, dateTo, gstFilter, flaggedOnly, searchQuery, sortOrder, applicationType]);
 
-  const creatorCount = useMemo(() => applications.filter((a) => isCreatorRole(a.role)).length, [applications]);
-  const brandCount = useMemo(() => applications.filter((a) => isBrandRole(a.role)).length, [applications]);
+  // Tab counts reflect the selected STATE filter (e.g. Approved → only approved profiles); hidden when 0.
+  const matchesState = (a) => stateFilter === 'all' || a.approval_status === stateFilter;
+  const creatorCount = useMemo(() => applications.filter((a) => isCreatorRole(a.role) && matchesState(a)).length, [applications, stateFilter]);
+  const brandCount = useMemo(() => applications.filter((a) => isBrandRole(a.role) && matchesState(a)).length, [applications, stateFilter]);
   const isBrands = applicationType === 'brands';
 
   return (

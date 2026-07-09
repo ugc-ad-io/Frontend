@@ -1057,7 +1057,7 @@ export default function ProfileSettings() {
               .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
               .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
               .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
-              .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+              .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
               .ps-legal-modal-title{flex:1;min-width:0}
               .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
               .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}
@@ -1583,7 +1583,7 @@ export default function ProfileSettings() {
         .ps-social-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         .ps-social-card{display:flex;align-items:center;gap:13px;padding:16px;border:1px solid #eef0f6;border-radius:14px;text-decoration:none;transition:.16s;background:#fff}
         .ps-social-card:hover{border-color:#cdd4ff;background:#f7f8ff;transform:translateY(-2px)}
-        .ps-social-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+        .ps-social-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
         .ps-social-ic svg{display:block}
         .ps-social-card.is-soon{cursor:default}
         .ps-social-card.is-soon:hover{transform:none;border-color:#eef0f6;background:#fff}
@@ -1615,7 +1615,7 @@ export default function ProfileSettings() {
             .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
             @keyframes psLegalIn{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
             .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
-            .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+            .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
             .ps-legal-modal-title{flex:1;min-width:0}
             .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
             .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}

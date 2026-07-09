@@ -65,6 +65,41 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // Approval gate — a brand whose profile is still pending review (or was
+  // rejected) must not reach ANY feature page. BusinessDashboard already gates
+  // its own pages; this makes the standalone brand pages (Campaigns, etc.)
+  // behave identically, so it's never "some tabs work, others say under review".
+  const approval = user?.approval_status;
+  const isBrand = ['business', 'brand'].includes(String(user?.role || '').toLowerCase());
+  if (isBrand && (approval === 'pending' || approval === 'rejected')) {
+    const rejected = approval === 'rejected';
+    return (
+      <div className="brl-gate">
+        <div className="brl-gate-card">
+          <span className="brl-gate-ic">{rejected ? '⚠️' : '🕓'}</span>
+          <p className="brl-gate-eyebrow">Business verification</p>
+          <h1>{rejected ? 'Application not approved' : 'Profile Under Review'}</h1>
+          <p>
+            {rejected
+              ? 'Your business profile was not approved. If you think this is a mistake, contact our team and we’ll take another look.'
+              : 'Your business profile is being verified by our team. Most accounts are approved within 24–48 hours, and we’ll email you once you’re cleared to launch campaigns.'}
+          </p>
+          <button type="button" className="brl-gate-btn" onClick={handleLogout}>Back to Home</button>
+        </div>
+        <style>{`
+          .brl-gate{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(160deg,#05050f 0%,#0d0b26 100%)}
+          .brl-gate-card{width:min(560px,100%);padding:48px 40px;border-radius:24px;background:#141420;color:#f4f4f8;text-align:center;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+          .brl-gate-ic{font-size:44px;line-height:1}
+          .brl-gate-eyebrow{margin:16px 0 4px;color:#8b8fb5;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+          .brl-gate-card h1{margin:0 0 12px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:26px;color:#fff}
+          .brl-gate-card p{margin:0 auto;max-width:420px;color:rgba(255,255,255,.62);font-size:14.5px;line-height:1.65}
+          .brl-gate-btn{margin-top:26px;padding:12px 26px;border-radius:12px;border:none;cursor:pointer;font:inherit;font-weight:700;font-size:14px;background:#5b6bff;color:#fff}
+          .brl-gate-btn:hover{background:#4452f0}
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="cmk-app has-rail">
       <HoverSideRail

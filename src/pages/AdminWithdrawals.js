@@ -146,9 +146,9 @@ export default function AdminWithdrawals() {
         .aw-card-actions { display: flex; gap: 10px; margin-top: auto; }
         .aw-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: none; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; }
         .aw-btn-approve { flex: 1; background: #dcfce7; color: #166534; }
-        .aw-btn-approve:hover { background: #bbf7d0; }
+        .aw-btn-approve:hover { background: #16a34a; color: #fff; }
         .aw-btn-reject { flex: 1; background: #fee2e2; color: #991b1b; }
-        .aw-btn-reject:hover { background: #fecaca; }
+        .aw-btn-reject:hover { background: #dc2626; color: #fff; }
         .aw-btn-export { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .aw-btn-export:hover { background: #2e2e94; }
         @media (max-width: 720px) {

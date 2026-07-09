@@ -16,7 +16,7 @@ const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 // Deal lifecycle stages, rendered as a segmented progress bar on each row.
 const STAGES = ['Accepted', 'Shipment', 'Video Submission', 'Review', 'Payout'];
 // A distinct colour per stage; the final stage (Payout) is green.
-const STAGE_COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#f59e0b', '#22c55e'];
+const STAGE_COLORS = ['#3b82f6', '#6366f1', '#6d7bff', '#f59e0b', '#22c55e'];
 function stageIndex(c) {
   const s = c.status;
   if (s === 'completed') return 4;          // Payout

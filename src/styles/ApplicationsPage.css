@@ -1658,11 +1658,6 @@
   flex-shrink: 0;
 }
 
-.apps-row:hover .apps-row-action {
-  background: #1d4ed8;
-  color: white;
-}
-
 .apps-row-action:hover {
   background: #1d4ed8 !important;
   color: white !important;
@@ -1994,10 +1989,11 @@
 /* social */
 .apps-social-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .apps-social-chip {
-  display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
   background: #eef2ff; color: #4338ca; font-size: 0.8rem; font-weight: 600; text-decoration: none;
 }
 .apps-social-chip:hover { background: #e0e7ff; }
+.apps-social-ic { flex: none; }
 
 /* flags */
 .apps-flags { display: flex; flex-direction: column; gap: 8px; }

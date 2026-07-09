@@ -694,7 +694,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #8b97ff, #5b6bff);
+  background: linear-gradient(90deg, #6d7bff, #5b6bff);
   box-shadow: 0 0 12px rgba(139, 151, 255, 0.7);
 }
 
@@ -2238,11 +2238,11 @@
   backdrop-filter: blur(8px);
 }
 
-.pcd-status-card svg { color: #8b97ff; }
+.pcd-status-card svg { color: #6d7bff; }
 
 .pcd-eyebrow {
   margin: 16px 0 8px;
-  color: #8b97ff;
+  color: #6d7bff;
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.1em;

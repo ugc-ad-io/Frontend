@@ -236,7 +236,7 @@ export default function CreatorSignup() {
           letter-spacing: -0.01em;
         }
         .cs-title-accent {
-          background: linear-gradient(120deg, #07074e, #aeb9ff);
+          background: linear-gradient(120deg, #07074e, #6d7bff);
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -353,7 +353,7 @@ export default function CreatorSignup() {
           text-decoration: underline;
           text-underline-offset: 3px;
         }
-        .cs-login-link:hover { color: #aeb9ff; }
+        .cs-login-link:hover { color: #6d7bff; }
 
         /* ── Email verification step ─────────────────────────────── */
         .cs-card--verify { text-align: center; }
@@ -378,7 +378,7 @@ export default function CreatorSignup() {
           text-decoration: underline;
           text-underline-offset: 2px;
         }
-        .cs-verify-change:hover { color: #aeb9ff; }
+        .cs-verify-change:hover { color: #6d7bff; }
         .cs-otp {
           display: flex;
           justify-content: center;

@@ -532,11 +532,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   }, [user?.id]);
 
+  // Preload the creator directory as soon as the dashboard mounts (not only when the
+  // Browse Creators tab is open) and refetch only when filters/sort change — NOT on every
+  // tab navigation. This keeps the already-loaded list in state so switching to the tab is
+  // instant instead of firing a fresh (slow) request and flashing a spinner each time.
   useEffect(() => {
-    if (user?.approval_status === 'approved' && page === 'browse-creator') {
+    if (user?.approval_status === 'approved') {
       fetchCreatorDirectory();
     }
-  }, [user?.id, page, creatorFilters, creatorSort]);
+  }, [user?.id, creatorFilters, creatorSort]);
 
   useEffect(() => {
     if (user?.approval_status === 'approved' && page === 'wallet') {

@@ -616,7 +616,6 @@ export default function Auth() {
         <span className="ap-promo-shine" aria-hidden="true" />
         <div className="ap-promo-inner">
           <div>
-            <span className="ap-promo-brand">UGCad.io</span>
             <h2 className="ap-promo-title">Where brands meet real creators.</h2>
             <p className="ap-promo-text">
               UGCad connects brands with authentic UGC creators — post a campaign,
@@ -624,16 +623,6 @@ export default function Auth() {
               all in one place.
             </p>
             <p className="ap-promo-stat">More than 17k creators &amp; brands joined — it&apos;s your turn.</p>
-          </div>
-          <div className="ap-promo-card">
-            <h3>Launch your first campaign today</h3>
-            <p>Be among the first brands and creators building authentic content that actually converts.</p>
-            <div className="ap-promo-people">
-              <span className="ap-promo-ava" style={{ background: 'linear-gradient(135deg,#f9a8d4,#ec4899)' }} />
-              <span className="ap-promo-ava" style={{ background: 'linear-gradient(135deg,#a5b4fc,#6366f1)' }} />
-              <span className="ap-promo-ava" style={{ background: 'linear-gradient(135deg,#fcd34d,#f59e0b)' }} />
-              <span className="ap-promo-ava ap-promo-ava--more">+2</span>
-            </div>
           </div>
         </div>
       </aside>
@@ -1118,15 +1107,11 @@ export default function Auth() {
           color: #fff;
           border-radius: 0;
           margin: 0;
-          background: radial-gradient(120% 120% at 82% 0%, #17182c 0%, #0b0b16 58%, #050509 100%);
+          /* Brand hero image on the left panel — shown as-is (no dark overlay). */
+          background: url('/login.png') center/cover no-repeat;
         }
-        .ap-promo-logobg {
-          position: absolute; left: -8%; top: -4%;
-          width: 78%; height: 66%;
-          background: url('/ugcad-logo.png') no-repeat left top/contain;
-          opacity: 0.05; filter: grayscale(1) brightness(4);
-          pointer-events: none;
-        }
+        /* Old faint watermark replaced by the login.png hero above. */
+        .ap-promo-logobg { display: none; }
         .ap-promo-shine {
           position: absolute; top: -12%; right: -22%;
           width: 58%; height: 130%;
@@ -1135,8 +1120,8 @@ export default function Auth() {
         }
         .ap-promo-inner {
           position: relative; z-index: 1; width: 100%;
-          display: flex; flex-direction: column; justify-content: space-between;
-          gap: 24px; padding: 38px 34px;
+          display: flex; flex-direction: column; justify-content: flex-start;
+          gap: 24px; padding: 64px 34px 38px;
         }
         .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
         .ap-promo-title {

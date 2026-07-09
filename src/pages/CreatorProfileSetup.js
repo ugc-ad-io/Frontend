@@ -865,18 +865,16 @@ export default function CreatorProfileSetup() {
           {/* Body type */}
           <div className="ps-field">
             <label className="ps-label">Body Type</label>
-            <div className={`ps-chips${err('bodyType') ? ' ps-chips--error' : ''}`}>
-              {BODY_TYPES.map(({ label, icon, none }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={`ps-chip${data.bodyType === label ? ' ps-chip--on' : ''}`}
-                  onClick={() => set('bodyType', label)}
-                >
-                  <span className="ps-chip__icon">{none ? <X size={16} /> : icon}</span>
-                  {label}
-                </button>
-              ))}
+            <div className="ps-select">
+              <select
+                className={`ps-select__el${data.bodyType ? '' : ' ps-select__el--empty'}${err('bodyType') ? ' ps-select__el--error' : ''}`}
+                value={data.bodyType}
+                onChange={(e) => set('bodyType', e.target.value)}
+              >
+                <option value="" disabled>Select an option</option>
+                {BODY_TYPES.map(({ label }) => <option key={label} value={label}>{label}</option>)}
+              </select>
+              <ChevronDown size={18} className="ps-select__chev" />
             </div>
             {reqError('bodyType')}
           </div>
@@ -884,18 +882,16 @@ export default function CreatorProfileSetup() {
           {/* Skin tone */}
           <div className="ps-field">
             <label className="ps-label">Skin Tone</label>
-            <div className={`ps-chips${err('skinTone') ? ' ps-chips--error' : ''}`}>
-              {SKIN_TONES.map(({ label, icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={`ps-chip${data.skinTone === label ? ' ps-chip--on' : ''}`}
-                  onClick={() => set('skinTone', label)}
-                >
-                  <span className="ps-chip__icon">{icon}</span>
-                  {label}
-                </button>
-              ))}
+            <div className="ps-select">
+              <select
+                className={`ps-select__el${data.skinTone ? '' : ' ps-select__el--empty'}${err('skinTone') ? ' ps-select__el--error' : ''}`}
+                value={data.skinTone}
+                onChange={(e) => set('skinTone', e.target.value)}
+              >
+                <option value="" disabled>Select an option</option>
+                {SKIN_TONES.map(({ label }) => <option key={label} value={label}>{label}</option>)}
+              </select>
+              <ChevronDown size={18} className="ps-select__chev" />
             </div>
             {reqError('skinTone')}
           </div>

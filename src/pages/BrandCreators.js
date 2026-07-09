@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Play, VolumeX, Volume2, Maximize2, X, Star } from 'lucide-react';
+import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
@@ -13,11 +13,6 @@ const API = `${BACKEND_URL}/api`;
 
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
-const FALLBACK_VIDEOS = [
-  '/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4',
-  '/creator/video_29.mp4', '/creator/video_30.mp4', '/creator/video_32.mp4', '/creator/video_33.mp4',
-  '/creator/video_34.mp4', '/creator/video_35.mp4',
-];
 const nameOf = (c) => (c.name || '').trim() || (c.full_name || '').trim() || (c.nickname || '').trim() || (c.username ? `@${c.username}` : '') || 'Creator';
 const initialOf = (c) => (nameOf(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 const catOf = (c) => (c.primary_category || c.category || c.niche || 'UGC').replace(/_/g, ' ');
@@ -49,12 +44,14 @@ const priceTextOf = (c) => {
   return `Rs. ${derived.toLocaleString('en-IN')} / video`;
 };
 
-function ReelCard({ c, onView, onExpand, fallback }) {
+function ReelCard({ c, onView, onExpand }) {
   const vref = useRef(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const media = assetUrl(c.portfolio_preview);
-  const videoSrc = (media && isVideo(media)) ? `${media}#t=0.5` : fallback;
+  // Only ever show a creator's OWN uploaded video — never a stock/sample fallback.
+  const hasVideo = !!(media && isVideo(media));
+  const videoSrc = hasVideo ? `${media}#t=0.5` : '';
   // Creator level (admin-assigned): New / Verified / L1 / L2 / Elite.
   const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
   const levelKey = LEVEL_LABEL[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new';
@@ -83,38 +80,47 @@ function ReelCard({ c, onView, onExpand, fallback }) {
 
   return (
     <div className="bc-card">
-      <div className="bc-reel" onClick={togglePlay} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
-        <video ref={vref} src={videoSrc} muted={muted} loop playsInline preload="metadata" />
+      <div className="bc-reel" onClick={hasVideo ? togglePlay : undefined} onMouseEnter={hasVideo ? hoverPlay : undefined} onMouseLeave={hasVideo ? hoverStop : undefined}>
+        {hasVideo ? (
+          <>
+            <video ref={vref} src={videoSrc} muted={muted} loop playsInline preload="metadata" />
+            {!playing && <span className="bc-play"><Play size={20} fill="currentColor" /></span>}
+            <button type="button" className="bc-mute" aria-label={muted ? 'Unmute' : 'Mute'} onClick={(e) => {
+              e.stopPropagation();
+              const v = vref.current;
+              const next = !muted;
+              setMuted(next);
+              if (v) {
+                if (!next) {
+                  // unmuting → silence every other reel so only this one is audible
+                  document.querySelectorAll('.bc-reel video').forEach((el) => { if (el !== v) el.muted = true; });
+                }
+                v.muted = next;            // set DOM property directly (React's `muted` prop can be unreliable)
+                v.volume = 1;
+                if (!next) {               // unmuting → make sure it's actually playing so sound is heard
+                  v.play().then(() => setPlaying(true)).catch(() => {});
+                }
+              }
+            }}>
+              {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
+            <button type="button" className="bc-expand" aria-label="Expand video" onClick={(e) => {
+              e.stopPropagation();
+              if (vref.current) { vref.current.pause(); setPlaying(false); }
+              onExpand?.({ src: videoSrc, name: fullName });
+            }}>
+              <Maximize2 size={14} />
+            </button>
+          </>
+        ) : (
+          <div className="bc-novideo">
+            <VideoOff size={26} />
+            <span>No video yet</span>
+          </div>
+        )}
         <div className="bc-rate">
           <span className={`bc-tier ${tier.toLowerCase()}`}>{tier}</span>
         </div>
-        {!playing && <span className="bc-play"><Play size={20} fill="currentColor" /></span>}
-        <button type="button" className="bc-mute" aria-label={muted ? 'Unmute' : 'Mute'} onClick={(e) => {
-          e.stopPropagation();
-          const v = vref.current;
-          const next = !muted;
-          setMuted(next);
-          if (v) {
-            if (!next) {
-              // unmuting → silence every other reel so only this one is audible
-              document.querySelectorAll('.bc-reel video').forEach((el) => { if (el !== v) el.muted = true; });
-            }
-            v.muted = next;            // set DOM property directly (React's `muted` prop can be unreliable)
-            v.volume = 1;
-            if (!next) {               // unmuting → make sure it's actually playing so sound is heard
-              v.play().then(() => setPlaying(true)).catch(() => {});
-            }
-          }
-        }}>
-          {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-        </button>
-        <button type="button" className="bc-expand" aria-label="Expand video" onClick={(e) => {
-          e.stopPropagation();
-          if (vref.current) { vref.current.pause(); setPlaying(false); }
-          onExpand?.({ src: videoSrc, name: fullName });
-        }}>
-          <Maximize2 size={14} />
-        </button>
       </div>
 
       <div className="bc-meta">
@@ -139,8 +145,12 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const name = nameOf(c).replace('@', '');
   const category = catOf(c);
   const media = assetUrl(c.portfolio_preview);
-  const baseVid = (media && isVideo(media)) ? `${media}#t=0.5` : FALLBACK_VIDEOS[hashOf(c.id || name) % FALLBACK_VIDEOS.length];
-  const thumbs = [0, 1, 2].map((k) => FALLBACK_VIDEOS[(hashOf(c.id || name) + k) % FALLBACK_VIDEOS.length]);
+  // Real uploaded clips only — never stock fallbacks.
+  const realClips = (Array.isArray(c.portfolio) ? c.portfolio : []).map(assetUrl).filter((u) => u && isVideo(u));
+  const previewClip = (media && isVideo(media)) ? media : (realClips[0] || '');
+  const hasVideo = !!previewClip;
+  const baseVid = hasVideo ? `${previewClip}#t=0.5` : '';
+  const thumbs = (realClips.length ? realClips : (previewClip ? [previewClip] : [])).slice(0, 3);
   const rating = c.avg_rating || c.rating;
   const [bigVid, setBigVid] = useState(baseVid);
   const bigRef = useRef(null);
@@ -152,7 +162,11 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
       <div className="bcq-card" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="bcq-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
         <div className="bcq-video">
-          <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} autoPlay muted loop playsInline />
+          {hasVideo ? (
+            <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} autoPlay muted loop playsInline />
+          ) : (
+            <div className="bc-novideo"><VideoOff size={30} /><span>No video yet</span></div>
+          )}
         </div>
         <div className="bcq-body">
           <div className="bcq-head">
@@ -169,23 +183,28 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
             <div><label>Deliverables</label><strong>{c.deliverables_completed || 0}</strong></div>
             <div><label>Location</label><strong>{c.city_tier || c.location_region || 'India'}</strong></div>
           </div>
-          <div className="bcq-work">
-            <label>Recent work <small>· hover to preview</small></label>
-            <div className="bcq-thumbs">
-              {thumbs.map((tv, k) => (
-                <button
-                  type="button"
-                  key={k}
-                  className={`bcq-thumb ${bigVid === tv ? 'on' : ''}`}
-                  onMouseEnter={() => setBigVid(tv)}
-                  onMouseLeave={() => setBigVid(baseVid)}
-                  onClick={() => onExpand({ src: tv, name })}
-                >
-                  <video src={`${tv}#t=0.5`} muted playsInline preload="metadata" />
-                </button>
-              ))}
+          {thumbs.length > 0 && (
+            <div className="bcq-work">
+              <label>Recent work <small>· hover to preview</small></label>
+              <div className="bcq-thumbs">
+                {thumbs.map((tv, k) => {
+                  const src = `${tv}#t=0.5`;
+                  return (
+                    <button
+                      type="button"
+                      key={k}
+                      className={`bcq-thumb ${bigVid === src ? 'on' : ''}`}
+                      onMouseEnter={() => setBigVid(src)}
+                      onMouseLeave={() => setBigVid(baseVid)}
+                      onClick={() => onExpand({ src: tv, name })}
+                    >
+                      <video src={src} muted playsInline preload="metadata" />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
           <div className="bcq-actions">
             <button type="button" className="bcq-ghost" onClick={onMessage}>Message</button>
             <button type="button" className="bcq-primary" onClick={onFull}>View full details</button>
@@ -263,7 +282,7 @@ export default function BrandCreators() {
         <EmptyState title="No creators found" message="No creators match your current search or filters. Try clearing them to see everyone." />
       ) : (
         <div className="bc-grid">
-          {filtered.map((c, i) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={viewProfile} onExpand={setVideoCard} fallback={FALLBACK_VIDEOS[i % FALLBACK_VIDEOS.length]} />)}
+          {filtered.map((c) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={viewProfile} onExpand={setVideoCard} />)}
         </div>
       )}
 

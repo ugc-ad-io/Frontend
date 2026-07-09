@@ -125,11 +125,6 @@ const LEVEL_META = {
   l2: { title: 'L2 Pro Creator', badge: 'L2 (Pro)' },
   elite: { title: 'Elite Creator', badge: 'Elite' },
 };
-const FALLBACK_VIDEOS = [
-  '/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4',
-  '/creator/video_29.mp4', '/creator/video_30.mp4', '/creator/video_32.mp4', '/creator/video_33.mp4',
-];
-
 function VideoTile({ url, onRemove, onEdit }) {
   const ref = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -470,7 +465,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '', brand: meta.brand || '' };
     })
     .filter((v) => v.url && !String(v.url).startsWith('blob:'));
-  const vids = realVids.length ? realVids : FALLBACK_VIDEOS.slice(0, 6).map((u) => ({ url: u }));
+  // Only the creator's own uploaded videos — no stock/sample fallback.
+  const vids = realVids;
 
   // All the signup-form details (stored under user.profile via extra="allow").
   const phone = [p.dialCode, p.phone].filter(Boolean).join(' ');
@@ -776,6 +772,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                   </>
                 ) : (
                   <div className="cpm-vids">
+                    {vids.length === 0 && (
+                      <div className="cpm-vids-empty" style={{ gridColumn: '1 / -1', padding: '28px', textAlign: 'center', color: 'var(--text-muted, #8a90a6)', fontSize: 14 }}>
+                        No videos uploaded yet.
+                      </div>
+                    )}
                     {vids.slice(0, 12).map((v, i) => (
                       <div className="cpm-vid-item" key={i}>
                         <VideoTile url={v.url} />

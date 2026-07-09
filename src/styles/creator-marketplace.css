@@ -757,6 +757,8 @@
 @media (max-width:640px){.pm-body{padding:16px}.pm-overlay{padding:12px 8px}.pm-overlay.pm-drawer{padding:0}.pm-modal.pm-bare .pm-body{padding:0}}
 .bc-reel{position:relative;aspect-ratio:9/16;border-radius:16px;overflow:hidden;background:#0b1020;cursor:pointer;box-shadow:var(--shadow-soft)}
 .bc-reel video,.bc-reel img,.bc-reel .bc-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+/* Shown when a creator hasn't uploaded any video yet (no stock fallback). */
+.bc-novideo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:rgba(255,255,255,.5);background:linear-gradient(160deg,#1a1c30,#0b0d18);font-size:12px;font-weight:600;letter-spacing:.2px}
 /* hover to preview: zoom the clip in a little and fade the play icon out */
 .bc-reel:hover video,.bc-reel:hover img{transform:scale(1.06)}
 .bc-play{transition:opacity .2s ease}

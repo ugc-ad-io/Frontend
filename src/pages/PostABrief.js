@@ -665,6 +665,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       deadline: form.finalDeliveryBy,
       revision_limit: Number(form.revisions || 0),
       product_name: form.productName,
+      category: form.category,
       product_category: form.category,
       product_description: form.productDescription,
       brief_type: primaryDeliverable.type,

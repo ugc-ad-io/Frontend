@@ -649,6 +649,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const duplicateCampaign = (campaign) => {
     setFormData({
       title: `${campaign.title || 'Campaign'} (Copy)`,
+      category: campaign.category || campaign.product_category || '',
       objectives: Array.isArray(campaign.objectives) ? [...campaign.objectives] : [],
       budget_min: campaign.budget_min != null ? String(campaign.budget_min) : '',
       budget_max: campaign.budget_max != null ? String(campaign.budget_max) : '',

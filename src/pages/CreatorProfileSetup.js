@@ -692,9 +692,11 @@ export default function CreatorProfileSetup() {
         tags: data.skills || [],
         // Deployed backend types portfolio as List[str] — sending the raw objects 422s. Send
         // string refs here; keep the full structured items under a separate (extra) key.
+        // IMPORTANT: use the uploaded videoUrl — NOT p.video (that's the raw file.name) or
+        // p.brand. Drop blob: previews (a failed/incomplete upload) so we never store junk.
         portfolio: (data.portfolio || [])
-          .map((p) => p.link || p.video || p.videoUrl || p.brand || '')
-          .filter(Boolean),
+          .map((p) => p.videoUrl || p.url || p.link || '')
+          .filter((u) => u && !String(u).startsWith('blob:')),
         portfolio_items: data.portfolio || [],
         social_links: {
           ...Object.fromEntries(Object.entries(data.links || {}).filter(([, v]) => v && v.trim())),

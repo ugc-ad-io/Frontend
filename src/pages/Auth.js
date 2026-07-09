@@ -616,14 +616,14 @@ export default function Auth() {
         <span className="ap-promo-shine" aria-hidden="true" />
         <div className="ap-promo-inner">
           <div>
-            <h2 className="ap-promo-title">Where brands meet real creators.</h2>
+            <h2 className="ap-promo-title">Where brands<br />meet real<br />creators.</h2>
             <p className="ap-promo-text">
               UGCad connects brands with authentic UGC creators — post a campaign,
               get matched with the right talent, and turn real content into results,
               all in one place.
             </p>
-            <p className="ap-promo-stat">More than 17k creators &amp; brands joined — it&apos;s your turn.</p>
           </div>
+          <p className="ap-promo-stat">More than 17k creators &amp; brands joined — it&apos;s your turn.</p>
         </div>
       </aside>
       </div>
@@ -1036,6 +1036,9 @@ export default function Auth() {
           overflow: hidden;
           box-shadow: 0 40px 90px -34px rgba(15,18,45,0.4);
         }
+        /* Sign-up only: wider shell so the promo panel gets more room. Login and
+           the form card (max-width 336px) are unchanged. */
+        .ap-shell.is-signup { max-width: 1120px; }
 
         .ap-left {
           position: relative;
@@ -1047,6 +1050,8 @@ export default function Auth() {
           background: #f2f3f7;
           overflow-y: auto;
         }
+        /* Sign-up form sits a bit further right (wider shell). */
+        .ap-shell.is-signup .ap-left { padding-left: 106px; }
         .ap-card {
           background: transparent;
           box-shadow: none;
@@ -1090,6 +1095,8 @@ export default function Auth() {
           backdrop-filter: none;
         }
         .ap-back:hover { background: rgba(15,18,45,0.1); color: #15163a; border-color: rgba(15,18,45,0.22); }
+        /* Sign-up form is shifted right — pull just the back arrow back left. */
+        .ap-shell.is-signup .ap-back { margin-left: -66px; }
 
         /* Promo panel (right) */
         /* Animated swap — Sign Up: form left · Sign In: form right.
@@ -1121,15 +1128,24 @@ export default function Auth() {
         .ap-promo-inner {
           position: relative; z-index: 1; width: 100%;
           display: flex; flex-direction: column; justify-content: flex-start;
-          gap: 24px; padding: 64px 34px 38px;
+          gap: 24px; padding: 64px 34px 14px 62px;
         }
         .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
+        /* Positioned to sit inside the dark-blue card in the hero image (upper area). */
         .ap-promo-title {
+          position: absolute; left: 12%; top: 10%; width: 40%; z-index: 2; white-space: nowrap;
           font-family: var(--font-head, inherit);
-          font-size: 26px; font-weight: 800; line-height: 1.16; margin: 26px 0 12px; color: #fff;
+          font-size: 21px; font-weight: 800; line-height: 1.2; margin: 0; color: #fff;
         }
-        .ap-promo-text { color: rgba(255,255,255,0.58); font-size: 13px; line-height: 1.65; max-width: 380px; margin: 0 0 13px; }
-        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: 0; }
+        /* Sign-in only: nudge the heading a touch left. */
+        .ap-shell.is-signin .ap-promo-title { left: 11%; }
+        /* Positioned over the light card baked into the hero image (lower area). */
+        .ap-promo-text { position: absolute; left: 53%; top: 73%; width: 40%; color: #26386e;
+          font-size: 13px; font-weight: 500; line-height: 1.6; margin: 0; z-index: 2; }
+        /* Sign-up panel is wider, so the image crops a bit differently — nudge the
+           description down on sign-up only. */
+        .ap-shell.is-signup .ap-promo-text { top: 75%; left: 55%; }
+        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: auto 0 0; }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);

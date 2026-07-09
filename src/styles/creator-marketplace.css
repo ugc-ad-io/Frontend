@@ -720,7 +720,7 @@
   font-family:inherit;font-weight:600;font-size:13.5px;color:var(--ink-2);cursor:pointer}
 .bc-head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:18px;flex-wrap:wrap}
 .bc-head-row .cmk-page-head{margin-bottom:0}
-.bc-cats{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;padding:2px 2px;flex:1;min-width:0}
+.bc-cats{display:flex;flex-wrap:nowrap;gap:10px;justify-content:flex-start;padding:2px 2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
 .bc-cats::-webkit-scrollbar{display:none}
 @media (max-width:760px){.bc-head-row{align-items:flex-start}.bc-cats{justify-content:flex-start;flex:1 1 100%}}
 .bc-cats::-webkit-scrollbar{display:none}

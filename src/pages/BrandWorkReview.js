@@ -115,9 +115,12 @@ export default function BrandWorkReview() {
   const start = (safePage - 1) * perPage;
   const pageRows = rows.slice(start, start + perPage);
 
+  // `id` here is the campaign/deal id (see load(): item.id = c.id). The deal
+  // endpoints resolve the latest work submission internally, so we use those
+  // instead of /work/{workId}/... (which expects a work_submission id and 404s).
   const approve = async (id) => {
     if (busy.current) return; busy.current = true;
-    try { await axios.post(`${API}/work/${id}/approve`); toast.success('Approved — payment released to the creator'); await load(); }
+    try { await axios.post(`${API}/deals/${id}/approve`); toast.success('Approved — payment released to the creator'); await load(); }
     catch { toast.error('Failed to approve'); }
     finally { busy.current = false; }
   };
@@ -126,7 +129,18 @@ export default function BrandWorkReview() {
     if (!revisionFor) return;
     setRevSubmitting(true);
     try {
-      await axios.post(`${API}/work/${revisionFor}/request-revision`, payload);
+      // The modal produces structured { items, notes, deadline_at }; the deal
+      // endpoint takes { feedback, requested_changes }. Flatten the items into a
+      // readable feedback string so nothing is lost.
+      const items = payload.items || [];
+      const feedback = [
+        ...items.map((it) => `[${it.severity || 'must-fix'}] ${it.description}${it.brief_reference ? ` (ref: ${it.brief_reference})` : ''}`),
+        payload.notes ? `\nNotes: ${payload.notes}` : '',
+      ].filter(Boolean).join('\n');
+      await axios.post(`${API}/deals/${revisionFor}/request-revision`, {
+        feedback,
+        requested_changes: items.map((it) => it.description).filter(Boolean),
+      });
       toast.success('Revision requested');
       setRevisionFor(null);
       await load();

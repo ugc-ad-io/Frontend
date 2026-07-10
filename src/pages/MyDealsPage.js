@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { EmptyPanel, formatMoney, getInitial } from '../components/CreatorComponents';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import { Skeleton } from '../components/Skeleton';
 import './CreatorDashboard.css';
 import './MyDealsPage.css';
 import '../styles/creator-marketplace.css';
@@ -583,7 +584,45 @@ export default function MyDealsPage() {
   if (loading) {
     return (
       <CreatorTopNavLayout notifications={0}>
-        <div className="deal-page"><EmptyPanel text="Loading..." /></div>
+        <div className="deal-page">
+          <div className="deal-skel" aria-busy="true" aria-label="Loading deal room">
+            {/* header: title + status pill */}
+            <div className="deal-skel-head">
+              <div>
+                <Skeleton width={220} height={22} radius={7} />
+                <Skeleton width={140} height={13} radius={6} style={{ marginTop: 10 }} />
+              </div>
+              <Skeleton width={96} height={30} radius={999} />
+            </div>
+            {/* stat tiles */}
+            <div className="deal-skel-tiles">
+              {[0, 1, 2].map((i) => (
+                <div className="deal-skel-tile" key={i}>
+                  <Skeleton width={70} height={11} radius={5} />
+                  <Skeleton width={110} height={20} radius={6} style={{ marginTop: 10 }} />
+                </div>
+              ))}
+            </div>
+            {/* content cards */}
+            {[0, 1].map((i) => (
+              <div className="deal-skel-card" key={i}>
+                <Skeleton width={160} height={16} radius={6} />
+                <Skeleton width="100%" height={12} radius={6} style={{ marginTop: 16 }} />
+                <Skeleton width="92%" height={12} radius={6} style={{ marginTop: 10 }} />
+                <Skeleton width="70%" height={12} radius={6} style={{ marginTop: 10 }} />
+              </div>
+            ))}
+          </div>
+          <style>{`
+            .deal-skel { display: flex; flex-direction: column; gap: 16px; }
+            .deal-skel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+              background: #fff; border: 1px solid #eef0f6; border-radius: 16px; padding: 22px 24px; }
+            .deal-skel-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+            .deal-skel-tile { background: #fff; border: 1px solid #eef0f6; border-radius: 14px; padding: 18px 20px; }
+            .deal-skel-card { background: #fff; border: 1px solid #eef0f6; border-radius: 16px; padding: 22px 24px; }
+            @media (max-width: 640px) { .deal-skel-tiles { grid-template-columns: 1fr; } }
+          `}</style>
+        </div>
       </CreatorTopNavLayout>
     );
   }

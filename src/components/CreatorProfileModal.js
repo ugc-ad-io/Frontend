@@ -944,7 +944,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-lvl.elite{background:linear-gradient(135deg,#23236a,#5b6bff)}
         .cpm-lvl.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
         .cpm-lvl.l1{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
-        .cpm-lvl.verified{background:linear-gradient(135deg,#2bd47e,#15a35b)}
+        .cpm-lvl.verified{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
         .cpm-lvl.new{background:#6b7090}
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}

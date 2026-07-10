@@ -169,7 +169,11 @@ export default function CreatorDashboard() {
       ]);
 
       const allCampaigns = campaignsRes.data;
-      const completedCampaigns = worksRes.data || [];
+      // Only count campaigns this creator was actually selected for — some backends
+      // ignore the creator_id query param and return every completed campaign.
+      const completedCampaigns = (worksRes.data || []).filter(
+        (c) => String(c.selected_creator) === String(user.id)
+      );
 
       setActiveCampaigns(allCampaigns.filter((campaign) =>
         campaign.selected_creator === user.id &&

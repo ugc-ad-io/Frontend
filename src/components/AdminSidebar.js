@@ -6,7 +6,7 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
     { id: 'stats',        label: 'Dashboard',      icon: TrendingUp,   testId: 'tab-stats',        slug: 'overview' },
     { id: 'applications', label: 'Applications',   icon: FileText,     testId: 'tab-applications', slug: 'applications', cap: 'review_applications' },
     { id: 'briefs',       label: 'Briefs',         icon: ClipboardCheck, testId: 'tab-briefs',     slug: 'campaigns',    cap: 'review_applications' },
-    { id: 'assigned',     label: 'My Users',       icon: UserCheck,    testId: 'tab-assigned',     slug: 'my-creators',  cap: 'review_applications' },
+    { id: 'assigned',     label: 'Users',          icon: UserCheck,    testId: 'tab-assigned',     slug: 'my-creators',  cap: 'my_users' },
     { id: 'users',        label: 'Users',          icon: Users,        testId: 'tab-users',        slug: 'users',        cap: 'user_management' },
     { id: 'deals',        label: 'Deals',          icon: Briefcase,    testId: 'tab-deals',        slug: 'deals',        cap: 'manage_deals' },
     { id: 'disputes',     label: 'Disputes',       icon: Scale,        testId: 'tab-disputes',     slug: 'disputes',     cap: 'rule_disputes' },

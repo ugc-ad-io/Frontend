@@ -413,59 +413,6 @@ export default function CreatorDashboard() {
             activeDeal={heroActiveDeal}
           />
 
-          {isNewCreator && (
-            <section className="pcd-onboarding">
-              <div className="pcd-onboarding-hero">
-                <span className="pcd-live-badge"><CheckCircle2 size={16} /> Your profile is live</span>
-                <h1>Welcome, {displayName} 👋</h1>
-                <p className="pcd-onboarding-empty">
-                  You haven't received any briefs yet. We'll notify you as soon as a brand is matched with you.
-                </p>
-                <div className="pcd-quick-links">
-                  {quickLinks.map((link) => (
-                    <button key={link.label} type="button" onClick={() => navigate(link.to)}>
-                      <span className="pcd-quick-icon"><link.icon size={18} /></span>
-                      <span className="pcd-quick-text">
-                        <strong>{link.label}</strong>
-                        <small>{link.value}</small>
-                      </span>
-                      <ArrowUpRight size={15} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pcd-card pcd-nudges-card">
-                <div className="pcd-section-header align-start">
-                  <div>
-                    <h2>Complete your profile</h2>
-                    <p>Optional, but creators with full profiles get matched faster.</p>
-                  </div>
-                  <span className="pcd-nudge-count">{profileDone} / {profileChecklist.length}</span>
-                </div>
-                <ul className="pcd-nudge-list">
-                  {profileChecklist.map((item) => (
-                    <li key={item.key} className={item.done ? 'done' : ''}>
-                      <span className="pcd-nudge-icon">
-                        {item.done ? <CheckCircle2 size={18} /> : <item.icon size={18} />}
-                      </span>
-                      <span className="pcd-nudge-text">
-                        <strong>{item.label}</strong>
-                        <small>{item.hint}</small>
-                      </span>
-                      {!item.done && (
-                        <button type="button" onClick={() => navigate(item.to)}>
-                          Add <ArrowRight size={14} />
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-          )}
-
-
       {selectedCampaign && (
         <div className="pcd-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bid-modal-title">
           <form className="pcd-modal" onSubmit={handleBidSubmit}>

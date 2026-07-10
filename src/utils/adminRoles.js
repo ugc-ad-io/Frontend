@@ -23,6 +23,7 @@ export const DISPUTE_CAP = {
 // Human labels for every grantable capability (the custom-admin toggle list).
 export const CAP_LABELS = {
   review_applications: 'Review applications',
+  my_users: 'My Users',
   manage_deals: 'Manage deals',
   rule_disputes: 'Rule disputes',
   manage_shipping: 'Manage shipping',
@@ -50,12 +51,12 @@ export const SCOPE_LABELS = {
 const CAPS = {
   founder: ['*'],
   ops_senior: [
-    'review_applications', 'manage_deals', 'rule_disputes', 'manage_shipping',
+    'review_applications', 'my_users', 'manage_deals', 'rule_disputes', 'manage_shipping',
     'release_payouts', 'adjust_wallet', 'warn_suspend_users', 'view_financials',
     'generate_reports', 'user_management', 'content_moderation', 'view_audit',
   ],
   ops_regular: [
-    'review_applications', 'manage_deals', 'rule_disputes', 'manage_shipping',
+    'review_applications', 'my_users', 'manage_deals', 'rule_disputes', 'manage_shipping',
     'release_payouts', 'generate_reports', 'content_moderation', 'view_audit',
   ],
   finance: ['view_financials', 'generate_reports', 'export_tax', 'view_audit'],

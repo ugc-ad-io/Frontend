@@ -69,11 +69,11 @@ const CATEGORIES = [
 // Creator testimonial videos -- Cloudinary-hosted (click-to-play with sound). A larger
 // width than the muted gallery thumbs since these go full phone-card when tapped.
 const TESTIMONIALS = [
-  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#7387FF', '#5b21b6'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255208/ugc-videos/video_05.mp4' },
-  { name: 'Chelsea', handle: '@chelsea.ugc',    likes: '124.2K', comments: '341', av: ['#818cf8', '#4338ca'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255196/ugc-videos/video_04.mp4' },
-  { name: 'Maya',    handle: '@maya.makes',     likes: '512.9K', comments: '1.2K', av: ['#fb7185', '#f43f5e'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255227/ugc-videos/video_06.mp4' },
-  { name: 'Priya',   handle: '@priya.shoots',   likes: '88.4K',  comments: '212', av: ['#a5b4fc', '#4c1d95'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255631/ugc-videos/video_21.mp4' },
-  { name: 'Lara',    handle: '@laralovesugc',   likes: '263.1K', comments: '904', av: ['#7dd3fc', '#1d4ed8'], src: 'https://res.cloudinary.com/ddagggsua/video/upload/f_auto,q_auto,w_540/v1781255273/ugc-videos/video_08.mp4' },
+  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#7387FF', '#5b21b6'], src: '/creator/video_01.mp4' },
+  { name: 'Chelsea', handle: '@chelsea.ugc',    likes: '124.2K', comments: '341', av: ['#818cf8', '#4338ca'], src: '/creator/video_08.mp4' },
+  { name: 'Maya',    handle: '@maya.makes',     likes: '512.9K', comments: '1.2K', av: ['#fb7185', '#f43f5e'], src: '/creator/video_27.mp4' },
+  { name: 'Priya',   handle: '@priya.shoots',   likes: '88.4K',  comments: '212', av: ['#a5b4fc', '#4c1d95'], src: '/creator/video_28.mp4' },
+  { name: 'Lara',    handle: '@laralovesugc',   likes: '263.1K', comments: '904', av: ['#7dd3fc', '#1d4ed8'], src: '/creator/video_29.mp4' },
 ];
 
 const FAQS = [
@@ -143,24 +143,20 @@ function releaseGallery(v) {
 // limits how many decode at once — so we never run all ~24 clips simultaneously (perf).
 function GalleryCard({ av, src, hidden }) {
   const ref = useRef(null);
-  const [loaded, setLoaded] = useState(false);
+  // Attach the src eagerly: there are only 6 unique clips across all 24 cards, so the
+  // browser caches them (≈6 downloads), each card buffers its first frame, and the
+  // play-cap below still limits how many DECODE/play at once. This fills the wall with
+  // real video frames instead of leaving most cards showing only their gradient.
+  const [loaded] = useState(true);
 
-  // LOAD latch — attach the real src the first time the card nears the viewport, then keep it.
+  // React's `muted` JSX prop is unreliable at setting the DOM property, so the browser
+  // can treat these as un-muted autoplay and BLOCK them (the card then shows only its
+  // gradient). Force muted imperatively so muted autoplay is always permitted.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // React's `muted` JSX prop is unreliable at setting the DOM property, so the browser
-    // can treat these as un-muted autoplay and BLOCK them (the card then shows only its
-    // gradient — the "broken on reload" symptom). Force the property imperatively so muted
-    // autoplay is always permitted.
     el.muted = true;
     el.defaultMuted = true;
-    const io = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setLoaded(true); io.disconnect(); } },
-      { rootMargin: '300px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
   }, []);
 
   // PLAY on screen / PAUSE off screen — capped + imperative (no setState).

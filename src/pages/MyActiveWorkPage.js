@@ -40,8 +40,8 @@ function statusMeta(c) {
 }
 
 const TABS = [
-  { key: 'active', label: 'Active', match: (c) => ['in_progress', 'active'].includes(c.status) },
-  { key: 'review', label: 'Pending Review', match: (c) => ['work_submitted', 'under_review'].includes(c.status) },
+  // Pending-review deals (work_submitted / under_review) live under Active now.
+  { key: 'active', label: 'Active', match: (c) => ['in_progress', 'active', 'work_submitted', 'under_review'].includes(c.status) },
   { key: 'completed', label: 'Completed', match: (c) => c.status === 'completed' },
   { key: 'cancelled', label: 'Cancelled', match: (c) => c.status === 'cancelled' },
 ];

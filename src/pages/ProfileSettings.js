@@ -5,8 +5,6 @@ import CreatorProfileModal from '../components/CreatorProfileModal';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import QRCode from 'qrcode';
-import { generateSecret, verifyToken, otpauthURL, get2FA, save2FA, clear2FA } from '../utils/twoFactor';
 import {
   User,
   Lock,
@@ -488,10 +486,12 @@ export default function ProfileSettings() {
     }
   };
 
-  // 2FA is fully client-side (no backend) — read the persisted state locally.
-  const check2FAStatus = () => {
-    const { enabled } = get2FA(user?.id);
-    setTwoFAEnabled(enabled);
+  // Read the real 2FA state from the backend (Python is the source of truth).
+  const check2FAStatus = async () => {
+    try {
+      const { data } = await axios.get(`${API}/profile/2fa/status`);
+      setTwoFAEnabled(!!data.enabled);
+    } catch { /* leave default */ }
   };
 
   const handlePhotoUpload = async (e) => {
@@ -615,45 +615,37 @@ export default function ProfileSettings() {
     }
   };
 
-  // Generate a fresh secret + scannable QR entirely in the browser (no backend).
+  // Ask the backend to generate a secret + QR (stored server-side, not yet enabled).
   const handleSetup2FA = async () => {
     setLoading(true);
     try {
-      const newSecret = generateSecret();
-      const account = user?.email || user?.nickname || 'account';
-      const dataUrl = await QRCode.toDataURL(otpauthURL(newSecret, account), { width: 220, margin: 1 });
-      setSecret(newSecret);
-      setQrCode(dataUrl);
+      const { data } = await axios.post(`${API}/profile/2fa/setup`);
+      setSecret(data.secret || '');
+      setQrCode(data.qr_code || '');   // already a data: URI from the backend
       setShowQR(true);
-      toast.success('Scan the QR code with Google Authenticator');
+      toast.success('Scan the QR code with your authenticator app');
     } catch (error) {
-      toast.error('Failed to setup 2FA');
+      toast.error(apiErrorMessage(error, 'Failed to setup 2FA'));
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify the 6-digit code against the generated secret locally, then persist.
+  // Verify the 6-digit code with the backend, which enables 2FA on success.
   const handleVerify2FA = async () => {
     if (!verificationCode || verificationCode.length !== 6) {
       toast.error('Please enter a valid 6-digit code');
       return;
     }
-
     setLoading(true);
     try {
-      const ok = await verifyToken(secret, verificationCode);
-      if (!ok) {
-        toast.error('Invalid verification code');
-        return;
-      }
-      save2FA(user?.id, { enabled: true, secret });
+      await axios.post(`${API}/profile/2fa/verify?token=${encodeURIComponent(verificationCode)}`);
       toast.success('2FA enabled successfully!');
       setTwoFAEnabled(true);
       setShowQR(false);
       setVerificationCode('');
     } catch (error) {
-      toast.error('Invalid verification code');
+      toast.error(apiErrorMessage(error, 'Invalid verification code'));
     } finally {
       setLoading(false);
     }
@@ -664,12 +656,10 @@ export default function ProfileSettings() {
       toast.error('Please enter your password');
       return;
     }
-
     setLoading(true);
     try {
-      // No backend to check the password against — treat any non-empty entry as
-      // confirmation and clear the locally-stored 2FA state.
-      clear2FA(user?.id);
+      // Backend re-checks the account password before disabling.
+      await axios.post(`${API}/profile/2fa/disable?password=${encodeURIComponent(disablePassword)}`);
       toast.success('2FA disabled successfully');
       setTwoFAEnabled(false);
       setDisablePassword('');
@@ -677,7 +667,7 @@ export default function ProfileSettings() {
       setSecret('');
       setQrCode('');
     } catch (error) {
-      toast.error('Failed to disable 2FA');
+      toast.error(apiErrorMessage(error, 'Failed to disable 2FA'));
     } finally {
       setLoading(false);
     }

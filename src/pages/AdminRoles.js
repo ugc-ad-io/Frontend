@@ -6,6 +6,7 @@ import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown } from 'lucide-reac
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_MATRIX, CAP_LABELS, ALL_CAPS, SCOPE_LABELS, isFounder as roleIsFounder } from '../utils/adminRoles';
+import { SkeletonTable } from '../components/Skeleton';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -276,7 +277,7 @@ export default function AdminRoles() {
           )}
 
           {loading ? (
-            <p className="arl-muted">Loading team…</p>
+            <SkeletonTable rows={5} cols={3} />
           ) : staff.length === 0 ? (
             <p className="arl-muted">No admin staff found.</p>
           ) : (

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import CreatorProfileModal from '../components/CreatorProfileModal';
+import { SkeletonTable } from '../components/Skeleton';
 import BrandProfileModal from '../components/BrandProfileModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -442,7 +443,7 @@ export default function AdminDeals() {
 
         <div className="adl-table-wrap">
           {loading ? (
-            <div className="adl-empty">Loading deals…</div>
+            <SkeletonTable rows={6} cols={10} />
           ) : filtered.length === 0 ? (
             <div className="adl-empty">
               <Briefcase size={56} />

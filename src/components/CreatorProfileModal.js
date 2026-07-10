@@ -129,6 +129,7 @@ function VideoTile({ url, onRemove, onEdit }) {
   const ref = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [open, setOpen] = useState(false);   // big lightbox with real playback + sound
+  const [failed, setFailed] = useState(false); // broken / removed media URL
   const src = assetUrl(url);
   const video = isVideo(src);
   // Hover to preview: play the clip muted (hides the play icon) + zoom, reset on leave.
@@ -136,9 +137,15 @@ function VideoTile({ url, onRemove, onEdit }) {
   const hoverStop = () => { const v = ref.current; if (v) { v.pause(); try { v.currentTime = 0.5; } catch {} setPlaying(false); } };
   return (
     <>
-      <div className="cpm-vid" onClick={() => setOpen(true)} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
-        {video ? <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop /> : <img src={src} alt="" />}
-        {!playing && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
+      <div className="cpm-vid" onClick={() => !failed && setOpen(true)} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
+        {failed ? (
+          <span className="cpm-vid-broken"><Camera size={20} /> Media unavailable</span>
+        ) : video ? (
+          <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop onError={() => setFailed(true)} />
+        ) : (
+          <img src={src} alt="" onError={() => setFailed(true)} />
+        )}
+        {!playing && !failed && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
         {onEdit && <button type="button" className="cpm-vid-edit" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit"><Pencil size={14} /></button>}
         {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
       </div>
@@ -475,8 +482,18 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const social = p.social_links || {};
   const rc = p.rate_card || {};
   // Quick-look highlights shown on the profile (price / category / delivery).
-  const hlCategory = (categoryTxt || 'UGC').replace(/_/g, ' ');
-  const hlPrice = priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On request');
+  // Category shows the creator's actual niche (not the generic "UGC"); fall back
+  // to their first skill, then a neutral label — never the literal "UGC".
+  const nicheTxt = p.niche || categoryTxt || p.primary_category
+    || (Array.isArray(p.niches) ? p.niches[0] : '')
+    || (Array.isArray(p.categories) ? p.categories[0] : '')
+    || (skills[0] || '');
+  const hlCategory = (nicheTxt || 'General').replace(/_/g, ' ');
+  // On the brand/public view, never expose an actual rate — always "On Request".
+  // The creator's own (editable) view still shows their configured price.
+  const hlPrice = editable
+    ? (priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On Request'))
+    : 'On Request';
   // Single concrete day count (defaults to 1), not a "3–5 days" range.
   const hlDays = Number(p.delivery_days || p.avg_delivery_days || rc.delivery_days || 1) || 1;
   const hlDelivery = `${hlDays} day${hlDays > 1 ? 's' : ''}`;
@@ -786,7 +803,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                             <span className="cpm-vid-cat">{v.category || hlCategory}</span>
                           </div>
                           <div className="cpm-vid-pricerow">
-                            <div className="cpm-vid-price"><label>Price</label><strong>{v.price ? (String(v.price).match(/^\d+$/) ? inr(v.price) : v.price) : hlPrice}</strong></div>
+                            <div className="cpm-vid-price"><label>Price</label><strong>{editable && v.price ? (String(v.price).match(/^\d+$/) ? inr(v.price) : v.price) : hlPrice}</strong></div>
                             <span className="cpm-vid-del"><label>Delivered in</label><strong>{v.delivery || hlDelivery}</strong></span>
                           </div>
                         </div>
@@ -1029,6 +1046,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-vid-del label,.cpm-vid-price label{color:#9296ba;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
         .cpm-vid-del strong,.cpm-vid-price strong{color:#07074e;font-size:13.5px;font-weight:800;white-space:nowrap}
         .cpm-vid video,.cpm-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+        .cpm-vid-broken{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#f1f2f9;color:#98a1ad;font-size:11.5px;font-weight:600;text-align:center;cursor:default}
         .cpm-vid:hover video,.cpm-vid:hover img{transform:scale(1.07)}
         .cpm-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#5b6bff;pointer-events:none;transition:opacity .2s ease}
         .cpm-vid:hover .cpm-play{opacity:0}

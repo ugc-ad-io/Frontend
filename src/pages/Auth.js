@@ -54,6 +54,7 @@ export default function Auth() {
   // → 'reset' (enter the emailed code + a new password).
   const [view, setView] = useState('auth');
   const [resetCode, setResetCode] = useState('');
+  const [totpCode, setTotpCode] = useState('');   // 2FA code at login
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -119,6 +120,14 @@ export default function Auth() {
       const payload = isLogin ? { email, password } : { email, password, role };
 
       const { data } = await axios.post(`${API}${endpoint}`, payload);
+
+      // Login may require a second factor — Python returns {requires_2fa:true} with no token.
+      if (isLogin && data.requires_2fa) {
+        setTotpCode('');
+        setView('2fa');
+        return;
+      }
+
       const { token, ...userData } = data;
 
       login(token, userData);
@@ -132,6 +141,24 @@ export default function Auth() {
       }
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Authentication failed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Second-factor step: resend the login with the TOTP code (backend reads it as a query param).
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    if (totpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/auth/login?totp_token=${encodeURIComponent(totpCode)}`, { email, password });
+      const { token, ...userData } = data;
+      login(token, userData);
+      toast.success('Welcome back!');
+      routeForUser(navigate, userData.role, userData.profile_completed);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Invalid 2FA code'));
     } finally {
       setLoading(false);
     }
@@ -529,6 +556,41 @@ export default function Auth() {
               </button>
               {'  ·  '}
               <button type="button" className="ap-toggle" onClick={backToLogin}>
+                Back to sign in
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ── Two-factor step — 6-digit TOTP from the authenticator app ──── */}
+        {view === '2fa' && (
+          <motion.form
+            onSubmit={handle2FASubmit}
+            className="ap-form"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="ap-field">
+              <label className="ap-label" htmlFor="totp-code">Two-factor code</label>
+              <input
+                id="totp-code"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                className="ap-input input-field"
+                placeholder="6-digit code from your app"
+                required
+                autoFocus
+              />
+            </div>
+            <button type="submit" className="ap-submit btn-primary" disabled={loading}>
+              {loading ? <span className="ap-spinner" /> : 'Verify & sign in'}
+            </button>
+            <div className="ap-footer">
+              <button type="button" className="ap-toggle" onClick={() => { setView('auth'); setTotpCode(''); }}>
                 Back to sign in
               </button>
             </div>
@@ -1114,10 +1176,17 @@ export default function Auth() {
           color: #fff;
           border-radius: 0;
           margin: 0;
-          /* Brand hero image on the left panel — shown as-is (no dark overlay). */
-          background: url('/login.png') center/cover no-repeat;
+          /* Brand hero image on the left panel — shown as-is (no dark overlay).
+             Optimized WebP (~33KB) with JPG fallback; the original PNG was 1.3MB and slow.
+             Longhand so image-set-unaware engines fall back to the JPG and the colour stays. */
+          background-color: #0b0b16;
+          background-position: center;
+          background-size: cover;
+          background-repeat: no-repeat;
+          background-image: url('/login.jpg');
+          background-image: image-set(url('/login.webp') type('image/webp'), url('/login.jpg') type('image/jpeg'));
         }
-        /* Old faint watermark replaced by the login.png hero above. */
+        /* Old faint watermark replaced by the login hero above. */
         .ap-promo-logobg { display: none; }
         .ap-promo-shine {
           position: absolute; top: -12%; right: -22%;

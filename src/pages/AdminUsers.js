@@ -8,6 +8,7 @@ import {
   FileText, CreditCard, CalendarClock, Flag, Trash2, ShieldCheck,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import { Skeleton } from '../components/Skeleton';
 import { useAuth } from '../App';
 import { can } from '../utils/adminRoles';
 
@@ -386,7 +387,13 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="au-empty-row">Loading…</td></tr>
+                Array.from({ length: 6 }).map((_, r) => (
+                  <tr key={`sk-${r}`}>
+                    {Array.from({ length: 10 }).map((_, c) => (
+                      <td key={c}><Skeleton height={13} width={c === 0 ? '75%' : '55%'} /></td>
+                    ))}
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={10} className="au-empty-row">{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</td></tr>
               ) : (

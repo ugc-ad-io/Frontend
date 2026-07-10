@@ -489,6 +489,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [walletData, setWalletData] = useState(normalizeWalletData());
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletError, setWalletError] = useState('');
+  const walletLoadedRef = useRef(false); // true once the wallet has loaded at least once
   const [walletAmount, setWalletAmount] = useState('');
   const [walletFilter, setWalletFilter] = useState('all');
   const [rechargingWallet, setRechargingWallet] = useState(false);
@@ -543,7 +544,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
   }, [user?.id, creatorFilters, creatorSort]);
 
   useEffect(() => {
-    if (user?.approval_status === 'approved' && page === 'wallet') {
+    // Preload the wallet on mount so it's ready before the tab is opened, and refresh
+    // it whenever the Wallet tab is entered (silently — no loading flash after first load).
+    if (user?.approval_status === 'approved' && (page === 'wallet' || !walletLoadedRef.current)) {
       fetchWallet();
     }
   }, [user?.id, page]);
@@ -748,13 +751,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
   };
 
   const fetchWallet = async () => {
-    setWalletLoading(true);
+    // Only show the "Loading…" state on the very first load — later refreshes are
+    // silent so switching to the Wallet tab is instant (shows the cached balance).
+    if (!walletLoadedRef.current) setWalletLoading(true);
     setWalletError('');
     try {
       const response = await axios.get(`${API}/business/wallet`);
       setWalletData(normalizeWalletData(response.data || {}));
+      walletLoadedRef.current = true;
     } catch (error) {
-      setWalletData(normalizeWalletData({}));
+      if (!walletLoadedRef.current) setWalletData(normalizeWalletData({}));
       setWalletError('');
     } finally {
       setWalletLoading(false);
@@ -819,11 +825,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
 
-  // Load each shipment record (courier / tracking / status / ETA) when the
-  // Shipments tab opens, so the table can show real data per campaign.
+  // Preload each shipment record (courier / tracking / status / ETA) as soon as the
+  // campaigns are known — NOT on every tab switch — so opening the Shipments tab is instant.
   useEffect(() => {
-    if (activeTab !== 'shipments') return undefined;
     const shipCampaigns = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
+    if (shipCampaigns.length === 0) return undefined;
     let cancelled = false;
     (async () => {
       const entries = await Promise.all(shipCampaigns.map(async (c) => {
@@ -833,7 +839,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       if (!cancelled) setShipmentsMap(Object.fromEntries(entries));
     })();
     return () => { cancelled = true; };
-  }, [activeTab, campaigns]);
+  }, [campaigns]);
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
   const pageDescription = {
     overview: `Welcome back, ${user?.nickname}!`,

@@ -116,7 +116,7 @@ export default function AdminShipping() {
   }, [requests]);
 
   const counts = useMemo(() => {
-    const pending = requests.filter((r) => (r.status || 'pending') === 'pending');
+    const pending = requests.filter((r) => ['pending', 'requested', 'label_generated', 'awaiting_pickup'].includes(r.status || 'pending'));
     return {
       pending: pending.length,
       breached: pending.filter((r) => { const h = hoursSince(r.requested_at || r.created_at); return h != null && h >= SLA_TARGET_HOURS; }).length,

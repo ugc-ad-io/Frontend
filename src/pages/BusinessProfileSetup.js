@@ -68,6 +68,44 @@ export default function BusinessProfileSetup() {
 
   const set = (field, value) => setForm((p) => ({ ...p, [field]: value }));
 
+  // Live "is this real?" checks — the backend actually resolves the website and
+  // looks up the Instagram handle. {status:'checking'|'valid'|'invalid'|'uncertain', msg}
+  const [webCheck, setWebCheck] = useState(null);
+  const [igCheck, setIgCheck] = useState(null);
+
+  const checkWebsiteLive = async () => {
+    const v = form.website.trim();
+    if (!v || !URL_RE.test(v)) { setWebCheck(null); return; }
+    setWebCheck({ status: 'checking' });
+    try {
+      const { data } = await axios.post(`${API}/validate/website`, { url: v });
+      setWebCheck(data.valid
+        ? { status: 'valid', msg: 'Website is live and reachable.' }
+        : { status: 'invalid', msg: "We couldn't reach this website — check the address." });
+    } catch { setWebCheck(null); }
+  };
+
+  const checkInstagramLive = async () => {
+    const v = form.instagram.trim();
+    if (!v || !isInstagram(v)) { setIgCheck(null); return; }
+    const handle = v.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/+$/, '');
+    setIgCheck({ status: 'checking' });
+    try {
+      const { data } = await axios.post(`${API}/validate/instagram`, { username: handle });
+      if (data.valid) setIgCheck({ status: 'valid', msg: 'Instagram account found.' });
+      else if (data.reason === 'not_found') setIgCheck({ status: 'invalid', msg: "This Instagram username doesn't exist." });
+      else setIgCheck({ status: 'uncertain', msg: "Format looks fine, but Instagram blocks automated checks so we can't confirm it exists." });
+    } catch { setIgCheck(null); }
+  };
+
+  // Small coloured status line rendered under the website / instagram fields.
+  const CheckNote = ({ c }) => {
+    if (!c) return null;
+    const map = { valid: ['#34d399', '✓ '], invalid: ['#f87171', '✕ '], uncertain: ['#fbbf24', '⚠ '], checking: ['#94a3b8', ''] };
+    const [color, icon] = map[c.status] || map.checking;
+    return <span style={{ display: 'block', marginTop: 6, fontSize: 12.5, fontWeight: 600, color }}>{icon}{c.status === 'checking' ? 'Checking…' : c.msg}</span>;
+  };
+
   const errors = {
     businessName: !form.businessName.trim() ? 'Business name is required.' : '',
     facebook: form.facebook.trim() && !FB_RE.test(form.facebook.trim())
@@ -88,6 +126,11 @@ export default function BusinessProfileSetup() {
     setSubmitted(true);
     if (Object.values(errors).some(Boolean)) {
       toast.error('Please fill in the required fields');
+      return;
+    }
+    // Block on a website the reachability check already confirmed is dead (runs on blur).
+    if (webCheck?.status === 'invalid') {
+      toast.error("That website doesn't seem to be reachable. Please enter a valid business website.");
       return;
     }
     setSubmitting(true);
@@ -199,9 +242,11 @@ export default function BusinessProfileSetup() {
             className={`bp-input${err('website') ? ' bp-input--error' : ''}`}
             placeholder="www.business.com"
             value={form.website}
-            onChange={(e) => set('website', e.target.value)}
+            onChange={(e) => { set('website', e.target.value); setWebCheck(null); }}
+            onBlur={checkWebsiteLive}
           />
           {err('website') && <span className="bp-err">{err('website')}</span>}
+          <CheckNote c={webCheck} />
         </div>
 
         {/* Instagram */}
@@ -214,10 +259,12 @@ export default function BusinessProfileSetup() {
               className="bp-input bp-input--bare"
               placeholder="brandname"
               value={form.instagram}
-              onChange={(e) => set('instagram', e.target.value)}
+              onChange={(e) => { set('instagram', e.target.value); setIgCheck(null); }}
+              onBlur={checkInstagramLive}
             />
           </div>
           {err('instagram') && <span className="bp-err">{err('instagram')}</span>}
+          <CheckNote c={igCheck} />
         </div>
 
         {/* Phone */}
@@ -639,9 +686,10 @@ function ThemeStyles() {
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-          color: #07074e;
-          background: rgba(7, 7, 78, 0.12);
-          border: 1px solid rgba(7, 7, 78, 0.3);
+          color: #22c55e;
+          background: rgba(34, 197, 94, 0.15);
+          border: 1px solid rgba(34, 197, 94, 0.35);
+          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.10), 0 16px 40px rgba(34, 197, 94, 0.22);
         }
         .bp-sub--center { margin-bottom: 26px; }
         .bp-card--thanks .bp-title { margin-bottom: 10px; }

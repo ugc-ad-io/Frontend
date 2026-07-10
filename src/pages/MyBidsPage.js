@@ -237,19 +237,19 @@ export default function MyBidsPage() {
               .mb-drawer-brand strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a;line-height:1.25}
               .mb-drawer-brand small{color:#9296ba;font-size:13px}
               .mb-close{border:0;background:#f1f3fa;color:#15163a;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px;flex:none}
-              .mb-drawer-body{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+              .mb-drawer-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
               .mb-meta-row{display:flex;gap:8px;flex-wrap:wrap}
               .mb-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
               .mb-stat{background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:12px 14px}
               .mb-stat small{color:#9296ba;font-size:12px;font-weight:600;display:block}
               .mb-stat strong{color:#15163a;font-size:15px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
               .mb-sec h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px}
-              .mb-text{margin:0;color:#585c7e;font-size:14px;line-height:1.6;white-space:pre-wrap}
-              .mb-brief{display:flex;flex-direction:column}
-              .mb-brief-line{display:block;line-height:1.55}
+              .mb-text{margin:0;color:#585c7e;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+              .mb-brief{display:flex;flex-direction:column;min-width:0}
+              .mb-brief-line{display:block;line-height:1.55;overflow-wrap:anywhere;word-break:break-word}
               .mb-brief-gap{display:block;height:10px}
               .mb-brief-label{color:#15163a;font-weight:700;margin-right:4px}
-              .mb-brief-val{color:#585c7e}
+              .mb-brief-val{color:#585c7e;overflow-wrap:anywhere;word-break:break-word}
               .mb-muted{margin:0;color:#9296ba;font-size:14px}
               .mb-chips{display:flex;flex-wrap:wrap;gap:7px}
               .mb-chips span{background:#eef0ff;color:#5b6bff;font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}

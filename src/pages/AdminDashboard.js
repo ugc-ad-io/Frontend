@@ -131,17 +131,21 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchStats();
-    fetchPendingProfiles();
-    fetchPendingCampaigns();
-    fetchPendingWithdrawals();
-    fetchAllCampaigns();
-    fetchCampaignAssignments();
-    fetchApplications();
-    if (user?.role === 'admin') {
-      fetchAllUsers();
-      fetchAnalytics();
+    // Only request what this member's role is actually allowed to read. Firing every
+    // admin endpoint regardless of capability makes the backend 403 each one and
+    // floods the console with errors for limited roles (Team & Roles).
+    fetchStats();          // no capability required
+    fetchAllCampaigns();   // no capability required
+    if (user?.role === 'admin') fetchAnalytics();
+
+    if (can(user, 'review_applications')) {
+      fetchPendingProfiles();
+      fetchPendingCampaigns();
+      fetchCampaignAssignments();
+      fetchApplications();
     }
+    if (can(user, 'view_financials')) fetchPendingWithdrawals();
+    if (can(user, 'user_management')) fetchAllUsers();
   }, []);
 
   useEffect(() => {

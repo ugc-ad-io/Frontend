@@ -797,14 +797,27 @@ export default function BusinessDashboard({ page = 'overview' }) {
     navigate(`/campaign/${campaignId}`);
   };
 
-  // Accept a bid = select that creator for the campaign (payment held in escrow).
+  // Accept a bid = select that creator for the campaign. This SPENDS the brand's
+  // credits: the bid amount plus the platform fee leaves the wallet and is held in
+  // the deal's escrow until the content is approved.
   const handleAcceptBid = async (campaignId, creatorId) => {
     if (!creatorId) { toast.error('Could not identify the creator for this bid.'); return; }
     try {
       const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${creatorId}`);
-      toast.success(`🎉 ${res.data?.creator_nickname || 'Creator'} selected! Payment held in escrow.`);
+      const charged = Number(res.data?.amount_charged) || 0;
+      toast.success(
+        `🎉 ${res.data?.creator_nickname || 'Creator'} selected! ${charged ? `${formatMoney(charged)} held in escrow.` : 'Payment held in escrow.'}`
+      );
       fetchCampaigns();
+      fetchWallet();
     } catch (error) {
+      // Short balance is a fixable problem, not a generic failure — say by how much.
+      if (error?.response?.status === 402) {
+        const d = error.response.data || {};
+        toast.error(d.detail || 'Not enough credits to select this creator.');
+        fetchWallet();
+        return;
+      }
       toast.error(apiErrorMessage(error, 'Failed to accept bid'));
     }
   };

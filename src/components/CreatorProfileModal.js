@@ -237,7 +237,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // profile must never see their real name, phone, address or pincode — that's
   // both a privacy leak and a way to take the deal off-platform. The backend
   // redacts these too (User.toRedacted); this keeps the UI honest regardless.
-  const canSeePrivate = !!viewer && (String(viewer.id) === String(id) || viewer.role === 'admin');
+  // `editable` is only ever passed on the creator's own profile routes, so it's
+  // an independent owner signal — trust it even if the id comparison can't run.
+  const canSeePrivate = editable
+    || (!!viewer && (String(viewer.id) === String(id) || viewer.role === 'admin'));
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -548,15 +551,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // a brand shouldn't have to message someone just to learn their price.
   // Fallback used by the video cards when an item carries no price of its own.
   const basePrice = priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On Request');
-  // Header highlight: if the creator never set a profile-level rate but priced
-  // their individual videos, quote the cheapest one ("From ₹8,000") instead of
-  // falling back to a bare "On Request" that the cards below would contradict.
-  const vidPriceNums = realVids
-    .map((v) => Number(String(v.price ?? '').replace(/[^0-9]/g, '')))
-    .filter((n) => n > 0);
-  const hlPrice = (!priceNum && vidPriceNums.length)
-    ? `From ${inr(Math.min(...vidPriceNums))}`
-    : basePrice;
+  // PRICE / VIDEO must be the creator's OWN configured rate (rate_card.expected_payout)
+  // — the same number the brief/checkout charges. It must NOT be inferred from a
+  // portfolio video's price: that quoted "From ₹11,000" while the brief priced the
+  // deal at ₹0, because the brief reads the rate card. If no rate is set we say
+  // "On Request" rather than invent one.
+  const hlPrice = basePrice;
   // Delivery: the creator's own "Typical delivery (days)" field. If they never
   // set one, fall back to the slowest of their per-video delivery times rather
   // than the old hardcoded 1 — that default made EVERY profile claim "1 Day".

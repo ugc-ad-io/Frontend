@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -68,6 +69,7 @@ function Select({ value, onChange, options, placeholder }) {
 }
 
 export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose, onPublished }) {
+  const navigate = useNavigate();
   const [stage, setStage] = useState('setup'); // 'setup' | 'payment'
   const [plan, setPlan] = useState(null); // the creator's single plan, fetched from their profile
   const [planLoading, setPlanLoading] = useState(true);
@@ -149,6 +151,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const subtotal = (plan?.price || 0) * videoCount;
   const platformFee = Math.round(subtotal * (feePercent / 100) * 100) / 100;
   const total = Math.round((subtotal + platformFee) * 100) / 100;
+  // The creator never published a rate (profile shows "On Request"). Booking at
+  // ₹0 would create a worthless deal, so block it and point the brand to chat.
+  const priceMissing = !planLoading && !((plan?.price || 0) > 0);
   const inr = (n) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const videoName = (v, i) => (v.name && v.name.trim()) || `Video ${i + 1}`;
   // Only judge the balance once we've actually loaded it — `null` means "unknown",
@@ -343,6 +348,13 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
             <span>Estimated total</span>
             <strong>₹{total.toLocaleString('en-IN')}</strong>
           </div>
+
+          {/* The creator hasn't published a rate — don't let a ₹0 brief go out. */}
+          {priceMissing && (
+            <p className="pb-noprice">
+              <Info size={13} /> This creator hasn't set a price yet. Send them a message to agree on a rate before booking.
+            </p>
+          )}
         </aside>
 
         {/* Right content */}
@@ -408,7 +420,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
 
           <div className="pb-footer">
-            <button type="button" className="pb-proceed" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'payment')} disabled={submitting}>Proceed</button>
+            <button type="button" className="pb-proceed" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'payment')} disabled={submitting || priceMissing} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>Proceed</button>
           </div>
           </>
           ) : stage === 'guidelines' ? (
@@ -456,7 +468,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
           <div className="pb-footer">
             <button type="button" className="pb-goback" onClick={() => { updateVideo({ guidelinesOpen: false }); setStage('setup'); }} disabled={submitting}>Remove &amp; Go Back</button>
-            <button type="button" className="pb-proceed" onClick={() => setStage('payment')} disabled={submitting}>Proceed</button>
+            <button type="button" className="pb-proceed" onClick={() => setStage('payment')} disabled={submitting || priceMissing} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>Proceed</button>
           </div>
           </>
           ) : (
@@ -655,6 +667,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-credits { display: flex; align-items: center; gap: 6px; color: #07074e; font-size: 0.78rem; font-weight: 700; margin: 0 0 4px; }
         .pb-shortfall { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: #fef2f2; color: #b91c1c; font-size: 0.78rem; font-weight: 700; line-height: 1.35; }
         .pb-proceed:disabled { opacity: 0.55; cursor: not-allowed; }
+        .pb-noprice { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0 0; padding: 10px 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; color: #9a3412; font-size: 12.5px; line-height: 1.5; }
         .pb-summary-line { display: flex; align-items: center; justify-content: space-between; color: #475569; font-weight: 600; font-size: 0.9rem; }
         .pb-summary-line em { background: #f1f5f9; border-radius: 6px; padding: 1px 6px; font-style: normal; font-size: 0.72rem; }
         .pb-summary-total { border-top: 1px solid #f1f5f9; padding-top: 8px; color: #0f172a; font-size: 1.05rem; }

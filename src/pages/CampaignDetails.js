@@ -138,17 +138,25 @@ export default function CampaignDetails({ embedId, onClose }) {
     }
   };
 
+  // Selecting a creator SPENDS the brand's credits — the bid amount plus the
+  // platform fee is debited and held in escrow until the content is approved.
   const handleSelectCreator = async (creatorId) => {
     try {
       const response = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${creatorId}`);
-      toast.success(`🎉 ${response.data.creator_nickname} selected! Payment of ₹${response.data.amount} held in escrow. Opening chat...`);
-      
+      const held = Number(response.data?.amount) || 0;
+      toast.success(`🎉 ${response.data.creator_nickname} selected! Payment of ₹${held.toLocaleString('en-IN')} held in escrow. Opening chat...`);
+
       // Wait a moment for the toast to be visible
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Redirect to chat with the creator
       navigate(`/chat/${creatorId}`);
     } catch (error) {
+      // Short balance is a fixable problem, not a generic failure — say by how much.
+      if (error?.response?.status === 402) {
+        toast.error(error.response.data?.detail || 'Not enough credits to select this creator.');
+        return;
+      }
       toast.error(apiErrorMessage(error, 'Failed to select creator'));
     }
   };

@@ -131,6 +131,13 @@ const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 // A portfolio item's own price, shown to the creator AND the brand — the whole
 // point of asking the creator for a per-video rate is that buyers can see it.
 // `fallback` is only used when that item has no price of its own.
+// "Delivered in" is a free-text box, so a creator who types just "3" would
+// otherwise render as a bare "3" on the card. Number-only values get a unit.
+const vidDelivery = (delivery, fallback) => {
+  const raw = String(delivery ?? '').trim();
+  if (!raw) return fallback;
+  return /^\d+$/.test(raw) ? `${raw} day${Number(raw) > 1 ? 's' : ''}` : raw;
+};
 const vidPrice = (price, fallback) => {
   const raw = String(price ?? '').trim();
   if (!raw) return fallback;
@@ -332,6 +339,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       expectedPayout: (pr.rate_card && pr.rate_card.expected_payout) || pr.expectedPayout || '',
       payoutPeriod: (pr.rate_card && pr.rate_card.payout_period) || pr.payoutPeriod || '',
       budgetRange: data.budget_range || pr.budget_range || '',
+      deliveryDays: String(pr.delivery_days || (pr.rate_card && pr.rate_card.delivery_days) || ''),
     });
     setPf(Array.isArray(data.portfolio) ? data.portfolio : []);
   }, [data]);
@@ -448,9 +456,17 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         weekly: form.weekly, flexible: !!form.flexible, topics: Array.isArray(form.topics) ? form.topics : [],
         availability_calendar: { ...(pr.availability_calendar || {}), weekly: form.weekly, flexible: !!form.flexible },
         expectedPayout: form.expectedPayout, payoutPeriod: form.payoutPeriod,
-        rate_card: { ...(pr.rate_card || {}), expected_payout: form.expectedPayout, payout_period: form.payoutPeriod },
+        delivery_days: form.deliveryDays ? Number(form.deliveryDays) : '',
+        rate_card: {
+          ...(pr.rate_card || {}),
+          expected_payout: form.expectedPayout,
+          payout_period: form.payoutPeriod,
+          delivery_days: form.deliveryDays ? Number(form.deliveryDays) : '',
+        },
         budget_range: form.budgetRange,
-        portfolio: (pf || []).map((it) => (typeof it === 'string' ? it : (it.videoUrl || it.link || it.url || (Array.isArray(it.urls) && it.urls[0]) || ''))).filter(Boolean),
+        // Keep the full item objects — flattening these to bare URL strings (as
+        // this did) wiped every clip's price / category / delivery on save.
+        portfolio: (pf || []).filter((it) => pfUrl(it)),
         portfolio_items: pf || [],
       };
       const r = await axios.put(`${API}/profile/creator`, payload);
@@ -527,8 +543,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const hlPrice = (!priceNum && vidPriceNums.length)
     ? `From ${inr(Math.min(...vidPriceNums))}`
     : basePrice;
-  // Single concrete day count (defaults to 1), not a "3–5 days" range.
-  const hlDays = Number(p.delivery_days || p.avg_delivery_days || rc.delivery_days || 1) || 1;
+  // Delivery: the creator's own "Typical delivery (days)" field. If they never
+  // set one, fall back to the slowest of their per-video delivery times rather
+  // than the old hardcoded 1 — that default made EVERY profile claim "1 Day".
+  const vidDayNums = realVids
+    .map((v) => Number(String(v.delivery ?? '').replace(/[^0-9]/g, '')))
+    .filter((n) => n > 0);
+  const setDays = Number(p.delivery_days || p.avg_delivery_days || rc.delivery_days || 0) || 0;
+  const hlDays = setDays || (vidDayNums.length ? Math.max(...vidDayNums) : 1);
   const hlDelivery = `${hlDays} day${hlDays > 1 ? 's' : ''}`;
   const Row = (label, value) => {
     const text = Array.isArray(value) ? value.filter(Boolean).join(', ') : value;
@@ -753,11 +775,21 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     </div>
                     <label className="cpm-ef-check"><input type="checkbox" checked={!!form.flexible} onChange={(e) => setForm((f) => ({ ...f, flexible: e.target.checked }))} /> Flexible working hours</label>
 
-                    <h5 className="cpm-ef-sec">Pricing</h5>
+                    <h5 className="cpm-ef-sec">Pricing &amp; Delivery</h5>
                     <div className="cpm-ef-grid">
                       <label>Expected Payout<input {...fld('expectedPayout')} /></label>
                       <label>Payout Period<input value="Per Video" readOnly /></label>
                       <label>Budget Range<input {...fld('budgetRange')} /></label>
+                      <label>
+                        Typical Delivery (days)
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="e.g. 3"
+                          value={form.deliveryDays}
+                          onChange={(e) => setForm((f) => ({ ...f, deliveryDays: e.target.value.replace(/[^0-9]/g, '') }))}
+                        />
+                      </label>
                     </div>
                   </>
                 );
@@ -812,7 +844,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                               </div>
                               <div className="cpm-vid-pricerow">
                                 <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(meta.price, basePrice)}</strong></div>
-                                <span className="cpm-vid-del"><label>Delivered in</label><strong>{meta.delivery || hlDelivery}</strong></span>
+                                <span className="cpm-vid-del"><label>Delivered in</label><strong>{vidDelivery(meta.delivery, hlDelivery)}</strong></span>
                               </div>
                             </div>
                           </div>
@@ -837,7 +869,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                           </div>
                           <div className="cpm-vid-pricerow">
                             <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(v.price, basePrice)}</strong></div>
-                            <span className="cpm-vid-del"><label>Delivered in</label><strong>{v.delivery || hlDelivery}</strong></span>
+                            <span className="cpm-vid-del"><label>Delivered in</label><strong>{vidDelivery(v.delivery, hlDelivery)}</strong></span>
                           </div>
                         </div>
                       </div>

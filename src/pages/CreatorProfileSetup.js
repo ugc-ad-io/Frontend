@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { useAuth } from '../App';
 import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Instagram, Check, Trash2, Pencil,
   PersonStanding, Dumbbell, Circle, Palette, PenLine, Mic, Drama, Video, Clapperboard, Sparkles, Camera,
@@ -370,7 +371,7 @@ export default function CreatorProfileSetup() {
     bring: '',
     weekly: '',
     flexible: false,
-    lastSalary: '', expectedPayout: '', payoutPeriod: 'Per Video',
+    lastSalary: '', expectedPayout: '', payoutPeriod: 'Per Video', deliveryDays: '',
     topics: ['None'],
     profile_picture: '', // real uploaded URL (photoPreview is just the local/preview src)
     profile_banner: '',  // optional cover/banner image URL (bannerPreview is the preview src)
@@ -706,10 +707,12 @@ export default function CreatorProfileSetup() {
               .map((l) => [String(l.platform || 'link').toLowerCase(), l.url])
           ),
         },
+        delivery_days: data.deliveryDays ? Number(data.deliveryDays) : '',
         rate_card: {
           last_salary: data.lastSalary || '',
           expected_payout: data.expectedPayout || '',
           payout_period: data.payoutPeriod || '',
+          delivery_days: data.deliveryDays ? Number(data.deliveryDays) : '',
         },
         availability_calendar: { weekly: data.weekly || '', flexible: !!data.flexible },
         payment_methods: {},
@@ -1285,6 +1288,25 @@ export default function CreatorProfileSetup() {
               <span className="ps-comp__period ps-comp__period--static">Per Video</span>
             </div>
             {err('expectedPayout') && <span className="ps-error">Enter your expected payout</span>}
+
+            <div className="ps-field" style={{ marginTop: 18 }}>
+              <label className="ps-label">Typical delivery time <span className="ps-muted">(optional)</span></label>
+              <p className="ps-hinttext">How many days you usually take to deliver one video. Brands see this on your profile.</p>
+              <div className="ps-comp">
+                <span className="ps-comp__label">Delivered in</span>
+                <input
+                  className="ps-input"
+                  placeholder="e.g. 3"
+                  inputMode="numeric"
+                  value={data.deliveryDays}
+                  onKeyDown={blockNonDigitKey}
+                  onChange={(e) => set('deliveryDays', digitsOnly(e.target.value))}
+                />
+                <span className="ps-comp__period ps-comp__period--static">
+                  {Number(data.deliveryDays) === 1 ? 'Day' : 'Days'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Topics to avoid */}

@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { Users, Briefcase, CheckCircle, XCircle, TrendingUp, MessageSquare, CreditCard, IndianRupee, Bell, Mail, Phone, UserPlus, BarChart, Download, FileText, AlertTriangle } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminTopbar from '../components/AdminTopbar';
+import { can } from '../utils/adminRoles';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -816,72 +817,94 @@ export default function AdminDashboard() {
           );
         })()}
         <div className="tab-content">
-          {activeTab === 'stats' && stats && (
-            <div className="admin-overview fade-in">
-              <div className="stat-tiles">
-                <div className="stat-tile">
-                  <div className="stat-tile-label">Pending profiles</div>
-                  <div className="stat-tile-value">{pendingProfiles.length}</div>
-                  <div className="stat-tile-hint">Awaiting review</div>
+          {activeTab === 'stats' && stats && (() => {
+            // The Overview mirrors the role's capabilities (Team & Roles): a member only
+            // sees the tiles, queues and actions they're actually allowed to act on.
+            const tiles = [
+              can(user, 'review_applications') && { key: 'profiles', label: 'Pending profiles', value: pendingProfiles.length, hint: 'Awaiting review' },
+              can(user, 'review_applications') && { key: 'campaigns', label: 'Pending campaigns', value: pendingCampaigns.length, hint: 'Awaiting review' },
+              can(user, 'release_payouts') && { key: 'withdrawals', label: 'Withdrawals', value: pendingWithdrawals.length, hint: 'Pending payout' },
+              can(user, 'manage_deals') && {
+                key: 'active', label: 'Active campaigns',
+                value: analytics?.active_campaigns ?? stats.active_campaigns,
+                hint: analytics?.total_campaigns ? `of ${analytics.total_campaigns} total` : 'Live now',
+              },
+              can(user, 'view_financials') && analytics && {
+                key: 'earnings', label: 'Platform earnings',
+                value: `₹${Number(analytics.platform_commission || 0).toLocaleString('en-IN')}`,
+                hint: '20% commission',
+              },
+            ].filter(Boolean);
+
+            const queue = [
+              can(user, 'review_applications') && { icon: <Users size={15} />, label: 'Profile approvals', count: pendingProfiles.length, to: '/dashboard/admin/profiles' },
+              can(user, 'review_applications') && { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
+              can(user, 'release_payouts') && { icon: <IndianRupee size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
+            ].filter(Boolean);
+
+            const actions = [
+              can(user, 'review_applications') && { icon: <FileText size={16} />, label: 'Review applications', to: '/dashboard/admin/applications' },
+              can(user, 'manage_deals') && { icon: <Briefcase size={16} />, label: 'View all campaigns', to: '/dashboard/admin/all-campaigns' },
+              (can(user, 'user_management') || can(user, 'adjust_wallet')) && { icon: <IndianRupee size={16} />, label: 'Manage users & wallets', to: '/dashboard/admin/users' },
+              can(user, 'user_management') && { icon: <MessageSquare size={16} />, label: 'Send announcement', to: '/dashboard/admin/broadcast' },
+            ].filter(Boolean);
+
+            return (
+              <div className="admin-overview fade-in">
+                {tiles.length > 0 && (
+                  <div className="stat-tiles">
+                    {tiles.map((t) => (
+                      <div className="stat-tile" key={t.key}>
+                        <div className="stat-tile-label">{t.label}</div>
+                        <div className="stat-tile-value">{t.value}</div>
+                        <div className="stat-tile-hint">{t.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="admin-overview-row">
+                  {queue.length > 0 && (
+                    <div className="admin-panel" style={{ flex: 1, minWidth: 320 }}>
+                      <div className="admin-panel-head"><h3>Review queue</h3></div>
+                      <ul className="admin-feed">
+                        {queue.map((row) => (
+                          <li key={row.label} onClick={() => navigate(row.to)} style={{ cursor: 'pointer' }}>
+                            <span className="admin-feed-icon">{row.icon}</span>
+                            <span className="admin-feed-text">{row.label}</span>
+                            <span className="badge badge-active">{row.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {actions.length > 0 && (
+                    <div className="admin-panel" style={{ width: 280 }}>
+                      <div className="admin-panel-head"><h3>Quick actions</h3></div>
+                      <div className="admin-panel-body">
+                        <div className="admin-quick-actions">
+                          {actions.map((a) => (
+                            <button type="button" key={a.label} onClick={() => navigate(a.to)}>{a.icon} {a.label}</button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="stat-tile">
-                  <div className="stat-tile-label">Pending campaigns</div>
-                  <div className="stat-tile-value">{pendingCampaigns.length}</div>
-                  <div className="stat-tile-hint">Awaiting review</div>
-                </div>
-                <div className="stat-tile">
-                  <div className="stat-tile-label">Withdrawals</div>
-                  <div className="stat-tile-value">{pendingWithdrawals.length}</div>
-                  <div className="stat-tile-hint">Pending payout</div>
-                </div>
-                <div className="stat-tile">
-                  <div className="stat-tile-label">Active campaigns</div>
-                  <div className="stat-tile-value">{analytics?.active_campaigns ?? stats.active_campaigns}</div>
-                  <div className="stat-tile-hint">{analytics?.total_campaigns ? `of ${analytics.total_campaigns} total` : 'Live now'}</div>
-                </div>
-                {user?.role === 'admin' && analytics && (
-                  <div className="stat-tile">
-                    <div className="stat-tile-label">Platform earnings</div>
-                    <div className="stat-tile-value">₹{Number(analytics.platform_commission || 0).toLocaleString('en-IN')}</div>
-                    <div className="stat-tile-hint">20% commission</div>
+
+                {tiles.length === 0 && queue.length === 0 && actions.length === 0 && (
+                  <div className="admin-panel">
+                    <div className="admin-panel-body">
+                      <p style={{ color: '#6b7280', margin: 0 }}>
+                        Your role doesn’t have any overview widgets. Use the sidebar for the sections you can access.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
-
-              <div className="admin-overview-row">
-                <div className="admin-panel" style={{ flex: 1, minWidth: 320 }}>
-                  <div className="admin-panel-head"><h3>Review queue</h3></div>
-                  <ul className="admin-feed">
-                    {[
-                      { icon: <Users size={15} />, label: 'Profile approvals', count: pendingProfiles.length, to: '/dashboard/admin/profiles' },
-                      { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
-                      { icon: <IndianRupee size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
-                    ].map((row) => (
-                      <li key={row.label} onClick={() => navigate(row.to)} style={{ cursor: 'pointer' }}>
-                        <span className="admin-feed-icon">{row.icon}</span>
-                        <span className="admin-feed-text">{row.label}</span>
-                        <span className="badge badge-active">{row.count}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="admin-panel" style={{ width: 280 }}>
-                  <div className="admin-panel-head"><h3>Quick actions</h3></div>
-                  <div className="admin-panel-body">
-                    <div className="admin-quick-actions">
-                      <button type="button" onClick={() => navigate('/dashboard/admin/applications')}><FileText size={16} /> Review applications</button>
-                      <button type="button" onClick={() => navigate('/dashboard/admin/all-campaigns')}><Briefcase size={16} /> View all campaigns</button>
-                      {user?.role === 'admin' && (
-                        <button type="button" onClick={() => navigate('/dashboard/admin/users')}><IndianRupee size={16} /> Manage users &amp; wallets</button>
-                      )}
-                      <button type="button" onClick={() => navigate('/dashboard/admin/broadcast')}><MessageSquare size={16} /> Send announcement</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Applications tab removed - opens as separate page */}
 

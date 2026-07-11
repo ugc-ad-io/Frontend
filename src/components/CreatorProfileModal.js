@@ -128,6 +128,15 @@ const mediaUrl = (u) => {
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
 const pfUrl = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.link || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || ''));
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+// A portfolio item's own price, shown to the creator AND the brand — the whole
+// point of asking the creator for a per-video rate is that buyers can see it.
+// `fallback` is only used when that item has no price of its own.
+const vidPrice = (price, fallback) => {
+  const raw = String(price ?? '').trim();
+  if (!raw) return fallback;
+  const digits = raw.replace(/[₹,\s]/g, '');
+  return /^\d+$/.test(digits) ? inr(digits) : raw;
+};
 const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
 const LEVEL_META = {
   new: { title: 'New Creator', badge: 'New' },
@@ -182,8 +191,9 @@ function VideoTile({ url, onRemove, onEdit }) {
 
 // Small playable clip shown inside a review's fact row (watermarked, like the
 // brand work-review preview). Click toggles play; only one clip plays at a time.
-function RevClip({ src }) {
+function RevClip({ src: rawSrc }) {
   const [open, setOpen] = useState(false);
+  const src = mediaUrl(rawSrc); // delivered clips are gated — sign them too
   return (
     <>
       <button type="button" className="cpm-rev-clip" onClick={(e) => { e.stopPropagation(); setOpen(true); }} aria-label="Play delivered clip">
@@ -476,9 +486,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const deliverables = Number(data?.deliverables_completed ?? p.deliverables_completed ?? 0);
   // Keep each portfolio item's own metadata (category / price / delivery) so the
   // video cards can show per-video values, falling back to the profile defaults.
+  // Resolve the URL with pfUrl() — the SAME key priority the creator's own
+  // (editable) view uses. Picking a different key order here meant a clip that
+  // played fine for the creator could resolve to a dead `urls[0]`/`original_url`
+  // on the brand view and render "Media unavailable".
   const realVids = (data?.portfolio || [])
     .map((it) => {
-      const url = typeof it === 'string' ? it : ((Array.isArray(it.urls) && it.urls[0]) || it.original_url || it.url || it.video || it.videoUrl || '');
+      const url = pfUrl(it);
       const meta = typeof it === 'string' ? {} : it;
       return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '', brand: meta.brand || '' };
     })
@@ -789,7 +803,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                                 <span className="cpm-vid-cat">{meta.category || hlCategory}</span>
                               </div>
                               <div className="cpm-vid-pricerow">
-                                <div className="cpm-vid-price"><label>Price</label><strong>{meta.price ? (String(meta.price).match(/^\d+$/) ? inr(meta.price) : meta.price) : hlPrice}</strong></div>
+                                <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(meta.price, hlPrice)}</strong></div>
                                 <span className="cpm-vid-del"><label>Delivered in</label><strong>{meta.delivery || hlDelivery}</strong></span>
                               </div>
                             </div>
@@ -814,7 +828,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                             <span className="cpm-vid-cat">{v.category || hlCategory}</span>
                           </div>
                           <div className="cpm-vid-pricerow">
-                            <div className="cpm-vid-price"><label>Price</label><strong>{editable && v.price ? (String(v.price).match(/^\d+$/) ? inr(v.price) : v.price) : hlPrice}</strong></div>
+                            <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(v.price, hlPrice)}</strong></div>
                             <span className="cpm-vid-del"><label>Delivered in</label><strong>{v.delivery || hlDelivery}</strong></span>
                           </div>
                         </div>

@@ -40,6 +40,18 @@ const resolveUrl = (u) => {
   return /^https?:\/\//i.test(s) ? s : `${BACKEND_URL}${s.startsWith('/') ? '' : '/'}${s}`;
 };
 
+// The backend gates deliverable videos under /uploads and reads the JWT from an
+// Authorization header OR a ?token= query param. <video>/<img> tags can't send
+// headers, so sign backend URLs with the token — without this a gated clip 403s
+// and renders as an empty 0:00 player.
+const signedUrl = (u) => {
+  const base = resolveUrl(u);
+  if (!base || !base.startsWith(BACKEND_URL)) return base;
+  const token = localStorage.getItem('token');
+  if (!token) return base;
+  return `${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+};
+
 const VIDEO_EXT = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|#|$)/i;
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg|avif)(\?|#|$)/i;
 const KEY_IS_VIDEO = /video|reel|intro/i;
@@ -387,7 +399,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
                 {playableVideos.map((u, i) => (
                   <video
                     key={`v${i}`}
-                    src={resolveUrl(u)}
+                    src={signedUrl(u)}
                     controls
                     preload="metadata"
                     onError={() => setBadMedia((s) => new Set(s).add(mediaKey(u)))}
@@ -395,7 +407,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
                   />
                 ))}
                 {portfolioPhotos.map((u, i) => (
-                  <a key={`p${i}`} href={resolveUrl(u)} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}><img src={resolveUrl(u)} alt="" style={{ width: '100%', height: 'auto', borderRadius: 10, objectFit: 'contain', background: '#f2f4f7', display: 'block' }} /></a>
+                  <a key={`p${i}`} href={signedUrl(u)} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}><img src={signedUrl(u)} alt="" style={{ width: '100%', height: 'auto', borderRadius: 10, objectFit: 'contain', background: '#f2f4f7', display: 'block' }} /></a>
                 ))}
               </div>
             </section>

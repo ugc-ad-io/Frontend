@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown, Mail } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown, Mail, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_MATRIX, CAP_LABELS, ALL_CAPS, SCOPE_LABELS, isFounder as roleIsFounder } from '../utils/adminRoles';
@@ -36,6 +36,8 @@ export default function AdminRoles() {
   const [adding, setAdding] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [editingMember, setEditingMember] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);   // staff member pending deletion
+  const [deleteConfirm, setDeleteConfirm] = useState('');   // must read DELETE to arm the button
   const [selectedCats, setSelectedCats] = useState([]);
   const [savingCats, setSavingCats] = useState(false);
   const [customCat, setCustomCat] = useState('');
@@ -257,15 +259,17 @@ export default function AdminRoles() {
   };
 
   // Permanently delete a staff member (founder-only). Unlike Revoke — which just
-  // demotes them back to a normal user — this removes the account entirely.
-  const deleteStaff = async (member) => {
-    if (!window.confirm(
-      `Permanently DELETE ${member.email}?\n\nThis removes the account and all of their data. It cannot be undone.\n\n(To only remove admin access, use "Revoke" instead.)`
-    )) return;
+  // demotes them back to a normal user — this removes the account entirely, so it
+  // asks the founder to type DELETE rather than relying on a one-click OK.
+  const confirmDeleteStaff = async () => {
+    const member = deleteTarget;
+    if (!member || deleteConfirm.trim().toUpperCase() !== 'DELETE') return;
     setSavingId(member.id);
     try {
       await axios.delete(`${API}/admin/user/${member.id}`);
       toast.success(`Deleted ${member.email}`);
+      setDeleteTarget(null);
+      setDeleteConfirm('');
       fetchStaff();
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to delete'));
@@ -474,7 +478,7 @@ export default function AdminRoles() {
                             {/* Revoke = demote to a normal user. Delete = remove the account entirely.
                                 The founder row is locked and can never be deleted. */}
                             {founder && !locked && (
-                              <button className="arl-delete" onClick={() => deleteStaff(m)} disabled={savingId === m.id}>Delete</button>
+                              <button className="arl-delete" onClick={() => { setDeleteTarget(m); setDeleteConfirm(''); }} disabled={savingId === m.id}>Delete</button>
                             )}
                           </div>
                         </td>
@@ -486,6 +490,57 @@ export default function AdminRoles() {
             </div>
           )}
         </section>
+
+        {/* Irreversible + destructive, so it gets a real modal that names exactly what is
+            lost, points at Revoke as the softer option, and requires typing DELETE. */}
+        {deleteTarget && (
+          <div className="arl-modal-overlay" onClick={() => setDeleteTarget(null)}>
+            <div className="arl-modal arl-modal-sm" onClick={(e) => e.stopPropagation()}>
+              <div className="arl-modal-head">
+                <h3 className="arl-danger-title"><AlertTriangle size={18} /> Delete this admin?</h3>
+                <button onClick={() => setDeleteTarget(null)} aria-label="Close"><X size={18} /></button>
+              </div>
+
+              <div className="arl-del-who">
+                <strong>{deleteTarget.nickname || deleteTarget.email.split('@')[0]}</strong>
+                <span>{deleteTarget.email}</span>
+              </div>
+
+              <p className="arl-modal-sub">
+                This permanently removes their account and all of their data. <b>It cannot be undone.</b>
+              </p>
+              <div className="arl-del-hint">
+                Only want to take away their admin powers? Close this and use <b>Revoke</b> — that
+                demotes them to a normal user and keeps the account.
+              </div>
+
+              <label className="arl-del-label">
+                Type <b>DELETE</b> to confirm
+                <input
+                  autoFocus
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') confirmDeleteStaff(); }}
+                  placeholder="DELETE"
+                />
+              </label>
+
+              <div className="arl-modal-foot">
+                <span />
+                <div>
+                  <button className="arl-revoke" onClick={() => setDeleteTarget(null)}>Cancel</button>
+                  <button
+                    className="arl-delete-confirm"
+                    onClick={confirmDeleteStaff}
+                    disabled={deleteConfirm.trim().toUpperCase() !== 'DELETE' || savingId === deleteTarget.id}
+                  >
+                    {savingId === deleteTarget.id ? 'Deleting…' : 'Delete permanently'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {editingMember && (
           <div className="arl-modal-overlay" onClick={() => setEditingMember(null)}>
@@ -780,6 +835,20 @@ export default function AdminRoles() {
         .arl-modal-head h3 { margin: 0; font-size: 1rem; color: #07074e; }
         .arl-modal-head button { border: 1px solid #e6e8ec; background: #fff; border-radius: 8px; width: 32px; height: 32px; display: grid; place-items: center; cursor: pointer; color: #5b6573; }
         .arl-modal-sub { margin: 0; padding: 14px 20px 6px; color: #5b6573; font-size: 0.84rem; }
+
+        /* Destructive delete-admin modal */
+        .arl-modal-sm { width: min(440px, 100%); }
+        .arl-danger-title { display: flex; align-items: center; gap: 8px; color: #b42318 !important; }
+        .arl-del-who { display: flex; flex-direction: column; gap: 2px; margin: 16px 20px 0; padding: 12px 14px; border: 1px solid #f1f5f9; border-radius: 10px; background: #fafbff; }
+        .arl-del-who strong { font-size: 0.92rem; color: #07074e; }
+        .arl-del-who span { font-size: 0.8rem; color: #8b90ad; }
+        .arl-del-hint { margin: 10px 20px 0; padding: 10px 12px; border-radius: 10px; background: #fff8ec; border: 1px solid #ffe1b0; color: #8a5a00; font-size: 0.79rem; line-height: 1.5; }
+        .arl-del-label { display: flex; flex-direction: column; gap: 6px; margin: 16px 20px 4px; font-size: 0.79rem; font-weight: 700; color: #5b6573; }
+        .arl-del-label input { border: 1px solid #e6e8f3; border-radius: 10px; padding: 9px 11px; font-size: 0.88rem; font-family: inherit; color: #07074e; outline: none; letter-spacing: 0.04em; }
+        .arl-del-label input:focus { border-color: #b42318; box-shadow: 0 0 0 3px rgba(180,35,24,0.12); }
+        .arl-delete-confirm { border: none; background: #b42318; color: #fff; font-weight: 700; font-size: 0.84rem; padding: 9px 16px; border-radius: 9px; cursor: pointer; }
+        .arl-delete-confirm:hover:not(:disabled) { background: #96190f; }
+        .arl-delete-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
         .arl-cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; padding: 8px 20px 18px; overflow-y: auto; }
         .arl-cat-opt { display: flex; align-items: center; gap: 8px; border: 1px solid #e6e8ec; border-radius: 9px; padding: 9px 11px; font-size: 0.83rem; color: #334155; cursor: pointer; }
         .arl-cat-opt.on { border-color: #5b6bff; background: #eef0ff; color: #3730a3; font-weight: 600; }

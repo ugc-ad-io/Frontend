@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
 import { X, Check, Info, Pencil, Plus, Minus, UploadCloud, Mic, FileText, Link2, ChevronDown, Trash2, Tag, Wallet } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -190,8 +191,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     if (minTopup && amount < minTopup) return toast.error(`Minimum recharge is ${inr(minTopup)}`);
     setRecharging(true);
     try {
-      const res = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
-      toast.success(`Payment order created for ${inr(res.data?.amount || amount)}. Complete payment to credit your wallet.`);
+      const { data: order } = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
+      const result = await payWithRazorpay(order, { description: `Wallet recharge — ${inr(order?.amount || amount)}` });
+      toast.success(result?.message || 'Payment successful — wallet credited.');
       const w = await axios.get(`${API}/business/wallet`);
       const bal = Number(w.data?.available_balance) || 0;
       setWallet(bal);
@@ -201,7 +203,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         toast.success('Credits added — you can complete the booking now.');
       }
     } catch (e) {
-      toast.error(apiErrorMessage(e, 'Failed to start wallet recharge'));
+      if (isPaymentCancelled(e)) toast.message('Payment cancelled.');
+      else toast.error(apiErrorMessage(e, 'Wallet recharge failed'));
     } finally {
       setRecharging(false);
     }

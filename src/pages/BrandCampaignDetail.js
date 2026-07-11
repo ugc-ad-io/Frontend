@@ -134,6 +134,7 @@ export default function BrandCampaignDetail() {
   const [revSubmitting, setRevSubmitting] = useState(false);
   const [dupOpen, setDupOpen] = useState(false);
   const [shipmentOpen, setShipmentOpen] = useState(false);
+  const [selecting, setSelecting] = useState(null); // creator_id being accepted
 
   const load = async () => {
     try {
@@ -193,6 +194,27 @@ export default function BrandCampaignDetail() {
       refresh();
     } catch (e) { toast.error(e?.response?.data?.detail || 'Failed to approve'); }
   };
+  // Bids waiting on this campaign. Only meaningful while nobody is selected yet.
+  const bids = Array.isArray(campaign?.bids) ? campaign.bids : [];
+
+  // Accepting a bid funds the deal from the brand's wallet (the backend converts the
+  // campaign's budget reservation into escrow), so a short balance comes back as 402.
+  const selectCreator = async (bid) => {
+    setSelecting(bid.creator_id);
+    try {
+      await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${encodeURIComponent(bid.creator_id)}`);
+      toast.success(`@${String(bid.creator_nickname || 'creator').replace('@', '')} selected — the deal has started`);
+      await load();
+    } catch (e) {
+      if (e?.response?.status === 402) {
+        const d = e.response.data || {};
+        toast.error(d.detail || 'Not enough credits to fund this deal.');
+      } else {
+        toast.error(e?.response?.data?.detail || 'Failed to select creator');
+      }
+    } finally { setSelecting(null); }
+  };
+
   const requestRevision = () => setRevisionOpen(true);
   const submitRevision = async (payload) => {
     setRevSubmitting(true);
@@ -227,6 +249,9 @@ export default function BrandCampaignDetail() {
   const shipped = !!(ship.shipped_at || ['shipped', 'in_transit', 'delivered'].includes(ship.courier_status));
   const delivered = !!(rec.received_at || ship.delivered_at || ship.courier_status === 'delivered');
   const unboxingUrl = assetUrl(rec.unboxing_video_url || ship.unboxing_video || '');
+  // There is nobody to ship to until a creator is on the campaign — and the label
+  // flow reads the creator's address server-side — so shipping is gated on this.
+  const creatorSelected = !!(campaign.selected_creator || creator?.id || deal?.creator?.id);
   const campaignDeliver = String(campaign.deliverables || '').split(/[\n;]+/).map((s) => s.trim()).filter(Boolean);
   const briefDeliver = extractDeliverables(campaign.brief_text);
   const deliverList = campaignDeliver.length ? campaignDeliver : briefDeliver;
@@ -433,16 +458,23 @@ export default function BrandCampaignDetail() {
 
               {/* This panel was read-only: it showed "Pending / — / —" with no way
                   to act on it, so the brand had to hunt for the Shipments page to
-                  enter a tracking number. Same drawer, opened from here. */}
+                  enter a tracking number. Same drawer, opened from here.
+
+                  Only once a creator is on the campaign: there is nobody to ship
+                  to before that, and the label flow needs the creator's address. */}
               {!delivered && (
-                <button
-                  type="button"
-                  className="bcd-ship-btn"
-                  onClick={() => setShipmentOpen(true)}
-                  data-testid="add-shipment-btn"
-                >
-                  <Truck size={15} /> {shipped ? 'Update shipment details' : 'Add shipment details'}
-                </button>
+                creatorSelected ? (
+                  <button
+                    type="button"
+                    className="bcd-ship-btn"
+                    onClick={() => setShipmentOpen(true)}
+                    data-testid="add-shipment-btn"
+                  >
+                    <Truck size={15} /> {shipped ? 'Update shipment details' : 'Add shipment details'}
+                  </button>
+                ) : (
+                  <span className="bcd-ship-wait">Select a creator to add shipment details</span>
+                )
               )}
             </div>
           )}
@@ -485,7 +517,38 @@ export default function BrandCampaignDetail() {
                   <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>
                 </div>
               </>
-            ) : <p className="bcd-muted">No creator selected yet.</p>}
+            ) : bids.length ? (
+              // Creators have applied but nobody's been picked — this page used to just
+              // say "No creator selected yet" with no way to see or accept the bids.
+              <div className="bcd-bids">
+                <p className="bcd-bids-h">{bids.length} creator{bids.length === 1 ? '' : 's'} applied — pick one to start the deal.</p>
+                {bids.map((b) => (
+                  <div key={b.id || b.creator_id} className="bcd-bid">
+                    <div className="bcd-bid-top">
+                      <span className="bcd-cre-ava sm">{String(b.creator_nickname || 'C').replace('@', '').charAt(0).toUpperCase()}</span>
+                      <div className="bcd-bid-who">
+                        <strong>@{String(b.creator_nickname || 'creator').replace('@', '')}</strong>
+                        <small>{b.estimated_delivery_days ? `${b.estimated_delivery_days} day delivery` : 'Delivery not specified'}</small>
+                      </div>
+                      <b className="bcd-bid-amt">{inr(b.amount)}</b>
+                    </div>
+                    {b.proposal && <p className="bcd-bid-msg">{b.proposal}</p>}
+                    <div className="bcd-bid-actions">
+                      <button className="bcd-cta" onClick={() => navigate(`/dashboard/business/creator/${b.creator_id}`)}>
+                        <User size={14} /> View profile
+                      </button>
+                      <button
+                        className="bcd-cta primary"
+                        disabled={selecting === b.creator_id}
+                        onClick={() => selectCreator(b)}
+                      >
+                        <Check size={14} /> {selecting === b.creator_id ? 'Selecting…' : `Accept ${inr(b.amount)}`}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="bcd-muted">No creator selected yet, and no bids have come in.</p>}
         </div>
         </div>
         </>
@@ -611,6 +674,7 @@ export default function BrandCampaignDetail() {
         .bcd-ship-full:hover{background:#e2e5ff}
         .bcd-ship-btn{margin-left:auto;display:inline-flex;align-items:center;gap:7px;border:0;background:#5b6bff;color:#fff;border-radius:10px;padding:9px 16px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
         .bcd-ship-btn:hover{background:#4452f0}
+        .bcd-ship-wait{margin-left:auto;color:#8a90a6;font-size:12.5px;font-weight:600}
         @media (max-width:980px){.bcd-row-main{grid-template-columns:1fr;align-items:start}}
         /* horizontal campaign progress */
         .bcd-progress-card{margin-bottom:0}
@@ -655,6 +719,19 @@ export default function BrandCampaignDetail() {
         .bcd-cta.primary{background:#07074e;border-color:#07074e;color:#fff}
         .bcd-cta.primary:hover{background:linear-gradient(100deg,#2e2e94,#1e1e70);border-color:#2e2e94}
         .bcd-cta-ship{margin-top:10px}
+        .bcd-bids{display:flex;flex-direction:column;gap:10px}
+        .bcd-bids-h{margin:0 0 2px;font-size:13px;color:#6b6f95;font-weight:600}
+        .bcd-bid{border:1px solid #e8ecff;border-radius:12px;padding:12px 14px;background:#fbfcff}
+        .bcd-bid-top{display:flex;align-items:center;gap:10px}
+        .bcd-bid-who{flex:1;min-width:0}
+        .bcd-bid-who strong{display:block;font-size:14px;color:#15163a}
+        .bcd-bid-who small{color:#9296ba;font-size:12px}
+        .bcd-bid-amt{font-size:15px;color:#07074e;white-space:nowrap}
+        .bcd-bid-msg{margin:8px 0 0;font-size:13px;color:#5c608a;line-height:1.5;
+          display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+        .bcd-bid-actions{display:flex;gap:8px;margin-top:10px}
+        .bcd-bid-actions .bcd-cta{flex:1;justify-content:center;padding:8px 10px;font-size:13px}
+        .bcd-cre-ava.sm{width:34px;height:34px;font-size:13px;flex:none}
         .bcd-creator{display:flex;align-items:center;gap:12px;margin-bottom:6px}
         .bcd-cre-ava{width:48px;height:48px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:18px}
         .bcd-cre-ava img{width:100%;height:100%;object-fit:cover}

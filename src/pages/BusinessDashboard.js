@@ -15,6 +15,7 @@ import CampaignDetails from './CampaignDetails';
 import WorkReview from './WorkReview';
 import ShipmentTracking from './ShipmentTracking';
 import CreatorProfileModal from '../components/CreatorProfileModal';
+import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -777,12 +778,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
     setRechargingWallet(true);
     try {
-      const response = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
-      toast.success(`Payment order created for ${formatMoney(response.data.amount)}. Complete payment to credit your wallet.`);
-      setWalletAmount(String(amount));
+      // 1) Backend creates the Razorpay order. 2) Open Razorpay checkout.
+      // 3) On success the helper verifies server-side, which credits the wallet.
+      const { data: order } = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
+      const result = await payWithRazorpay(order, {
+        name: user?.nickname || user?.full_name,
+        email: user?.email,
+        contact: user?.phone,
+        description: `Wallet recharge — ${formatMoney(order.amount)}`,
+      });
+      toast.success(result?.message || 'Payment successful — wallet credited.');
+      setWalletAmount('');
       await fetchWallet();
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Failed to start wallet recharge'));
+      if (isPaymentCancelled(error)) toast.message('Payment cancelled.');
+      else toast.error(apiErrorMessage(error, 'Wallet recharge failed'));
     } finally {
       setRechargingWallet(false);
     }

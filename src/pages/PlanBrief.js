@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { X, Check, Info, Pencil, Plus, Minus, UploadCloud, Mic, FileText, Link2, ChevronDown, Trash2, Tag } from 'lucide-react';
+import { X, Check, Info, Pencil, Plus, Minus, UploadCloud, Mic, FileText, Link2, ChevronDown, Trash2, Tag, Wallet } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -523,15 +523,28 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
           <div className="pb-footer">
             <button type="button" className="pb-goback" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'setup')} disabled={submitting}>Go Back</button>
-            <button
-              type="button"
-              className="pb-proceed"
-              onClick={proceed}
-              disabled={submitting || insufficient || !(total > 0)}
-              title={insufficient ? 'Not enough credits — add funds from your dashboard' : undefined}
-            >
-              {submitting ? 'Processing…' : (insufficient ? 'Not enough credits' : `Pay ${inr(total)} from credits`)}
-            </button>
+            {insufficient ? (
+              // Dead-end fix: short balance is fixable — send them straight to the wallet
+              // to top up instead of showing a disabled "Not enough credits" button.
+              <button
+                type="button"
+                className="pb-proceed pb-addfunds"
+                onClick={() => navigate('/dashboard/business/wallet')}
+                disabled={submitting}
+                title={`Add ${inr(Math.max(shortfall, total - (wallet || 0)))} more in credits`}
+              >
+                <Wallet size={15} /> Add {inr(Math.max(shortfall, total - (wallet || 0)))} Funds
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="pb-proceed"
+                onClick={proceed}
+                disabled={submitting || !(total > 0)}
+              >
+                {submitting ? 'Processing…' : `Pay ${inr(total)} from credits`}
+              </button>
+            )}
           </div>
           </>
           )}
@@ -666,6 +679,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-summary-foot { display: grid; gap: 8px; padding-top: 12px; }
         .pb-credits { display: flex; align-items: center; gap: 6px; color: #07074e; font-size: 0.78rem; font-weight: 700; margin: 0 0 4px; }
         .pb-shortfall { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: #fef2f2; color: #b91c1c; font-size: 0.78rem; font-weight: 700; line-height: 1.35; }
+        .pb-addfunds { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(100deg,#f0a13a,#e0851b); box-shadow: 0 12px 26px -12px rgba(224,133,27,.75); }
+        .pb-addfunds:hover { background: linear-gradient(100deg,#e0851b,#c9740f); }
         .pb-proceed:disabled { opacity: 0.55; cursor: not-allowed; }
         .pb-noprice { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0 0; padding: 10px 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; color: #9a3412; font-size: 12.5px; line-height: 1.5; }
         .pb-summary-line { display: flex; align-items: center; justify-content: space-between; color: #475569; font-weight: 600; font-size: 0.9rem; }

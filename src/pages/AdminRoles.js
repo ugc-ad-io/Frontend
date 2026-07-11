@@ -459,18 +459,24 @@ export default function AdminRoles() {
                             )}
                           </div>
                         </td>
+                        {/* The <td> itself must stay a table cell — it used to be
+                            display:flex, which drops it out of the table layout and
+                            is why the buttons wrapped and every row was a different
+                            height. Flex lives on the wrapper instead. */}
                         <td className="arl-row-actions">
-                          {founder && (
-                            <button className="arl-pwd" onClick={() => changePassword(m)} disabled={savingId === m.id}>Change password</button>
-                          )}
-                          {founder && !locked && (
-                            <button className="arl-revoke" onClick={() => revoke(m)} disabled={savingId === m.id}>Revoke</button>
-                          )}
-                          {/* Revoke = demote to a normal user. Delete = remove the account entirely.
-                              The founder row is locked and can never be deleted. */}
-                          {founder && !locked && (
-                            <button className="arl-delete" onClick={() => deleteStaff(m)} disabled={savingId === m.id}>Delete</button>
-                          )}
+                          <div className="arl-actions">
+                            {founder && (
+                              <button className="arl-pwd" onClick={() => changePassword(m)} disabled={savingId === m.id}>Change password</button>
+                            )}
+                            {founder && !locked && (
+                              <button className="arl-revoke" onClick={() => revoke(m)} disabled={savingId === m.id}>Revoke</button>
+                            )}
+                            {/* Revoke = demote to a normal user. Delete = remove the account entirely.
+                                The founder row is locked and can never be deleted. */}
+                            {founder && !locked && (
+                              <button className="arl-delete" onClick={() => deleteStaff(m)} disabled={savingId === m.id}>Delete</button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -687,7 +693,8 @@ export default function AdminRoles() {
         .arl-count { font-size: 0.72rem; font-weight: 700; color: #4452f0; background: #eef0ff; border-radius: 999px; padding: 2px 9px; }
         .arl-table-wrap { overflow-x: auto; border: 1px solid #f1f5f9; border-radius: 10px; }
         .arl-table { width: 100%; border-collapse: collapse; }
-        .arl-table th, .arl-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 0.86rem; vertical-align: top; }
+        .arl-table th, .arl-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 0.86rem; vertical-align: middle; }
+        .arl-table td:first-child { width: 26%; min-width: 200px; }
         .arl-table th { background: #f9fafb; font-size: 0.7rem; font-weight: 700; color: #5b6573; text-transform: uppercase; letter-spacing: 0.04em; }
         .arl-table tbody tr:last-child td { border-bottom: 0; }
         .arl-can { color: #067647; } .arl-can svg, .arl-cant svg { vertical-align: -2px; margin-right: 3px; }
@@ -721,15 +728,21 @@ export default function AdminRoles() {
         .arl-cap-opt.on { border-color: #5b6bff; background: #eef0ff; color: #1e2a78; font-weight: 600; }
         .arl-cap-opt input { accent-color: #5b6bff; }
         .arl-custom-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .arl-scope-chip { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #e0f2fe; color: #075985; }
-        /* Custom-admin features shown inline next to the role dropdown */
-        .arl-role-cell { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        /* Role cell: the dropdown/badge on its own line, then one wrapping row of
+           chips underneath. Laying the select and the chips side by side let the
+           chips spill and pushed "Edit access" onto a stray line of its own. */
+        .arl-role-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
+        .arl-role-cell > select { width: 100%; max-width: 190px; }
         .arl-custom-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .arl-feat-chip { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #eef0ff; color: #3730a3; white-space: nowrap; }
+        /* One chip size, so a row of them sits on a single baseline */
+        .arl-scope-chip,
+        .arl-feat-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+        .arl-scope-chip { background: #e0f2fe; color: #075985; font-weight: 700; }
+        .arl-feat-chip { background: #eef0ff; color: #3730a3; }
         .arl-feat-more { background: #eef1f6; color: #5b6573; border: none; cursor: pointer; font-family: inherit; }
         .arl-feat-more:hover { background: #e2e6ee; color: #3a4250; }
         .arl-nofeat { padding: 0; font-size: 12px; font-style: italic; }
-        .arl-inline-edit { margin-top: 0; margin-left: 2px; }
+        .arl-inline-edit { margin: 0; height: 24px; padding: 0 10px; font-size: 11.5px; line-height: 1; }
         .arl-add input { flex: 1; min-width: 220px; border: 1px solid #e6e8ec; border-radius: 8px; padding: 9px 12px; font-size: 0.88rem; }
         .arl-add select, .arl-table select { border: 1px solid #e6e8ec; border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; background: #fff; cursor: pointer; }
         .arl-add input:focus, .arl-add select:focus, .arl-table select:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,0.16); }
@@ -739,14 +752,19 @@ export default function AdminRoles() {
         .arl-avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; background: linear-gradient(135deg, #5b6bff, #4452f0); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }
         .arl-member strong { display: block; color: #111827; font-size: 0.88rem; }
         .arl-email { font-size: 0.76rem; color: #98a1ad; }
-        .arl-row-actions { text-align: right; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        /* Actions: one right-aligned row that never wraps, so every row's buttons
+           line up in the same place regardless of how many chips the role cell has. */
+        /* Actions: one right-aligned row that never wraps, so every row's buttons
+           line up in the same place regardless of how many chips the role cell has. */
+        .arl-row-actions { text-align: right; width: 1%; white-space: nowrap; }
+        .arl-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
         .arl-delete { border: 1px solid #f2b8c6; background: #fff5f8; color: #b42318; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
         .arl-delete:hover { background: #ffe4ec; }
         .arl-delete:disabled { opacity: 0.5; cursor: not-allowed; }
         .arl-pwd { border: 1px solid #d6dbff; background: #fff; color: #4452f0; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
         .arl-pwd:hover { background: #eef0ff; }
         .arl-pwd:disabled { opacity: 0.5; cursor: not-allowed; }
-        .arl-revoke { border: 1px solid #fecdca; background: #fff; color: #b42318; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+        .arl-revoke { border: 1px solid #fecdca; background: #fff; color: #b42318; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
         .arl-revoke:hover { background: #fef3f2; }
         .arl-revoke:disabled { opacity: 0.5; cursor: not-allowed; }
         .arl-muted { color: #98a1ad; font-size: 0.88rem; padding: 8px 2px; }

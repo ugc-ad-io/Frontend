@@ -1065,10 +1065,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               ) : (embeddedCreatorId || searchParams.get('creator')) ? (
                 <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}><Send size={16} /> Publish & Start Deal</button>
               ) : (
-                <>
-                  <button type="button" className="btn-secondary" onClick={() => { setPublishMode('invite'); setShowConfirm(true); }} disabled={submitting}><Send size={16} /> Publish & Invite Creator</button>
-                  <button type="button" className="btn-primary" onClick={() => { setPublishMode('matches'); setShowConfirm(true); }} disabled={submitting}>Publish & Request Matches</button>
-                </>
+                <button type="button" className="btn-primary" onClick={() => { setPublishMode('matches'); setShowConfirm(true); }} disabled={submitting}><Send size={16} /> Publish Campaign</button>
               )}
             </div>
           </div>

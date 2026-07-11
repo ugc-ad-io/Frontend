@@ -340,6 +340,38 @@ export default function BrandCampaignDetail() {
                   </article>
                 );
               })()}
+
+              {/* Revision status — the feedback you sent and how the creator answered. */}
+              {(() => {
+                const rev = deal?.revision_tracker || {};
+                const hasRevision = Boolean(rev.latest_feedback || rev.requested_changes?.length);
+                if (!hasRevision) return null;
+                const answer = rev.creator_response;
+                const ANSWER = {
+                  accepted: { cls: 'ok', text: 'Creator accepted the revision and is reworking the content.' },
+                  scope_creep: { cls: 'bad', text: 'Creator flagged this as scope creep — a dispute was opened for the platform team to review.' },
+                  partial_dispute: { cls: 'bad', text: 'Creator partially accepted and disputed the remaining items — a dispute was opened.' },
+                };
+                const a = ANSWER[answer];
+                return (
+                  <div className="bcd-card bcd-revcard">
+                    <div className="bcd-revcard-head">
+                      <h3><RefreshCw size={16} /> Revision</h3>
+                      <span className="bcd-revcard-count">
+                        {rev.revision_count_used || 0} of {rev.revision_limit || 0} used
+                      </span>
+                    </div>
+                    <div className="bcd-revcard-grid">
+                      <p><small>Your feedback</small><strong>{rev.latest_feedback || '—'}</strong></p>
+                      <p><small>Requested changes</small><strong>{rev.requested_changes?.length ? rev.requested_changes.join(', ') : '—'}</strong></p>
+                      <p><small>New deadline</small><strong>{rev.new_deadline_at ? new Date(rev.new_deadline_at).toLocaleString() : 'Not scheduled'}</strong></p>
+                    </div>
+                    <p className={`bcd-revcard-answer ${a ? a.cls : 'wait'}`}>
+                      {a ? a.text : 'Waiting for the creator to respond to this revision request.'}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <EmptyState title="Nothing to review yet" message="Once the creator submits their content, it will appear here for you to review and approve." />
@@ -492,6 +524,18 @@ export default function BrandCampaignDetail() {
         .bcd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
         .bcd-grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;margin-top:20px;align-items:start}
         .bcd-card{background:#fff;border:1px solid #eef0f6;border-radius:18px;padding:20px;box-shadow:0 10px 30px -12px rgba(28,30,80,.10)}
+        .bcd-revcard{margin-top:16px}
+        .bcd-revcard-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+        .bcd-revcard-head h3{margin:0;display:flex;align-items:center;gap:8px}
+        .bcd-revcard-count{font-size:12.5px;font-weight:700;color:#7777b7;background:#f3f4fb;border-radius:999px;padding:4px 11px}
+        .bcd-revcard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+        .bcd-revcard-grid p{margin:0;display:flex;flex-direction:column;gap:5px;background:#f8f9fd;border:1px solid #eef0f6;border-radius:12px;padding:12px 14px}
+        .bcd-revcard-grid small{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a9ab8}
+        .bcd-revcard-grid strong{font-size:13.5px;color:#15163a;font-weight:600;line-height:1.45;word-break:break-word}
+        .bcd-revcard-answer{margin:14px 0 0;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:600;line-height:1.45}
+        .bcd-revcard-answer.ok{background:#e7f7ee;border:1px solid #b7e6cd;color:#067647}
+        .bcd-revcard-answer.bad{background:#fff4f2;border:1px solid #ffd2c9;color:#b42318}
+        .bcd-revcard-answer.wait{background:#fff8e8;border:1px solid #fbe3b4;color:#b54708}
         .bcd-card h3{margin:0 0 16px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;font-weight:700;color:#15163a}
         .bcd-step{display:flex;gap:12px;position:relative;padding-bottom:18px}
         .bcd-step:last-child{padding-bottom:0}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown, Mail } from 'lucide-react';
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_MATRIX, CAP_LABELS, ALL_CAPS, SCOPE_LABELS, isFounder as roleIsFounder } from '../utils/adminRoles';
@@ -188,6 +188,25 @@ export default function AdminRoles() {
       setPwdStep('new');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Incorrect password'));
+    } finally {
+      setPwdBusy(false);
+    }
+  };
+
+  // Alternative to setting a password yourself: email the admin a reset code so
+  // they choose their own password (reuses the standard forgot-password flow).
+  const sendResetEmail = async () => {
+    const member = pwdMember;
+    setPwdBusy(true);
+    try {
+      await axios.post(`${API}/auth/forgot-password`, { email: member.email });
+      toast.success(`Reset code emailed to ${member.email}`);
+      setPwdMember(null);
+      setCurPwd('');
+      setNextPwd('');
+      setNextPwd2('');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not send the reset email'));
     } finally {
       setPwdBusy(false);
     }
@@ -595,6 +614,16 @@ export default function AdminRoles() {
                     <button type="button" className="arl-revoke" onClick={() => setPwdStep('current')} disabled={pwdBusy}>Back</button>
                     <button type="submit" className="arl-add-btn" disabled={pwdBusy}>{pwdBusy ? 'Saving…' : 'Update password'}</button>
                   </div>
+
+                  <div className="arl-pwd-alt">
+                    <span>or</span>
+                  </div>
+                  <button type="button" className="arl-pwd-reset" onClick={sendResetEmail} disabled={pwdBusy}>
+                    <Mail size={15} /> Email them a reset code instead
+                  </button>
+                  <p className="arl-pwd-note" style={{ margin: '8px 0 0' }}>
+                    Sends a 6-digit reset code to {pwdMember.email} so they set their own password.
+                  </p>
                 </form>
               )}
             </div>
@@ -620,6 +649,11 @@ export default function AdminRoles() {
         .arl-pwd-field input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
         .arl-pwd-note { font-size: 0.75rem; color: #98a1ad; margin: 0 0 14px; line-height: 1.5; }
         .arl-pwd-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .arl-pwd-alt { display: flex; align-items: center; gap: 10px; margin: 16px 0 10px; color: #c3c7dc; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+        .arl-pwd-alt::before, .arl-pwd-alt::after { content: ''; flex: 1; height: 1px; background: #eef0f5; }
+        .arl-pwd-reset { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #d6dbff; background: #fff; color: #4452f0; font-weight: 600; font-size: 0.85rem; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+        .arl-pwd-reset:hover:not(:disabled) { background: #eef0ff; }
+        .arl-pwd-reset:disabled { opacity: 0.5; cursor: not-allowed; }
         .arl-you { display: flex; align-items: center; gap: 9px; border-radius: 12px; padding: 12px 16px; font-size: 0.9rem; color: #07074e; border: 1px solid #d6dbff; background: #eef0ff; }
         .arl-you strong { font-weight: 700; }
         .arl-you-tag { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #b54708; background: #fff3e0; border: 1px solid #fde6c8; border-radius: 6px; padding: 3px 8px; }

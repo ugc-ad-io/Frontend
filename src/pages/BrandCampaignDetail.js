@@ -435,7 +435,7 @@ export default function BrandCampaignDetail() {
             <h3>Campaign Progress</h3>
             {(campaign.requires_shipment || ship.required) && (delivered || shipped) && (
               <div className="bcd-progress-ship">
-                <span className={`bcd-pill ${delivered ? 'ok' : 'info'}`}>{delivered ? 'Delivered' : 'In Transit'}</span>
+                <span className={`bcd-pill ${delivered ? 'ok' : 'info'}`}>{delivered ? 'Delivered' : 'Shipped'}</span>
                 {unboxingUrl && <button type="button" className="bcd-pill-btn" onClick={() => setVideoModal({ src: unboxingUrl, title: 'Unboxing Video' })}><Play size={13} /> Unboxing</button>}
               </div>
             )}
@@ -451,7 +451,7 @@ export default function BrandCampaignDetail() {
           </div>
           {(campaign.requires_shipment || ship.required) && (
             <div className="bcd-ship-detail">
-              <div className="bcd-kv"><label>Status</label><strong>{delivered ? 'Delivered' : shipped ? 'In Transit' : 'Pending'}</strong></div>
+              <div className="bcd-kv"><label>Status</label><strong>{delivered ? 'Delivered' : shipped ? 'Shipped' : 'Pending'}</strong></div>
               <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '—'}</strong></div>
               <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '—'}</strong></div>
               {delivered && <div className="bcd-kv"><label>Delivered on</label><strong>{fmtDate(rec.received_at || ship.delivered_at)}</strong></div>}

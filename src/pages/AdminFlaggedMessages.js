@@ -149,7 +149,9 @@ export default function AdminFlaggedMessages() {
       // appending an optimistic {enabled: true} object is what used to tell the
       // admin their rule was live while the stored row said otherwise.
       await fetchRules();
-      toast.success('Rule added — live from the next message.');
+      // The rule is stored disabled/pending — saying "live" here would be the same
+      // lie the old optimistic append told.
+      toast.success('Rule saved — hit "Approve & activate" to put it live.');
       setDraftRule({ type: 'keyword', label: '', pattern: '' });
       setProposing(false);
     } catch (e) {
@@ -223,17 +225,17 @@ export default function AdminFlaggedMessages() {
               <div>
                 <h2><Filter size={18} /> Filter rules</h2>
                 <p>Regex patterns and keyword lists the contact-info filter runs against every message.
-                  A new rule is saved for review — approve it to put it live.</p>
+                  A rule you add goes live immediately — switch it off or delete it if it misfires.</p>
               </div>
               <button className="afm-btn-primary" onClick={() => setProposing(true)} data-testid="propose-rule">
-                <Plus size={16} /> Propose new rule
+                <Plus size={16} /> Add new rule
               </button>
             </div>
 
             {proposing && (
               <div className="afm-rule-form" data-testid="rule-form">
                 <div className="afm-rule-form-head">
-                  <strong>Propose a new rule</strong>
+                  <strong>Add a new rule</strong>
                   <button className="afm-icon-btn" onClick={() => setProposing(false)}><X size={16} /></button>
                 </div>
                 <div className="afm-rule-form-row">
@@ -284,14 +286,22 @@ export default function AdminFlaggedMessages() {
                     <span className={`afm-rule-state ${rule.enabled ? 'on' : 'off'}`}>
                       {rule.enabled ? 'Active' : (rule.status === 'pending_review' ? 'Awaiting review' : 'Disabled')}
                     </span>
-                    {/* A rule sitting at "Awaiting review" does nothing. This is the
-                        button that actually puts it in front of every message. */}
+                    {/* A rule sitting at "Awaiting review" does nothing to messages.
+                        This is the button that actually puts it in front of them. */}
                     <button
                       className={rule.enabled ? 'afm-rule-off' : 'afm-rule-approve'}
-                      onClick={() => toggleRule(rule, !rule.enabled)}
+                      onClick={() => toggleRule(rule)}
                       data-testid={`toggle-rule-${idx}`}
                     >
                       {rule.enabled ? 'Switch off' : 'Approve & activate'}
+                    </button>
+                    <button
+                      className="afm-rule-del"
+                      onClick={() => deleteRule(rule)}
+                      title="Delete rule"
+                      data-testid={`delete-rule-${idx}`}
+                    >
+                      <X size={14} />
                     </button>
                   </div>
                 </div>
@@ -548,6 +558,13 @@ export default function AdminFlaggedMessages() {
         .afm-rule-state { font-size: 0.76rem; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
         .afm-rule-state.on { background: #dcfce7; color: #15803d; }
         .afm-rule-state.off { background: #f1f5f9; color: #64748b; }
+        .afm-rule-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .afm-rule-approve { border: 0; cursor: pointer; font-size: 0.76rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; background: #07074e; color: #fff; }
+        .afm-rule-approve:hover { background: #14146b; }
+        .afm-rule-off { border: 1.5px solid #e2e8f0; cursor: pointer; font-size: 0.76rem; font-weight: 700; padding: 5px 11px; border-radius: 8px; background: #fff; color: #64748b; }
+        .afm-rule-off:hover { border-color: #cbd5e1; color: #475569; }
+        .afm-rule-del { display: grid; place-items: center; border: 1.5px solid #eef2f9; cursor: pointer; padding: 5px; border-radius: 8px; background: #fff; color: #94a3b8; }
+        .afm-rule-del:hover { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
         .afm-edge-note { margin-top: 22px; padding: 14px 16px; background: #f8f9ff; border: 1px solid #e8ecff; border-radius: 11px; color: #475569; font-size: 0.84rem; line-height: 1.55; }
         .afm-edge-note strong { color: #07074e; }
 

@@ -579,10 +579,10 @@ export default function MyDealsPage() {
     if (primaryAction.type === 'content') return handleSubmitContent();
     if (primaryAction.type === 'add_evidence') return handleAddEvidenceClick();
     if (primaryAction.type === 'archive') return handleArchiveDeal();
-    // Jump the creator to the delivery-address form so the button actually does
-    // something the moment the deal is accepted.
+    // Open + focus the delivery-address form. Scrolling alone did nothing visible,
+    // because the card already sits just below the button — it read as a dead click.
     if (primaryAction.type === 'ship_address') {
-      shipAddressRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      shipAddressRef.current?.open();
       return;
     }
     return null;
@@ -784,9 +784,10 @@ export default function MyDealsPage() {
                   ))}
                   {shipmentRequired && (
                     <>
-                      {/* Creator confirms the delivery address before the team dispatches. */}
-                      <div style={{ marginTop: 14 }} ref={shipAddressRef}>
-                        <ShippingDetailsCard campaignId={deal.deal_id} onReady={() => fetchDeals()} />
+                      {/* Creator confirms the delivery address before the team dispatches.
+                          The ref lets the "Confirm Delivery Address" button open + focus it. */}
+                      <div style={{ marginTop: 14 }}>
+                        <ShippingDetailsCard ref={shipAddressRef} campaignId={deal.deal_id} onReady={() => fetchDeals()} />
                       </div>
                       <div className="cmk-dr-ship">
                         <div className="cmk-dr-ship-h"><Package size={17} /> Shipment Tracking</div>

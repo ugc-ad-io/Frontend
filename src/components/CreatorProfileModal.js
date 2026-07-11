@@ -114,6 +114,17 @@ const relTime = (ts) => {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
+// The backend gates deliverable videos under /uploads and accepts the JWT either
+// as an Authorization header OR a ?token= query param. A native <video>/<img> tag
+// can't send headers, so sign backend URLs with the token — otherwise a brand
+// viewing a creator's portfolio gets a 403 and the clip won't play.
+const mediaUrl = (u) => {
+  const base = assetUrl(u);
+  if (!base || !base.startsWith(BACKEND_URL)) return base; // external / empty — leave alone
+  const token = localStorage.getItem('token');
+  if (!token) return base;
+  return `${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+};
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
 const pfUrl = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.link || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || ''));
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
@@ -130,8 +141,8 @@ function VideoTile({ url, onRemove, onEdit }) {
   const [playing, setPlaying] = useState(false);
   const [open, setOpen] = useState(false);   // big lightbox with real playback + sound
   const [failed, setFailed] = useState(false); // broken / removed media URL
-  const src = assetUrl(url);
-  const video = isVideo(src);
+  const src = mediaUrl(url);   // signed with ?token= so gated deliverable videos play
+  const video = isVideo(url);  // classify on the raw url (the token contains dots)
   // Hover to preview: play the clip muted (hides the play icon) + zoom, reset on leave.
   const hoverPlay = () => { const v = ref.current; if (v && video) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
   const hoverStop = () => { const v = ref.current; if (v) { v.pause(); try { v.currentTime = 0.5; } catch {} setPlaying(false); } };

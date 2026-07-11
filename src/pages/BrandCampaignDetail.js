@@ -177,25 +177,41 @@ export default function BrandCampaignDetail() {
   const refresh = async () => {
     try { const r = await axios.get(`${API}/campaigns/${id}`); setCampaign(r.data); } catch { /* ignore */ }
   };
+  // /work/:id/* is keyed by the WORK SUBMISSION id, not the campaign id. This page only
+  // has the campaign id in its URL, and it was passing that straight through — which
+  // 404'd every approve / request-revision / download. Resolve the real one first.
+  const resolveWorkId = async () => {
+    const r = await axios.get(`${API}/work/campaign/${id}`).catch(() => null);
+    return r?.data?.id || null;
+  };
   const approveWork = async () => {
-    try { await axios.post(`${API}/work/${id}/approve`); toast.success('Approved — payment released to the creator'); refresh(); }
-    catch { toast.error('Failed to approve'); }
+    try {
+      const wid = await resolveWorkId();
+      if (!wid) return toast.error('No submitted work to approve yet');
+      await axios.post(`${API}/work/${wid}/approve`);
+      toast.success('Approved — payment released to the creator');
+      refresh();
+    } catch (e) { toast.error(e?.response?.data?.detail || 'Failed to approve'); }
   };
   const requestRevision = () => setRevisionOpen(true);
   const submitRevision = async (payload) => {
     setRevSubmitting(true);
     try {
-      await axios.post(`${API}/work/${id}/request-revision`, payload);
+      const wid = await resolveWorkId();
+      if (!wid) throw new Error('No submitted work to revise');
+      await axios.post(`${API}/work/${wid}/request-revision`, payload);
       toast.success('Revision requested');
       setRevisionOpen(false);
       refresh();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || 'Failed to request revision');
+      toast.error(e?.response?.data?.detail || e.message || 'Failed to request revision');
     } finally { setRevSubmitting(false); }
   };
   const downloadWork = async () => {
     try {
-      const res = await axios.get(`${API}/work/${id}/download`, { responseType: 'blob' });
+      const wid = await resolveWorkId();
+      if (!wid) return toast.error('No submitted work to download yet');
+      const res = await axios.get(`${API}/work/${wid}/download`, { responseType: 'blob' });
       const u = window.URL.createObjectURL(res.data);
       const a = document.createElement('a'); a.href = u; a.download = `${campaign.title || 'deliverable'}.mp4`;
       document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(u);

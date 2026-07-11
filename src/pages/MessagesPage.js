@@ -67,8 +67,7 @@ const ACTION_CARD_FORM_FIELDS = {
     ['deliverable_summary', 'Deliverable summary', 'text', 'UGC video'],
     ['budget', 'Budget', 'number', '5000'],
     ['timeline', 'Timeline', 'text', '7 days'],
-    ['usage_rights', 'Usage rights', 'text', 'Organic social'],
-    ['full_brief_link', 'Full brief link', 'url', 'https://ugcads.io']
+    ['usage_rights', 'Usage rights', 'text', 'Organic social']
   ],
   counter_offer: [
     ['modified_price', 'Modified price', 'number', '5000'],

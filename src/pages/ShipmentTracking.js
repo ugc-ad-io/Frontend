@@ -6,7 +6,6 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-react';
-import ShippingDetailsCard from '../components/ShippingDetailsCard';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -338,11 +337,9 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
           </div>
         </div>
 
-        {/* Both parties confirm their address before dispatch. Brand = pickup,
-            creator = delivery. Neither ever sees the other's address. */}
-        <div style={{ margin: '0 0 18px' }}>
-          <ShippingDetailsCard campaignId={campaignId} onReady={() => fetchShipment?.()} />
-        </div>
+        {/* The BRAND enters their pickup address inside the "Ship Product" form below
+            (request-shipment). The CREATOR confirms their delivery address in their own
+            deal room — never here. So no address card on this page. */}
 
         {!hasRealShipment ? (
           <div className="no-shipment">

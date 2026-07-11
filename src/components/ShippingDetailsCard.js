@@ -74,6 +74,9 @@ export default function ShippingDetailsCard({ campaignId, onReady }) {
 
   if (loading) return <div className="sdc"><div className="sdc-body"><span className="sdc-muted">Loading shipping details…</span></div></div>;
   if (!status || !status.requires_shipment) return null;   // no physical product on this deal
+  // The BRAND submits their pickup address inside the "Ship Product" form, not here.
+  // This card is only ever for the creator confirming where the product is sent.
+  if (status.my_role !== 'creator') return null;
 
   const dispatched = ['shipped', 'in_transit', 'delivered', 'received'].includes(status.shipment_status);
 

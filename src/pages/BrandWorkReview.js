@@ -65,15 +65,25 @@ export default function BrandWorkReview() {
   const [perPage, setPerPage] = useState(10);
   const [videoModal, setVideoModal] = useState(null);
   const [revisionFor, setRevisionFor] = useState(null);
+  const [trackers, setTrackers] = useState({});   // campaignId -> revision_tracker
   const [revSubmitting, setRevSubmitting] = useState(false);
   const busy = useRef(false);
 
   const load = async () => {
     try {
-      const [camps, dir] = await Promise.all([
+      const [camps, dir, dealList] = await Promise.all([
         axios.get(`${API}/campaigns?t=${Date.now()}`),
         axios.get(`${API}/business/creator-directory`).catch(() => ({ data: [] })),
+        // Carries revision_tracker (free left / next fee) — the campaigns list doesn't,
+        // so without this the modal can't warn the brand before a ₹500 debit.
+        axios.get(`${API}/deals/business`).catch(() => ({ data: [] })),
       ]);
+      const trackerMap = {};
+      (Array.isArray(dealList.data) ? dealList.data : []).forEach((d) => {
+        const cid = d?.campaign?.id || d?.campaign_id;
+        if (cid) trackerMap[String(cid)] = d.revision_tracker || {};
+      });
+      setTrackers(trackerMap);
       const nameMap = {};
       const photoMap = {};
       (Array.isArray(dir.data) ? dir.data : []).forEach((c) => { nameMap[String(c.id)] = c.name; photoMap[String(c.id)] = c.profile_photo; });
@@ -137,11 +147,14 @@ export default function BrandWorkReview() {
         ...items.map((it) => `[${it.severity || 'must-fix'}] ${it.description}${it.brief_reference ? ` (ref: ${it.brief_reference})` : ''}`),
         payload.notes ? `\nNotes: ${payload.notes}` : '',
       ].filter(Boolean).join('\n');
-      await axios.post(`${API}/deals/${revisionFor}/request-revision`, {
+      const { data } = await axios.post(`${API}/deals/${revisionFor}/request-revision`, {
         feedback,
         requested_changes: items.map((it) => it.description).filter(Boolean),
       });
-      toast.success('Revision requested');
+      // Say so when money actually moved — a bare "Revision requested" hid the debit.
+      toast.success(data?.paid
+        ? `Revision requested — ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
+        : 'Revision requested');
       setRevisionFor(null);
       await load();
     } catch (e) {
@@ -285,7 +298,15 @@ export default function BrandWorkReview() {
       )}
 
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
-      {revisionFor && <RevisionRequestModal onClose={() => setRevisionFor(null)} onSubmit={submitRevision} submitting={revSubmitting} />}
+      {revisionFor && (
+        <RevisionRequestModal
+          onClose={() => setRevisionFor(null)}
+          onSubmit={submitRevision}
+          submitting={revSubmitting}
+          freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
+          nextFee={trackers[String(revisionFor)]?.next_revision_fee}
+        />
+      )}
 
       {videoModal && (
         <div className="bwr-vid-overlay" onClick={() => setVideoModal(null)}>

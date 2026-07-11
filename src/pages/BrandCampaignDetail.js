@@ -221,8 +221,11 @@ export default function BrandCampaignDetail() {
     try {
       const wid = await resolveWorkId();
       if (!wid) throw new Error('No submitted work to revise');
-      await axios.post(`${API}/work/${wid}/request-revision`, payload);
-      toast.success('Revision requested');
+      const { data } = await axios.post(`${API}/work/${wid}/request-revision`, payload);
+      // Say so when money actually moved — a bare "Revision requested" hid the debit.
+      toast.success(data?.paid
+        ? `Revision requested — ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
+        : 'Revision requested');
       setRevisionOpen(false);
       refresh();
     } catch (e) {
@@ -575,7 +578,17 @@ export default function BrandCampaignDetail() {
           </aside>
         </div>
       )}
-      {revisionOpen && <RevisionRequestModal onClose={() => setRevisionOpen(false)} onSubmit={submitRevision} submitting={revSubmitting} />}
+      {/* Feed the modal the live fee/allowance so a ₹500 debit is never a surprise —
+          these props existed but were never passed, so the warning banner never showed. */}
+      {revisionOpen && (
+        <RevisionRequestModal
+          onClose={() => setRevisionOpen(false)}
+          onSubmit={submitRevision}
+          submitting={revSubmitting}
+          freeRemaining={deal?.revision_tracker?.free_revisions_remaining}
+          nextFee={deal?.revision_tracker?.next_revision_fee}
+        />
+      )}
 
       {/* Same shipment drawer the dashboard uses — reload on close so the panel's
           tracking id / courier reflect whatever was just entered. */}

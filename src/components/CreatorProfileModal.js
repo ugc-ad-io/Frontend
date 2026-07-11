@@ -438,6 +438,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const removeWork = (idx) => { persistPortfolio((pf || []).filter((_, i) => i !== idx)); };
 
   const saveDetails = async () => {
+    // Delivery time is required — a profile with no turnaround leaves brands
+    // guessing, and the header used to invent "1 Day" to fill the gap.
+    if (!(Number(form.deliveryDays) > 0)) {
+      toast.error('Enter your typical delivery time (days) under Pricing & Delivery');
+      return;
+    }
     setSaving(true);
     try {
       const pr = data.profile || {};
@@ -781,7 +787,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       <label>Payout Period<input value="Per Video" readOnly /></label>
                       <label>Budget Range<input {...fld('budgetRange')} /></label>
                       <label>
-                        Typical Delivery (days)
+                        Typical Delivery (days) *
                         <input
                           type="text"
                           inputMode="numeric"

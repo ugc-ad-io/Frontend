@@ -525,6 +525,7 @@ export default function CreatorProfileSetup() {
       portfolio: data.portfolio.length > 0,
       languages: data.languages.length > 0,
       expectedPayout: isFilled(data.expectedPayout),
+      deliveryDays: Number(data.deliveryDays) > 0,
     };
     return {};
   };
@@ -1290,12 +1291,12 @@ export default function CreatorProfileSetup() {
             {err('expectedPayout') && <span className="ps-error">Enter your expected payout</span>}
 
             <div className="ps-field" style={{ marginTop: 18 }}>
-              <label className="ps-label">Typical delivery time <span className="ps-muted">(optional)</span></label>
+              <label className="ps-label">Typical delivery time</label>
               <p className="ps-hinttext">How many days you usually take to deliver one video. Brands see this on your profile.</p>
               <div className="ps-comp">
                 <span className="ps-comp__label">Delivered in</span>
                 <input
-                  className="ps-input"
+                  className={`ps-input${err('deliveryDays') ? ' ps-input--error' : ''}`}
                   placeholder="e.g. 3"
                   inputMode="numeric"
                   value={data.deliveryDays}
@@ -1306,6 +1307,7 @@ export default function CreatorProfileSetup() {
                   {Number(data.deliveryDays) === 1 ? 'Day' : 'Days'}
                 </span>
               </div>
+              {err('deliveryDays') && <span className="ps-error">Enter how many days you take to deliver</span>}
             </div>
           </div>
 

@@ -27,7 +27,6 @@ import {
   Users,
   CreditCard,
   Wallet,
-  Globe,
   CheckCircle,
   ChevronRight,
   MoreVertical,
@@ -115,7 +114,6 @@ const CREATOR_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'security', label: 'Password', icon: Lock },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'language', label: 'Language', icon: Globe },
   { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   { id: 'follow', label: 'Follow Us', icon: Heart }
 ];
@@ -142,7 +140,6 @@ const CREATOR_PRIVACY_ROWS = [
   ['allow_messages', 'Allow direct messages', 'Let brands message you without a deal', MessageSquare]
 ];
 
-const APP_LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi'];
 
 // Legal / policy documents - shown in-app in a modal card when opened.
 const LEGAL_DOCS = [
@@ -285,14 +282,12 @@ export default function ProfileSettings() {
   const [creatorNotif, setCreatorNotif] = useState(() => readLS('ugc_creator_notif', {
     brief_matches: true, bid_updates: true, messages: true, payout_alerts: true, weekly_digest: false,
   }));
-  const [appLang, setAppLang] = useState(() => localStorage.getItem('ugc_app_lang') || 'English');
   const [privacy, setPrivacy] = useState(() => readLS('ugc_creator_privacy', {
     public_profile: true, show_earnings: false, allow_messages: true,
   }));
 
   const [legalDoc, setLegalDoc] = useState(null);
   const saveCreatorNotif = () => { localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif)); toast.success('Notification preferences saved'); };
-  const saveAppLang = () => { localStorage.setItem('ugc_app_lang', appLang); toast.success('Language preference saved'); };
   const savePrivacy = () => { localStorage.setItem('ugc_creator_privacy', JSON.stringify(privacy)); toast.success('Privacy settings saved'); };
 
   const handleDeactivate = async () => {
@@ -1447,21 +1442,6 @@ export default function ProfileSettings() {
                     ))}
                   </div>
                   <button className="ps-btn-primary" onClick={saveCreatorNotif}><Save size={20} /> Save Preferences</button>
-                </>
-              )}
-
-              {activeTab === 'language' && (
-                <>
-                  <h2>Language</h2>
-                  <p className="ps-panel-desc">Choose the language for your dashboard.</p>
-                  <div className="ps-form-group">
-                    <label>App language</label>
-                    <select value={appLang} onChange={(e) => setAppLang(e.target.value)}>
-                      {APP_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                    <span className="ps-hint">This controls the interface language across UGCad.io.</span>
-                  </div>
-                  <button className="ps-btn-primary" onClick={saveAppLang}><Save size={20} /> Save Language</button>
                 </>
               )}
 

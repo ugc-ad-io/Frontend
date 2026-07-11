@@ -83,6 +83,9 @@ export default function AdminUsers() {
   // generic action modal (warn / suspend / message / wallet / commission / payout / announcement)
   const [action, setAction] = useState(null); // { type, user|users, ... }
 
+  // ban / unban confirmation modal
+  const [banTarget, setBanTarget] = useState(null); // { user, banned }
+
   useEffect(() => { fetchAllUsers(); }, []);
 
   const fetchAllUsers = async () => {
@@ -137,26 +140,25 @@ export default function AdminUsers() {
     }
   };
 
-  const handleBan = async (userId, currentlyBanned) => {
+  // Ban / unban runs through an in-app modal (BanModal) instead of window.confirm,
+  // so the ban reason is captured in a real form and the copy matches the admin UI.
+  const openBan = (u) => setBanTarget({ user: u, banned: isInactive(u) });
+
+  const confirmBan = async (reason) => {
+    const { user: u, banned: currentlyBanned } = banTarget;
     const action_ = currentlyBanned ? 'unban' : 'ban';
-    const confirmMessage = currentlyBanned
-      ? 'Are you sure you want to unban this user?'
-      : 'Are you sure you want to ban this user? They will not be able to log in.';
-    if (!window.confirm(confirmMessage)) return;
-
-    let banReason = null;
-    if (!currentlyBanned) {
-      banReason = prompt('Enter ban reason:');
-      if (!banReason) return;
-    }
-
     try {
-      await axios.post(`${API}/admin/user/ban`, { user_id: userId, banned: !currentlyBanned, ban_reason: banReason });
+      await axios.post(`${API}/admin/user/ban`, {
+        user_id: u.id,
+        banned: !currentlyBanned,
+        ban_reason: currentlyBanned ? null : reason,
+      });
       toast.success(`User ${action_}ned successfully`);
       // Reflect immediately (banned ⇒ active:false), then reconcile.
-      setAllUsers((prev) => prev.map((x) => x.id === userId
+      setAllUsers((prev) => prev.map((x) => x.id === u.id
         ? { ...x, banned: !currentlyBanned, active: currentlyBanned }
         : x));
+      setBanTarget(null);
       fetchAllUsers();
     } catch (e) {
       toast.error(apiErrorMessage(e, `Failed to ${action_} user`));
@@ -420,7 +422,7 @@ export default function AdminUsers() {
                           <button className="au-btn au-btn-view" onClick={() => openDetail(u)} title="View profile"><Eye size={14} /></button>
                           <button className="au-btn au-btn-edit" onClick={() => handleEdit(u)}>Edit</button>
                           {caps.ban && (
-                            <button className={`au-btn ${isInactive(u) ? 'au-btn-unban' : 'au-btn-ban'}`} onClick={() => handleBan(u.id, isInactive(u))}>
+                            <button className={`au-btn ${isInactive(u) ? 'au-btn-unban' : 'au-btn-ban'}`} onClick={() => openBan(u)}>
                               {isInactive(u) ? 'Unban' : 'Ban'}
                             </button>
                           )}
@@ -470,7 +472,7 @@ export default function AdminUsers() {
           disputes={userDisputes(detailUser)}
           activityLoading={deals === null || disputes === null}
           onAction={(type) => setAction({ type, user: detailUser })}
-          onBan={() => handleBan(detailUser.id, isInactive(detailUser))}
+          onBan={() => openBan(detailUser)}
           banned={isInactive(detailUser)}
           caps={caps}
         />
@@ -483,6 +485,15 @@ export default function AdminUsers() {
           onClose={() => setAction(null)}
           onDone={() => { setAction(null); fetchAllUsers(); setSelectedIds(new Set()); }}
           adminPost={adminPost}
+        />
+      )}
+
+      {/* ---- ban / unban confirmation ---- */}
+      {banTarget && (
+        <BanModal
+          target={banTarget}
+          onClose={() => setBanTarget(null)}
+          onConfirm={confirmBan}
         />
       )}
 
@@ -569,6 +580,34 @@ export default function AdminUsers() {
         .au-modal-body input, .au-modal-body select, .au-modal-body textarea { padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
         .au-modal-body input:focus, .au-modal-body select:focus, .au-modal-body textarea:focus { outline: none; border-color: #5b6bff; }
         .au-modal-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px; border-top: 1.5px solid #e8ecff; }
+
+        /* ban / unban confirmation modal */
+        .au-ban { max-width: 460px; overflow: visible; }
+        .au-ban-body { padding: 26px 26px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+        .au-ban-icon { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; }
+        .au-ban-icon.danger { background: #fdeaea; color: #d64545; }
+        .au-ban-icon.ok { background: #e6f6ec; color: #16a34a; }
+        .au-ban-body h2 { margin: 0; font-size: var(--fs-h2); color: #07074e; }
+        .au-ban-sub { margin: 0; font-size: 0.88rem; color: #64748b; line-height: 1.5; }
+        .au-ban-user { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px; padding: 10px 14px; border: 1.5px solid #e8ecff; border-radius: 10px; background: #f7f8ff; text-align: left; }
+        .au-ban-user .au-ban-av { width: 34px; height: 34px; border-radius: 50%; background: #5b6bff; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 0.85rem; flex: none; }
+        .au-ban-user b { display: block; font-size: 0.9rem; color: #07074e; }
+        .au-ban-user span { display: block; font-size: 0.78rem; color: #718096; }
+        .au-ban-field { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .au-ban-field label { font-size: 0.82rem; font-weight: 600; color: #2d3748; }
+        .au-ban-field textarea { padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; resize: vertical; }
+        .au-ban-field textarea:focus { outline: none; border-color: #d64545; }
+        .au-ban-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .au-ban-chips button { background: #f1f2f9; border: 1.5px solid #e8ecff; color: #4a5568; border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; }
+        .au-ban-chips button:hover { border-color: #5b6bff; color: #07074e; }
+        .au-ban-note { width: 100%; text-align: left; font-size: 0.78rem; color: #b45309; background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 8px; padding: 8px 12px; }
+        .au-ban-actions { display: flex; gap: 10px; padding: 0 26px 24px; }
+        .au-ban-actions .au-btn { flex: 1; justify-content: center; padding: 11px 18px; font-size: 0.9rem; }
+        .au-btn-danger { background: #d64545; color: #fff; }
+        .au-btn-danger:hover { background: #b93b3b; }
+        .au-btn-success { background: #16a34a; color: #fff; }
+        .au-btn-success:hover { background: #128a3e; }
+        .au-btn-danger:disabled, .au-btn-success:disabled { opacity: .6; cursor: not-allowed; }
 
         /* detail drawer */
         .aud-overlay { position: fixed; inset: 0; background: rgba(17,17,40,.5); z-index: 1100; display: flex; justify-content: flex-end; }
@@ -853,6 +892,79 @@ const ACTION_META = {
   delete: { title: 'Delete User', kind: 'confirm', btn: 'Delete Permanently', icon: Trash2, msg: 'This permanently deletes the user and all their data. This cannot be undone.' },
   unsuspend: { title: 'Lift Suspension', kind: 'confirm', btn: 'Unsuspend', icon: ShieldCheck, msg: 'Lift this user’s suspension and restore their account access?' },
 };
+
+const BAN_REASONS = ['Spam / scam', 'Fake profile', 'Abusive behaviour', 'Payment fraud', 'Repeat policy violation'];
+
+function BanModal({ target, onClose, onConfirm }) {
+  const { user: u, banned } = target;
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const name = isBrand(u) ? businessName(u) : (u.nickname || realName(u));
+
+  const submit = async () => {
+    if (!banned && !reason.trim()) return toast.error('A ban reason is required');
+    setBusy(true);
+    await onConfirm(reason.trim());
+    setBusy(false);
+  };
+
+  return (
+    <div className="au-modal-overlay" onClick={onClose}>
+      <div className="au-modal au-ban" onClick={(e) => e.stopPropagation()}>
+        <div className="au-ban-body">
+          <div className={`au-ban-icon ${banned ? 'ok' : 'danger'}`}>
+            {banned ? <ShieldCheck size={26} /> : <Ban size={26} />}
+          </div>
+          <h2>{banned ? 'Unban this user?' : 'Ban this user?'}</h2>
+          <p className="au-ban-sub">
+            {banned
+              ? 'They will regain access to their account and can log in again.'
+              : 'They will be signed out immediately and blocked from logging in until you unban them.'}
+          </p>
+
+          <div className="au-ban-user">
+            <div className="au-ban-av">{(name || u.email || '?').trim().charAt(0).toUpperCase()}</div>
+            <div>
+              <b>{name && name !== '—' ? name : u.email}</b>
+              <span>{u.email} · {isBrand(u) ? 'Brand' : (isCreator(u) ? 'Creator' : 'Admin')}</span>
+            </div>
+          </div>
+
+          {!banned && (
+            <>
+              <div className="au-ban-field">
+                <label>Ban reason <span style={{ color: '#d64545' }}>*</span></label>
+                <textarea
+                  rows={3}
+                  autoFocus
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Why is this user being banned? Logged to the audit trail."
+                />
+                <div className="au-ban-chips">
+                  {BAN_REASONS.map((r) => (
+                    <button key={r} type="button" onClick={() => setReason(r)}>{r}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="au-ban-note">This action is recorded in the audit log and can be reversed later.</div>
+            </>
+          )}
+        </div>
+        <div className="au-ban-actions">
+          <button className="au-btn au-btn-secondary" onClick={onClose} disabled={busy}>Cancel</button>
+          <button
+            className={`au-btn ${banned ? 'au-btn-success' : 'au-btn-danger'}`}
+            onClick={submit}
+            disabled={busy || (!banned && !reason.trim())}
+          >
+            {busy ? 'Working…' : (banned ? 'Yes, unban' : 'Yes, ban user')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ActionModal({ action, onClose, onDone, adminPost }) {
   const meta = ACTION_META[action.type];

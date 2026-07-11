@@ -787,7 +787,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     <ChipsPick label="Who Appears" values={form.appearIn} options={APPEAR_IN_OPTS} onToggle={toggle('appearIn')} />
                     <ChipsPick label="Topics Avoided" values={form.topics} options={TOPICS_OPTS} onToggle={toggle('topics')} />
                     <div className="cpm-ef-grid">
-                      <label>Can Bring<input {...fld('bring')} /></label>
                       <Sel label="Weekly Availability" value={form.weekly} onChange={set('weekly')} options={WEEKLY_OPTS} />
                     </div>
                     <label className="cpm-ef-check"><input type="checkbox" checked={!!form.flexible} onChange={(e) => setForm((f) => ({ ...f, flexible: e.target.checked }))} /> Flexible working hours</label>
@@ -796,7 +795,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     <div className="cpm-ef-grid">
                       <label>Expected Payout<input {...fld('expectedPayout')} /></label>
                       <label>Payout Period<input value="Per Video" readOnly /></label>
-                      <label>Budget Range<input {...fld('budgetRange')} /></label>
                       <label>
                         Typical Delivery (days) *
                         <input

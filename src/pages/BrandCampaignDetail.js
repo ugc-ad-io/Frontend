@@ -5,9 +5,11 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   ArrowLeft, ChevronRight, Check, FileText, Send, MessageSquare, User, CheckCircle, Download,
-  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy,
+  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy, Truck,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import PageModal from '../components/PageModal';
+import ShipmentTracking from './ShipmentTracking';
 import PostABrief from './PostABrief';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
@@ -131,6 +133,7 @@ export default function BrandCampaignDetail() {
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [revSubmitting, setRevSubmitting] = useState(false);
   const [dupOpen, setDupOpen] = useState(false);
+  const [shipmentOpen, setShipmentOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -411,6 +414,20 @@ export default function BrandCampaignDetail() {
               <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '—'}</strong></div>
               <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '—'}</strong></div>
               {delivered && <div className="bcd-kv"><label>Delivered on</label><strong>{fmtDate(rec.received_at || ship.delivered_at)}</strong></div>}
+
+              {/* This panel was read-only: it showed "Pending / — / —" with no way
+                  to act on it, so the brand had to hunt for the Shipments page to
+                  enter a tracking number. Same drawer, opened from here. */}
+              {!delivered && (
+                <button
+                  type="button"
+                  className="bcd-ship-btn"
+                  onClick={() => setShipmentOpen(true)}
+                  data-testid="add-shipment-btn"
+                >
+                  <Truck size={15} /> {shipped ? 'Update shipment details' : 'Add shipment details'}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -475,6 +492,17 @@ export default function BrandCampaignDetail() {
         </div>
       )}
       {revisionOpen && <RevisionRequestModal onClose={() => setRevisionOpen(false)} onSubmit={submitRevision} submitting={revSubmitting} />}
+
+      {/* Same shipment drawer the dashboard uses — reload on close so the panel's
+          tracking id / courier reflect whatever was just entered. */}
+      {shipmentOpen && (
+        <PageModal drawer maxWidth={560} onClose={() => { setShipmentOpen(false); load(); }}>
+          <ShipmentTracking
+            embedCampaignId={campaign.id || campaign._id}
+            onClose={() => { setShipmentOpen(false); load(); }}
+          />
+        </PageModal>
+      )}
 
       {videoModal && (
         <div className="bwr-vid-overlay" onClick={() => setVideoModal(null)}>
@@ -565,6 +593,8 @@ export default function BrandCampaignDetail() {
         .bcd-ship-detail .bcd-kv{margin-top:0}
         .bcd-ship-full{margin-left:auto;border:1px solid #dfe2ff;background:#eef0ff;color:#5b6bff;border-radius:10px;padding:8px 16px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
         .bcd-ship-full:hover{background:#e2e5ff}
+        .bcd-ship-btn{margin-left:auto;display:inline-flex;align-items:center;gap:7px;border:0;background:#5b6bff;color:#fff;border-radius:10px;padding:9px 16px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
+        .bcd-ship-btn:hover{background:#4452f0}
         @media (max-width:980px){.bcd-row-main{grid-template-columns:1fr;align-items:start}}
         /* horizontal campaign progress */
         .bcd-progress-card{margin-bottom:0}

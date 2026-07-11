@@ -13,7 +13,24 @@ const API = `${BACKEND_URL}/api`;
 
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
-const nameOf = (c) => (c.name || '').trim() || (c.full_name || '').trim() || (c.nickname || '').trim() || (c.username ? `@${c.username}` : '') || 'Creator';
+// Portfolio items may be plain URL strings or rich objects ({ urls, videoUrl, ... }).
+const pfUrl = (it) => {
+  if (!it) return '';
+  if (typeof it === 'string') return it;
+  return (Array.isArray(it.urls) && it.urls[0]) || it.original_url || it.url || it.video || it.videoUrl || it.link || '';
+};
+// Anything we can hand to a <video>: a known clip extension, or an extensionless /
+// CDN URL (signed links often carry no suffix). Images and blob: URLs are out.
+const playable = (u) => {
+  const s = String(u || '');
+  if (!s || s.startsWith('blob:')) return false;
+  const path = s.split('?')[0];
+  if (/\.(jpe?g|png|gif|webp|avif|svg|bmp|heic)$/i.test(path)) return false;
+  return true;
+};
+// Brands never see a creator's real name/username — show the brand-facing handle
+// (nickname), falling back to the public creator ID rather than a bare "Creator".
+const nameOf = (c) => (c.name || '').trim() || (c.full_name || '').trim() || (c.nickname ? `@${String(c.nickname).replace(/^@/, '')}` : '') || (c.username ? `@${c.username}` : '') || (c.public_creator_id ? `@${c.public_creator_id}` : '') || 'Creator';
 const initialOf = (c) => (nameOf(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 const catOf = (c) => (c.primary_category || c.category || c.niche || 'UGC').replace(/_/g, ' ');
 const catClass = (cat) => {
@@ -145,12 +162,17 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const name = nameOf(c).replace('@', '');
   const category = catOf(c);
   const media = assetUrl(c.portfolio_preview);
-  // Real uploaded clips only — never stock fallbacks.
-  const realClips = (Array.isArray(c.portfolio) ? c.portfolio : []).map(assetUrl).filter((u) => u && isVideo(u));
-  const previewClip = (media && isVideo(media)) ? media : (realClips[0] || '');
+  // Real uploaded clips only — never stock fallbacks. Portfolio items arrive as
+  // plain URLs or as rich objects, so unwrap both before rendering.
+  const realClips = (Array.isArray(c.portfolio) ? c.portfolio : [])
+    .map(pfUrl)
+    .map(assetUrl)
+    .filter((u) => u && playable(u));
+  const previewClip = (media && playable(media)) ? media : (realClips[0] || '');
   const hasVideo = !!previewClip;
   const baseVid = hasVideo ? `${previewClip}#t=0.5` : '';
-  const thumbs = (realClips.length ? realClips : (previewClip ? [previewClip] : [])).slice(0, 3);
+  const clips = realClips.length ? realClips : (previewClip ? [previewClip] : []);
+  const thumbs = Array.from(new Set(clips)).slice(0, 6);
   const rating = c.avg_rating || c.rating;
   const [bigVid, setBigVid] = useState(baseVid);
   const bigRef = useRef(null);

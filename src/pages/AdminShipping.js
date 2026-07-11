@@ -307,7 +307,9 @@ export default function AdminShipping() {
         .ash-meta strong { color: #111827; }
         .ash-sla-line { display: flex; align-items: center; gap: 5px; color: #98a1ad !important; }
         .ash-addrbox { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #fffaf2; border: 1px solid #fde6c8; border-radius: 10px; padding: 13px 14px 12px; }
-        .ash-internal { position: absolute; top: 9px; right: 11px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #b54708; background: #fff3e0; border: 1px solid #fde6c8; border-radius: 5px; padding: 2px 6px; }
+        /* Sits on its own full-width row (top-right) instead of floating over the
+           second column's label, which it used to overlap. */
+        .ash-internal { grid-column: 1 / -1; justify-self: end; align-self: start; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #b54708; background: #fff3e0; border: 1px solid #fde6c8; border-radius: 5px; padding: 2px 6px; }
         .ash-addrcol { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .ash-addrlabel { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #98a1ad; }
         .ash-addrlabel svg { color: #d4854a; }

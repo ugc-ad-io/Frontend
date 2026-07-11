@@ -124,17 +124,17 @@ export default function AdminRoles() {
   const addAdmin = async () => {
     const email = newEmail.trim().toLowerCase();
     if (!email) { toast.error('Enter an email'); return; }
+    // The founder always sets the password explicitly — nothing is auto-generated.
     const pwd = newPassword.trim();
-    if (pwd && pwd.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    if (!pwd) { toast.error('Set a password for the new admin'); return; }
+    if (pwd.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setAdding(true);
     try {
-      const payload = { email, admin_role: newRole, ...(pwd ? { password: pwd } : {}) };
+      const payload = { email, admin_role: newRole, password: pwd };
       if (newRole === 'custom') { payload.admin_caps = newCaps; payload.admin_scope = newScope; }
       const res = await axios.post(`${API}/admin/staff/role`, payload);
-      if (res.data?.created && res.data?.temp_password) {
-        toast.success(`${email} created as ${ROLE_LABELS[newRole]}. Temp password: ${res.data.temp_password}`, { duration: 12000 });
-      } else if (res.data?.created) {
-        toast.success(`${email} created as ${ROLE_LABELS[newRole]} with the password you set.`, { duration: 8000 });
+      if (res.data?.created) {
+        toast.success(`${email} created as ${ROLE_LABELS[newRole]}. They can log in with the password you set.`, { duration: 8000 });
       } else if (res.data?.password_set) {
         toast.success(`${email} set to ${ROLE_LABELS[newRole]} · password updated`);
       } else {
@@ -149,6 +149,31 @@ export default function AdminRoles() {
       toast.error(apiErrorMessage(e, 'Failed to add admin'));
     } finally {
       setAdding(false);
+    }
+  };
+
+  // Change an existing admin's password (founder-only). Reuses /admin/staff/role,
+  // which treats a `password` on an existing member as a password change.
+  const changePassword = async (member) => {
+    const pwd = window.prompt(`New password for ${member.email} (min 6 characters):`);
+    if (pwd === null) return;
+    const p = pwd.trim();
+    if (p.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    setSavingId(member.id);
+    try {
+      await axios.post(`${API}/admin/staff/role`, {
+        user_id: member.id,
+        admin_role: member.admin_role,
+        password: p,
+        ...(member.admin_role === 'custom'
+          ? { admin_caps: member.admin_caps || [], admin_scope: member.admin_scope || 'all' }
+          : {}),
+      });
+      toast.success(`Password updated for ${member.email}`);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Failed to change password'));
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -238,7 +263,7 @@ export default function AdminRoles() {
               />
               <input
                 type="text"
-                placeholder="Password (optional — auto-generated if blank)"
+                placeholder="Set a password (min 6 characters)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
@@ -351,6 +376,9 @@ export default function AdminRoles() {
                           </div>
                         </td>
                         <td className="arl-row-actions">
+                          {founder && (
+                            <button className="arl-pwd" onClick={() => changePassword(m)} disabled={savingId === m.id}>Change password</button>
+                          )}
                           {founder && !locked && (
                             <button className="arl-revoke" onClick={() => revoke(m)} disabled={savingId === m.id}>Revoke</button>
                           )}
@@ -523,7 +551,10 @@ export default function AdminRoles() {
         .arl-avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; background: linear-gradient(135deg, #5b6bff, #4452f0); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }
         .arl-member strong { display: block; color: #111827; font-size: 0.88rem; }
         .arl-email { font-size: 0.76rem; color: #98a1ad; }
-        .arl-row-actions { text-align: right; }
+        .arl-row-actions { text-align: right; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        .arl-pwd { border: 1px solid #d6dbff; background: #fff; color: #4452f0; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+        .arl-pwd:hover { background: #eef0ff; }
+        .arl-pwd:disabled { opacity: 0.5; cursor: not-allowed; }
         .arl-revoke { border: 1px solid #fecdca; background: #fff; color: #b42318; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
         .arl-revoke:hover { background: #fef3f2; }
         .arl-revoke:disabled { opacity: 0.5; cursor: not-allowed; }

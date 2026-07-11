@@ -211,7 +211,8 @@ export default function Auth() {
     }
   };
 
-  // Step 3 — set the new password; the backend re-checks the code and signs us in.
+  // Step 3 — set the new password. The user is NOT auto-signed in: they are sent
+  // back to the sign-in screen to log in with the new password.
   const handleResetSubmit = async (e) => {
     e.preventDefault();
     if (newPassword.length < 6) {
@@ -224,15 +225,19 @@ export default function Auth() {
     }
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API}/auth/reset-password`, {
+      await axios.post(`${API}/auth/reset-password`, {
         email,
         code: resetCode,
         password: newPassword
       });
-      const { token, ...userData } = data;
-      login(token, userData);
-      toast.success('Password reset — you are signed in.');
-      routeForUser(navigate, userData.role, userData.profile_completed);
+      // Clear the reset state and drop back to sign-in with the email prefilled.
+      setResetCode('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPassword('');
+      setIsLogin(true);
+      setView('auth');
+      toast.success('Password reset — please sign in with your new password.');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Could not reset password'));
     } finally {

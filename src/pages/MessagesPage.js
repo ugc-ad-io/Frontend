@@ -101,6 +101,20 @@ const ACTION_CARD_FORM_FIELDS = {
   ]
 };
 
+// Mirrors the backend's require_fields() per card type (server.py
+// validate_action_card_payload). Kept in sync so a blank field is caught here with
+// a useful message instead of coming back as a bare 400.
+const ACTION_CARD_REQUIRED = {
+  custom_offer: ['deliverable_type', 'quantity', 'duration', 'price', 'timeline', 'usage_rights'],
+  private_invitation: ['campaign_name', 'deliverable_summary', 'budget', 'timeline', 'usage_rights', 'full_brief_link'],
+  counter_offer: ['modified_price', 'revisions', 'timeline', 'usage_rights', 'diff_vs_original'],
+  revision_request: ['revision_text'],
+  milestone_update: ['status'],           // notes are optional
+  damage_report: ['reason', 'description', 'severity'],
+  escalate_to_admin: ['summary', 'category'],
+  raise_dispute: ['summary', 'category'],
+};
+
 const avatarColors = ['#07074e', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
 const avatarColor = (name) => avatarColors[name?.charCodeAt ? (name.charCodeAt(0) % avatarColors.length) : 0];
 
@@ -564,8 +578,13 @@ export default function MessagesPage() {
     if (actionComposerType === 'revision_request') {
       return { revision_items: [{ description: fields.revision_text, severity: 'medium' }] };
     }
+    // Only coerce numbers when there's actually a value — Number('') is 0, which
+    // would silently send a ₹0 budget/price and pass the backend's "is it set?" check.
     ['quantity', 'price', 'budget', 'modified_price'].forEach((key) => {
-      if (fields[key] !== undefined) fields[key] = Number(fields[key]);
+      const v = fields[key];
+      if (v === undefined || v === null || String(v).trim() === '') return;
+      const n = Number(v);
+      if (Number.isFinite(n)) fields[key] = n;
     });
     return fields;
   };
@@ -573,6 +592,28 @@ export default function MessagesPage() {
   const submitActionCard = async (event) => {
     event?.preventDefault();
     if (!selectedId || creatingCard || !actionComposerType) return;
+
+    // Validate up front so a blank field doesn't come back as a bare 400 with no
+    // indication of which field was missing.
+    const required = ACTION_CARD_REQUIRED[actionComposerType] || [];
+    const labelOf = (key) =>
+      (ACTION_CARD_FORM_FIELDS[actionComposerType] || []).find(([k]) => k === key)?.[1] || key;
+    const missing = required.filter((key) => {
+      const v = actionForm[key];
+      return v === undefined || v === null || String(v).trim() === '';
+    });
+    if (missing.length) {
+      toast.error(`Please fill in: ${missing.map(labelOf).join(', ')}`);
+      return;
+    }
+    // A zero/negative budget or price is never valid.
+    for (const key of ['budget', 'price', 'modified_price']) {
+      if (required.includes(key) && Number(actionForm[key]) <= 0) {
+        toast.error(`${labelOf(key)} must be greater than zero`);
+        return;
+      }
+    }
+
     setCreatingCard(true);
     try {
       await axios.post(`${API}/chat/action-cards`, {

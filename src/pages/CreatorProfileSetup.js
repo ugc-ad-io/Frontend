@@ -864,29 +864,39 @@ export default function CreatorProfileSetup() {
             </div>
           </div>
 
-          {/* Body type */}
+          {/* Body type — pick one (chips, not a dropdown) */}
           <div className="ps-field">
             <label className="ps-label">Body Type</label>
-            <input
-              type="text"
-              className={`ps-input${err('bodyType') ? ' ps-input--error' : ''}`}
-              value={data.bodyType}
-              onChange={(e) => set('bodyType', e.target.value)}
-              placeholder="e.g. Athletic, Slim, Curvy"
-            />
+            <div className={`ps-chips${err('bodyType') ? ' ps-chips--error' : ''}`}>
+              {BODY_TYPES.map(({ label, icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ps-chip${data.bodyType === label ? ' ps-chip--on' : ''}`}
+                  onClick={() => set('bodyType', data.bodyType === label ? '' : label)}
+                >
+                  {icon && <span className="ps-chip__icon">{icon}</span>}{label}
+                </button>
+              ))}
+            </div>
             {reqError('bodyType')}
           </div>
 
-          {/* Skin tone */}
+          {/* Skin tone — pick one (chips, not a dropdown) */}
           <div className="ps-field">
             <label className="ps-label">Skin Tone</label>
-            <input
-              type="text"
-              className={`ps-input${err('skinTone') ? ' ps-input--error' : ''}`}
-              value={data.skinTone}
-              onChange={(e) => set('skinTone', e.target.value)}
-              placeholder="e.g. Fair, Medium, Deep"
-            />
+            <div className={`ps-chips${err('skinTone') ? ' ps-chips--error' : ''}`}>
+              {SKIN_TONES.map(({ label, icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ps-chip${data.skinTone === label ? ' ps-chip--on' : ''}`}
+                  onClick={() => set('skinTone', data.skinTone === label ? '' : label)}
+                >
+                  {icon && <span className="ps-chip__icon">{icon}</span>}{label}
+                </button>
+              ))}
+            </div>
             {reqError('skinTone')}
           </div>
 

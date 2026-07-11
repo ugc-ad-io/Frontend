@@ -293,11 +293,25 @@ function ProfileDetail({ profile, onBack, onDecide }) {
       else if (KEY_IS_IMAGE.test(k) || IMAGE_EXT.test(u) || /portfolio/i.test(k)) (VIDEO_EXT.test(u) ? videos : photos).push(u);
     });
   });
-  const uniq = (a) => [...new Set(a)];
+  // Dedupe on the RESOLVED url (ignoring query/hash), not the raw string — the same
+  // file is often stored under several keys in different forms ("/uploads/x.mp4" vs
+  // "http://host/uploads/x.mp4"), which otherwise renders the same video twice.
+  const mediaKey = (u) => resolveUrl(u).split(/[?#]/)[0].toLowerCase();
+  const uniq = (a) => {
+    const seen = new Set();
+    return a.filter((u) => {
+      const k = mediaKey(u);
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  };
   const photoList = uniq(photos);
   const videoList = uniq(videos);
   const mainPhoto = photoList[0];
   const portfolioPhotos = photoList.slice(1);
+  // A stale/broken URL still renders an empty <video> player; drop those tiles.
+  const playableVideos = videoList.filter((u) => !badMedia.has(mediaKey(u)));
 
   // social links
   const socialObj = p.social_links || p.social_media || p.links || {};

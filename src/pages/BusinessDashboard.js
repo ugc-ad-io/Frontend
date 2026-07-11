@@ -8,6 +8,7 @@ import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import RejectedGate from '../components/RejectedGate';
 import ChatPopup from '../components/ChatPopup';
 import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
@@ -1150,15 +1151,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   }
 
   if (user?.approval_status === 'rejected') {
-    return (
-      <div className="dashboard-container">
-        <div className="approval-pending">
-          <h2>Profile Not Approved</h2>
-          <p>Unfortunately, your profile was not approved. Please contact support.</p>
-          <button className="btn-primary" onClick={handleLogout}>Back to Home</button>
-        </div>
-      </div>
-    );
+    return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
   }
 
   return (

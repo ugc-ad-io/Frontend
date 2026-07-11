@@ -256,6 +256,24 @@ export default function AdminRoles() {
     }
   };
 
+  // Permanently delete a staff member (founder-only). Unlike Revoke — which just
+  // demotes them back to a normal user — this removes the account entirely.
+  const deleteStaff = async (member) => {
+    if (!window.confirm(
+      `Permanently DELETE ${member.email}?\n\nThis removes the account and all of their data. It cannot be undone.\n\n(To only remove admin access, use "Revoke" instead.)`
+    )) return;
+    setSavingId(member.id);
+    try {
+      await axios.delete(`${API}/admin/user/${member.id}`);
+      toast.success(`Deleted ${member.email}`);
+      fetchStaff();
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Failed to delete'));
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   // ── Category work distribution ──
   const seesAllCategories = (m) => m.admin_role === 'founder' || m.admin_role === 'ops_senior';
   const openCatEditor = (m) => { setEditingMember(m); setSelectedCats(m.assigned_categories || []); setCustomCat(''); };
@@ -447,6 +465,11 @@ export default function AdminRoles() {
                           )}
                           {founder && !locked && (
                             <button className="arl-revoke" onClick={() => revoke(m)} disabled={savingId === m.id}>Revoke</button>
+                          )}
+                          {/* Revoke = demote to a normal user. Delete = remove the account entirely.
+                              The founder row is locked and can never be deleted. */}
+                          {founder && !locked && (
+                            <button className="arl-delete" onClick={() => deleteStaff(m)} disabled={savingId === m.id}>Delete</button>
                           )}
                         </td>
                       </tr>
@@ -717,6 +740,9 @@ export default function AdminRoles() {
         .arl-member strong { display: block; color: #111827; font-size: 0.88rem; }
         .arl-email { font-size: 0.76rem; color: #98a1ad; }
         .arl-row-actions { text-align: right; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        .arl-delete { border: 1px solid #f2b8c6; background: #fff5f8; color: #b42318; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+        .arl-delete:hover { background: #ffe4ec; }
+        .arl-delete:disabled { opacity: 0.5; cursor: not-allowed; }
         .arl-pwd { border: 1px solid #d6dbff; background: #fff; color: #4452f0; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
         .arl-pwd:hover { background: #eef0ff; }
         .arl-pwd:disabled { opacity: 0.5; cursor: not-allowed; }

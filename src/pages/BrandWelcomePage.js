@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import RejectedGate from '../components/RejectedGate';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -531,15 +532,7 @@ export default function BrandWelcomePage() {
   }
 
   if (user?.approval_status === 'rejected') {
-    return (
-      <div className="dashboard-container">
-        <div className="approval-pending">
-          <h2>Profile Not Approved</h2>
-          <p>Unfortunately, your profile was not approved. Please contact support.</p>
-          <button className="btn-primary" onClick={handleLogout}>Back to Home</button>
-        </div>
-      </div>
-    );
+    return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
   }
 
   return (

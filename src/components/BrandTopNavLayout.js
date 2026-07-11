@@ -5,6 +5,7 @@ import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRound
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
+import RejectedGate from './RejectedGate';
 import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
@@ -72,18 +73,19 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   // behave identically, so it's never "some tabs work, others say under review".
   const approval = user?.approval_status;
   const isBrand = ['business', 'brand'].includes(String(user?.role || '').toLowerCase());
-  if (isBrand && (approval === 'pending' || approval === 'rejected')) {
-    const rejected = approval === 'rejected';
+  if (isBrand && approval === 'rejected') {
+    return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
+  }
+  if (isBrand && approval === 'pending') {
     return (
       <div className="brl-gate">
         <div className="brl-gate-card">
-          <span className="brl-gate-ic">{rejected ? '⚠️' : '🕓'}</span>
+          <span className="brl-gate-ic">🕓</span>
           <p className="brl-gate-eyebrow">Business verification</p>
-          <h1>{rejected ? 'Application not approved' : 'Profile Under Review'}</h1>
+          <h1>Profile Under Review</h1>
           <p>
-            {rejected
-              ? 'Your business profile was not approved. If you think this is a mistake, contact our team and we’ll take another look.'
-              : 'Your business profile is being verified by our team. Most accounts are approved within 24–48 hours, and we’ll email you once you’re cleared to launch campaigns.'}
+            Your business profile is being verified by our team. Most accounts are approved within 24–48 hours,
+            and we’ll email you once you’re cleared to launch campaigns.
           </p>
           <button type="button" className="brl-gate-btn" onClick={handleLogout}>Back to Home</button>
         </div>

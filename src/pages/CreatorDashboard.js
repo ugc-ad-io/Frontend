@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
+import RejectedGate from '../components/RejectedGate';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { toggleSavedBrief, isBriefSaved } from '../utils/savedBriefs';
 import {
@@ -312,17 +313,7 @@ export default function CreatorDashboard() {
   }
 
   if (user?.approval_status === 'rejected') {
-    return (
-      <div className="pcd-status-page">
-        <section className="pcd-status-card">
-          <User size={68} />
-          <p className="pcd-eyebrow">Creator verification</p>
-          <h1>Profile Not Approved</h1>
-          <p>Please contact support for more information about your creator profile review.</p>
-          <button type="button" onClick={handleLogout}>Back to Home</button>
-        </section>
-      </div>
-    );
+    return <RejectedGate user={user} onHome={handleLogout} kind="creator" />;
   }
 
   // Admin requested more info — show the request + let the creator update & resubmit.

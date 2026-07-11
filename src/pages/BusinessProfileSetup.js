@@ -12,10 +12,7 @@ const API = `${BACKEND_URL}/api`;
 
 // Only accept genuine platform links / handles — no random URLs.
 const URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/\S*)?$/i;                       // any valid website
-const FB_RE = /^(https?:\/\/)?(www\.|m\.)?(facebook\.com|fb\.com|fb\.me)\/[^\s]+$/i;      // facebook page link
-const IG_URL_RE = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$/i;              // instagram profile link
-const IG_USER_RE = /^@?[a-z0-9._]{1,30}$/i;                                               // instagram handle
-const isInstagram = (v) => IG_URL_RE.test(v) || IG_USER_RE.test(v);
+const IG_URL_RE = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$/i;              // instagram profile link — the ONLY accepted format
 
 // iso = flagcdn country code (flags are image-based so they render on Windows too).
 const DIAL_CODES = [
@@ -54,9 +51,8 @@ export default function BusinessProfileSetup() {
   const [dialOpen, setDialOpen] = useState(false);
   const [form, setForm] = useState({
     businessName: '',
-    facebook: '',
-    website: '',
     instagram: '',
+    website: '',
     phone: '',
     country: '',
     industry: '',
@@ -87,8 +83,8 @@ export default function BusinessProfileSetup() {
 
   const checkInstagramLive = async () => {
     const v = form.instagram.trim();
-    if (!v || !isInstagram(v)) { setIgCheck(null); return; }
-    const handle = v.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/+$/, '');
+    if (!v || !IG_URL_RE.test(v)) { setIgCheck(null); return; }
+    const handle = v.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/+$/, '');
     setIgCheck({ status: 'checking' });
     try {
       const { data } = await axios.post(`${API}/validate/instagram`, { username: handle });
@@ -108,14 +104,12 @@ export default function BusinessProfileSetup() {
 
   const errors = {
     businessName: !form.businessName.trim() ? 'Business name is required.' : '',
-    facebook: form.facebook.trim() && !FB_RE.test(form.facebook.trim())
-      ? 'Enter a valid Facebook page link (facebook.com/...).' : '',
     website: !form.website.trim()
       ? 'Website is required'
       : (!URL_RE.test(form.website.trim()) ? 'Enter a valid website URL.' : ''),
     instagram: !form.instagram.trim()
-      ? 'Instagram is required'
-      : (!isInstagram(form.instagram.trim()) ? 'Enter a valid Instagram username or profile link.' : ''),
+      ? 'Instagram URL is required'
+      : (!IG_URL_RE.test(form.instagram.trim()) ? 'Enter a valid Instagram profile link (instagram.com/yourbrand).' : ''),
     phone: !form.phone.trim() ? 'Phone number is required' : '',
     country: !form.country ? 'Country is required.' : '',
   };
@@ -134,7 +128,7 @@ export default function BusinessProfileSetup() {
       return;
     }
     setSubmitting(true);
-    // Backend validates website/facebook as URLs — a bare "www.business.com" (no scheme) fails
+    // Backend validates website/instagram as URLs — a bare "www.business.com" (no scheme) fails
     // with a 422, so prepend https:// when the user omitted it.
     const withScheme = (u) => {
       const v = (u || '').trim();
@@ -147,7 +141,7 @@ export default function BusinessProfileSetup() {
     const payload = {
       business_name: form.businessName,
       website: withScheme(form.website),
-      social_links: { facebook: withScheme(form.facebook), instagram: form.instagram, linkedin: '' },
+      social_links: { instagram: withScheme(form.instagram), linkedin: '' },
       industry_category: form.industry === 'Other' ? (form.customIndustry.trim() || 'Other') : form.industry,
       category: resolveCategory(form.category, form.customCategory),
       business_description: '',
@@ -221,17 +215,19 @@ export default function BusinessProfileSetup() {
           {err('businessName') && <span className="bp-err">{err('businessName')}</span>}
         </div>
 
-        {/* Facebook URL */}
+        {/* Instagram URL — profile link only */}
         <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-fb">Facebook URL</label>
+          <label className="bp-label" htmlFor="bp-ig">Instagram URL</label>
           <input
-            id="bp-fb"
-            className={`bp-input${err('facebook') ? ' bp-input--error' : ''}`}
-            placeholder="Paste the link to your Facebook business page."
-            value={form.facebook}
-            onChange={(e) => set('facebook', e.target.value)}
+            id="bp-ig"
+            className={`bp-input${err('instagram') ? ' bp-input--error' : ''}`}
+            placeholder="Paste the link to your Instagram profile."
+            value={form.instagram}
+            onChange={(e) => { set('instagram', e.target.value); setIgCheck(null); }}
+            onBlur={checkInstagramLive}
           />
-          {err('facebook') && <span className="bp-err">{err('facebook')}</span>}
+          {err('instagram') && <span className="bp-err">{err('instagram')}</span>}
+          <CheckNote c={igCheck} />
         </div>
 
         {/* Website URL */}
@@ -247,24 +243,6 @@ export default function BusinessProfileSetup() {
           />
           {err('website') && <span className="bp-err">{err('website')}</span>}
           <CheckNote c={webCheck} />
-        </div>
-
-        {/* Instagram */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-ig">Instagram Username</label>
-          <div className={`bp-input-group${err('instagram') ? ' bp-input--error' : ''}`}>
-            <span className="bp-prefix">@</span>
-            <input
-              id="bp-ig"
-              className="bp-input bp-input--bare"
-              placeholder="brandname"
-              value={form.instagram}
-              onChange={(e) => { set('instagram', e.target.value); setIgCheck(null); }}
-              onBlur={checkInstagramLive}
-            />
-          </div>
-          {err('instagram') && <span className="bp-err">{err('instagram')}</span>}
-          <CheckNote c={igCheck} />
         </div>
 
         {/* Phone */}

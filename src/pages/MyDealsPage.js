@@ -178,10 +178,18 @@ function formatDate(dateValue) {
 }
 
 // Humanize a version/submission status into a label + color tone for the badge.
+const VERSION_STATUS_LABELS = {
+  submitted: 'Submitted',
+  approved: 'Approved',
+  revision_requested: 'Revision requested',
+  superseded: 'Superseded',   // replaced by a newer cut — never got its own verdict
+};
+
 function versionStatusMeta(status) {
   const raw = (status || '').toLowerCase();
-  const label = (status || 'Pending').replace(/_/g, ' ');
+  const label = VERSION_STATUS_LABELS[raw] || (status || 'Pending').replace(/_/g, ' ');
   let tone = 'warn';
+  if (raw === 'superseded') return { label, tone: 'muted' };
   if (raw.includes('approv')) tone = 'ok';
   else if (raw.includes('reject') || raw.includes('revision') || raw.includes('declin')) tone = 'bad';
   else if (raw.includes('await') || raw.includes('pending') || raw.includes('review')) tone = 'warn';

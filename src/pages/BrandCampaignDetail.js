@@ -328,7 +328,12 @@ export default function BrandCampaignDetail() {
                     </div>
 
                     <div className="bwr-body">
-                      <h3 className="bwr-title">{campaign.title}</h3>
+                      <h3 className="bwr-title">
+                        {campaign.title}
+                        {/* Without this the brand can't tell a revised cut from the original —
+                            the card looked identical every round, so revisions read as "never arrived". */}
+                        {ws.version > 1 && <span className="bwr-ver">Revision v{ws.version}</span>}
+                      </h3>
                       <div className="bwr-by">
                         <span className="bwr-by-ava">{photo ? <img src={photo} alt="" /> : '@'}</span>
                         by <b>{creatorLabel}</b>

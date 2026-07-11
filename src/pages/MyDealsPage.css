@@ -946,6 +946,12 @@
   border-color: rgba(225, 29, 72, 0.2);
 }
 
+.deal-version-status.is-muted {
+  background: #f4f5fa;
+  color: #8b90ad;
+  border-color: #e6e8f3;
+}
+
 .deal-submit {
   width: 100%;
 }

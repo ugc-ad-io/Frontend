@@ -581,11 +581,21 @@ export default function AdminRoles() {
                       autoComplete="current-password"
                     />
                   </label>
-                  <p className="arl-pwd-note">For security, confirm your own password before changing another admin's.</p>
+                  <p className="arl-pwd-note">For security, confirm your own password before setting another admin's password yourself.</p>
                   <div className="arl-pwd-actions">
                     <button type="button" className="arl-revoke" onClick={closePwdModal} disabled={pwdBusy}>Cancel</button>
                     <button type="submit" className="arl-add-btn" disabled={pwdBusy}>{pwdBusy ? 'Checking…' : 'Continue'}</button>
                   </div>
+
+                  <div className="arl-pwd-alt">
+                    <span>or</span>
+                  </div>
+                  <button type="button" className="arl-pwd-reset" onClick={sendResetEmail} disabled={pwdBusy}>
+                    <Mail size={15} /> Email them a reset code instead
+                  </button>
+                  <p className="arl-pwd-note" style={{ margin: '8px 0 0' }}>
+                    Sends a 6-digit reset code to {pwdMember.email} so they set their own password — no password needed from you.
+                  </p>
                 </form>
               ) : (
                 <form onSubmit={submitNewPassword}>
@@ -614,16 +624,6 @@ export default function AdminRoles() {
                     <button type="button" className="arl-revoke" onClick={() => setPwdStep('current')} disabled={pwdBusy}>Back</button>
                     <button type="submit" className="arl-add-btn" disabled={pwdBusy}>{pwdBusy ? 'Saving…' : 'Update password'}</button>
                   </div>
-
-                  <div className="arl-pwd-alt">
-                    <span>or</span>
-                  </div>
-                  <button type="button" className="arl-pwd-reset" onClick={sendResetEmail} disabled={pwdBusy}>
-                    <Mail size={15} /> Email them a reset code instead
-                  </button>
-                  <p className="arl-pwd-note" style={{ margin: '8px 0 0' }}>
-                    Sends a 6-digit reset code to {pwdMember.email} so they set their own password.
-                  </p>
                 </form>
               )}
             </div>

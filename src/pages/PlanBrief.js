@@ -83,6 +83,10 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   // Live platform-fee % (Admin → Settings → Commission rate). Fetched so the
   // quote always matches what the backend actually charges.
   const [feePercent, setFeePercent] = useState(DEFAULT_PLATFORM_FEE_PERCENT);
+  // Prepaid credits the brand can spend. Checkout debits this, so it has to be the
+  // real balance — it used to be hardcoded to 0 on screen.
+  const [wallet, setWallet] = useState(null);
+  const [shortfall, setShortfall] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -92,6 +96,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         if (active && Number.isFinite(rate) && rate > 0) setFeePercent(rate);
       })
       .catch(() => { /* keep the default */ });
+    axios.get(`${API}/business/wallet`)
+      .then((res) => { if (active) setWallet(Number(res.data?.available_balance) || 0); })
+      .catch(() => { if (active) setWallet(0); });
     return () => { active = false; };
   }, []);
 
@@ -144,6 +151,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const total = Math.round((subtotal + platformFee) * 100) / 100;
   const inr = (n) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const videoName = (v, i) => (v.name && v.name.trim()) || `Video ${i + 1}`;
+  // Only judge the balance once we've actually loaded it — `null` means "unknown",
+  // and warning "you're short" while the fetch is in flight would be a lie.
+  const insufficient = wallet !== null && total > 0 && wallet < total;
 
   const setCount = (next) => {
     const n = Math.max(1, Math.min(10, next));
@@ -219,26 +229,41 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     return lines.join('\n');
   };
 
+  // Booking the creator SPENDS the brand's wallet credits — the money leaves the
+  // wallet and is held in the deal's escrow until they approve the content. The
+  // server re-prices the brief from the creator's rate card and its own commission
+  // setting, so no amount is sent from here; the figures on screen are a quote.
   const proceed = async () => {
     setSubmitting(true);
     try {
-      await axios.post(`${API}/campaigns`, {
-        title: `${plan?.name || 'Creator Plan'} — ${videoCount} video${videoCount > 1 ? 's' : ''}`,
-        brief_text: composeBrief(),
-        deliverables: `${videoCount} x ${plan?.name || 'Creator Plan'} (${videos[0].duration}, ${videos[0].orientation})`,
-        budget_min: subtotal,
-        budget_max: subtotal,
-        requires_shipment: videos.some((v) => v.product === 'Yes'),
-        delivery_date: deliveryDate,
-        delivery_slot: slot,
-        plan: plan?.id,
+      const res = await axios.post(`${API}/checkout/brief`, {
+        creator_id: creatorId,
         video_count: videoCount,
-        selected_creator: creatorId,
+        brief: {
+          title: `${plan?.name || 'Creator Plan'} — ${videoCount} video${videoCount > 1 ? 's' : ''}`,
+          brief_text: composeBrief(),
+          deliverables: `${videoCount} x ${plan?.name || 'Creator Plan'} (${videos[0].duration}, ${videos[0].orientation})`,
+          requires_shipment: videos.some((v) => v.product === 'Yes'),
+          delivery_date: deliveryDate,
+          delivery_slot: slot,
+          plan: plan?.id,
+        },
       });
-      toast.success('Brief sent — the deal has started with the creator');
+      const charged = Number(res.data?.amount_charged) || 0;
+      setWallet(Number(res.data?.wallet_balance) || 0);
+      toast.success(`Paid ${inr(charged)} from your credits — the deal has started with the creator`);
       if (onPublished) onPublished();
     } catch (e) {
-      toast.error(apiErrorMessage(e, 'Failed to send brief'));
+      // A short wallet isn't an error to bury in a toast — tell them the gap and
+      // send them somewhere they can fix it.
+      if (e?.response?.status === 402) {
+        const d = e.response.data || {};
+        setWallet(Number(d.available) || 0);
+        setShortfall(Number(d.shortfall) || 0);
+        toast.error(d.detail || 'Not enough credits.');
+      } else {
+        toast.error(apiErrorMessage(e, 'Payment failed'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -469,17 +494,32 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
                 ))}
               </div>
               <div className="pb-summary-foot">
-                <p className="pb-credits"><Info size={13} /> Available credits: 0</p>
+                <p className="pb-credits">
+                  <Info size={13} /> Available credits: {wallet === null ? '…' : inr(wallet)}
+                </p>
                 <div className="pb-summary-line"><span>Subtotal</span><strong>{inr(subtotal)}</strong></div>
                 <div className="pb-summary-line"><span>Platform fee <em>{feePercent}%</em></span><strong>{inr(platformFee)}</strong></div>
                 <div className="pb-summary-line pb-summary-total"><span>Total</span><strong>{inr(total)}</strong></div>
+                {insufficient && (
+                  <p className="pb-shortfall">
+                    Add {inr(Math.max(shortfall, total - (wallet || 0)))} more in credits to book this creator.
+                  </p>
+                )}
               </div>
             </aside>
           </div>
 
           <div className="pb-footer">
             <button type="button" className="pb-goback" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'setup')} disabled={submitting}>Go Back</button>
-            <button type="button" className="pb-proceed" onClick={proceed} disabled={submitting}>{submitting ? 'Processing…' : 'Proceed to payment'}</button>
+            <button
+              type="button"
+              className="pb-proceed"
+              onClick={proceed}
+              disabled={submitting || insufficient || !(total > 0)}
+              title={insufficient ? 'Not enough credits — add funds from your dashboard' : undefined}
+            >
+              {submitting ? 'Processing…' : (insufficient ? 'Not enough credits' : `Pay ${inr(total)} from credits`)}
+            </button>
           </div>
           </>
           )}
@@ -613,6 +653,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-summary-row small { color: #07074e; font-size: 0.72rem; font-weight: 700; }
         .pb-summary-foot { display: grid; gap: 8px; padding-top: 12px; }
         .pb-credits { display: flex; align-items: center; gap: 6px; color: #07074e; font-size: 0.78rem; font-weight: 700; margin: 0 0 4px; }
+        .pb-shortfall { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: #fef2f2; color: #b91c1c; font-size: 0.78rem; font-weight: 700; line-height: 1.35; }
+        .pb-proceed:disabled { opacity: 0.55; cursor: not-allowed; }
         .pb-summary-line { display: flex; align-items: center; justify-content: space-between; color: #475569; font-weight: 600; font-size: 0.9rem; }
         .pb-summary-line em { background: #f1f5f9; border-radius: 6px; padding: 1px 6px; font-style: normal; font-size: 0.72rem; }
         .pb-summary-total { border-top: 1px solid #f1f5f9; padding-top: 8px; color: #0f172a; font-size: 1.05rem; }

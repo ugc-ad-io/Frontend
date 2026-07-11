@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useAuth } from '../App';
 import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star } from 'lucide-react';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
@@ -231,6 +232,13 @@ function RevClip({ src: rawSrc }) {
  * Fetches /profile/:id. `asPage` renders it inline (no overlay) for the route page.
  */
 export default function CreatorProfileModal({ id, fallbackName, photo, onClose, onMessage, onBegin, onEdit, asPage = false, editable = false }) {
+  const { user: viewer } = useAuth();
+  // Contact + payment details belong to the creator alone. A brand viewing this
+  // profile must never see their real name, phone, address or pincode — that's
+  // both a privacy leak and a way to take the deal off-platform. The backend
+  // redacts these too (User.toRedacted); this keeps the UI honest regardless.
+  const canSeePrivate = !!viewer && (String(viewer.id) === String(id) || viewer.role === 'admin');
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('videos');
@@ -576,15 +584,18 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     {
       title: 'Basic Information', Icon: User, bio: p.bio,
       rows: [
-        Row('Full Name', p.fullName), Row('Age', p.age), Row('Gender', p.gender),
+        canSeePrivate ? Row('Full Name', p.fullName) : null,
+        Row('Age', p.age), Row('Gender', p.gender),
         Row('Body Type', p.bodyType), Row('Skin Tone', p.skinTone), Row('Primary Category', categoryTxt),
       ].filter(Boolean),
     },
     {
-      title: 'Location & Contact', Icon: MapPin,
+      title: canSeePrivate ? 'Location & Contact' : 'Location', Icon: MapPin,
       rows: [
         Row('Country', p.country), Row('State', p.state), Row('City', p.city),
-        Row('Pincode', p.pincode), Row('Phone', phone), Row('Address', p.address),
+        canSeePrivate ? Row('Pincode', p.pincode) : null,
+        canSeePrivate ? Row('Phone', phone) : null,
+        canSeePrivate ? Row('Address', p.address) : null,
       ].filter(Boolean),
     },
     {

@@ -498,13 +498,15 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-plan { position: relative; text-align: left; border: 1px solid #eef0f6; background: #fff; border-radius: 14px; padding: 12px; cursor: pointer; }
         .pb-plan.is-selected { background: #f1f3ff; border-color: #c3cbff; }
         .pb-plan-loading { color: #94a3b8; font-weight: 600; text-align: center; }
-        .pb-plan-top { display: flex; align-items: center; gap: 8px; }
-        .pb-plan-top strong { color: #0f172a; font-size: 0.98rem; }
+        /* Leave room for the absolutely-positioned check so long plan names wrap
+           instead of running underneath it. */
+        .pb-plan-top { display: flex; align-items: flex-start; gap: 8px; padding-right: 30px; }
+        .pb-plan-top strong { color: #0f172a; font-size: 0.98rem; line-height: 1.3; overflow-wrap: anywhere; }
         .pb-sample { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #07074e; border: 1px solid #c3cbff; border-radius: 999px; padding: 1px 7px; font-weight: 700; }
         .pb-price { font-size: 1.5rem; font-weight: 800; color: #07074e; margin-top: 4px; }
         .pb-price small { font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
         .pb-plan-tags { color: #94a3b8; font-size: 0.78rem; font-weight: 600; margin-top: 2px; }
-        .pb-plan-check { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: #07074e; color: #fff; opacity: 0; }
+        .pb-plan-check { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; flex: none; border-radius: 7px; display: grid; place-items: center; background: #07074e; color: #fff; opacity: 0; }
         .pb-plan.is-selected .pb-plan-check { opacity: 1; }
         .pb-rail-section { display: grid; gap: 8px; }
         .pb-rail-label { color: #94a3b8; font-size: 0.78rem; font-weight: 800; margin: 0; }

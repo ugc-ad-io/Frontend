@@ -90,6 +90,13 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const [wallet, setWallet] = useState(null);
   const [shortfall, setShortfall] = useState(0);
 
+  // Inline top-up — a short balance shouldn't force the brand out of the booking
+  // flow (navigating to the Wallet page unmounts this modal and loses the brief).
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [topupAmount, setTopupAmount] = useState('');
+  const [recharging, setRecharging] = useState(false);
+  const [minTopup, setMinTopup] = useState(0); // server's minimum recharge, if it sends one
+
   useEffect(() => {
     let active = true;
     axios.get(`${API}/business/settings/billing`)
@@ -99,7 +106,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
       })
       .catch(() => { /* keep the default */ });
     axios.get(`${API}/business/wallet`)
-      .then((res) => { if (active) setWallet(Number(res.data?.available_balance) || 0); })
+      .then((res) => {
+        if (!active) return;
+        setWallet(Number(res.data?.available_balance) || 0);
+        setMinTopup(Number(res.data?.minimum_chat_balance) || 0);
+      })
       .catch(() => { if (active) setWallet(0); });
     return () => { active = false; };
   }, []);
@@ -159,6 +170,42 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   // Only judge the balance once we've actually loaded it — `null` means "unknown",
   // and warning "you're short" while the fetch is in flight would be a lie.
   const insufficient = wallet !== null && total > 0 && wallet < total;
+  // How much they're actually short. Trust the server's figure when it gave us one.
+  const gap = Math.max(shortfall, total - (wallet || 0), 0);
+
+  // Suggested top-up: cover the gap, rounded up to a clean ₹500, but never below
+  // the server's minimum recharge (else the request would just bounce).
+  const suggestedTopup = Math.max(Math.ceil(gap / 500) * 500, minTopup, 500);
+
+  const openTopup = () => {
+    setTopupAmount(String(suggestedTopup));
+    setTopupOpen(true);
+  };
+
+  // Creates the payment order and re-reads the balance. When the balance clears the
+  // total, the footer flips back to "Pay …" on its own — the brief is never lost.
+  const doTopup = async () => {
+    const amount = Number(topupAmount);
+    if (!amount || amount <= 0) return toast.error('Enter an amount to add');
+    if (minTopup && amount < minTopup) return toast.error(`Minimum recharge is ${inr(minTopup)}`);
+    setRecharging(true);
+    try {
+      const res = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
+      toast.success(`Payment order created for ${inr(res.data?.amount || amount)}. Complete payment to credit your wallet.`);
+      const w = await axios.get(`${API}/business/wallet`);
+      const bal = Number(w.data?.available_balance) || 0;
+      setWallet(bal);
+      setShortfall(Math.max(total - bal, 0));
+      if (bal >= total) {
+        setTopupOpen(false);
+        toast.success('Credits added — you can complete the booking now.');
+      }
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Failed to start wallet recharge'));
+    } finally {
+      setRecharging(false);
+    }
+  };
 
   const setCount = (next) => {
     const n = Math.max(1, Math.min(10, next));
@@ -514,7 +561,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
                 <div className="pb-summary-line pb-summary-total"><span>Total</span><strong>{inr(total)}</strong></div>
                 {insufficient && (
                   <p className="pb-shortfall">
-                    Add {inr(Math.max(shortfall, total - (wallet || 0)))} more in credits to book this creator.
+                    Add {inr(gap)} more in credits to book this creator.
                   </p>
                 )}
               </div>
@@ -524,16 +571,16 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           <div className="pb-footer">
             <button type="button" className="pb-goback" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'setup')} disabled={submitting}>Go Back</button>
             {insufficient ? (
-              // Dead-end fix: short balance is fixable — send them straight to the wallet
-              // to top up instead of showing a disabled "Not enough credits" button.
+              // Dead-end fix: a short balance is fixable, so open the inline top-up
+              // panel instead of showing a disabled "Not enough credits" button.
               <button
                 type="button"
                 className="pb-proceed pb-addfunds"
-                onClick={() => navigate('/dashboard/business/wallet')}
+                onClick={openTopup}
                 disabled={submitting}
-                title={`Add ${inr(Math.max(shortfall, total - (wallet || 0)))} more in credits`}
+                title={`You're ${inr(gap)} short`}
               >
-                <Wallet size={15} /> Add {inr(Math.max(shortfall, total - (wallet || 0)))} Funds
+                <Wallet size={15} /> Add Funds
               </button>
             ) : (
               <button
@@ -549,6 +596,52 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </>
           )}
         </section>
+
+        {/* Inline top-up sheet — keeps the brief alive while they add credits. */}
+        {topupOpen && (
+          <div className="pb-topup-back" onClick={() => !recharging && setTopupOpen(false)}>
+            <div className="pb-topup" onClick={(e) => e.stopPropagation()}>
+              <div className="pb-topup-head">
+                <h3><Wallet size={16} /> Add credits</h3>
+                <button type="button" className="pb-topup-x" onClick={() => setTopupOpen(false)} disabled={recharging}><X size={16} /></button>
+              </div>
+
+              <div className="pb-topup-gap">
+                <div><span>Order total</span><strong>{inr(total)}</strong></div>
+                <div><span>Available credits</span><strong>{inr(wallet || 0)}</strong></div>
+                <div className="short"><span>You&apos;re short</span><strong>{inr(gap)}</strong></div>
+              </div>
+
+              <label className="pb-topup-field">
+                Amount to add
+                <input
+                  type="number"
+                  min={minTopup || 1}
+                  value={topupAmount}
+                  autoFocus
+                  onChange={(e) => setTopupAmount(e.target.value)}
+                />
+              </label>
+
+              <div className="pb-topup-chips">
+                {[suggestedTopup, suggestedTopup + 2000, suggestedTopup + 5000].map((amt) => (
+                  <button key={amt} type="button" className={Number(topupAmount) === amt ? 'on' : ''} onClick={() => setTopupAmount(String(amt))}>
+                    {inr(amt).replace('.00', '')}
+                  </button>
+                ))}
+              </div>
+
+              {minTopup > 0 && <p className="pb-topup-min">Minimum recharge is {inr(minTopup)}.</p>}
+
+              <button type="button" className="pb-topup-go" onClick={doTopup} disabled={recharging}>
+                {recharging ? 'Creating payment order…' : `Add ${inr(Number(topupAmount) || 0)}`}
+              </button>
+              <button type="button" className="pb-topup-alt" onClick={() => navigate('/dashboard/business/wallet')} disabled={recharging}>
+                Open full wallet instead
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -681,6 +774,29 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-shortfall { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: #fef2f2; color: #b91c1c; font-size: 0.78rem; font-weight: 700; line-height: 1.35; }
         .pb-addfunds { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(100deg,#f0a13a,#e0851b); box-shadow: 0 12px 26px -12px rgba(224,133,27,.75); }
         .pb-addfunds:hover { background: linear-gradient(100deg,#e0851b,#c9740f); }
+
+        /* inline top-up sheet (lives inside the modal so the brief isn't lost) */
+        .pb-modal { position: relative; }
+        .pb-topup-back { position: absolute; inset: 0; background: rgba(15,23,42,.45); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 5; padding: 18px; }
+        .pb-topup { width: min(360px, 100%); background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 24px 50px rgba(15,23,42,.3); display: flex; flex-direction: column; gap: 12px; max-height: 100%; overflow: auto; }
+        .pb-topup-head { display: flex; align-items: center; justify-content: space-between; }
+        .pb-topup-head h3 { margin: 0; display: flex; align-items: center; gap: 7px; font-size: 1rem; color: #07074e; }
+        .pb-topup-x { background: none; border: 0; cursor: pointer; color: #64748b; padding: 2px; }
+        .pb-topup-gap { border: 1px solid #eef0f6; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+        .pb-topup-gap div { display: flex; justify-content: space-between; font-size: 0.82rem; color: #64748b; }
+        .pb-topup-gap strong { color: #07074e; }
+        .pb-topup-gap .short { border-top: 1px dashed #e2e8f0; padding-top: 6px; color: #b91c1c; font-weight: 700; }
+        .pb-topup-gap .short strong { color: #b91c1c; }
+        .pb-topup-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; font-weight: 700; color: #2d3748; }
+        .pb-topup-field input { padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 0.95rem; font-family: inherit; font-weight: 700; color: #07074e; }
+        .pb-topup-field input:focus { outline: none; border-color: #e0851b; }
+        .pb-topup-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .pb-topup-chips button { flex: 1; min-width: 84px; background: #f7f8fc; border: 1.5px solid #eef0f6; border-radius: 999px; padding: 6px 8px; font-size: 0.76rem; font-weight: 700; color: #4a5568; cursor: pointer; }
+        .pb-topup-chips button.on, .pb-topup-chips button:hover { border-color: #e0851b; color: #07074e; background: #fff7ed; }
+        .pb-topup-min { margin: 0; font-size: 0.72rem; color: #94a3b8; }
+        .pb-topup-go { background: linear-gradient(100deg,#f0a13a,#e0851b); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-weight: 800; cursor: pointer; }
+        .pb-topup-go:disabled { opacity: .6; cursor: not-allowed; }
+        .pb-topup-alt { background: none; border: 0; color: #64748b; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-decoration: underline; }
         .pb-proceed:disabled { opacity: 0.55; cursor: not-allowed; }
         .pb-noprice { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0 0; padding: 10px 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; color: #9a3412; font-size: 12.5px; line-height: 1.5; }
         .pb-summary-line { display: flex; align-items: center; justify-content: space-between; color: #475569; font-weight: 600; font-size: 0.9rem; }

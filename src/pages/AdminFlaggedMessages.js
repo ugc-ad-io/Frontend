@@ -6,6 +6,7 @@ import {
   Check, Ban, ArrowUpRight, Plus, X,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -142,16 +143,42 @@ export default function AdminFlaggedMessages() {
       toast.error('Give the rule a label and a pattern.');
       return;
     }
-    const proposed = { ...draftRule, id: `proposed-${draftRule.label}`, enabled: true, status: 'active' };
     try {
       await axios.post(`${API}/admin/filter-rules/propose`, draftRule);
-      toast.success('Filter rule added.');
-    } catch {
-      toast.message('Filter rule added', { description: 'Saved locally.' });
+      // Re-read the real state from the server rather than inventing a local row —
+      // appending an optimistic {enabled: true} object is what used to tell the
+      // admin their rule was live while the stored row said otherwise.
+      await fetchRules();
+      toast.success('Rule added — live from the next message.');
+      setDraftRule({ type: 'keyword', label: '', pattern: '' });
+      setProposing(false);
+    } catch (e) {
+      // And a failed save is not an "added" rule.
+      toast.error(apiErrorMessage(e, 'Could not save the rule.'));
     }
-    setRules(prev => [...prev, proposed]);
-    setDraftRule({ type: 'keyword', label: '', pattern: '' });
-    setProposing(false);
+  };
+
+  // Switch a rule on/off. This is also what promotes an older "Awaiting review"
+  // rule to live — the backend refreshes the filter's cache, so it bites at once.
+  const toggleRule = async (rule) => {
+    const next = !rule.enabled;
+    try {
+      await axios.post(`${API}/admin/filter-rules/${rule.id}/toggle`, { enabled: next });
+      await fetchRules();
+      toast.success(next ? `"${rule.label}" is now active.` : `"${rule.label}" disabled.`);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Could not update the rule.'));
+    }
+  };
+
+  const deleteRule = async (rule) => {
+    try {
+      await axios.delete(`${API}/admin/filter-rules/${rule.id}`);
+      await fetchRules();
+      toast.success(`"${rule.label}" deleted.`);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Could not delete the rule.'));
+    }
   };
 
   const flaggedCount = (chat) =>
@@ -196,7 +223,7 @@ export default function AdminFlaggedMessages() {
               <div>
                 <h2><Filter size={18} /> Filter rules</h2>
                 <p>Regex patterns and keyword lists the contact-info filter runs against every message.
-                  New rules go live as soon as you add them.</p>
+                  A new rule is saved for review — approve it to put it live.</p>
               </div>
               <button className="afm-btn-primary" onClick={() => setProposing(true)} data-testid="propose-rule">
                 <Plus size={16} /> Propose new rule
@@ -253,9 +280,20 @@ export default function AdminFlaggedMessages() {
                     </div>
                     <code className="afm-rule-pattern">{rule.pattern}</code>
                   </div>
-                  <span className={`afm-rule-state ${rule.enabled ? 'on' : 'off'}`}>
-                    {rule.enabled ? 'Active' : (rule.status === 'pending_review' ? 'Awaiting review' : 'Disabled')}
-                  </span>
+                  <div className="afm-rule-actions">
+                    <span className={`afm-rule-state ${rule.enabled ? 'on' : 'off'}`}>
+                      {rule.enabled ? 'Active' : (rule.status === 'pending_review' ? 'Awaiting review' : 'Disabled')}
+                    </span>
+                    {/* A rule sitting at "Awaiting review" does nothing. This is the
+                        button that actually puts it in front of every message. */}
+                    <button
+                      className={rule.enabled ? 'afm-rule-off' : 'afm-rule-approve'}
+                      onClick={() => toggleRule(rule, !rule.enabled)}
+                      data-testid={`toggle-rule-${idx}`}
+                    >
+                      {rule.enabled ? 'Switch off' : 'Approve & activate'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

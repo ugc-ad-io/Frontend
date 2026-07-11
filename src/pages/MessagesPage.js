@@ -319,6 +319,27 @@ export default function MessagesPage() {
     }
   };
 
+  // After accepting a private invitation the creator can nudge the brand for the
+  // full brief instead of just waiting.
+  const [requestingBrief, setRequestingBrief] = useState(false);
+  const requestBrief = async () => {
+    if (!selectedId || requestingBrief) return;
+    setRequestingBrief(true);
+    try {
+      await axios.post(`${API}/chat/send`, {
+        recipient_id: selectedId,
+        message: "I've accepted the invitation — please share the full brief so I can get started.",
+        attachment_urls: [],
+      });
+      toast.success('Brief requested — the brand has been notified.');
+      await fetchMessages(selectedId);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not send the request'));
+    } finally {
+      setRequestingBrief(false);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const attachmentUrls = selectedFiles.map((file) => file.url).filter(Boolean);
@@ -507,7 +528,14 @@ export default function MessagesPage() {
           </div>
         ) : null}
         {!isOwn && item.type === 'private_invitation' && item.status === 'accepted' ? (
-          <p className="msg-action-card-note">Accepted — waiting for the brand to post the brief.</p>
+          <>
+            <p className="msg-action-card-note">Accepted — waiting for the brand to post the brief.</p>
+            <div className="msg-action-card-actions">
+              <button type="button" onClick={requestBrief} disabled={requestingBrief}>
+                {requestingBrief ? 'Sending…' : 'Need brief'}
+              </button>
+            </div>
+          </>
         ) : null}
         <small className="msg-action-card-time">{new Date(getItemTime(item)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
       </div>

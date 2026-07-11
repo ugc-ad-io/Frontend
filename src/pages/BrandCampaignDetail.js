@@ -31,6 +31,14 @@ const WS_STATUS = {
   revision_requested: { cls: 'warn', label: 'Revision', icon: RefreshCw },
 };
 const DEAL_ORDER = ['Accepted - Awaiting Shipment', 'Shipped - In Transit', 'Delivered - Awaiting Receipt Confirmation', 'Received - Content in Progress', 'Content Submitted - Awaiting Review', 'Approved - Payment Processing', 'Paid - Complete'];
+// The backend emits these states with an EM-dash ("Shipped — In Transit") while the
+// list above uses a hyphen. Without normalising, indexOf() is always -1 and the
+// progress tracker never advances. (AdminDeals/MyDealsPage do the same.)
+const normalizeDash = (v) => String(v || '').replace(/\s*(?:—|–|-)\s*/g, ' - ');
+const dealStateIndex = (state) => {
+  const key = normalizeDash(state);
+  return DEAL_ORDER.findIndex((s) => normalizeDash(s) === key);
+};
 const FALLBACK_WORK = ['/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4'];
 const pfUrlOf = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || it?.video || ''));
 
@@ -145,7 +153,7 @@ export default function BrandCampaignDetail() {
   useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const steps = useMemo(() => {
-    const idx = deal ? DEAL_ORDER.indexOf(deal.current_state) : -1;
+    const idx = deal ? dealStateIndex(deal.current_state) : -1;
     const ship = deal?.shipment || {};
     const rec = deal?.receipt || {};
     const defs = [

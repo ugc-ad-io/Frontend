@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
+import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -26,11 +26,17 @@ function stageIndex(c) {
   return 1; // accepted / active / in_progress → Shipment stage
 }
 
+// Has the brand sent this piece of work back for changes?
+const needsRevision = (c) => (c.work_submission || {}).status === 'revision_requested';
+
 // Reference-style status badge: label + accent colour + icon.
 function statusMeta(c) {
   const s = c.status;
   const due = c.due_date ? Math.ceil((new Date(c.due_date) - Date.now()) / 86400000) : null;
   const startFuture = (c.start_date || c.scheduled_at) && new Date(c.start_date || c.scheduled_at) > Date.now();
+  // A revision request drops the campaign back to in_progress, which used to read
+  // as a plain "Active" — the creator had no signal the brand wanted changes.
+  if (needsRevision(c)) return { label: 'Revision Requested', color: '#f97316', Icon: RefreshCw };
   if (s === 'completed') return { label: 'Completed', color: '#22c55e', Icon: CheckCircle2 };
   if (s === 'cancelled') return { label: 'Cancelled', color: '#ef4444', Icon: XCircle };
   if (s === 'work_submitted' || s === 'under_review') return { label: 'In Review', color: '#f59e0b', Icon: Hourglass };
@@ -130,6 +136,19 @@ export default function MyActiveWorkPage() {
                   </div>
                   <h3 className="cmk-awc-title">{c.title || 'Campaign'}</h3>
                   <small className="cmk-awc-sub">{brand} · Via {channel}</small>
+
+                  {/* The one place the creator can actually read the brand's notes
+                      and re-upload. Without it, "Revision Requested" is a dead end. */}
+                  {needsRevision(c) && (
+                    <button
+                      type="button"
+                      className="cmk-awc-revision"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/work/submit?campaign=${c.id}`); }}
+                      data-testid={`see-revision-${c.id}`}
+                    >
+                      <RefreshCw size={13} /> See what they asked for
+                    </button>
+                  )}
                 </div>
 
                 <div className="cmk-awc-steps">

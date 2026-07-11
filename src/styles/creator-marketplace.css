@@ -321,6 +321,9 @@
 .cmk-bb-brand{flex:1;font-size:13.5px;font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmk-bb-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;font-weight:700;margin-top:2px;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* card preview text — clamp to 3 lines so a long brief never blows up the card */
+.cmk-bb-desc{color:var(--ink-2);font-size:13.5px;line-height:1.5;margin:6px 0 0;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .cmk-bb-sub{color:var(--muted);font-size:13px;font-weight:500;margin:0}
 .cmk-bb-budget{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;font-weight:800;color:var(--ink);margin-top:4px}
 
@@ -1059,23 +1062,24 @@
   font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;cursor:pointer}
 
 /* header */
-.cmk-dr-head{display:flex;align-items:center;gap:24px;padding:20px 24px;flex-wrap:wrap;
+.cmk-dr-head{display:flex;align-items:center;gap:18px;padding:16px 20px;flex-wrap:nowrap;
   background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-soft)}
 .cmk-dr-logo{width:58px;height:58px;border-radius:15px;flex:none;display:grid;place-items:center;overflow:hidden;
   background:#111233;color:#fff;font-weight:800;font-size:22px}
 .cmk-dr-logo img{width:100%;height:100%;object-fit:cover}
-.cmk-dr-title{min-width:200px}
-.cmk-dr-title h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:19px;font-weight:800}
+.cmk-dr-title{min-width:0;flex:1 1 auto}
+.cmk-dr-title h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cmk-dr-id{display:flex;align-items:center;gap:10px;margin-top:5px;font-size:12.5px;color:var(--muted)}
 .cmk-dr-tags{display:flex;gap:6px;margin-top:9px}
 .cmk-dr-tags span{background:#eef0ff;color:var(--indigo);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
-.cmk-dr-metacol{display:flex;flex-direction:column;gap:4px}
-.cmk-dr-metacol small{color:var(--muted);font-size:11.5px}
-.cmk-dr-metacol b{font-weight:700;font-size:14px}
-.cmk-dr-next{margin-left:auto;display:flex;align-items:center;gap:11px;color:#9a6212;
-  background:#fdf3e3;border:1px solid #f6e2c0;border-radius:14px;padding:12px 16px}
-.cmk-dr-next small{display:block;font-size:11px;color:#b9802e}
-.cmk-dr-next strong{font-size:13.5px;color:#8a5a13}
+.cmk-dr-metacol{display:flex;flex-direction:column;gap:3px;flex:none;white-space:nowrap}
+.cmk-dr-metacol small{color:var(--muted);font-size:11px}
+.cmk-dr-metacol b{font-weight:700;font-size:13.5px}
+.cmk-dr-next{margin-left:auto;flex:none;display:flex;align-items:center;gap:9px;color:#9a6212;
+  background:#fdf3e3;border:1px solid #f6e2c0;border-radius:13px;padding:9px 13px}
+.cmk-dr-next small{display:block;font-size:10.5px;color:#b9802e}
+.cmk-dr-next strong{font-size:13px;color:#8a5a13;white-space:nowrap}
 
 /* stepper */
 .cmk-dr-steps{display:flex;padding:24px 24px 18px;margin-top:16px;
@@ -1219,7 +1223,7 @@
 @media (max-width:1080px){
   .cmk-dr-body{grid-template-columns:1fr}
   .cmk-dr-aside{position:static}
-  .cmk-dr-head{gap:16px}
+  .cmk-dr-head{gap:16px;flex-wrap:wrap}
   .cmk-dr-steps{overflow-x:auto}
   .cmk-dr-step{min-width:90px}
 }
@@ -1289,8 +1293,8 @@
   .cmk-aw-steps .cmk-step{min-width:78px}
 
   /* Deal Room */
-  .cmk-dr-head{gap:14px;padding:18px}
-  .cmk-dr-metacol{min-width:42%}
+  .cmk-dr-head{gap:14px;padding:18px;flex-wrap:wrap}
+  .cmk-dr-metacol{min-width:42%;white-space:normal}
   .cmk-dr-next{margin-left:0;width:100%;justify-content:center}
   .cmk-dr-ship-grid{grid-template-columns:1fr 1fr}
   .cmk-dr-tabs{overflow-x:auto;scrollbar-width:none}

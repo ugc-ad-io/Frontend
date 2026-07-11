@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { EmptyPanel, formatMoney, getInitial } from '../components/CreatorComponents';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import ShippingDetailsCard from '../components/ShippingDetailsCard';
 import { Skeleton } from '../components/Skeleton';
 import './CreatorDashboard.css';
 import './MyDealsPage.css';
@@ -761,15 +762,21 @@ export default function MyDealsPage() {
                     </div>
                   ))}
                   {shipmentRequired && (
-                    <div className="cmk-dr-ship">
-                      <div className="cmk-dr-ship-h"><Package size={17} /> Shipment Tracking</div>
-                      <div className="cmk-dr-ship-grid">
-                        <div><small>Courier Partner</small><p>{shipment.courier_partner || shipment.courier_name || 'Not assigned'}</p></div>
-                        <div><small>Tracking ID</small><p>{shipment.tracking_id || 'Pending'}</p>{shipment.courier_tracking_url && <a href={shipment.courier_tracking_url} target="_blank" rel="noreferrer" className="lnk">Track Package ↗</a>}</div>
-                        <div><small>Status</small><p className="stat">● {shipment.courier_status || 'Pending'}</p></div>
-                        <div><small>Expected Delivery</small><p>{formatDate(shipment.expected_delivery_at)}</p></div>
+                    <>
+                      {/* Creator confirms the delivery address before the team dispatches. */}
+                      <div style={{ marginTop: 14 }}>
+                        <ShippingDetailsCard campaignId={deal.deal_id} onReady={() => fetchDeals()} />
                       </div>
-                    </div>
+                      <div className="cmk-dr-ship">
+                        <div className="cmk-dr-ship-h"><Package size={17} /> Shipment Tracking</div>
+                        <div className="cmk-dr-ship-grid">
+                          <div><small>Courier Partner</small><p>{shipment.courier_partner || shipment.courier_name || 'Not assigned'}</p></div>
+                          <div><small>Tracking ID</small><p>{shipment.tracking_id || 'Pending'}</p>{shipment.courier_tracking_url && <a href={shipment.courier_tracking_url} target="_blank" rel="noreferrer" className="lnk">Track Package ↗</a>}</div>
+                          <div><small>Status</small><p className="stat">● {shipment.courier_status || 'Pending'}</p></div>
+                          <div><small>Expected Delivery</small><p>{formatDate(shipment.expected_delivery_at)}</p></div>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </section>
 

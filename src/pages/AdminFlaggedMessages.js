@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   AlertTriangle, CheckCircle, Flag, ShieldAlert, Filter,
-  Check, Ban, ArrowUpRight, Plus, X, MessageSquareWarning,
+  Check, Ban, ArrowUpRight, Plus, X,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
@@ -160,14 +160,8 @@ export default function AdminFlaggedMessages() {
   return (
     <AdminLayout>
       <div className="afm-container">
+        {/* Page title + subtitle already come from AdminLayout — don't repeat them here. */}
         <div className="afm-header">
-          <div>
-            <h1><AlertTriangle size={26} /> Chat Oversight</h1>
-            <p>
-              Review flagged conversations across the contact-info filter, user reports, and strike watch.
-              Approve false positives, confirm violations, or escalate — and manage the filter rules.
-            </p>
-          </div>
           <div className="afm-stats">
             {QUEUES.map(q => (
               <button
@@ -183,18 +177,12 @@ export default function AdminFlaggedMessages() {
           </div>
         </div>
 
-        {/* Module tabs: queue vs. filter-rule management */}
+        {/* The three queue boxes above ARE the queue filter — so no separate "Flagged queue"
+            tab. This is just a toggle into (and back out of) filter-rule management. */}
         <div className="afm-tabs">
           <button
-            className={`afm-tab ${view === 'queue' ? 'is-active' : ''}`}
-            onClick={() => setView('queue')}
-            data-testid="tab-queue"
-          >
-            <MessageSquareWarning size={16} /> Flagged queue
-          </button>
-          <button
             className={`afm-tab ${view === 'rules' ? 'is-active' : ''}`}
-            onClick={() => { setView('rules'); setSelectedChat(null); }}
+            onClick={() => { setView(view === 'rules' ? 'queue' : 'rules'); setSelectedChat(null); }}
             data-testid="tab-rules"
           >
             <Filter size={16} /> Filter rules

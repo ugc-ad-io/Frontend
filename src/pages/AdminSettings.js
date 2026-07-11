@@ -84,7 +84,7 @@ export default function AdminSettings() {
           <h3>Payout delay by level (days)</h3>
           {Object.entries(draft.payout_delay_days || {}).map(([lvl, days]) => (
             <div className="as-field" key={lvl}>
-              <label>{lvl}</label>
+              <label className="as-lvl">{String(lvl).charAt(0).toUpperCase() + String(lvl).slice(1)}</label>
               <input type="number" value={days} disabled={!isFounder}
                 onChange={(e) => setField('payout_delay_days', { ...draft.payout_delay_days, [lvl]: Number(e.target.value) })} />
             </div>
@@ -122,6 +122,9 @@ export default function AdminSettings() {
         .as-card h3 { margin:0 0 12px; font-size:15px; }
         .as-field { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
         .as-field label { font-size:13px; color:#4b4b66; }
+        /* Level keys come from the API lowercase (new / verified / l1 / l2 / elite) —
+           capitalise them for display (JS already does; this guarantees it). */
+        .as-field label.as-lvl { text-transform:capitalize; }
         .as-field input { width:120px; padding:7px 10px; border:1px solid #e2e4f0; border-radius:8px; }
         .as-card textarea { width:100%; padding:8px 10px; border:1px solid #e2e4f0; border-radius:8px; box-sizing:border-box; }
         .as-flag { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px; text-transform:capitalize; }

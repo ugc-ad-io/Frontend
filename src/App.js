@@ -61,6 +61,7 @@ const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminRoles = lazy(() => import('./pages/AdminRoles'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog'));
+const AdminProfiles = lazy(() => import('./pages/AdminProfiles'));
 const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -487,6 +488,15 @@ function App() {
                   <AdminLayout isApplicationsPage={true}>
                     <ApplicationsPage />
                   </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Profile approvals — AdminProfiles renders its own AdminLayout. */}
+            <Route
+              path="/dashboard/admin/profiles"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminProfiles />
                 </ProtectedRoute>
               }
             />

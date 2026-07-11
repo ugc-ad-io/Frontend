@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -15,7 +15,27 @@ const PRODUCTS = ['Yes', 'No'];
 const LOGO_POSITIONS = ['No Preference', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right', 'Center'];
 const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
 
-const GST_RATE = 0.18;
+// Delivery date choices: "Auto" (let the creator pick the earliest they can deliver)
+// plus the next 7 real calendar days — computed live, not hardcoded.
+const DATE_DAYS = 7;
+const buildDateOptions = () => {
+  const out = [{ key: 'auto', label: 'Auto', sub: 'Creator picks' }];
+  for (let i = 0; i < DATE_DAYS; i++) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + i);
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-GB', { weekday: 'short' });
+    const sub = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    out.push({ key, label, sub });
+  }
+  return out;
+};
+
+// Private briefs have no GST. The brand pays the creator's price + the platform
+// fee (the commission the backend adds on top when funding). This is the
+// fallback if the live rate can't be fetched — the real one comes from the API.
+const DEFAULT_PLATFORM_FEE_PERCENT = 20;
 
 const newVideo = () => ({
   name: '',
@@ -57,7 +77,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const [stage, setStage] = useState('setup'); // 'setup' | 'payment'
   const [plan, setPlan] = useState(null); // the creator's single plan, fetched from their profile
   const [planLoading, setPlanLoading] = useState(true);
-  const [dateChoice, setDateChoice] = useState('today');
+  const [dateChoice, setDateChoice] = useState('auto');
   const [slot, setSlot] = useState(SLOTS[1]);
   const [videoCount, setVideoCount] = useState(1);
   const [videos, setVideos] = useState([newVideo()]);
@@ -65,6 +85,21 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const [copyToRest, setCopyToRest] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resolvedName, setResolvedName] = useState('');   // brand-facing handle from the profile
+  // Live platform-fee % (Admin → Settings → Commission rate). Fetched so the
+  // quote always matches what the backend actually charges.
+  const [feePercent, setFeePercent] = useState(DEFAULT_PLATFORM_FEE_PERCENT);
+
+  useEffect(() => {
+    let active = true;
+    axios.get(`${API}/business/settings/billing`)
+      .then((res) => {
+        const rate = Number(res.data?.commission_rate);
+        if (active && Number.isFinite(rate) && rate > 0) setFeePercent(rate);
+      })
+      .catch(() => { /* keep the default */ });
+    return () => { active = false; };
+  }, []);
 
   // Fetch the creator's plan (price set during their signup → profile.rate_card).
   useEffect(() => {
@@ -73,6 +108,10 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     axios.get(`${API}/profile/${creatorId}`)
       .then((res) => {
         if (!active) return;
+        // Brands see the creator's handle (nickname), never their real name/username.
+        const d = res.data || {};
+        const handle = String(d.nickname || d.public_creator_id || '').trim().replace(/^@/, '');
+        if (handle) setResolvedName(`@${handle}`);
         const p = res.data?.profile || {};
         const rc = p.rate_card || {};
         const price = parseInt(String(rc.expected_payout || rc.last_salary || '').replace(/[^0-9]/g, ''), 10) || 0;
@@ -92,9 +131,21 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     return () => { active = false; };
   }, [creatorId]);
 
+  const dateOptions = useMemo(() => buildDateOptions(), []);
+  const selectedDate = dateOptions.find((o) => o.key === dateChoice) || dateOptions[0];
+  const dateLabel = selectedDate.key === 'auto'
+    ? 'Auto — creator picks the earliest date'
+    : `${selectedDate.label}, ${selectedDate.sub}`;
+  // Brands see the creator's handle, never their real name.
+  const displayName = (creatorName && creatorName !== 'Creator') ? creatorName : (resolvedName || 'Creator');
+  const avatarInitial = (String(displayName).replace(/^@/, '') || 'C').charAt(0).toUpperCase();
+
+  // A private brief carries no GST — the brand pays the creator's price plus the
+  // platform fee. This is the same commission the backend adds on top when the
+  // deal is funded, so this quote matches what's actually debited from the wallet.
   const subtotal = (plan?.price || 0) * videoCount;
-  const gst = Math.round(subtotal * GST_RATE * 100) / 100;
-  const total = Math.round((subtotal + gst) * 100) / 100;
+  const platformFee = Math.round(subtotal * (feePercent / 100) * 100) / 100;
+  const total = Math.round((subtotal + platformFee) * 100) / 100;
   const inr = (n) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const videoName = (v, i) => (v.name && v.name.trim()) || `Video ${i + 1}`;
 
@@ -158,7 +209,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     const lines = [];
     lines.push(`Plan: ${plan?.name} (₹${plan?.price}/video) — ${plan?.tags}`);
     lines.push(`Videos: ${videoCount}`);
-    lines.push(`Delivery: ${dateChoice === 'today' ? 'Today' : 'Tomorrow'}, ${slot}`);
+    lines.push(`Delivery: ${dateLabel}, ${slot}`);
     videos.forEach((v, i) => {
       lines.push('');
       lines.push(`— Video ${i + 1} —`);
@@ -233,14 +284,23 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
             <div className="pb-rail-section">
               <p className="pb-rail-label">Selected Creator</p>
-              <div className="pb-creator"><span className="pb-creator-avatar">{(creatorName || 'C').charAt(0).toUpperCase()}</span><strong>{creatorName}</strong></div>
+              <div className="pb-creator"><span className="pb-creator-avatar">{avatarInitial}</span><strong>{displayName}</strong></div>
             </div>
 
             <div className="pb-rail-section">
               <p className="pb-rail-label">Date</p>
               <div className="pb-date-row">
-                <button type="button" className={dateChoice === 'today' ? 'active' : ''} onClick={() => setDateChoice('today')}>Today, 25th Jun</button>
-                <button type="button" className={dateChoice === 'tomorrow' ? 'active' : ''} onClick={() => setDateChoice('tomorrow')}>Tomorrow, 26th Jun</button>
+                {dateOptions.map((o) => (
+                  <button
+                    type="button"
+                    key={o.key}
+                    className={dateChoice === o.key ? 'active' : ''}
+                    onClick={() => setDateChoice(o.key)}
+                  >
+                    <span>{o.label}</span>
+                    <small>{o.sub}</small>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -390,7 +450,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
                     <button type="button" className="pb-rename" onClick={() => renameVideo(i)}><Tag size={13} /> Rename</button>
                   </div>
                   <p className="pb-pay-specs">{vid.duration} / {vid.language} / Standard / {vid.orientation} / {vid.background} / {vid.product === 'Yes' ? 'Product added' : 'No product added'}</p>
-                  <p className="pb-pay-actor">{creatorName} - - -</p>
+                  <p className="pb-pay-actor">{displayName} - - -</p>
                   <div className="pb-pay-actions">
                     <button type="button" className="pb-pay-del" onClick={() => deleteVideo(i)}><Trash2 size={14} /> Delete</button>
                     <button type="button" className="pb-pay-mod" onClick={() => modifyVideo(i)}><Pencil size={14} /> Modify</button>
@@ -411,7 +471,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <div className="pb-summary-foot">
                 <p className="pb-credits"><Info size={13} /> Available credits: 0</p>
                 <div className="pb-summary-line"><span>Subtotal</span><strong>{inr(subtotal)}</strong></div>
-                <div className="pb-summary-line"><span>GST <em>18%</em></span><strong>{inr(gst)}</strong></div>
+                <div className="pb-summary-line"><span>Platform fee <em>{feePercent}%</em></span><strong>{inr(platformFee)}</strong></div>
                 <div className="pb-summary-line pb-summary-total"><span>Total</span><strong>{inr(total)}</strong></div>
               </div>
             </aside>
@@ -451,9 +511,12 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-creator { display: flex; align-items: center; gap: 8px; }
         .pb-creator-avatar { width: 34px; height: 34px; border-radius: 999px; background: #e0e7ff; color: #4f46e5; display: grid; place-items: center; font-weight: 800; }
         .pb-creator strong { color: #0f172a; }
-        .pb-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .pb-date-row button { border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 10px; font-weight: 700; color: #475569; cursor: pointer; font-size: 0.82rem; }
+        .pb-date-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+        .pb-date-row button { flex: 0 0 auto; min-width: 84px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+          border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 9px 10px; font-weight: 700; color: #475569; cursor: pointer; font-size: 0.82rem; }
+        .pb-date-row button small { font-weight: 600; font-size: 0.7rem; color: #94a3b8; }
         .pb-date-row button.active { border-color: #07074e; color: #07074e; background: #f1f3ff; }
+        .pb-date-row button.active small { color: #4452f0; }
         .pb-addon { display: flex; align-items: center; gap: 8px; border: 1px solid #eef0f6; background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left; }
         .pb-addon.is-selected { border-color: #c3cbff; background: #f1f3ff; }
         .pb-addon-check { width: 18px; height: 18px; border-radius: 6px; border: 1px solid #cbd5e1; display: grid; place-items: center; background: #fff; }

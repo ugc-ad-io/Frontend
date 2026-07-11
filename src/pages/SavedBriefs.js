@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../App';
+import axios from 'axios';
 import { toast } from 'sonner';
 import { Bookmark, Star } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import BriefDetailDrawer from '../components/BriefDetailDrawer';
+import normalizeBrief from '../utils/normalizeBrief';
 import { getSavedBriefs, toggleSavedBrief } from '../utils/savedBriefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
 // Cover banner gradient — deterministic per brand, same as the Browse cards.
@@ -27,7 +32,10 @@ const coverBg = (name) => {
 
 export default function SavedBriefs() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [saved, setSaved] = useState(() => getSavedBriefs());
+  const [openBrief, setOpenBrief] = useState(null); // brief shown in the detail drawer
+  const [opening, setOpening] = useState(null);     // id currently being fetched
 
   // Reflect saves/removes made here or on the Browse page.
   useEffect(() => {
@@ -42,6 +50,24 @@ export default function SavedBriefs() {
     toast.success('Removed from saved');
   };
 
+  // Open the full brief right here rather than bouncing to Browse Campaigns.
+  // The saved snapshot drops the heavy raw campaign, so re-fetch it — that also
+  // means the drawer always shows the brand's current brief, not a stale copy.
+  const openDetail = async (b) => {
+    if (!b.id) { toast.error('This brief is unavailable'); return; }
+    setOpening(b.id);
+    try {
+      const { data: campaign } = await axios.get(`${API}/campaigns/${b.id}`);
+      // hasBid is derived from the campaign's own bids list (same rule as Browse).
+      const iBid = campaign.bids?.some((bid) => bid.creator_id === user?.id);
+      setOpenBrief(normalizeBrief(campaign, 0, iBid ? [campaign] : []));
+    } catch {
+      toast.error('Could not load this campaign — it may have been removed.');
+    } finally {
+      setOpening(null);
+    }
+  };
+
   return (
     <CreatorTopNavLayout notifications={0}>
       <div className="cmk-page-head">
@@ -54,8 +80,8 @@ export default function SavedBriefs() {
           {saved.map((b) => (
             <article
               key={b.id}
-              className="cmk-bb-card cmk-rise"
-              onClick={() => b.id ? navigate(`/browse-briefs?open=${b.id}`) : toast.error('This brief is unavailable')}
+              className={`cmk-bb-card cmk-rise${opening === b.id ? ' is-loading' : ''}`}
+              onClick={() => openDetail(b)}
             >
               <div className="cmk-bb-cover" style={b.image_url ? undefined : { background: coverBg(b.brand) }}>
                 {b.image_url && (
@@ -96,6 +122,12 @@ export default function SavedBriefs() {
           action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }}
         />
       )}
+
+      <BriefDetailDrawer
+        brief={openBrief}
+        onClose={() => setOpenBrief(null)}
+        onBid={(b) => navigate(`/campaign/${b.id}`)}
+      />
     </CreatorTopNavLayout>
   );
 }

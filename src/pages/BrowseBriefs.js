@@ -3,17 +3,18 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown, X, Send, Wallet, Target } from 'lucide-react';
+import { Bookmark, Star, X, Send } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import BriefDetailDrawer from '../components/BriefDetailDrawer';
+import normalizeBrief from '../utils/normalizeBrief';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
-const formatMoney = (value) => `Rs. ${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
 // Cover banner gradient — deterministic per brand so each card reads distinctly
 // (mirrors the brand-side campaign cards' thumbnail look).
@@ -31,87 +32,7 @@ const coverBg = (name) => {
   return COVER_GRADIENTS[h % COVER_GRADIENTS.length];
 };
 
-// Map a niche/tag to a consistent colour class so each category reads distinctly.
-const CAT_MAP = [
-  [/beauty|skin|makeup|cosmet/i, 'c-beauty'],
-  [/tech|gadget|electronic|app|software/i, 'c-tech'],
-  [/fashion|apparel|cloth|style|jewel/i, 'c-fashion'],
-  [/life ?style|home|decor|interior/i, 'c-lifestyle'],
-  [/food|snack|beverage|drink|recipe|cook/i, 'c-food'],
-  [/fit|gym|health|wellness|yoga|sport/i, 'c-fitness'],
-  [/travel|trip|tour|hotel|destination/i, 'c-travel'],
-  [/game|gaming|esport/i, 'c-gaming'],
-  [/finance|fintech|bank|invest|money/i, 'c-finance'],
-];
-const catClass = (tag) => (CAT_MAP.find(([re]) => re.test(String(tag || '')))?.[1]) || 'c-default';
-
-// Render the newline-separated brief into a readable definition list.
-const renderBrief = (text) => {
-  const lines = String(text || '').split('\n');
-  const out = [];
-  lines.forEach((line, i) => {
-    const t = line.trim();
-    if (!t) return;
-    const idx = t.indexOf(':');
-    if (idx > 0 && idx <= 28) {
-      out.push(<p key={i} className="bb-bl"><span className="bb-blab">{t.slice(0, idx)}:</span> {t.slice(idx + 1).trim()}</p>);
-    } else {
-      out.push(<p key={i} className="bb-bl">{t}</p>);
-    }
-  });
-  return out.length ? out : <p className="bb-bl">No brief details provided.</p>;
-};
-
-const getCampaignBudget = (c) => {
-  if (!c) return 'Rs. 0';
-  const min = c.budget_min ?? c.budget ?? 0;
-  const max = c.budget_max ?? min;
-  return min === max ? formatMoney(min) : `${formatMoney(min)} - ${formatMoney(max)}`;
-};
-
 const CATEGORIES = ['All Categories', 'Beauty', 'Fashion', 'Tech', 'Fitness', 'Food', 'Lifestyle', 'Travel', 'Home', 'Gaming', 'Kids'];
-
-// The card preview should read like a sentence — not the raw "Label: value" brief
-// dump. Prefer the product description, else pull the "Product description:" line
-// out of the brief, else a generic line.
-function cardDescription(c) {
-  if (c.product_description && c.product_description.trim()) return c.product_description.trim();
-  const text = String(c.brief_text || '');
-  const m = text.match(/product description:\s*([^\n]+)/i)
-    || text.match(/key message:\s*([^\n]+)/i)
-    || text.match(/hook:\s*([^\n]+)/i);
-  if (m) return m[1].trim();
-  // If the brief isn't the structured label format, use its first real line.
-  const firstLine = text.split('\n').map((l) => l.trim()).find(Boolean);
-  if (firstLine && !/^[a-z ]{2,28}:/i.test(firstLine)) return firstLine;
-  return 'Create engaging UGC content for this brand.';
-}
-
-function normalizeBrief(c, index, myBids) {
-  const objectives = Array.isArray(c.objectives) ? c.objectives.filter(Boolean) : [];
-  const hasBid = myBids.some((b) => b.id === c.id);
-  const budgetMax = Number(c.budget_max ?? c.budget ?? 0);
-  const matchScore = Math.min(98, 76 + objectives.length * 4 + (c.requires_shipment ? 3 : 0) + (index % 3) * 2);
-  const d = c.estimated_delivery_days || c.delivery_days;
-  return {
-    campaign: c,
-    id: c.id || c._id,
-    title: c.title,
-    description: cardDescription(c),
-    brand: c.business_nickname || c.brand_handle || 'Brand',
-    logo: c.brand_logo,
-    image_url: c.image_url || c.cover_image || '',
-    tags: objectives.length ? objectives.slice(0, 2) : [(c.industry_type || 'UGC'), 'UGC Video'],
-    budget: getCampaignBudget(c),
-    budgetMax,
-    deliveryLabel: d ? `${d} Days` : '3 - 5 Days',
-    deliveryDays: Number(d) || 5,
-    matchScore,
-    hasBid,
-    createdAt: c.created_at ? new Date(c.created_at).getTime() : 0,
-    industryType: (c.industry_type || '').toLowerCase(),
-  };
-}
 
 export default function BrowseBriefs() {
   const { user } = useAuth();
@@ -200,7 +121,7 @@ export default function BrowseBriefs() {
     [availableCampaigns, myBids]
   );
 
-  // Deep-link: open a specific brief's drawer when arriving from Saved (?open=<id>).
+  // Deep-link: open a specific brief's drawer from a shared URL (?open=<id>).
   useEffect(() => {
     const openId = searchParams.get('open');
     if (openId && briefs.length) {

@@ -258,6 +258,16 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
       type: 'content'
     };
   }
+  // Deal just accepted and a product has to be shipped. The backend's
+  // primary_next_action here is "Upload shipment tracking" — that's the BRAND's job,
+  // and showing it to the creator as a dead, greyed-out button is just confusing.
+  // The creator's real job is to confirm where the product should be sent.
+  if (isState(deal, 'Accepted - Awaiting Shipment')) {
+    const needsShipping = deal?.shipment?.required || deal?.campaign?.requires_shipment;
+    if (needsShipping) {
+      return { label: 'Confirm Delivery Address', disabled: false, type: 'ship_address' };
+    }
+  }
   return {
     label: deal.primary_next_action || 'Waiting',
     disabled: true,
@@ -321,6 +331,7 @@ export default function MyDealsPage() {
   const [mobileSection, setMobileSection] = useState('workspace');
   const [showAllActivity, setShowAllActivity] = useState(false);
   const evidenceInputRef = useRef(null);
+  const shipAddressRef = useRef(null);   // "Confirm Delivery Address" scrolls here
 
   useEffect(() => {
     if (!user?.id) return undefined;
@@ -568,6 +579,12 @@ export default function MyDealsPage() {
     if (primaryAction.type === 'content') return handleSubmitContent();
     if (primaryAction.type === 'add_evidence') return handleAddEvidenceClick();
     if (primaryAction.type === 'archive') return handleArchiveDeal();
+    // Jump the creator to the delivery-address form so the button actually does
+    // something the moment the deal is accepted.
+    if (primaryAction.type === 'ship_address') {
+      shipAddressRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     return null;
   };
 
@@ -768,7 +785,7 @@ export default function MyDealsPage() {
                   {shipmentRequired && (
                     <>
                       {/* Creator confirms the delivery address before the team dispatches. */}
-                      <div style={{ marginTop: 14 }}>
+                      <div style={{ marginTop: 14 }} ref={shipAddressRef}>
                         <ShippingDetailsCard campaignId={deal.deal_id} onReady={() => fetchDeals()} />
                       </div>
                       <div className="cmk-dr-ship">

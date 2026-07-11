@@ -894,7 +894,17 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             )}
             {step === 1 && subStep === 1 && (
               <>
-                <div className="form-group"><label>Product description * (20+ characters)</label><textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={4} /></div>
+                <div className="form-group">
+                  <label>Product description * (20+ characters)</label>
+                  <textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={4} />
+                  {/* Min length is enforced on Next — show how far off they are. */}
+                  {(() => {
+                    const left = 20 - form.productDescription.trim().length;
+                    return left > 0
+                      ? <small className="brief-need">{left} more character{left === 1 ? '' : 's'} needed</small>
+                      : <small>{form.productDescription.trim().length} characters</small>;
+                  })()}
+                </div>
                 <div className="form-group"><label>Key message *</label><input className="input-field" value={form.keyMessage} onChange={e => set('keyMessage', e.target.value)} placeholder="The one message every video should communicate" /></div>
               </>
             )}
@@ -1083,6 +1093,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       )}
 
       <style>{`
+        /* "N more characters needed" — amber until the minimum length is met */
+        .brief-need{color:#b45309;font-weight:600}
         /* top step-tabs (General / Address … style) */
         .pab-tabs{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #eef0f6;padding:0 4px 0 0;margin-bottom:18px}
         .pab-tabs-row{display:flex;gap:26px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}

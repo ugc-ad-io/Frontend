@@ -42,6 +42,14 @@ export default function AdminRoles() {
   // Custom-admin config (new-admin form)
   const [newCaps, setNewCaps] = useState([]);
   const [newScope, setNewScope] = useState('all');
+
+  // Change-password modal: step 1 re-authenticates YOU, step 2 sets their new password.
+  const [pwdMember, setPwdMember] = useState(null);
+  const [pwdStep, setPwdStep] = useState('current'); // 'current' | 'new'
+  const [curPwd, setCurPwd] = useState('');
+  const [nextPwd, setNextPwd] = useState('');
+  const [nextPwd2, setNextPwd2] = useState('');
+  const [pwdBusy, setPwdBusy] = useState(false);
   // Custom-access editor for an existing member
   const [accessMember, setAccessMember] = useState(null);
   const [accessCaps, setAccessCaps] = useState([]);
@@ -152,13 +160,47 @@ export default function AdminRoles() {
     }
   };
 
-  // Change an existing admin's password (founder-only). Reuses /admin/staff/role,
-  // which treats a `password` on an existing member as a password change.
-  const changePassword = async (member) => {
-    const pwd = window.prompt(`New password for ${member.email} (min 6 characters):`);
-    if (pwd === null) return;
-    const p = pwd.trim();
+  // Change an existing admin's password (founder-only). Opens a two-step card:
+  // 1) confirm YOUR OWN password, 2) set their new password.
+  const changePassword = (member) => {
+    setPwdMember(member);
+    setPwdStep('current');
+    setCurPwd('');
+    setNextPwd('');
+    setNextPwd2('');
+  };
+
+  const closePwdModal = () => {
+    if (pwdBusy) return;
+    setPwdMember(null);
+    setCurPwd('');
+    setNextPwd('');
+    setNextPwd2('');
+  };
+
+  // Step 1 — re-authenticate the founder with their own password.
+  const confirmCurrentPassword = async (e) => {
+    e.preventDefault();
+    if (!curPwd.trim()) { toast.error('Enter your current password'); return; }
+    setPwdBusy(true);
+    try {
+      await axios.post(`${API}/auth/verify-password`, { password: curPwd });
+      setPwdStep('new');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Incorrect password'));
+    } finally {
+      setPwdBusy(false);
+    }
+  };
+
+  // Step 2 — set the member's new password (reuses /admin/staff/role).
+  const submitNewPassword = async (e) => {
+    e.preventDefault();
+    const p = nextPwd.trim();
     if (p.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    if (p !== nextPwd2.trim()) { toast.error('Passwords do not match'); return; }
+    const member = pwdMember;
+    setPwdBusy(true);
     setSavingId(member.id);
     try {
       await axios.post(`${API}/admin/staff/role`, {
@@ -170,9 +212,14 @@ export default function AdminRoles() {
           : {}),
       });
       toast.success(`Password updated for ${member.email}`);
-    } catch (e) {
-      toast.error(apiErrorMessage(e, 'Failed to change password'));
+      setPwdMember(null);
+      setCurPwd('');
+      setNextPwd('');
+      setNextPwd2('');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to change password'));
     } finally {
+      setPwdBusy(false);
       setSavingId(null);
     }
   };
@@ -485,10 +532,94 @@ export default function AdminRoles() {
             </div>
           </div>
         )}
+
+        {pwdMember && (
+          <div className="arl-pwd-ov" onClick={closePwdModal}>
+            <div className="arl-pwd-card" onClick={(e) => e.stopPropagation()}>
+              <div className="arl-pwd-head">
+                <div>
+                  <h3>Change password</h3>
+                  <small>{pwdMember.email}</small>
+                </div>
+                <button type="button" onClick={closePwdModal} aria-label="Close" disabled={pwdBusy}><X size={18} /></button>
+              </div>
+
+              <div className="arl-pwd-steps">
+                <span className={pwdStep === 'current' ? 'on' : 'done'}>1. Confirm it's you</span>
+                <span className={pwdStep === 'new' ? 'on' : ''}>2. New password</span>
+              </div>
+
+              {pwdStep === 'current' ? (
+                <form onSubmit={confirmCurrentPassword}>
+                  <label className="arl-pwd-field">
+                    <span>Your current password</span>
+                    <input
+                      type="password"
+                      value={curPwd}
+                      onChange={(e) => setCurPwd(e.target.value)}
+                      placeholder="Enter your own password"
+                      autoFocus
+                      autoComplete="current-password"
+                    />
+                  </label>
+                  <p className="arl-pwd-note">For security, confirm your own password before changing another admin's.</p>
+                  <div className="arl-pwd-actions">
+                    <button type="button" className="arl-revoke" onClick={closePwdModal} disabled={pwdBusy}>Cancel</button>
+                    <button type="submit" className="arl-add-btn" disabled={pwdBusy}>{pwdBusy ? 'Checking…' : 'Continue'}</button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={submitNewPassword}>
+                  <label className="arl-pwd-field">
+                    <span>New password for {pwdMember.email}</span>
+                    <input
+                      type="password"
+                      value={nextPwd}
+                      onChange={(e) => setNextPwd(e.target.value)}
+                      placeholder="At least 6 characters"
+                      autoFocus
+                      autoComplete="new-password"
+                    />
+                  </label>
+                  <label className="arl-pwd-field">
+                    <span>Confirm new password</span>
+                    <input
+                      type="password"
+                      value={nextPwd2}
+                      onChange={(e) => setNextPwd2(e.target.value)}
+                      placeholder="Re-enter the new password"
+                      autoComplete="new-password"
+                    />
+                  </label>
+                  <div className="arl-pwd-actions">
+                    <button type="button" className="arl-revoke" onClick={() => setPwdStep('current')} disabled={pwdBusy}>Back</button>
+                    <button type="submit" className="arl-add-btn" disabled={pwdBusy}>{pwdBusy ? 'Saving…' : 'Update password'}</button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
         .arl { padding: 24px 28px; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+        .arl-pwd-ov { position: fixed; inset: 0; background: rgba(15,18,40,0.5); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .arl-pwd-card { background: #fff; width: 100%; max-width: 430px; border-radius: 16px; padding: 22px; box-shadow: 0 30px 70px rgba(7,7,78,0.3); }
+        .arl-pwd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .arl-pwd-head h3 { margin: 0; font-size: 1.1rem; color: #07074e; }
+        .arl-pwd-head small { color: #98a1ad; font-size: 0.78rem; word-break: break-all; }
+        .arl-pwd-head button { border: none; background: #f3f4f8; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: grid; place-items: center; color: #5b6573; flex: none; }
+        .arl-pwd-steps { display: flex; gap: 8px; margin-bottom: 16px; }
+        .arl-pwd-steps span { flex: 1; text-align: center; font-size: 0.72rem; font-weight: 700; padding: 6px 4px; border-radius: 7px; background: #f3f4f8; color: #98a1ad; }
+        .arl-pwd-steps span.on { background: #eef0ff; color: #3730a3; }
+        .arl-pwd-steps span.done { background: #e7f7ee; color: #067647; }
+        .arl-pwd-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .arl-pwd-field > span { font-size: 0.79rem; font-weight: 600; color: #4a4f74; }
+        .arl-pwd-field input { border: 1.5px solid #e2e4f0; border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; color: #0f172a; outline: none; width: 100%; }
+        .arl-pwd-field input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+        .arl-pwd-note { font-size: 0.75rem; color: #98a1ad; margin: 0 0 14px; line-height: 1.5; }
+        .arl-pwd-actions { display: flex; gap: 10px; justify-content: flex-end; }
         .arl-you { display: flex; align-items: center; gap: 9px; border-radius: 12px; padding: 12px 16px; font-size: 0.9rem; color: #07074e; border: 1px solid #d6dbff; background: #eef0ff; }
         .arl-you strong { font-weight: 700; }
         .arl-you-tag { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #b54708; background: #fff3e0; border: 1px solid #fde6c8; border-radius: 6px; padding: 3px 8px; }

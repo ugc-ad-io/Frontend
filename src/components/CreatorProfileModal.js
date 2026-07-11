@@ -514,11 +514,19 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     || (Array.isArray(p.categories) ? p.categories[0] : '')
     || (skills[0] || '');
   const hlCategory = (nicheTxt || 'General').replace(/_/g, ' ');
-  // On the brand/public view, never expose an actual rate — always "On Request".
-  // The creator's own (editable) view still shows their configured price.
-  const hlPrice = editable
-    ? (priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On Request'))
-    : 'On Request';
+  // The creator's configured rate, shown to the brand as well as the creator —
+  // a brand shouldn't have to message someone just to learn their price.
+  // Fallback used by the video cards when an item carries no price of its own.
+  const basePrice = priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On Request');
+  // Header highlight: if the creator never set a profile-level rate but priced
+  // their individual videos, quote the cheapest one ("From ₹8,000") instead of
+  // falling back to a bare "On Request" that the cards below would contradict.
+  const vidPriceNums = realVids
+    .map((v) => Number(String(v.price ?? '').replace(/[^0-9]/g, '')))
+    .filter((n) => n > 0);
+  const hlPrice = (!priceNum && vidPriceNums.length)
+    ? `From ${inr(Math.min(...vidPriceNums))}`
+    : basePrice;
   // Single concrete day count (defaults to 1), not a "3–5 days" range.
   const hlDays = Number(p.delivery_days || p.avg_delivery_days || rc.delivery_days || 1) || 1;
   const hlDelivery = `${hlDays} day${hlDays > 1 ? 's' : ''}`;
@@ -803,7 +811,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                                 <span className="cpm-vid-cat">{meta.category || hlCategory}</span>
                               </div>
                               <div className="cpm-vid-pricerow">
-                                <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(meta.price, hlPrice)}</strong></div>
+                                <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(meta.price, basePrice)}</strong></div>
                                 <span className="cpm-vid-del"><label>Delivered in</label><strong>{meta.delivery || hlDelivery}</strong></span>
                               </div>
                             </div>
@@ -828,7 +836,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                             <span className="cpm-vid-cat">{v.category || hlCategory}</span>
                           </div>
                           <div className="cpm-vid-pricerow">
-                            <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(v.price, hlPrice)}</strong></div>
+                            <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(v.price, basePrice)}</strong></div>
                             <span className="cpm-vid-del"><label>Delivered in</label><strong>{v.delivery || hlDelivery}</strong></span>
                           </div>
                         </div>

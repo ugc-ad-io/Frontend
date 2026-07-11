@@ -15,22 +15,16 @@ const PRODUCTS = ['Yes', 'No'];
 const LOGO_POSITIONS = ['No Preference', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right', 'Center'];
 const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
 
-// Delivery date choices: "Auto" (let the creator pick the earliest they can deliver)
-// plus the next 7 real calendar days — computed live, not hardcoded.
-const DATE_DAYS = 7;
-const buildDateOptions = () => {
-  const out = [{ key: 'auto', label: 'Auto', sub: 'Creator picks' }];
-  for (let i = 0; i < DATE_DAYS; i++) {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + i);
-    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-GB', { weekday: 'short' });
-    const sub = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    out.push({ key, label, sub });
-  }
-  return out;
-};
+// Delivery date: Today, Tomorrow, or a custom date the brand picks. Dates are
+// computed live (never hardcoded).
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayAfter = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+const prettyDay = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const buildDateOptions = () => ([
+  { key: isoDay(dayAfter(0)), label: 'Today', sub: prettyDay(dayAfter(0)) },
+  { key: isoDay(dayAfter(1)), label: 'Tomorrow', sub: prettyDay(dayAfter(1)) },
+  { key: 'custom', label: 'Custom', sub: 'Pick a date' },
+]);
 
 // Private briefs have no GST. The brand pays the creator's price + the platform
 // fee (the commission the backend adds on top when funding). This is the
@@ -77,12 +71,12 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const [stage, setStage] = useState('setup'); // 'setup' | 'payment'
   const [plan, setPlan] = useState(null); // the creator's single plan, fetched from their profile
   const [planLoading, setPlanLoading] = useState(true);
-  const [dateChoice, setDateChoice] = useState('auto');
+  const [dateChoice, setDateChoice] = useState(isoDay(dayAfter(0)));   // Today by default
+  const [customDate, setCustomDate] = useState(isoDay(dayAfter(2)));   // used when "Custom" is picked
   const [slot, setSlot] = useState(SLOTS[1]);
   const [videoCount, setVideoCount] = useState(1);
   const [videos, setVideos] = useState([newVideo()]);
   const [activeVideo, setActiveVideo] = useState(0);
-  const [copyToRest, setCopyToRest] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resolvedName, setResolvedName] = useState('');   // brand-facing handle from the profile
@@ -133,8 +127,10 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
   const dateOptions = useMemo(() => buildDateOptions(), []);
   const selectedDate = dateOptions.find((o) => o.key === dateChoice) || dateOptions[0];
-  const dateLabel = selectedDate.key === 'auto'
-    ? 'Auto — creator picks the earliest date'
+  // The actual date sent to the backend — the custom pick when "Custom" is selected.
+  const deliveryDate = dateChoice === 'custom' ? customDate : dateChoice;
+  const dateLabel = dateChoice === 'custom'
+    ? (customDate ? prettyDay(new Date(`${customDate}T00:00:00`)) : 'Pick a date')
     : `${selectedDate.label}, ${selectedDate.sub}`;
   // Brands see the creator's handle, never their real name.
   const displayName = (creatorName && creatorName !== 'Creator') ? creatorName : (resolvedName || 'Creator');
@@ -154,7 +150,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     setVideoCount(n);
     setVideos((cur) => {
       const arr = [...cur];
-      while (arr.length < n) arr.push(copyToRest ? { ...arr[0], files: [...(arr[0].files || [])] } : newVideo());
+      while (arr.length < n) arr.push(newVideo());
       arr.length = n;
       return arr;
     });
@@ -164,7 +160,6 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const updateVideo = (patch) => {
     setVideos((cur) => {
       const arr = cur.map((v, i) => (i === activeVideo ? { ...v, ...patch } : v));
-      if (copyToRest) return arr.map((v) => ({ ...arr[activeVideo] }));
       return arr;
     });
   };
@@ -234,7 +229,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         budget_min: subtotal,
         budget_max: subtotal,
         requires_shipment: videos.some((v) => v.product === 'Yes'),
-        delivery_date: dateChoice,
+        delivery_date: deliveryDate,
         delivery_slot: slot,
         plan: plan?.id,
         video_count: videoCount,
@@ -302,6 +297,15 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
                   </button>
                 ))}
               </div>
+              {dateChoice === 'custom' && (
+                <input
+                  type="date"
+                  className="pb-date-input"
+                  value={customDate}
+                  min={isoDay(dayAfter(0))}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                />
+              )}
             </div>
 
             <div className="pb-rail-section">
@@ -379,10 +383,6 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
 
           <div className="pb-footer">
-            <label className="pb-copy">
-              <input type="checkbox" checked={copyToRest} onChange={(e) => { setCopyToRest(e.target.checked); if (e.target.checked) setVideos((cur) => cur.map(() => ({ ...cur[activeVideo] }))); }} />
-              <span>Copy these responses to the rest videos</span>
-            </label>
             <button type="button" className="pb-proceed" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'payment')} disabled={submitting}>Proceed</button>
           </div>
           </>
@@ -511,12 +511,15 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-creator { display: flex; align-items: center; gap: 8px; }
         .pb-creator-avatar { width: 34px; height: 34px; border-radius: 999px; background: #e0e7ff; color: #4f46e5; display: grid; place-items: center; font-weight: 800; }
         .pb-creator strong { color: #0f172a; }
-        .pb-date-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
-        .pb-date-row button { flex: 0 0 auto; min-width: 84px; display: flex; flex-direction: column; align-items: center; gap: 2px;
-          border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 9px 10px; font-weight: 700; color: #475569; cursor: pointer; font-size: 0.82rem; }
-        .pb-date-row button small { font-weight: 600; font-size: 0.7rem; color: #94a3b8; }
+        .pb-date-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .pb-date-row button { display: flex; flex-direction: column; align-items: center; gap: 2px;
+          border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 9px 6px; font-weight: 700; color: #475569; cursor: pointer; font-size: 0.8rem; }
+        .pb-date-row button small { font-weight: 600; font-size: 0.68rem; color: #94a3b8; }
         .pb-date-row button.active { border-color: #07074e; color: #07074e; background: #f1f3ff; }
         .pb-date-row button.active small { color: #4452f0; }
+        .pb-date-input { width: 100%; margin-top: 8px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 12px;
+          font-family: inherit; font-weight: 700; color: #0f172a; background: #fff; }
+        .pb-date-input:focus { outline: none; border-color: #07074e; }
         .pb-addon { display: flex; align-items: center; gap: 8px; border: 1px solid #eef0f6; background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left; }
         .pb-addon.is-selected { border-color: #c3cbff; background: #f1f3ff; }
         .pb-addon-check { width: 18px; height: 18px; border-radius: 6px; border: 1px solid #cbd5e1; display: grid; place-items: center; background: #fff; }
@@ -581,9 +584,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-notes-tabs { display: flex; gap: 8px; }
         .pb-notes-tabs span { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; color: #94a3b8; padding: 5px 10px; border-radius: 8px; }
         .pb-notes-tabs span.active { background: #f1f3ff; color: #07074e; }
-        .pb-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 28px; border-top: 1px solid #f1f5f9; }
-        .pb-copy { display: flex; align-items: center; gap: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
-        .pb-copy input { width: 16px; height: 16px; }
+        .pb-footer { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 14px 28px; border-top: 1px solid #f1f5f9; }
         .pb-proceed { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; border: 0; border-radius: 11px; padding: 13px 34px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .pb-proceed:disabled { opacity: 0.6; cursor: not-allowed; }
         .pb-goback { background: #f1f5f9; color: #475569; border: 0; border-radius: 11px; padding: 13px 28px; font-weight: 800; cursor: pointer; }

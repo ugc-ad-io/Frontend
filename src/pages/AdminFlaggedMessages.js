@@ -96,7 +96,14 @@ export default function AdminFlaggedMessages() {
   const inQueue = (chat, q) => {
     if (q === 'contact') return chat.has_violations;
     if (q === 'reported') return (chat.report_count || 0) > 0 || chat.reported;
-    if (q === 'strike') return chat.on_strike_watch || (chat.user1?.on_strike_watch || chat.user2?.on_strike_watch);
+    if (q === 'strike') {
+      // A repeat offender's chat only belongs here if THIS conversation actually has
+      // something to review. Without this, every clean chat of a struck user showed up
+      // as a useless "0 flagged messages — view & action" card.
+      const onWatch = chat.on_strike_watch || chat.user1?.on_strike_watch || chat.user2?.on_strike_watch;
+      const hasSomething = (chat.violation_count || 0) > 0 || (chat.report_count || 0) > 0;
+      return onWatch && hasSomething;
+    }
     return false;
   };
 

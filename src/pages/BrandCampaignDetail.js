@@ -13,6 +13,7 @@ import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import RevisionRequestModal from '../components/RevisionRequestModal';
 import CampaignDetails from './CampaignDetails';
+import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 
@@ -123,25 +124,25 @@ export default function BrandCampaignDetail() {
   const [revSubmitting, setRevSubmitting] = useState(false);
   const [dupOpen, setDupOpen] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const cRes = await axios.get(`${API}/campaigns/${id}`);
-        if (active) setCampaign(cRes.data);
-        const dRes = await axios.get(`${API}/deals/my`).catch(() => ({ data: [] }));
-        const d = (dRes.data || []).find((x) => String(x.campaign?.id) === String(id));
-        if (active) setDeal(d || null);
-        const creatorId = cRes.data?.selected_creator;
-        if (creatorId) {
-          const pRes = await axios.get(`${API}/profile/${creatorId}`).catch(() => null);
-          if (active && pRes) setCreator({ id: creatorId, ...pRes.data });
-        }
-      } catch { /* ignore */ }
-      finally { if (active) setLoading(false); }
-    })();
-    return () => { active = false; };
-  }, [id]);
+  const load = async () => {
+    try {
+      const cRes = await axios.get(`${API}/campaigns/${id}`);
+      setCampaign(cRes.data);
+      // Brands must read /deals/business — /deals/my is the creator's list and
+      // returns 403/[] here, which left `deal` permanently null on this page.
+      const dRes = await axios.get(`${API}/deals/business`).catch(() => ({ data: [] }));
+      const d = (dRes.data || []).find((x) => String(x.campaign?.id) === String(id));
+      setDeal(d || null);
+      const creatorId = cRes.data?.selected_creator;
+      if (creatorId) {
+        const pRes = await axios.get(`${API}/profile/${creatorId}`).catch(() => null);
+        if (pRes) setCreator({ id: creatorId, ...pRes.data });
+      }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const steps = useMemo(() => {
     const idx = deal ? DEAL_ORDER.indexOf(deal.current_state) : -1;
@@ -244,6 +245,9 @@ export default function BrandCampaignDetail() {
             <button className="cmk-btn-ghost-sm" onClick={() => setDetailsOpen(true)}>View Details</button>
           </div>
         </div>
+
+        {/* Direct booking: answer the creator's price, or send the brief once accepted. */}
+        <BookingCard deal={deal || { campaign }} role="brand" onDone={load} />
 
         <div className="bcd-tabs">
           {[['overview', 'Overview'], ['about', 'About Campaign'], ['work', `Work Review${campaign.work_submission ? ' (1)' : ''}`]].map(([k, l]) => (

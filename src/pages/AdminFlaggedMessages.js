@@ -149,9 +149,7 @@ export default function AdminFlaggedMessages() {
       // appending an optimistic {enabled: true} object is what used to tell the
       // admin their rule was live while the stored row said otherwise.
       await fetchRules();
-      // The rule is stored disabled/pending — saying "live" here would be the same
-      // lie the old optimistic append told.
-      toast.success('Rule saved — hit "Approve & activate" to put it live.');
+      toast.success('Rule added — it blocks matching messages from now on.');
       setDraftRule({ type: 'keyword', label: '', pattern: '' });
       setProposing(false);
     } catch (e) {

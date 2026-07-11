@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import BookingCard from '../components/BookingCard';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -737,6 +738,9 @@ export default function MyDealsPage() {
         {/* body */}
         <div className="cmk-dr-body">
           <main>
+            {/* A direct booking isn't real work until the creator accepts it. */}
+            <BookingCard deal={deal} role="creator" onDone={fetchDeals} />
+
             <div className="cmk-dr-tabs">
               {['overview', 'brief', 'deliverables', 'timeline', 'payments'].map((t) => (
                 <button key={t} type="button" className={leftTab === t ? 'on' : ''} onClick={() => setLeftTab(t)}>

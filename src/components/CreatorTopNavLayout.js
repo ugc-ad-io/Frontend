@@ -59,6 +59,11 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const photo = user?.profile_photo || user?.profile_picture || user?.avatar;
   const isActive = (to) => pathname === to || pathname.startsWith(`${to}/`);
 
+  // Pages that own the bottom-right corner with their own chat launcher — the
+  // global FAB would land on top of it.
+  const OWN_CHAT_PATHS = ['/messages', '/my-deals'];
+  const hideMsgFab = OWN_CHAT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
   const handleLogout = () => { logout(); navigate('/'); };
 
   return (
@@ -162,8 +167,10 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
         {children}
       </main>
 
-      {/* Floating Message button — hidden on the Messages page itself (redundant there). */}
-      {!(pathname === '/messages' || pathname.startsWith('/messages/')) && (
+      {/* Floating Message button — hidden where the page already owns the bottom-right
+          corner: the Messages page itself, and the Deal Room, which renders its own
+          deal-scoped chat FAB there. Both were drawing on top of each other. */}
+      {!hideMsgFab && (
         <>
           <button
             type="button"

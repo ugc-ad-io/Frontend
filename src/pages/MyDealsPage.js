@@ -1251,9 +1251,18 @@ function DamageReportCard({ deal, onActionCard }) {
   );
 }
 
+const REVISION_RESPONSE_LABEL = {
+  accepted: 'You accepted this revision — submit your revised content below.',
+  scope_creep: 'You flagged this as scope creep — a dispute was raised and the platform team will review it.',
+  partial_dispute: 'You partially accepted and disputed the rest — a dispute was raised for review.',
+};
+
 function RevisionTracker({ deal, onRevisionResponse }) {
   const revision = deal?.revision_tracker || {};
   const hasRevision = Boolean(revision.latest_feedback || revision.requested_changes?.length);
+  // Once the creator has responded, show what they chose instead of leaving the
+  // buttons live (clicking them again looked like nothing was happening).
+  const responded = revision.creator_response;
   return (
     <DealCard className="deal-revisions">
       <div className="deal-section-title">
@@ -1265,11 +1274,17 @@ function RevisionTracker({ deal, onRevisionResponse }) {
         <p><small>Requested Changes</small><strong>{revision.requested_changes?.length ? revision.requested_changes.join(', ') : 'No requested changes.'}</strong></p>
         <p><small>New Deadline</small><strong>{formatDateTime(revision.new_deadline_at)}</strong></p>
       </div>
-      <div className="deal-revision-actions">
-        <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('accepted')}>Accept and revise</button>
-        <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep')}>Flag scope creep</button>
-        <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('partial_dispute')}>Partially accept and dispute remaining items</button>
-      </div>
+      {responded ? (
+        <p className="deal-revision-responded">
+          <Check size={15} /> {REVISION_RESPONSE_LABEL[responded] || `Response recorded: ${responded}`}
+        </p>
+      ) : (
+        <div className="deal-revision-actions">
+          <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('accepted')}>Accept and revise</button>
+          <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep')}>Flag scope creep</button>
+          <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('partial_dispute')}>Partially accept and dispute remaining items</button>
+        </div>
+      )}
     </DealCard>
   );
 }

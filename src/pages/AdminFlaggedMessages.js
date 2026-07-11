@@ -328,24 +328,30 @@ export default function AdminFlaggedMessages() {
               </div>
             </div>
             <div className="afm-messages">
-              {chatMessages.filter(m => m.filtered || m.reported).length === 0 ? (
-                <p className="afm-no-messages">No flagged messages in this conversation</p>
+              {/* Show the WHOLE conversation, not just flagged lines. A chat can surface in the
+                  strike-watch / reports queue because of the USER, with no individually-flagged
+                  message — filtering to flagged-only made those open completely empty. */}
+              {chatMessages.length === 0 ? (
+                <p className="afm-no-messages">No messages in this conversation</p>
               ) : (
-                chatMessages.filter(m => m.filtered || m.reported).map((msg, idx) => {
+                chatMessages.map((msg, idx) => {
                   const key = msgKey(msg, idx);
                   const res = resolutions[key];
+                  const isFlagged = !!(msg.filtered || msg.reported);
                   return (
-                    <div key={idx} className={`afm-message ${res ? `is-${res.action}` : ''}`} data-testid={`flagged-msg-${idx}`}>
+                    <div key={idx} className={`afm-message ${isFlagged ? '' : 'is-clean'} ${res ? `is-${res.action}` : ''}`} data-testid={isFlagged ? `flagged-msg-${idx}` : `msg-${idx}`}>
                       <div className="afm-message-head">
                         <span className="afm-sender">{displayHandle(msg, 'sender_nickname', 'sender_username')}</span>
                         <span className="afm-time">{new Date(msg.timestamp).toLocaleString()}</span>
                       </div>
                       <div className="afm-message-body">{msg.message}</div>
-                      <div className="afm-message-flag">
-                        ⚠️ {msg.reported ? 'Reported by user' : 'Content filtered'} — reported to admin
-                      </div>
+                      {isFlagged && (
+                        <div className="afm-message-flag">
+                          ⚠️ {msg.reported ? 'Reported by user' : 'Content filtered'} — reported to admin
+                        </div>
+                      )}
 
-                      {res ? (
+                      {!isFlagged ? null : res ? (
                         <div className={`afm-resolved afm-resolved-${res.action}`} data-testid={`resolution-${idx}`}>
                           {res.action === 'approve' && <><Check size={14} /> Approved — message delivered, strike restored</>}
                           {res.action === 'confirm' && <><AlertTriangle size={14} /> Violation confirmed — strike applied, user notified</>}
@@ -495,6 +501,8 @@ export default function AdminFlaggedMessages() {
         .afm-messages { padding: 24px; max-height: 640px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
         .afm-no-messages { text-align: center; color: #94a3b8; padding: 40px; margin: 0; }
         .afm-message { background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 12px; padding: 14px 16px; transition: opacity 0.2s ease; }
+        /* Non-flagged messages are shown for context — keep them neutral, not amber. */
+        .afm-message.is-clean { background: #fff; border-color: #e8ebf0; }
         .afm-message.is-approve { background: #f0fdf4; border-color: #86efac; }
         .afm-message.is-confirm { background: #fef2f2; border-color: #fca5a5; }
         .afm-message.is-escalate { background: #fef2f2; border-color: #ef4444; }

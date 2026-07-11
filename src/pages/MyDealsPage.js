@@ -1062,9 +1062,12 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
           <p><small>Expected Delivery</small><strong>{formatDate(shipment.expected_delivery_at)}</strong></p>
           <p><small>Date Received</small><strong>{formatDate(receipt.received_at)}</strong></p>
         </div>
-      ) : (
-        <div className="deal-pause-note">{damaged ? 'Product issue has been reported. Shipping/content workflow is paused until admin resolution.' : 'Waiting for brand shipment details.'}</div>
-      )}
+      ) : damaged ? (
+        <div className="deal-pause-note">Product issue has been reported. Shipping/content workflow is paused until admin resolution.</div>
+      ) : null}
+      {/* The old "Waiting for brand shipment details." note is gone: the delivery-address
+          card above already shows the real status (You confirmed / Brand pending), so this
+          was just duplicate noise on the creator's screen. */}
       {damaged ? (
         <div className="deal-revision-actions">
           <button type="button" onClick={() => onActionCard('Add Evidence')}>Add Evidence</button>

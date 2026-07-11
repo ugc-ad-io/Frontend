@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Package, MapPin, Check, Clock, Truck, ShieldCheck } from 'lucide-react';
@@ -18,13 +18,30 @@ const EMPTY = { full_name: '', phone: '', line1: '', line2: '', city: '', state:
  * backend flags the shipment `awaiting_dispatch` and notifies ops to print a label.
  *
  * Props: campaignId (the deal/campaign id), onReady?(bothReady)
+ *
+ * Exposes an imperative `open()` (via ref) so the deal room's "Confirm Delivery
+ * Address" button can actually open + focus this form, rather than just scrolling
+ * to a card that's already a few pixels below it (which looked like a dead button).
  */
-export default function ShippingDetailsCard({ campaignId, onReady }) {
+const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId, onReady }, ref) {
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState(null);   // { my_role, brand_confirmed, creator_confirmed, both_ready, shipment_status, requires_shipment }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const rootRef = useRef(null);
+  const firstFieldRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    open() {
+      setEditing(true);
+      // Wait for the form to mount before scrolling/focusing it.
+      setTimeout(() => {
+        rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstFieldRef.current?.focus();
+      }, 60);
+    },
+  }));
 
   const load = useCallback(async () => {
     if (!campaignId) return;
@@ -81,7 +98,7 @@ export default function ShippingDetailsCard({ campaignId, onReady }) {
   const dispatched = ['shipped', 'in_transit', 'delivered', 'received'].includes(status.shipment_status);
 
   return (
-    <div className="sdc">
+    <div className="sdc" ref={rootRef}>
       <div className="sdc-head">
         <span className="sdc-ic"><Package size={17} /></span>
         <div>
@@ -131,7 +148,7 @@ export default function ShippingDetailsCard({ campaignId, onReady }) {
           </>
         ) : (
           <div className="sdc-form">
-            <label>Full name<input value={form.full_name} onChange={(e) => set('full_name', e.target.value)} placeholder="Name for the courier" /></label>
+            <label>Full name<input ref={firstFieldRef} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} placeholder="Name for the courier" /></label>
             <label>Phone<input value={form.phone} onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" inputMode="numeric" /></label>
             <label className="sdc-full">Address line 1<input value={form.line1} onChange={(e) => set('line1', e.target.value)} placeholder="House / building, street" /></label>
             <label className="sdc-full">Address line 2 <em>(optional)</em><input value={form.line2} onChange={(e) => set('line2', e.target.value)} placeholder="Area, landmark" /></label>
@@ -182,4 +199,6 @@ export default function ShippingDetailsCard({ campaignId, onReady }) {
       `}</style>
     </div>
   );
-}
+});
+
+export default ShippingDetailsCard;

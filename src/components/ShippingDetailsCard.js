@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHand
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Package, MapPin, Check, Clock, Truck, ShieldCheck } from 'lucide-react';
+import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -27,6 +28,7 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState(null);   // { my_role, brand_confirmed, creator_confirmed, both_ready, shipment_status, requires_shipment }
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const rootRef = useRef(null);
@@ -44,15 +46,20 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
   }));
 
   const load = useCallback(async () => {
-    if (!campaignId) return;
+    if (!campaignId) { setLoading(false); return; }
     try {
       const { data } = await axios.get(`${API}/shipping/address`, { params: { campaign_id: campaignId } });
       setStatus(data);
+      setLoadError('');
       if (data.address) setForm({ ...EMPTY, ...data.address });
       // No address yet → open the form straight away.
       setEditing(!data.address);
-    } catch {
+    } catch (e) {
+      // Never swallow this. The card used to render nothing on any failure, while
+      // still handing back a ref — so "Confirm Delivery Address" called open() on an
+      // invisible form and the creator got a dead click with no clue why.
       setStatus(null);
+      setLoadError(apiErrorMessage(e, "Couldn't load your shipping details."));
     } finally {
       setLoading(false);
     }
@@ -90,6 +97,17 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
   };
 
   if (loading) return <div className="sdc"><div className="sdc-body"><span className="sdc-muted">Loading shipping details…</span></div></div>;
+  // Say what went wrong and offer a retry, rather than vanishing.
+  if (loadError) {
+    return (
+      <div className="sdc" ref={rootRef}>
+        <div className="sdc-body">
+          <span className="sdc-muted">{loadError}</span>
+          <button type="button" className="sdc-ghost" onClick={() => { setLoading(true); load(); }}>Try again</button>
+        </div>
+      </div>
+    );
+  }
   if (!status || !status.requires_shipment) return null;   // no physical product on this deal
   // The BRAND submits their pickup address inside the "Ship Product" form, not here.
   // This card is only ever for the creator confirming where the product is sent.

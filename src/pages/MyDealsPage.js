@@ -787,7 +787,15 @@ export default function MyDealsPage() {
                       {/* Creator confirms the delivery address before the team dispatches.
                           The ref lets the "Confirm Delivery Address" button open + focus it. */}
                       <div style={{ marginTop: 14 }}>
-                        <ShippingDetailsCard ref={shipAddressRef} campaignId={deal.deal_id} onReady={() => fetchDeals()} />
+                        {/* The REAL campaign id, not deal.deal_id. "DEAL-4466" is derived
+                            from the campaign uuid for display and is stored nowhere, so
+                            looking a campaign up by it 404s — which made this card render
+                            nothing and the button a dead click. */}
+                        <ShippingDetailsCard
+                          ref={shipAddressRef}
+                          campaignId={deal.campaign?.id || deal.campaign_id || deal.deal_id}
+                          onReady={() => fetchDeals()}
+                        />
                       </div>
                       <div className="cmk-dr-ship">
                         <div className="cmk-dr-ship-h"><Package size={17} /> Shipment Tracking</div>

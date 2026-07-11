@@ -251,6 +251,9 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   const [reasonDetails, setReasonDetails] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
   const [infoItems, setInfoItems] = useState([]);
+  // Media URLs that failed to load — their tiles are hidden instead of showing an
+  // empty player. Keyed on the resolved url.
+  const [badMedia, setBadMedia] = useState(() => new Set());
 
   useEffect(() => {
     let alive = true;
@@ -377,12 +380,19 @@ function ProfileDetail({ profile, onBack, onDecide }) {
           )}
 
           {/* Portfolio + video (creator) */}
-          {(videoList.length > 0 || portfolioPhotos.length > 0) && (
+          {(playableVideos.length > 0 || portfolioPhotos.length > 0) && (
             <section className="detail-section full-width">
               <h3><PlayCircle size={16} className="apps-h3-ic" />{brand ? 'Media' : 'Portfolio & Video'} <span className="apps-h3-note">full resolution · no watermark</span></h3>
               <div className="apps-modal-media">
-                {videoList.map((u, i) => (
-                  <video key={`v${i}`} src={resolveUrl(u)} controls preload="metadata" style={{ width: '100%', borderRadius: 10, background: '#000', aspectRatio: '16 / 9' }} />
+                {playableVideos.map((u, i) => (
+                  <video
+                    key={`v${i}`}
+                    src={resolveUrl(u)}
+                    controls
+                    preload="metadata"
+                    onError={() => setBadMedia((s) => new Set(s).add(mediaKey(u)))}
+                    style={{ width: '100%', borderRadius: 10, background: '#000', aspectRatio: '16 / 9' }}
+                  />
                 ))}
                 {portfolioPhotos.map((u, i) => (
                   <a key={`p${i}`} href={resolveUrl(u)} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}><img src={resolveUrl(u)} alt="" style={{ width: '100%', height: 'auto', borderRadius: 10, objectFit: 'contain', background: '#f2f4f7', display: 'block' }} /></a>

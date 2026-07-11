@@ -18,6 +18,11 @@ const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractio
 
 export default function PayoutWithLayout() {
   const [withdrawals, setWithdrawals] = useState([]);
+  // Money IN — what brands actually paid this creator. The page used to show only
+  // withdrawals (money OUT), so a creator who had been paid but never withdrawn saw
+  // an empty table and no way to tell who paid them or how much.
+  const [earnings, setEarnings] = useState([]);
+  const [tab, setTab] = useState('earnings'); // 'earnings' | 'withdrawals'
   const [overview, setOverview] = useState({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -36,12 +41,15 @@ export default function PayoutWithLayout() {
 
   const fetchData = async () => {
     try {
-      const [hist, ov] = await Promise.all([
+      const [hist, ov, rec] = await Promise.all([
         axios.get(`${API}/withdrawal/history`).catch(() => ({ data: [] })),
         axios.get(`${API}/payout/overview`).catch(() => ({ data: {} })),
+        axios.get(`${API}/payouts/receipts`).catch(() => ({ data: [] })),
       ]);
       setWithdrawals(hist.data || []);
       setOverview(ov.data || {});
+      // Receipts cover both directions; the earnings table only wants money in.
+      setEarnings((rec.data || []).filter((r) => r.type === 'earning'));
     } catch (error) {
       toast.error('Failed to load earnings');
     } finally {
@@ -103,7 +111,7 @@ export default function PayoutWithLayout() {
       <div className="cmk-page-head cmk-rise" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1>Earnings</h1>
-          <p>Track your balance, payouts in escrow, and withdrawal history.</p>
+          <p>See what each brand paid you, what's still in escrow, and your withdrawals.</p>
         </div>
         <button type="button" className="pwl-req-btn" onClick={() => setShowRequest(true)}>
           <ArrowUpRight size={17} /> Request Withdrawal
@@ -125,32 +133,83 @@ export default function PayoutWithLayout() {
         ))}
       </div>
 
-      <div className="cmk-toolbar">
-        <div className="cmk-search-inp">
-          <Search size={16} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search withdrawal ID…" />
-        </div>
-        <div style={{ position: 'relative' }}>
-          <button type="button" className="cmk-select" onClick={() => setShowDrop((v) => !v)}>
-            {statusFilter === 'All' ? 'All Status' : statusFilter} <ChevronDown size={16} />
-          </button>
-          {showDrop && (
-            <div className="cmk-menu" style={{ top: 50, minWidth: 160 }}>
-              {['All', 'Paid', 'Processing', 'Pending', 'Disputed'].map((s) => (
-                <button key={s} type="button" onClick={() => { setStatusFilter(s); setShowDrop(false); }}>
-                  {s === 'All' ? 'All Status' : s}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Money in vs money out. They answer different questions — "who paid me?" and
+          "where did my withdrawals get to?" — and lumping them together is what left
+          a paid creator staring at an empty table. */}
+      <div className="pwl-tabs">
+        <button type="button" className={tab === 'earnings' ? 'on' : ''} onClick={() => setTab('earnings')}>
+          Money in {earnings.length > 0 && <span className="pwl-count">{earnings.length}</span>}
+        </button>
+        <button type="button" className={tab === 'withdrawals' ? 'on' : ''} onClick={() => setTab('withdrawals')}>
+          Withdrawals {withdrawals.length > 0 && <span className="pwl-count">{withdrawals.length}</span>}
+        </button>
       </div>
+
+      {tab === 'withdrawals' && (
+        <div className="cmk-toolbar">
+          <div className="cmk-search-inp">
+            <Search size={16} />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search withdrawal ID…" />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <button type="button" className="cmk-select" onClick={() => setShowDrop((v) => !v)}>
+              {statusFilter === 'All' ? 'All Status' : statusFilter} <ChevronDown size={16} />
+            </button>
+            {showDrop && (
+              <div className="cmk-menu" style={{ top: 50, minWidth: 160 }}>
+                {['All', 'Paid', 'Processing', 'Pending', 'Disputed'].map((s) => (
+                  <button key={s} type="button" onClick={() => { setStatusFilter(s); setShowDrop(false); }}>
+                    {s === 'All' ? 'All Status' : s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="cmk-table-card cmk-rise">
         {loading ? (
           <div className="cmk-empty">Loading earnings…</div>
+        ) : tab === 'earnings' ? (
+          earnings.length === 0 ? (
+            <EmptyState
+              title="No payments yet"
+              message="When a brand's payment for a completed deal is released, it shows up here with who paid and how much."
+            />
+          ) : (
+            <table className="cmk-table">
+              <thead>
+                <tr>
+                  <th>From</th><th>Campaign</th><th>Deal amount</th>
+                  <th>Platform fee</th><th>You received</th><th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {earnings.map((row) => {
+                  // Deductions the creator is entitled to see itemised, rather than
+                  // wondering why the amount is smaller than the deal.
+                  const fees = Number(row.commission_amount || 0)
+                    + Number(row.tds_amount || 0)
+                    + Number(row.penalty_amount || 0);
+                  return (
+                    <tr key={row.id}>
+                      <td className="cmk-td-strong">{row.brand_name || 'Brand'}</td>
+                      <td className="cmk-td-muted">{row.campaign_title || '—'}</td>
+                      <td>{inr(row.gross_amount)}</td>
+                      <td className="cmk-td-muted">{fees ? `− ${inr(fees)}` : '—'}</td>
+                      <td className="cmk-td-strong">{inr(row.net_amount)}</td>
+                      <td className="cmk-td-muted">
+                        {row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )
         ) : filtered.length === 0 ? (
-          <EmptyState title="No withdrawals yet" message="Your payouts will appear here once your completed deals are paid out." />
+          <EmptyState title="No withdrawals yet" message="Money you move to your bank or UPI will appear here." />
         ) : (
           <table className="cmk-table">
             <thead>
@@ -237,6 +296,11 @@ export default function PayoutWithLayout() {
       <style>{`
         .pwl-req-btn { display: inline-flex; align-items: center; gap: 8px; background: #07074e; color: #fff; border: none; border-radius: 11px; padding: 11px 18px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 10px 22px -12px rgba(7,7,78,0.5); }
         .pwl-req-btn:hover { background: #12124f; }
+        .pwl-tabs { display: flex; gap: 6px; margin: 18px 0 12px; border-bottom: 1.5px solid #eef2f9; }
+        .pwl-tabs button { display: inline-flex; align-items: center; gap: 7px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1.5px; padding: 10px 14px; font-size: 0.9rem; font-weight: 700; color: #94a3b8; cursor: pointer; }
+        .pwl-tabs button:hover { color: #475569; }
+        .pwl-tabs button.on { color: #07074e; border-bottom-color: #07074e; }
+        .pwl-count { background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 1px 8px; font-size: 0.72rem; font-weight: 700; }
         .pwl-modal-ov { position: fixed; inset: 0; background: rgba(15,18,40,0.5); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .pwl-modal { background: #fff; width: 100%; max-width: 460px; border-radius: 18px; padding: 24px; box-shadow: 0 30px 70px rgba(7,7,78,0.3); max-height: 90vh; overflow-y: auto; }
         .pwl-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }

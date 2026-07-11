@@ -273,6 +273,12 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
   if (isState(deal, 'Accepted - Awaiting Shipment')) {
     const needsShipping = deal?.shipment?.required || deal?.campaign?.requires_shipment;
     if (needsShipping) {
+      // Once the creator has saved their address there is nothing left for them to do
+      // here — the ball is with the brand. Keeping the "Confirm" call-to-action live
+      // made it look like the submission never registered.
+      if (deal?.shipment?.creator_address_confirmed) {
+        return { label: 'Delivery Address Submitted', disabled: true, type: 'ship_address_done' };
+      }
       return { label: 'Confirm Delivery Address', disabled: false, type: 'ship_address' };
     }
   }

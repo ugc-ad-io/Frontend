@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
@@ -63,6 +63,61 @@ export default function BusinessProfileSetup() {
   });
 
   const set = (field, value) => setForm((p) => ({ ...p, [field]: value }));
+
+  const prefilledRef = useRef(false);
+
+  // Prefill with the profile already on file, so a brand asked for "more info"
+  // (or just re-editing) doesn't retype everything — the creator form does this
+  // and the business one never did.
+  //
+  // We read /auth/me rather than the auth-context user: the login response carries
+  // no `profile`, so relying on it would only work after a page refresh.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (prefilledRef.current) return;
+      try {
+        const { data } = await axios.get(`${API}/auth/me`);
+        const pr = data?.profile;
+        if (!alive || !pr || typeof pr !== 'object' || !Object.keys(pr).length) return;
+        prefilledRef.current = true;
+
+        // The stored shape differs from the form's, so map it back explicitly —
+        // spreading would silently drop every field.
+        const industry = pr.industry_category || '';
+        const knownIndustry = INDUSTRIES.includes(industry);
+        // `category` is stored as a slug ('street_interview'); anything unrecognised
+        // was a free-text custom value.
+        const category = pr.category || '';
+        const knownCategory = CONTENT_CATEGORIES.some((c) => c.value === category);
+
+        // Phone is stored with the dial code baked in ("+91 98765 43210").
+        const storedPhone = String(pr.phone || '').trim();
+        const matchedDial = DIAL_CODES.find((d) => storedPhone.startsWith(`${d.code} `))
+          || DIAL_CODES.find((d) => storedPhone.startsWith(d.code));
+        const barePhone = matchedDial ? storedPhone.slice(matchedDial.code.length).trim() : storedPhone;
+        if (matchedDial) setDial(matchedDial);
+
+        setForm((f) => ({
+          ...f,
+          businessName: pr.business_name || f.businessName,
+          website: pr.website || f.website,
+          instagram: (pr.social_links || {}).instagram || f.instagram,
+          phone: barePhone || f.phone,
+          country: pr.country || f.country,
+          industry: industry ? (knownIndustry ? industry : 'Other') : f.industry,
+          customIndustry: industry && !knownIndustry ? industry : f.customIndustry,
+          category: category ? (knownCategory ? category : 'custom') : f.category,
+          customCategory: category && !knownCategory ? category : f.customCategory,
+          gstin: pr.gstin || f.gstin,
+        }));
+      } catch {
+        // Never block a first-time signup on this — an empty form is the correct
+        // fallback.
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // Live "is this real?" checks — the backend actually resolves the website and
   // looks up the Instagram handle. {status:'checking'|'valid'|'invalid'|'uncertain', msg}

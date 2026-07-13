@@ -9,6 +9,7 @@ import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, File
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import RejectedGate from '../components/RejectedGate';
+import MoreInfoGate from '../components/MoreInfoGate';
 import ChatPopup from '../components/ChatPopup';
 import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
@@ -1175,6 +1176,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   if (user?.approval_status === 'rejected') {
     return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
+  }
+
+  // An admin asking for more info used to fall through every gate here and render
+  // the normal dashboard — with all its data fetches skipped (they require
+  // 'approved'), so the brand saw an empty dashboard and no explanation.
+  if (user?.approval_status === 'more_info') {
+    return <MoreInfoGate user={user} kind="business" onLogout={handleLogout} />;
   }
 
   return (

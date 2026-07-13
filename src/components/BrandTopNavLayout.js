@@ -6,6 +6,7 @@ import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
 import RejectedGate from './RejectedGate';
+import MoreInfoGate from './MoreInfoGate';
 import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
@@ -75,6 +76,12 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const isBrand = ['business', 'brand'].includes(String(user?.role || '').toLowerCase());
   if (isBrand && approval === 'rejected') {
     return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
+  }
+  // 'more_info' was missing from this gate entirely, so an admin could ask a brand
+  // for more details and the brand would just land on the dashboard as normal —
+  // never told what was wanted, with no way to resubmit.
+  if (isBrand && approval === 'more_info') {
+    return <MoreInfoGate user={user} kind="business" onLogout={handleLogout} />;
   }
   if (isBrand && approval === 'pending') {
     return (

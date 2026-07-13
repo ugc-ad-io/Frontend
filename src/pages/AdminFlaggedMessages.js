@@ -195,25 +195,19 @@ export default function AdminFlaggedMessages() {
     <AdminLayout>
       <div className="afm-container">
         {/* Page title + subtitle already come from AdminLayout — don't repeat them here. */}
+        {/* The boxes are read-only counts. They used to double as queue filters, which
+            duplicated the pill tabs below — two controls doing the same thing. The tabs
+            are the single filter now. */}
         <div className="afm-header">
           <div className="afm-stats">
             {QUEUES.map(q => (
-              <button
-                key={q.key}
-                className={`afm-stat afm-stat-btn ${view === 'queue' && queue === q.key ? 'is-active' : ''}`}
-                onClick={() => { setView('queue'); setQueue(q.key); setSelectedChat(null); }}
-                data-testid={`queue-stat-${q.key}`}
-              >
+              <div key={q.key} className="afm-stat" data-testid={`queue-stat-${q.key}`}>
                 <span>{q.label}</span>
                 <strong>{countFor(q.key)}</strong>
-              </button>
+              </div>
             ))}
           </div>
-        </div>
 
-        {/* The three queue boxes above ARE the queue filter — so no separate "Flagged queue"
-            tab. This is just a toggle into (and back out of) filter-rule management. */}
-        <div className="afm-tabs">
           <button
             className={`afm-tab ${view === 'rules' ? 'is-active' : ''}`}
             onClick={() => { setView(view === 'rules' ? 'queue' : 'rules'); setSelectedChat(null); }}
@@ -467,14 +461,12 @@ export default function AdminFlaggedMessages() {
         .afm-stat { background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); border: 2px solid #f59e0b; padding: 14px 22px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; min-width: 130px; }
         .afm-stat span { font-size: 0.72rem; color: #533f03; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
         .afm-stat strong { font-size: 1.6rem; color: #92400e; margin-top: 4px; }
-        .afm-stat-btn { cursor: pointer; transition: all 0.18s ease; }
-        .afm-stat-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(245,158,11,0.22); }
-        .afm-stat-btn.is-active { box-shadow: 0 0 0 3px rgba(245,158,11,0.35); }
 
-        .afm-tabs { display: flex; gap: 6px; border-bottom: 1.5px solid #e8ecff; margin-bottom: 22px; }
-        .afm-tab { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -1.5px; font-weight: 600; font-size: 0.92rem; color: #718096; cursor: pointer; }
-        .afm-tab:hover { color: #07074e; }
-        .afm-tab.is-active { color: #07074e; border-bottom-color: #5b6bff; }
+        /* "Filter rules" sits at the right of the header, opposite the count boxes. */
+        .afm-header { align-items: center; margin-bottom: 22px; }
+        .afm-tab { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; padding: 10px 16px; background: #fff; border: 1px solid #e8ecff; border-radius: 10px; font-weight: 600; font-size: 0.92rem; color: #5b6573; cursor: pointer; }
+        .afm-tab:hover { color: #07074e; border-color: #d6dbff; background: #f7f8ff; }
+        .afm-tab.is-active { color: #fff; background: #07074e; border-color: #07074e; }
 
         .afm-queue-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
         .afm-queue-tab { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; background: white; border: 1.5px solid #e8ecff; border-radius: 999px; font-weight: 600; font-size: 0.85rem; color: #4a5568; cursor: pointer; transition: all 0.16s ease; }
@@ -583,9 +575,10 @@ export default function AdminFlaggedMessages() {
 
         @media (max-width: 720px) {
           .afm-container { padding: 20px; }
-          .afm-header { flex-direction: column; align-items: stretch; }
+          .afm-header { flex-direction: column; align-items: stretch; gap: 14px; }
           .afm-stats { justify-content: stretch; }
-          .afm-stat-btn { flex: 1; }
+          .afm-stat { flex: 1; }
+          .afm-tab { margin-left: 0; justify-content: center; }
         }
       `}</style>
     </AdminLayout>

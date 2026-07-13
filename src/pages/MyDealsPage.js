@@ -736,19 +736,26 @@ export default function MyDealsPage() {
 
         {/* header */}
         <section className="cmk-dr-head">
-          <div className="cmk-dr-logo">
-            {deal?.brand?.logo_url ? <img src={getAssetUrl(deal.brand.logo_url)} alt={brandName} /> : getInitial(brandName)}
+          {/* Top line: who + what + the one thing to do next. */}
+          <div className="cmk-dr-top">
+            <div className="cmk-dr-logo">
+              {deal?.brand?.logo_url ? <img src={getAssetUrl(deal.brand.logo_url)} alt={brandName} /> : getInitial(brandName)}
+            </div>
+            <div className="cmk-dr-title">
+              <h1>{getDealTitle(deal)}</h1>
+              <div className="cmk-dr-id">Deal ID: {getDealId(deal)} <span className="cmk-pill info">● {selectedState}</span></div>
+              <div className="cmk-dr-tags">{dealTags.map((t, i) => <span key={i}>{t}</span>)}</div>
+            </div>
+            <div className="cmk-dr-next"><Clock size={20} /><div><small>Next Action</small><strong>{primaryAction.label}</strong></div></div>
           </div>
-          <div className="cmk-dr-title">
-            <h1>{getDealTitle(deal)}</h1>
-            <div className="cmk-dr-id">Deal ID: {getDealId(deal)} <span className="cmk-pill info">● {selectedState}</span></div>
-            <div className="cmk-dr-tags">{dealTags.map((t, i) => <span key={i}>{t}</span>)}</div>
+
+          {/* Facts sit on their own quiet strip instead of crowding the title row. */}
+          <div className="cmk-dr-meta">
+            <div className="cmk-dr-metacol"><small>Brand</small><b>{brandName}</b></div>
+            <div className="cmk-dr-metacol"><small>Creator</small><b>{creatorName}</b></div>
+            <div className="cmk-dr-metacol"><small>Budget</small><b>{formatMoney(escrowAmount)}</b></div>
+            <div className="cmk-dr-metacol"><small>Deadline</small><b>{formatDate(getDealDeadline(deal))}</b></div>
           </div>
-          <div className="cmk-dr-metacol"><small>Brand</small><b>{brandName}</b></div>
-          <div className="cmk-dr-metacol"><small>Creator</small><b>{creatorName}</b></div>
-          <div className="cmk-dr-metacol"><small>Budget</small><b>{formatMoney(escrowAmount)}</b></div>
-          <div className="cmk-dr-metacol"><small>Deadline</small><b>{formatDate(getDealDeadline(deal))}</b></div>
-          <div className="cmk-dr-next"><Clock size={20} /><div><small>Next Action</small><strong>{primaryAction.label}</strong></div></div>
         </section>
 
         {/* stepper */}

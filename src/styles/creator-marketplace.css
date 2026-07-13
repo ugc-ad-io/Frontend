@@ -1066,8 +1066,18 @@
   font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;cursor:pointer}
 
 /* header */
-.cmk-dr-head{display:flex;align-items:center;gap:18px;padding:16px 20px;flex-wrap:nowrap;
+/* Header is two calm rows now: [logo · title · next action] over a quiet facts strip.
+   Previously all 7 blocks were crammed into a single nowrap row — very cluttered. */
+.cmk-dr-head{display:flex;flex-direction:column;gap:14px;padding:16px 20px;
   background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-soft)}
+.cmk-dr-top{display:flex;align-items:flex-start;gap:16px}
+.cmk-dr-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;
+  padding-top:13px;border-top:1px solid var(--line)}
+@media (max-width:760px){
+  .cmk-dr-top{flex-wrap:wrap}
+  .cmk-dr-next{margin-left:0;width:100%}
+  .cmk-dr-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 .cmk-dr-logo{width:58px;height:58px;border-radius:15px;flex:none;display:grid;place-items:center;overflow:hidden;
   background:#111233;color:#fff;font-weight:800;font-size:22px}
 .cmk-dr-logo img{width:100%;height:100%;object-fit:cover}
@@ -1077,7 +1087,8 @@
 .cmk-dr-id{display:flex;align-items:center;gap:10px;margin-top:5px;font-size:12.5px;color:var(--muted)}
 .cmk-dr-tags{display:flex;gap:6px;margin-top:9px}
 .cmk-dr-tags span{background:#eef0ff;color:var(--indigo);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
-.cmk-dr-metacol{display:flex;flex-direction:column;gap:3px;flex:none;white-space:nowrap}
+.cmk-dr-metacol{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cmk-dr-metacol b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmk-dr-metacol small{color:var(--muted);font-size:11px}
 .cmk-dr-metacol b{font-weight:700;font-size:13.5px}
 .cmk-dr-next{margin-left:auto;flex:none;display:flex;align-items:center;gap:9px;color:#9a6212;

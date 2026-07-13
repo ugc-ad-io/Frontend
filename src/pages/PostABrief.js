@@ -276,7 +276,7 @@ function mapCampaignToForm(c) {
   return out;
 }
 
-export default function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, duplicateId = null } = {}) {
+export default function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, onDraftSaved = null, duplicateId = null } = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -543,9 +543,15 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
       }
       toast.success('Draft saved to your account');
+      if (onDraftSaved) onDraftSaved();
     } catch (error) {
-      // Server save failed, but the local copy is safe — let the user keep working.
-      toast.success('Draft saved on this device');
+      // The local copy is safe, so the brand can keep working — but do NOT call this
+      // a success. A 403 ("profile must be approved first") used to raise a green
+      // "Draft saved" toast, so the brand thought it was on their account when the
+      // server had rejected it outright. That's half of "I saved it and it's gone".
+      toast.warning('Saved on this device only', {
+        description: apiErrorMessage(error, "We couldn't save it to your account — it won't show in Drafts until it saves."),
+      });
     } finally {
       setSavingDraft(false);
     }

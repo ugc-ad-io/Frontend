@@ -49,7 +49,10 @@ export default function BrandCampaigns() {
 
   const loadCampaigns = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
+      // include_drafts: GET /campaigns hides drafts by default (status $ne 'draft').
+      // Without it the "Drafts" tab filtered for status === 'draft' over a list that
+      // could never contain one — so a saved draft was in the DB but nowhere on screen.
+      const res = await axios.get(`${API}/campaigns?include_drafts=true&t=${Date.now()}`);
       const mine = (res.data || []).filter((c) => String(c.business_id) === String(user?.id));
       setCampaigns(mine);
     } catch { /* ignore */ }
@@ -154,6 +157,9 @@ export default function BrandCampaigns() {
             <PostABrief
               onClose={() => setBriefOpen(false)}
               onPublished={() => { setBriefOpen(false); loadCampaigns(); }}
+              // Refresh so a just-saved draft appears in the Drafts tab straight away,
+              // rather than only after a remount.
+              onDraftSaved={() => loadCampaigns()}
             />
           </div>
         </div>

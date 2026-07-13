@@ -133,6 +133,11 @@ export default function BrandCampaignDetail() {
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [revSubmitting, setRevSubmitting] = useState(false);
   const [dupOpen, setDupOpen] = useState(false);
+  const dupRef = useRef(null);
+  const closeDup = async () => {
+    await dupRef.current?.saveDraftNow();
+    setDupOpen(false);
+  };
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [selecting, setSelecting] = useState(null); // creator_id being accepted
 
@@ -776,12 +781,15 @@ export default function BrandCampaignDetail() {
       `}</style>
 
       {dupOpen && (
-        <div className="cmk-brief-overlay" onClick={() => setDupOpen(false)}>
+        // Save the duplicated brief as a draft on the way out, so an accidental
+        // backdrop click doesn't discard it.
+        <div className="cmk-brief-overlay" onClick={closeDup}>
           <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="cmk-brief-close" aria-label="Close" onClick={() => setDupOpen(false)}>✕</button>
+            <button type="button" className="cmk-brief-close" aria-label="Close" onClick={closeDup}>✕</button>
             <PostABrief
+              ref={dupRef}
               duplicateId={campaign.id || campaign._id}
-              onClose={() => setDupOpen(false)}
+              onClose={closeDup}
               onPublished={() => { setDupOpen(false); navigate('/dashboard/business/all-campaigns'); }}
             />
           </div>

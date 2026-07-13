@@ -43,6 +43,14 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const [msgOpen, setMsgOpen] = useState(false);
   const menuRef = useRef(null);
 
+  // Closing the brief modal (backdrop click or X) saves what's been typed as a
+  // draft first, so an accidental click doesn't throw the work away.
+  const briefRef = useRef(null);
+  const closeBrief = async () => {
+    await briefRef.current?.saveDraftNow();
+    setBriefOpen(false);
+  };
+
   useEffect(() => {
     const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
     document.addEventListener('mousedown', close);
@@ -228,18 +236,21 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       )}
 
       {briefOpen && (
-        <div className="cmk-brief-overlay" onClick={() => setBriefOpen(false)}>
+        // Save the half-written brief as a draft on the way out — clicking the
+        // backdrop by accident shouldn't bin it.
+        <div className="cmk-brief-overlay" onClick={closeBrief}>
           <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="cmk-brief-close"
               aria-label="Close"
-              onClick={() => setBriefOpen(false)}
+              onClick={closeBrief}
             >
               <X size={20} />
             </button>
             <PostABrief
-              onClose={() => setBriefOpen(false)}
+              ref={briefRef}
+              onClose={closeBrief}
               onPublished={() => setBriefOpen(false)}
             />
           </div>

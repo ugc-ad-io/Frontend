@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -60,6 +60,15 @@ export default function BrandCampaigns() {
   }, [user?.id]);
 
   useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
+
+  // Save whatever's been typed as a draft before the modal goes away, so an
+  // accidental click outside doesn't throw the brief away.
+  const briefRef = useRef(null);
+  const closeBrief = async () => {
+    await briefRef.current?.saveDraftNow();
+    setBriefOpen(false);
+    loadCampaigns();
+  };
 
   const counts = useMemo(() => {
     const o = {};
@@ -149,13 +158,17 @@ export default function BrandCampaigns() {
       )}
 
       {briefOpen && (
-        <div className="cmk-brief-overlay" onClick={() => setBriefOpen(false)}>
+        // Clicking the backdrop (or the X) is the easiest way to lose a half-written
+        // brief by accident, so save it as a draft on the way out rather than just
+        // dropping the modal.
+        <div className="cmk-brief-overlay" onClick={closeBrief}>
           <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="cmk-brief-close" aria-label="Close" onClick={() => setBriefOpen(false)}>
+            <button type="button" className="cmk-brief-close" aria-label="Close" onClick={closeBrief}>
               <X size={20} />
             </button>
             <PostABrief
-              onClose={() => setBriefOpen(false)}
+              ref={briefRef}
+              onClose={closeBrief}
               onPublished={() => { setBriefOpen(false); loadCampaigns(); }}
               // Refresh so a just-saved draft appears in the Drafts tab straight away,
               // rather than only after a remount.

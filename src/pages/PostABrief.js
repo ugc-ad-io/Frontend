@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -276,7 +276,7 @@ function mapCampaignToForm(c) {
   return out;
 }
 
-export default function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, onDraftSaved = null, duplicateId = null } = {}) {
+const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, onDraftSaved = null, duplicateId = null } = {}, ref) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -607,6 +607,36 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   // Save on leave — fires when the form unmounts (Cancel, tab switch, navigate),
   // so work isn't lost even if you leave before the debounce runs.
   useEffect(() => () => { autoSaveRef.current(); }, []);
+
+  // Closing by clicking outside the modal is the easiest way to lose work by
+  // accident. The unmount auto-save above does fire, but only AFTER the form is
+  // gone and entirely silently — so a failed save was invisible. The parent calls
+  // this first instead: it saves, waits, and says what happened.
+  useImperativeHandle(ref, () => ({
+    async saveDraftNow() {
+      if (publishedRef.current || !briefHasContent(form)) return false;  // nothing worth keeping
+      try {
+        const payload = buildPayload();
+        if (draftId) {
+          await axios.patch(`${API}/campaigns/${draftId}`, payload);
+        } else {
+          const res = await axios.post(`${API}/campaigns/draft`, payload);
+          const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
+          if (newId) { setDraftId(newId); localStorage.setItem(DRAFT_ID_KEY, newId); }
+        }
+        // Stop the unmount handler re-sending the identical payload a tick later.
+        lastAutoSaveRef.current = JSON.stringify(form);
+        toast.success('Draft saved — pick it up from the Drafts tab.');
+        if (onDraftSaved) onDraftSaved();
+        return true;
+      } catch (error) {
+        toast.warning('Saved on this device only', {
+          description: apiErrorMessage(error, "We couldn't save it to your account — it won't show in Drafts."),
+        });
+        return false;
+      }
+    },
+  }));
 
   // Warn before closing/refreshing the tab if there are unsaved edits in flight.
   useEffect(() => {
@@ -1839,7 +1869,9 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       `}</style>
     </div>
   );
-}
+});
+
+export default PostABrief;
 
 function Summary({ title, rows }) {
   return (

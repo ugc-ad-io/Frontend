@@ -1,4 +1,4 @@
-import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck } from 'lucide-react';
+import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck, BadgeCheck, ReceiptText } from 'lucide-react';
 import { can, isFounder } from '../utils/adminRoles';
 
 function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose }) {
@@ -8,6 +8,8 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
     { id: 'briefs',       label: 'Briefs',         icon: ClipboardCheck, testId: 'tab-briefs',     slug: 'campaigns',    cap: 'review_applications' },
     { id: 'assigned',     label: 'Users',          icon: UserCheck,    testId: 'tab-assigned',     slug: 'my-creators',  cap: 'my_users' },
     { id: 'users',        label: 'Users',          icon: Users,        testId: 'tab-users',        slug: 'users',        cap: 'user_management' },
+    { id: 'kyc',          label: 'Creator KYC',    icon: BadgeCheck,   testId: 'tab-kyc',          slug: 'kyc',          cap: 'review_applications' },
+    { id: 'gst',          label: 'Brand GST',      icon: ReceiptText,  testId: 'tab-gst',          slug: 'gst',          cap: 'review_applications' },
     { id: 'deals',        label: 'Deals',          icon: Briefcase,    testId: 'tab-deals',        slug: 'deals',        cap: 'manage_deals' },
     { id: 'disputes',     label: 'Disputes',       icon: Scale,        testId: 'tab-disputes',     slug: 'disputes',     cap: 'rule_disputes' },
     { id: 'shipping',     label: 'Shipping Queue', icon: Package,      testId: 'tab-shipping',     slug: 'shipping',     cap: 'manage_shipping' },

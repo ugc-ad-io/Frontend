@@ -37,6 +37,7 @@ const ChatPage = lazy(() => import('./pages/ChatPage'));
 const WorkSubmission = lazy(() => import('./pages/WorkSubmission'));
 const WorkReview = lazy(() => import('./pages/WorkReview'));
 const PayoutWithLayout = lazy(() => import('./pages/PayoutWithLayout'));
+const CreatorKYC = lazy(() => import('./pages/CreatorKYC'));
 const ShipmentTracking = lazy(() => import('./pages/ShipmentTracking'));
 const BrowseBriefs = lazy(() => import('./pages/BrowseBriefs'));
 const SavedBriefs = lazy(() => import('./pages/SavedBriefs'));
@@ -50,6 +51,8 @@ const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
 const AdminDisputes = lazy(() => import('./pages/AdminDisputes'));
 const AdminAllCampaigns = lazy(() => import('./pages/AdminAllCampaigns'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminKYC = lazy(() => import('./pages/AdminKYC'));
+const AdminGST = lazy(() => import('./pages/AdminGST'));
 const AdminMyCreators = lazy(() => import('./pages/AdminMyCreators'));
 const AdminAssignments = lazy(() => import('./pages/AdminAssignments'));
 const AdminFlaggedMessages = lazy(() => import('./pages/AdminFlaggedMessages'));
@@ -541,6 +544,22 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/admin/kyc"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminKYC />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/gst"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminGST />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/admin/my-creators"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
@@ -689,6 +708,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
                   <PayoutWithLayout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kyc"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <CreatorKYC />
                 </ProtectedRoute>
               }
             />

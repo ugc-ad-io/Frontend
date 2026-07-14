@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
   ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X,
-  Zap, Compass, FileText, MessageSquare, Bookmark
+  Zap, Compass, FileText, MessageSquare, Bookmark, BadgeCheck
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
@@ -25,6 +25,9 @@ const PRIMARY_LINKS = [
 const MENU_LINKS = [
   { name: 'Reviews', to: '/reviews', icon: Star },
   { name: 'Earnings', to: '/withdrawal', icon: Wallet },
+  // Withdrawals are gated on this, so it needs a way in that isn't only the
+  // banner on the payouts page.
+  { name: 'Verify KYC', to: '/kyc', icon: BadgeCheck },
   { sep: true },
   { name: 'Settings', to: '/settings', icon: Settings }
 ];

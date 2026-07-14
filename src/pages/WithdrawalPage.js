@@ -122,6 +122,8 @@ export default function WithdrawalPage() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  // 'not_submitted' | 'pending' | 'verified' | 'rejected' — comes back on /payout/overview
+  const kycStatus = payoutOverview?.kyc_status || user?.kyc?.status || 'not_submitted';
   const [showEditModal, setShowEditModal] = useState(false);
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('upi');
@@ -166,6 +168,14 @@ export default function WithdrawalPage() {
 
   const handleRequestWithdrawal = async (e) => {
     e.preventDefault();
+
+    // Belt and braces — the button is hidden without KYC, but the server rejects
+    // an unverified request anyway, so fail here with a useful message.
+    if (kycStatus !== 'verified') {
+      toast.error('Verify your KYC before withdrawing.');
+      navigate('/kyc');
+      return;
+    }
 
     if (parseFloat(amount) > (payoutOverview?.balance || 0)) {
       toast.error('Insufficient balance');
@@ -250,16 +260,65 @@ export default function WithdrawalPage() {
     return `XXXX XXXX ${str.slice(-4)}`;
   };
 
+  // KYC gate. Withdrawing is the one action that moves real money off the
+  // platform, so it is offered only to a creator whose identity is verified.
+  const KYC_BANNER = {
+    not_submitted: {
+      cls: 'bg-[#FFF8ED] border-[#FCD9A4] text-[#93370D]',
+      title: 'Verify your identity to withdraw',
+      body: 'We need your Aadhaar and PAN before we can pay out your earnings. It takes two minutes.',
+      cta: 'Start verification',
+    },
+    pending: {
+      cls: 'bg-[#FFF8ED] border-[#FCD9A4] text-[#93370D]',
+      title: 'KYC under review',
+      body: 'We’re checking your documents — usually within 24–48 hours. Withdrawals unlock as soon as it’s verified.',
+      cta: 'View status',
+    },
+    rejected: {
+      cls: 'bg-[#FEF3F2] border-[#FECDCA] text-[#B42318]',
+      title: 'KYC not approved',
+      body: payoutOverview?.kyc_rejection_reason || 'Your documents could not be verified. Please submit them again.',
+      cta: 'Fix and resubmit',
+    },
+  }[kycStatus];
+
   return (
     <div className="flex flex-col gap-6 max-w-[1440px] mx-auto w-full pb-10 pt-2 font-sans" style={{ padding: '40px 8%' }}>
-      <div className="max-w-[1440px] mx-auto w-full mb-2">
+      <div className="max-w-[1440px] mx-auto w-full mb-2 flex items-center justify-between gap-4">
         <button
           className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E9EBEF] rounded-[12px] text-[#4a5568] font-semibold hover:border-[#07074e] hover:text-[#07074e] transition-all"
           onClick={() => navigate(-1)}
         >
           <ArrowLeft size={18} /> Back to Dashboard
         </button>
+
+        {kycStatus === 'verified' && (
+          <button
+            className="flex items-center gap-2 px-5 py-2.5 rounded-[12px] bg-[#07074E] text-white text-[13px] font-semibold hover:bg-[#0D0D6B] shadow-[0_4px_16px_rgba(7,7,78,0.18)] transition-all"
+            onClick={() => setShowRequestModal(true)}
+            data-testid="withdraw-btn"
+          >
+            <ArrowUpRight strokeWidth={2} className="w-4 h-4" /> Withdraw
+          </button>
+        )}
       </div>
+
+      {KYC_BANNER && (
+        <div className={`max-w-[1440px] mx-auto w-full flex items-center gap-4 border rounded-[16px] px-5 py-4 ${KYC_BANNER.cls}`} data-testid="kyc-banner">
+          <Shield strokeWidth={1.8} className="w-5 h-5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold">{KYC_BANNER.title}</p>
+            <p className="text-[12.5px] opacity-90 mt-0.5">{KYC_BANNER.body}</p>
+          </div>
+          <button
+            className="flex-shrink-0 px-4 py-2 rounded-[10px] bg-white/70 hover:bg-white text-[12.5px] font-semibold border border-current/20 whitespace-nowrap"
+            onClick={() => navigate('/kyc')}
+          >
+            {KYC_BANNER.cta}
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-4 gap-5 max-w-[1440px] mx-auto w-full">
         <KPICard

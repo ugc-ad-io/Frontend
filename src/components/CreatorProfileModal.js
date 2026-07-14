@@ -1172,9 +1172,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-editform .cpm-ef-sec:first-child{border-top:none;padding-top:0}
         .cpm-ef-check{flex-direction:row!important;align-items:center;gap:8px!important;text-transform:none!important;letter-spacing:0!important;font-size:13.5px!important;color:#15163a!important;font-weight:600!important}
         .cpm-ef-check input{width:16px;height:16px;accent-color:#5b6bff}
-        .cpm-sections{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
-        @media (max-width:760px){.cpm-sections{grid-template-columns:1fr}}
-        .cpm-sections section{border:1px solid #eef0f6;border-radius:16px;padding:18px 20px;background:#fff;box-shadow:0 1px 2px rgba(15,22,58,.04)}
+        /* Masonry-style columns instead of a grid. In a 2-col grid every row is as tall
+           as its tallest card, so short cards (Location, Pricing) left big dead gaps
+           underneath. Columns let each card sit right under the previous one. */
+        .cpm-sections{column-count:2;column-gap:14px}
+        @media (max-width:760px){.cpm-sections{column-count:1}}
+        .cpm-sections section{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
+          display:inline-block;width:100%;margin:0 0 14px;
+          border:1px solid #eef0f6;border-radius:16px;padding:18px 20px;background:#fff;box-shadow:0 1px 2px rgba(15,22,58,.04)}
         .cpm-sec-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
         .cpm-sec-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
         .cpm-sections h4{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:13px;font-weight:800;color:#15163a;text-transform:uppercase;letter-spacing:.5px;margin:0}

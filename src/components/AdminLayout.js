@@ -56,6 +56,7 @@ function AdminLayout({ children }) {
               disputes:     ['Disputes',       'Review evidence and rule on creator/brand disputes'],
               shipping:     ['Shipping Queue', 'Manual label requests — target SLA 4 hours'],
               users:        ['Users',          'Search, edit, warn, suspend or ban users'],
+              kyc:          ['Creator KYC',    'Verify Aadhaar + PAN — a creator cannot withdraw until this passes'],
               financials:   ['Financials',     'Wallets, escrow, payouts and withdrawals'],
               chat:         ['Chat Oversight', 'Flagged messages and contact-info filter log'],
               reports:      ['Reports',        'Exports, metrics and platform summaries'],

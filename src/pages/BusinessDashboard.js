@@ -496,6 +496,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [walletAmount, setWalletAmount] = useState('');
   const [walletFilter, setWalletFilter] = useState('all');
   const [rechargingWallet, setRechargingWallet] = useState(false);
+  const [gst, setGst] = useState(null);            // { status, gstin, can_recharge, rejection_reason }
+  const [gstInput, setGstInput] = useState('');
+  const [gstLegalName, setGstLegalName] = useState('');
+  const [gstSaving, setGstSaving] = useState(false);
   const [performancePeriod, setPerformancePeriod] = useState('Monthly');
   const [performanceCampaignId, setPerformanceCampaignId] = useState('all');
   const [dashboardSearchQuery, setDashboardSearchQuery] = useState('');
@@ -551,6 +555,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     // it whenever the Wallet tab is entered (silently — no loading flash after first load).
     if (user?.approval_status === 'approved' && (page === 'wallet' || !walletLoadedRef.current)) {
       fetchWallet();
+      fetchGst();   // wallet funding is gated on GST — load both together
     }
   }, [user?.id, page]);
 
@@ -770,7 +775,40 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   };
 
+  // A brand cannot fund its wallet until an admin has verified its GSTIN.
+  const fetchGst = async () => {
+    try {
+      const { data } = await axios.get(`${API}/business/gst`);
+      setGst(data);
+    } catch {
+      setGst(null);
+    }
+  };
+
+  const submitGst = async () => {
+    const gstin = gstInput.trim().toUpperCase();
+    if (!gstin) { toast.error('Enter your GSTIN'); return; }
+    setGstSaving(true);
+    try {
+      const { data } = await axios.post(`${API}/business/gst`, { gstin, legal_name: gstLegalName.trim() });
+      setGst(data);
+      toast.success('GSTIN submitted — we’ll verify it shortly.');
+    } catch (error) {
+      // The backend explains WHY (bad checksum, wrong state code, already in use).
+      toast.error(apiErrorMessage(error, 'Could not submit GSTIN'));
+    } finally {
+      setGstSaving(false);
+    }
+  };
+
   const handleWalletRecharge = async (amountOverride) => {
+    // GST gate — the backend enforces this too; failing fast here just saves a round trip.
+    if (!gst?.can_recharge) {
+      toast.error(gst?.status === 'pending'
+        ? 'Your GSTIN is under review. You can add funds once it is verified.'
+        : 'Verify your GST before adding funds.');
+      return;
+    }
     const amount = Number(amountOverride || walletAmount);
     const minRecharge = Number(walletData?.minimum_chat_balance) || 2500;
     if (!amount || amount < minRecharge) {
@@ -1849,6 +1887,64 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   </div>
                 </section>
 
+                {/* GST gate. Funds cannot be added until an admin verifies the GSTIN, so this
+                    sits above everything else on the wallet page. */}
+                {gst && !gst.can_recharge && (
+                  <section className={`gst-gate ${gst.status === 'pending' ? 'is-pending' : ''}`}>
+                    <div className="gst-gate-head">
+                      <span className="gst-gate-ic">
+                        {gst.status === 'pending' ? <Clock3 size={18} /> : <AlertCircle size={18} />}
+                      </span>
+                      <div>
+                        <strong>
+                          {gst.status === 'pending'
+                            ? 'GST verification in review'
+                            : gst.status === 'rejected'
+                              ? 'GST verification rejected'
+                              : 'Verify your GST to add funds'}
+                        </strong>
+                        <p>
+                          {gst.status === 'pending'
+                            ? <>We’re verifying <b>{gst.gstin}</b>. You’ll be able to add funds as soon as it’s approved — usually within a business day.</>
+                            : gst.status === 'rejected'
+                              ? <>{gst.rejection_reason || 'Your GSTIN could not be verified.'} Please submit a correct GSTIN below.</>
+                              : <>Indian law requires a verified GSTIN before a brand can fund its wallet. Add yours to unlock recharges and creator bookings.</>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {gst.status !== 'pending' && (
+                      <div className="gst-gate-form">
+                        <label>
+                          GSTIN
+                          <input
+                            value={gstInput}
+                            onChange={(e) => setGstInput(e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 15))}
+                            placeholder="22AAAAA0000A1Z5"
+                            maxLength={15}
+                            spellCheck={false}
+                          />
+                        </label>
+                        <label>
+                          Registered legal name <em>(optional)</em>
+                          <input
+                            value={gstLegalName}
+                            onChange={(e) => setGstLegalName(e.target.value)}
+                            placeholder="As printed on your GST certificate"
+                          />
+                        </label>
+                        <button type="button" onClick={submitGst} disabled={gstSaving || gstInput.length !== 15}>
+                          {gstSaving ? 'Submitting…' : 'Submit for verification'}
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {gst?.can_recharge && (
+                  <p className="gst-verified"><CheckCircle size={14} /> GST verified — {gst.gstin}</p>
+                )}
+
                 {!walletData.chat_unlocked && (
                   <section className="wallet-warning">
                     <AlertCircle size={18} />
@@ -1900,8 +1996,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <button key={amount} type="button" onClick={() => setWalletAmount(String(amount))}>{formatMoney(amount).replace(',000', 'K')}</button>
                     ))}
                   </div>
-                  <button type="button" className="wallet-add-funds" onClick={() => handleWalletRecharge()} disabled={rechargingWallet}>
-                    <Zap size={18} /> {rechargingWallet ? 'Creating Order...' : 'Add Funds'}
+                  <button
+                    type="button"
+                    className="wallet-add-funds"
+                    onClick={() => handleWalletRecharge()}
+                    disabled={rechargingWallet || (gst ? !gst.can_recharge : false)}
+                    title={gst && !gst.can_recharge ? 'Verify your GST to add funds' : undefined}
+                  >
+                    {gst && !gst.can_recharge
+                      ? <><Lock size={18} /> Verify GST to add funds</>
+                      : <><Zap size={18} /> {rechargingWallet ? 'Creating Order...' : 'Add Funds'}</>}
                   </button>
                   <small>Minimum {formatMoney(walletData.minimum_chat_balance || 2500)} • Instant credit after payment verification</small>
                 </section>
@@ -5812,6 +5916,49 @@ export default function BusinessDashboard({ page = 'overview' }) {
           transform: translateY(-1px);
           box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.55);
         }
+
+        /* GST verification gate on the wallet page */
+        .gst-gate {
+          background: #fff5f5;
+          border: 1px solid #fecaca;
+          border-radius: 16px;
+          padding: 18px 20px;
+          margin-bottom: 16px;
+        }
+        .gst-gate.is-pending { background: #fff8ec; border-color: #ffe1b0; }
+        .gst-gate-head { display: flex; gap: 12px; align-items: flex-start; }
+        .gst-gate-ic {
+          flex: none; width: 36px; height: 36px; border-radius: 10px;
+          display: grid; place-items: center; background: #fee2e2; color: #b42318;
+        }
+        .gst-gate.is-pending .gst-gate-ic { background: #ffedd5; color: #a35b00; }
+        .gst-gate-head strong { display: block; font-size: 15px; color: #07074e; }
+        .gst-gate-head p { margin: 4px 0 0; font-size: 13px; line-height: 1.55; color: #6b7094; }
+        .gst-gate-form {
+          display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px;
+          align-items: end; margin-top: 16px;
+        }
+        .gst-gate-form label {
+          display: flex; flex-direction: column; gap: 6px;
+          font-size: 12px; font-weight: 700; color: #5b6573;
+        }
+        .gst-gate-form label em { font-weight: 500; color: #9296ba; font-style: normal; }
+        .gst-gate-form input {
+          border: 1px solid #e6e8f3; border-radius: 10px; padding: 10px 12px;
+          font-size: 14px; font-family: inherit; color: #07074e; outline: none; background: #fff;
+          letter-spacing: 0.03em;
+        }
+        .gst-gate-form input:focus { border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,.14); }
+        .gst-gate-form button {
+          border: none; background: #07074e; color: #fff; font-weight: 700; font-size: 13.5px;
+          padding: 11px 18px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+        }
+        .gst-gate-form button:disabled { opacity: .5; cursor: not-allowed; }
+        .gst-verified {
+          display: flex; align-items: center; gap: 6px; margin: 0 0 16px;
+          font-size: 12.5px; font-weight: 600; color: #0f7a43;
+        }
+        @media (max-width: 720px) { .gst-gate-form { grid-template-columns: 1fr; } }
 
         .wallet-warning {
           display: flex;

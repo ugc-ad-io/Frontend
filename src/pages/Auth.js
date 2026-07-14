@@ -258,7 +258,7 @@ export default function Auth() {
 
       {/* ── the auth card (form + promo, one floating shell) ── */}
       {/* Sign In → form on the right; Sign Up → form on the left. */}
-      <div className={`ap-shell ${isLogin ? 'is-signin' : 'is-signup'}`}>
+      <div className={`ap-shell ${isLogin ? 'is-signin' : 'is-signup'} ${view !== 'auth' ? 'is-compact' : ''}`}>
 
       {/* ── LEFT: the sign-in / sign-up form ── */}
       <div className="ap-left">
@@ -1217,6 +1217,10 @@ export default function Auth() {
         /* Sign-up panel is wider, so the image crops a bit differently — nudge the
            description down on sign-up only. */
         .ap-shell.is-signup .ap-promo-text { top: 75%; left: 55%; }
+        /* Reset / forgot / new-password / 2FA views make the shell much shorter, so the
+           description (pinned at top:73%) spilled out of the panel and collided with the
+           stat line. Those views don't need the paragraph — drop it and keep the title. */
+        .ap-shell.is-compact .ap-promo-text { display: none; }
         .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: auto 0 0; }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);

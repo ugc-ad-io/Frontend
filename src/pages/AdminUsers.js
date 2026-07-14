@@ -42,7 +42,13 @@ const dateShort = (v) => (v ? String(v).slice(0, 10) : '—');
 const STATE_LABELS = { active: 'Active', suspended: 'Suspended', banned: 'Banned' };
 const PAYOUT_SCHEDULES = ['weekly', 'biweekly', 'monthly', 'on_request'];
 
-export default function AdminUsers() {
+// Reused by the custom-admin "My Users" page (AdminMyCreators) so both admin views
+// share ONE table/detail UI. Only the data source + heading differ.
+export default function AdminUsers({
+  endpoint = '/admin/users',
+  heading = 'Users',
+  subheading = 'Creator & brand directories — search, filter, inspect profiles, and moderate',
+} = {}) {
   const { user: me } = useAuth();
   // Capability gating (PRD 11 — role structure). This page is reachable by
   // founder + Ops Senior; ban / commission / pro are founder-only.
@@ -89,11 +95,21 @@ export default function AdminUsers() {
 
   useEffect(() => { fetchAllUsers(); }, []);
 
+  // /admin/users returns a plain array; /admin/my-assigned returns
+  // { scoped, assigned_categories, users }. Accept both.
+  const [assignedCats, setAssignedCats] = useState(null);
+
   const fetchAllUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/admin/users`);
-      setAllUsers(response.data);
+      const { data } = await axios.get(`${API}${endpoint}`);
+      if (Array.isArray(data)) {
+        setAllUsers(data);
+        setAssignedCats(null);
+      } else {
+        setAllUsers(data?.users || []);
+        setAssignedCats(data?.assigned_categories || []);
+      }
     } catch {
       toast.error('Failed to load users');
     } finally {
@@ -271,8 +287,16 @@ export default function AdminUsers() {
       <div className="au-container">
         <div className="au-header">
           <div>
-            <h1><Users size={26} /> Users</h1>
-            <p>Creator &amp; brand directories — search, filter, inspect profiles, and moderate</p>
+            <h1><Users size={26} /> {heading}</h1>
+            <p>{subheading}</p>
+            {/* Only shown on the scoped "My Users" view. */}
+            {assignedCats !== null && (
+              <p className="au-assigned">
+                {assignedCats.length
+                  ? <>Your categories: {assignedCats.map((c) => <span key={c} className="au-badge">{c}</span>)}</>
+                  : 'No categories assigned to you yet — ask the founder to assign some on the Team & Roles page.'}
+              </p>
+            )}
           </div>
           <div className="au-stats">
             <div className="au-stat"><span>Total</span><strong>{counts.total}</strong></div>

@@ -681,7 +681,7 @@ export default function Auth() {
         <span className="ap-promo-shine" aria-hidden="true" />
         <div className="ap-promo-inner">
           <div>
-            <h2 className="ap-promo-title">Where brands meet<br />real creators.</h2>
+            <h2 className="ap-promo-title">Where brands<br />meet real<br />creators.</h2>
             <p className="ap-promo-text">
               UGCad connects brands with authentic UGC creators — post a campaign,
               get matched with the right talent, and turn real content into results,
@@ -1205,12 +1205,12 @@ export default function Auth() {
         .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
         /* Positioned to sit inside the dark-blue card in the hero image (upper area). */
         .ap-promo-title {
-          position: absolute; left: 8%; top: 2%; width: 40%; z-index: 2; white-space: nowrap;
+          position: absolute; left: 12%; top: 10%; width: 40%; z-index: 2; white-space: nowrap;
           font-family: var(--font-head, inherit);
-          font-size: 16px; font-weight: 600; line-height: 1.2; margin: 0; color: #fff;
+          font-size: 18px; font-weight: 800; line-height: 1.2; margin: 0; color: #fff;
         }
         /* Sign-in only: nudge the heading a touch left. */
-        .ap-shell.is-signin .ap-promo-title { left: 7%; }
+        .ap-shell.is-signin .ap-promo-title { left: 11%; }
         /* Positioned over the light card baked into the hero image (lower area). */
         .ap-promo-text { position: absolute; left: 53%; top: 73%; width: 40%; color: #26386e;
           font-size: 13px; font-weight: 500; line-height: 1.6; margin: 0; z-index: 2; }
@@ -1223,10 +1223,7 @@ export default function Auth() {
         .ap-shell.is-compact .ap-promo-text { display: none; }
         /* Cap the width so it wraps onto 2–3 lines instead of running one long line
            straight off the edge of the panel. */
-        /* Bottom-right of the panel, nudged a bit further right (negative right margin
-           eats into the 34px padding). Brand dark blue to match the theme. */
-        .ap-promo-stat { color: #07074e; font-size: 14px; font-weight: 700;
-          margin: auto -32px 0 auto; max-width: 240px; white-space: normal; line-height: 1.5; }
+        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: auto 0 0; }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);

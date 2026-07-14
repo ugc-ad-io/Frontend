@@ -681,7 +681,7 @@ export default function Auth() {
         <span className="ap-promo-shine" aria-hidden="true" />
         <div className="ap-promo-inner">
           <div>
-            <h2 className="ap-promo-title">Where brands<br />meet real<br />creators.</h2>
+            <h2 className="ap-promo-title">Where brands meet<br />real creators.</h2>
             <p className="ap-promo-text">
               UGCad connects brands with authentic UGC creators — post a campaign,
               get matched with the right talent, and turn real content into results,

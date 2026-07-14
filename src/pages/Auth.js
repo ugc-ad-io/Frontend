@@ -1221,7 +1221,10 @@ export default function Auth() {
            description (pinned at top:73%) spilled out of the panel and collided with the
            stat line. Those views don't need the paragraph — drop it and keep the title. */
         .ap-shell.is-compact .ap-promo-text { display: none; }
-        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: auto 0 0; }
+        /* Cap the width so it wraps onto 2–3 lines instead of running one long line
+           straight off the edge of the panel. */
+        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500;
+          margin: auto 0 0; max-width: 230px; white-space: normal; line-height: 1.5; }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);

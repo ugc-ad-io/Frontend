@@ -1223,8 +1223,9 @@ export default function Auth() {
         .ap-shell.is-compact .ap-promo-text { display: none; }
         /* Cap the width so it wraps onto 2–3 lines instead of running one long line
            straight off the edge of the panel. */
+        /* Pushed to the right side of the panel (margin-left:auto), sitting at the bottom. */
         .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500;
-          margin: auto 0 0; max-width: 230px; white-space: normal; line-height: 1.5; }
+          margin: auto 0 0 auto; max-width: 230px; white-space: normal; line-height: 1.5; }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);

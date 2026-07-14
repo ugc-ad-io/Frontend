@@ -276,7 +276,7 @@ function mapCampaignToForm(c) {
   return out;
 }
 
-const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, onDraftSaved = null, duplicateId = null } = {}, ref) {
+const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, onDraftSaved = null, duplicateId = null, resumeDraftId = null } = {}, ref) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -334,9 +334,11 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       });
   }, [user?.id]);
 
-  // Resume a server-saved draft when arriving from the dashboard (?draft=<id>).
+  // Resume a server-saved draft — either from the URL (?draft=<id>) or from the
+  // Campaigns page opening this wizard in a modal (resumeDraftId prop). draftId
+  // is set, so saving/publishing PATCHes that same draft instead of forking a copy.
   useEffect(() => {
-    const resumeId = searchParams.get('draft');
+    const resumeId = resumeDraftId || searchParams.get('draft');
     if (!resumeId) return;
     setDraftId(resumeId);
     localStorage.setItem(DRAFT_ID_KEY, resumeId);
@@ -350,7 +352,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       })
       .catch(() => toast.error('Could not load that draft'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, resumeDraftId]);
 
   // Duplicate an existing campaign into a fresh, editable brief (?duplicate=<id>).
   // We do NOT set draftId, so publishing creates a brand-new copy — the source

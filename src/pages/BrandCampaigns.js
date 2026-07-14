@@ -46,6 +46,20 @@ export default function BrandCampaigns() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
   const [briefOpen, setBriefOpen] = useState(false);
+  // Id of the draft being edited in the modal — null when writing a fresh brief.
+  const [editingDraftId, setEditingDraftId] = useState(null);
+
+  // A draft isn't a real campaign yet: the detail page renders it half-empty and
+  // read-only. Reopen it in the wizard so it can actually be finished and edited.
+  const openCampaign = (c) => {
+    const cid = c.id || c._id;
+    if (c.status === 'draft') {
+      setEditingDraftId(cid);
+      setBriefOpen(true);
+      return;
+    }
+    navigate(`/dashboard/business/campaign/${cid}`);
+  };
 
   const loadCampaigns = useCallback(async () => {
     try {
@@ -67,6 +81,7 @@ export default function BrandCampaigns() {
   const closeBrief = async () => {
     await briefRef.current?.saveDraftNow();
     setBriefOpen(false);
+    setEditingDraftId(null);
     loadCampaigns();
   };
 
@@ -108,7 +123,7 @@ export default function BrandCampaigns() {
             <>
               <h3>No campaigns yet</h3>
               <p>Launch your first campaign to start collaborating with creators and getting authentic content.</p>
-              <button type="button" className="bcam-empty-btn" onClick={() => setBriefOpen(true)}>
+              <button type="button" className="bcam-empty-btn" onClick={() => { setEditingDraftId(null); setBriefOpen(true); }}>
                 <Plus size={18} /> Post your first campaign
               </button>
             </>
@@ -139,7 +154,7 @@ export default function BrandCampaigns() {
             const spent = c.escrow_amount || c.budget_min || 0;
             const total = c.budget_max || c.budget_min || 0;
             return (
-              <article key={c.id || c._id} className="bcam-card" onClick={() => navigate(`/dashboard/business/campaign/${c.id || c._id}`)}>
+              <article key={c.id || c._id} className="bcam-card" onClick={() => openCampaign(c)}>
                 <div className="bcam-img">
                   {cover ? <img src={cover} alt="" /> : (c.title || 'C').charAt(0).toUpperCase()}
                   <span className={`bcam-badge ${s.cls}`}>{s.badge}</span>
@@ -167,9 +182,13 @@ export default function BrandCampaigns() {
               <X size={20} />
             </button>
             <PostABrief
+              // Remount when switching between drafts / a fresh brief, so the
+              // wizard reseeds its form instead of keeping the previous one.
+              key={editingDraftId || 'new'}
               ref={briefRef}
+              resumeDraftId={editingDraftId}
               onClose={closeBrief}
-              onPublished={() => { setBriefOpen(false); loadCampaigns(); }}
+              onPublished={() => { setBriefOpen(false); setEditingDraftId(null); loadCampaigns(); }}
               // Refresh so a just-saved draft appears in the Drafts tab straight away,
               // rather than only after a remount.
               onDraftSaved={() => loadCampaigns()}

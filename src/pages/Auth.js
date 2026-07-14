@@ -1205,7 +1205,7 @@ export default function Auth() {
         .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
         /* Positioned to sit inside the dark-blue card in the hero image (upper area). */
         .ap-promo-title {
-          position: absolute; left: 8%; top: 1%; width: 40%; z-index: 2; white-space: nowrap;
+          position: absolute; left: 8%; top: 2%; width: 40%; z-index: 2; white-space: nowrap;
           font-family: var(--font-head, inherit);
           font-size: 16px; font-weight: 600; line-height: 1.2; margin: 0; color: #fff;
         }

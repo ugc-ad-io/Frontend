@@ -1226,7 +1226,7 @@ export default function Auth() {
         /* Bottom-right of the panel, nudged a bit further right (negative right margin
            eats into the 34px padding). Brand dark blue to match the theme. */
         .ap-promo-stat { color: #07074e; font-size: 14px; font-weight: 700;
-          margin: auto -34px 0 auto; max-width: 240px; white-space: normal; line-height: 1.5; }
+          margin: auto -8px 0 auto; max-width: 240px; white-space: normal; line-height: 1.5; }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);

@@ -218,8 +218,14 @@ export default function BrandCampaignDetail() {
   const selectCreator = async (bid) => {
     setSelecting(bid.creator_id);
     try {
-      await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${encodeURIComponent(bid.creator_id)}`);
-      toast.success(`@${String(bid.creator_nickname || 'creator').replace('@', '')} selected — the deal has started`);
+      const { data } = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${encodeURIComponent(bid.creator_id)}`);
+      const who = `@${String(bid.creator_nickname || 'creator').replace('@', '')}`;
+      const left = Number(data?.slots_left ?? 0);
+      toast.success(
+        left > 0
+          ? `${who} selected — the deal has started. ${left} slot${left === 1 ? '' : 's'} still open.`
+          : `${who} selected — the deal has started. This brief is now fully staffed.`
+      );
       await load();
     } catch (e) {
       if (e?.response?.status === 402) {
@@ -271,6 +277,12 @@ export default function BrandCampaignDetail() {
   // There is nobody to ship to until a creator is on the campaign — and the label
   // flow reads the creator's address server-side — so shipping is gated on this.
   const creatorSelected = !!(campaign.selected_creator || creator?.id || deal?.creator?.id);
+  // Multi-creator hiring: who's already on the brief, how many slots remain, and
+  // which bids are still up for grabs (a hired creator shouldn't be re-selectable).
+  const hiredIds = selectedCreators(campaign);
+  const wanted = creatorsWanted(campaign);
+  const openSlots = slotsLeft(campaign);
+  const openBids = bids.filter((b) => !hiredIds.includes(String(b.creator_id)));
   const campaignDeliver = String(campaign.deliverables || '').split(/[\n;]+/).map((s) => s.trim()).filter(Boolean);
   const briefDeliver = extractDeliverables(campaign.brief_text);
   const deliverList = campaignDeliver.length ? campaignDeliver : briefDeliver;

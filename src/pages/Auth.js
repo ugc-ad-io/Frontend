@@ -1205,12 +1205,12 @@ export default function Auth() {
         .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
         /* Positioned to sit inside the dark-blue card in the hero image (upper area). */
         .ap-promo-title {
-          position: absolute; left: 6%; top: 3%; width: 40%; z-index: 2; white-space: nowrap;
+          position: absolute; left: 8%; top: 3%; width: 40%; z-index: 2; white-space: nowrap;
           font-family: var(--font-head, inherit);
           font-size: 16px; font-weight: 800; line-height: 1.2; margin: 0; color: #fff;
         }
         /* Sign-in only: nudge the heading a touch left. */
-        .ap-shell.is-signin .ap-promo-title { left: 5%; }
+        .ap-shell.is-signin .ap-promo-title { left: 7%; }
         /* Positioned over the light card baked into the hero image (lower area). */
         .ap-promo-text { position: absolute; left: 53%; top: 73%; width: 40%; color: #26386e;
           font-size: 13px; font-weight: 500; line-height: 1.6; margin: 0; z-index: 2; }

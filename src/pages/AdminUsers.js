@@ -11,6 +11,7 @@ import AdminLayout from '../components/AdminLayout';
 import { Skeleton } from '../components/Skeleton';
 import { useAuth } from '../App';
 import { can } from '../utils/adminRoles';
+import { levelLabelOf } from '../utils/creatorLevel';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -330,9 +331,6 @@ export default function AdminUsers() {
               <option value="">Category: All</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            {tab !== 'brands' && (
-              <span className="au-level-pill" title="Level (V0.5 — every creator is 'New')">Level: New</span>
-            )}
             {tab === 'brands' && (
               <span className="au-wallet-range">
                 <Wallet size={13} />
@@ -376,14 +374,12 @@ export default function AdminUsers() {
             <thead>
               <tr>
                 <th className="au-check-col"><input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} aria-label="Select all" /></th>
+                {/* Real name / GST, State, Category and Flags moved into the eye (details)
+                    panel — the table was too dense to scan. */}
                 <th>{tab === 'brands' ? 'Business' : 'Handle / Creator ID'}</th>
-                <th>{tab === 'brands' ? 'GST' : 'Real Name'}</th>
                 <th>Email</th>
                 <th>Role</th>
-                <th>State</th>
-                <th>Category</th>
                 <th>Balance</th>
-                <th>Flags</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -391,13 +387,13 @@ export default function AdminUsers() {
               {loading ? (
                 Array.from({ length: 6 }).map((_, r) => (
                   <tr key={`sk-${r}`}>
-                    {Array.from({ length: 10 }).map((_, c) => (
+                    {Array.from({ length: 6 }).map((_, c) => (
                       <td key={c}><Skeleton height={13} width={c === 0 ? '75%' : '55%'} /></td>
                     ))}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="au-empty-row">{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</td></tr>
+                <tr><td colSpan={6} className="au-empty-row">{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</td></tr>
               ) : (
                 filtered.map((u) => {
                   const st = userState(u);
@@ -410,13 +406,16 @@ export default function AdminUsers() {
                         </button>
                         {st === 'banned' && <span className="au-ban-badge">BANNED</span>}
                       </td>
-                      <td className="au-mono">{isBrand(u) ? gstin(u) : realName(u)}</td>
                       <td>{u.email}</td>
-                      <td><span className="au-badge">{isBrand(u) ? 'brand' : u.role}</span></td>
-                      <td><span className={`au-badge au-state-${st}`}>{STATE_LABELS[st]}</span></td>
-                      <td>{category(u)}</td>
+                      <td>
+                        <span className="au-badge">{isBrand(u) ? 'brand' : u.role}</span>
+                        {!isBrand(u) && (
+                          <span className="au-badge au-badge-level" title="Creator level">
+                            {levelLabelOf(u.level_key ?? u.level)}
+                          </span>
+                        )}
+                      </td>
                       <td>{money(u.balance)}</td>
-                      <td>{strikes(u).length ? <span className="au-strike-pill">{strikes(u).length}</span> : <span className="au-muted">0</span>}</td>
                       <td>
                         <div className="au-actions">
                           <button className="au-btn au-btn-view" onClick={() => openDetail(u)} title="View profile"><Eye size={14} /></button>
@@ -550,6 +549,7 @@ export default function AdminUsers() {
         .au-muted { color: #cbd5e0; }
         .au-ban-badge { display: inline-block; margin-left: 8px; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; background: #991b1b; color: white; border-radius: 4px; }
         .au-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #1e1e7e; text-transform: capitalize; }
+        .au-badge-level { margin-left: 6px; background: #f0fdf4; color: #15803d; }
         .au-state-active { background: #dcfce7; color: #166534; }
         .au-state-suspended { background: #fef3c7; color: #92400e; }
         .au-state-banned { background: #fee2e2; color: #991b1b; }
@@ -722,6 +722,8 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                   </>
                 )}
                 <Row label="Joined" value={dateShort(u.created_at || u.createdAt)} />
+                {/* Flags moved off the table into here. */}
+                <Row label="Flags / strikes" value={strikes(u).length ? `${strikes(u).length}` : '0'} />
               </div>
 
               {/* Private data */}
@@ -885,7 +887,7 @@ const ACTION_META = {
   wallet: { title: 'Adjust Balance', kind: 'wallet', btn: 'Apply Adjustment', icon: Wallet },
   commission: { title: 'Adjust Commission', label: 'Commission rate (%)', kind: 'number', btn: 'Save', icon: Percent },
   payout: { title: 'Adjust Payout Schedule', kind: 'payout', btn: 'Save', icon: CalendarClock },
-  promote: { title: 'Promote Level', kind: 'confirm', btn: 'Promote', icon: ArrowUpCircle, msg: 'Promote this creator one level? (V0.5: levels are cosmetic — recorded for audit.)' },
+  promote: { title: 'Promote Level', kind: 'confirm', btn: 'Promote', icon: ArrowUpCircle, msg: 'Promote this creator one level? (New → Verified → L1 → L2 → Elite. Shown on their public profile.)' },
   demote: { title: 'Demote Level', kind: 'confirm', btn: 'Demote', icon: ArrowDownCircle, msg: 'Demote this creator one level?' },
   convertpro: { title: 'Convert to Pro', kind: 'confirm', btn: 'Convert', icon: Crown, msg: 'Upgrade this brand to a Pro account? (V2 feature.)' },
   announce: { title: 'Send Announcement', label: 'Announcement', kind: 'text', btn: 'Send to selected', icon: Send },

@@ -6,6 +6,7 @@ import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, 
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
+import { LEVEL_LABEL, LEVEL_META, resolveLevelKey } from '../utils/creatorLevel';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
 // uses the exact same choices instead of free text.
@@ -144,14 +145,6 @@ const vidPrice = (price, fallback) => {
   if (!raw) return fallback;
   const digits = raw.replace(/[₹,\s]/g, '');
   return /^\d+$/.test(digits) ? inr(digits) : raw;
-};
-const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
-const LEVEL_META = {
-  new: { title: 'New Creator', badge: 'New' },
-  verified: { title: 'Verified Creator', badge: 'Verified' },
-  l1: { title: 'L1 Rising Star', badge: 'L1 (Rising)' },
-  l2: { title: 'L2 Pro Creator', badge: 'L2 (Pro)' },
-  elite: { title: 'Elite Creator', badge: 'Elite' },
 };
 function VideoTile({ url, onRemove, onEdit }) {
   const ref = useRef(null);
@@ -513,7 +506,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const priceNum = String(p.rate_card?.expected_payout || p.expectedPayout || '').replace(/[^0-9]/g, '');
   const avatar = assetUrl(localPhoto || data?.profile_photo || photo);
   const banner = assetUrl(localBanner || data?.banner || p.banner || '');
-  const levelKey = LEVEL_LABEL[String(data?.level || '').toLowerCase()] ? String(data.level).toLowerCase() : 'new';
+  // The backend stores level as a number (1..5) and also sends level_key. Older
+  // records / responses may carry either, so accept both — reading the number as
+  // a tier key is what made "Promote Level" look like it did nothing.
+  const levelKey = resolveLevelKey(data?.level_key ?? data?.level);
   const levelLabel = data?.level_label || LEVEL_LABEL[levelKey];
   const levelMeta = LEVEL_META[levelKey] || LEVEL_META.new;
   const deliverables = Number(data?.deliverables_completed ?? p.deliverables_completed ?? 0);

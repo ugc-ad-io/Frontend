@@ -683,8 +683,9 @@ export default function Auth() {
           <div>
             <h2 className="ap-promo-title">Where brands<br />meet real<br />creators.</h2>
             <p className="ap-promo-text">
-              Post a campaign, get matched with the right creators, and turn
-              real content into results — all in one place.
+              UGCad connects brands with authentic UGC creators — post a campaign,
+              get matched with the right talent, and turn real content into results,
+              all in one place.
             </p>
           </div>
           <p className="ap-promo-stat">More than 17k creators &amp; brands joined — it&apos;s your turn.</p>
@@ -1210,16 +1211,13 @@ export default function Auth() {
         }
         /* Sign-in only: nudge the heading a touch left. */
         .ap-shell.is-signin .ap-promo-title { left: 11%; }
-        /* Sits INSIDE the light card baked into the hero image (lower-right). Tuned to
-           start below the card's top edge and stay within it — it used to start above
-           the card and spill out the bottom. */
-        .ap-promo-text { position: absolute; left: 48%; top: 80%; width: 46%; color: #26386e;
-          font-size: 11.5px; font-weight: 500; line-height: 1.45; margin: 0; z-index: 2; }
-        /* Sign-up panel is wider, so the image crops a bit differently — nudge to match. */
-        .ap-shell.is-signup .ap-promo-text { top: 81%; left: 50%; }
-        /* Keep the stat on the left half so it can't run underneath the card. */
-        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 12.5px; font-weight: 500;
-          margin: auto 0 0; max-width: 44%; z-index: 2; position: relative; }
+        /* Positioned over the light card baked into the hero image (lower area). */
+        .ap-promo-text { position: absolute; left: 53%; top: 73%; width: 40%; color: #26386e;
+          font-size: 13px; font-weight: 500; line-height: 1.6; margin: 0; z-index: 2; }
+        /* Sign-up panel is wider, so the image crops a bit differently — nudge the
+           description down on sign-up only. */
+        .ap-shell.is-signup .ap-promo-text { top: 75%; left: 55%; }
+        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: auto 0 0; }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);

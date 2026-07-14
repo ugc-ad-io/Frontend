@@ -1,4 +1,5 @@
 import ContactSupportBox from './ContactSupportBox';
+import ContactSupportFab from './ContactSupportFab';
 
 const REASON_LABELS = {
   incomplete_profile: 'Incomplete profile',
@@ -51,6 +52,9 @@ export default function RejectedGate({ user, onHome, kind = 'business' }) {
           </button>
         )}
       </section>
+
+      {/* Persistent route back to a human, pinned bottom-right. */}
+      <ContactSupportFab user={user} />
 
       <style>{`
         .rg-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(160deg,#05050f 0%,#0d0b26 100%)}

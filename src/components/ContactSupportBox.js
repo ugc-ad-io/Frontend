@@ -11,7 +11,12 @@ export const SUPPORT_PHONE_DISPLAY = '+91 90000 00000';
  * The mailto is pre-filled with the account details so support can look the
  * application up without a back-and-forth.
  */
-export default function ContactSupportBox({ user, title = 'Think this is a mistake?' }) {
+/**
+ * Build the three support deep-links, pre-filled with the account details so
+ * support can look the application up without a back-and-forth. Shared with the
+ * floating Contact-us button (ContactSupportFab) so both open the same channels.
+ */
+export function buildSupportLinks(user) {
   const account = user?.email || user?.username || '';
   const accountId = user?.id || user?._id || '';
   const subject = `Application review appeal${account ? ` — ${account}` : ''}`;
@@ -27,10 +32,17 @@ export default function ContactSupportBox({ user, title = 'Think this is a mista
     'Why I think this should be reconsidered:',
     '',
   ].filter((l) => l !== null).join('\n');
-  const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  const whatsapp = `https://wa.me/${SUPPORT_PHONE.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-    `Hi, my UGCad application (${account || 'my account'}) was not approved. Can you review it again?`
-  )}`;
+  return {
+    mailto: `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+    whatsapp: `https://wa.me/${SUPPORT_PHONE.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+      `Hi, my UGCad application (${account || 'my account'}) was not approved. Can you review it again?`
+    )}`,
+    tel: `tel:${SUPPORT_PHONE}`,
+  };
+}
+
+export default function ContactSupportBox({ user, title = 'Think this is a mistake?' }) {
+  const { mailto, whatsapp } = buildSupportLinks(user);
 
   return (
     <div className="csb">

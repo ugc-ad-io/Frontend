@@ -1197,27 +1197,35 @@ export default function Auth() {
           background: linear-gradient(120deg, transparent, rgba(130,150,190,0.14), transparent);
           transform: rotate(18deg); pointer-events: none;
         }
+        /* Readability scrim over the hero image — the copy is white on a busy photo. */
+        .ap-promo::before {
+          content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          background: linear-gradient(180deg, rgba(6,8,26,0.58) 0%, rgba(6,8,26,0.20) 42%, rgba(6,8,26,0.80) 100%);
+        }
+        /* Copy now flows normally inside the panel. It used to be absolutely positioned
+           onto cards baked into the image (top:10% / top:73%), which overflowed and
+           overlapped on any view whose panel was shorter (e.g. Reset password). */
         .ap-promo-inner {
-          position: relative; z-index: 1; width: 100%;
+          position: relative; z-index: 1; width: 100%; flex: 1;
           display: flex; flex-direction: column; justify-content: flex-start;
-          gap: 24px; padding: 64px 34px 14px 62px;
+          gap: 16px; padding: 40px 34px 32px;
         }
         .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
-        /* Positioned to sit inside the dark-blue card in the hero image (upper area). */
         .ap-promo-title {
-          position: absolute; left: 12%; top: 10%; width: 40%; z-index: 2; white-space: nowrap;
+          position: static; width: auto; white-space: normal; max-width: 320px;
           font-family: var(--font-head, inherit);
-          font-size: 18px; font-weight: 800; line-height: 1.2; margin: 0; color: #fff;
+          font-size: 22px; font-weight: 800; line-height: 1.25; margin: 0 0 10px; color: #fff;
+          text-shadow: 0 2px 14px rgba(0,0,0,0.45);
         }
-        /* Sign-in only: nudge the heading a touch left. */
-        .ap-shell.is-signin .ap-promo-title { left: 11%; }
-        /* Positioned over the light card baked into the hero image (lower area). */
-        .ap-promo-text { position: absolute; left: 53%; top: 73%; width: 40%; color: #26386e;
-          font-size: 13px; font-weight: 500; line-height: 1.6; margin: 0; z-index: 2; }
-        /* Sign-up panel is wider, so the image crops a bit differently — nudge the
-           description down on sign-up only. */
-        .ap-shell.is-signup .ap-promo-text { top: 75%; left: 55%; }
-        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: auto 0 0; }
+        .ap-promo-text {
+          position: static; width: auto; max-width: 340px; margin: 0;
+          color: rgba(255,255,255,0.90); font-size: 13.5px; font-weight: 500; line-height: 1.65;
+          text-shadow: 0 1px 10px rgba(0,0,0,0.45);
+        }
+        .ap-promo-stat {
+          color: rgba(255,255,255,0.88); font-size: 13px; font-weight: 600; margin: auto 0 0;
+          text-shadow: 0 1px 10px rgba(0,0,0,0.45);
+        }
         .ap-promo-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);

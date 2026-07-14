@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -12,16 +13,20 @@ const NotificationBell = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  // Notification ids we've already popped a toast for. Seeded on first load so we
+  // don't spam toasts for notifications that arrived before this page opened.
+  const seenIdsRef = useRef(null);
 
   useEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
-    
-    // Poll for new notifications every 30 seconds
+
+    // Poll the LIST (not just the count) so a new message can be popped as a toast.
     const interval = setInterval(() => {
+      fetchNotifications();
       fetchUnreadCount();
-    }, 30000);
-    
+    }, 15000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -39,7 +44,28 @@ const NotificationBell = () => {
   const fetchNotifications = async () => {
     try {
       const response = await axios.get(`${API}/notifications/my-notifications`);
-      setNotifications(response.data);
+      const list = Array.isArray(response.data) ? response.data : [];
+      setNotifications(list);
+
+      // First load: remember what's already there, don't toast any of it.
+      if (seenIdsRef.current === null) {
+        seenIdsRef.current = new Set(list.map((n) => n.id));
+        return;
+      }
+
+      // Anything new + still unread since the last poll → pop a toast.
+      const fresh = list.filter((n) => n.id && !seenIdsRef.current.has(n.id) && !n.read);
+      fresh.forEach((n) => {
+        seenIdsRef.current.add(n.id);
+        toast(n.title || 'New notification', {
+          description: n.message,
+          action: n.link
+            ? { label: 'Open', onClick: () => navigate(n.link) }
+            : undefined,
+        });
+      });
+      // Keep the seen-set in sync with everything we've now rendered.
+      list.forEach((n) => n.id && seenIdsRef.current.add(n.id));
     } catch (error) {
       console.error('Failed to fetch notifications');
     }

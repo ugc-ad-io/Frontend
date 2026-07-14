@@ -276,6 +276,20 @@ function mapCampaignToForm(c) {
   return out;
 }
 
+/**
+ * Live length hint under a text field. Every field with an enforced limit shows
+ * one, so "Next" can never block on a rule the brand couldn't see.
+ * Counts trimmed length — the same thing the step validation checks.
+ */
+function FieldCount({ value, min = 0, max = null }) {
+  const len = String(value || '').trim().length;
+  const need = min - len;
+  if (need > 0) {
+    return <small className="brief-need">{need} more character{need === 1 ? '' : 's'} needed</small>;
+  }
+  return <small>{max ? `${len}/${max} characters` : `${len} characters`}</small>;
+}
+
 const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, onDraftSaved = null, duplicateId = null, resumeDraftId = null } = {}, ref) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -901,7 +915,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             <div className="step-fields">
             {step === 1 && subStep === 0 && (
               <>
-                <div className="form-group"><label>Campaign name *</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><small>{form.campaignName.length}/80 characters</small></div>
+                <div className="form-group"><label>Campaign name * (3-80 characters)</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><FieldCount value={form.campaignName} min={3} max={80} /></div>
                 <div className="form-group">
                   <label>Campaign Banner / Image</label>
                   <label className="pab-img-drop">
@@ -925,8 +939,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
                 <div className="form-row">
-                  <div className="form-group"><label>Product name *</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /></div>
-                  <div className="form-group"><label>Campaign hook *</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /></div>
+                  <div className="form-group"><label>Product name * (2+ characters)</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /><FieldCount value={form.productName} min={2} /></div>
+                  <div className="form-group"><label>Campaign hook * (10+ characters)</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /><FieldCount value={form.campaignHook} min={10} /></div>
                 </div>
               </>
             )}
@@ -935,21 +949,15 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 <div className="form-group">
                   <label>Product description * (20+ characters)</label>
                   <textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={4} />
-                  {/* Min length is enforced on Next — show how far off they are. */}
-                  {(() => {
-                    const left = 20 - form.productDescription.trim().length;
-                    return left > 0
-                      ? <small className="brief-need">{left} more character{left === 1 ? '' : 's'} needed</small>
-                      : <small>{form.productDescription.trim().length} characters</small>;
-                  })()}
+                  <FieldCount value={form.productDescription} min={20} />
                 </div>
-                <div className="form-group"><label>Key message *</label><input className="input-field" value={form.keyMessage} onChange={e => set('keyMessage', e.target.value)} placeholder="The one message every video should communicate" /></div>
+                <div className="form-group"><label>Key message * (10+ characters)</label><input className="input-field" value={form.keyMessage} onChange={e => set('keyMessage', e.target.value)} placeholder="The one message every video should communicate" /><FieldCount value={form.keyMessage} min={10} /></div>
               </>
             )}
             {step === 1 && subStep === 2 && (
               <>
                 <div className="form-group"><label>Campaign objective *</label><div className="brief-chip-grid">{OBJECTIVES.map(item => <ToggleChip key={item} active={form.objectives.includes(item)} onClick={() => set('objectives', [item])}>{item}</ToggleChip>)}</div></div>
-                <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><small>{form.targetAudience.length}/200 characters</small></div>
+                <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><FieldCount value={form.targetAudience} min={50} max={200} /></div>
                 <div className="brief-switch-row"><div><strong>Budget visibility</strong><p>Show or hide budget from creators. Hidden budgets are flagged to admin.</p></div><button type="button" className={form.budgetVisible ? 'is-on' : ''} onClick={() => set('budgetVisible', !form.budgetVisible)}>{form.budgetVisible ? 'Show' : 'Hide'}</button></div>
               </>
             )}
@@ -1006,7 +1014,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             {step === 4 && subStep === 1 && (
               <>
                 {form.noCompetitors && <div className="form-group"><label>Competitor list</label><input className="input-field" value={form.competitors} onChange={e => set('competitors', e.target.value)} /></div>}
-                <div className="form-group"><label>Specific things to avoid (200 max)</label><textarea className="textarea-field" rows={3} value={form.avoidText} onChange={e => set('avoidText', e.target.value.slice(0, 200))} /><small>{form.avoidText.length}/200</small></div>
+                <div className="form-group"><label>Specific things to avoid (200 max)</label><textarea className="textarea-field" rows={3} value={form.avoidText} onChange={e => set('avoidText', e.target.value.slice(0, 200))} /><FieldCount value={form.avoidText} max={200} /></div>
               </>
             )}
 

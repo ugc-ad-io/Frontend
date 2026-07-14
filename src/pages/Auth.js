@@ -1207,7 +1207,7 @@ export default function Auth() {
         .ap-promo-title {
           position: absolute; left: 12%; top: 3%; width: 40%; z-index: 2; white-space: nowrap;
           font-family: var(--font-head, inherit);
-          font-size: 18px; font-weight: 800; line-height: 1.2; margin: 0; color: #fff;
+          font-size: 16px; font-weight: 800; line-height: 1.2; margin: 0; color: #fff;
         }
         /* Sign-in only: nudge the heading a touch left. */
         .ap-shell.is-signin .ap-promo-title { left: 11%; }

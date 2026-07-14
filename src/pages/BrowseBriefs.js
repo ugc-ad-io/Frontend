@@ -9,6 +9,7 @@ import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import BriefDetailDrawer from '../components/BriefDetailDrawer';
 import normalizeBrief from '../utils/normalizeBrief';
+import { isOpenForBids } from '../utils/campaignCreators';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -107,7 +108,9 @@ export default function BrowseBriefs() {
     try {
       const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
       const all = res.data;
-      setAvailableCampaigns(all.filter((c) => c.status === 'active' && !c.selected_creator));
+      // Stay listed while the brief still has creator slots open — hiding it on the
+      // first hire meant a 5-creator brief could only ever fill one slot.
+      setAvailableCampaigns(all.filter(isOpenForBids));
       setMyBids(all.filter((c) => c.bids?.some((b) => b.creator_id === user?.id)));
     } catch {
       toast.error('Failed to load campaigns');

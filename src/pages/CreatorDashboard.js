@@ -49,6 +49,7 @@ import {
   Zap
 } from 'lucide-react';
 import './CreatorDashboard.css';
+import { isSelectedCreator, isOpenForBids } from '../utils/campaignCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -173,14 +174,17 @@ export default function CreatorDashboard() {
       // Only count campaigns this creator was actually selected for — some backends
       // ignore the creator_id query param and return every completed campaign.
       const completedCampaigns = (worksRes.data || []).filter(
-        (c) => String(c.selected_creator) === String(user.id)
+        (c) => isSelectedCreator(c, user.id)
       );
 
       setActiveCampaigns(allCampaigns.filter((campaign) =>
-        campaign.selected_creator === user.id &&
+        isSelectedCreator(campaign, user.id) &&
         (campaign.status === 'in_progress' || campaign.status === 'active')
       ));
-      setAvailableCampaigns(allCampaigns.filter((campaign) => campaign.status === 'active' && !campaign.selected_creator));
+      // Still browsable while the brief has slots left, but not if I'm already on it.
+      setAvailableCampaigns(allCampaigns.filter(
+        (campaign) => isOpenForBids(campaign) && !isSelectedCreator(campaign, user.id)
+      ));
       setMyBids(
         allCampaigns
           .filter((campaign) => campaign.bids?.some((bid) => bid.creator_id === user.id))

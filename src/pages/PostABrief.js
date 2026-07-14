@@ -135,6 +135,9 @@ const initialForm = {
   productShippingBy: '',
   draftDeliveryBy: '',
   revisions: 2,
+  // How many creators this brief wants to hire. The brief stays open for
+  // selection until this many are picked; each pick is charged at that moment.
+  creatorsWanted: 1,
   finalDeliveryBy: '',
   budgetMode: 'fixed',
   fixedBudget: '',
@@ -261,6 +264,9 @@ function mapCampaignToForm(c) {
   if (Array.isArray(c.tone_tags) && c.tone_tags.length) out.tones = c.tone_tags;
   const revisions = c.free_revisions ?? c.revision_limit;
   if (revisions !== undefined && revisions !== null) out.revisions = Number(revisions) || 0;
+  if (c.creators_wanted !== undefined && c.creators_wanted !== null) {
+    out.creatorsWanted = Math.max(1, Number(c.creators_wanted) || 1);
+  }
   const bMin = Number(c.budget_min || 0);
   const bMax = Number(c.per_video_budget || c.budget_max || 0);
   if (bMax > 0) {
@@ -716,6 +722,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       due_date: form.finalDeliveryBy,
       deadline: form.finalDeliveryBy,
       revision_limit: Number(form.revisions || 0),
+      creators_wanted: Math.max(1, Number(form.creatorsWanted) || 1),
       product_name: form.productName,
       category: form.category,
       product_category: form.category,
@@ -1064,6 +1071,21 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             )}
             {step === 7 && subStep === 2 && (
               <>
+                <div className="form-group">
+                  <label>How many creators do you want? *</label>
+                  <input
+                    className="input-field"
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={form.creatorsWanted}
+                    onChange={e => set('creatorsWanted', Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+                  />
+                  <small>
+                    You’re charged per creator, only when you select them — nothing is held
+                    when you post this brief. The brief stays open until all {Math.max(1, Number(form.creatorsWanted) || 1)} are picked.
+                  </small>
+                </div>
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
                 {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>

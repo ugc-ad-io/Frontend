@@ -7,6 +7,7 @@ import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, Refre
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { isSelectedCreator } from '../utils/campaignCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -69,7 +70,7 @@ export default function MyActiveWorkPage() {
   const fetchData = async () => {
     try {
       const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
-      setCampaigns(res.data.filter((c) => c.selected_creator === user.id));
+      setCampaigns(res.data.filter((c) => isSelectedCreator(c, user.id)));
     } catch {
       toast.error('Failed to load active work');
     } finally {

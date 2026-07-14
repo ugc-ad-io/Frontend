@@ -18,6 +18,7 @@ import CampaignDetails from './CampaignDetails';
 import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { selectedCreators, creatorsWanted, slotsLeft } from '../utils/campaignCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -121,7 +122,8 @@ export default function BrandCampaignDetail() {
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
   const [deal, setDeal] = useState(null);
-  const [creator, setCreator] = useState(null);
+  const [creator, setCreator] = useState(null);   // first pick — drives the existing panel
+  const [creators, setCreators] = useState([]);   // every creator hired on this brief
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');
   const [chatOpen, setChatOpen] = useState(false);
@@ -150,10 +152,19 @@ export default function BrandCampaignDetail() {
       const dRes = await axios.get(`${API}/deals/business`).catch(() => ({ data: [] }));
       const d = (dRes.data || []).find((x) => String(x.campaign?.id) === String(id));
       setDeal(d || null);
-      const creatorId = cRes.data?.selected_creator;
-      if (creatorId) {
-        const pRes = await axios.get(`${API}/profile/${creatorId}`).catch(() => null);
-        if (pRes) setCreator({ id: creatorId, ...pRes.data });
+      // A brief can hire several creators — load every one, not just the first.
+      const ids = selectedCreators(cRes.data);
+      if (ids.length) {
+        const profiles = await Promise.all(
+          ids.map((cid) => axios.get(`${API}/profile/${cid}`)
+            .then((r) => ({ id: cid, ...r.data }))
+            .catch(() => ({ id: cid })))
+        );
+        setCreators(profiles);
+        setCreator(profiles[0]);   // the existing single-creator panel / chat target
+      } else {
+        setCreators([]);
+        setCreator(null);
       }
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -530,12 +541,20 @@ export default function BrandCampaignDetail() {
                   <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>
                 </div>
               </>
-            ) : bids.length ? (
-              // Creators have applied but nobody's been picked — this page used to just
-              // say "No creator selected yet" with no way to see or accept the bids.
+            ) : null}
+
+            {/* A brief hires `creators_wanted` creators, so the bid list stays open
+                until every slot is filled — it used to vanish on the first pick,
+                which made a multi-creator brief impossible to fill. Creators
+                already hired are dropped from the list. */}
+            {openBids.length > 0 && openSlots > 0 && (
               <div className="bcd-bids">
-                <p className="bcd-bids-h">{bids.length} creator{bids.length === 1 ? '' : 's'} applied — pick one to start the deal.</p>
-                {bids.map((b) => (
+                <p className="bcd-bids-h">
+                  {hiredIds.length > 0
+                    ? `${hiredIds.length} of ${wanted} hired — ${openSlots} slot${openSlots === 1 ? '' : 's'} left. You're only charged when you pick someone.`
+                    : `${openBids.length} creator${openBids.length === 1 ? '' : 's'} applied — pick up to ${wanted}. You're only charged when you pick someone.`}
+                </p>
+                {openBids.map((b) => (
                   <div key={b.id || b.creator_id} className="bcd-bid">
                     <div className="bcd-bid-top">
                       <span className="bcd-cre-ava sm">{String(b.creator_nickname || 'C').replace('@', '').charAt(0).toUpperCase()}</span>
@@ -561,7 +580,11 @@ export default function BrandCampaignDetail() {
                   </div>
                 ))}
               </div>
-            ) : <p className="bcd-muted">No creator selected yet, and no bids have come in.</p>}
+            )}
+
+            {!creator && openBids.length === 0 && (
+              <p className="bcd-muted">No creator selected yet, and no bids have come in.</p>
+            )}
         </div>
         </div>
         </>

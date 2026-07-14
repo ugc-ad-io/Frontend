@@ -472,7 +472,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   };
 
   const isStepValid = (target = step) => {
-    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.productName.trim().length >= 2 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
+    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.productName.trim().length > 0 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
     if (target === 2) return form.deliverables.length > 0 && form.deliverables.every(item => item.type && item.quantity >= 1 && item.quantity <= 5 && item.aspectRatios.length > 0 && (!isVideoDeliverable(item.type) || item.duration));
     if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode) && (!CTA_INPUT[form.callToAction] || ctaLinkValid(form.callToAction, form.ctaLink));
     if (target === 4) return form.avoidText.length <= 200;
@@ -487,7 +487,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const stepFillPct = () => {
     const f = form;
     const all = [
-      f.campaignName.trim().length >= 3, !!f.category, f.productName.trim().length >= 2, f.campaignHook.trim().length >= 10,
+      f.campaignName.trim().length >= 3, !!f.category, f.productName.trim().length > 0, f.campaignHook.trim().length >= 10,
       f.productDescription.trim().length >= 20, f.keyMessage.trim().length >= 10,
       f.objectives.length > 0, f.targetAudience.trim().length >= 50,
       f.deliverables.length > 0 && f.deliverables.every(d => d.type), f.deliverables.every(d => d.aspectRatios.length > 0),
@@ -504,7 +504,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     const m = [];
     if (target === 1) {
       if (form.campaignName.trim().length < 3) m.push('Campaign name (min 3 chars)');
-      if (form.productName.trim().length < 2) m.push('Product name');
+      if (!form.productName.trim()) m.push('Product name');
       if (form.productDescription.trim().length < 20) m.push('Product description (min 20 chars)');
       if (form.campaignHook.trim().length < 10) m.push('Campaign hook (min 10 chars)');
       if (form.keyMessage.trim().length < 10) m.push('Key message (min 10 chars)');
@@ -946,7 +946,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
                 <div className="form-row">
-                  <div className="form-group"><label>Product name * (2+ characters)</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /><FieldCount value={form.productName} min={2} /></div>
+                  <div className="form-group"><label>Product name *</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /></div>
                   <div className="form-group"><label>Campaign hook * (10+ characters)</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /><FieldCount value={form.campaignHook} min={10} /></div>
                 </div>
               </>

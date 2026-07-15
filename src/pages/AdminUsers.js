@@ -696,7 +696,13 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
   const campaigns = Array.from(new Set(deals.map((d) => d.campaign_title).filter(Boolean)));
 
   const mask4 = (v) => (v ? `•••• ${String(v).slice(-4)}` : '—');
-  const avatarUrl = u.profile_photo ? (String(u.profile_photo).startsWith('http') ? u.profile_photo : `${BACKEND_URL}${u.profile_photo}`) : null;
+  // A stored photo can be a dead /uploads path or a localhost URL that 404s in prod —
+  // fall back to the initial instead of showing a broken-image icon.
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const rawPhoto = u.profile_photo;
+  const avatarUrl = (rawPhoto && !/localhost/i.test(rawPhoto))
+    ? (String(rawPhoto).startsWith('http') ? rawPhoto : `${BACKEND_URL}${rawPhoto}`)
+    : null;
 
   const tabs = brand
     ? [['profile', 'Profile'], ['campaigns', 'Campaigns'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Wallet']]

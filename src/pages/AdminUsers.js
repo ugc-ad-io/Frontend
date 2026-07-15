@@ -646,7 +646,7 @@ export default function AdminUsers({
         .aud-tabs button { padding: 7px 13px; border: none; background: none; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #64748b; cursor: pointer; }
         .aud-tabs button.active { background: #eef2ff; color: #5a4ff3; }
         .aud-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
-        .aud-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .aud-grid2 { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 520px; }
         .aud-card { border: 1.5px solid #e8ecff; border-radius: 12px; padding: 14px 16px; }
         .aud-card h4 { margin: 0 0 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: #5a4ff3; display: flex; align-items: center; gap: 6px; }
         .aud-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 0.85rem; border-bottom: 1px solid #f6f7fb; }

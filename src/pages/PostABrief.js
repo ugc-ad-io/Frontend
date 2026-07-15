@@ -13,7 +13,20 @@ const API = `${BACKEND_URL}/api`;
 const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
 const DRAFT_ID_KEY = 'ugcad-brand-brief-draft-id-v2';
 const COMMISSION_RATE = 0.20;
-const LISTING_FEE = 500;
+
+// Listing fee is tiered by the size of the brief. `deliverables` is the number of
+// deliverable rows (the wizard caps this at 5); `creators` is creators_wanted.
+//   1 creator,  1 deliverable      -> Rs. 500
+//   1 creator,  2–5 deliverables   -> Rs. 1,500
+//   2–10 creators                  -> Rs. 1,500
+//   11+ creators                   -> Rs. 3,000
+function listingFeeFor(creators, deliverables) {
+  const c = Math.max(1, Number(creators) || 1);
+  const d = Math.max(1, Number(deliverables) || 1);
+  if (c >= 11) return 3000;
+  if (c >= 2) return 1500;
+  return d <= 1 ? 500 : 1500;
+}
 
 const STEPS = [
   'Campaign Basics',
@@ -412,7 +425,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
   const budget = Number(form.budgetMode === 'fixed' ? form.fixedBudget : form.budgetMax) || 0;
   const commission = Math.round(budget * COMMISSION_RATE);
-  const totalDebit = budget + commission + LISTING_FEE;
+  const listingFee = listingFeeFor(form.creatorsWanted, form.deliverables.length);
+  const totalDebit = budget + commission + listingFee;
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
   const draftDeliverySuggestion = useMemo(() => addDays(form.productShippingBy, 7), [form.productShippingBy]);
   const pricingLifts = [
@@ -1089,7 +1103,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
                 {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>
-                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Listing fee <strong>Rs. {LISTING_FEE.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p></div>
+                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Listing fee <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p></div>
               </>
             )}
 
@@ -1102,7 +1116,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
                 { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
                 { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
-                { title: 'Timeline & Budget', rows: [['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${LISTING_FEE.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+                { title: 'Timeline & Budget', rows: [['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
               ];
               const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
               const active = reviewSections[activeIdx];

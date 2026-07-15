@@ -732,54 +732,15 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                 {brand ? (
                   <>
                     <Row label="Business name" value={businessName(u)} />
-                    <Row label="Category" value={category(u)} />
                     <Row label="Website" value={p(u, 'website') || '—'} />
-                    <Row label="About" value={p(u, 'bio', 'about', 'description') || '—'} />
                   </>
                 ) : (
-                  <>
-                    <Row label="Handle" value={handleOf(u)} />
-                    <Row label="Category" value={category(u)} />
-                    <Row label="Level" value="New" />
-                    <Row label="Bio" value={p(u, 'bio', 'about') || '—'} />
-                    <Row label="Followers" value={p(u, 'followers', 'follower_count') || '—'} />
-                  </>
+                  <Row label="Handle" value={handleOf(u)} />
                 )}
+                <Row label="Email" value={u.email} />
                 <Row label="Joined" value={dateShort(u.created_at || u.createdAt)} />
                 {/* Flags moved off the table into here. */}
                 <Row label="Flags / strikes" value={strikes(u).length ? `${strikes(u).length}` : '0'} />
-              </div>
-
-              {/* Private data */}
-              <div className="aud-card">
-                <h4><FileText size={14} /> Private Data {brand ? '(GST / KYC)' : '(KYC / Bank)'}</h4>
-                <Row label="Real / legal name" value={brand ? legalName(u) : realName(u)} />
-                <Row label="Email" value={u.email} />
-                <Row label="Phone" value={phone(u)} />
-                {brand ? (
-                  <Row label="GSTIN" value={gstin(u)} />
-                ) : (
-                  <>
-                    <Row label="PAN" value={revealBank ? (pan || '—') : mask4(pan)} reveal={pan && (() => setRevealBank((v) => !v))} revealed={revealBank} />
-                    <Row label="Aadhaar" value={revealBank ? (aadhaar || '—') : mask4(aadhaar)} />
-                  </>
-                )}
-                <Row
-                  label="Bank account"
-                  value={revealBank ? (acct || '—') : mask4(acct)}
-                  reveal={acct ? (() => setRevealBank((v) => !v)) : null}
-                  revealed={revealBank}
-                />
-                <Row label="IFSC" value={ifsc || '—'} />
-                {docs.length > 0 && (
-                  <div style={{ marginTop: 10 }}>
-                    {docs.map(([label, url]) => (
-                      <a key={label} className="aud-doc" href={String(url).startsWith('http') ? url : `${BACKEND_URL}${url}`} target="_blank" rel="noreferrer">
-                        <FileText size={13} /> {label}
-                      </a>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           )}

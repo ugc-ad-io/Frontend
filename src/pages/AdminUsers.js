@@ -712,7 +712,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
     <div className="aud-overlay" onClick={onClose}>
       <div className="aud-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="aud-head">
-          <div className="aud-avatar">{avatarUrl ? <img src={avatarUrl} alt="" /> : (brand ? businessName(u) : (u.nickname || u.email || '?')).slice(0, 1).toUpperCase()}</div>
+          <div className="aud-avatar">{avatarUrl && !avatarBroken ? <img src={avatarUrl} alt="" onError={() => setAvatarBroken(true)} /> : (brand ? businessName(u) : (u.nickname || u.email || '?')).slice(0, 1).toUpperCase()}</div>
           <div>
             <h2>
               {brand ? businessName(u) : (u.nickname || realName(u))}

@@ -28,6 +28,9 @@ const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL
 const isVideo = (u) => /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(String(u || '').split('?')[0]);
 const fmtDur = (s) => { if (!s || !isFinite(s)) return ''; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
 const fileExt = (f) => (f ? (String(f).split('?')[0].split('.').pop() || '').toUpperCase() : '');
+// Levels are stored as codes like "l1"/"l2"; show them capitalised ("L1"/"L2").
+// Word labels ("New", "Elite", "Verified") are left as-is.
+const fmtLevel = (v) => String(v || '').replace(/^l(\d+)$/i, (_, n) => `L${n}`);
 const WS_STATUS = {
   approved: { cls: 'ok', label: 'Approved', icon: CheckCircle2 },
   pending_review: { cls: 'pending', label: 'Pending Review', icon: Hourglass },
@@ -540,7 +543,7 @@ export default function BrandCampaignDetail() {
                 <div className="bcd-kv-row">
                   <div className="bcd-kv"><label>Languages</label><strong>{Array.isArray(cp.languages) && cp.languages.length ? cp.languages.slice(0, 2).join(', ') : safeText(cp.languages, 'English')}</strong></div>
                   <div className="bcd-kv"><label>Location</label><strong>{safeText(cp.city || cp.location_region || creator.city_tier, 'India')}</strong></div>
-                  <div className="bcd-kv"><label>Level</label><strong>{safeText(creator.level_label || creator.level, 'New')}</strong></div>
+                  <div className="bcd-kv"><label>Level</label><strong>{fmtLevel(safeText(creator.level_label || creator.level, 'New'))}</strong></div>
                 </div>
                 <div className="bcd-kv-row">
                   <div className="bcd-kv"><label>Deliverables</label><strong>{safeText(creator.deliverables_completed, '0')} done</strong></div>

@@ -42,6 +42,7 @@ const ShipmentTracking = lazy(() => import('./pages/ShipmentTracking'));
 const BrowseBriefs = lazy(() => import('./pages/BrowseBriefs'));
 const SavedBriefs = lazy(() => import('./pages/SavedBriefs'));
 const MyDealsPage = lazy(() => import('./pages/MyDealsPage'));
+const DisputeDetailPage = lazy(() => import('./pages/DisputeDetailPage'));
 const MyBidsPage = lazy(() => import('./pages/MyBidsPage'));
 const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
@@ -329,6 +330,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
                   <MyDealsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/disputes/:id"
+              element={
+                <ProtectedRoute allowedRoles={['creator', 'business']}>
+                  <DisputeDetailPage />
                 </ProtectedRoute>
               }
             />

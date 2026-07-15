@@ -51,6 +51,17 @@ const SUBSECTIONS = {
 };
 const subsFor = (s) => SUBSECTIONS[s] || [STEPS[s - 1]];
 
+// What the brand is promoting. Only a PHYSICAL product needs shipping — everything
+// else skips the address/shipping/receipt steps of the deal entirely.
+const PRODUCT_TYPES = [
+  { value: 'physical', label: 'Physical product', hint: 'You ship an item to the creator', ships: true },
+  { value: 'digital',  label: 'Digital / App',    hint: 'App, software or download — nothing to ship' },
+  { value: 'service',  label: 'Service',          hint: 'A service, subscription or experience' },
+  { value: 'promo',    label: 'Promo / mention',  hint: 'Just a code, link or brand mention' },
+  { value: 'other',    label: 'Other',            hint: 'Describe it yourself' },
+];
+const typeNeedsShipping = (t) => t === 'physical';
+
 const CATEGORIES = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Food', 'Gaming', 'Lifestyle', 'Home Decor', 'Wellness'];
 const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial', 'Tutorial', 'Unboxing', 'Comparison', 'Sale promotion', 'Customer education', 'Other'];
 const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)'];
@@ -108,6 +119,8 @@ const initialForm = {
   image: '',
   brandName: '',
   category: '',
+  productType: 'physical',     // physical | digital | service | promo | other
+  customProductType: '',       // free text when productType === 'other'
   productName: '',
   productDescription: '',
   campaignHook: '',
@@ -194,6 +207,8 @@ function mapCampaignToForm(c) {
   put('campaignName', c.title);
   put('brandName', c.brand_name);
   put('category', c.product_category || c.category);
+  if (PRODUCT_TYPES.some(p => p.value === c.product_type)) put('productType', c.product_type);
+  if (c.product_type_detail) put('customProductType', c.product_type_detail);
   put('productName', c.product_name);
   put('productDescription', c.product_description);
   put('campaignHook', c.campaign_hook);
@@ -428,6 +443,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const listingFee = listingFeeFor(form.creatorsWanted, form.deliverables.length);
   const totalDebit = budget + commission + listingFee;
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
+  // Only a physical product ships. Everything else skips shipping date + address + receipt.
+  const needsShipping = typeNeedsShipping(form.productType);
   const draftDeliverySuggestion = useMemo(() => addDays(form.productShippingBy, 7), [form.productShippingBy]);
   const pricingLifts = [
     form.rightsDuration === 'Perpetual' ? 'Perpetual rights: +40% suggested' : '',
@@ -486,13 +503,13 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   };
 
   const isStepValid = (target = step) => {
-    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.productName.trim().length > 0 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
+    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && (form.productType !== 'other' || form.customProductType.trim().length > 0) && form.productName.trim().length > 0 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
     if (target === 2) return form.deliverables.length > 0 && form.deliverables.every(item => item.type && item.quantity >= 1 && item.quantity <= 5 && item.aspectRatios.length > 0 && (!isVideoDeliverable(item.type) || item.duration));
     if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode) && (!CTA_INPUT[form.callToAction] || ctaLinkValid(form.callToAction, form.ctaLink));
     if (target === 4) return form.avoidText.length <= 200;
     if (target === 5) return form.tones.length > 0 && form.pacing;
     if (target === 6) return form.platforms.length > 0 && form.rightsDuration && form.exclusivity && form.modificationRights;
-    if (target === 7) return form.productShippingBy && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0 && form.creatorLevel && form.qualityTier;
+    if (target === 7) return (!needsShipping || form.productShippingBy) && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0 && form.creatorLevel && form.qualityTier;
     return true;
   };
 
@@ -508,7 +525,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       !f.productVisible || !!f.visibilitySeconds, !f.verbalMention || !!f.productNames, !!f.callToAction,
       f.tones.length > 0, !!f.pacing,
       f.platforms.length > 0, !!f.rightsDuration, !!f.exclusivity, !!f.modificationRights,
-      !!f.creatorLevel, !!f.qualityTier, !!f.productShippingBy, !!f.draftDeliveryBy, !!f.finalDeliveryBy, budget > 0,
+      !!f.creatorLevel, !!f.qualityTier, (!typeNeedsShipping(f.productType) || !!f.productShippingBy), !!f.draftDeliveryBy, !!f.finalDeliveryBy, budget > 0,
     ];
     return Math.round((all.filter(Boolean).length / all.length) * 100);
   };
@@ -518,7 +535,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     const m = [];
     if (target === 1) {
       if (form.campaignName.trim().length < 3) m.push('Campaign name (min 3 chars)');
-      if (!form.productName.trim()) m.push('Product name');
+      if (form.productType === 'other' && !form.customProductType.trim()) m.push('Describe your product type');
+      if (!form.productName.trim()) m.push(needsShipping ? 'Product name' : 'What you’re promoting (name)');
       if (form.productDescription.trim().length < 20) m.push('Product description (min 20 chars)');
       if (form.campaignHook.trim().length < 10) m.push('Campaign hook (min 10 chars)');
       if (form.keyMessage.trim().length < 10) m.push('Key message (min 10 chars)');
@@ -543,7 +561,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       if (!form.exclusivity) m.push('Exclusivity');
       if (!form.modificationRights) m.push('Modification rights');
     } else if (target === 7) {
-      if (!form.productShippingBy) m.push('Product shipping date');
+      if (needsShipping && !form.productShippingBy) m.push('Product shipping date');
       if (!form.draftDeliveryBy) m.push('Draft delivery date');
       if (!form.finalDeliveryBy) m.push('Final delivery date');
       if (!(budget > 0)) m.push('Budget');
@@ -715,7 +733,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       `Style guidance: tones ${form.tones.join(', ')}; pacing ${form.pacing}; music ${form.musicPreference}; references ${form.referenceVideos.filter(Boolean).join(', ') || 'none'}`,
       `Usage rights: platforms ${form.platforms.join(', ')}; duration ${form.rightsDuration}; exclusivity ${form.exclusivity}; whitelisting ${form.whitelisting ? 'yes' : 'no'}; modification ${form.modificationRights}`,
       `Creator targeting: level ${form.creatorLevel}; quality ${form.qualityTier}; gender ${form.genderPreference}; city ${form.cityFilter}; niches ${form.nicheTags.join(', ') || 'none'}`,
-      `Timeline: ship by ${form.productShippingBy}; draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
+      `Timeline: ${needsShipping ? `ship by ${form.productShippingBy}; ` : ''}draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
       `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
       `Commission: platform 20%, total wallet debit Rs. ${totalDebit}, creator receives Rs. ${budget} pre-tax`
     ].join('\n');
@@ -730,9 +748,12 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       budget_min: form.budgetMode === 'fixed' ? budget : Number(form.budgetMin || 0),
       budget_max: budget,
       objectives: form.objectives,
-      requires_shipment: true,
-      shipment_required: true,
-      shipment_option: 'yes',
+      // Only a physical product ships — everything else skips address/shipping/receipt.
+      requires_shipment: needsShipping,
+      shipment_required: needsShipping,
+      shipment_option: needsShipping ? 'yes' : 'no',
+      product_type: form.productType,
+      product_type_detail: form.productType === 'other' ? form.customProductType.trim() : '',
       due_date: form.finalDeliveryBy,
       deadline: form.finalDeliveryBy,
       revision_limit: Number(form.revisions || 0),
@@ -801,7 +822,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       exclusivity: form.exclusivity,
       whitelisting: form.whitelisting,
       modification_rights: form.modificationRights,
-      product_shipping_by: form.productShippingBy,
+      product_shipping_by: needsShipping ? form.productShippingBy : '',
       draft_delivery_by: form.draftDeliveryBy,
       final_delivery_by: form.finalDeliveryBy,
     };
@@ -937,6 +958,35 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             {step === 1 && subStep === 0 && (
               <>
                 <div className="form-group"><label>Campaign name * (3-80 characters)</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><FieldCount value={form.campaignName} min={3} max={80} /></div>
+
+                <div className="form-group">
+                  <label>What are you promoting? *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginTop: 4 }}>
+                    {PRODUCT_TYPES.map(pt => {
+                      const on = form.productType === pt.value;
+                      return (
+                        <button type="button" key={pt.value} onClick={() => set('productType', pt.value)}
+                          style={{ textAlign: 'left', padding: '11px 13px', borderRadius: 12, cursor: 'pointer',
+                            border: on ? '1.5px solid #07074e' : '1.5px solid #e5e8fb',
+                            background: on ? '#f2f3ff' : '#fff', color: '#15163a', fontFamily: 'inherit' }}>
+                          <strong style={{ display: 'block', fontSize: 13.5 }}>{pt.label}</strong>
+                          <small style={{ color: '#8a90a6', fontSize: 11.5 }}>{pt.hint}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.productType === 'other' && (
+                    <input className="input-field" style={{ marginTop: 10 }}
+                      placeholder="Describe what you're promoting (e.g. Podcast, Event, NGO cause)"
+                      value={form.customProductType} onChange={e => set('customProductType', e.target.value)} />
+                  )}
+                  {!needsShipping && (
+                    <small style={{ display: 'block', marginTop: 8, color: '#0891b2', fontWeight: 600, fontSize: 12 }}>
+                      ℹ No physical product — shipping &amp; delivery-address steps are skipped.
+                    </small>
+                  )}
+                </div>
+
                 <div className="form-group">
                   <label>Campaign Banner / Image</label>
                   <label className="pab-img-drop">
@@ -960,7 +1010,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
                 <div className="form-row">
-                  <div className="form-group"><label>Product name *</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /></div>
+                  <div className="form-group"><label>{needsShipping ? 'Product name *' : 'What are you promoting? (name) *'}</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder={needsShipping ? 'Glow Serum 30ml' : 'e.g. FitTrack App, City Cafe, Summer Sale'} /></div>
                   <div className="form-group"><label>Campaign hook * (10+ characters)</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /><FieldCount value={form.campaignHook} min={10} /></div>
                 </div>
               </>
@@ -1079,7 +1129,12 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             )}
             {step === 7 && subStep === 1 && (
               <>
-                <div className="form-row"><div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today — earliest is tomorrow.</small></div><div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.'}</small></div></div>
+                <div className="form-row">
+                  {needsShipping && (
+                    <div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today — earliest is tomorrow.</small></div>
+                  )}
+                  <div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship — the creator starts as soon as they accept.'}</small></div>
+                </div>
                 <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 creator, Rs. 200 platform)</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
               </>
             )}
@@ -1109,14 +1164,14 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
             {step === 8 && (() => {
               const reviewSections = [
-                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
+                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
                 { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`]) },
                 { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ...(CTA_INPUT[form.callToAction] ? [[CTA_INPUT[form.callToAction].label, form.ctaLink || 'None']] : []), ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
                 { title: 'Must-Avoid Checklist', rows: [['Restrictions', avoidRules]] },
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
                 { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
                 { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
-                { title: 'Timeline & Budget', rows: [['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
               ];
               const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
               const active = reviewSections[activeIdx];

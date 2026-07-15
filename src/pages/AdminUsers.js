@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import {
   Users, Search, X, Eye, Download, Send, Ban, ShieldAlert, AlertTriangle,
-  ArrowUpCircle, ArrowDownCircle, Wallet, Percent, Crown, MessageSquare,
+  ArrowUpCircle, ArrowDownCircle, Wallet, Percent, MessageSquare,
   FileText, CreditCard, CalendarClock, Flag, Trash2, ShieldCheck,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
@@ -907,7 +907,6 @@ const ACTION_META = {
   payout: { title: 'Adjust Payout Schedule', kind: 'payout', btn: 'Save', icon: CalendarClock },
   promote: { title: 'Promote Level', kind: 'confirm', btn: 'Promote', icon: ArrowUpCircle, msg: 'Promote this creator one level? (New → Verified → L1 → L2 → Elite. Shown on their public profile.)' },
   demote: { title: 'Demote Level', kind: 'confirm', btn: 'Demote', icon: ArrowDownCircle, msg: 'Demote this creator one level?' },
-  convertpro: { title: 'Convert to Pro', kind: 'confirm', btn: 'Convert', icon: Crown, msg: 'Upgrade this brand to a Pro account? (V2 feature.)' },
   announce: { title: 'Send Announcement', label: 'Announcement', kind: 'text', btn: 'Send to selected', icon: Send },
   delete: { title: 'Delete User', kind: 'confirm', btn: 'Delete Permanently', icon: Trash2, msg: 'This permanently deletes the user and all their data. This cannot be undone.' },
   unsuspend: { title: 'Lift Suspension', kind: 'confirm', btn: 'Unsuspend', icon: ShieldCheck, msg: 'Lift this user’s suspension and restore their account access?' },
@@ -1032,9 +1031,6 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
       case 'promote':
       case 'demote':
         ok = await adminPost('/admin/user/level', { user_id: u.id, direction: action.type }, `Creator ${action.type}d`);
-        break;
-      case 'convertpro':
-        ok = await adminPost('/admin/user/convert-pro', { user_id: u.id }, 'Converted to Pro');
         break;
       case 'delete': {
         // Supports both single (action.user) and bulk (action.users) delete.

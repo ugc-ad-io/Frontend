@@ -856,15 +856,10 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
           {caps.warnSuspend && (u.suspended || u.status === 'suspended') && <button className="aud-action-btn" onClick={() => onAction('unsuspend')}><ShieldCheck size={14} /> Unsuspend</button>}
           {caps.warnSuspend && <button className="aud-action-btn danger" onClick={() => onAction('suspend')}><ShieldAlert size={14} /> Suspend</button>}
           {caps.ban && <button className="aud-action-btn danger" onClick={onBan}><Ban size={14} /> {banned ? 'Unban' : 'Ban'}</button>}
-          {!brand && <>
-            <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote Level</button>
-            <button className="aud-action-btn" onClick={() => onAction('demote')}><ArrowDownCircle size={14} /> Demote Level</button>
-            <button className="aud-action-btn" onClick={() => onAction('payout')}><CalendarClock size={14} /> Payout Schedule</button>
-          </>}
           {brand && caps.financialPolicy && <>
             <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
           </>}
-          {caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust {brand ? 'Wallet' : 'Payout'}</button>}
+          {brand && caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust Wallet</button>}
           <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
           {caps.ban && <button className="aud-action-btn danger" onClick={() => onAction('delete')}><Trash2 size={14} /> Delete</button>}
         </div>

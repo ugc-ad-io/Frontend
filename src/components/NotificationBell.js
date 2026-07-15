@@ -7,6 +7,26 @@ import { useNavigate } from 'react-router-dom';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+// Several notifications were stored (and are still emitted) with links to routes that
+// don't exist, so clicking them called navigate() on a dead path and nothing happened.
+// This rewrites the known-bad/legacy paths to the real ones — and because it runs on
+// read, it fixes notifications ALREADY sitting in the DB, not just new ones.
+const LEGACY_LINK_MAP = {
+  '/deals': '/my-deals',
+  '/payouts': '/withdrawal',
+  '/creator-dashboard': '/dashboard/creator',
+  '/dashboard/creator/inbox': '/messages',
+  '/dashboard/business/deals': '/dashboard/business/all-campaigns',
+  '/admin/match-queue': '/dashboard/admin/campaigns',
+  '/admin/campaigns': '/dashboard/admin/campaigns',
+  '/dashboard/admin/flagged-messages': '/dashboard/admin/flagged',
+};
+const resolveNotifLink = (link) => {
+  if (!link) return null;
+  const [path, rest] = String(link).split(/(?=[?#])/);
+  return (LEGACY_LINK_MAP[path] || path) + (rest || '');
+};
+
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);

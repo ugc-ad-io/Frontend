@@ -122,8 +122,9 @@ const NotificationBell = () => {
 
   const handleNotificationClick = (notification) => {
     handleMarkAsRead(notification.id);
-    if (notification.link) {
-      navigate(notification.link);
+    const target = resolveNotifLink(notification.link);
+    if (target) {
+      navigate(target);
       setShowDropdown(false);
     }
   };

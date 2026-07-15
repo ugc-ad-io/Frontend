@@ -5,7 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   ArrowLeft, ChevronRight, Check, FileText, Send, MessageSquare, User, CheckCircle, Download,
-  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy, Truck,
+  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy, Truck, Star,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PageModal from '../components/PageModal';
@@ -14,6 +14,7 @@ import PostABrief from './PostABrief';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import RevisionRequestModal from '../components/RevisionRequestModal';
+import ReviewModal from '../components/ReviewModal';
 import CampaignDetails from './CampaignDetails';
 import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
@@ -145,6 +146,8 @@ export default function BrandCampaignDetail() {
   };
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [selecting, setSelecting] = useState(null); // creator_id being accepted
+  const [myReview, setMyReview] = useState(null);    // this brand's review of the creator (or null)
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -165,9 +168,20 @@ export default function BrandCampaignDetail() {
         );
         setCreators(profiles);
         setCreator(profiles[0]);   // the existing single-creator panel / chat target
+        // Have I already reviewed this creator for this campaign? Drives the
+        // "Add a review" vs "Review submitted" state on a completed deal.
+        const firstId = profiles[0]?.id;
+        if (firstId) {
+          const revs = await axios.get(`${API}/reviews/creator/${firstId}`).then((r) => r.data).catch(() => []);
+          const mine = (Array.isArray(revs) ? revs : []).find(
+            (rv) => String(rv.campaign_id) === String(id) && String(rv.reviewer_id) === String(user?.id)
+          );
+          setMyReview(mine || null);
+        }
       } else {
         setCreators([]);
         setCreator(null);
+        setMyReview(null);
       }
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -292,6 +306,25 @@ export default function BrandCampaignDetail() {
 
   const ws = campaign.work_submission;
   const wsStatus = ws ? (ws.status || (campaign.status === 'completed' ? 'approved' : 'pending_review')) : null;
+  // The deal is done however it got there — brand approval OR a dispute ruling —
+  // so the review CTA doesn't depend on the approve button being the last step.
+  const dealCompleted = wsStatus === 'approved'
+    || campaign.status === 'completed'
+    || dealStateIndex(deal?.current_state) >= 6;
+
+  const submitReview = async ({ rating, review }) => {
+    const creatorId = creator?.id || deal?.creator?.id;
+    if (!creatorId) { toast.error('No creator to review'); return; }
+    try {
+      await axios.post(`${API}/reviews`, { campaign_id: id, creator_id: creatorId, rating, review });
+      setMyReview({ campaign_id: id, creator_id: creatorId, reviewer_id: user?.id, rating, review });
+      setReviewOpen(false);
+      toast.success('Review submitted — thanks for the feedback!');
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Could not submit your review');
+    }
+  };
+
   const wsFiles = ws?.work_files || [];
   const wsFirst = wsFiles[0];
   const wsMedia = assetUrl(wsFirst);
@@ -410,6 +443,12 @@ export default function BrandCampaignDetail() {
 
                       {wsStatus === 'approved' && (
                         <button type="button" className="bwr-btn primary" onClick={downloadWork}><Download size={16} /> Download</button>
+                      )}
+                      {/* Review CTA — shows once the deal is complete (approval OR a
+                          dispute ruling). Reviewed already? Show it's done instead. */}
+                      {dealCompleted && (myReview
+                        ? <span className="bwr-reviewed"><Star size={15} fill="#f5b301" color="#f5b301" /> You rated {myReview.rating}★</span>
+                        : <button type="button" className="bwr-btn" onClick={() => setReviewOpen(true)}><Star size={16} /> Add a review</button>
                       )}
                       {wsStatus === 'pending_review' && (<>
                         <button type="button" className="bwr-btn approve" onClick={approveWork}><CheckCircle2 size={16} /> Approve</button>
@@ -554,6 +593,12 @@ export default function BrandCampaignDetail() {
                 <div className="bcd-cre-actions">
                   <button className="bcd-cta" onClick={() => creator.id && navigate(`/dashboard/business/creator/${creator.id}`)}><User size={15} /> View Creator Profile</button>
                   <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>
+                  {/* Review CTA lives here too so it's reachable even when the deal
+                      completed via a dispute (no work-submission card to hang it on). */}
+                  {dealCompleted && (myReview
+                    ? <span className="bcd-reviewed"><Star size={15} fill="#f5b301" color="#f5b301" /> You rated {myReview.rating}★</span>
+                    : <button className="bcd-cta" onClick={() => setReviewOpen(true)}><Star size={15} /> Add a review</button>
+                  )}
                 </div>
               </>
             ) : null}
@@ -630,6 +675,15 @@ export default function BrandCampaignDetail() {
           submitting={revSubmitting}
           freeRemaining={deal?.revision_tracker?.free_revisions_remaining}
           nextFee={deal?.revision_tracker?.next_revision_fee}
+        />
+      )}
+
+      {reviewOpen && (
+        <ReviewModal
+          title="Rate this creator"
+          subtitle={handle ? `How was working with ${handle.startsWith('@') ? handle : `@${handle}`}?` : undefined}
+          onSubmit={submitReview}
+          onClose={() => setReviewOpen(false)}
         />
       )}
 
@@ -772,6 +826,7 @@ export default function BrandCampaignDetail() {
         .bcd-work-tile{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#0b1020;cursor:pointer}
         .bcd-work-tile video,.bcd-work-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         .bcd-work-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-items:center;color:#5b6bff;pointer-events:none}
+        .bcd-reviewed,.bwr-reviewed{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#15803d;padding:6px 2px}
         .bcd-cre-actions{display:flex;gap:10px;margin-top:18px}
         .bcd-cre-actions .bcd-cta{margin-top:0}
         @media (max-width:520px){.bcd-kv-row{grid-template-columns:1fr 1fr}.bcd-cre-actions{flex-direction:column}}

@@ -863,7 +863,6 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
           </>}
           {brand && caps.financialPolicy && <>
             <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
-            <button className="aud-action-btn" onClick={() => onAction('convertpro')}><Crown size={14} /> Convert to Pro</button>
           </>}
           {caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust {brand ? 'Wallet' : 'Payout'}</button>}
           <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>

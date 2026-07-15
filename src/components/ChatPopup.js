@@ -22,6 +22,31 @@ function pickMedia(arr) {
   return '';
 }
 
+const CARD_LABELS = {
+  private_invitation: 'Private Invitation', custom_offer: 'Custom Offer',
+  counter_offer: 'Counter Offer', revision_request: 'Revision Request', milestone_update: 'Milestone Update',
+};
+const CARD_HIDE = new Set(['response_deadline', 'expires_at', 'round', 'notify_admin', 'diff_vs_original']);
+
+// Compact, read-only summary of a structured offer/invitation card so BOTH parties
+// see the same deal context in the popup. Full accept/decline lives in the deal room.
+function ActionCardMini({ card }) {
+  const f = card.fields || {};
+  const status = card.status || card.card_status;
+  const rows = Object.entries(f).filter(([k, v]) => v != null && v !== '' && !CARD_HIDE.has(k)).slice(0, 6);
+  return (
+    <div className="cpop-card">
+      <div className="cpop-card-h">
+        <span>{CARD_LABELS[card.type] || String(card.type || 'Card').replace(/_/g, ' ')}</span>
+        {status && <span className={`cpop-card-badge ${status}`}>{status}</span>}
+      </div>
+      {rows.map(([k, v]) => (
+        <div key={k} className="cpop-card-row"><label>{k.replace(/_/g, ' ')}</label><span>{String(v)}</span></div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Floating in-page chat popup. Opens a conversation with `user` (the creator)
  * without leaving the current page. `user` = { id, name, photo }.
@@ -83,7 +108,11 @@ export default function ChatPopup({ user, onClose }) {
         {messages.length === 0 ? (
           <div className="cpop-empty">Say hello to start the conversation 👋</div>
         ) : (
-          messages.filter((m) => m.item_type !== 'action_card').map((m, i) => {
+          messages.map((m, i) => {
+            // Show offer / invitation / counter cards too — the brand's popup used to
+            // filter these out, so it never saw the booking request, price proposal or
+            // acceptance that the creator's chat showed.
+            if (m.item_type === 'action_card') return <ActionCardMini key={m.id || i} card={m} />;
             const sys = m.system_message || m.sender_type === 'system' || m.sender_id === 'system';
             if (sys) return <div key={m.id || i} className="cpop-sys">{m.message}</div>;
             const own = String(m.sender_id) === String(me?.id);
@@ -157,6 +186,15 @@ export default function ChatPopup({ user, onClose }) {
         .cpop-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
         .cpop-empty{margin:auto;color:#9296ba;font-size:13.5px;text-align:center}
         .cpop-sys{align-self:center;background:#eef0f6;color:#585c7e;font-size:11.5px;padding:5px 12px;border-radius:14px}
+        .cpop-card{align-self:stretch;background:#f7f8ff;border:1px solid #e5e8fb;border-radius:12px;padding:12px 14px;margin:2px 0}
+        .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#15163a;font-size:12.5px;margin-bottom:8px}
+        .cpop-card-badge{text-transform:capitalize;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f6;color:#585c7e}
+        .cpop-card-badge.accepted{background:#ecfdf3;color:#067647}
+        .cpop-card-badge.open,.cpop-card-badge.pending{background:#fff8ed;color:#b45309}
+        .cpop-card-badge.rejected,.cpop-card-badge.declined{background:#fef3f2;color:#b42318}
+        .cpop-card-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0}
+        .cpop-card-row label{color:#8a90a6;text-transform:capitalize}
+        .cpop-card-row span{color:#1a202c;font-weight:600;text-align:right;word-break:break-word}
         .cpop-row{display:flex}
         .cpop-row.own{justify-content:flex-end}
         .cpop-bub{max-width:78%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;background:#fff;border:1px solid #eef0f6;color:#15163a}

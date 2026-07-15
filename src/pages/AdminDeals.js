@@ -840,7 +840,10 @@ export default function AdminDeals() {
         .adl-empty p { margin: 0; font-weight: 600; color: #111827; }
         .adl-empty span { font-size: 0.85rem; color: #98a1ad; }
 
-        .adl-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 40; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        /* Above the drawer (z-index 50) — these dialogs are opened FROM the drawer
+           (Release payment / Refund / Raise dispute), so at z-index 40 they rendered
+           behind it. Must sit on top. */
+        .adl-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .adl-dispute { width: 460px; max-width: 100%; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(16,24,40,0.28); z-index: 60; padding: 22px; display: flex; flex-direction: column; gap: 14px; animation: adlPop 140ms ease-out; }
         @keyframes adlPop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
         .adl-dispute-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

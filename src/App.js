@@ -538,7 +538,7 @@ function App() {
             <Route
               path="/dashboard/admin/users"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminUsers />
                 </ProtectedRoute>
               }
@@ -546,7 +546,7 @@ function App() {
             <Route
               path="/dashboard/admin/kyc"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminKYC />
                 </ProtectedRoute>
               }
@@ -554,7 +554,7 @@ function App() {
             <Route
               path="/dashboard/admin/gst"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminGST />
                 </ProtectedRoute>
               }

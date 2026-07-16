@@ -10,7 +10,7 @@ import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Ins
   Aperture, VolumeX, Lightbulb, Square, Image as ImageIcon, Users, UsersRound, PawPrint, Globe, Info,
   PartyPopper, Upload, Music2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CONTENT_CATEGORIES, resolveCategory } from '../constants/contentCategories';
+import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -187,6 +187,22 @@ const ADDONS = [
   { key: 'newAccount', title: 'Create a new account for a brand', note: 'For brands that need a fresh account for campaigns.', yes: 'Yes, I can set up an account' },
 ];
 
+// The niche a creator makes content ABOUT (what) — separate from the content STYLE
+// (how, in CONTENT_CATEGORIES). Same 10 the brand signup uses, so both sides match.
+const NICHE_CATEGORIES = [
+  { value: 'fashion', label: 'Fashion & Apparel' },
+  { value: 'beauty', label: 'Beauty & Cosmetics' },
+  { value: 'tech', label: 'Technology & Gadgets' },
+  { value: 'food', label: 'Food & Beverage' },
+  { value: 'fitness', label: 'Health & Fitness' },
+  { value: 'home', label: 'Home & Lifestyle' },
+  { value: 'travel', label: 'Travel & Tourism' },
+  { value: 'education', label: 'Education' },
+  { value: 'entertainment', label: 'Entertainment' },
+  { value: 'other', label: 'Other' },
+];
+const MAX_CONTENT_PICKS = 5;
+
 // Required fields per step — every one must be filled to proceed, and each filled
 // field nudges the completion ring up. (mapLink stays optional.) Add a step's array
 // here as you build it so it counts toward completion + validation automatically.
@@ -339,7 +355,8 @@ export default function CreatorProfileSetup() {
     fullName: '',
     age: '',
     gender: '',
-    category: '',         // primary UGC content category (work-distribution tag)
+    contentStyles: [],    // how they make content (Testimonial, Demo, …) — 1–5, required
+    contentCategories: [], // what niche (Fashion, Food, …) — 1–5, required
     customCategory: '',
     bodyType: '',
     skinTone: '',
@@ -397,6 +414,14 @@ export default function CreatorProfileSetup() {
         if (pr[k] !== undefined && pr[k] !== null && pr[k] !== '') merged[k] = pr[k];
       }
       if (Array.isArray(pr.portfolio_items) && pr.portfolio_items.length) merged.portfolio = pr.portfolio_items;
+      // Restore the two content pickers. Prefer the new arrays; fall back to the
+      // legacy single fields so an older profile still prefills. Only keep values
+      // that match a known chip (a legacy free-text custom won't, and is dropped).
+      const styleVals = new Set(CONTENT_CATEGORIES.map((c) => c.value));
+      const nicheVals = new Set(NICHE_CATEGORIES.map((c) => c.value));
+      const pickKnown = (list, allowed) => (Array.isArray(list) ? list : [list]).filter((v) => allowed.has(v));
+      merged.contentStyles = pickKnown(pr.content_styles || pr.content_style || pr.category, styleVals);
+      merged.contentCategories = pickKnown(pr.content_categories || pr.niche || pr.primary_category, nicheVals);
       return merged;
     });
     // Keep new portfolio ids from colliding with the restored ones.
@@ -449,6 +474,13 @@ export default function CreatorProfileSetup() {
   const toggleIn = (field, value) => setData((d) => {
     const arr = d[field];
     return { ...d, [field]: arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value] };
+  });
+  // Same, but capped — used by the two "pick 1–5" content fields.
+  const toggleCapped = (field, value, max = MAX_CONTENT_PICKS) => setData((d) => {
+    const arr = d[field] || [];
+    if (arr.includes(value)) return { ...d, [field]: arr.filter((x) => x !== value) };
+    if (arr.length >= max) { toast.error(`You can pick up to ${max}.`); return d; }
+    return { ...d, [field]: [...arr, value] };
   });
   // "None" topic is exclusive; picking any other clears None.
   const toggleTopic = (t) => setData((d) => {
@@ -514,6 +546,13 @@ export default function CreatorProfileSetup() {
       const base = Object.fromEntries(f.map((k) => [k, isFilled(data[k])]));
       if (s === 2) base.pincode = base.pincode && !pinZoneMismatch(data.pincode, data.state, data.country);
       if (s === 2) base.city = base.city && !cityPinMismatch(data.city, pinLookup);
+      if (s === 1) {
+        // Both content pickers are required — at least one each. A 'custom' style
+        // also needs its text filled in.
+        base.contentStyles = data.contentStyles.length > 0
+          && (!data.contentStyles.includes('custom') || isFilled(data.customCategory));
+        base.contentCategories = data.contentCategories.length > 0;
+      }
       return base;
     }
     if (s === 3) return {
@@ -687,9 +726,21 @@ export default function CreatorProfileSetup() {
       // while keeping all the extra details (name, contact, equipment, languages, ...) — the
       // backend now stores extras too. This populates the model fields so the app can read them
       // consistently, and satisfies the required-ish fields so the submit doesn't 422.
+      // Two content pickers → backend fields. Style = how (Testimonial/Demo…),
+      // Category = niche (Fashion/Food…). Send the full arrays plus a primary of
+      // each; `category`/`primary_category` carry the niche so the brand directory's
+      // category chip reads "Fashion" etc.
+      const styleValue = (v) => (v === 'custom' ? (data.customCategory.trim() || 'Custom') : v);
+      const styles = (data.contentStyles || []).map(styleValue);
+      const niches = data.contentCategories || [];
       const creatorPayload = {
         ...data,
-        category: resolveCategory(data.category, data.customCategory),
+        content_styles: styles,
+        content_style: styles[0] || '',
+        content_categories: niches,
+        niche: niches[0] || '',
+        category: niches[0] || styles[0] || '',
+        primary_category: niches[0] || styles[0] || '',
         bio: data.bio || '',
         tags: data.skills || [],
         // Deployed backend types portfolio as List[str] — sending the raw objects 422s. Send
@@ -904,28 +955,55 @@ export default function CreatorProfileSetup() {
             {reqError('skinTone')}
           </div>
 
+          {/* Content STYLE — how they make content. Pick 1–5. */}
           <div className="ps-field">
-            <label className="ps-label">Primary content category</label>
-            <div className="ps-select">
-              <select
-                className={`ps-select__el${data.category ? '' : ' ps-select__el--empty'}`}
-                value={data.category}
-                onChange={(e) => set('category', e.target.value)}
-              >
-                <option value="" disabled>Select the content you create</option>
-                {CONTENT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-              <ChevronDown size={18} className="ps-select__chev" />
+            <label className="ps-label">
+              Content style <span className="ps-muted">(Select 1–{MAX_CONTENT_PICKS})</span>
+              <span className="ps-count">{data.contentStyles.length}/{MAX_CONTENT_PICKS}</span>
+            </label>
+            <div className={`ps-chips${err('contentStyles') ? ' ps-chips--error' : ''}`}>
+              {CONTENT_CATEGORIES.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  className={`ps-chip${data.contentStyles.includes(c.value) ? ' ps-chip--on' : ''}`}
+                  onClick={() => toggleCapped('contentStyles', c.value)}
+                >
+                  {c.label}
+                </button>
+              ))}
             </div>
-            {data.category === 'custom' && (
+            {data.contentStyles.includes('custom') && (
               <input
                 className="ps-input"
                 style={{ marginTop: 10 }}
-                placeholder="Describe your content category"
+                placeholder="Describe your custom content style"
                 value={data.customCategory}
                 onChange={(e) => set('customCategory', e.target.value)}
               />
             )}
+            {err('contentStyles') && <span className="ps-error">Pick at least one content style</span>}
+          </div>
+
+          {/* Content CATEGORY — the niche they make content about. Pick 1–5. */}
+          <div className="ps-field">
+            <label className="ps-label">
+              Content category <span className="ps-muted">(Select 1–{MAX_CONTENT_PICKS})</span>
+              <span className="ps-count">{data.contentCategories.length}/{MAX_CONTENT_PICKS}</span>
+            </label>
+            <div className={`ps-chips${err('contentCategories') ? ' ps-chips--error' : ''}`}>
+              {NICHE_CATEGORIES.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  className={`ps-chip${data.contentCategories.includes(c.value) ? ' ps-chip--on' : ''}`}
+                  onClick={() => toggleCapped('contentCategories', c.value)}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            {err('contentCategories') && <span className="ps-error">Pick at least one content category</span>}
           </div>
         </>
       );
@@ -1709,6 +1787,7 @@ export default function CreatorProfileSetup() {
 
         /* ── Step 4 — Build Your Creator Portfolio ── */
         .ps-muted { font-weight: 500; color: rgba(7,7,78,0.42); }
+        .ps-count { float: right; font-size: 0.78rem; font-weight: 700; color: #6d7bff; }
         .ps-hinttext { font-size: 0.78rem; line-height: 1.5; color: rgba(7,7,78,0.5); margin: -2px 0 3px; }
         .ps-section { display: flex; flex-direction: column; gap: 9px; padding-top: 6px;
           border-top: 1px solid rgba(7,7,78,0.07); }

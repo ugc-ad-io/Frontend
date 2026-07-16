@@ -702,7 +702,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                 </>
               ) : (
                 <>
-                  <button type="button" className="cpm-ghost" onClick={() => { setTab('videos'); resetAddForm(); setAddOpen(true); }}><Plus size={16} /> Add Work</button>
+                  <button type="button" className="cpm-ghost" onClick={() => { resetAddForm(); setAddOpen(true); goTab('videos'); }}><Plus size={16} /> Add Work</button>
                   <button type="button" className="cpm-msg" onClick={() => { setTab('details'); setEditing(true); }}><Pencil size={15} /> Edit Profile</button>
                 </>
               )

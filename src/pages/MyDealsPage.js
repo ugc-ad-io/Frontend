@@ -574,16 +574,25 @@ export default function MyDealsPage() {
     }
   };
 
-  const handleArchiveDeal = () => {
+  const handleArchiveDeal = async () => {
     if (!selectedDeal) return;
     if (!isState(selectedDeal, 'Paid - Complete')) {
       toast.error('Only completed deals can be archived');
       return;
     }
-    const nextDeals = deals.filter((deal) => getDealId(deal) !== getDealId(selectedDeal));
+    const dealId = getDealId(selectedDeal);
+    // Persist the archive on the server — otherwise the 10s poll re-fetches the deal
+    // and it comes straight back. Only drop it locally once the server confirms.
+    try {
+      await axios.post(`${API}/deals/${dealId}/archive`);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not archive this deal'));
+      return;
+    }
+    const nextDeals = deals.filter((deal) => getDealId(deal) !== dealId);
     setDeals(nextDeals);
     setSelectedDeal(nextDeals[0] || null);
-    toast.success('Deal archived from this view');
+    toast.success('Deal archived');
   };
 
   const primaryAction = getPrimaryActionConfig(

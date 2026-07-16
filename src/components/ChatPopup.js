@@ -99,7 +99,11 @@ export default function ChatPopup({ user, onClose }) {
       </div>
 
       <div className="cpop-tools">
-        <button type="button" className="cpop-tool primary" onClick={() => setBriefOpen(true)}><FileText size={15} /> Send a Brief</button>
+        {/* Only brands send briefs to creators — a creator never briefs anyone,
+            so this button is brand-only. */}
+        {me?.role === 'business' && (
+          <button type="button" className="cpop-tool primary" onClick={() => setBriefOpen(true)}><FileText size={15} /> Send a Brief</button>
+        )}
         <button type="button" className="cpop-tool" onClick={() => setProfOpen(true)}><User size={15} /> Profile</button>
       </div>
 
@@ -148,7 +152,8 @@ export default function ChatPopup({ user, onClose }) {
           photo={user.photo}
           onClose={() => setProfOpen(false)}
           onMessage={() => setProfOpen(false)}
-          onBegin={() => { setProfOpen(false); setBriefOpen(true); }}
+          // Brand-only — a creator shouldn't get a "Send a Brief" action here either.
+          onBegin={me?.role === 'business' ? () => { setProfOpen(false); setBriefOpen(true); } : undefined}
         />
       )}
 

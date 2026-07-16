@@ -10,6 +10,21 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+const UPI_RE = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+
+// Whole years from a YYYY-MM-DD date to today (for the 18+ gate).
+const ageFrom = (dob) => {
+  if (!dob) return 0;
+  const d = new Date(dob);
+  if (isNaN(d)) return 0;
+  const t = new Date();
+  let a = t.getFullYear() - d.getFullYear();
+  if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a -= 1;
+  return a;
+};
+// Latest DOB that still makes someone 18 today — caps the date picker.
+const maxDob = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10); })();
 
 // Same Verhoeff check the backend runs, so a typo is caught before the upload
 // round-trip instead of coming back as a 400.
@@ -72,8 +87,12 @@ export default function CreatorKYC() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    name_on_pan: '', pan_number: '', aadhaar_number: '',
-    pan_doc_url: '', aadhaar_front_url: '', aadhaar_back_url: '',
+    full_legal_name: '', date_of_birth: '', gender: '',
+    pan_number: '', aadhaar_number: '',
+    address_line: '', city: '', state: '', pincode: '',
+    payout_method: 'upi', upi_id: '',
+    account_holder_name: '', bank_name: '', account_number: '', ifsc_code: '',
+    pan_doc_url: '', aadhaar_front_url: '', aadhaar_back_url: '', selfie_url: '',
   });
 
   useEffect(() => {
@@ -89,16 +108,55 @@ export default function CreatorKYC() {
     e.preventDefault();
     const pan = form.pan_number.toUpperCase().trim();
     const aadhaar = form.aadhaar_number.replace(/\D/g, '');
+    const upi = form.upi_id.trim();
+    const ifsc = form.ifsc_code.toUpperCase().trim();
+    const acct = form.account_number.trim();
 
-    if (!form.name_on_pan.trim()) return toast.error('Enter your name exactly as printed on your PAN card.');
+    // Identity
+    if (!form.full_legal_name.trim()) return toast.error('Enter your full legal name.');
+    if (!form.date_of_birth) return toast.error('Enter your date of birth.');
+    if (ageFrom(form.date_of_birth) < 18) return toast.error('You must be at least 18 to receive payouts.');
+    if (!form.gender) return toast.error('Select your gender.');
     if (!PAN_RE.test(pan)) return toast.error('That PAN does not look right — 10 characters, like ABCDE1234F.');
-    if (!aadhaarValid(aadhaar)) return toast.error('That Aadhaar number is not valid. Check the 12 digits.');
+    // Aadhaar is optional; validate only if entered.
+    if (aadhaar && !aadhaarValid(aadhaar)) return toast.error('That Aadhaar number is not valid. Check the 12 digits.');
+
+    // Address
+    if (!form.address_line.trim() || !form.city.trim() || !form.state.trim()) return toast.error('Enter your full residential address.');
+    if (!/^\d{6}$/.test(form.pincode)) return toast.error('Enter a valid 6-digit pincode.');
+
+    // Payout — one method is enough
+    if (form.payout_method === 'upi') {
+      if (!UPI_RE.test(upi)) return toast.error('Enter a valid UPI ID (e.g. name@bank).');
+    } else {
+      if (!form.account_holder_name.trim()) return toast.error("Enter the account holder's name.");
+      if (!/^\d{9,18}$/.test(acct)) return toast.error('Enter a valid bank account number.');
+      if (!IFSC_RE.test(ifsc)) return toast.error('Enter a valid IFSC code (e.g. HDFC0001234).');
+    }
+
+    // Documents
     if (!form.pan_doc_url) return toast.error('Upload a photo of your PAN card.');
-    if (!form.aadhaar_front_url || !form.aadhaar_back_url) return toast.error('Upload both sides of your Aadhaar card.');
+    if (!form.selfie_url) return toast.error('Upload a selfie holding your ID.');
+
+    const payload = {
+      full_legal_name: form.full_legal_name.trim(),
+      date_of_birth: form.date_of_birth,
+      gender: form.gender,
+      pan_number: pan,
+      aadhaar_number: aadhaar,
+      address: { line: form.address_line.trim(), city: form.city.trim(), state: form.state.trim(), pincode: form.pincode },
+      pan_doc_url: form.pan_doc_url,
+      aadhaar_front_url: form.aadhaar_front_url,
+      aadhaar_back_url: form.aadhaar_back_url,
+      selfie_url: form.selfie_url,
+      ...(form.payout_method === 'upi'
+        ? { upi_id: upi }
+        : { bank_details: { account_holder_name: form.account_holder_name.trim(), bank_name: form.bank_name.trim(), account_number: acct, ifsc_code: ifsc } }),
+    };
 
     setSaving(true);
     try {
-      const r = await axios.post(`${API}/kyc/submit`, { ...form, pan_number: pan, aadhaar_number: aadhaar });
+      const r = await axios.post(`${API}/kyc/submit`, payload);
       setKyc(r.data);
       toast.success('KYC submitted — our team will verify it shortly.');
     } catch (err) {
@@ -159,17 +217,45 @@ export default function CreatorKYC() {
 
             {canEdit ? (
               <form className="kyc-card" onSubmit={submit}>
-                <h2>PAN card</h2>
+                <h2>Personal details</h2>
                 <div className="kyc-grid">
                   <div>
-                    <label className="kyc-label">Name as printed on PAN</label>
+                    <label className="kyc-label">Full legal name</label>
                     <input
                       className="kyc-input"
-                      value={form.name_on_pan}
-                      onChange={(e) => set('name_on_pan')(e.target.value)}
-                      placeholder="e.g. Meet Rathod"
+                      value={form.full_legal_name}
+                      onChange={(e) => set('full_legal_name')(e.target.value)}
+                      placeholder="As printed on your PAN"
                     />
                   </div>
+                  <div>
+                    <label className="kyc-label">Date of birth</label>
+                    <input
+                      className="kyc-input"
+                      type="date"
+                      max={maxDob}
+                      value={form.date_of_birth}
+                      onChange={(e) => set('date_of_birth')(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="kyc-grid">
+                  <div>
+                    <label className="kyc-label">Gender</label>
+                    <select className="kyc-input" value={form.gender} onChange={(e) => set('gender')(e.target.value)}>
+                      <option value="">Select…</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="kyc-sep" />
+
+                <h2>PAN card</h2>
+                <div className="kyc-grid">
                   <div>
                     <label className="kyc-label">PAN number</label>
                     <input
@@ -190,7 +276,7 @@ export default function CreatorKYC() {
 
                 <div className="kyc-sep" />
 
-                <h2>Aadhaar card</h2>
+                <h2>Aadhaar card <span className="kyc-optional">(optional)</span></h2>
                 <div className="kyc-grid">
                   <div>
                     <label className="kyc-label">Aadhaar number</label>
@@ -218,17 +304,97 @@ export default function CreatorKYC() {
                   />
                 </div>
 
+                <div className="kyc-sep" />
+
+                <h2>Residential address</h2>
+                <div className="kyc-grid">
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label className="kyc-label">Address</label>
+                    <input className="kyc-input" value={form.address_line} onChange={(e) => set('address_line')(e.target.value)} placeholder="House / flat, street, area" />
+                  </div>
+                </div>
+                <div className="kyc-grid">
+                  <div>
+                    <label className="kyc-label">City</label>
+                    <input className="kyc-input" value={form.city} onChange={(e) => set('city')(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="kyc-label">State</label>
+                    <input className="kyc-input" value={form.state} onChange={(e) => set('state')(e.target.value)} />
+                  </div>
+                </div>
+                <div className="kyc-grid">
+                  <div>
+                    <label className="kyc-label">Pincode</label>
+                    <input className="kyc-input mono" inputMode="numeric" maxLength={6} value={form.pincode}
+                      onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 digits" />
+                  </div>
+                </div>
+
+                <div className="kyc-sep" />
+
+                <h2>Payout details</h2>
+                <p className="kyc-subnote">Where we send your earnings after a deal completes. Choose one.</p>
+                <div className="kyc-toggle">
+                  <button type="button" className={form.payout_method === 'upi' ? 'on' : ''} onClick={() => set('payout_method')('upi')}>UPI ID</button>
+                  <button type="button" className={form.payout_method === 'bank' ? 'on' : ''} onClick={() => set('payout_method')('bank')}>Bank account</button>
+                </div>
+                {form.payout_method === 'upi' ? (
+                  <div className="kyc-grid">
+                    <div>
+                      <label className="kyc-label">UPI ID</label>
+                      <input className="kyc-input mono" value={form.upi_id} onChange={(e) => set('upi_id')(e.target.value.trim())} placeholder="name@bank" />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="kyc-grid">
+                      <div>
+                        <label className="kyc-label">Account holder name</label>
+                        <input className="kyc-input" value={form.account_holder_name} onChange={(e) => set('account_holder_name')(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="kyc-label">Bank name</label>
+                        <input className="kyc-input" value={form.bank_name} onChange={(e) => set('bank_name')(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="kyc-grid">
+                      <div>
+                        <label className="kyc-label">Account number</label>
+                        <input className="kyc-input mono" inputMode="numeric" value={form.account_number}
+                          onChange={(e) => set('account_number')(e.target.value.replace(/\D/g, '').slice(0, 18))} />
+                      </div>
+                      <div>
+                        <label className="kyc-label">IFSC code</label>
+                        <input className="kyc-input mono" maxLength={11} value={form.ifsc_code}
+                          onChange={(e) => set('ifsc_code')(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="HDFC0001234" />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="kyc-sep" />
+
+                <h2>Selfie with ID</h2>
+                <DocUpload
+                  label="Selfie holding your ID"
+                  hint="A clear photo of you holding your PAN or Aadhaar next to your face."
+                  value={form.selfie_url}
+                  onChange={set('selfie_url')}
+                />
+
                 <button type="submit" className="kyc-submit" disabled={saving}>
                   {saving ? 'Submitting…' : 'Submit for verification'}
                 </button>
-                <p className="kyc-foot">By submitting you confirm these documents are yours. A PAN can only be linked to one account.</p>
+                <p className="kyc-foot">By submitting you confirm these documents are yours. A PAN can only be linked to one account. Your ID and payout details are visible only to you and our review team — never to brands.</p>
               </form>
             ) : (
               <div className="kyc-card kyc-onfile">
                 <h2>On file</h2>
-                <div className="kyc-kv"><span>Name on PAN</span><strong>{kyc.name_on_pan || '—'}</strong></div>
+                <div className="kyc-kv"><span>Legal name</span><strong>{kyc.full_legal_name || kyc.name_on_pan || '—'}</strong></div>
                 <div className="kyc-kv"><span>PAN</span><strong className="mono">{kyc.pan_number || '—'}</strong></div>
-                <div className="kyc-kv"><span>Aadhaar</span><strong className="mono">{kyc.aadhaar_number || '—'}</strong></div>
+                {kyc.aadhaar_number ? <div className="kyc-kv"><span>Aadhaar</span><strong className="mono">{kyc.aadhaar_number}</strong></div> : null}
+                <div className="kyc-kv"><span>Payout</span><strong>{kyc.payout_method === 'bank' ? 'Bank account' : kyc.payout_method === 'upi' ? 'UPI' : '—'}</strong></div>
                 <div className="kyc-kv"><span>Submitted</span><strong>{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString() : '—'}</strong></div>
               </div>
             )}
@@ -262,6 +428,12 @@ export default function CreatorKYC() {
         .kyc-input{width:100%;border:1px solid #dfe2ee;border-radius:10px;padding:11px 13px;font:inherit;font-size:14px;color:#15163a;background:#fff}
         .kyc-input:focus{outline:none;border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.15)}
         .kyc-input.mono,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em}
+        select.kyc-input{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236a6f8a' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;cursor:pointer}
+        .kyc-optional{font-size:12px;font-weight:600;color:#9296ba;text-transform:none;letter-spacing:0}
+        .kyc-subnote{margin:-6px 0 12px;font-size:12.5px;color:#8a8fab;line-height:1.5}
+        .kyc-toggle{display:inline-flex;gap:0;border:1px solid #dfe2ee;border-radius:10px;overflow:hidden;margin-bottom:16px}
+        .kyc-toggle button{border:0;background:#fff;color:#5b6073;font:inherit;font-size:13px;font-weight:700;padding:9px 18px;cursor:pointer}
+        .kyc-toggle button.on{background:#07074e;color:#fff}
 
         .kyc-doc{min-width:0}
         .kyc-drop{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed #cdd2f3;border-radius:12px;padding:16px;background:#f8f9ff;color:#4452f0;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}

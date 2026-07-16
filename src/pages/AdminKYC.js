@@ -86,15 +86,26 @@ export default function AdminKYC() {
                   </div>
 
                   <div className="akyc-fields">
-                    <div><label>Name on PAN</label><span>{k.name_on_pan || '—'}</span></div>
+                    <div><label>Legal name</label><span>{k.full_legal_name || k.name_on_pan || '—'}</span></div>
+                    <div><label>DOB</label><span>{k.date_of_birth || '—'}</span></div>
+                    <div><label>Gender</label><span>{(k.gender || '—').replace(/_/g, ' ')}</span></div>
                     <div><label>PAN</label><span className="mono">{k.pan_number || '—'}</span></div>
                     <div><label>Aadhaar</label><span className="mono">{k.aadhaar_number || '—'}</span></div>
+                    <div><label>Address</label><span>{k.address ? [k.address.line, k.address.city, k.address.state, k.address.pincode].filter(Boolean).join(', ') : '—'}</span></div>
+                    <div><label>Payout</label><span>
+                      {row.upi_id
+                        ? `UPI · ${row.upi_id}`
+                        : row.bank_details?.account_number
+                          ? `Bank · ${row.bank_details.account_number} (${row.bank_details.ifsc_code})`
+                          : (k.payout_method || '—')}
+                    </span></div>
                     <div><label>Submitted</label><span>{k.submitted_at ? new Date(k.submitted_at).toLocaleString() : '—'}</span></div>
                   </div>
 
                   <div className="akyc-docs">
                     {[
                       ['PAN card', k.pan_doc_url],
+                      ['Selfie with ID', k.selfie_url],
                       ['Aadhaar front', k.aadhaar_front_url],
                       ['Aadhaar back', k.aadhaar_back_url],
                     ].map(([label, url]) => (

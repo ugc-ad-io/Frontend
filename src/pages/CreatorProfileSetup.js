@@ -296,6 +296,51 @@ function DialCodeSelect({ value, onChange }) {
   );
 }
 
+// A collapsed multi-select: shows the picked labels, opens a checklist. The cap
+// (and its toast) live in the parent's onToggle; this stays open so several can be
+// ticked in one go, and closes on outside click.
+function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+  const chosen = options.filter((o) => selected.includes(o.value)).map((o) => o.label);
+  return (
+    <div className={`ps-msel${hasError ? ' ps-msel--error' : ''}`} ref={ref}>
+      <button type="button" className={`ps-msel__btn${open ? ' is-open' : ''}`} onClick={() => setOpen((o) => !o)}>
+        <span className={chosen.length ? '' : 'ps-msel__ph'}>
+          {chosen.length ? chosen.join(', ') : (placeholder || 'Select')}
+        </span>
+        <ChevronDown size={18} className="ps-msel__chev" />
+      </button>
+      {open && (
+        <div className="ps-msel__menu" role="listbox">
+          {options.map((o) => {
+            const on = selected.includes(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                role="option"
+                aria-selected={on}
+                className={`ps-msel__opt${on ? ' is-on' : ''}`}
+                onClick={() => onToggle(o.value)}
+              >
+                <span className="ps-msel__box">{on && <Check size={13} />}</span>
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Per-language fluency picker shown on a selected language chip.
 const FLUENCY = ['Native', 'Fluent', 'Conversational'];
 function FluencyMenu({ value, onPick }) {
@@ -955,24 +1000,19 @@ export default function CreatorProfileSetup() {
             {reqError('skinTone')}
           </div>
 
-          {/* Content STYLE — how they make content. Pick 1–5. */}
+          {/* Content STYLE — how they make content. Pick 1–5 from a dropdown. */}
           <div className="ps-field">
             <label className="ps-label">
               Content style <span className="ps-muted">(Select 1–{MAX_CONTENT_PICKS})</span>
               <span className="ps-count">{data.contentStyles.length}/{MAX_CONTENT_PICKS}</span>
             </label>
-            <div className={`ps-chips${err('contentStyles') ? ' ps-chips--error' : ''}`}>
-              {CONTENT_CATEGORIES.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  className={`ps-chip${data.contentStyles.includes(c.value) ? ' ps-chip--on' : ''}`}
-                  onClick={() => toggleCapped('contentStyles', c.value)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
+            <MultiSelect
+              options={CONTENT_CATEGORIES}
+              selected={data.contentStyles}
+              onToggle={(v) => toggleCapped('contentStyles', v)}
+              placeholder="Select the content you create"
+              hasError={err('contentStyles')}
+            />
             {data.contentStyles.includes('custom') && (
               <input
                 className="ps-input"
@@ -991,18 +1031,13 @@ export default function CreatorProfileSetup() {
               Content category <span className="ps-muted">(Select 1–{MAX_CONTENT_PICKS})</span>
               <span className="ps-count">{data.contentCategories.length}/{MAX_CONTENT_PICKS}</span>
             </label>
-            <div className={`ps-chips${err('contentCategories') ? ' ps-chips--error' : ''}`}>
-              {NICHE_CATEGORIES.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  className={`ps-chip${data.contentCategories.includes(c.value) ? ' ps-chip--on' : ''}`}
-                  onClick={() => toggleCapped('contentCategories', c.value)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
+            <MultiSelect
+              options={NICHE_CATEGORIES}
+              selected={data.contentCategories}
+              onToggle={(v) => toggleCapped('contentCategories', v)}
+              placeholder="Select your niche"
+              hasError={err('contentCategories')}
+            />
             {err('contentCategories') && <span className="ps-error">Pick at least one content category</span>}
           </div>
         </>
@@ -1713,6 +1748,28 @@ export default function CreatorProfileSetup() {
         .ps-dial__opt:hover { background: rgba(7,7,78,0.06); }
         .ps-dial__opt--on { background: rgba(7,7,78,0.16); }
 
+        /* Multi-select dropdown (Content style / category) */
+        .ps-msel { position: relative; }
+        .ps-msel__btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          padding: 11px 13px; border-radius: 10px; font-size: 0.88rem; color: #6d7bff; text-align: left;
+          background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12); cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .ps-msel__btn.is-open { border-color: var(--ps-purple); box-shadow: 0 0 0 4px rgba(7,7,78,0.16); }
+        .ps-msel__btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ps-msel__ph { color: rgba(7,7,78,0.38); }
+        .ps-msel--error .ps-msel__btn { border-color: #ef4444; }
+        .ps-msel__chev { flex-shrink: 0; color: rgba(7,7,78,0.5); transition: transform 0.2s; }
+        .ps-msel__btn.is-open .ps-msel__chev { transform: rotate(180deg); }
+        .ps-msel__menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30; max-height: 260px; overflow-y: auto;
+          padding: 6px; border-radius: 12px; background: #ffffff; border: 1px solid rgba(7,7,78,0.12);
+          box-shadow: 0 20px 50px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
+        .ps-msel__opt { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; cursor: pointer;
+          font-family: inherit; font-size: 0.88rem; color: #6d7bff; background: none; border: none; text-align: left; }
+        .ps-msel__opt:hover { background: rgba(7,7,78,0.06); }
+        .ps-msel__opt.is-on { background: rgba(7,7,78,0.12); }
+        .ps-msel__box { flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center;
+          border: 1.5px solid rgba(7,7,78,0.3); color: #fff; }
+        .ps-msel__opt.is-on .ps-msel__box { background: var(--ps-purple); border-color: var(--ps-purple); }
+
         /* Chips */
         .ps-chips { display: flex; flex-wrap: wrap; gap: 12px; }
         .ps-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
@@ -2059,6 +2116,15 @@ export default function CreatorProfileSetup() {
         .ps-flu__btn:hover { background: rgba(255,255,255,0.16) !important; }
         .ps-langchip__x { color: #ffffff !important; }
         .ps-langchip__x:hover { color: #ffffff !important; }
+        /* Multi-select on the dark card: readable trigger + white-text options. */
+        .ps-msel__btn { color: #ffffff !important; background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; }
+        .ps-msel__ph { color: rgba(255,255,255,0.45) !important; }
+        .ps-msel__menu { background: #17171f !important; border-color: rgba(255,255,255,0.14) !important; }
+        .ps-msel__opt { color: #eef !important; }
+        .ps-msel__opt:hover { background: rgba(255,255,255,0.07) !important; }
+        .ps-msel__opt.is-on { background: rgba(109,123,255,0.20) !important; color: #ffffff !important; }
+        .ps-msel__box { border-color: rgba(255,255,255,0.4) !important; }
+        .ps-msel__opt.is-on .ps-msel__box { background: #6d7bff !important; border-color: #6d7bff !important; }
         /* Phone dial code (+91) and Go Back → light purple. */
         .ps-dial__btn { color: #6d7bff !important; background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; }
         .ps-btn-ghost { color: #6d7bff !important; border-color: rgba(109,123,255,0.5) !important; }

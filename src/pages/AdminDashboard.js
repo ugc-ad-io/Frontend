@@ -98,30 +98,7 @@ export default function AdminDashboard() {
     invite_mode: 'direct',
     permissions: []
   });
-  const [creatorApplications, setCreatorApplications] = useState([]);
-  const [brandApplications, setBrandApplications] = useState([]);
-  const [applicationViewType, setApplicationViewType] = useState('creator');
-  const [applicationFilters, setApplicationFilters] = useState({
-    state: '',
-    category: '',
-    startDate: '',
-    endDate: ''
-  });
-  const [selectedApplication, setSelectedApplication] = useState(null);
-  const [showApplicationDetail, setShowApplicationDetail] = useState(false);
-  const [applicationDetailLoading, setApplicationDetailLoading] = useState(false);
-  const [showMoreInfoModal, setShowMoreInfoModal] = useState(false);
-  const [moreInfoFormData, setMoreInfoFormData] = useState({
-    request_type: 'clarification',
-    message: '',
-    required_fields: [],
-    deadline_days: 3,
-    priority: 'medium'
-  });
-  const [rejectFormData, setRejectFormData] = useState({
-    reason_code: '',
-    reason_details: ''
-  });
+  // (Removed the dead Applications-review state — see the note by fetchStats.)
 
   const displayHandle = (obj, nicknameKey = 'nickname', usernameKey = 'username') => {
     if (!obj) return '—';
@@ -142,7 +119,6 @@ export default function AdminDashboard() {
       fetchPendingProfiles();
       fetchPendingCampaigns();
       fetchCampaignAssignments();
-      fetchApplications();
     }
     if (can(user, 'view_financials')) fetchPendingWithdrawals();
     if (can(user, 'user_management')) fetchAllUsers();
@@ -193,93 +169,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchApplications = async () => {
-    try {
-      const creatorRes = await axios.get(`${API}/admin/applications/creators`);
-      const brandRes = await axios.get(`${API}/admin/applications/brands`);
-      setCreatorApplications(creatorRes.data.data || creatorRes.data);
-      setBrandApplications(brandRes.data.data || brandRes.data);
-    } catch (error) {
-      console.error('Failed to load applications:', error);
-      toast.error('Failed to load applications');
-    }
-  };
-
-  const fetchApplicationDetail = async (applicationId, type) => {
-    try {
-      setApplicationDetailLoading(true);
-      const endpoint = type === 'creator'
-        ? `/admin/applications/creators/${applicationId}`
-        : `/admin/applications/brands/${applicationId}`;
-      const response = await axios.get(`${API}${endpoint}`);
-      setSelectedApplication({...response.data, type});
-    } catch (error) {
-      console.error('Failed to load application detail:', error);
-      toast.error('Failed to load application details');
-    } finally {
-      setApplicationDetailLoading(false);
-    }
-  };
-
-  const handleApproveApplication = async (applicationId, type) => {
-    try {
-      const endpoint = type === 'creator'
-        ? `/admin/applications/creators/${applicationId}/approve`
-        : `/admin/applications/brands/${applicationId}/approve`;
-      await axios.post(`${API}${endpoint}`, {
-        notes: 'Approved by admin'
-      });
-      toast.success('Application approved successfully');
-      setShowApplicationDetail(false);
-      fetchApplications();
-    } catch (error) {
-      console.error('Failed to approve application:', error);
-      toast.error(apiErrorMessage(error, 'Failed to approve application'));
-    }
-  };
-
-  const handleRejectApplication = async (applicationId, type) => {
-    try {
-      if (!rejectFormData.reason_code) {
-        toast.error('Please select a rejection reason');
-        return;
-      }
-      const endpoint = type === 'creator'
-        ? `/admin/applications/creators/${applicationId}/reject`
-        : `/admin/applications/brands/${applicationId}/reject`;
-      await axios.post(`${API}${endpoint}`, {
-        reason_code: rejectFormData.reason_code,
-        reason_details: rejectFormData.reason_details
-      });
-      toast.success('Application rejected successfully');
-      setShowApplicationDetail(false);
-      setRejectFormData({reason_code: '', reason_details: ''});
-      fetchApplications();
-    } catch (error) {
-      console.error('Failed to reject application:', error);
-      toast.error(apiErrorMessage(error, 'Failed to reject application'));
-    }
-  };
-
-  const handleRequestMoreInfo = async (applicationId, type) => {
-    try {
-      if (!moreInfoFormData.message) {
-        toast.error('Please enter a message');
-        return;
-      }
-      const endpoint = type === 'creator'
-        ? `/admin/applications/creators/${applicationId}/request-more-info`
-        : `/admin/applications/brands/${applicationId}/request-more-info`;
-      await axios.post(`${API}${endpoint}`, moreInfoFormData);
-      toast.success('More info request sent to applicant');
-      setShowMoreInfoModal(false);
-      setMoreInfoFormData({request_type: 'clarification', message: '', required_fields: [], deadline_days: 3, priority: 'medium'});
-      fetchApplicationDetail(applicationId, type);
-    } catch (error) {
-      console.error('Failed to send more info request:', error);
-      toast.error(apiErrorMessage(error, 'Failed to send request'));
-    }
-  };
+  // The old inline "Applications" review UI (creator/brand approve/reject/more-info)
+  // was removed — the Applications tab now navigates to the working ApplicationsPage,
+  // which uses /admin/pending-profiles + /admin/approve-profile. The endpoints those
+  // handlers called (/admin/applications/*) never existed on the deployed backend, so
+  // they 404'd and only threw a "Failed to load applications" toast on every load.
 
   const fetchStats = async () => {
     try {

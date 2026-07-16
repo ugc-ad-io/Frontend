@@ -42,12 +42,25 @@ const ACTION_CARDS_BY_ROLE = {
   business: ['private_invitation', 'custom_offer', 'counter_offer', 'revision_request', 'milestone_update', 'escalate_to_admin', 'raise_dispute']
 };
 
-const getAvailableActionCards = (userRole, selectedConversation) => {
-  const cards = ACTION_CARDS_BY_ROLE[userRole] || ACTION_CARD_TYPES;
+// A revision can only be asked for while the brand is reviewing submitted work.
+// The backend enforces this too — this just hides a button that would 409.
+const REVISION_STATES = ['Content Submitted - Awaiting Review', 'Revision Requested'];
 
-  // For creators, only show Milestone Update if there's an active deal
-  if (userRole === 'creator' && selectedConversation?.status !== 'active_deal') {
-    return cards.filter(card => card !== 'milestone_update');
+const getAvailableActionCards = (userRole, selectedConversation) => {
+  let cards = ACTION_CARDS_BY_ROLE[userRole] || ACTION_CARD_TYPES;
+  const dealState = selectedConversation?.associated_deal_status || '';
+  const hasActiveDeal = selectedConversation?.status === 'active_deal';
+
+  // Milestone / revision cards are deal-bound — drop them when there's no live deal.
+  if (!hasActiveDeal) {
+    cards = cards.filter((card) => card !== 'milestone_update' && card !== 'revision_request');
+  }
+
+  // Revision Request only makes sense while content is under review. On a
+  // completed (or shipping/in-progress) deal it's meaningless, so hide it —
+  // this is the "brand could ask for revision on a finished deal" bug.
+  if (!REVISION_STATES.includes(dealState)) {
+    cards = cards.filter((card) => card !== 'revision_request');
   }
 
   return cards;

@@ -276,10 +276,15 @@ export default function BrandCampaignDetail() {
       const wid = await resolveWorkId();
       if (!wid) return toast.error('No submitted work to download yet');
       const res = await axios.get(`${API}/work/${wid}/download`, { responseType: 'blob' });
+      // Derive the real extension from the blob type (deliverables may be mp4/mov/png/pdf).
+      const type = res.data?.type || '';
+      const ext = type.includes('/') ? type.split('/')[1].split(';')[0] : 'mp4';
       const u = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a'); a.href = u; a.download = `${campaign.title || 'deliverable'}.mp4`;
+      const a = document.createElement('a'); a.href = u; a.download = `${campaign.title || 'deliverable'}.${ext}`;
       document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(u);
-    } catch { toast.error('Download unlocks after approval'); }
+    } catch (e) {
+      toast.error(e?.response?.status === 403 ? 'Download unlocks after you approve the work' : 'Could not download the deliverable');
+    }
   };
 
   const spent = campaign.escrow_amount || campaign.budget_min || 0;

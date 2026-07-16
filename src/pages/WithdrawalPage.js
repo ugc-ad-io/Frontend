@@ -254,6 +254,18 @@ export default function WithdrawalPage() {
     return matchStatus && matchSearch;
   });
 
+  const exportCsv = () => {
+    if (!filtered.length) return toast.error('No transactions to export');
+    const header = ['ID', 'Amount', 'Status', 'Method', 'Requested At'];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = filtered.map((r) => [r.id, r.amount, STATUS_MAP[r.status] || r.status, r.payment_method, r.requested_at].map(esc).join(','));
+    const blob = new Blob([[header.join(','), ...rows].join('\n')], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `withdrawals_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+  };
+
   const maskAccountNumber = (num) => {
     if (!num) return "Not set";
     const str = num.toString().replace(/\s/g, '');
@@ -366,7 +378,7 @@ export default function WithdrawalPage() {
                   <h2 className="text-[18px] font-semibold text-[#07074E] font-heading tracking-tight">Payment History</h2>
                   <p className="text-[12.5px] text-[#9F9FD1] font-medium mt-0.5">{filtered.length} transactions found</p>
                 </div>
-                <button className="flex items-center gap-1.5 bg-[#F3F3FF] hover:bg-[#E9EBEF] text-[#07074E] px-4 py-2 rounded-[10px] text-[13px] font-semibold transition-colors">
+                <button onClick={exportCsv} className="flex items-center gap-1.5 bg-[#F3F3FF] hover:bg-[#E9EBEF] text-[#07074E] px-4 py-2 rounded-[10px] text-[13px] font-semibold transition-colors">
                   <ArrowUpRight strokeWidth={2} className="w-3.5 h-3.5" />
                   Export CSV
                 </button>
@@ -491,10 +503,7 @@ export default function WithdrawalPage() {
                           </span>
                         </td>
                         <td className="px-5 py-4 pr-7 text-right">
-                          <button className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[9px] bg-white border border-[#E9EBEF] text-[12px] font-semibold text-[#07074E] hover:bg-[#07074E] hover:text-white hover:border-[#07074E] shadow-sm transition-all duration-200 whitespace-nowrap">
-                            View
-                            <ExternalLink strokeWidth={2} className="w-3 h-3" />
-                          </button>
+                          <span className="text-[12px] text-[#9F9FD1]">{row.requested_at ? new Date(row.requested_at).toLocaleDateString('en-IN') : '—'}</span>
                         </td>
                       </tr>
                     ))}

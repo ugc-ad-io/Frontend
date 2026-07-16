@@ -191,11 +191,8 @@ export default function AdminUsers({
       toast.success(successMsg);
       return true;
     } catch (e) {
-      const status = e?.response?.status;
-      if (!e?.response || status === 404 || status === 405 || status === 501) {
-        toast.success(successMsg);
-        return true;
-      }
+      // Surface real failures — a missing route (404/405) should NOT fake success,
+      // otherwise a broken action looks like it worked (e.g. the old announce bug).
       toast.error(apiErrorMessage(e, 'Action failed'));
       return false;
     }

@@ -69,6 +69,17 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // KYC nudge: creators who haven't verified see a banner across every page
+  // (except the KYC page itself) prompting them to finish verification.
+  const kycStatus = user?.kyc?.status || 'not_submitted';
+  const showKycBanner = user?.role === 'creator' && kycStatus !== 'verified' && !isActive('/kyc');
+  const KYC_BANNER = {
+    not_submitted: { tone: 'warn', text: 'Verify your identity (KYC) to unlock withdrawals and get prioritised for campaigns.', cta: 'Verify KYC' },
+    pending: { tone: 'info', text: "Your KYC is under review — we'll let you know once it's verified.", cta: 'View status' },
+    rejected: { tone: 'warn', text: 'Your KYC needs attention. Please review and resubmit your documents.', cta: 'Fix KYC' },
+  };
+  const kb = KYC_BANNER[kycStatus] || KYC_BANNER.not_submitted;
+
   return (
     <div className="cmk-app has-rail">
       <HoverSideRail
@@ -167,8 +178,26 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
       </header>
 
       <main className="cmk-wrap cmk-page">
+        {showKycBanner && (
+          <button type="button" className={`cmk-kyc-banner ${kb.tone}`} onClick={() => navigate('/kyc')}>
+            <span className="cmk-kyc-ic"><BadgeCheck size={18} /></span>
+            <span className="cmk-kyc-text">{kb.text}</span>
+            <span className="cmk-kyc-cta">{kb.cta} <ChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} /></span>
+          </button>
+        )}
         {children}
       </main>
+
+      <style>{`
+        .cmk-kyc-banner { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid; border-radius: 14px; padding: 12px 16px; margin: 0 0 18px; cursor: pointer; font-family: inherit; font-size: 13.5px; }
+        .cmk-kyc-banner.warn { background: #fff8e8; border-color: #fbe3b4; color: #92600a; }
+        .cmk-kyc-banner.info { background: #eef0ff; border-color: #d7dbff; color: #3730a3; }
+        .cmk-kyc-ic { display: grid; place-items: center; flex-shrink: 0; }
+        .cmk-kyc-text { flex: 1; font-weight: 600; line-height: 1.4; }
+        .cmk-kyc-cta { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-weight: 700; white-space: nowrap; }
+        .cmk-kyc-banner:hover { filter: brightness(0.98); }
+        @media (max-width: 640px) { .cmk-kyc-cta span { display: none; } }
+      `}</style>
 
       {/* Floating Message button — hidden where the page already owns the bottom-right
           corner: the Messages page itself, and the Deal Room, which renders its own

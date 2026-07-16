@@ -910,6 +910,12 @@ export default function Auth() {
         .ap-input.input-field::placeholder {
           color: #94A3B8;
         }
+        /* Hide the browser's built-in password reveal/clear icons (Edge/IE) so
+           only our custom eye toggle shows — otherwise there are two eye icons. */
+        .ap-input.input-field::-ms-reveal,
+        .ap-input.input-field::-ms-clear {
+          display: none;
+        }
         .ap-input.input-field:focus {
           outline: none;
           border-color: #6366F1 !important;

@@ -65,6 +65,9 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
+// First real letter for a team avatar — skips a leading "@" so a handle like
+// "@HappyPhoenix304" shows "H", not "@".
+const teamInitial = (name) => (String(name || 'U').replace(/[^a-zA-Z0-9]/g, '').charAt(0) || 'U').toUpperCase();
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
 // The three team roles a brand can grant, shown as selectable cards so the
@@ -910,19 +913,26 @@ export default function ProfileSettings() {
 
           <div className="bs-team-table">
             <div className="bs-team-row bs-team-head"><span>Member</span><span>Role</span><span>Status</span><span>Actions</span></div>
-            {(team.members || []).map(member => (
+            {(team.members || []).map(member => {
+              const isYou = String(member.id) === String(user?.id);
+              return (
               <div className="bs-team-row" key={member.id || member.email}>
                 <div className="bs-member">
-                  {member.avatar_url ? <img src={member.avatar_url.startsWith('http') ? member.avatar_url : `${BACKEND_URL}${member.avatar_url}`} alt={member.name} /> : <i>{getInitial(member.name || member.email)}</i>}
-                  <div><strong>{member.name || member.email}</strong><small>{member.email}</small></div>
+                  {member.avatar_url
+                    ? <img src={member.avatar_url.startsWith('http') ? member.avatar_url : `${BACKEND_URL}${member.avatar_url}`} alt={member.name} />
+                    : <i>{teamInitial(member.name || member.email)}</i>}
+                  <div>
+                    <strong>{(member.name || member.email).replace(/^@/, '')}{isYou && <span className="bs-you">You</span>}</strong>
+                    <small>{member.email}</small>
+                  </div>
                 </div>
-                <span className="bs-role">{member.role}</span>
-                <span className={`bs-status ${member.status}`}><b /> {member.status}</span>
+                <span><span className={`bs-role role-${member.role}`}>{member.role}</span></span>
+                <span className={`bs-status status-${member.status}`}><b /> {member.status === 'invited' ? 'Invited' : member.status === 'inactive' ? 'Inactive' : 'Active'}</span>
                 {canManage && !member.is_owner
                   ? <button type="button" className="bs-icon-only" title={member.status === 'invited' ? 'Cancel invite' : 'Remove member'} onClick={() => removeMember(member)}><Trash2 size={18} /></button>
-                  : <span />}
+                  : <span className="bs-lock-note">{member.is_owner ? 'Owner' : ''}</span>}
               </div>
-            ))}
+            );})}
           </div>
           <p className="bs-seat-note">Workspace: <strong>{team.seats_used || team.members?.length || 0} / {team.seat_limit || 10} seats used.</strong></p>
         </section>
@@ -948,11 +958,7 @@ export default function ProfileSettings() {
               <div className="bs-ws-item"><small>Wallet</small><strong>{money(summary.wallet_balance)}</strong></div>
               <div className="bs-ws-item"><small>Team Count</small><strong>{summary.team_count || team.members?.length || 0} Members</strong></div>
             </div>
-            <div className="bs-billing-grid">
-              <div className="bs-plan-card">
-                <div><small>Current Plan</small><h3>{billing.plan_name || 'Brand Pro'}</h3><p>Next billing: <strong>{billing.next_billing_date ? new Date(billing.next_billing_date).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Not scheduled'}</strong></p></div>
-                <div><small>Commission Rate</small><h4>{billing.commission_rate || 0}%</h4><button type="button">Upgrade to Enterprise</button></div>
-              </div>
+            <div className="bs-billing-grid bs-billing-grid--single">
               <div className="bs-budget-card">
                 <div><strong>Monthly Campaign Budget Progress</strong><b>{money(used)} / {money(limit)}</b></div>
                 <span><i style={{ width: `${percent}%` }} /></span>

@@ -1115,6 +1115,8 @@
   justify-content: center;
 }
 @media (max-width: 820px) { .bs-billing-grid { grid-template-columns: 1fr; } }
+/* Plan card removed — budget card spans the row on its own. */
+.bs-billing-grid--single { grid-template-columns: 1fr; }
 
 .bs-plan-card {
   display: flex;

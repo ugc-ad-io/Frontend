@@ -434,6 +434,7 @@ export default function MyDealsPage() {
 
   const handleSubmitContent = async () => {
     if (!selectedDeal?.deal_id) return;
+    if (uploadingFile) { toast.error('Please wait — a file is still uploading.'); return; }
     const required = getRequiredAssets(selectedDeal);
     const missing = [];
     if (!finalVideoUrl) missing.push('final video');

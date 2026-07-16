@@ -836,6 +836,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   };
 
   const publish = async () => {
+    if (campaignImgUploading) { toast.error('Please wait — your campaign image is still uploading.'); return; }
     try {
       setSubmitting(true);
 

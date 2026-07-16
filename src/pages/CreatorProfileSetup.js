@@ -440,6 +440,8 @@ export default function CreatorProfileSetup() {
   });
   const [photoUploading, setPhotoUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [pfVideoUploading, setPfVideoUploading] = useState(false); // portfolio video upload in flight
+  const [editVideoUploading, setEditVideoUploading] = useState(false);
   const bannerRef = useRef(null);
   const pfFileRef = useRef(null);
   const editFileRef = useRef(null);
@@ -538,7 +540,10 @@ export default function CreatorProfileSetup() {
   const toggleFollowers = (key) => setData((d) => ({ ...d, showFollowers: { ...d.showFollowers, [key]: !d.showFollowers[key] } }));
   const addPortfolio = () => {
     // A portfolio item must have a video — that's the whole point of the card.
+    if (pfVideoUploading) { toast.error('Please wait — your video is still uploading.'); return; }
     if (!data.pfVideoUrl) { toast.error('Please upload a video before adding it to your profile.'); return; }
+    // Never save a not-yet-uploaded blob: URL — it dies with the session.
+    if (String(data.pfVideoUrl).startsWith('blob:')) { toast.error('Your video is still uploading. Please wait a moment and try again.'); return; }
     const id = `p${pfIdRef.current++}`;
     setData((d) => ({ ...d, portfolio: [...d.portfolio, { id, brand: d.pfBrand, price: d.pfPrice, category: d.pfCategory, link: d.pfLink, video: d.pfVideo, videoUrl: d.pfVideoUrl }], pfBrand: '', pfPrice: '', pfCategory: '', pfLink: '', pfVideo: '', pfVideoUrl: '' }));
     setJustAddedId(id);
@@ -547,6 +552,8 @@ export default function CreatorProfileSetup() {
   const startModify = (item) => { setEditingId(item.id); setEditDraft({ brand: item.brand, price: item.price, category: item.category, videoUrl: item.videoUrl, video: item.video }); setJustAddedId(null); };
   const cancelModify = () => setEditingId(null);
   const saveModify = () => {
+    if (editVideoUploading) { toast.error('Please wait — your video is still uploading.'); return; }
+    if (String(editDraft.videoUrl || '').startsWith('blob:')) { toast.error('Your video is still uploading. Please wait a moment and try again.'); return; }
     setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: editDraft.brand, price: editDraft.price, category: editDraft.category, videoUrl: editDraft.videoUrl, video: editDraft.video } : it)) }));
     setEditingId(null);
   };
@@ -705,7 +712,9 @@ export default function CreatorProfileSetup() {
     }
     // Show an instant local preview, then upload so a real server URL is persisted
     // (a local blob: ref is useless once the session ends — the portfolio page can
-    // only display an uploaded URL).
+    // only display an uploaded URL). A guard blocks "Add to Profile" until the real
+    // URL lands, so a slow video upload can't be saved as a dead blob.
+    setPfVideoUploading(true);
     setData((d) => ({ ...d, pfVideo: file.name, pfVideoUrl: URL.createObjectURL(file) }));
     try {
       const fd = new FormData();
@@ -719,9 +728,14 @@ export default function CreatorProfileSetup() {
         setData((d) => ({ ...d, pfVideoUrl: url }));
       } else {
         toast.error('Video upload failed. Please try again.');
+        setData((d) => ({ ...d, pfVideo: '', pfVideoUrl: '' })); // drop the dead blob
       }
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Video upload failed'));
+      setData((d) => ({ ...d, pfVideo: '', pfVideoUrl: '' }));
+    } finally {
+      setPfVideoUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -730,6 +744,7 @@ export default function CreatorProfileSetup() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) { toast.error('Video is too large. Maximum 50MB.'); return; }
+    setEditVideoUploading(true);
     setEditDraft((d) => ({ ...d, video: file.name, videoUrl: URL.createObjectURL(file) }));
     try {
       const fd = new FormData();
@@ -742,6 +757,7 @@ export default function CreatorProfileSetup() {
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Video upload failed'));
     } finally {
+      setEditVideoUploading(false);
       e.target.value = '';
     }
   };
@@ -795,7 +811,11 @@ export default function CreatorProfileSetup() {
         portfolio: (data.portfolio || [])
           .map((p) => p.videoUrl || p.url || p.link || '')
           .filter((u) => u && !String(u).startsWith('blob:')),
-        portfolio_items: data.portfolio || [],
+        // Only keep items with a real uploaded video URL — never persist a blob: ref.
+        portfolio_items: (data.portfolio || []).filter((p) => {
+          const u = p.videoUrl || p.url || p.link || '';
+          return u && !String(u).startsWith('blob:');
+        }),
         social_links: {
           ...Object.fromEntries(Object.entries(data.links || {}).filter(([, v]) => v && v.trim())),
           ...Object.fromEntries(
@@ -1279,17 +1299,19 @@ export default function CreatorProfileSetup() {
                   <>
                     <div className="ps-pf__thumb ps-pf__thumb--filled">
                       <video src={`${data.pfVideoUrl}#t=0.1`} muted preload="metadata" className="ps-pf__thumbimg" />
-                      <span className="ps-pf__play"><Play size={18} /></span>
+                      <span className="ps-pf__play">{pfVideoUploading ? '⏳' : <Play size={18} />}</span>
                     </div>
-                    <button type="button" className="ps-pf__change" onClick={() => pfFileRef.current?.click()}>Change video</button>
+                    <button type="button" className="ps-pf__change" disabled={pfVideoUploading} onClick={() => pfFileRef.current?.click()}>
+                      {pfVideoUploading ? 'Uploading…' : 'Change video'}
+                    </button>
                   </>
                 ) : (
                   <>
                     <div className="ps-pf__thumb ps-pf__thumb--empty">
                       <img src="/uplaod.png" alt="Upload a video" className="ps-pf__thumbimg" />
                     </div>
-                    <button type="button" className="ps-pf__upload" onClick={() => pfFileRef.current?.click()}>
-                      <Upload size={15} /> Upload <span className="ps-muted">(max 200 MB)</span>
+                    <button type="button" className="ps-pf__upload" disabled={pfVideoUploading} onClick={() => pfFileRef.current?.click()}>
+                      <Upload size={15} /> {pfVideoUploading ? 'Uploading…' : <>Upload <span className="ps-muted">(max 200 MB)</span></>}
                     </button>
                   </>
                 )}
@@ -1298,7 +1320,7 @@ export default function CreatorProfileSetup() {
                 <input ref={brandRef} className="ps-input" placeholder="Brand name" value={data.pfBrand} onChange={(e) => set('pfBrand', e.target.value)} />
                 <input className="ps-input" placeholder="Price" inputMode="decimal" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value.replace(/[^0-9.]/g, ''))} />
                 <input className="ps-input" placeholder="Category" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)} />
-                <button type="button" className="ps-btn-soft" onClick={addPortfolio}>Add to Profile</button>
+                <button type="button" className="ps-btn-soft" onClick={addPortfolio} disabled={pfVideoUploading}>{pfVideoUploading ? 'Uploading…' : 'Add to Profile'}</button>
               </div>
             </div>
 
@@ -1328,7 +1350,7 @@ export default function CreatorProfileSetup() {
                           <input className="ps-input" placeholder="Price" inputMode="decimal" value={editDraft.price} onChange={(e) => setEditDraft((d) => ({ ...d, price: e.target.value.replace(/[^0-9.]/g, '') }))} />
                           <input className="ps-input" placeholder="Category" value={editDraft.category} onChange={(e) => setEditDraft((d) => ({ ...d, category: e.target.value }))} />
                           <div className="ps-vid__actions">
-                            <button type="button" className="ps-btn-soft" onClick={saveModify}>Save Changes</button>
+                            <button type="button" className="ps-btn-soft" onClick={saveModify} disabled={editVideoUploading}>{editVideoUploading ? 'Uploading…' : 'Save Changes'}</button>
                             <button type="button" className="ps-vid__del" onClick={() => deleteItem(it.id)}><Trash2 size={14} /> Delete</button>
                             <button type="button" className="ps-vid__cancel" onClick={cancelModify}>Cancel</button>
                           </div>

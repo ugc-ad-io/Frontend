@@ -577,8 +577,8 @@
 .bs-card-head {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 30px 36px 26px;
+  gap: 14px;
+  padding: 20px 22px 18px;
   border-bottom: 1px solid #eef0ff;
 }
 
@@ -594,14 +594,16 @@
 }
 
 .bs-card-head h2 {
-  margin: 0 0 6px;
-  font-size: 24px;
+  margin: 0 0 3px;
+  font-size: 18px;
 }
 
 .bs-card-head p {
   margin: 0;
   color: #9f9fd1;
   font-weight: 400;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .bs-card-body {
@@ -733,7 +735,10 @@
 .bs-primary.small {
   margin-left: auto;
   min-height: 40px;
-  padding: 0 20px;
+  padding: 0 18px;
+  font-size: 14px;
+  white-space: nowrap;
+  flex: none;
 }
 
 .bs-ghost {
@@ -929,14 +934,12 @@
   border-radius: 12px;
   overflow: hidden;
 }
-.bs-team-row .bs-role { text-transform: capitalize; font-weight: 600; color: #4a5568; }
-
 .bs-team-row {
   display: grid;
-  grid-template-columns: 1.7fr 1fr 1fr 90px;
+  grid-template-columns: 1.9fr 1fr 1fr 44px;
   align-items: center;
-  gap: 20px;
-  padding: 18px 31px;
+  gap: 16px;
+  padding: 11px 20px;
   border-top: 1px solid #eef0ff;
 }
 
@@ -944,19 +947,24 @@
   background: #f7f7ff;
   color: #9f9fd1;
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 9px 20px;
 }
 
 .bs-member {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 11px;
+  min-width: 0;
 }
 
 .bs-member img,
 .bs-member i {
-  width: 48px;
-  height: 48px;
+  width: 34px;
+  height: 34px;
+  flex: none;
   border-radius: 50%;
 }
 
@@ -966,69 +974,110 @@
   background: #eef0ff;
   color: #07074e;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .bs-member strong,
 .bs-member small {
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bs-member strong {
-  font-size: 18px;
+  font-size: 14px;
 }
 
 .bs-member small {
-  margin-top: 4px;
+  margin-top: 1px;
   color: #9f9fd1;
   font-weight: 400;
+  font-size: 12px;
 }
 
 .bs-role {
+  display: inline-flex;
+  align-items: center;
   width: fit-content;
-  padding: 7px 13px;
+  padding: 5px 12px;
   border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
   background: #f1f1ff;
-  color: #9f9fd1;
-  font-weight: 400;
-  text-transform: uppercase;
+  color: #5b6073;
 }
+/* Colour-coded so the owner and each access level read at a glance. */
+.bs-role.role-owner  { background: #fef3c7; color: #92400e; }
+.bs-role.role-admin  { background: #e0e7ff; color: #3730a3; }
+.bs-role.role-member { background: #e0f2fe; color: #075985; }
+.bs-role.role-viewer { background: #eef0f6; color: #64748b; }
 
 .bs-status {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
   color: #18a957;
-  font-weight: 400;
-  text-transform: capitalize;
 }
-
 .bs-status b {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: currentColor;
 }
+.bs-status.status-invited { color: #f59e0b; }
+.bs-status.status-inactive { color: #9ca3af; }
 
-.bs-status.invited {
-  color: #f59e0b;
+/* "You" chip next to the current user's name */
+.bs-you {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef0ff;
+  color: #4452f0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+/* Owner label sits where the delete button would be for members */
+.bs-lock-note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #b9863c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .bs-icon-only {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 50%;
+  border-radius: 8px;
   background: transparent;
-  color: #9f9fd1;
+  color: #b7bcd0;
+  cursor: pointer;
 }
+.bs-icon-only:hover { background: #fef2f2; color: #dc2626; }
+.bs-icon-only svg { width: 16px; height: 16px; }
 
 .bs-seat-note {
-  padding: 20px 31px;
+  padding: 13px 20px;
   color: #9f9fd1;
   font-weight: 400;
+  font-size: 13px;
 }
 
 .bs-ws-row {

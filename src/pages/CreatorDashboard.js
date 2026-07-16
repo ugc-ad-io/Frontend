@@ -171,10 +171,13 @@ export default function CreatorDashboard() {
       ]);
 
       const allCampaigns = campaignsRes.data;
-      // Only count campaigns this creator was actually selected for — some backends
-      // ignore the creator_id query param and return every completed campaign.
+      // "Deals closed" = only genuinely COMPLETED deals this creator was selected
+      // for. The backend ignores the `status=completed` query param for creators
+      // (it returns every campaign they're on, including cancelled and in-progress
+      // ones), so a cancelled deal was being counted as closed — filter on status
+      // here.
       const completedCampaigns = (worksRes.data || []).filter(
-        (c) => isSelectedCreator(c, user.id)
+        (c) => isSelectedCreator(c, user.id) && String(c.status).toLowerCase() === 'completed'
       );
 
       setActiveCampaigns(allCampaigns.filter((campaign) =>

@@ -1018,7 +1018,7 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
       }
       case 'announce':
         if (!text.trim()) { setBusy(false); return toast.error('Enter an announcement'); }
-        ok = await adminPost('/admin/broadcast-notification', { user_ids: action.users.map((x) => x.id), message: text }, `Announcement sent to ${action.users.length} user(s)`);
+        ok = await adminPost('/admin/broadcast-notification', { title: 'Announcement', target_user_ids: action.users.map((x) => x.id), message: text }, `Announcement sent to ${action.users.length} user(s)`);
         break;
       default: break;
     }

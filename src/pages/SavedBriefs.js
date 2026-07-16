@@ -9,7 +9,7 @@ import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import BriefDetailDrawer from '../components/BriefDetailDrawer';
 import normalizeBrief from '../utils/normalizeBrief';
-import { getSavedBriefs, toggleSavedBrief } from '../utils/savedBriefs';
+import { getSavedBriefs, toggleSavedBrief, hydrateSavedFromServer } from '../utils/savedBriefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -41,6 +41,8 @@ export default function SavedBriefs() {
   useEffect(() => {
     const sync = () => setSaved(getSavedBriefs());
     window.addEventListener('ugc-saved-changed', sync);
+    // Pull the durable saved set from the backend (syncs across devices).
+    hydrateSavedFromServer().then(setSaved).catch(() => {});
     return () => window.removeEventListener('ugc-saved-changed', sync);
   }, []);
 

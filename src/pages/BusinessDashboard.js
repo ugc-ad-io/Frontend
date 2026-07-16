@@ -22,13 +22,9 @@ import '../styles/creator-marketplace.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const budgetColors = ['#5b6bff', '#9296ba', '#07074E', '#27AE60', '#F59E0B'];
-const campaignPerformanceSample = [
-  { month: 'Jan', deals_closed: 15, approved_deliveries: 12, applications_received: 40, spend_k: 30 },
-  { month: 'Feb', deals_closed: 25, approved_deliveries: 20, applications_received: 60, spend_k: 45 },
-  { month: 'Mar', deals_closed: 40, approved_deliveries: 35, applications_received: 85, spend_k: 65 },
-  { month: 'Apr', deals_closed: 35, approved_deliveries: 30, applications_received: 75, spend_k: 55 },
-  { month: 'May', deals_closed: 50, approved_deliveries: 45, applications_received: 110, spend_k: 80 }
-];
+// No fabricated demo months — an empty performance series renders the real
+// "no data yet" state instead of fake Jan–May numbers for new brands.
+const campaignPerformanceSample = [];
 const performancePeriods = ['Weekly', 'Monthly', 'Quarterly'];
 
 const normalizePerformancePoint = (item = {}) => ({
@@ -859,7 +855,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Campaign', icon: SquarePen, path: '/dashboard/business/post-brief' },
-    { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
+    { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 0, badgeTone: 'orange' },
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },

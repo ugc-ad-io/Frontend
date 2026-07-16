@@ -57,8 +57,8 @@ const priceTextOf = (c) => {
     const num = raw.replace(/[^0-9]/g, '');
     if (num) return `Rs. ${Number(num).toLocaleString('en-IN')} / video`;
   }
-  const derived = (LEVEL_BASE[levelKeyOf(c)] || 1500) + (hashOf(c.id || nameOf(c)) % 9) * 250;
-  return `Rs. ${derived.toLocaleString('en-IN')} / video`;
+  // No real rate set by the creator — don't fabricate a price.
+  return 'Rate on request';
 };
 
 function ReelCard({ c, onView, onExpand }) {

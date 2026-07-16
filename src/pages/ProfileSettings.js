@@ -48,7 +48,11 @@ import {
   ExternalLink,
   ScrollText,
   BookOpen,
-  Cookie
+  Cookie,
+  X,
+  Mail,
+  Eye,
+  Pencil
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -62,6 +66,77 @@ const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+
+// The three team roles a brand can grant, shown as selectable cards so the
+// person inviting sees exactly what each one can do (replaces the raw browser
+// prompt that used to ask only for an email).
+const TEAM_ROLES = [
+  { key: 'admin', label: 'Admin', Icon: Shield, desc: 'Full access, and can invite or remove other team members.' },
+  { key: 'member', label: 'Member', Icon: Pencil, desc: 'Can create and manage campaigns, deals and work — but not the team.' },
+  { key: 'viewer', label: 'Viewer', Icon: Eye, desc: 'Read-only. Can see everything but cannot make changes.' },
+];
+
+function InviteModal({ email, setEmail, role, setRole, inviting, onSubmit, onClose }) {
+  const submit = (e) => { e.preventDefault(); onSubmit(); };
+  return (
+    <div className="im-overlay" onClick={onClose}>
+      <div className="im-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="im-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
+        <div className="im-head">
+          <span className="im-ic"><UserPlus size={20} /></span>
+          <div>
+            <h3>Invite a team member</h3>
+            <p>They’ll get an email link to set a password and join your workspace.</p>
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="im-body">
+          <label className="im-field">
+            <span>Email address</span>
+            <div className="im-input">
+              <Mail size={16} />
+              <input
+                type="email"
+                autoFocus
+                placeholder="teammate@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </label>
+
+          <div className="im-field">
+            <span>Role &amp; access</span>
+            <div className="im-roles">
+              {TEAM_ROLES.map((r) => (
+                <button
+                  type="button"
+                  key={r.key}
+                  className={`im-role ${role === r.key ? 'on' : ''}`}
+                  onClick={() => setRole(r.key)}
+                >
+                  <span className="im-role-ic"><r.Icon size={16} /></span>
+                  <span className="im-role-txt">
+                    <strong>{r.label}</strong>
+                    <small>{r.desc}</small>
+                  </span>
+                  <span className="im-radio" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="im-foot">
+            <button type="button" className="im-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="im-send" disabled={inviting || !email.trim()}>
+              {inviting ? 'Sending…' : 'Send invitation'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const getLevelInfo = (completedWorks) => {
   if (completedWorks >= 20) {
@@ -247,6 +322,7 @@ export default function ProfileSettings() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('member');
   const [inviting, setInviting] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [billing, setBilling] = useState(defaultBilling);
   const [notificationPrefs, setNotificationPrefs] = useState(defaultNotifications);
   const [summary, setSummary] = useState(defaultSummary);
@@ -290,8 +366,16 @@ export default function ProfileSettings() {
   }));
 
   const [legalDoc, setLegalDoc] = useState(null);
-  const saveCreatorNotif = () => { localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif)); toast.success('Notification preferences saved'); };
-  const savePrivacy = () => { localStorage.setItem('ugc_creator_privacy', JSON.stringify(privacy)); toast.success('Privacy settings saved'); };
+  const saveCreatorNotif = async () => {
+    localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif));
+    try { await axios.put(`${API}/profile/preferences`, { notification_prefs: creatorNotif }); } catch { /* cached locally */ }
+    toast.success('Notification preferences saved');
+  };
+  const savePrivacy = async () => {
+    localStorage.setItem('ugc_creator_privacy', JSON.stringify(privacy));
+    try { await axios.put(`${API}/profile/preferences`, { privacy }); } catch { /* cached locally */ }
+    toast.success('Privacy settings saved');
+  };
 
   const handleDeactivate = async () => {
     if (!window.confirm('Deactivate your account? Your profile will be hidden until you log back in.')) return;
@@ -443,6 +527,8 @@ export default function ProfileSettings() {
       const res = await axios.post(`${API}/business/settings/team/invite`, { email, role: inviteRole });
       toast.success('Invitation sent');
       setInviteEmail('');
+      setInviteRole('member');
+      setInviteOpen(false);
       // The invite endpoint returns the fresh team payload, so no extra round-trip.
       setTeam({ ...defaultTeam, ...(res.data || {}) });
     } catch (error) {
@@ -803,26 +889,23 @@ export default function ProfileSettings() {
               <h2>Team Members</h2>
               <p>Invite coworkers to your brand workspace. They log in with their own password and share your campaigns, deals and wallet — their access depends on the role you give them.</p>
             </div>
+            {canManage && (
+              <button type="button" className="bs-primary small" onClick={() => setInviteOpen(true)}>
+                <UserPlus size={16} /> Invite Member
+              </button>
+            )}
           </div>
 
-          {canManage && (
-            <div className="bs-team-invite">
-              <input
-                type="email"
-                placeholder="teammate@company.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') inviteMember(); }}
-              />
-              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                <option value="admin">Admin — can manage the team</option>
-                <option value="member">Member — can create & manage work</option>
-                <option value="viewer">Viewer — read-only</option>
-              </select>
-              <button type="button" className="bs-primary small" onClick={inviteMember} disabled={inviting}>
-                <UserPlus size={16} /> {inviting ? 'Sending…' : 'Invite'}
-              </button>
-            </div>
+          {inviteOpen && (
+            <InviteModal
+              email={inviteEmail}
+              setEmail={setInviteEmail}
+              role={inviteRole}
+              setRole={setInviteRole}
+              inviting={inviting}
+              onSubmit={inviteMember}
+              onClose={() => setInviteOpen(false)}
+            />
           )}
 
           <div className="bs-team-table">

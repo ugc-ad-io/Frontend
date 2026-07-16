@@ -170,8 +170,6 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
-  const [actionMenuOpen, setActionMenuOpen] = useState(false); // action-card dropdown
-  const actionMenuRef = useRef(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mutedIds, setMutedIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('ugcad-muted-convs') || '[]')); }
@@ -180,13 +178,6 @@ export default function MessagesPage() {
   const [report, setReport] = useState(null); // { reason, details } when the report modal is open
   const [reportSubmitting, setReportSubmitting] = useState(false);
 
-  // Close the action-card dropdown on any outside click.
-  useEffect(() => {
-    if (!actionMenuOpen) return undefined;
-    const onDown = (e) => { if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) setActionMenuOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [actionMenuOpen]);
   const typingSentAtRef = useRef(0);
   const messageContainerRef = useRef(null);
   const userScrolledUpRef = useRef(false);

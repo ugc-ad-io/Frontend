@@ -332,6 +332,10 @@ export default function MyDealsPage() {
   const [briefLoading, setBriefLoading] = useState(false);
   const [leftTab, setLeftTab] = useState('overview');
   const [chatOpen, setChatOpen] = useState(false);
+  // Bumped when the chat is marked seen, to re-read the per-deal seen count from
+  // localStorage so the unread badge clears. (Declared here — above the early
+  // returns — to satisfy the rules of hooks.)
+  const [, setChatSeenTick] = useState(0);
   const [message, setMessage] = useState('');
   const [messageAttachments, setMessageAttachments] = useState([]);
   const [finalVideoUrl, setFinalVideoUrl] = useState(null);
@@ -716,6 +720,21 @@ export default function MyDealsPage() {
   const shipmentRequired = deal?.shipment?.required || deal?.campaign?.requires_shipment;
   const shipment = deal?.shipment || {};
   const chatMessages = deal?.chat_summary?.messages || [];
+  // Unread badge = inbound messages (from the brand / system, not the creator's
+  // own) that haven't been seen. The badge used to show the TOTAL message count
+  // and never cleared; now opening the chat marks everything seen (persisted per
+  // deal in localStorage) so it drops to zero.
+  const chatDealId = getDealId(deal);
+  const inboundMsgCount = chatMessages.filter((m) => m.sender_type && m.sender_type !== 'creator').length;
+  const chatSeenKey = chatDealId ? `dealChatSeen:${chatDealId}` : null;
+  let chatSeenCount = 0;
+  try { chatSeenCount = chatSeenKey ? Number(localStorage.getItem(chatSeenKey) || 0) : 0; } catch { chatSeenCount = 0; }
+  const unreadChatCount = Math.max(0, inboundMsgCount - chatSeenCount);
+  const markChatSeen = () => {
+    if (!chatSeenKey) return;
+    try { localStorage.setItem(chatSeenKey, String(inboundMsgCount)); } catch { /* private mode */ }
+    setChatSeenTick((t) => t + 1);
+  };
   const escrow = deal?.escrow || {};
   const deliverables = buildDeliverables(deal);
   const deliverablesDone = deliverables.filter((d) => d.done).length;
@@ -954,7 +973,7 @@ export default function MyDealsPage() {
           <div className="cmk-dr-chat-pop-head">
             <span className="b">{deal?.brand?.logo_url ? <img src={getAssetUrl(deal.brand.logo_url)} alt="" /> : getInitial(brandName)}</span>
             <div><strong>{getDealTitle(deal)}</strong><small>{getDealId(deal)}</small></div>
-            <button type="button" className="x" aria-label="Close chat" onClick={() => setChatOpen(false)}><X size={18} /></button>
+            <button type="button" className="x" aria-label="Close chat" onClick={() => { markChatSeen(); setChatOpen(false); }}><X size={18} /></button>
           </div>
           <div className="cmk-dr-msgs">
             {chatMessages.length ? chatMessages.map((m) => (
@@ -974,11 +993,11 @@ export default function MyDealsPage() {
       <button
         type="button"
         className={`cmk-dr-chat-fab ${chatOpen ? 'is-open' : ''}`}
-        onClick={() => setChatOpen((v) => !v)}
+        onClick={() => { const opening = !chatOpen; setChatOpen(opening); if (opening) markChatSeen(); }}
         aria-label={chatOpen ? 'Close chat' : 'Open chat'}
       >
         {chatOpen ? <X size={22} /> : <MessageSquare size={22} />}
-        {!chatOpen && chatMessages.length > 0 && <i className="cmk-dr-fab-badge">{chatMessages.length}</i>}
+        {!chatOpen && unreadChatCount > 0 && <i className="cmk-dr-fab-badge">{unreadChatCount}</i>}
       </button>
     </CreatorTopNavLayout>
   );

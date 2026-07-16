@@ -184,6 +184,14 @@ export default function MessagesPage() {
   });
   const [report, setReport] = useState(null); // { reason, details } when the report modal is open
   const [reportSubmitting, setReportSubmitting] = useState(false);
+
+  // Close the action-card dropdown on any outside click.
+  useEffect(() => {
+    if (!actionMenuOpen) return undefined;
+    const onDown = (e) => { if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) setActionMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [actionMenuOpen]);
   const typingSentAtRef = useRef(0);
   const messageContainerRef = useRef(null);
   const userScrolledUpRef = useRef(false);
@@ -891,17 +899,31 @@ export default function MessagesPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Actions */}
-            <div className="msg-quick-chips">
-              {getAvailableActionCards(user?.role, selectedConv).map((action) => (
-                <button
-                  key={action}
-                  disabled={creatingCard}
-                  onClick={() => openActionComposer(action)}
-                >
-                  {ACTION_CARD_LABELS[action]}
-                </button>
-              ))}
+            {/* Quick Actions — a dropdown so every option is reachable regardless of width */}
+            <div className="msg-quick-actions" ref={actionMenuRef}>
+              <button
+                type="button"
+                className={`msg-actions-trigger ${actionMenuOpen ? 'is-open' : ''}`}
+                disabled={creatingCard}
+                onClick={() => setActionMenuOpen((v) => !v)}
+              >
+                <Plus size={15} /> Send action card <ChevronUp size={14} className="msg-actions-caret" />
+              </button>
+              {actionMenuOpen && (
+                <div className="msg-actions-menu" role="menu">
+                  {getAvailableActionCards(user?.role, selectedConv).map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      role="menuitem"
+                      disabled={creatingCard}
+                      onClick={() => { setActionMenuOpen(false); openActionComposer(action); }}
+                    >
+                      {ACTION_CARD_LABELS[action]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {actionCardsOnly ? (

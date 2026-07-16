@@ -136,7 +136,6 @@ export default function CreatorKYC() {
 
     // Documents
     if (!form.pan_doc_url) return toast.error('Upload a photo of your PAN card.');
-    if (!form.selfie_url) return toast.error('Upload a selfie holding your ID.');
 
     const payload = {
       full_legal_name: form.full_legal_name.trim(),
@@ -372,16 +371,6 @@ export default function CreatorKYC() {
                     </div>
                   </>
                 )}
-
-                <div className="kyc-sep" />
-
-                <h2>Selfie with ID</h2>
-                <DocUpload
-                  label="Selfie holding your ID"
-                  hint="A clear photo of you holding your PAN or Aadhaar next to your face."
-                  value={form.selfie_url}
-                  onChange={set('selfie_url')}
-                />
 
                 <button type="submit" className="kyc-submit" disabled={saving}>
                   {saving ? 'Submitting…' : 'Submit for verification'}

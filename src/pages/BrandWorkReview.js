@@ -167,7 +167,18 @@ export default function BrandWorkReview() {
       const u = window.URL.createObjectURL(res.data);
       const a = document.createElement('a'); a.href = u; a.download = `${title || 'deliverable'}.mp4`;
       document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(u);
-    } catch { toast.error('Download unlocks after approval'); }
+    } catch (err) {
+      // The server sends the reason (not approved / no file / not authorized). With a
+      // blob responseType, the error body is a Blob — read it so we stop showing the
+      // misleading "unlocks after approval" for every failure.
+      let msg = 'Download failed';
+      try {
+        const body = err?.response?.data;
+        const text = body instanceof Blob ? await body.text() : JSON.stringify(body);
+        msg = JSON.parse(text)?.detail || msg;
+      } catch { /* keep fallback */ }
+      toast.error(msg);
+    }
   };
   const openFile = (it) => {
     const f = it.files.find((x) => isVideo(x)) || it.files[0];

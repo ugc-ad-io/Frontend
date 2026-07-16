@@ -231,6 +231,15 @@ export default function CampaignDetails({ embedId, onClose }) {
 
   const hasUserBid = campaign?.bids?.some(bid => bid.creator_id === user?.id);
   const userBid = campaign?.bids?.find(bid => bid.creator_id === user?.id);
+  // Reflect the real bid outcome instead of always saying "Pending Review".
+  const bidSelected = userBid?.status === 'selected'
+    || String(campaign?.selected_creator) === String(user?.id)
+    || (Array.isArray(campaign?.selected_creators) && campaign.selected_creators.map(String).includes(String(user?.id)));
+  const bidStatus = userBid?.status === 'declined'
+    ? { label: 'Not Selected', cls: 'declined' }
+    : bidSelected
+      ? { label: 'Accepted', cls: 'accepted' }
+      : { label: 'Pending Review', cls: 'pending' };
 
   if (loading) {
     return <div className="loading-page">Loading campaign...</div>;
@@ -371,7 +380,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Status:</span>
-                      <span className="status-badge">Pending Review</span>
+                      <span className={`status-badge status-${bidStatus.cls}`}>{bidStatus.label}</span>
                     </div>
                   </div>
                   {userBid?.proposal && (
@@ -1437,6 +1446,8 @@ export default function CampaignDetails({ embedId, onClose }) {
           display: inline-block !important;
           box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
+        .status-badge.status-declined { background: #fee2e2 !important; color: #b42318 !important; box-shadow: none; }
+        .status-badge.status-accepted { background: #dcfce7 !important; color: #15803d !important; box-shadow: none; }
 
         .bid-submitted-proposal {
           background: white;

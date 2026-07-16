@@ -301,8 +301,13 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
                   onClick={() => toggleShortlist(id)}
                 >★</button>
                 <button type="button" className="cb-view-profile" onClick={() => onViewProfile(campaign.id, bid)}>View Profile</button>
-                <button type="button" className="cb-accept" onClick={() => onAccept(campaign.id, bid.creator_id)}>Accept</button>
-                <button type="button" className="cb-decline" onClick={() => declineBid(id)}>Decline</button>
+                {/* A declined bid can't be accepted/declined again — show its state. */}
+                {declined.has(id) ? (
+                  <span className="cb-declined-tag">Declined</span>
+                ) : (<>
+                  <button type="button" className="cb-accept" onClick={() => onAccept(campaign.id, bid.creator_id)}>Accept</button>
+                  <button type="button" className="cb-decline" onClick={() => declineBid(id)}>Decline</button>
+                </>)}
               </div>
             </div>
           );
@@ -4991,6 +4996,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #b0496a; font-weight: 600; font-size: 13px; font-family: inherit; padding: 4px;
         }
         .cb-decline:hover { text-decoration: underline; }
+        .cb-declined-tag { display:inline-flex; align-items:center; padding:7px 14px; border-radius:999px; background:#fee2e2; color:#b42318; font-weight:700; font-size:13px; }
         .cb-empty { padding: 40px; text-align: center; color: #9296ba; font-size: 14px; }
 
         @media (max-width: 860px) {

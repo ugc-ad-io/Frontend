@@ -646,7 +646,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const content = (
       <div className="cpm" onClick={(e) => e.stopPropagation()}>
-        <div className={`cpm-banner ${editable ? 'is-editable' : ''}`} style={banner ? { backgroundImage: `url(${banner})` } : undefined} onClick={editable ? () => bannerRef.current?.click() : undefined}>
+        <div
+          className={`cpm-banner ${editable ? 'is-editable' : ''}`}
+          // Layer the banner image OVER the gradient (not instead of it): a broken or
+          // missing banner URL falls through to the gradient rather than showing white.
+          style={banner ? { backgroundImage: `url(${banner}), linear-gradient(120deg,#5b6bff,#23236a 55%,#4452f0)` } : undefined}
+          onClick={editable ? () => bannerRef.current?.click() : undefined}
+        >
           {asPage
             ? <button type="button" className="cpm-banner-back" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Back"><ChevronLeft size={20} /></button>
             : <button type="button" className="cpm-x" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close"><X size={18} /></button>}

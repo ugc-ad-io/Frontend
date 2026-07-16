@@ -132,7 +132,11 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
   const bids = campaign.bids || [];
   const [tab, setTab] = useState('all');
   const [shortlist, setShortlist] = useState(() => new Set());
-  const [declined, setDeclined] = useState(() => new Set());
+  // Seed from the persisted bid status so a decline survives a page refresh —
+  // it used to be UI-only state that reset on reload, making declines "come back".
+  const [declined, setDeclined] = useState(
+    () => new Set(bids.filter((b) => b.status === 'declined').map((b) => b.id ?? b.creator_id))
+  );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sort, setSort] = useState('match'); // match | price-low | price-high | delivery-fast
 
@@ -189,7 +193,18 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
     { id: 'delivery-fast', label: 'Fastest delivery' },
   ];
 
-  const declineBid = (id) => setDeclined(prev => new Set(prev).add(id));
+  const declineBid = async (id) => {
+    // Optimistic: hide it immediately, then persist. Revert if the call fails so
+    // the row doesn't silently reappear on the next refresh.
+    setDeclined(prev => new Set(prev).add(id));
+    try {
+      await axios.post(`${API}/campaigns/${campaign.id}/bids/${encodeURIComponent(id)}/decline`);
+      toast.success('Bid declined — the creator has been notified.');
+    } catch (e) {
+      setDeclined(prev => { const next = new Set(prev); next.delete(id); return next; });
+      toast.error(apiErrorMessage(e, 'Could not decline this bid'));
+    }
+  };
   const toggleShortlist = (id) => setShortlist(prev => {
     const next = new Set(prev);
     if (next.has(id)) next.delete(id); else next.add(id);

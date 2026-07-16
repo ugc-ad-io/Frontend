@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus, ChevronUp } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -39,7 +39,7 @@ const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
 // Define which action cards are available for each role
 const ACTION_CARDS_BY_ROLE = {
   creator: ['custom_offer', 'counter_offer', 'revision_request', 'milestone_update', 'damage_report', 'escalate_to_admin', 'raise_dispute'],
-  business: ['private_invitation', 'custom_offer', 'counter_offer', 'revision_request', 'milestone_update', 'escalate_to_admin', 'raise_dispute']
+  business: ['private_invitation', 'counter_offer', 'revision_request', 'escalate_to_admin', 'raise_dispute']
 };
 
 // A revision can only be asked for while the brand is reviewing submitted work.
@@ -105,7 +105,7 @@ const ACTION_CARD_FORM_FIELDS = {
     ['severity', 'Severity', 'select', 'medium', ['low', 'medium', 'high']]
   ],
   escalate_to_admin: [
-    ['summary', 'Summary', 'textarea', 'Please review this chat thread and help resolve the communication issue between both parties.'],
+    ['summary', 'Summary', 'textarea', 'Please review this chat thread and help resolve the ongoing communication issue between both parties. Kindly go through the messages above and advise on the best way forward.'],
     ['category', 'Category', 'select', 'communication', ['communication', 'timeline', 'clarity', 'other']]
   ],
   raise_dispute: [
@@ -126,6 +126,13 @@ const ACTION_CARD_REQUIRED = {
   damage_report: ['reason', 'description', 'severity'],
   escalate_to_admin: ['summary', 'category'],
   raise_dispute: ['summary', 'category'],
+};
+
+// Character limits the backend enforces (server.py validate_action_card_payload).
+// Surfaced in the form — with a live counter — so the user sees the requirement
+// up front instead of hitting Send and getting a 400 back.
+const ACTION_CARD_FIELD_LIMITS = {
+  escalate_to_admin: { summary: { min: 100, max: 500 } },
 };
 
 const avatarColors = ['#07074e', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
@@ -168,6 +175,8 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false); // action-card dropdown
+  const actionMenuRef = useRef(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mutedIds, setMutedIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('ugcad-muted-convs') || '[]')); }
@@ -626,6 +635,15 @@ export default function MessagesPage() {
         return;
       }
     }
+    // Enforce the same length rules the backend does, with a clear message.
+    const limits = ACTION_CARD_FIELD_LIMITS[actionComposerType] || {};
+    for (const [key, { min, max }] of Object.entries(limits)) {
+      const len = String(actionForm[key] ?? '').trim().length;
+      if (len < min || len > max) {
+        toast.error(`${labelOf(key)} must be ${min} to ${max} characters (currently ${len}).`);
+        return;
+      }
+    }
 
     setCreatingCard(true);
     try {
@@ -648,10 +666,27 @@ export default function MessagesPage() {
   const renderActionComposerField = ([key, label, type, , options]) => {
     const value = actionForm[key] ?? '';
     if (type === 'textarea') {
+      // If this field has a length rule, show it next to the label and count live,
+      // so the requirement is visible before Send — not a surprise 400 after.
+      const limit = (ACTION_CARD_FIELD_LIMITS[actionComposerType] || {})[key];
+      const len = String(value).length;
+      const outOfRange = limit && (len < limit.min || len > limit.max);
       return (
         <label key={key}>
-          <span>{label}</span>
-          <textarea value={value} onChange={(event) => setActionForm((current) => ({ ...current, [key]: event.target.value }))} />
+          <span className="msg-field-lbl">
+            {label}
+            {limit && (
+              <em className={`msg-charhint${outOfRange ? ' bad' : ' ok'}`}>
+                {len}/{limit.max}{len < limit.min ? ` · min ${limit.min}` : ''}
+              </em>
+            )}
+          </span>
+          <textarea
+            value={value}
+            maxLength={limit ? limit.max : undefined}
+            placeholder={limit ? `Write ${limit.min}–${limit.max} characters` : undefined}
+            onChange={(event) => setActionForm((current) => ({ ...current, [key]: event.target.value }))}
+          />
         </label>
       );
     }

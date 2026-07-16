@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus, ChevronUp } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -885,31 +885,23 @@ export default function MessagesPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Actions — a dropdown so every option is reachable regardless of width */}
-            <div className="msg-quick-actions" ref={actionMenuRef}>
-              <button
-                type="button"
-                className={`msg-actions-trigger ${actionMenuOpen ? 'is-open' : ''}`}
-                disabled={creatingCard}
-                onClick={() => setActionMenuOpen((v) => !v)}
-              >
-                <Plus size={15} /> Send action card <ChevronUp size={14} className="msg-actions-caret" />
-              </button>
-              {actionMenuOpen && (
-                <div className="msg-actions-menu" role="menu">
-                  {getAvailableActionCards(user?.role, selectedConv).map((action) => (
-                    <button
-                      key={action}
-                      type="button"
-                      role="menuitem"
-                      disabled={creatingCard}
-                      onClick={() => { setActionMenuOpen(false); openActionComposer(action); }}
-                    >
-                      {ACTION_CARD_LABELS[action]}
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Quick Actions — a single horizontal row. It scrolls sideways when the
+                options don't fit, rather than opening a vertical dropdown. */}
+            <div className="msg-quick-actions">
+              <span className="msg-quick-actions-lbl"><Plus size={14} /> Send action card</span>
+              <div className="msg-actions-row">
+                {getAvailableActionCards(user?.role, selectedConv).map((action) => (
+                  <button
+                    key={action}
+                    type="button"
+                    className="msg-action-chip"
+                    disabled={creatingCard}
+                    onClick={() => openActionComposer(action)}
+                  >
+                    {ACTION_CARD_LABELS[action]}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {actionCardsOnly ? (

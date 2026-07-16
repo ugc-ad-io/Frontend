@@ -1176,80 +1176,60 @@
 
 /* Action-card dropdown (replaces the overflowing chip row). */
 .msg-quick-actions {
-  position: relative;
-  padding: 12px 28px;
+  padding: 10px 28px 12px;
   background: #ffffff;
   border-top: 1px solid #eef0f6;
   flex-shrink: 0;
 }
 
-.msg-actions-trigger {
+.msg-quick-actions-lbl {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #9aa0b4;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+/* Single horizontal row; scrolls sideways when the chips overflow. */
+.msg-actions-row {
+  display: flex;
   gap: 8px;
-  padding: 10px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.msg-actions-row::-webkit-scrollbar { height: 6px; }
+.msg-actions-row::-webkit-scrollbar-thumb { background: #d7dae8; border-radius: 999px; }
+.msg-actions-row::-webkit-scrollbar-track { background: transparent; }
+
+.msg-action-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 9px 16px;
   border: 1.5px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 999px;
   background: #faf9fc;
   color: #4a5568;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 500;
   cursor: pointer;
   font-family: var(--font-body);
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.msg-actions-trigger:hover:not(:disabled),
-.msg-actions-trigger.is-open {
+.msg-action-chip:hover:not(:disabled) {
   background: #f5f4ff;
   border-color: #07074e;
   color: #07074e;
 }
 
-.msg-actions-trigger:disabled { opacity: 0.6; cursor: default; }
-
-.msg-actions-caret { transition: transform 0.2s ease; }
-.msg-actions-trigger:not(.is-open) .msg-actions-caret { transform: rotate(180deg); }
-
-/* Opens upward (the compose row sits at the bottom of the chat). */
-.msg-actions-menu {
-  position: absolute;
-  bottom: calc(100% - 6px);
-  left: 28px;
-  min-width: 230px;
-  max-height: 280px;
-  overflow-y: auto;
-  background: #ffffff;
-  border: 1px solid #e6e8f0;
-  border-radius: 14px;
-  box-shadow: 0 18px 46px -14px rgba(7, 7, 78, 0.28);
-  padding: 6px;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.msg-actions-menu button {
-  text-align: left;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: #2a2f52;
-  font-size: 0.87rem;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: var(--font-body);
-}
-
-.msg-actions-menu button:hover:not(:disabled) {
-  background: #f2f3ff;
-  color: #07074e;
-}
-
-.msg-actions-menu button:disabled { opacity: 0.5; cursor: default; }
+.msg-action-chip:disabled { opacity: 0.6; cursor: default; }
 
 .msg-input-row {
   position: relative;

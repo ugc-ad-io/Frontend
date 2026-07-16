@@ -38,6 +38,7 @@ const WorkSubmission = lazy(() => import('./pages/WorkSubmission'));
 const WorkReview = lazy(() => import('./pages/WorkReview'));
 const PayoutWithLayout = lazy(() => import('./pages/PayoutWithLayout'));
 const CreatorKYC = lazy(() => import('./pages/CreatorKYC'));
+const TeamAccept = lazy(() => import('./pages/TeamAccept'));
 const ShipmentTracking = lazy(() => import('./pages/ShipmentTracking'));
 const BrowseBriefs = lazy(() => import('./pages/BrowseBriefs'));
 const SavedBriefs = lazy(() => import('./pages/SavedBriefs'));
@@ -284,6 +285,7 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/creator" element={<CreatorLanding />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/team/accept" element={<TeamAccept />} />
             <Route path="/creator/signup" element={<CreatorSignup />} />
             <Route
               path="/profile-setup/creator"

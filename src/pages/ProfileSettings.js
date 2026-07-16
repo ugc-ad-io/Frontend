@@ -244,6 +244,9 @@ export default function ProfileSettings() {
   const [brandProfile, setBrandProfile] = useState(defaultBrandProfile);
   const [company, setCompany] = useState(defaultCompany);
   const [team, setTeam] = useState(defaultTeam);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
+  const [inviting, setInviting] = useState(false);
   const [billing, setBilling] = useState(defaultBilling);
   const [notificationPrefs, setNotificationPrefs] = useState(defaultNotifications);
   const [summary, setSummary] = useState(defaultSummary);
@@ -433,25 +436,27 @@ export default function ProfileSettings() {
   };
 
   const inviteMember = async () => {
-    const email = window.prompt('Enter team member email');
-    if (!email) return;
+    const email = inviteEmail.trim();
+    if (!email) { toast.error('Enter an email to invite'); return; }
+    setInviting(true);
     try {
-      await axios.post(`${API}/business/settings/team/invite`, { email, role: 'viewer' });
+      const res = await axios.post(`${API}/business/settings/team/invite`, { email, role: inviteRole });
       toast.success('Invitation sent');
-      const res = await axios.get(`${API}/business/settings/team`);
+      setInviteEmail('');
+      // The invite endpoint returns the fresh team payload, so no extra round-trip.
       setTeam({ ...defaultTeam, ...(res.data || {}) });
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to invite member'));
-    }
+    } finally { setInviting(false); }
   };
 
   const removeMember = async (member) => {
     if (!member.id) { toast.error('Cannot remove this member'); return; }
-    if (!window.confirm(`Remove ${member.name || member.email} from your team?`)) return;
+    const what = member.status === 'invited' ? 'Cancel the invite for' : 'Remove';
+    if (!window.confirm(`${what} ${member.name || member.email}?`)) return;
     try {
-      await axios.delete(`${API}/business/settings/team/${member.id}`);
-      toast.success('Team member removed');
-      const res = await axios.get(`${API}/business/settings/team`);
+      const res = await axios.delete(`${API}/business/settings/team/${member.id}`);
+      toast.success(member.status === 'invited' ? 'Invite cancelled' : 'Team member removed');
       setTeam({ ...defaultTeam, ...(res.data || {}) });
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to remove member'));
@@ -788,16 +793,38 @@ export default function ProfileSettings() {
     }
 
     if (brandTab === 'team') {
+      // Only the workspace owner or a team admin can invite / remove.
+      const canManage = ['owner', 'admin'].includes(user?.team_role || 'owner');
       return (
         <section className="bs-card">
           <div className="bs-card-head">
             <span><Users size={20} /></span>
             <div>
               <h2>Team Members</h2>
-              <p>Invite and manage workspace collaborators and their permissions</p>
+              <p>Invite coworkers to your brand workspace. They log in with their own password and share your campaigns, deals and wallet — their access depends on the role you give them.</p>
             </div>
-            <button type="button" className="bs-primary small" onClick={inviteMember}><UserPlus size={16} /> Invite Member</button>
           </div>
+
+          {canManage && (
+            <div className="bs-team-invite">
+              <input
+                type="email"
+                placeholder="teammate@company.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') inviteMember(); }}
+              />
+              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                <option value="admin">Admin — can manage the team</option>
+                <option value="member">Member — can create & manage work</option>
+                <option value="viewer">Viewer — read-only</option>
+              </select>
+              <button type="button" className="bs-primary small" onClick={inviteMember} disabled={inviting}>
+                <UserPlus size={16} /> {inviting ? 'Sending…' : 'Invite'}
+              </button>
+            </div>
+          )}
+
           <div className="bs-team-table">
             <div className="bs-team-row bs-team-head"><span>Member</span><span>Role</span><span>Status</span><span>Actions</span></div>
             {(team.members || []).map(member => (
@@ -808,11 +835,13 @@ export default function ProfileSettings() {
                 </div>
                 <span className="bs-role">{member.role}</span>
                 <span className={`bs-status ${member.status}`}><b /> {member.status}</span>
-                <button type="button" className="bs-icon-only" title="Remove member" onClick={() => removeMember(member)}><Trash2 size={18} /></button>
+                {canManage && !member.is_owner
+                  ? <button type="button" className="bs-icon-only" title={member.status === 'invited' ? 'Cancel invite' : 'Remove member'} onClick={() => removeMember(member)}><Trash2 size={18} /></button>
+                  : <span />}
               </div>
             ))}
           </div>
-          <p className="bs-seat-note">Workspace limit: <strong>{team.seats_used || team.members?.length || 0} / {team.seat_limit || 10} seats used.</strong> Pro plan allows up to {team.seat_limit || 10} members.</p>
+          <p className="bs-seat-note">Workspace: <strong>{team.seats_used || team.members?.length || 0} / {team.seat_limit || 10} seats used.</strong></p>
         </section>
       );
     }

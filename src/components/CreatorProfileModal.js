@@ -573,6 +573,19 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     return <div className="cpm-f wide" key={label}><label>{label}</label><div className="cpm-chips">{items.map((x, i) => <span key={i}>{typeof x === 'string' ? x : (x?.label || x?.name || '')}</span>)}</div></div>;
   };
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  // Social links must be openable — the plain-text Row rendered them as dead text.
+  // Prefix a bare handle/domain with https:// so the anchor actually navigates.
+  const LinkRow = (label, value) => {
+    const url = String(value || '').trim();
+    if (!url) return null;
+    const href = /^https?:\/\//i.test(url) ? url : `https://${url.replace(/^\/+/, '')}`;
+    return (
+      <div className="cpm-f wide" key={label}>
+        <label>{label}</label>
+        <a className="cpm-link" href={href} target="_blank" rel="noreferrer noopener">{url}</a>
+      </div>
+    );
+  };
 
   // Build each section's rows, then drop any section that ended up empty so the
   // Details tab never shows a wall of blank cards.
@@ -598,7 +611,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       title: 'Skills & Languages', Icon: Sparkles,
       rows: [
         Chips('Skills', skills), Chips('Languages', languages),
-        ...Object.entries(social).map(([k, v]) => (v ? Row(cap(k), v) : null)),
+        ...Object.entries(social).map(([k, v]) => (v ? LinkRow(cap(k), v) : null)),
       ].filter(Boolean),
     },
     {
@@ -1193,6 +1206,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-f.wide{grid-column:1/-1}
         .cpm-f label{font-size:11px;font-weight:700;color:#9296ba;text-transform:uppercase;letter-spacing:.3px}
         .cpm-f span{font-size:14px;color:#15163a;font-weight:600;overflow-wrap:anywhere}
+        .cpm-link{font-size:14px;color:#4452f0;font-weight:600;overflow-wrap:anywhere;text-decoration:none}
+        .cpm-link:hover{text-decoration:underline}
         .cpm-chips{display:flex;flex-wrap:wrap;gap:6px}
         .cpm-chips span{background:#eef0ff;color:#5b6bff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:14px}
         .cpm-bio{margin:12px 0 0;color:#585c7e;font-size:13.5px;line-height:1.55}

@@ -811,7 +811,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                   </>
                 );
               })()}
-              <p className="cpm-ef-note">Saving updates your profile and re-submits it for admin review.</p>
             </div>
           ) : (
             <>

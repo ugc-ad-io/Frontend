@@ -105,7 +105,6 @@ export default function AdminKYC() {
                   <div className="akyc-docs">
                     {[
                       ['PAN card', k.pan_doc_url],
-                      ['Selfie with ID', k.selfie_url],
                       ['Aadhaar front', k.aadhaar_front_url],
                       ['Aadhaar back', k.aadhaar_back_url],
                     ].map(([label, url]) => (

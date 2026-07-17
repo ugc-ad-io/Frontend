@@ -63,12 +63,20 @@ const KEY_IS_MEDIA = /photo|picture|avatar|image|logo|banner|thumb|video|reel|in
 const collectUrls = (v) => {
   const out = [];
   const push = (x) => { if (typeof x === 'string' && x.trim()) out.push(x.trim()); };
+  // A portfolio item can be a rich object ({ videoUrl, urls:[...], original_url }).
+  // The old extractor only checked url/file_url/src/video/video_url, so a creator's
+  // clips (stored as { videoUrl, urls }) yielded nothing and never played.
+  const fromObj = (o) => {
+    if (Array.isArray(o.urls)) o.urls.forEach(push);
+    push(o.url || o.file_url || o.src || o.video || o.video_url || o.videoUrl
+      || o.original_url || o.image || o.image_url || o.link);
+  };
   if (typeof v === 'string') push(v);
   else if (Array.isArray(v)) v.forEach((item) => {
     if (typeof item === 'string') push(item);
-    else if (item && typeof item === 'object') push(item.url || item.file_url || item.src || item.video || item.video_url || item.image || item.image_url);
+    else if (item && typeof item === 'object') fromObj(item);
   });
-  else if (v && typeof v === 'object') push(v.url || v.file_url || v.src);
+  else if (v && typeof v === 'object') fromObj(v);
   return out;
 };
 

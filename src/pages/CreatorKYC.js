@@ -92,7 +92,7 @@ export default function CreatorKYC() {
     address_line: '', city: '', state: '', pincode: '',
     payout_method: 'upi', upi_id: '',
     account_holder_name: '', bank_name: '', account_number: '', ifsc_code: '',
-    pan_doc_url: '', aadhaar_front_url: '', aadhaar_back_url: '', selfie_url: '',
+    pan_doc_url: '', aadhaar_front_url: '', aadhaar_back_url: '',
   });
 
   useEffect(() => {
@@ -147,7 +147,6 @@ export default function CreatorKYC() {
       pan_doc_url: form.pan_doc_url,
       aadhaar_front_url: form.aadhaar_front_url,
       aadhaar_back_url: form.aadhaar_back_url,
-      selfie_url: form.selfie_url,
       ...(form.payout_method === 'upi'
         ? { upi_id: upi }
         : { bank_details: { account_holder_name: form.account_holder_name.trim(), bank_name: form.bank_name.trim(), account_number: acct, ifsc_code: ifsc } }),

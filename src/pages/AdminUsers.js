@@ -10,7 +10,7 @@ import {
 import AdminLayout from '../components/AdminLayout';
 import { Skeleton } from '../components/Skeleton';
 import { useAuth } from '../App';
-import { can } from '../utils/adminRoles';
+import { can, ROLE_LABELS, normalizeRole } from '../utils/adminRoles';
 import { levelLabelOf } from '../utils/creatorLevel';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -24,6 +24,10 @@ const p = (u, ...keys) => {
 };
 const isBrand = (u) => u.role === 'business';
 const isCreator = (u) => u.role === 'creator';
+// Staff accounts (role === 'admin', carrying an admin_role sub-tier). They are
+// neither a brand nor a creator, so they must NOT get the creator profile layout
+// (deals/earnings/level/KYC). Anything that isn't a brand/creator is treated as staff.
+const isAdmin = (u) => u.role === 'admin' || (!isBrand(u) && !isCreator(u));
 // backend stores `active` (false => suspended/deactivated) and a separate `banned` flag (10.9)
 const userState = (u) => (u.banned ? 'banned' : (u.active === false ? 'suspended' : (u.chat?.suspended ? 'suspended' : 'active')));
 const isInactive = (u) => u.banned === true || u.active === false;
@@ -431,7 +435,7 @@ export default function AdminUsers({
                       <td>{u.email}</td>
                       <td>
                         <span className="au-badge">{isBrand(u) ? 'brand' : u.role}</span>
-                        {!isBrand(u) && (
+                        {isCreator(u) && (
                           <span className="au-badge au-badge-level" title="Creator level">
                             {levelLabelOf(u.level_key ?? u.level)}
                           </span>

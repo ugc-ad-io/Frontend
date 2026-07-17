@@ -680,15 +680,25 @@ export default function AdminUsers({
 // =============================================================================
 function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, deals, disputes, activityLoading, onAction, onBan, banned, caps = {} }) {
   const brand = isBrand(u);
-  const acct = p(u, 'bank_account', 'account_number', 'bank_account_number');
-  const ifsc = p(u, 'ifsc', 'ifsc_code');
-  const pan = p(u, 'pan', 'pan_number');
-  const aadhaar = p(u, 'aadhaar', 'aadhaar_number');
+  // KYC is submitted to user.kyc (not user.profile); the payout account lives at the
+  // top level (u.bank_details / u.upi_id) — that's where withdrawals read it.
+  const kyc = u.kyc || {};
+  const kycAddr = kyc.address || {};
+  const bankDetails = u.bank_details || {};
+  const acct = bankDetails.account_number || p(u, 'bank_account', 'account_number');
+  const ifsc = bankDetails.ifsc_code || p(u, 'ifsc', 'ifsc_code');
+  const bankHolder = bankDetails.account_holder_name;
+  const bankName = bankDetails.bank_name;
+  const upiId = u.upi_id;
+  const pan = kyc.pan_number || p(u, 'pan', 'pan_number');
+  const aadhaar = kyc.aadhaar_number || p(u, 'aadhaar', 'aadhaar_number');
+  const docUrl = (uu) => (!uu ? '' : (String(uu).startsWith('http') ? uu : `${BACKEND_URL}${uu}`));
   const docs = [
-    ['PAN', p(u, 'pan_url', 'pan_document')],
-    ['Aadhaar', p(u, 'aadhaar_url', 'aadhaar_document')],
+    ['PAN card', kyc.pan_doc_url || p(u, 'pan_url', 'pan_document')],
+    ['Aadhaar front', kyc.aadhaar_front_url || p(u, 'aadhaar_url', 'aadhaar_document')],
+    ['Aadhaar back', kyc.aadhaar_back_url],
+    ['Selfie', kyc.selfie_url],
     ['GST Cert', p(u, 'gst_certificate', 'gst_url')],
-    ['Cancelled Cheque', p(u, 'cheque_url', 'bank_proof')],
   ].filter(([, url]) => url);
   const earned = deals.reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const campaigns = Array.from(new Set(deals.map((d) => d.campaign_title).filter(Boolean)));
@@ -716,7 +726,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
               {brand ? businessName(u) : (u.nickname || realName(u))}
               <span className={`au-badge au-state-${userState(u)}`}>{STATE_LABELS[userState(u)]}</span>
             </h2>
-            <div className="aud-sub">{handleOf(u)} · {u.email} · {brand ? 'Brand' : 'Creator'} {!brand && '· Level: New'}</div>
+            <div className="aud-sub">{handleOf(u)} · {u.email} · {brand ? 'Brand' : (isCreator(u) ? 'Creator' : 'Admin')}{isCreator(u) && ` · Level: ${levelLabelOf(u.level_key ?? u.level)}`}</div>
           </div>
           <button className="aud-close" onClick={onClose}><X size={22} /></button>
         </div>
@@ -746,6 +756,45 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                 {/* Flags moved off the table into here. */}
                 <Row label="Flags / strikes" value={strikes(u).length ? `${strikes(u).length}` : '0'} />
               </div>
+
+              {/* KYC & payout — creators submit this to user.kyc via Verify KYC. */}
+              {!brand && (
+                <div className="aud-card">
+                  <h4>
+                    <FileText size={14} /> KYC &amp; Payout
+                    {kyc.status && <span className={`au-badge au-state-${kyc.status === 'verified' ? 'active' : kyc.status === 'rejected' ? 'banned' : 'suspended'}`}>{kyc.status}</span>}
+                  </h4>
+                  {!u.kyc ? (
+                    <p className="aud-empty">No KYC submitted yet.</p>
+                  ) : (
+                    <>
+                      <Row label="Legal name" value={kyc.full_legal_name || realName(u) || '—'} />
+                      <Row label="Date of birth" value={kyc.date_of_birth || '—'} />
+                      <Row label="Gender" value={kyc.gender || '—'} />
+                      <Row label="PAN" value={pan ? (revealBank ? pan : mask4(pan)) : '—'} reveal={pan ? () => setRevealBank((v) => !v) : undefined} revealed={revealBank} />
+                      <Row label="Aadhaar" value={aadhaar ? (revealBank ? aadhaar : mask4(aadhaar)) : '—'} />
+                      <Row label="Address" value={[kycAddr.line, kycAddr.city, kycAddr.state, kycAddr.pincode].filter(Boolean).join(', ') || '—'} />
+                      <Row label="Payout method" value={kyc.payout_method === 'upi' ? 'UPI' : (acct ? 'Bank account' : '—')} />
+                      {upiId && <Row label="UPI ID" value={upiId} />}
+                      {acct && <>
+                        <Row label="Account holder" value={bankHolder || '—'} />
+                        <Row label="Bank" value={bankName || '—'} />
+                        <Row label="Account no." value={revealBank ? acct : mask4(acct)} />
+                        <Row label="IFSC" value={ifsc || '—'} />
+                      </>}
+                      {kyc.rejection_reason && <Row label="Rejection reason" value={kyc.rejection_reason} />}
+                      <Row label="Submitted" value={dateShort(kyc.submitted_at) || '—'} />
+                      {docs.length > 0 && (
+                        <div className="aud-docs">
+                          {docs.map(([label, url]) => (
+                            <a key={label} href={docUrl(url)} target="_blank" rel="noreferrer" className="au-badge aud-doc-link">{label}</a>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

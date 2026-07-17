@@ -274,7 +274,15 @@ export default function BrowseBriefs() {
       <BriefDetailDrawer
         brief={openBrief}
         onClose={() => setOpenBrief(null)}
-        onBid={(b) => (b.hasBid ? navigate(`/campaign/${b.id}`) : openBidForm(b))}
+        onBid={(b) => {
+          if (b.hasBid) return navigate(`/campaign/${b.id}`);
+          // KYC gate: unverified creators can't bid — nudge them to verify first.
+          if (user?.kyc?.status !== 'verified') {
+            toast.error('Verify your KYC before submitting a bid.');
+            return navigate('/kyc');
+          }
+          openBidForm(b);
+        }}
       />
 
       {bidBrief && (

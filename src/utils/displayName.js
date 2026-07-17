@@ -6,16 +6,17 @@
 // username), then the email local-part, then a generic role label.
 export function displayName(user, fallback = 'User') {
   if (!user) return fallback;
-  const first = (v) => (typeof v === 'string' && v.trim() ? v.trim() : '');
+  // Trim, and ALWAYS strip a leading "@" — some accounts store the nickname as
+  // "@FierceDragon774", so stripping only the username field wasn't enough.
+  const first = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
   return (
     first(user.nickname) ||
     first(user.full_name) ||
     first(user.name) ||
     first(user.business_name) ||
-    // Strip a leading "@" if a handle sneaks through — never show it as a handle.
-    first(user.username).replace(/^@/, '') ||
-    first(user.public_creator_id).replace(/^@/, '') ||
-    first(user.email).split('@')[0] ||
+    first(user.username) ||
+    first(user.public_creator_id) ||
+    (first(user.email).split('@')[0]) ||
     fallback
   );
 }

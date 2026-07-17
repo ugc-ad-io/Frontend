@@ -206,7 +206,7 @@ const MAX_CONTENT_PICKS = 5;
 // Required fields per step — every one must be filled to proceed, and each filled
 // field nudges the completion ring up. (mapLink stays optional.) Add a step's array
 // here as you build it so it counts toward completion + validation automatically.
-const STEP1_FIELDS = ['fullName', 'age', 'gender', 'bodyType', 'skinTone']; // photo is optional
+const STEP1_FIELDS = ['firstName', 'lastName', 'age', 'gender', 'bodyType', 'skinTone']; // photo is optional
 const STEP2_FIELDS = ['phone', 'pincode', 'country', 'state', 'city', 'address'];
 const STEP_FIELDS = { 1: STEP1_FIELDS, 2: STEP2_FIELDS };
 const isFilled = (v) => String(v ?? '').trim() !== '';
@@ -397,7 +397,9 @@ export default function CreatorProfileSetup() {
   const brandRef = useRef(null);
   const [data, setData] = useState({
     photoPreview: '',
-    fullName: '',
+    firstName: '',
+    lastName: '',
+    fullName: '',   // composed from first + last on submit (kept for downstream reads)
     age: '',
     gender: '',
     contentStyles: [],    // how they make content (Testimonial, Demo, …) — 1–5, required
@@ -796,6 +798,11 @@ export default function CreatorProfileSetup() {
       const niches = data.contentCategories || [];
       const creatorPayload = {
         ...data,
+        // Compose the full name from the two fields; keep both parts for display
+        // (greet by first name, show full name where needed).
+        fullName: [data.firstName, data.lastName].map((s) => (s || '').trim()).filter(Boolean).join(' '),
+        first_name: (data.firstName || '').trim(),
+        last_name: (data.lastName || '').trim(),
         content_styles: styles,
         content_style: styles[0] || '',
         content_categories: niches,
@@ -941,16 +948,29 @@ export default function CreatorProfileSetup() {
             </div>
           </div>
 
-          {/* Name — this is the name shown to brands across the app. */}
-          <div className="ps-field">
-            <label className="ps-label">Name</label>
-            <input
-              className={`ps-input${err('fullName') ? ' ps-input--error' : ''}`}
-              placeholder="Enter your name"
-              value={data.fullName}
-              onChange={(e) => set('fullName', e.target.value)}
-            />
-            {reqError('fullName')}
+          {/* Name — shown to brands across the app. First + last kept separately so
+              we can greet by first name and show the full name where needed. */}
+          <div className="ps-row">
+            <div className="ps-field">
+              <label className="ps-label">First name</label>
+              <input
+                className={`ps-input${err('firstName') ? ' ps-input--error' : ''}`}
+                placeholder="Meet"
+                value={data.firstName}
+                onChange={(e) => set('firstName', e.target.value)}
+              />
+              {reqError('firstName')}
+            </div>
+            <div className="ps-field">
+              <label className="ps-label">Last name</label>
+              <input
+                className={`ps-input${err('lastName') ? ' ps-input--error' : ''}`}
+                placeholder="Jain"
+                value={data.lastName}
+                onChange={(e) => set('lastName', e.target.value)}
+              />
+              {reqError('lastName')}
+            </div>
           </div>
 
           {/* Age + Gender */}

@@ -752,7 +752,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         <div className="cpm-tabs">
           <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
           <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
-          {!editable && reviewCount > 0 && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews ({reviewCount})</button>}
+          {!editable && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>}
         </div>
 
         <div className="cpm-tab-body">
@@ -931,10 +931,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                 )}
               </section>
 
-              {!editable && reviewCount > 0 && (
+              {!editable && (
                 <section className="cpm-sec-block" data-sec="reviews" ref={reviewsRef}>
-                  <h4 className="cpm-sec-title">Reviews ({reviewCount})</h4>
-                  {(
+                  <h4 className="cpm-sec-title">Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</h4>
+                  {reviewCount === 0 ? (
+                    <div className="cpm-rev-empty">
+                      <Star size={26} color="#cfd2e6" />
+                      <strong>No reviews yet</strong>
+                      <span>Reviews from brands appear here once a deal is completed.</span>
+                    </div>
+                  ) : (
                     <div className="cpm-reviews">
                       <div className="cpm-rev-head">
                         <h3>{reviewCount} Review{reviewCount > 1 ? 's' : ''}</h3>
@@ -1144,6 +1150,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#5b6bff;pointer-events:none;transition:opacity .2s ease}
         .cpm-vid:hover .cpm-play{opacity:0}
         .cpm-empty{text-align:center;color:#9296ba;padding:30px 0;font-size:14px}
+        .cpm-rev-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:34px 20px;border:1px dashed #e6e8f3;border-radius:16px;background:#fafbff}
+        .cpm-rev-empty strong{color:#15163a;font-size:15px;font-weight:800}
+        .cpm-rev-empty span{color:#9296ba;font-size:13px;max-width:320px}
         /* editable */
         .cpm-ghost{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8f3;color:#15163a;border-radius:30px;padding:10px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-ghost:hover{border-color:#cdd4ff;color:#4452f0;background:#f6f7ff}

@@ -44,15 +44,19 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'signup');
   const [role, setRole] = useState(searchParams.get('role') === 'business' ? 'business' : 'creator');
-  const [email, setEmail] = useState('');
+  // Deep-link straight into code entry: the reset-code email links here as
+  // ?view=reset&email=…, so a team member lands on "enter code + new password"
+  // instead of the sign-in box (where their old password still works).
+  const [email, setEmail] = useState(searchParams.get('email') || '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   // Password-reset flow: 'auth' (sign in / sign up) → 'forgot' (request a code)
-  // → 'reset' (enter the emailed code + a new password).
-  const [view, setView] = useState('auth');
+  // → 'reset' (enter the emailed code + a new password). ?view=reset (from the
+  // reset-code email) jumps straight to the code-entry step.
+  const [view, setView] = useState(searchParams.get('view') === 'reset' ? 'reset' : 'auth');
   const [resetCode, setResetCode] = useState('');
   const [totpCode, setTotpCode] = useState('');   // 2FA code at login
   const [newPassword, setNewPassword] = useState('');
@@ -307,7 +311,7 @@ export default function Auth() {
               {view === 'forgot'
                 ? "Enter your email and we'll send you a reset code"
                 : view === 'reset'
-                ? 'Enter the 6-digit code we emailed you'
+                ? (email ? `Enter the 6-digit code we emailed to ${email}` : 'Enter the 6-digit code we emailed you')
                 : view === 'newpass'
                 ? 'Choose a new password for your account'
                 : isLogin

@@ -202,7 +202,7 @@ export default function AdminRoles() {
     setPwdBusy(true);
     try {
       await axios.post(`${API}/auth/forgot-password`, { email: member.email });
-      toast.success(`Reset code emailed to ${member.email}`);
+      toast.success(`Reset code emailed to ${member.email} — the email links them straight to set a new password.`);
       setPwdMember(null);
       setCurPwd('');
       setNextPwd('');

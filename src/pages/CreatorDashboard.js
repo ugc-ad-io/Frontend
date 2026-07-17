@@ -388,7 +388,7 @@ export default function CreatorDashboard() {
     || String(rawCategory).replace(/_/g, ' ')).trim();
   const heroDeal = activeCampaigns[0];
   const heroActiveDeal = heroDeal ? {
-    brand: heroDeal.business_nickname ? `@${heroDeal.business_nickname}` : (heroDeal.brand_handle ? `@${heroDeal.brand_handle}` : 'Brand'),
+    brand: String(heroDeal.business_nickname || heroDeal.brand_handle || 'Brand').replace(/^@/, ''),
     title: heroDeal.title || 'Active campaign',
     budgetLabel: getCampaignBudget(heroDeal),
     progress: heroDeal.status === 'in_progress' ? 65 : 40,

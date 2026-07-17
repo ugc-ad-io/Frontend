@@ -497,7 +497,7 @@ export default function AdminDeals() {
 
       {selected && (
         <>
-          <div className="adl-scrim" onClick={() => setSelected(null)} />
+          <div className="adl-drawer-scrim" onClick={() => setSelected(null)} />
           <aside className="adl-drawer" data-testid="deal-drawer">
             <header className="adl-drawer-head">
               <div>
@@ -840,9 +840,13 @@ export default function AdminDeals() {
         .adl-empty p { margin: 0; font-weight: 600; color: #111827; }
         .adl-empty span { font-size: 0.85rem; color: #98a1ad; }
 
-        /* Above the drawer (z-index 50) — these dialogs are opened FROM the drawer
-           (Release payment / Refund / Raise dispute), so at z-index 40 they rendered
-           behind it. Must sit on top. */
+        /* The drawer's own backdrop sits BELOW the drawer (z-index 50) so it dims the
+           page behind but never covers the drawer itself. (Sharing one .adl-scrim
+           class for both this and the dialogs put a z-index-100 layer over the drawer,
+           blacking the whole screen out on any click.) */
+        .adl-drawer-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 45; }
+        /* Above the drawer — these dialogs are opened FROM the drawer
+           (Release payment / Refund / Raise dispute), so they must sit on top of it. */
         .adl-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .adl-dispute { width: 460px; max-width: 100%; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(16,24,40,0.28); z-index: 60; padding: 22px; display: flex; flex-direction: column; gap: 14px; animation: adlPop 140ms ease-out; }
         @keyframes adlPop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }

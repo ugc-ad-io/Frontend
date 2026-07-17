@@ -26,6 +26,11 @@ const hoursSince = (iso) => {
   if (!iso) return null;
   return (Date.now() - new Date(iso).getTime()) / 36e5;
 };
+// Frozen elapsed hours between two timestamps (for a shipment that's already gone out).
+const hoursBetween = (fromIso, toIso) => {
+  if (!fromIso || !toIso) return null;
+  return (new Date(toIso).getTime() - new Date(fromIso).getTime()) / 36e5;
+};
 
 export default function AdminShipping() {
   const [requests, setRequests] = useState([]);
@@ -50,7 +55,19 @@ export default function AdminShipping() {
     }
   };
 
+  const DONE_STATES = ['shipped', 'in_transit', 'delivered', 'done', 'completed'];
   const slaInfo = (r) => {
+    // Once it's shipped/done the SLA clock has STOPPED. Showing a live, ever-growing
+    // "Breached 41h" on a completed shipment is wrong — judge it against when it
+    // actually shipped, and freeze the label.
+    if (DONE_STATES.includes(r.status)) {
+      const shippedAt = r.shipped_at || r.updated_at;
+      const took = shippedAt ? hoursBetween(r.requested_at || r.created_at, shippedAt) : null;
+      if (took != null && took > SLA_TARGET_HOURS) {
+        return { tone: 'muted', label: `Late ${Math.round(took - SLA_TARGET_HOURS)}h` };
+      }
+      return { tone: 'ok', label: 'On time' };
+    }
     const h = hoursSince(r.requested_at || r.created_at);
     if (h == null) return { tone: 'muted', label: '—' };
     const remaining = SLA_TARGET_HOURS - h;

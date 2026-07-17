@@ -123,10 +123,10 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     axios.get(`${API}/profile/${creatorId}`)
       .then((res) => {
         if (!active) return;
-        // Brands see the creator's handle (nickname), never their real name/username.
+        // Brands see the creator's name (no @username handle).
         const d = res.data || {};
-        const handle = String(d.nickname || d.public_creator_id || '').trim().replace(/^@/, '');
-        if (handle) setResolvedName(`@${handle}`);
+        const handle = String(d.nickname || d.full_name || d.public_creator_id || '').trim().replace(/^@/, '');
+        if (handle) setResolvedName(handle);
         const p = res.data?.profile || {};
         const rc = p.rate_card || {};
         const price = parseInt(String(rc.expected_payout || rc.last_salary || '').replace(/[^0-9]/g, ''), 10) || 0;

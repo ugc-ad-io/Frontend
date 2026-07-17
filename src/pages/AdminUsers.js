@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -54,6 +55,7 @@ export default function AdminUsers({
   subheading = 'Creator & brand directories — search, filter, inspect profiles, and moderate',
 } = {}) {
   const { user: me } = useAuth();
+  const navigate = useNavigate();
   // Capability gating (PRD 11 — role structure). This page is reachable by
   // founder + Ops Senior; ban / commission / pro are founder-only.
   const caps = {
@@ -512,6 +514,7 @@ export default function AdminUsers({
           deals={userDeals(detailUser)}
           disputes={userDisputes(detailUser)}
           brandCampaigns={brandCampaigns}
+          onOpenDeal={(campaignId) => { setDetailUser(null); navigate(`/dashboard/admin/deals?deal=${campaignId}`); }}
           activityLoading={deals === null || disputes === null}
           onAction={(type) => setAction({ type, user: detailUser })}
           onBan={() => openBan(detailUser)}
@@ -677,7 +680,10 @@ export default function AdminUsers({
         .aud-reveal { background: none; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.7rem; padding: 2px 7px; cursor: pointer; color: #5a4ff3; margin-left: 6px; }
         .aud-doc { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f6f7ff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.78rem; color: #5a4ff3; margin: 4px 6px 0 0; text-decoration: none; }
         .aud-list { list-style: none; margin: 0; padding: 0; }
-        .aud-list li { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.84rem; display: flex; justify-content: space-between; gap: 10px; }
+        .aud-list li { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.84rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .aud-list li .au-badge { flex: none; align-self: center; white-space: nowrap; }
+        .aud-list li.clickable { cursor: pointer; margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 8px; transition: background 0.15s ease; }
+        .aud-list li.clickable:hover { background: #f4f6ff; }
         .aud-empty { color: #94a3b8; font-style: italic; font-size: 0.85rem; padding: 14px 0; }
         .aud-docs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
         .aud-doc-link { text-decoration: none; cursor: pointer; }
@@ -704,7 +710,7 @@ export default function AdminUsers({
 // =============================================================================
 // Profile detail (admin view) — public + private side by side, history, finance
 // =============================================================================
-function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, deals, disputes, brandCampaigns, activityLoading, onAction, onBan, banned, caps = {} }) {
+function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, deals, disputes, brandCampaigns, onOpenDeal, activityLoading, onAction, onBan, banned, caps = {} }) {
   const brand = isBrand(u);
   const admin = isAdmin(u);
   const adminRoleLabel = ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin';
@@ -866,7 +872,12 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                 const budget = (c.budget_min != null || c.budget_max != null)
                   ? `${money(c.budget_min)} – ${money(c.budget_max)}` : null;
                 return (
-                  <li key={c.id}>
+                  <li
+                    key={c.id}
+                    className="clickable"
+                    onClick={() => onOpenDeal && onOpenDeal(c.id)}
+                    title="Open this deal"
+                  >
                     <span>
                       <strong>{c.title}</strong><br />
                       <small style={{ color: '#94a3b8' }}>

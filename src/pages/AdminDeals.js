@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -151,6 +152,10 @@ export default function AdminDeals() {
   const [focusChat, setFocusChat] = useState(false);
   const chatSectionRef = useRef(null);
   const chatInputRef = useRef(null);
+  // Deep-link support: /dashboard/admin/deals?deal=<campaignId> auto-opens that
+  // deal's drawer (used by the admin brand-profile Campaigns tab). Fires once.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkedRef = useRef(false);
 
   useEffect(() => { fetchDeals(); }, []);
 
@@ -191,6 +196,21 @@ export default function AdminDeals() {
       /* fall back to the row data we already have */
     }
   };
+
+  // Open the deep-linked deal once the list has loaded, then clear the param so
+  // a refresh / back-nav doesn't re-open it. Works for any campaign id — the
+  // /admin/deals/:id detail endpoint resolves campaigns without a selected
+  // creator too, so unmatched campaigns still open.
+  useEffect(() => {
+    const dealId = searchParams.get('deal');
+    if (!dealId || loading || deepLinkedRef.current) return;
+    deepLinkedRef.current = true;
+    const row = deals.find((d) => String(getId(d)) === String(dealId));
+    openDeal(row || { id: dealId });
+    searchParams.delete('deal');
+    setSearchParams(searchParams, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, deals, searchParams]);
 
   const handleForceTransition = async () => {
     if (!targetState) { toast.error('Pick a target state'); return; }

@@ -312,11 +312,14 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 
   // ---- media: photo, videos, kyc, social, generic fields ----
   const photos = [], videos = [], kyc = [];
+  // Cloudinary delivers videos under /video/upload/ and may drop the .mp4 suffix,
+  // so an extension check alone misclassifies them as images.
+  const looksVideo = (u) => VIDEO_EXT.test(u) || /\/video\/upload\//i.test(u);
   Object.entries(flat).forEach(([k, v]) => {
     collectUrls(v).forEach((u) => {
       if (KEY_IS_KYC.test(k)) kyc.push({ k, u });
-      else if (KEY_IS_VIDEO.test(k) || VIDEO_EXT.test(u)) videos.push(u);
-      else if (KEY_IS_IMAGE.test(k) || IMAGE_EXT.test(u) || /portfolio/i.test(k)) (VIDEO_EXT.test(u) ? videos : photos).push(u);
+      else if (KEY_IS_VIDEO.test(k) || looksVideo(u)) videos.push(u);
+      else if (KEY_IS_IMAGE.test(k) || IMAGE_EXT.test(u) || /portfolio/i.test(k)) (looksVideo(u) ? videos : photos).push(u);
     });
   });
   // Dedupe on the RESOLVED url (ignoring query/hash), not the raw string — the same

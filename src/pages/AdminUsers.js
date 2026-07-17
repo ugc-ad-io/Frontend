@@ -859,8 +859,25 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
           )}
 
           {tab === 'campaigns' && (
-            <ActivityList loading={activityLoading} items={campaigns} empty="No campaigns found for this brand."
-              render={(c, i) => <li key={i}><span>{c}</span></li>} />
+            <ActivityList loading={campaignsLoading} items={campaigns} empty="No campaigns found for this brand."
+              render={(c) => {
+                const st = (c.status || '').replace(/_/g, ' ');
+                const badge = c.status === 'completed' ? 'active' : c.status === 'rejected' ? 'banned' : 'suspended';
+                const budget = (c.budget_min != null || c.budget_max != null)
+                  ? `${money(c.budget_min)} – ${money(c.budget_max)}` : null;
+                return (
+                  <li key={c.id}>
+                    <span>
+                      <strong>{c.title}</strong><br />
+                      <small style={{ color: '#94a3b8' }}>
+                        {dateShort(c.created_at)}{budget ? ` · ${budget}` : ''}
+                        {c.selected_creator ? ' · matched' : ''}
+                      </small>
+                    </span>
+                    <span className={`au-badge au-state-${badge}`}>{st || 'live'}</span>
+                  </li>
+                );
+              }} />
           )}
 
           {tab === 'disputes' && (

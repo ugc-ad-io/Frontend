@@ -729,7 +729,10 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
     ['GST Cert', p(u, 'gst_certificate', 'gst_url')],
   ].filter(([, url]) => url);
   const earned = deals.reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const campaigns = Array.from(new Set(deals.map((d) => d.campaign_title).filter(Boolean)));
+  // Brand campaigns come from /admin/business/:id/campaigns (live + completed).
+  // null means the request is still in flight; [] means loaded-but-empty.
+  const campaigns = brandCampaigns || [];
+  const campaignsLoading = brand && brandCampaigns === null;
 
   const mask4 = (v) => (v ? `•••• ${String(v).slice(-4)}` : '—');
   // A stored photo can be a dead /uploads path or a localhost URL that 404s in prod —

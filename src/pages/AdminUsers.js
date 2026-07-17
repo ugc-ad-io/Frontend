@@ -57,6 +57,7 @@ export default function AdminUsers({
     warnSuspend: can(me, 'warn_suspend_users'),
     wallet: can(me, 'adjust_wallet'),
     financialPolicy: can(me, 'edit_settings'),
+    userMgmt: can(me, 'user_management'),   // gates creator level (promote/demote) + payout schedule
   };
 
   const [allUsers, setAllUsers] = useState([]);
@@ -824,6 +825,9 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
             <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
           </>}
           {brand && caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust Wallet</button>}
+          {!brand && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote</button>}
+          {!brand && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('demote')}><ArrowDownCircle size={14} /> Demote</button>}
+          {!brand && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('payout')}><CalendarClock size={14} /> Payout Schedule</button>}
           <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
           {caps.ban && <button className="aud-action-btn danger" onClick={() => onAction('delete')}><Trash2 size={14} /> Delete</button>}
         </div>

@@ -941,12 +941,12 @@ export default function CreatorProfileSetup() {
             </div>
           </div>
 
-          {/* Full name */}
+          {/* Name — this is the name shown to brands across the app. */}
           <div className="ps-field">
-            <label className="ps-label">Full Name</label>
+            <label className="ps-label">Name</label>
             <input
               className={`ps-input${err('fullName') ? ' ps-input--error' : ''}`}
-              placeholder="Enter your full name"
+              placeholder="Enter your name"
               value={data.fullName}
               onChange={(e) => set('fullName', e.target.value)}
             />

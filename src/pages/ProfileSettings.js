@@ -1071,6 +1071,17 @@ export default function ProfileSettings() {
               </button>
             ))}
           </div>
+          <div className="bs-danger">
+            <h3>Account Closure</h3>
+            <div className="bs-danger-row">
+              <div><strong>Deactivate account</strong><p>Temporarily hide your workspace. Reactivate anytime by logging back in.</p></div>
+              <button type="button" className="bs-danger-outline" onClick={handleDeactivate}>Deactivate</button>
+            </div>
+            <div className="bs-danger-row">
+              <div><strong>Close account permanently</strong><p>Permanently remove your account and all workspace data. This can’t be undone.</p></div>
+              <button type="button" className="bs-danger-solid" onClick={handleDeleteAccount}><Trash2 size={16} /> Close Account</button>
+            </div>
+          </div>
         </section>
       );
     }

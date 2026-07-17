@@ -6,14 +6,20 @@
 // username), then the email local-part, then a generic role label.
 export function displayName(user, fallback = 'User') {
   if (!user) return fallback;
+  const p = user.profile || {};
   // Trim, and ALWAYS strip a leading "@" — some accounts store the nickname as
   // "@FierceDragon774", so stripping only the username field wasn't enough.
   const first = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
   return (
-    first(user.nickname) ||
+    // The REAL name the person typed comes first, so an auto-generated nickname
+    // handle (e.g. "LuckyTiger764") never wins over an actual name on the profile.
     first(user.full_name) ||
-    first(user.name) ||
+    first(p.fullName) ||
+    first(p.full_name) ||
     first(user.business_name) ||
+    first(p.business_name) ||
+    first(user.name) ||
+    first(user.nickname) ||
     first(user.username) ||
     first(user.public_creator_id) ||
     (first(user.email).split('@')[0]) ||

@@ -251,9 +251,13 @@ function mapCampaignToForm(c) {
   put('exclusivity', c.exclusivity);
   putBool('whitelisting', c.whitelisting);
   put('modificationRights', c.modification_rights);
-  // Timeline
-  put('productShippingBy', c.product_shipping_by);
-  put('draftDeliveryBy', c.draft_delivery_by);
+  // Timeline — never carry an elapsed date into a copy/resume. Past dates are
+  // dropped; shipping defaults to tomorrow (the earliest allowed) so the field
+  // shows a valid date instead of a stale past one from the source brief.
+  const tomorrow = addDays(new Date().toISOString().slice(0, 10), 1);
+  const futureOnly = (d) => (d && String(d) >= tomorrow ? d : '');
+  put('productShippingBy', futureOnly(c.product_shipping_by) || tomorrow);
+  put('draftDeliveryBy', futureOnly(c.draft_delivery_by));
   putBool('budgetVisible', c.budget_visible);
 
   // Deliverables — prefer the structured list; fall back to the primary
@@ -283,7 +287,7 @@ function mapCampaignToForm(c) {
       out.deliverables = [primary, ...extra];
     }
   }
-  put('finalDeliveryBy', c.final_delivery_by || c.due_date || c.deadline);
+  put('finalDeliveryBy', futureOnly(c.final_delivery_by || c.due_date || c.deadline));
   put('creatorLevel', c.creator_level);
   put('qualityTier', c.content_quality_tier);
   put('genderPreference', c.gender_preference);

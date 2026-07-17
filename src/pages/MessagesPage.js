@@ -40,6 +40,17 @@ const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
 // received offer cards (available_actions), instead of showing raw lowercase verbs.
 const OFFER_RESPONSE_LABELS = { accept: 'Accept', reject: 'Decline', counter: 'Counter' };
 
+// Offer cards whose rejection the backend requires a structured decline_reason for.
+// Must stay in sync with OFFER_CARD_TYPES / DECLINE_REASONS in Backend/server.py.
+const OFFER_CARD_TYPES = ['custom_offer', 'private_invitation', 'counter_offer'];
+const DECLINE_REASONS = [
+  { value: 'not_my_niche', label: 'Not my niche' },
+  { value: 'budget', label: "Budget doesn't fit" },
+  { value: 'timeline', label: 'Timeline too short' },
+  { value: 'unavailable', label: 'Currently unavailable' },
+  { value: 'other', label: 'Other' }
+];
+
 // Define which action cards are available for each role
 const ACTION_CARDS_BY_ROLE = {
   // Creators respond to revision requests in the deal room — they don't send them,
@@ -171,6 +182,9 @@ export default function MessagesPage() {
   const [actionComposerType, setActionComposerType] = useState(null);
   const [actionForm, setActionForm] = useState({});
   const [counteringCardId, setCounteringCardId] = useState(null); // original offer card this counter replies to
+  const [declineCardId, setDeclineCardId] = useState(null); // offer card the decline picker is open for
+  const [declineReason, setDeclineReason] = useState('');
+  const [declineNote, setDeclineNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
@@ -522,14 +536,31 @@ export default function MessagesPage() {
     return 'Delivered';
   };
 
-  const respondToActionCard = async (cardId, action) => {
+  const respondToActionCard = async (cardId, action, extra = {}) => {
     try {
-      await axios.post(`${API}/chat/action-cards/${cardId}/respond`, { action });
+      await axios.post(`${API}/chat/action-cards/${cardId}/respond`, { action, ...extra });
       toast.success('Action card updated');
       fetchMessages(selectedId);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Action failed'));
     }
+  };
+
+  // Declining an offer card requires a structured reason (backend rejects a bare
+  // reject). Open an inline picker instead of firing the reject immediately.
+  const startDecline = (cardId) => {
+    setDeclineCardId(cardId);
+    setDeclineReason('');
+    setDeclineNote('');
+  };
+
+  const submitDecline = async () => {
+    if (!declineReason) {
+      toast.error('Please select a reason for declining');
+      return;
+    }
+    await respondToActionCard(declineCardId, 'reject', { decline_reason: declineReason, note: declineNote });
+    setDeclineCardId(null);
   };
 
   // Open the full multi-step brief wizard in a modal for the selected creator.
@@ -555,15 +586,42 @@ export default function MessagesPage() {
         </div>
         {!isOwn && item.status === 'open' && item.available_actions?.length ? (
           <div className="msg-action-card-actions">
-            {item.available_actions.map((action) => (
-              <button
-                key={action}
-                type="button"
-                onClick={() => (action === 'counter' ? openCounterFromCard(item) : respondToActionCard(item.id, action))}
-              >
-                {OFFER_RESPONSE_LABELS[action] || action}
-              </button>
-            ))}
+            {item.available_actions.map((action) => {
+              const isOfferDecline = action === 'reject' && OFFER_CARD_TYPES.includes(item.type);
+              const onClick = action === 'counter'
+                ? () => openCounterFromCard(item)
+                : isOfferDecline
+                  ? () => startDecline(item.id)
+                  : () => respondToActionCard(item.id, action);
+              return (
+                <button key={action} type="button" onClick={onClick}>
+                  {OFFER_RESPONSE_LABELS[action] || action}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {declineCardId === item.id ? (
+          <div className="msg-action-card-decline" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <select
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #d0d5dd' }}
+            >
+              <option value="">Select a reason…</option>
+              {DECLINE_REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+            <input
+              type="text"
+              placeholder="Optional comment (no contact info)"
+              value={declineNote}
+              onChange={(e) => setDeclineNote(e.target.value)}
+              style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #d0d5dd' }}
+            />
+            <div className="msg-action-card-actions">
+              <button type="button" onClick={submitDecline}>Send decline</button>
+              <button type="button" onClick={() => setDeclineCardId(null)}>Cancel</button>
+            </div>
           </div>
         ) : null}
         {isOwn && item.type === 'private_invitation' && item.status === 'accepted' ? (

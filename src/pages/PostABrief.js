@@ -449,6 +449,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
   // Only a physical product ships. Everything else skips shipping date + address + receipt.
   const needsShipping = typeNeedsShipping(form.productType);
+  // Earliest allowed timeline date. ISO yyyy-mm-dd strings compare chronologically,
+  // so date validation below is plain string comparison against this.
+  const tomorrowStr = addDays(new Date().toISOString().slice(0, 10), 1);
   const draftDeliverySuggestion = useMemo(() => addDays(form.productShippingBy, 7), [form.productShippingBy]);
   const pricingLifts = [
     form.rightsDuration === 'Perpetual' ? 'Perpetual rights: +40% suggested' : '',
@@ -513,7 +516,13 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     if (target === 4) return form.avoidText.length <= 200;
     if (target === 5) return form.tones.length > 0 && form.pacing;
     if (target === 6) return form.platforms.length > 0 && form.rightsDuration && form.exclusivity && form.modificationRights;
-    if (target === 7) return (!needsShipping || form.productShippingBy) && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0 && form.creatorLevel && form.qualityTier;
+    if (target === 7) {
+      const shipOk = !needsShipping || (form.productShippingBy && form.productShippingBy >= tomorrowStr);
+      const draftMin = needsShipping && form.productShippingBy ? form.productShippingBy : tomorrowStr;
+      const draftOk = form.draftDeliveryBy && form.draftDeliveryBy >= draftMin;
+      const finalOk = form.finalDeliveryBy && form.finalDeliveryBy >= form.draftDeliveryBy;
+      return shipOk && draftOk && finalOk && budget > 0 && form.creatorLevel && form.qualityTier;
+    }
     return true;
   };
 
@@ -565,9 +574,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       if (!form.exclusivity) m.push('Exclusivity');
       if (!form.modificationRights) m.push('Modification rights');
     } else if (target === 7) {
-      if (needsShipping && !form.productShippingBy) m.push('Product shipping date');
-      if (!form.draftDeliveryBy) m.push('Draft delivery date');
-      if (!form.finalDeliveryBy) m.push('Final delivery date');
+      if (needsShipping && (!form.productShippingBy || form.productShippingBy < tomorrowStr)) m.push('Product shipping date (tomorrow or later)');
+      const draftMin = needsShipping && form.productShippingBy ? form.productShippingBy : tomorrowStr;
+      if (!form.draftDeliveryBy || form.draftDeliveryBy < draftMin) m.push(needsShipping ? 'Draft delivery date (on or after shipping)' : 'Draft delivery date (tomorrow or later)');
+      if (!form.finalDeliveryBy || form.finalDeliveryBy < form.draftDeliveryBy) m.push('Final delivery date (on or after draft delivery)');
       if (!(budget > 0)) m.push('Budget');
       if (!form.creatorLevel) m.push('Creator level');
       if (!form.qualityTier) m.push('Quality tier');

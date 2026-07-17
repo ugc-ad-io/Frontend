@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
-import { creatorName, brandName } from '../utils/displayName';
+import { creatorName, brandName, creatorFirstName } from '../utils/displayName';
 import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star } from 'lucide-react';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
@@ -732,7 +732,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             )}
           </div>
 
-          <h2 className="cpm-name">{name.replace('@', '')}</h2>
+          <h2 className="cpm-name">{(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}</h2>
           <div className="cpm-id">ID: {publicId}{(city || country) ? ` · ${[city, country].filter(Boolean).join(', ')}` : ''}</div>
 
           <div className="cpm-stats">

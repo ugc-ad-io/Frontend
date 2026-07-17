@@ -31,3 +31,16 @@ export function displayName(user, fallback = 'User') {
 export const creatorName = (user) => displayName(user, 'Creator');
 // For a brand specifically.
 export const brandName = (user) => displayName(user, 'Brand');
+
+// First name only — prefers the explicit first_name field (new signups store it),
+// otherwise takes the first word of the display name. Used where we greet / label
+// someone by first name instead of their full name.
+export function firstName(user, fallback = 'User') {
+  if (!user) return fallback;
+  const p = user.profile || {};
+  const clean = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
+  const explicit = clean(user.first_name) || clean(p.first_name) || clean(p.firstName);
+  if (explicit) return explicit;
+  return (displayName(user, fallback).split(/\s+/)[0]) || fallback;
+}
+export const creatorFirstName = (user) => firstName(user, 'Creator');

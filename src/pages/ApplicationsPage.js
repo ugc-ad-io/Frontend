@@ -112,7 +112,10 @@ const formatDateSafe = (value) => {
 
 // SLA — target turnaround for review (48h). Oldest applications go urgent/overdue.
 const SLA_TARGET_HOURS = 48;
-const slaInfo = (submitted, nowMs) => {
+const slaInfo = (submitted, nowMs, status) => {
+  // Once a decision is made the SLA clock is done — an approved/rejected application
+  // must never read "Overdue" (the review already happened).
+  if (['approved', 'rejected'].includes(status)) return { label: 'Reviewed', urgent: false };
   if (!submitted) return { label: '—', urgent: false };
   const t = new Date(submitted).getTime();
   if (Number.isNaN(t)) return { label: '—', urgent: false };
@@ -164,7 +167,7 @@ const REJECT_REASONS = {
   brands: ['Incomplete profile', 'Invalid / missing GST', 'Restricted category', 'Low-trust (free-email) domain', 'Suspected agency misrepresentation', 'Policy violation', 'Other'],
 };
 const MORE_INFO_ITEMS = {
-  creators: ['Add 3–5 clear portfolio samples', 'Upload valid KYC (PAN / Aadhaar / selfie)', 'Verify social handles', 'Re-record a higher-quality intro video', 'Confirm category / niche', 'Confirm location'],
+  creators: ['Add 3–5 clear portfolio samples', 'Verify social handles', 'Re-record a higher-quality intro video', 'Confirm category / niche', 'Confirm location'],
   brands: ['Provide valid GST details', 'Verify business website', 'Use a work-domain business email', 'Clarify product category', 'Verify social media links'],
 };
 
@@ -181,7 +184,7 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   const email = profile.email || p.business_email || '—';
   const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '—';
   const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
-  const sla = slaInfo(submitted, nowMs);
+  const sla = slaInfo(submitted, nowMs, profile.approval_status);
   const state = STATE_META[profile.approval_status] || STATE_META.pending;
   // Already-decided applications (approved / rejected) are read-only — only
   // "View" remains; Approve/Reject are hidden so a decision can't be re-made here.

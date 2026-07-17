@@ -51,15 +51,23 @@ const REASON_CODES = [
 const normalizeDash = (v) => String(v || '').replace(/\s*(?:—|–|-)\s*/g, ' - ');
 const stateKey = (v) => normalizeDash(v).toLowerCase();
 const getId = (d) => d?.deal_id || d?.id;
-const getState = (d) => normalizeDash(d?.current_state || d?.campaign_status || d?.campaign?.status || 'Status unavailable');
-const getTitle = (d) => d?.campaign?.title || d?.title || 'Untitled campaign';
-const getBrand = (d) => d?.brand?.handle || d?.campaign?.brand_handle || d?.campaign?.business_nickname || '—';
-const getCreator = (d) => d?.creator?.handle || d?.creator?.nickname || d?.creator_nickname || '—';
+// The /admin/deals API returns flat fields (campaign_title, brand/creator as strings,
+// escrow as a number or object). Handle both that and any nested legacy shape.
+const strOrProp = (v, ...props) => {
+  if (typeof v === 'string') return v.trim() || null;
+  if (v && typeof v === 'object') { for (const p of props) { if (v[p]) return v[p]; } }
+  return null;
+};
+const escrowAmount = (d) => (typeof d?.escrow === 'number' ? d.escrow : Number(d?.escrow?.amount));
+const getState = (d) => normalizeDash(d?.current_state || d?.state || d?.campaign_status || d?.campaign?.status || 'Status unavailable');
+const getTitle = (d) => d?.campaign_title || strOrProp(d?.campaign, 'title') || d?.title || 'Untitled campaign';
+const getBrand = (d) => strOrProp(d?.brand, 'handle', 'nickname') || d?.brand_handle || d?.campaign?.business_nickname || '—';
+const getCreator = (d) => strOrProp(d?.creator, 'handle', 'nickname') || d?.creator_nickname || '—';
 const getBrandId = (d) => d?.business_id || d?.brand_id || d?.brand?.id || d?.business?.id;
 const getCreatorId = (d) => d?.creator_id || d?.creator?.id || d?.creator?.user_id;
-const getValue = (d) => Number(d?.amount ?? d?.deal_value ?? d?.campaign?.budget ?? 0);
+const getValue = (d) => Number(d?.amount ?? d?.deal_value ?? escrowAmount(d) ?? d?.campaign?.budget ?? 0) || 0;
 const getActiveParty = (d) => d?.active_party || ACTIVE_PARTY[stateKey(getState(d))] || '—';
-const getEscrow = (d) => Number(d?.escrow_amount ?? getValue(d));
+const getEscrow = (d) => Number(d?.escrow_amount ?? escrowAmount(d) ?? getValue(d)) || 0;
 const getCommissionRate = (d) => Number(d?.commission_rate ?? 0.2);
 const getCommission = (d) => Number(d?.commission_amount ?? getEscrow(d) * getCommissionRate(d));
 const getCreatorPayout = (d) => Number(d?.creator_payout ?? (getEscrow(d) - getCommission(d)));

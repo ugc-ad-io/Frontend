@@ -81,7 +81,16 @@ const collectUrls = (v) => {
 };
 
 const prettifyKey = (k) => String(k).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
-const isEmptyVal = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0) || (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+// Empty = null/undefined/blank, an empty (or all-empty) array, or an object whose
+// every value is itself empty — so e.g. Followers: {instagram:'', youtube:''}
+// counts as empty and doesn't render a blank full-width box.
+const isEmptyVal = (v) => {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.every(isEmptyVal);
+  if (typeof v === 'object') return Object.values(v).every(isEmptyVal);
+  return false;
+};
 const isUrl = (v) => typeof v === 'string' && /^https?:\/\//i.test(v.trim());
 
 function DetailValue({ value }) {
@@ -361,8 +370,18 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   const website = brand ? (p.website || p.website_url) : null;
   const review = full.review || {};
 
-  // text fields excluding media/kyc/social
-  const entries = Object.entries(flat).filter(([k, v]) => !MEDIA_OR_META(k) && !isEmptyVal(v));
+  // text fields excluding media/kyc/social. De-dupe by display label so a field
+  // stored under two spellings (deliveryDays + delivery_days → "Delivery Days")
+  // only shows once.
+  const seenLabels = new Set();
+  const entries = Object.entries(flat)
+    .filter(([k, v]) => !MEDIA_OR_META(k) && !isEmptyVal(v))
+    .filter(([k]) => {
+      const lbl = prettifyKey(k).toLowerCase();
+      if (seenLabels.has(lbl)) return false;
+      seenLabels.add(lbl);
+      return true;
+    });
   function MEDIA_OR_META(k) {
     return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers'].includes(k)
       || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);

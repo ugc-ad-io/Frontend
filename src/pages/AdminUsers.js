@@ -91,6 +91,10 @@ export default function AdminUsers({
   const [revealBank, setRevealBank] = useState(false);
   const [deals, setDeals] = useState(null);
   const [disputes, setDisputes] = useState(null);
+  // A brand's campaigns come from their own campaigns list (live + completed),
+  // NOT from the deals list — /admin/deals only returns campaigns that already
+  // have a selected creator, so live/unmatched campaigns would never show.
+  const [brandCampaigns, setBrandCampaigns] = useState(null); // null = not loaded/loading
 
   // generic action modal (warn / suspend / message / wallet / commission / payout / announcement)
   const [action, setAction] = useState(null); // { type, user|users, ... }
@@ -139,6 +143,13 @@ export default function AdminUsers({
     setDetailTab('profile');
     setRevealBank(false);
     ensureActivity();
+    // Brands: pull their real campaign list (live + completed) for the Campaigns tab.
+    setBrandCampaigns(null);
+    if (isBrand(u)) {
+      axios.get(`${API}/admin/business/${u.id}/campaigns`)
+        .then((r) => setBrandCampaigns(r.data || []))
+        .catch(() => setBrandCampaigns([]));
+    }
   };
 
   const handleEdit = (u) => {
@@ -434,10 +445,15 @@ export default function AdminUsers({
                       </td>
                       <td>{u.email}</td>
                       <td>
-                        <span className="au-badge">{isBrand(u) ? 'brand' : u.role}</span>
+                        <span className="au-badge">{isBrand(u) ? 'brand' : (isAdmin(u) ? 'admin' : u.role)}</span>
                         {isCreator(u) && (
                           <span className="au-badge au-badge-level" title="Creator level">
                             {levelLabelOf(u.level_key ?? u.level)}
+                          </span>
+                        )}
+                        {isAdmin(u) && u.admin_role && (
+                          <span className="au-badge au-badge-admin" title="Admin role">
+                            {ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin'}
                           </span>
                         )}
                       </td>
@@ -495,6 +511,7 @@ export default function AdminUsers({
           setRevealBank={setRevealBank}
           deals={userDeals(detailUser)}
           disputes={userDisputes(detailUser)}
+          brandCampaigns={brandCampaigns}
           activityLoading={deals === null || disputes === null}
           onAction={(type) => setAction({ type, user: detailUser })}
           onBan={() => openBan(detailUser)}
@@ -576,6 +593,8 @@ export default function AdminUsers({
         .au-ban-badge { display: inline-block; margin-left: 8px; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; background: #991b1b; color: white; border-radius: 4px; }
         .au-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #1e1e7e; text-transform: capitalize; }
         .au-badge-level { margin-left: 6px; background: #f0fdf4; color: #15803d; }
+        .au-badge-admin { margin-left: 6px; background: #fef3c7; color: #92400e; }
+        .aud-actions-note { font-size: 0.78rem; color: #94a3b8; align-self: center; }
         .au-state-active { background: #dcfce7; color: #166534; }
         .au-state-suspended { background: #fef3c7; color: #92400e; }
         .au-state-banned { background: #fee2e2; color: #991b1b; }
@@ -685,8 +704,10 @@ export default function AdminUsers({
 // =============================================================================
 // Profile detail (admin view) — public + private side by side, history, finance
 // =============================================================================
-function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, deals, disputes, activityLoading, onAction, onBan, banned, caps = {} }) {
+function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, deals, disputes, brandCampaigns, activityLoading, onAction, onBan, banned, caps = {} }) {
   const brand = isBrand(u);
+  const admin = isAdmin(u);
+  const adminRoleLabel = ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin';
   // KYC is submitted to user.kyc (not user.profile); the payout account lives at the
   // top level (u.bank_details / u.upi_id) — that's where withdrawals read it.
   const kyc = u.kyc || {};
@@ -719,9 +740,14 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
     ? (String(rawPhoto).startsWith('http') ? rawPhoto : `${BACKEND_URL}${rawPhoto}`)
     : null;
 
-  const tabs = brand
-    ? [['profile', 'Profile'], ['campaigns', 'Campaigns'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Wallet']]
-    : [['profile', 'Profile'], ['deals', 'Deals'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Earnings']];
+  // Staff accounts have no marketplace activity (no deals/earnings/chat), so they
+  // only get the Profile tab — the deals/disputes/violations/finance tabs are a
+  // creator/brand concept and don't apply to an admin.
+  const tabs = admin
+    ? [['profile', 'Profile']]
+    : brand
+      ? [['profile', 'Profile'], ['campaigns', 'Campaigns'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Wallet']]
+      : [['profile', 'Profile'], ['deals', 'Deals'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Earnings']];
 
   return (
     <div className="aud-overlay" onClick={onClose}>
@@ -733,7 +759,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
               {brand ? businessName(u) : (u.nickname || realName(u))}
               <span className={`au-badge au-state-${userState(u)}`}>{STATE_LABELS[userState(u)]}</span>
             </h2>
-            <div className="aud-sub">{handleOf(u)} · {u.email} · {brand ? 'Brand' : (isCreator(u) ? 'Creator' : 'Admin')}{isCreator(u) && ` · Level: ${levelLabelOf(u.level_key ?? u.level)}`}</div>
+            <div className="aud-sub">{handleOf(u)} · {u.email} · {brand ? 'Brand' : (admin ? 'Admin' : 'Creator')}{admin ? ` · ${adminRoleLabel}` : (isCreator(u) ? ` · Level: ${levelLabelOf(u.level_key ?? u.level)}` : '')}</div>
           </div>
           <button className="aud-close" onClick={onClose}><X size={22} /></button>
         </div>
@@ -747,10 +773,18 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
         <div className="aud-body">
           {tab === 'profile' && (
             <div className="aud-grid2">
-              {/* Public profile */}
+              {/* Profile card — admins get a staff card (no public profile / strikes). */}
               <div className="aud-card">
-                <h4><Eye size={14} /> Public Profile</h4>
-                {brand ? (
+                <h4><Eye size={14} /> {admin ? 'Admin Account' : 'Public Profile'}</h4>
+                {admin ? (
+                  <>
+                    <Row label="Name" value={u.nickname || realName(u) || '—'} />
+                    <Row label="Admin role" value={adminRoleLabel} />
+                    {Array.isArray(u.assigned_categories) && u.assigned_categories.length > 0 && (
+                      <Row label="Assigned categories" value={u.assigned_categories.join(', ')} />
+                    )}
+                  </>
+                ) : brand ? (
                   <>
                     <Row label="Business name" value={businessName(u)} />
                     <Row label="Website" value={p(u, 'website') || '—'} />
@@ -760,12 +794,18 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                 )}
                 <Row label="Email" value={u.email} />
                 <Row label="Joined" value={dateShort(u.created_at || u.createdAt)} />
-                {/* Flags moved off the table into here. */}
-                <Row label="Flags / strikes" value={strikes(u).length ? `${strikes(u).length}` : '0'} />
+                {/* Flags moved off the table into here — not relevant to staff accounts. */}
+                {!admin && <Row label="Flags / strikes" value={strikes(u).length ? `${strikes(u).length}` : '0'} />}
+                {admin && (
+                  <p className="aud-empty" style={{ marginTop: 6 }}>
+                    Manage this admin’s role &amp; permissions on the Team &amp; Roles page.
+                  </p>
+                )}
               </div>
 
-              {/* KYC & payout — creators submit this to user.kyc via Verify KYC. */}
-              {!brand && (
+              {/* KYC & payout — creators submit this to user.kyc via Verify KYC. Brands
+                  and admins never submit KYC, so this card is creator-only. */}
+              {isCreator(u) && (
                 <div className="aud-card">
                   <h4>
                     <FileText size={14} /> KYC &amp; Payout
@@ -871,21 +911,33 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
           )}
         </div>
 
-        {/* Actions (spec 11.10) — gated by admin role capabilities (PRD 11) */}
+        {/* Actions (spec 11.10) — gated by admin role capabilities (PRD 11).
+            Admin (staff) targets only get Send Message here; warn/suspend/ban and
+            creator-level / brand-finance actions don't apply to a staff account —
+            their role & access are managed on the Team & Roles page. */}
         <div className="aud-actions-bar">
-          {caps.warnSuspend && <button className="aud-action-btn" onClick={() => onAction('warn')}><AlertTriangle size={14} /> Warn</button>}
-          {caps.warnSuspend && (u.suspended || u.status === 'suspended') && <button className="aud-action-btn" onClick={() => onAction('unsuspend')}><ShieldCheck size={14} /> Unsuspend</button>}
-          {caps.warnSuspend && <button className="aud-action-btn danger" onClick={() => onAction('suspend')}><ShieldAlert size={14} /> Suspend</button>}
-          {caps.ban && <button className="aud-action-btn danger" onClick={onBan}><Ban size={14} /> {banned ? 'Unban' : 'Ban'}</button>}
-          {brand && caps.financialPolicy && <>
-            <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
-          </>}
-          {brand && caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust Wallet</button>}
-          {!brand && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote</button>}
-          {!brand && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('demote')}><ArrowDownCircle size={14} /> Demote</button>}
-          {!brand && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('payout')}><CalendarClock size={14} /> Payout Schedule</button>}
-          <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
-          {caps.ban && <button className="aud-action-btn danger" onClick={() => onAction('delete')}><Trash2 size={14} /> Delete</button>}
+          {admin ? (
+            <>
+              <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
+              <span className="aud-actions-note">Manage this admin’s role &amp; permissions on the Team &amp; Roles page.</span>
+            </>
+          ) : (
+            <>
+              {caps.warnSuspend && <button className="aud-action-btn" onClick={() => onAction('warn')}><AlertTriangle size={14} /> Warn</button>}
+              {caps.warnSuspend && (u.suspended || u.status === 'suspended') && <button className="aud-action-btn" onClick={() => onAction('unsuspend')}><ShieldCheck size={14} /> Unsuspend</button>}
+              {caps.warnSuspend && <button className="aud-action-btn danger" onClick={() => onAction('suspend')}><ShieldAlert size={14} /> Suspend</button>}
+              {caps.ban && <button className="aud-action-btn danger" onClick={onBan}><Ban size={14} /> {banned ? 'Unban' : 'Ban'}</button>}
+              {brand && caps.financialPolicy && <>
+                <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
+              </>}
+              {brand && caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust Wallet</button>}
+              {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote</button>}
+              {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('demote')}><ArrowDownCircle size={14} /> Demote</button>}
+              {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('payout')}><CalendarClock size={14} /> Payout Schedule</button>}
+              <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
+              {caps.ban && <button className="aud-action-btn danger" onClick={() => onAction('delete')}><Trash2 size={14} /> Delete</button>}
+            </>
+          )}
         </div>
       </div>
     </div>

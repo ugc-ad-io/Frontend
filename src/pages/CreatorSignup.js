@@ -24,21 +24,26 @@ function GoogleIcon() {
 export default function CreatorSignup() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Email + password → create the real creator account, then go to profile setup.
+  // Name + email + password → create the real creator account, then go to profile setup.
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!name.trim()) {
+      toast.error('Enter your name');
+      return;
+    }
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters');
       return;
     }
     setSubmitting(true);
     try {
-      const { data } = await axios.post(`${API}/auth/signup`, { email, password, role: 'creator' });
+      const { data } = await axios.post(`${API}/auth/signup`, { name: name.trim(), email, password, role: 'creator' });
       const { token, ...userData } = data;
       login(token, userData);
       toast.success('Account created!');
@@ -78,6 +83,20 @@ export default function CreatorSignup() {
         <p className="cs-sub">
           Brands post real projects. You apply, create, and get paid—no outreach needed.
         </p>
+
+        {/* Name — becomes the display name shown across the app. */}
+        <div className="cs-field">
+          <label className="cs-label" htmlFor="cs-name">Name</label>
+          <input
+            id="cs-name"
+            type="text"
+            className="cs-input"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
 
         {/* Email */}
         <div className="cs-field">

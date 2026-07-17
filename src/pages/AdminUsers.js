@@ -656,6 +656,9 @@ export default function AdminUsers({
         .aud-list { list-style: none; margin: 0; padding: 0; }
         .aud-list li { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.84rem; display: flex; justify-content: space-between; gap: 10px; }
         .aud-empty { color: #94a3b8; font-style: italic; font-size: 0.85rem; padding: 14px 0; }
+        .aud-docs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .aud-doc-link { text-decoration: none; cursor: pointer; }
+        .aud-doc-link:hover { background: #eef0ff; }
         .aud-violation { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.82rem; }
         .aud-violation .cat { font-weight: 700; color: #b42318; text-transform: capitalize; }
         .aud-violation .snip { color: #4b5563; font-style: italic; }

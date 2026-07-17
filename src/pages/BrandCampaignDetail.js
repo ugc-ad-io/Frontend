@@ -20,6 +20,7 @@ import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { selectedCreators, creatorsWanted, slotsLeft } from '../utils/campaignCreators';
+import { creatorName } from '../utils/displayName';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -236,7 +237,7 @@ export default function BrandCampaignDetail() {
     setSelecting(bid.creator_id);
     try {
       const { data } = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${encodeURIComponent(bid.creator_id)}`);
-      const who = `@${String(bid.creator_nickname || 'creator').replace('@', '')}`;
+      const who = String(bid.creator_nickname || 'Creator').replace(/^@/, '');
       const left = Number(data?.slots_left ?? 0);
       toast.success(
         left > 0
@@ -289,7 +290,7 @@ export default function BrandCampaignDetail() {
 
   const spent = campaign.escrow_amount || campaign.budget_min || 0;
   const total = campaign.budget_max || campaign.budget_min || 0;
-  const handle = creator ? (creator.nickname || (creator.username ? `@${creator.username}` : '') || creator.public_creator_id || 'Creator') : null;
+  const handle = creator ? creatorName(creator) : null;
   const cp = creator?.profile || {};
   const ship = deal?.shipment || {};
   const rec = deal?.receipt || {};
@@ -385,7 +386,7 @@ export default function BrandCampaignDetail() {
               {(() => {
                 const st = WS_STATUS[wsStatus] || WS_STATUS.pending_review;
                 const StIcon = st.icon;
-                const creatorLabel = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : '@creator';
+                const creatorLabel = handle ? handle.replace(/^@/, '') : 'Creator';
                 const photo = creator?.profile_photo ? (creator.profile_photo.startsWith('http') ? creator.profile_photo : `${BACKEND_URL}${creator.profile_photo}`) : '';
                 return (
                   <article className="bwr-card">
@@ -686,7 +687,7 @@ export default function BrandCampaignDetail() {
       {reviewOpen && (
         <ReviewModal
           title="Rate this creator"
-          subtitle={handle ? `How was working with ${handle.startsWith('@') ? handle : `@${handle}`}?` : undefined}
+          subtitle={handle ? `How was working with ${handle.replace(/^@/, '')}?` : undefined}
           onSubmit={submitReview}
           onClose={() => setReviewOpen(false)}
         />

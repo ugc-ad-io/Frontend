@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
+import { creatorName, brandName } from '../utils/displayName';
 import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star } from 'lucide-react';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
@@ -297,7 +298,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         pairs.forEach(([rid, d]) => {
           if (!d) return;
           m[rid] = {
-            name: d.nickname || d.business_name || (d.profile && d.profile.business_name) || (d.username ? `@${d.username}` : '') || 'Brand',
+            name: (d.profile && d.profile.business_name) || d.business_name || brandName(d),
             photo: assetUrl(d.profile_photo || d.logo || (d.profile && d.profile.logo)),
           };
         });
@@ -490,12 +491,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // Prefer the nested profile, but fall back to any same-named field stored at the
   // user root so details still render for records that aren't fully nested.
   const p = { ...(data || {}), ...(data?.profile || {}) };
-  // Show the website username/handle the admin assigns — never the creator's real name.
-  const name = (data?.nickname || '').trim()
-    || (data?.username ? `@${data.username}` : '')
-    || (data?.public_creator_id || '').trim()
-    || (fallbackName || '').trim()
-    || 'Creator';
+  // Show the creator's NAME (no @username handle anymore).
+  const name = creatorName(data) !== 'Creator'
+    ? creatorName(data)
+    : ((fallbackName || '').trim().replace(/^@/, '') || 'Creator');
   const publicId = data?.public_creator_id || String(id || '').slice(0, 12);
   const age = p.age;
   const gender = p.gender ? String(p.gender).charAt(0).toUpperCase() : '';

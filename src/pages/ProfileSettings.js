@@ -966,8 +966,10 @@ export default function ProfileSettings() {
               </div>
             </div>
             <div className="bs-billing-tabs">
-              <button type="button"><RefreshCw size={16} /> Billing History</button>
-              <button type="button"><CreditCard size={16} /> Payment Methods</button>
+              {/* Both were dead buttons. The Wallet page is the billing hub — it holds
+                  the full transaction history and the recharge / payment-gateway section. */}
+              <button type="button" onClick={() => navigate('/dashboard/business/wallet?view=history')}><RefreshCw size={16} /> Billing History</button>
+              <button type="button" onClick={() => navigate('/dashboard/business/wallet?view=recharge')}><CreditCard size={16} /> Payment Methods</button>
             </div>
           </div>
         </section>

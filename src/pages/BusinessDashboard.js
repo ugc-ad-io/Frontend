@@ -214,7 +214,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
     return isObjectId(n) ? '' : n;
   };
   const nameOf = (b) => realName(b) || 'Creator';
-  const handleOf = (b) => { const n = String(realName(b)); return n ? (n.startsWith('@') ? n : `@${n}`) : 'Creator'; };
+  const handleOf = (b) => String(realName(b) || 'Creator').replace(/^@/, '');
   const initialOf = (b) => (String(nameOf(b)).replace(/[^A-Za-z0-9]/g, '').charAt(0) || 'C').toUpperCase();
 
   return (
@@ -411,7 +411,7 @@ function normalizeCreatorDirectoryItem(item = {}) {
   const languages = item.languages || profile.languages || item.content_languages || [];
   const cityTier = item.city_tier || profile.city_tier || item.location_region || 'Curated';
   const publicCreatorId = item.public_creator_id || item.creator_public_id || '';
-  const handle = item.handle || (item.nickname ? `@${String(item.nickname).replace(/^@/, '')}` : '@creator');
+  const handle = String(item.handle || item.nickname || 'Creator').replace(/^@/, '');
 
   return {
     id: item.id || item.creator_id,
@@ -481,6 +481,25 @@ function normalizeWalletData(data = {}) {
 export default function BusinessDashboard({ page = 'overview' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Deep-link from Settings → Billing: ?view=history|recharge scrolls the wallet
+  // page to the matching section (the "Billing History" / "Payment Methods" buttons).
+  useEffect(() => {
+    if (page !== 'wallet') return;
+    const view = new URLSearchParams(window.location.search).get('view');
+    const target = view === 'history' ? 'wallet-history' : (view === 'recharge' ? 'wallet-recharge' : '');
+    if (!target) return;
+    // Wait for the wallet panels to render, then scroll + highlight briefly.
+    const t = setTimeout(() => {
+      const el = document.getElementById(target);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('wallet-flash');
+        setTimeout(() => el.classList.remove('wallet-flash'), 1600);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [page]);
   const [campaigns, setCampaigns] = useState([]);
   const [drafts, setDrafts] = useState([]);
   const [activeCampaigns, setActiveCampaigns] = useState([]);
@@ -1016,7 +1035,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           key: `deal-${deal.campaign_id || deal.campaign_title}`,
           type: 'Deal',
           title: deal.campaign_title || 'Untitled deal',
-          meta: `${deal.creator_nickname ? `@${String(deal.creator_nickname).replace(/^@/, '')}` : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
+          meta: `${deal.creator_nickname ? String(deal.creator_nickname).replace(/^@/, '') : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
           target: deal.campaign_id ? `/campaign/${deal.campaign_id}` : '/dashboard/business'
         });
       }
@@ -1319,7 +1338,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     return (
                     <div className="deals-row" key={deal.campaign_id}>
                       <strong className="deal-title" data-label="Campaign">{deal.campaign_title || 'Untitled Campaign'}</strong>
-                      <span className="creator-handle" data-label="Creator">{deal.public_creator_id || (deal.creator_nickname ? `@${deal.creator_nickname.replace(/^@/, '')}` : '-')}</span>
+                      <span className="creator-handle" data-label="Creator">{deal.creator_nickname ? deal.creator_nickname.replace(/^@/, '') : (deal.public_creator_id || '-')}</span>
                       <span className={`deal-stage ${tone}`} data-label="Stage">{deal.stage_label || deal.stage || '-'}</span>
                       <span className="deal-date" data-label="Due Date">{formatDate(deal.due_date)}</span>
                       <strong className="deal-funds" data-label="Funds Hold">{formatMoney(deal.escrow_amount)}</strong>
@@ -1895,7 +1914,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
               </div>
 
               <aside className="wallet-side-column">
-                <section className="wallet-panel wallet-recharge-card">
+                <section className="wallet-panel wallet-recharge-card" id="wallet-recharge">
                   <div className="wallet-side-title">
                     <h2>Quick Recharge</h2>
                   </div>
@@ -1928,7 +1947,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </section>
               </aside>
 
-              <section className="wallet-panel wallet-history wallet-history-full">
+              <section className="wallet-panel wallet-history wallet-history-full" id="wallet-history">
                 <div className="wallet-history-head">
                   <div>
                     <h2>Transaction History</h2>
@@ -1998,7 +2017,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 const TABS = [['all', 'All Shipments'], ['transit', 'In Transit'], ['delivered', 'Delivered']];
                 const rows = ship.filter((c) => (shipTab === 'all' ? true : statusOf(c) === shipTab));
                 const cr = (id) => creatorDirectory.find((x) => x.id === id) || {};
-                const cname = (c) => { const u = cr(c.selected_creator); return u.username ? `@${u.username}` : (u.nickname || u.full_name || (c.selected_creator ? 'Creator' : 'Not selected')); };
+                const cname = (c) => { const u = cr(c.selected_creator); return u.nickname || u.full_name || (u.username ? String(u.username).replace(/^@/, '') : (c.selected_creator ? 'Creator' : 'Not selected')); };
                 const cinit = (c) => (cname(c).replace('@', '')[0] || 'C').toUpperCase();
                 const cphoto = (c) => cr(c.selected_creator).profile_photo;
 
@@ -5870,6 +5889,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border-radius: 24px;
           background: white;
           box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+          scroll-margin-top: 90px;
+        }
+        /* Brief highlight when deep-linked from Settings → Billing. */
+        .wallet-panel.wallet-flash { animation: walletFlash 1.6s ease; }
+        @keyframes walletFlash {
+          0% { box-shadow: 0 0 0 3px rgba(68, 82, 240, 0.5); }
+          100% { box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06); }
         }
 
         .wallet-panel h2 {

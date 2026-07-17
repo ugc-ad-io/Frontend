@@ -722,7 +722,7 @@ export default function MyDealsPage() {
 
   const stepIndex = getDealStepIndex(selectedState);
   const brandName = deal?.brand?.name || getBrandHandle(deal);
-  const creatorName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : 'You');
+  const creatorName = user?.nickname || user?.full_name || (user?.username ? String(user.username).replace(/^@/, '') : 'You');
   const dealTags = (Array.isArray(deal?.campaign?.objectives) && deal.campaign.objectives.length
     ? deal.campaign.objectives.slice(0, 2)
     : [deal?.campaign?.industry_type || 'UGC']).concat('UGC Video');

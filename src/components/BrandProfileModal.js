@@ -55,7 +55,7 @@ export default function BrandProfileModal({ id, fallbackName, onClose }) {
             </div>
             <div>
               <strong>{brandName}</strong>
-              <small>Brand profile{data?.username ? ` · @${String(data.username).replace(/^@/, '')}` : ''}</small>
+              <small>Brand profile</small>
             </div>
           </div>
           <button type="button" className="bpm-x" aria-label="Close" onClick={onClose}><X size={18} /></button>

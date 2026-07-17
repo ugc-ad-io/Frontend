@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
+import { creatorName } from '../utils/displayName';
 import RejectedGate from '../components/RejectedGate';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { toggleSavedBrief, isBriefSaved } from '../utils/savedBriefs';
@@ -272,7 +273,7 @@ export default function CreatorDashboard() {
     navigate('/');
   };
 
-  const displayName = user?.username ? `@${user.username}` : (user?.nickname || user?.full_name || user?.email || 'Creator');
+  const displayName = creatorName(user);
   const rating = Number(user?.average_rating || 0);
   const totalEarned = useMemo(() => {
     const bidsTotal = myBids.reduce((sum, campaign) => sum + Number(campaign.myBid?.amount || 0), 0);
@@ -378,7 +379,7 @@ export default function CreatorDashboard() {
   }
 
   const profilePct = Math.round((profileDone / profileChecklist.length) * 100);
-  const heroName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : 'Creator');
+  const heroName = creatorName(user);
   // The primary content category the creator picked on the signup form (stored as
   // a value key like "product_demo"); resolve it to its human label for display.
   const rawCategory = user?.category || user?.profile?.category

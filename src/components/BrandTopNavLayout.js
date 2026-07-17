@@ -7,6 +7,7 @@ import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
 import RejectedGate from './RejectedGate';
 import MoreInfoGate from './MoreInfoGate';
+import { brandName } from '../utils/displayName';
 import PostABrief from '../pages/PostABrief';
 import '../styles/creator-marketplace.css';
 
@@ -71,7 +72,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
     return () => { html.style.overflow = prevHtml; document.body.style.overflow = prevBody; };
   }, [briefOpen]);
 
-  const displayName = user?.profile?.business_name || user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : user?.email) || 'Brand';
+  const displayName = user?.profile?.business_name || brandName(user);
   const photo = user?.profile_photo || user?.brand_logo;
   const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
   const handleLogout = () => { logout(); navigate('/'); };

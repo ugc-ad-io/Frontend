@@ -8,6 +8,7 @@ import {
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
+import { creatorName } from '../utils/displayName';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -58,7 +59,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  const displayName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : user?.email) || 'Creator';
+  const displayName = creatorName(user);
   const photo = user?.profile_photo || user?.profile_picture || user?.avatar;
   const isActive = (to) => pathname === to || pathname.startsWith(`${to}/`);
 

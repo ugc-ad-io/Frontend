@@ -336,6 +336,6 @@ export default function BrandWorkReview() {
 }
 
 function handleLabelSafe(c) {
-  const s = String(c || 'Creator');
-  return s.startsWith('@') ? s : `@${s}`;
+  // Names, not @handles — strip a leading "@" if the source value carried one.
+  return String(c || 'Creator').replace(/^@/, '');
 }

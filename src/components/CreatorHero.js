@@ -86,7 +86,7 @@ export default function CreatorHero({
           </div>
         </div>
 
-        <h1 className="chero-title chero-fade"><span className="chero-hi">Hi!</span> {name}</h1>
+        <h1 className="chero-title chero-fade"><span className="chero-hi">Hi!</span> {String(name || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0]}</h1>
 
         <div className="chero-meta chero-fade" style={{ animationDelay: '.08s' }}>
           {level && <span className="chero-rank">{level}</span>}

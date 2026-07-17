@@ -534,6 +534,10 @@
   border-left: none;
 }
 
+.info-item label {
+  margin-bottom: 4px;
+}
+
 .info-item.full-width {
   grid-column: 1 / -1;
 }
@@ -564,8 +568,23 @@
 }
 
 /* ---- Generic "All Submitted Details" (shows every form field) ---- */
+/* Pack short scalar fields (Country, Dial code, a language, etc.) two-to-three
+   per row so single-value fields don't each eat a full-width row with empty
+   space beside them. Object/nested fields still span the row via .full-width. */
 .all-details-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 10px;
+}
+.all-details-grid .info-item {
+  padding: 9px 12px;
+}
+.all-details-grid .info-item label {
+  font-size: 0.66rem;
+  margin-bottom: 2px;
+}
+.all-details-grid .all-details-value {
+  font-size: 0.86rem;
+  line-height: 1.35;
 }
 
 .all-details-value {

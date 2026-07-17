@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
+import { displayName } from '../utils/displayName';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -18,6 +19,10 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 const ATTACHMENT_MESSAGE_PREFIX = '__UGCAD_ATTACHMENT__:';
 const MAX_ATTACHMENTS = 5;
+
+// Always show the person's real NAME (never the "@handle"). Reuses the app-wide
+// resolver, which prefers full_name and strips any leading "@" off the nickname.
+const nameOf = (conv) => displayName(conv, 'User');
 const CHAT_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Active Deals', value: 'active_deal' },
@@ -807,7 +812,7 @@ export default function MessagesPage() {
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) => {
-    const matchesSearch = conv.nickname.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = nameOf(conv).toLowerCase().includes(search.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
       conv.thread_classification === filter;
@@ -870,14 +875,14 @@ export default function MessagesPage() {
                   onClick={() => setSelectedId(conv.user_id)}
                 >
                   <div className="msg-avatar-wrap">
-                    <div className="msg-avatar" style={{ background: avatarColor(conv.nickname) }}>
-                      {getInitial(conv.nickname)}
+                    <div className="msg-avatar" style={{ background: avatarColor(nameOf(conv)) }}>
+                      {getInitial(nameOf(conv))}
                     </div>
                     <span className="msg-online-dot" />
                   </div>
                   <div className="msg-conv-body">
                     <div className="msg-conv-top">
-                      <strong>{conv.nickname}</strong>
+                      <strong>{nameOf(conv)}</strong>
                       <span className="msg-time-ago">{timeAgo(conv.timestamp || conv.last_message?.timestamp)}</span>
                     </div>
                     <p className="msg-preview">
@@ -902,14 +907,14 @@ export default function MessagesPage() {
             {/* Header */}
             <div className="msg-chat-header">
               <div className="msg-avatar-wrap" style={{ width: '48px', height: '48px' }}>
-                <div className="msg-avatar" style={{ background: avatarColor(selectedConv?.nickname) }}>
-                  {getInitial(selectedConv?.nickname)}
+                <div className="msg-avatar" style={{ background: avatarColor(nameOf(selectedConv)) }}>
+                  {getInitial(nameOf(selectedConv))}
                 </div>
                 <span className="msg-online-dot"></span>
               </div>
               <div className="msg-header-info">
                 <div>
-                  <strong>{selectedConv?.nickname}</strong>
+                  <strong>{nameOf(selectedConv)}</strong>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', background: '#48bb78', borderRadius: '50%', display: 'inline-block' }}></span>
@@ -963,8 +968,8 @@ export default function MessagesPage() {
                   return (
                     <div key={msg.id || idx} className={`msg-bubble-row ${isOwn ? 'is-own' : ''}`}>
                       {!isOwn && (
-                        <div className="msg-avatar sm" style={{ background: avatarColor(selectedConv?.nickname) }}>
-                          {getInitial(selectedConv?.nickname)}
+                        <div className="msg-avatar sm" style={{ background: avatarColor(nameOf(selectedConv)) }}>
+                          {getInitial(nameOf(selectedConv))}
                         </div>
                       )}
                       <div className="msg-bubble">
@@ -979,7 +984,7 @@ export default function MessagesPage() {
                   );
                 })
               )}
-              {isOtherTyping ? <div className="msg-typing">{selectedConv?.nickname || 'User'} is typing...</div> : null}
+              {isOtherTyping ? <div className="msg-typing">{nameOf(selectedConv)} is typing...</div> : null}
               <div ref={messagesEndRef} />
             </div>
 
@@ -1114,7 +1119,7 @@ export default function MessagesPage() {
       {briefTarget && (
         <PlanBrief
           creatorId={briefTarget}
-          creatorName={selectedConv?.nickname || 'Creator'}
+          creatorName={displayName(selectedConv, 'Creator')}
           onClose={() => setBriefTarget(null)}
           onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
         />
@@ -1123,7 +1128,7 @@ export default function MessagesPage() {
       {profileOpen && selectedId && (
         <CreatorProfileModal
           id={selectedId}
-          fallbackName={selectedConv?.nickname}
+          fallbackName={nameOf(selectedConv)}
           onClose={() => setProfileOpen(false)}
           onMessage={() => setProfileOpen(false)}
         />
@@ -1133,7 +1138,7 @@ export default function MessagesPage() {
         <div className="msg-report-overlay" onClick={() => !reportSubmitting && setReport(null)}>
           <form className="msg-report-modal" onClick={(e) => e.stopPropagation()} onSubmit={submitReport}>
             <div className="msg-report-head">
-              <strong>Report {selectedConv?.nickname || 'user'}</strong>
+              <strong>Report {displayName(selectedConv, 'user')}</strong>
               <button type="button" aria-label="Close" onClick={() => setReport(null)}><X size={16} /></button>
             </div>
             <p className="msg-report-sub">Our team reviews every report within 5 business days. Don't include phone numbers or emails.</p>

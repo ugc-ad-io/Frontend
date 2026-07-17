@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, Search } from 'lucide-react';
 import { getInitial } from './CreatorComponents';
+import { displayName } from '../utils/displayName';
 import ChatPopup from './ChatPopup';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -64,8 +65,11 @@ export default function MessagesPopup({ onClose }) {
     return <ChatPopup user={active} onClose={() => setActive(null)} />;
   }
 
+  // Show the real NAME (never the "@handle") — same resolver used app-wide.
+  const nameOf = (c) => displayName(c, 'User');
+
   const filtered = conversations.filter((c) =>
-    (c.nickname || '').toLowerCase().includes(q.trim().toLowerCase()));
+    nameOf(c).toLowerCase().includes(q.trim().toLowerCase()));
 
   return (
     <div className="mpop">
@@ -93,12 +97,12 @@ export default function MessagesPopup({ onClose }) {
               key={c.user_id}
               type="button"
               className="mpop-item"
-              onClick={() => setActive({ id: c.user_id, name: c.nickname, photo: c.profile_photo || c.photo })}
+              onClick={() => setActive({ id: c.user_id, name: nameOf(c), photo: c.profile_photo || c.photo })}
             >
-              <span className="mpop-ava" style={{ background: avatarColor(c.nickname) }}>{getInitial(c.nickname)}</span>
+              <span className="mpop-ava" style={{ background: avatarColor(nameOf(c)) }}>{getInitial(nameOf(c))}</span>
               <span className="mpop-body">
                 <span className="mpop-top">
-                  <strong>{c.nickname || 'User'}</strong>
+                  <strong>{nameOf(c)}</strong>
                   <small>{timeAgo(c.timestamp || c.last_message?.timestamp)}</small>
                 </span>
                 <span className="mpop-prev">{previewText(c)}</span>

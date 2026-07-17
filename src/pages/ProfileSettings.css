@@ -681,6 +681,7 @@
 
 .bs-field input,
 .bs-field textarea,
+.bs-field select,
 .bs-security-box input {
   width: 100%;
   border: 1px solid #e2e4f0;
@@ -692,6 +693,15 @@
   font-weight: 400;
   padding: 14px 17px;
   outline: none;
+}
+
+.bs-field select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2307074e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6l4 4 4-4'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 42px;
 }
 
 .bs-field textarea {
@@ -1588,17 +1598,19 @@
 
 .bs-dashboard-page .bs-field input,
 .bs-dashboard-page .bs-field textarea,
+.bs-dashboard-page .bs-field select,
 .bs-dashboard-page .bs-security-box input {
   min-height: 48px;
   border-color: #dfe3f6;
   border-radius: 12px;
-  background: #fbfbff;
+  background-color: #fbfbff;
   font-size: 15px;
   font-weight: 400;
 }
 
 .bs-dashboard-page .bs-field input:focus,
 .bs-dashboard-page .bs-field textarea:focus,
+.bs-dashboard-page .bs-field select:focus,
 .bs-dashboard-page .bs-security-box input:focus {
   border-color: #07074e;
   box-shadow: 0 0 0 4px rgba(7, 7, 78, 0.12);

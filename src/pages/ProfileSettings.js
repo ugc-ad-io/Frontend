@@ -282,6 +282,19 @@ const defaultBrandProfile = {
   logo_url: ''
 };
 
+// Dropdown options for the brand Company Details form.
+const BUSINESS_TYPES = [
+  'Sole Proprietorship', 'Partnership', 'LLP (Limited Liability Partnership)',
+  'Private Limited (Pvt Ltd)', 'One Person Company (OPC)', 'Public Limited',
+  'Individual / Freelancer', 'NGO / Non-profit', 'Other',
+];
+const BUSINESS_CATEGORIES = [
+  'Fashion & Apparel', 'Beauty & Cosmetics', 'Health & Wellness', 'Food & Beverage',
+  'Electronics & Tech', 'Home & Living', 'Fitness & Sports', 'Jewellery & Accessories',
+  'Travel & Hospitality', 'Baby & Kids', 'Automotive', 'Finance & Fintech',
+  'Education', 'Gaming', 'Pets', 'Other',
+];
+
 const defaultCompany = {
   business_type: '',
   gst_number: '',
@@ -799,7 +812,14 @@ export default function ProfileSettings() {
   const renderBrandField = (label, value, onChange, props = {}) => (
     <label className={props.full ? 'bs-field bs-full' : 'bs-field'}>
       <span>{label}</span>
-      {props.textarea ? (
+      {props.options ? (
+        <select value={value || ''} onChange={(event) => onChange(event.target.value)} disabled={props.disabled}>
+          <option value="">{props.placeholder || 'Select…'}</option>
+          {/* Keep a legacy/custom value visible even if it isn't in the list. */}
+          {value && !props.options.includes(value) && <option value={value}>{value}</option>}
+          {props.options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+      ) : props.textarea ? (
         <textarea value={value || ''} onChange={(event) => onChange(event.target.value)} rows={props.rows || 3} />
       ) : (
         <input
@@ -866,9 +886,9 @@ export default function ProfileSettings() {
             <em className={`bs-kyb ${company.kyb_status}`}>KYB {company.kyb_status || 'pending'}</em>
           </div>
           <div className="bs-card-body bs-form-grid">
-            {renderBrandField('Business Type', company.business_type, value => setCompany(current => ({ ...current, business_type: value })))}
+            {renderBrandField('Business Type', company.business_type, value => setCompany(current => ({ ...current, business_type: value })), { options: BUSINESS_TYPES, placeholder: 'Select business type' })}
             {renderBrandField('GST Number', company.gst_number, value => setCompany(current => ({ ...current, gst_number: value })))}
-            {renderBrandField('Business Category', company.business_category, value => setCompany(current => ({ ...current, business_category: value })))}
+            {renderBrandField('Business Category', company.business_category, value => setCompany(current => ({ ...current, business_category: value })), { options: BUSINESS_CATEGORIES, placeholder: 'Select category' })}
             {renderBrandField('Country', company.country, value => setCompany(current => ({ ...current, country: value })))}
             {renderBrandField('Billing Address', company.billing_address, value => setCompany(current => ({ ...current, billing_address: value })), { full: true, textarea: true })}
             {renderBrandField('City', company.city, value => setCompany(current => ({ ...current, city: value })))}

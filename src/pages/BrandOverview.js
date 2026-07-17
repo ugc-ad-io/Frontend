@@ -4,14 +4,14 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
-import { displayName } from '../utils/displayName';
+import { firstName } from '../utils/displayName';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
-const creatorName = (c) => displayName(c, 'Creator');
+const creatorName = (c) => firstName(c, 'Creator');
 const initial = (c) => (creatorName(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 
 function CreatorCard({ c, onMessage }) {

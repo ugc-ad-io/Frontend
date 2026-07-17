@@ -7,7 +7,7 @@ import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
-import { creatorName } from '../utils/displayName';
+import { creatorFirstName } from '../utils/displayName';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -31,7 +31,7 @@ const playable = (u) => {
 };
 // Brands never see a creator's real name/username — show the brand-facing handle
 // (nickname), falling back to the public creator ID rather than a bare "Creator".
-const nameOf = (c) => creatorName(c);
+const nameOf = (c) => creatorFirstName(c);
 const initialOf = (c) => (nameOf(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 const catOf = (c) => (c.primary_category || c.category || c.niche || 'UGC').replace(/_/g, ' ');
 const catClass = (cat) => {

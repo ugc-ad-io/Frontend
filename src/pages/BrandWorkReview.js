@@ -336,6 +336,6 @@ export default function BrandWorkReview() {
 }
 
 function handleLabelSafe(c) {
-  // Names, not @handles — strip a leading "@" if the source value carried one.
-  return String(c || 'Creator').replace(/^@/, '');
+  // First name only — strip a leading "@" and drop any surname.
+  return String(c || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator';
 }

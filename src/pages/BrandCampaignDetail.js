@@ -20,7 +20,7 @@ import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { selectedCreators, creatorsWanted, slotsLeft } from '../utils/campaignCreators';
-import { creatorName } from '../utils/displayName';
+import { creatorFirstName } from '../utils/displayName';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -290,7 +290,7 @@ export default function BrandCampaignDetail() {
 
   const spent = campaign.escrow_amount || campaign.budget_min || 0;
   const total = campaign.budget_max || campaign.budget_min || 0;
-  const handle = creator ? creatorName(creator) : null;
+  const handle = creator ? creatorFirstName(creator) : null;
   const cp = creator?.profile || {};
   const ship = deal?.shipment || {};
   const rec = deal?.receipt || {};

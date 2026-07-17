@@ -214,7 +214,8 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
     return isObjectId(n) ? '' : n;
   };
   const nameOf = (b) => realName(b) || 'Creator';
-  const handleOf = (b) => String(realName(b) || 'Creator').replace(/^@/, '');
+  // First name only — no surname (e.g. "Meet Jain" → "Meet").
+  const handleOf = (b) => String(realName(b) || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator';
   const initialOf = (b) => (String(nameOf(b)).replace(/[^A-Za-z0-9]/g, '').charAt(0) || 'C').toUpperCase();
 
   return (

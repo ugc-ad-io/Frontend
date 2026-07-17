@@ -491,10 +491,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // Prefer the nested profile, but fall back to any same-named field stored at the
   // user root so details still render for records that aren't fully nested.
   const p = { ...(data || {}), ...(data?.profile || {}) };
-  // Show the creator's NAME (no @username handle anymore).
-  const name = creatorName(data) !== 'Creator'
-    ? creatorName(data)
-    : ((fallbackName || '').trim().replace(/^@/, '') || 'Creator');
+  // Show the creator's first name (no surname, no @username handle).
+  const name = creatorFirstName(data) !== 'Creator'
+    ? creatorFirstName(data)
+    : ((fallbackName || '').trim().replace(/^@/, '').split(/\s+/)[0] || 'Creator');
   const publicId = data?.public_creator_id || String(id || '').slice(0, 12);
   const age = p.age;
   const gender = p.gender ? String(p.gender).charAt(0).toUpperCase() : '';

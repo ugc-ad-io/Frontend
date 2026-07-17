@@ -36,6 +36,10 @@ const ACTION_CARD_LABELS = {
 };
 const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
 
+// Friendly labels for the accept/reject/counter buttons the backend attaches to
+// received offer cards (available_actions), instead of showing raw lowercase verbs.
+const OFFER_RESPONSE_LABELS = { accept: 'Accept', reject: 'Decline', counter: 'Counter' };
+
 // Define which action cards are available for each role
 const ACTION_CARDS_BY_ROLE = {
   // Creators respond to revision requests in the deal room — they don't send them,
@@ -166,6 +170,7 @@ export default function MessagesPage() {
   const [creatingCard, setCreatingCard] = useState(false);
   const [actionComposerType, setActionComposerType] = useState(null);
   const [actionForm, setActionForm] = useState({});
+  const [counteringCardId, setCounteringCardId] = useState(null); // original offer card this counter replies to
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
@@ -551,7 +556,13 @@ export default function MessagesPage() {
         {!isOwn && item.status === 'open' && item.available_actions?.length ? (
           <div className="msg-action-card-actions">
             {item.available_actions.map((action) => (
-              <button key={action} type="button" onClick={() => respondToActionCard(item.id, action)}>{action}</button>
+              <button
+                key={action}
+                type="button"
+                onClick={() => (action === 'counter' ? openCounterFromCard(item) : respondToActionCard(item.id, action))}
+              >
+                {OFFER_RESPONSE_LABELS[action] || action}
+              </button>
             ))}
           </div>
         ) : null}
@@ -580,13 +591,32 @@ export default function MessagesPage() {
   );
 
   const openActionComposer = (type) => {
+    setCounteringCardId(null); // a fresh card from the chips isn't tied to any offer
     setActionComposerType(type);
     setActionForm(getDefaultActionForm(type));
+  };
+
+  // Countering a received offer: open the counter composer pre-filled with that
+  // offer's terms (so the brand tweaks a number instead of retyping everything),
+  // and remember which offer we're replying to so submit can close it out.
+  const openCounterFromCard = (item) => {
+    const f = item.fields || {};
+    const price = f.modified_price ?? f.price ?? f.budget;
+    setCounteringCardId(item.id);
+    setActionComposerType('counter_offer');
+    setActionForm({
+      modified_price: price != null && String(price).trim() !== '' ? String(price) : '5000',
+      revisions: f.revisions != null ? String(f.revisions) : '1',
+      timeline: f.timeline || '7 days',
+      usage_rights: f.usage_rights || 'Organic social',
+      diff_vs_original: '',
+    });
   };
 
   const closeActionComposer = () => {
     setActionComposerType(null);
     setActionForm({});
+    setCounteringCardId(null);
   };
 
   const getActionCardPayloadFields = () => {
@@ -646,6 +676,16 @@ export default function MessagesPage() {
         type: actionComposerType,
         fields: getActionCardPayloadFields()
       });
+      // If this counter replies to a specific offer, mark that offer as countered
+      // so it leaves the "open" state. Best-effort: it may already be closed/expired,
+      // in which case the counter card we just sent still stands on its own.
+      if (counteringCardId) {
+        try {
+          await axios.post(`${API}/chat/action-cards/${counteringCardId}/respond`, { action: 'counter' });
+        } catch (err) {
+          // original offer no longer respondable — ignore, the counter was still sent
+        }
+      }
       toast.success(`${ACTION_CARD_LABELS[actionComposerType]} sent`);
       closeActionComposer();
       fetchMessages(selectedId);

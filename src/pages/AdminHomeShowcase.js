@@ -183,7 +183,10 @@ export default function AdminHomeShowcase() {
         .ahs-grid label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#8a90a6}
         .ahs-grid label.ahs-wide{grid-column:1 / -1}
         .ahs-grid input,.ahs-grid select{border:1px solid #dfe2ee;border-radius:9px;padding:9px 11px;font:inherit;font-size:14px;color:#15163a;font-weight:500;text-transform:none;letter-spacing:normal;background:#fff}
-        .ahs-grid select{cursor:pointer}
+        /* Custom chevron, inset from the edge so it isn't jammed against the border. */
+        .ahs-grid select{cursor:pointer;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:34px;
+          background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235b6bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6l4 4 4-4'/></svg>");
+          background-repeat:no-repeat;background-position:right 11px center}
         .ahs-field select+input{margin-top:6px}
         .ahs-grid input:focus,.ahs-grid select:focus{outline:none;border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.15)}
         .ahs-del{position:absolute;top:12px;right:12px;width:30px;height:30px;display:grid;place-items:center;border:1px solid #fecdca;background:#fff;color:#dc2626;border-radius:8px;cursor:pointer}

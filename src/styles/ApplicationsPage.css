@@ -572,8 +572,15 @@
    per row so single-value fields don't each eat a full-width row with empty
    space beside them. Object/nested fields still span the row via .full-width. */
 .all-details-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 8px 10px;
+  align-items: start;
+}
+/* Inside "All Submitted Details", nested-object cards (Rate Card, Availability,
+   Content Categories, …) previously spanned the whole row and left the right
+   side empty. Let them flow side-by-side to use the available width. */
+.all-details-grid .info-item.full-width {
+  grid-column: auto;
 }
 .all-details-grid .info-item {
   padding: 9px 12px;

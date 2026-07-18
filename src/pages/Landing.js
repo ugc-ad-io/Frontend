@@ -53,6 +53,8 @@ import { motion, AnimatePresence, useAnimationControls, useInView, animate, useM
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
+// Interactive 3D values cube (replaces the old scrolling tagline leaderboard).
+import ValuesCube from '../components/ValuesCube';
 
 // Inject Cloudinary delivery transforms so the marquee fetches a tiny card-sized clip instead
 // of the raw source. Measured against the actual files, dimension alone barely mattered — the
@@ -777,52 +779,38 @@ function CountUp({ value }) {
   return <motion.span ref={ref}>{display}</motion.span>;
 }
 
-// Fanned, side-by-side cards. One card is "active" (raised, straightened, purple);
-// the rest fan out with a slight tilt. Auto-cycles, and hovering a card activates it.
-// Desktop: fanned, side-by-side cards with hover lift.
-function AchieveFan({ items }) {
-  // No card is lifted/highlighted by default — only while actually hovered.
-  const [active, setActive] = useState(-1);
-  const n = items.length;
-
-  const SPACING = 196; // horizontal step between card centres
-  const TILT = 4;      // degrees of fan tilt per step
-
+// Desktop: an auto-scrolling horizontal marquee of the feature cards (Pixis-style).
+// The card design is unchanged (.lp-achieve-card); only the layout is a continuously
+// scrolling track. Items are duplicated once so translateX(-50%) loops seamlessly, and
+// hovering the row pauses the scroll while hovering a card lights it purple (CSS :hover).
+function AchieveMarquee({ items }) {
+  // Two back-to-back copies → the -50% keyframe lands the second copy exactly where the
+  // first started, so the loop has no visible seam. The clone is hidden from screen readers.
+  const loop = [...items, ...items];
   return (
-    <div className="lp-achieve__fan" onMouseLeave={() => setActive(-1)}>
-      {items.map((item, i) => {
-        const offset = i - (n - 1) / 2;
-        const isActive = i === active;
-        // When a card is hovered, slide the cards on either side AWAY from it so they
-        // don't crowd/overlap the raised card (left ones shift left, right ones right).
-        const PUSH = 70;
-        const push = active >= 0 && !isActive ? (i < active ? -PUSH : PUSH) : 0;
-        // Active card only lifts (no zoom/scale) and sits straight; the rest fan out.
-        const transform = isActive
-          ? `translateX(${offset * SPACING}px) translateY(-26px) rotate(0deg)`
-          : `translateX(${offset * SPACING + push}px) translateY(${Math.abs(offset) * 9}px) rotate(${offset * TILT}deg)`;
-        const Icon = item.icon;
-        return (
-          <article
-            key={item.title}
-            className={`lp-achieve-card${isActive ? ' is-active' : ''}`}
-            // Cascade left→right (each card on top of the previous one) so every card's
-            // top-left number stays uncovered. A center-on-top order hid 05/06, because the
-            // card to their LEFT (higher z) overlapped the corner where the number sits.
-            style={{ transform, zIndex: isActive ? 30 : 10 + i }}
-            onMouseEnter={() => setActive(i)}
-          >
-            <div className="lp-achieve-card__top">
-              {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
-              <span className="lp-achieve-card__num">0{i + 1}</span>
-            </div>
-            <div className="lp-achieve-card__body">
-              <h3 className="lp-achieve-card__title">{item.title}</h3>
-              <p className="lp-achieve-card__desc">{item.desc}</p>
-            </div>
-          </article>
-        );
-      })}
+    <div className="lp-achieve__marquee">
+      <div className="lp-achieve__track">
+        {loop.map((item, i) => {
+          const Icon = item.icon;
+          const num = (i % items.length) + 1; // 1..6, repeating across the two copies
+          return (
+            <article
+              key={i}
+              className="lp-achieve-card lp-achieve-mcard"
+              aria-hidden={i >= items.length ? true : undefined}
+            >
+              <div className="lp-achieve-card__top">
+                {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
+                <span className="lp-achieve-card__num">0{num}</span>
+              </div>
+              <div className="lp-achieve-card__body">
+                <h3 className="lp-achieve-card__title">{item.title}</h3>
+                <p className="lp-achieve-card__desc">{item.desc}</p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2124,7 +2112,7 @@ export default function Landing() {
           <motion.h2 className="lp-achieve__title">
             <em className="lp-achieve__hl">Find</em> &amp; Hire <em className="lp-achieve__hl lp-achieve__word lp-achieve__word--creators">Creators</em> <em className="lp-achieve__word lp-achieve__word--instantly">Instantly</em>
           </motion.h2>
-          <AchieveFan items={achieveItems} />
+          <AchieveMarquee items={achieveItems} />
           <AchieveStack items={achieveItems} />
         </section>
       </motion.div>
@@ -4367,6 +4355,7 @@ export default function Landing() {
            re-sets display:flex, which would otherwise win over this and show BOTH stacks. */
         @media (max-width: 768px) {
           .lp-achieve__fan { display: none !important; }
+          .lp-achieve__marquee { display: none !important; }
           .lp-achieve__stack { display: flex; --stk-top: 226px; --stk-step: 52px; margin-top: 56px; }
           /* Pull the section up (STATIC margin, NOT a transform) so it follows close behind the
              peeled audit cards. A transform here would break the sticky heading + sticky card
@@ -4411,6 +4400,55 @@ export default function Landing() {
           position: relative;
           height: 430px;
           margin-top: 48px;
+        }
+
+        /* ── Auto-scroll marquee (desktop) ─────────────────────────────────────
+           A continuously scrolling horizontal track of the feature cards. The row
+           pauses on hover; hovering a card lights it purple + lifts it. The track
+           holds TWO copies of the cards and animates to translateX(-50%), so the
+           second copy lands exactly where the first began → a seamless loop. */
+        .lp-achieve__marquee {
+          position: relative;
+          margin-top: 48px;
+          padding: 30px 0 44px;   /* vertical room for the hover-lift + shadow */
+          overflow: hidden;
+          /* Fade both edges so cards enter/exit softly instead of hard-clipping. */
+          -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
+                  mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
+        }
+        .lp-achieve__track {
+          display: flex;
+          width: max-content;
+          animation: lp-achieve-scroll 42s linear infinite;
+          will-change: transform;
+        }
+        .lp-achieve__marquee:hover .lp-achieve__track { animation-play-state: paused; }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-achieve__track { animation: none; }
+        }
+        @keyframes lp-achieve-scroll {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        /* Undo the fan's absolute layout for cards living inside the marquee track. */
+        .lp-achieve__marquee .lp-achieve-mcard {
+          position: relative;
+          top: auto;
+          left: auto;
+          margin-left: 0;
+          margin-right: 26px;     /* inter-card gap — counted in the -50% loop width */
+          flex: 0 0 auto;
+          transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .4s ease, border-color .4s ease;
+        }
+        .lp-achieve__marquee .lp-achieve-mcard:hover {
+          transform: translateY(-14px);
+          box-shadow: 0 32px 70px rgba(0, 0, 0, 0.6);
+        }
+        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__icon,
+        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__num,
+        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__title { color: #7387FF; }
+        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__title {
+          border-bottom-color: rgba(115, 135, 255, 0.4);
         }
         .lp-achieve-card {
           position: absolute;

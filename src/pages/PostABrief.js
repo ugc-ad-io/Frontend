@@ -720,8 +720,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   }, [form]);
 
   const handleHashtagsChange = (value) => {
-    const tags = value.split(/\s+/).filter(Boolean).slice(0, 10);
-    set('hashtags', tags.join(' '));
+    // Keep the raw typed value (including trailing spaces) so the spacebar
+    // works while typing; only normalise when the 10-hashtag cap is exceeded.
+    const tags = value.split(/\s+/).filter(Boolean);
+    set('hashtags', tags.length > 10 ? tags.slice(0, 10).join(' ') : value);
   };
 
   const briefText = () => {

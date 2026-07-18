@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, Search } from 'lucide-react';
 import { getInitial } from './CreatorComponents';
-import { displayName } from '../utils/displayName';
+import { displayName, creatorFirstName } from '../utils/displayName';
+import { useAuth } from '../App';
 import ChatPopup from './ChatPopup';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -42,9 +43,12 @@ const previewText = (conv) => {
  * the same card (via ChatPopup); its close button returns to the list.
  */
 export default function MessagesPopup({ onClose }) {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(null); // { id, name, photo }
+  // A brand sees a creator by FIRST NAME only; a creator keeps the brand's full name.
+  const nameOf = (c) => (user?.role === 'business' ? creatorFirstName(c) : displayName(c, 'User'));
 
   useEffect(() => {
     let alive = true;
@@ -65,8 +69,6 @@ export default function MessagesPopup({ onClose }) {
     return <ChatPopup user={active} onClose={() => setActive(null)} />;
   }
 
-  // Show the real NAME (never the "@handle") — same resolver used app-wide.
-  const nameOf = (c) => displayName(c, 'User');
 
   const filtered = conversations.filter((c) =>
     nameOf(c).toLowerCase().includes(q.trim().toLowerCase()));

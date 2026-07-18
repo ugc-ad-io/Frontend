@@ -625,7 +625,7 @@ export default function BrandCampaignDetail() {
                     <div className="bcd-bid-top">
                       <span className="bcd-cre-ava sm">{String(b.creator_name || b.creator_nickname || 'C').replace(/^@+/, '').charAt(0).toUpperCase()}</span>
                       <div className="bcd-bid-who">
-                        <strong>{String(b.creator_name || b.creator_nickname || 'Creator').replace(/^@+/, '')}</strong>
+                        <strong>{String(b.creator_name || b.creator_nickname || 'Creator').replace(/^@+/, '').trim().split(/\s+/)[0]}</strong>
                         <small>{b.estimated_delivery_days ? `${b.estimated_delivery_days} day delivery` : 'Delivery not specified'}</small>
                       </div>
                       <b className="bcd-bid-amt">{inr(b.amount)}</b>

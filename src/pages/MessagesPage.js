@@ -989,7 +989,7 @@ export default function MessagesPage() {
                   );
                 })
               )}
-              {isOtherTyping ? <div className="msg-typing">{nameOf(selectedConv)} is typing...</div> : null}
+              {isOtherTyping ? <div className="msg-typing">{peerLabel(selectedConv)} is typing...</div> : null}
               <div ref={messagesEndRef} />
             </div>
 
@@ -1133,7 +1133,7 @@ export default function MessagesPage() {
       {briefTarget && (
         <PlanBrief
           creatorId={briefTarget}
-          creatorName={displayName(selectedConv, 'Creator')}
+          creatorName={creatorFirstName(selectedConv)}
           onClose={() => setBriefTarget(null)}
           onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
         />
@@ -1149,6 +1149,11 @@ export default function MessagesPage() {
             fallbackName={nameOf(selectedConv)}
             onClose={() => setProfileOpen(false)}
             onMessage={() => setProfileOpen(false)}
+            // A creator may review the brand only once the deal on this thread is
+            // completed. The backend re-checks this; the flag just gates the button.
+            canReview={user?.role === 'creator' && String(selectedConv?.associated_deal_status || '').toLowerCase() === 'completed'}
+            reviewCampaignId={selectedConv?.associated_campaign_id}
+            currentUserId={user?.id}
           />
         ) : (
           <CreatorProfileModal
@@ -1164,7 +1169,7 @@ export default function MessagesPage() {
         <div className="msg-report-overlay" onClick={() => !reportSubmitting && setReport(null)}>
           <form className="msg-report-modal" onClick={(e) => e.stopPropagation()} onSubmit={submitReport}>
             <div className="msg-report-head">
-              <strong>Report {displayName(selectedConv, 'user')}</strong>
+              <strong>Report {peerLabel(selectedConv)}</strong>
               <button type="button" aria-label="Close" onClick={() => setReport(null)}><X size={16} /></button>
             </div>
             <p className="msg-report-sub">Our team reviews every report within 5 business days. Don't include phone numbers or emails.</p>

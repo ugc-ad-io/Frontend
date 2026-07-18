@@ -53,6 +53,10 @@ function ActionCardMini({ card }) {
  */
 export default function ChatPopup({ user, onClose }) {
   const { user: me } = useAuth();
+  // A brand sees the creator by FIRST NAME only (never full name / @username).
+  const peerName = me?.role === 'business'
+    ? (String(user.name || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator')
+    : (user.name || 'Creator');
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -93,8 +97,8 @@ export default function ChatPopup({ user, onClose }) {
     <>
     <div className={`cpop ${briefOpen ? 'is-behind' : ''}`}>
       <div className="cpop-head">
-        <span className="cpop-ava">{photo ? <img src={photo} alt="" /> : initial(user.name)}</span>
-        <div className="cpop-head-id"><strong>{user.name || 'Creator'}</strong><small><i className="cpop-dot" /> Responds in ~30 min</small></div>
+        <span className="cpop-ava">{photo ? <img src={photo} alt="" /> : initial(peerName)}</span>
+        <div className="cpop-head-id"><strong>{peerName}</strong><small><i className="cpop-dot" /> Responds in ~30 min</small></div>
         <button type="button" className="cpop-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
       </div>
 
@@ -139,7 +143,7 @@ export default function ChatPopup({ user, onClose }) {
       {briefOpen && (
         <PlanBrief
           creatorId={user.id}
-          creatorName={user.name}
+          creatorName={peerName}
           onClose={() => setBriefOpen(false)}
           onPublished={() => setBriefOpen(false)}
         />

@@ -4,6 +4,13 @@
    high z-indexes), so error/success toasts are never hidden behind them. */
 [data-sonner-toaster] { z-index: 2147483647 !important; }
 
+/* Form controls render in LIGHT mode regardless of the site theme attribute.
+   The app defaults to a dark `data-theme`/color-scheme during the light-theme
+   rollout, which made unstyled native <select> triggers (and their option
+   popups) render black-on-white — e.g. the Category dropdown. Forcing a light
+   color-scheme on form controls keeps them readable on the light forms. */
+input, select, textarea { color-scheme: light; }
+
 /* ── Brand typography (single source of truth) ───────────────────────────────
    Display / headlines  → Readex Pro (500 medium, 600 bold) — loaded from Google Fonts.
    Body / UI / labels   → Just Sans, with Inter as the loaded web fallback.

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { X, MessageSquare, Star, Building2, Globe, MapPin, Layers, Briefcase } from 'lucide-react';
 import { brandName } from '../utils/displayName';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
+import ReviewModal from './ReviewModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -41,11 +43,16 @@ function Stars({ n = 0, size = 14 }) {
  * brand-relevant fields — brand name, RATING, category, industry, website.
  * Contact person / phone / email are intentionally NOT shown (anti-off-platform).
  */
-export default function BrandProfileCard({ id, fallbackName, onClose, onMessage }) {
+export default function BrandProfileCard({ id, fallbackName, onClose, onMessage, canReview = false, reviewCampaignId, currentUserId }) {
   const [data, setData] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('details');
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  const loadReviews = () => axios.get(`${API}/reviews/business/${id}`)
+    .then((r) => Array.isArray(r.data) ? r.data : [])
+    .catch(() => []);
 
   useEffect(() => {
     let alive = true;
@@ -56,11 +63,28 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage 
       .finally(() => { if (alive) setLoading(false); });
     // Review list is a bonus — if the endpoint isn't live yet the aggregate rating
     // (from the profile doc) still renders, so swallow any error to an empty list.
-    axios.get(`${API}/reviews/business/${id}`)
-      .then((r) => { if (alive) setReviews(Array.isArray(r.data) ? r.data : []); })
-      .catch(() => { if (alive) setReviews([]); });
+    loadReviews().then((list) => { if (alive) setReviews(list); });
     return () => { alive = false; };
   }, [id]);
+
+  // The creator can review this brand only after the deal is completed (canReview),
+  // and only once per deal — hide the button if they've already reviewed this campaign.
+  const alreadyReviewed = reviews.some(
+    (r) => r.campaign_id === reviewCampaignId && r.reviewer_id === currentUserId
+  );
+  const showReviewButton = canReview && !!reviewCampaignId && !loading && !alreadyReviewed;
+
+  const submitReview = async ({ rating, review }) => {
+    try {
+      await axios.post(`${API}/reviews`, { campaign_id: reviewCampaignId, business_id: id, rating, review });
+      setReviewOpen(false);
+      toast.success('Review submitted — thanks for the feedback!');
+      setReviews(await loadReviews());
+      setTab('reviews');
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Could not submit your review');
+    }
+  };
 
   const p = { ...(data || {}), ...(data?.profile || {}) };
   const name = (brandName(data) !== 'Brand' ? brandName(data) : (fallbackName || 'Brand')).replace(/^@/, '');
@@ -108,6 +132,12 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage 
           </div>
 
           <div className="bpc-actions">
+            {showReviewButton && (
+              <button type="button" className="bpc-review" onClick={() => setReviewOpen(true)}><Star size={15} /> Review this brand</button>
+            )}
+            {canReview && alreadyReviewed && (
+              <span className="bpc-reviewed"><Star size={14} fill="#f5b301" color="#f5b301" /> Reviewed</span>
+            )}
             {onMessage && <button type="button" className="bpc-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
           </div>
 
@@ -207,6 +237,15 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage 
         </div>
       </div>
 
+      {reviewOpen && (
+        <ReviewModal
+          title="Rate this brand"
+          subtitle={`How was working with ${name}?`}
+          onSubmit={submitReview}
+          onClose={() => setReviewOpen(false)}
+        />
+      )}
+
       <style>{`
         .bpc-ov{position:fixed;inset:0;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);z-index:1400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto}
         .bpc{position:relative;width:min(720px,100%);background:#fff;border-radius:22px;box-shadow:0 30px 70px rgba(15,22,58,.4);overflow:hidden}
@@ -219,6 +258,9 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage 
         .bpc-actions{position:absolute;right:28px;top:122px;display:flex;align-items:center;gap:10px}
         .bpc-msg{display:inline-flex;align-items:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .bpc-msg:hover{filter:brightness(1.12)}
+        .bpc-review{display:inline-flex;align-items:center;gap:7px;background:#f5b301;color:#15163a;border:none;border-radius:30px;padding:11px 18px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
+        .bpc-review:hover{filter:brightness(1.06)}
+        .bpc-reviewed{display:inline-flex;align-items:center;gap:6px;background:#fff6df;color:#8a6d1f;border-radius:30px;padding:9px 15px;font-weight:800;font-size:12.5px}
         .bpc-name{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:25px;font-weight:800;color:#15163a;margin:12px 0 2px}
         .bpc-id{color:#9296ba;font-size:13px;font-weight:600}
         .bpc-stats{display:flex;flex-wrap:wrap;align-items:center;gap:8px 26px;margin-top:16px}

@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw } from 'lucide-react';
+import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw, Inbox, IndianRupee } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -30,11 +30,22 @@ function stageIndex(c) {
 // Has the brand sent this piece of work back for changes?
 const needsRevision = (c) => (c.work_submission || {}).status === 'revision_requested';
 
+// A direct booking the creator hasn't turned into active work yet. It's created with
+// status "in_progress", so without this it masquerades as an active deal in the list.
+//   pending_creator → needs THEIR response (accept / decline / propose a price)
+//   price_revision  → they proposed a price, now waiting on the brand
+const isBookingRequest = (c) => c.booking_status === 'pending_creator' || c.booking_status === 'price_revision';
+const needsCreatorResponse = (c) => c.booking_status === 'pending_creator';
+
 // Reference-style status badge: label + accent colour + icon.
 function statusMeta(c) {
   const s = c.status;
   const due = c.due_date ? Math.ceil((new Date(c.due_date) - Date.now()) / 86400000) : null;
   const startFuture = (c.start_date || c.scheduled_at) && new Date(c.start_date || c.scheduled_at) > Date.now();
+  // Booking requests come first — a pending one needs the creator to respond, and a
+  // price proposal is parked waiting on the brand. Neither is active work yet.
+  if (c.booking_status === 'pending_creator') return { label: 'Booking Request', color: '#4452f0', Icon: Inbox };
+  if (c.booking_status === 'price_revision') return { label: 'Price Sent — Awaiting Brand', color: '#f59e0b', Icon: Hourglass };
   // A revision request drops the campaign back to in_progress, which used to read
   // as a plain "Active" — the creator had no signal the brand wanted changes.
   if (needsRevision(c)) return { label: 'Revision Requested', color: '#f97316', Icon: RefreshCw };
@@ -47,8 +58,13 @@ function statusMeta(c) {
 }
 
 const TABS = [
+  // Incoming booking requests awaiting the creator's decision — surfaced from the
+  // "New booking request" notification so they aren't buried inside a deal.
+  { key: 'requests', label: 'Requests', match: (c) => isBookingRequest(c) },
   // Pending-review deals (work_submitted / under_review) live under Active now.
-  { key: 'active', label: 'Active', match: (c) => ['in_progress', 'active', 'work_submitted', 'under_review'].includes(c.status) },
+  // A booking request is technically "in_progress" too, so exclude it — otherwise it
+  // shows up here as a green "Active" card before the creator has even accepted it.
+  { key: 'active', label: 'Active', match: (c) => !isBookingRequest(c) && ['in_progress', 'active', 'work_submitted', 'under_review'].includes(c.status) },
   { key: 'completed', label: 'Completed', match: (c) => c.status === 'completed' },
   { key: 'cancelled', label: 'Cancelled', match: (c) => c.status === 'cancelled' },
 ];
@@ -59,6 +75,10 @@ export default function MyActiveWorkPage() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('active');
+  // Land on the Requests tab once if there's a booking waiting on the creator — the
+  // whole point of the "New booking request" notification is to not miss it. Only
+  // fires on the first load that has requests; manual tab switches stick after that.
+  const autoTabbed = useRef(false);
 
   useEffect(() => {
     if (user?.approval_status && user.approval_status !== 'approved') return undefined;
@@ -77,6 +97,14 @@ export default function MyActiveWorkPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (autoTabbed.current || loading) return;
+    if (campaigns.some(needsCreatorResponse)) {
+      autoTabbed.current = true;
+      setTab('requests');
+    }
+  }, [campaigns, loading]);
 
   const counts = useMemo(() => {
     const o = {};
@@ -152,23 +180,43 @@ export default function MyActiveWorkPage() {
                   )}
                 </div>
 
-                <div className="cmk-awc-steps">
-                  {STAGES.map((label, i) => (
-                    <div
-                      key={label}
-                      className={`awc-step ${i < cur ? 'done' : ''} ${i === cur ? 'current' : ''}`}
-                      style={{ '--s': STAGE_COLORS[i] }}
+                {isBookingRequest(c) ? (
+                  /* Work hasn't started — the stage stepper would be misleading. Show the
+                     payout and a direct "Respond" CTA into the Deal Room booking card. */
+                  <div className="cmk-awc-reqcta">
+                    <span className="cmk-awc-reqpay">
+                      <IndianRupee size={15} />
+                      <b>{Number(c.budget_max || c.budget_min || 0).toLocaleString('en-IN')}</b>
+                      <em>you'll be paid</em>
+                    </span>
+                    <button
+                      type="button"
+                      className="cmk-awc-respond"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
+                      data-testid={`respond-booking-${c.id}`}
                     >
-                      <span className="awc-step-lbl">{label}</span>
-                      <i className="awc-step-bar" />
-                    </div>
-                  ))}
-                </div>
+                      {needsCreatorResponse(c) ? 'Respond to request' : 'View proposal'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="cmk-awc-steps">
+                    {STAGES.map((label, i) => (
+                      <div
+                        key={label}
+                        className={`awc-step ${i < cur ? 'done' : ''} ${i === cur ? 'current' : ''}`}
+                        style={{ '--s': STAGE_COLORS[i] }}
+                      >
+                        <span className="awc-step-lbl">{label}</span>
+                        <i className="awc-step-bar" />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <button
                   type="button"
                   className="cmk-awc-go"
-                  aria-label="Open campaign"
+                  aria-label={isBookingRequest(c) ? 'Open booking request' : 'Open campaign'}
                   onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
                 >
                   <ArrowRight size={18} />
@@ -177,6 +225,8 @@ export default function MyActiveWorkPage() {
             );
           })}
         </div>
+      ) : tab === 'requests' ? (
+        <EmptyState title="No booking requests" message="When a brand books you directly, the request lands here to accept, decline, or propose your own price." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
       ) : (
         <EmptyState title={`No work in “${TABS.find((t) => t.key === tab).label}”`} message="Once a brand selects your bid, your active deals will appear here to manage." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
       )}

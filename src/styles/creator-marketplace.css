@@ -431,10 +431,19 @@
   background:#0c0c2e;color:#fff;transition:.18s}
 .cmk-awc-go:hover{background:#2e2e94;transform:translateX(2px)}
 
+/* booking-request CTA — replaces the stage stepper for a not-yet-accepted booking */
+.cmk-awc-reqcta{flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:16px}
+.cmk-awc-reqpay{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);white-space:nowrap}
+.cmk-awc-reqpay b{font-size:16px;font-weight:800;color:var(--ink)}
+.cmk-awc-reqpay em{font-style:normal;font-size:12px;color:var(--muted)}
+.cmk-awc-respond{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:none;border-radius:10px;background:#4452f0;color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.18s}
+.cmk-awc-respond:hover{background:#3542d6;transform:translateY(-1px)}
+
 @media (max-width:760px){
   .cmk-awc{flex-wrap:wrap;gap:14px}
   .cmk-awc-lead{width:auto;flex:1}
   .cmk-awc-steps{flex:1 1 100%;order:3}
+  .cmk-awc-reqcta{flex:1 1 100%;order:3;justify-content:space-between}
 }
 
 /* ── table (My Bids) ─────────────────────────────────────────────────────── */

@@ -1412,3 +1412,90 @@
 .msg-messages::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+/* Mobile back arrow in the chat header — hidden on desktop (two-pane view),
+   shown on phones where the list and chat share one screen. */
+.msg-back-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-right: -4px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #07074e;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.msg-back-btn:hover { background: #f2f3fb; }
+
+/* ============================================================
+   RESPONSIVE / MOBILE
+   Desktop keeps the two-pane (list + chat) layout. On tablets and
+   phones the two panes stack and only one shows at a time: the
+   conversation list until a chat is opened, then the chat with a
+   back button (.msg-back-btn) to return to the list.
+   ============================================================ */
+@media (max-width: 900px) {
+  .msg-list-panel { width: 320px; }
+}
+
+@media (max-width: 768px) {
+  .msg-layout {
+    flex-direction: column;
+    /* Fill the viewport under the top nav; inner panes scroll, so the
+       message input always stays pinned and visible. */
+    height: calc(100dvh - 84px);
+    min-height: 460px;
+    border-radius: 12px;
+  }
+
+  /* One pane at a time. */
+  .msg-list-panel { width: 100%; height: 100%; }
+  .msg-layout.has-active-chat .msg-list-panel { display: none; }
+  .msg-layout:not(.has-active-chat) .msg-chat-panel { display: none; }
+
+  .msg-chat-panel {
+    width: 100%;
+    border-left: none;
+  }
+
+  .msg-back-btn { display: flex; }
+
+  /* Tighter chrome so more of the screen is content. */
+  .msg-search { margin: 12px 12px 4px; }
+  .msg-filters { padding: 10px 12px 12px; overflow-x: auto; }
+  .msg-chat-header { padding: 12px 14px; gap: 10px; }
+  .msg-chat-actions { gap: 4px; }
+  .msg-chat-actions button { width: 34px; height: 34px; }
+
+  .msg-messages { padding: 16px 14px 14px; }
+  .msg-bubble { max-width: 82%; }
+
+  /* Cards and composer go full width instead of a fixed pixel width. */
+  .msg-action-card { width: 100%; }
+  .msg-action-card-fields p { grid-template-columns: 110px 1fr; }
+  .msg-action-composer { margin: 0 14px 12px; }
+  .msg-action-composer-grid { grid-template-columns: 1fr; }
+  .msg-policy-banner { padding: 10px 14px; }
+  .msg-quick-actions { padding: 10px 14px 12px; }
+
+  .msg-input-row { padding: 12px 14px 16px; gap: 8px; }
+  .msg-input { padding: 11px 16px; }
+}
+
+/* Extra-small phones. */
+@media (max-width: 480px) {
+  .msg-layout { height: calc(100dvh - 72px); border-radius: 0; }
+  .msg-bubble { max-width: 88%; }
+  .msg-avatar, .msg-avatar-wrap { width: 40px; height: 40px; min-width: 40px; }
+  /* Icon-only header actions can crowd; keep the essentials, drop the
+     redundant flag/profile buttons in favour of the More (…) menu. */
+  .msg-chat-actions button[title="View profile"],
+  .msg-chat-actions button[title="Report user"] { display: none; }
+  .msg-action-card-fields p { grid-template-columns: 1fr; gap: 2px; }
+  .msg-emoji-picker { grid-template-columns: repeat(5, 32px); }
+}

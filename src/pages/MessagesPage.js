@@ -4,9 +4,9 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ChevronLeft, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
-import { displayName } from '../utils/displayName';
+import { displayName, creatorFirstName } from '../utils/displayName';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -826,13 +826,16 @@ export default function MessagesPage() {
   // so opening Messages keeps you in the top-nav UI instead of redirecting to the
   // old sidebar dashboard. Business keeps its sidebar dashboard layout.
   const isBusiness = user?.role === 'business';
+  // A brand sees a creator by FIRST NAME only (never full name or @username). A
+  // creator keeps the brand's full business name.
+  const peerLabel = (conv) => (isBusiness ? creatorFirstName(conv) : displayName(conv, 'User'));
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const Shell = isBusiness ? BrandTopNavLayout : CreatorTopNavLayout;
   const shellProps = { notifications: totalUnread };
 
   return (
     <Shell {...shellProps}>
-      <div className="msg-layout">
+      <div className={`msg-layout ${selectedId ? 'has-active-chat' : ''}`}>
         {/* Left Panel: Conversations List */}
         <div className="msg-list-panel">
           <div className="msg-list-header">
@@ -906,6 +909,14 @@ export default function MessagesPage() {
           <div className="msg-chat-panel">
             {/* Header */}
             <div className="msg-chat-header">
+              <button
+                type="button"
+                className="msg-back-btn"
+                title="Back to conversations"
+                onClick={() => setSelectedId(null)}
+              >
+                <ChevronLeft size={22} />
+              </button>
               <div className="msg-avatar-wrap" style={{ width: '48px', height: '48px' }}>
                 <div className="msg-avatar" style={{ background: avatarColor(nameOf(selectedConv)) }}>
                   {getInitial(nameOf(selectedConv))}

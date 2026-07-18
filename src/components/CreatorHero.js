@@ -158,7 +158,10 @@ export default function CreatorHero({
           {[0, 1].map((layer) => (
             layerReel[layer] == null ? null : (
               <video
-                key={layer}
+                // Key on the src so the element REMOUNTS (and reloads) when the reel
+                // changes — a bare src swap doesn't reload an already-playing <video>,
+                // which left the old (default) clip on screen after data loaded.
+                key={`${layer}-${(reels[layerReel[layer]] || DEFAULT_REELS[0]).src}`}
                 className={`chero-reel ${layer === leaving ? 'is-leaving' : layer === front ? 'is-front' : 'is-back'}`}
                 src={`${(reels[layerReel[layer]] || DEFAULT_REELS[0]).src}#t=0.1`}
                 autoPlay

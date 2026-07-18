@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import './styles/admin-theme.css';
@@ -43,6 +43,7 @@ const ShipmentTracking = lazy(() => import('./pages/ShipmentTracking'));
 const BrowseBriefs = lazy(() => import('./pages/BrowseBriefs'));
 const SavedBriefs = lazy(() => import('./pages/SavedBriefs'));
 const MyDealsPage = lazy(() => import('./pages/MyDealsPage'));
+const MyDealsHubPage = lazy(() => import('./pages/MyDealsHubPage'));
 const DisputeDetailPage = lazy(() => import('./pages/DisputeDetailPage'));
 const MyBidsPage = lazy(() => import('./pages/MyBidsPage'));
 const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
@@ -54,6 +55,7 @@ const AdminDisputes = lazy(() => import('./pages/AdminDisputes'));
 const AdminAllCampaigns = lazy(() => import('./pages/AdminAllCampaigns'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminKYC = lazy(() => import('./pages/AdminKYC'));
+const AdminHomeShowcase = lazy(() => import('./pages/AdminHomeShowcase'));
 const AdminGST = lazy(() => import('./pages/AdminGST'));
 const AdminMyCreators = lazy(() => import('./pages/AdminMyCreators'));
 const AdminAssignments = lazy(() => import('./pages/AdminAssignments'));
@@ -213,6 +215,15 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
+// `/my-deals` serves two things: the "My Deals" hub (all deals + invites + bids)
+// and, when opened with ?campaign= / ?deal=, the single-deal Deal Room. Keeping
+// one path means every existing Deal Room deep link and notification keeps working.
+function CreatorDealsRoute() {
+  const [searchParams] = useSearchParams();
+  const isDetail = searchParams.get('campaign') || searchParams.get('deal');
+  return isDetail ? <MyDealsPage /> : <MyDealsHubPage />;
+}
+
 // Resets scroll to the top on every route change so a new page never opens
 // at the scroll position of the page you navigated from.
 function ScrollToTop() {
@@ -331,7 +342,7 @@ function App() {
               path="/my-deals"
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
-                  <MyDealsPage />
+                  <CreatorDealsRoute />
                 </ProtectedRoute>
               }
             />
@@ -567,6 +578,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminGST />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/home-showcase"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminHomeShowcase />
                 </ProtectedRoute>
               }
             />

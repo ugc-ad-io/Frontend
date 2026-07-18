@@ -1,14 +1,15 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { ArrowUpRight, Star, Check, Sparkles } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 
-// Top-creator showcase reels (high-res clips from /public). These auto-play in
-// rotation on the right, and the floating cards show THAT creator's headline
-// stats (top earnings + a few details) — a mini leaderboard, not the user's data.
-const REELS = [
+// Default showcase reels — used until (and unless) an admin curates the list via
+// Admin → Home Showcase. Admin entries replace these at runtime.
+const DEFAULT_REELS = [
   { src: '/17811912-uhd_2160_3840_24fps.mp4', name: '@priya.moves',   category: 'Fashion',   earned: 420000, deals: 128, rating: 4.9, level: 'Elite' },
   { src: '/7690504-hd_1080_1920_30fps.mp4',    name: '@rohan.creator', category: 'Fitness',   earned: 360000, deals: 112, rating: 4.8, level: 'L2' },
   { src: '/6944288-uhd_2160_3840_24fps-sm.mp4', name: '@arjun.fit',    category: 'Lifestyle', earned: 310000, deals: 98,  rating: 5.0, level: 'L2' },
@@ -39,6 +40,30 @@ export default function CreatorHero({
   activeDeals = 0, newBriefs = 0, activeDeal = null,
 }) {
   const navigate = useNavigate();
+  // Admin-curated showcase (falls back to DEFAULT_REELS). Maps the stored shape
+  // (video_url) onto the reel shape (src) the player expects.
+  const [reels, setReels] = useState(DEFAULT_REELS);
+  useEffect(() => {
+    let alive = true;
+    axios.get(`${API}/home/top-earners`)
+      .then((r) => {
+        const items = Array.isArray(r.data?.items) ? r.data.items : [];
+        const mapped = items
+          .filter((it) => it && it.name)
+          .map((it) => ({
+            src: it.video_url || it.src || '',
+            name: it.name,
+            category: it.category || '',
+            earned: Number(it.earned) || 0,
+            deals: Number(it.deals) || 0,
+            rating: Number(it.rating) || 0,
+            level: it.level || '',
+          }));
+        if (alive && mapped.length) setReels(mapped);
+      })
+      .catch(() => { /* keep defaults */ });
+    return () => { alive = false; };
+  }, []);
   const advancingRef = useRef(false);         // guard so one clip advances only once
   // Two stacked video layers so the next reel can load HIDDEN and crossfade in —
   // this avoids the orange background flashing during a reel change.
@@ -55,7 +80,7 @@ export default function CreatorHero({
     if (layerReel[back] === nextI) { promote(back); return; }   // already loaded → just crossfade
     setLayerReel((lr) => { const n = [...lr]; n[back] = nextI; return n; }); // loads hidden
   };
-  const nextReel = () => startTransition((idx + 1) % REELS.length);
+  const nextReel = () => startTransition((idx + 1) % reels.length);
   const goToReel = (i) => startTransition(i);
 
   // Back layer finished loading the next reel → reveal it. The NEW reel sits fully
@@ -68,7 +93,7 @@ export default function CreatorHero({
     advancingRef.current = false;
   };
 
-  const tc = REELS[idx]; // the top creator whose reel is currently playing
+  const tc = reels[idx] || reels[0] || DEFAULT_REELS[0]; // the top creator whose reel is currently playing
   const photoSrc = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : null;
   const dealLogo = activeDeal?.logo
     ? (activeDeal.logo.startsWith('http') ? activeDeal.logo : `${BACKEND_URL}${activeDeal.logo}`)
@@ -127,7 +152,7 @@ export default function CreatorHero({
               <video
                 key={layer}
                 className={`chero-reel ${layer === leaving ? 'is-leaving' : layer === front ? 'is-front' : 'is-back'}`}
-                src={`${REELS[layerReel[layer]].src}#t=0.1`}
+                src={`${(reels[layerReel[layer]] || DEFAULT_REELS[0]).src}#t=0.1`}
                 autoPlay
                 muted
                 playsInline
@@ -144,7 +169,7 @@ export default function CreatorHero({
             )
           ))}
           <span className="chero-reel-dots">
-            {REELS.map((_, i) => (
+            {reels.map((_, i) => (
               <i
                 key={i}
                 className={i === idx ? 'on' : (i < idx ? 'done' : '')}

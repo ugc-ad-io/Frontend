@@ -59,6 +59,7 @@ function AdminLayout({ children }) {
               shipping:     ['Shipping Queue', 'Manual label requests — target SLA 4 hours'],
               users:        ['Users',          'Search, edit, warn, suspend or ban users'],
               kyc:          ['Creator KYC',    'Verify Aadhaar + PAN — a creator cannot withdraw until this passes'],
+              showcase:     ['Home Showcase',  'Curate the "Top Earner" cards shown on the creator home hero'],
               gst:          ['Brand GST',      'Review and verify brand GST / business details'],
               financials:   ['Financials',     'Wallets, escrow, payouts and withdrawals'],
               chat:         ['Chat Oversight', 'Flagged messages and contact-info filter log'],

@@ -1,4 +1,4 @@
-import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck, BadgeCheck, ReceiptText } from 'lucide-react';
+import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck, BadgeCheck, ReceiptText, Star } from 'lucide-react';
 import { can, isFounder } from '../utils/adminRoles';
 
 function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose }) {
@@ -18,6 +18,7 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
     { id: 'reports',      label: 'Reports',        icon: BarChart,     testId: 'tab-reports',      slug: 'reports',      cap: 'generate_reports' },
     { id: 'audit',        label: 'Audit Log',      icon: ScrollText,   testId: 'tab-audit',        slug: 'audit-log',    cap: 'view_audit' },
     { id: 'roles',        label: 'Team & Roles',   icon: ShieldCheck,  testId: 'tab-roles',        slug: 'roles',        cap: 'manage_roles' },
+    { id: 'showcase',     label: 'Home Showcase',  icon: Star,         testId: 'tab-showcase',     slug: 'home-showcase', cap: 'edit_settings' },
     { id: 'settings',     label: 'Settings',       icon: Settings,     testId: 'tab-settings',     slug: 'settings',     cap: 'edit_settings' },
   ];
 

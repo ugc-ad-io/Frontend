@@ -97,9 +97,10 @@ const ACTION_CARD_FORM_FIELDS = {
     ['budget', 'Budget', 'number', '5000'],
     ['timeline', 'Timeline', 'text', '7 days'],
     ['usage_rights', 'Usage rights', 'text', 'Organic social'],
+    // The brand writes the brief inline ("Send a brief") instead of pasting a link.
     // Required by the backend (require_fields → private_invitation) — without it the
-    // send fails with "private_invitation requires: full_brief_link".
-    ['full_brief_link', 'Full brief link', 'text', 'https://ugcads.io']
+    // send fails with "private_invitation requires: brief_details".
+    ['brief_details', 'Brief', 'textarea', "What should the creator make? Add the hook, key points to cover, do's & don'ts, and any references."]
   ],
   counter_offer: [
     ['modified_price', 'Modified price', 'number', '5000'],
@@ -135,7 +136,7 @@ const ACTION_CARD_FORM_FIELDS = {
 // a useful message instead of coming back as a bare 400.
 const ACTION_CARD_REQUIRED = {
   custom_offer: ['deliverable_type', 'quantity', 'duration', 'price', 'timeline', 'usage_rights'],
-  private_invitation: ['campaign_name', 'deliverable_summary', 'budget', 'timeline', 'usage_rights', 'full_brief_link'],
+  private_invitation: ['campaign_name', 'deliverable_summary', 'budget', 'timeline', 'usage_rights', 'brief_details'],
   counter_offer: ['modified_price', 'revisions', 'timeline', 'usage_rights', 'diff_vs_original'],
   revision_request: ['revision_text'],
   milestone_update: ['status'],           // notes are optional

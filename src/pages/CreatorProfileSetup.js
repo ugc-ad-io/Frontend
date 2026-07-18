@@ -1331,7 +1331,7 @@ export default function CreatorProfileSetup() {
                       <img src="/uplaod.png" alt="Upload a video" className="ps-pf__thumbimg" />
                     </div>
                     <button type="button" className="ps-pf__upload" disabled={pfVideoUploading} onClick={() => pfFileRef.current?.click()}>
-                      <Upload size={15} /> {pfVideoUploading ? 'Uploading…' : <>Upload <span className="ps-muted">(max 200 MB)</span></>}
+                      <Upload size={15} /> {pfVideoUploading ? 'Uploading…' : <>Upload <span className="ps-muted">(max 50 MB)</span></>}
                     </button>
                   </>
                 )}
@@ -1339,7 +1339,10 @@ export default function CreatorProfileSetup() {
               <div className="ps-pf__right">
                 <input ref={brandRef} className="ps-input" placeholder="Brand name" value={data.pfBrand} onChange={(e) => set('pfBrand', e.target.value)} />
                 <input className="ps-input" placeholder="Price" inputMode="decimal" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value.replace(/[^0-9.]/g, ''))} />
-                <input className="ps-input" placeholder="Category" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)} />
+                <select className="ps-input ps-select" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)}>
+                  <option value="" disabled>Category</option>
+                  {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
+                </select>
                 <button type="button" className="ps-btn-soft" onClick={addPortfolio} disabled={pfVideoUploading}>{pfVideoUploading ? 'Uploading…' : 'Add to Profile'}</button>
               </div>
             </div>
@@ -1368,7 +1371,10 @@ export default function CreatorProfileSetup() {
                         <div className="ps-vid__body">
                           <input className="ps-input" placeholder="Brand name" value={editDraft.brand} onChange={(e) => setEditDraft((d) => ({ ...d, brand: e.target.value }))} />
                           <input className="ps-input" placeholder="Price" inputMode="decimal" value={editDraft.price} onChange={(e) => setEditDraft((d) => ({ ...d, price: e.target.value.replace(/[^0-9.]/g, '') }))} />
-                          <input className="ps-input" placeholder="Category" value={editDraft.category} onChange={(e) => setEditDraft((d) => ({ ...d, category: e.target.value }))} />
+                          <select className="ps-input ps-select" value={editDraft.category} onChange={(e) => setEditDraft((d) => ({ ...d, category: e.target.value }))}>
+                            <option value="" disabled>Category</option>
+                            {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
+                          </select>
                           <div className="ps-vid__actions">
                             <button type="button" className="ps-btn-soft" onClick={saveModify} disabled={editVideoUploading}>{editVideoUploading ? 'Uploading…' : 'Save Changes'}</button>
                             <button type="button" className="ps-vid__del" onClick={() => deleteItem(it.id)}><Trash2 size={14} /> Delete</button>

@@ -185,7 +185,14 @@ const NotificationBell = () => {
                     {getNotificationIcon(notification.type)}
                   </div>
                   <div className="notification-content">
-                    <h4>{notification.title}</h4>
+                    <h4>
+                      {notification.title}
+                      {notification.source === 'admin' && (
+                        <span className="notification-admin-chip">
+                          {notification.sender_label || 'Admin'}
+                        </span>
+                      )}
+                    </h4>
                     <p>{notification.message}</p>
                     <span className="notification-time">
                       {new Date(notification.created_at).toLocaleString()}
@@ -371,6 +378,23 @@ const NotificationBell = () => {
           font-size: 0.95rem;
           font-weight: 600;
           color: #1f2937;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .notification-admin-chip {
+          font-size: 0.65rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #4338ca;
+          background: #eef2ff;
+          border: 1px solid #dfe4ff;
+          border-radius: 999px;
+          padding: 2px 8px;
+          line-height: 1.4;
         }
 
         .notification-content p {

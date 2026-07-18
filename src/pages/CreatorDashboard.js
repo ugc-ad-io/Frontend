@@ -388,7 +388,7 @@ export default function CreatorDashboard() {
     || String(rawCategory).replace(/_/g, ' ')).trim();
   const heroDeal = activeCampaigns[0];
   const heroActiveDeal = heroDeal ? {
-    brand: String(heroDeal.business_nickname || heroDeal.brand_handle || 'Brand').replace(/^@/, ''),
+    brand: String(heroDeal.brand_name || heroDeal.business_nickname || heroDeal.brand_handle || 'Brand').replace(/^@/, ''),
     title: heroDeal.title || 'Active campaign',
     budgetLabel: getCampaignBudget(heroDeal),
     progress: heroDeal.status === 'in_progress' ? 65 : 40,
@@ -532,7 +532,7 @@ function normalizeBrief(campaign, index, myBids) {
     id: campaign.id,
     title: campaign.title || 'Creator Campaign Brief',
     description: campaign.brief_text || 'Review the brand brief, pitch your concept, and manage the collaboration from your creator workspace.',
-    brand: campaign.business_nickname || campaign.brand_handle || fallbackBrand,
+    brand: campaign.brand_name || campaign.business_nickname || campaign.brand_handle || fallbackBrand,
     cover: campaign.cover_image || campaign.image_url || campaign.thumbnail_url || browseCovers[index % browseCovers.length],
     logo: campaign.brand_logo || campaign.business_logo || browseLogos[index % browseLogos.length],
     tags: objectives.length ? objectives.slice(0, 3) : ['UGC', campaign.requires_shipment ? 'Product' : 'Remote', 'Creator'],

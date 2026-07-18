@@ -7,7 +7,6 @@ import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, 
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
-import { LEVEL_LABEL, LEVEL_META, resolveLevelKey } from '../utils/creatorLevel';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
 // uses the exact same choices instead of free text.
@@ -505,12 +504,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const priceNum = String(p.rate_card?.expected_payout || p.expectedPayout || '').replace(/[^0-9]/g, '');
   const avatar = assetUrl(localPhoto || data?.profile_photo || photo);
   const banner = assetUrl(localBanner || data?.banner || p.banner || '');
-  // The backend stores level as a number (1..5) and also sends level_key. Older
-  // records / responses may carry either, so accept both — reading the number as
-  // a tier key is what made "Promote Level" look like it did nothing.
-  const levelKey = resolveLevelKey(data?.level_key ?? data?.level);
-  const levelLabel = data?.level_label || LEVEL_LABEL[levelKey];
-  const levelMeta = LEVEL_META[levelKey] || LEVEL_META.new;
   const deliverables = Number(data?.deliverables_completed ?? p.deliverables_completed ?? 0);
   // Keep each portfolio item's own metadata (category / price / delivery) so the
   // video cards can show per-video values, falling back to the profile defaults.
@@ -711,23 +704,30 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
               <>
                 {onBegin && <button type="button" className="cpm-brief-btn" onClick={onBegin}>Send a Brief</button>}
                 {onMessage && <button type="button" className="cpm-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
-                <button
-                  type="button"
-                  className={`cpm-save ${saved ? 'is-saved' : ''}`}
-                  onClick={() => {
-                    const now = toggleSavedCreator({
-                      id: id || data?.id, name, public_creator_id: publicId, photo: avatar,
-                      category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
-                      deliverables, delivery: hlDelivery,
-                    });
-                    setSaved(now);
-                    toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
-                  }}
-                  aria-label={saved ? 'Saved' : 'Save creator'}
-                  title={saved ? 'Saved' : 'Save creator'}
-                >
-                  <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
-                </button>
+                {/* Saving a creator to a shortlist is a brand-only action. A creator
+                    who opens this modal (e.g. viewing the brand they're chatting with
+                    in Messages) must not see a "Save creator" button — they'd be
+                    "saving a brand", which isn't a thing here (creators save campaigns).
+                    Gate on the viewer's role rather than hiding it everywhere. */}
+                {viewer?.role === 'business' && (
+                  <button
+                    type="button"
+                    className={`cpm-save ${saved ? 'is-saved' : ''}`}
+                    onClick={() => {
+                      const now = toggleSavedCreator({
+                        id: id || data?.id, name, public_creator_id: publicId, photo: avatar,
+                        category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
+                        deliverables, delivery: hlDelivery,
+                      });
+                      setSaved(now);
+                      toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+                    }}
+                    aria-label={saved ? 'Saved' : 'Save creator'}
+                    title={saved ? 'Saved' : 'Save creator'}
+                  >
+                    <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -1030,12 +1030,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         @media (max-width:520px){.cpm-highlights{grid-template-columns:1fr 1fr}}
-        .cpm-lvl{padding:2px 10px;border-radius:20px;color:#fff!important;font-size:13px!important}
-        .cpm-lvl.elite{background:linear-gradient(135deg,#23236a,#5b6bff)}
-        .cpm-lvl.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
-        .cpm-lvl.l1{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
-        .cpm-lvl.verified{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
-        .cpm-lvl.new{background:#6b7090}
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
@@ -1044,16 +1038,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-sec-block{scroll-margin-top:130px;padding-top:4px}
         .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
         .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
-        .cpm-level-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border:1px solid #eef0f6;border-radius:16px;background:#fafbff;margin-bottom:20px}
-        .cpm-level-info label{display:block;color:#9296ba;font-size:12px;font-weight:600}
-        .cpm-level-info strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;font-weight:800;color:#15163a;margin:4px 0 2px}
-        .cpm-level-info small{color:#9296ba;font-size:13px}
-        .cpm-level-badge{flex:none;padding:9px 18px;border-radius:999px;color:#fff;font-weight:700;font-size:14px;background:linear-gradient(135deg,#2bd47e,#15a35b)}
-        .cpm-level-badge.elite{background:linear-gradient(135deg,#6d7bff,#5b6bff)}
-        .cpm-level-badge.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
-        .cpm-level-badge.l1{background:linear-gradient(135deg,#2bd47e,#15a35b)}
-        .cpm-level-badge.verified{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
-        .cpm-level-badge.new{background:#6b7090}
         .cpm-page .cpm{overflow:visible}
         .cpm-page .cpm-tabs{position:sticky;top:72px;z-index:6;margin-top:0}
         @media (max-width:760px){.cpm-page .cpm-tabs{top:0}}

@@ -38,7 +38,7 @@ export default function normalizeBrief(c, index = 0, myBids = []) {
     id: c.id || c._id,
     title: c.title,
     description: cardDescription(c),
-    brand: c.business_nickname || c.brand_handle || 'Brand',
+    brand: c.brand_name || c.business_nickname || c.brand_handle || 'Brand',
     logo: c.brand_logo,
     image_url: c.image_url || c.cover_image || '',
     tags: objectives.length ? objectives.slice(0, 2) : [(c.industry_type || 'UGC'), 'UGC Video'],

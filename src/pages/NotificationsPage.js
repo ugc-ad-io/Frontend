@@ -63,7 +63,12 @@ export default function NotificationsPage() {
               <button key={n.id} type="button" className={`np-item ${!n.read ? 'unread' : ''}`} onClick={() => open(n)}>
                 <span className={`np-ic ${n.type || 'info'}`}>{ICON[n.type] || 'ℹ'}</span>
                 <span className="np-body">
-                  <strong>{n.title}</strong>
+                  <strong>
+                    {n.title}
+                    {n.source === 'admin' && (
+                      <span className="np-admin-chip">{n.sender_label || 'Admin'}</span>
+                    )}
+                  </strong>
                   <span className="np-msg">{n.message}</span>
                   <small>{n.created_at ? new Date(n.created_at).toLocaleString() : ''}</small>
                 </span>
@@ -92,7 +97,8 @@ export default function NotificationsPage() {
         .np-ic.warning{background:#fff4e0;color:#d98a16}
         .np-ic.error{background:#fdeaea;color:#e11d48}
         .np-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-        .np-body strong{font-size:15px;color:var(--ink);font-weight:700}
+        .np-body strong{font-size:15px;color:var(--ink);font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .np-admin-chip{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#4338ca;background:#eef2ff;border:1px solid #dfe4ff;border-radius:999px;padding:2px 8px}
         .np-msg{font-size:13.5px;color:var(--ink-2);line-height:1.45}
         .np-body small{font-size:12px;color:var(--muted);margin-top:2px}
         .np-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#5b6bff;margin-top:6px}

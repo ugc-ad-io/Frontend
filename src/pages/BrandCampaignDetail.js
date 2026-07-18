@@ -47,6 +47,35 @@ const dealStateIndex = (state) => {
   const key = normalizeDash(state);
   return DEAL_ORDER.findIndex((s) => normalizeDash(s) === key);
 };
+// Revision items are stored as flat strings like "[must-fix] change the dress
+// (ref: 0:12)". Parse them into { severity, text, ref } so the panel can render a
+// clean list with badges instead of a wall of duplicated raw text.
+function parseRevisionItem(s) {
+  const str = String(s || '').trim();
+  const sev = str.match(/^\[([^\]]+)\]\s*/);
+  let rest = sev ? str.slice(sev[0].length) : str;
+  const ref = rest.match(/\(ref:\s*([^)]*)\)/i);
+  const text = rest.replace(/\(ref:\s*[^)]*\)/i, '').replace(/\s+-\s*$/, '').trim();
+  return { severity: sev ? sev[1].trim() : '', ref: ref ? ref[1].trim() : '', text };
+}
+// Build a de-duplicated item list from the requested-changes array (preferred) or
+// the flattened feedback string, dropping repeats and any leftover "Notes:" line.
+function revisionItems(rev) {
+  const raw = (rev.requested_changes && rev.requested_changes.length)
+    ? rev.requested_changes
+    : String(rev.latest_feedback || '').split(/\n+/);
+  const seen = new Set();
+  const out = [];
+  raw.map((s) => String(s || '').trim()).filter(Boolean).forEach((s) => {
+    if (/^notes\s*:/i.test(s)) return;
+    const parsed = parseRevisionItem(s);
+    const key = parsed.text.toLowerCase();
+    if (!parsed.text || seen.has(key)) return;
+    seen.add(key);
+    out.push(parsed);
+  });
+  return out;
+}
 const FALLBACK_WORK = ['/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4'];
 const pfUrlOf = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || it?.video || ''));
 
@@ -481,19 +510,39 @@ export default function BrandCampaignDetail() {
                   partial_dispute: { cls: 'bad', text: 'Creator partially accepted and disputed the remaining items — a dispute was opened.' },
                 };
                 const a = ANSWER[answer];
+                const items = revisionItems(rev);
+                const sevClass = (s) => {
+                  const k = String(s || '').toLowerCase();
+                  if (/must|high|critical/.test(k)) return 'must';
+                  if (/nice|low|pref/.test(k)) return 'nice';
+                  return 'med';
+                };
                 return (
                   <div className="bcd-card bcd-revcard">
                     <div className="bcd-revcard-head">
-                      <h3><RefreshCw size={16} /> Revision</h3>
-                      <span className="bcd-revcard-count">
-                        {rev.revision_count_used || 0} of {rev.revision_limit || 0} used
-                      </span>
+                      <h3><RefreshCw size={16} /> Revision requested</h3>
+                      <span className="bcd-revcard-count">{rev.revision_count_used || 0} of {rev.revision_limit || 0} used</span>
                     </div>
-                    <div className="bcd-revcard-grid">
-                      <p><small>Your feedback</small><strong>{rev.latest_feedback || '—'}</strong></p>
-                      <p><small>Requested changes</small><strong>{rev.requested_changes?.length ? rev.requested_changes.join(', ') : '—'}</strong></p>
-                      <p><small>New deadline</small><strong>{rev.new_deadline_at ? new Date(rev.new_deadline_at).toLocaleString() : 'Not scheduled'}</strong></p>
+
+                    <p className="bcd-revcard-lbl">Changes you asked for</p>
+                    {items.length ? (
+                      <ul className="bcd-revlist">
+                        {items.map((it, i) => (
+                          <li key={i}>
+                            {it.severity && <span className={`bcd-revsev ${sevClass(it.severity)}`}>{it.severity}</span>}
+                            <span className="bcd-revtext">{it.text}</span>
+                            {it.ref && <span className="bcd-revref">ref: {it.ref}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="bcd-revempty">No specific items were listed.</p>
+                    )}
+
+                    <div className="bcd-revcard-foot">
+                      <span><small>New deadline</small><strong>{rev.new_deadline_at ? new Date(rev.new_deadline_at).toLocaleString() : 'Not scheduled'}</strong></span>
                     </div>
+
                     <p className={`bcd-revcard-answer ${a ? a.cls : 'wait'}`}>
                       {a ? a.text : 'Waiting for the creator to respond to this revision request.'}
                     </p>
@@ -756,10 +805,20 @@ export default function BrandCampaignDetail() {
         .bcd-revcard-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
         .bcd-revcard-head h3{margin:0;display:flex;align-items:center;gap:8px}
         .bcd-revcard-count{font-size:12.5px;font-weight:700;color:#7777b7;background:#f3f4fb;border-radius:999px;padding:4px 11px}
-        .bcd-revcard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-        .bcd-revcard-grid p{margin:0;display:flex;flex-direction:column;gap:5px;background:#f8f9fd;border:1px solid #eef0f6;border-radius:12px;padding:12px 14px}
-        .bcd-revcard-grid small{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a9ab8}
-        .bcd-revcard-grid strong{font-size:13.5px;color:#15163a;font-weight:600;line-height:1.45;word-break:break-word}
+        .bcd-revcard-lbl{margin:0 0 8px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a9ab8}
+        .bcd-revlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+        .bcd-revlist li{display:flex;align-items:flex-start;gap:9px;flex-wrap:wrap;background:#f8f9fd;border:1px solid #eef0f6;border-radius:11px;padding:11px 13px}
+        .bcd-revsev{flex:none;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:6px}
+        .bcd-revsev.must{background:#fee2e2;color:#b42318}
+        .bcd-revsev.med{background:#fff3d6;color:#b54708}
+        .bcd-revsev.nice{background:#e6ecff;color:#3730a3}
+        .bcd-revtext{flex:1;min-width:120px;font-size:13.5px;color:#15163a;font-weight:600;line-height:1.45;word-break:break-word}
+        .bcd-revref{flex:none;font-size:11.5px;font-weight:700;color:#5b6bff;background:#eef0ff;border-radius:6px;padding:3px 8px;align-self:center}
+        .bcd-revempty{margin:0;color:#9a9ab8;font-size:13px}
+        .bcd-revcard-foot{margin-top:14px;display:flex;gap:24px;flex-wrap:wrap}
+        .bcd-revcard-foot span{display:flex;flex-direction:column;gap:4px}
+        .bcd-revcard-foot small{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a9ab8}
+        .bcd-revcard-foot strong{font-size:13.5px;color:#15163a;font-weight:600}
         .bcd-revcard-answer{margin:14px 0 0;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:600;line-height:1.45}
         .bcd-revcard-answer.ok{background:#e7f7ee;border:1px solid #b7e6cd;color:#067647}
         .bcd-revcard-answer.bad{background:#fff4f2;border:1px solid #ffd2c9;color:#b42318}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { SlidersHorizontal, Megaphone, Plus, X } from 'lucide-react';
+import { SlidersHorizontal, Megaphone, Plus, X, Trash2 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PostABrief from './PostABrief';
 import '../styles/creator-marketplace.css';
@@ -48,6 +48,9 @@ export default function BrandCampaigns() {
   const [briefOpen, setBriefOpen] = useState(false);
   // Id of the draft being edited in the modal — null when writing a fresh brief.
   const [editingDraftId, setEditingDraftId] = useState(null);
+  // Id of the draft currently being deleted, so its card can show a busy state
+  // and ignore repeat clicks while the request is in flight.
+  const [deletingId, setDeletingId] = useState(null);
 
   // A draft isn't a real campaign yet: the detail page renders it half-empty and
   // read-only. Reopen it in the wizard so it can actually be finished and edited.
@@ -59,6 +62,26 @@ export default function BrandCampaigns() {
       return;
     }
     navigate(`/dashboard/business/campaign/${cid}`);
+  };
+
+  // Delete a draft outright. Only offered on drafts/rejected briefs — nothing is
+  // held in escrow and creators never saw them, so the backend allows a hard delete.
+  const deleteDraft = async (e, c) => {
+    e.stopPropagation(); // don't also open/edit the card
+    const cid = c.id || c._id;
+    if (deletingId) return;
+    if (!window.confirm(`Delete draft “${c.title || 'Untitled campaign'}”? This can't be undone.`)) return;
+    setDeletingId(cid);
+    try {
+      await axios.delete(`${API}/campaigns/${cid}`);
+      // Drop it locally so the card disappears immediately, then resync.
+      setCampaigns((prev) => prev.filter((x) => (x.id || x._id) !== cid));
+      loadCampaigns();
+    } catch {
+      window.alert('Could not delete the draft. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const loadCampaigns = useCallback(async () => {
@@ -158,6 +181,18 @@ export default function BrandCampaigns() {
                 <div className="bcam-img">
                   {cover ? <img src={cover} alt="" /> : (c.title || 'C').charAt(0).toUpperCase()}
                   <span className={`bcam-badge ${s.cls}`}>{s.badge}</span>
+                  {['draft', 'rejected'].includes(c.status) && (
+                    <button
+                      type="button"
+                      className="bcam-del"
+                      aria-label="Delete draft"
+                      title="Delete draft"
+                      disabled={deletingId === (c.id || c._id)}
+                      onClick={(e) => deleteDraft(e, c)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
                 <div className="bcam-body">
                   <h3>{c.title || 'Untitled campaign'}</h3>

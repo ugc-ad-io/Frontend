@@ -897,6 +897,10 @@
 .bcam-badge.draft{background:#eef1f6;color:#64748b}
 .bcam-badge.done{background:#dcfce7;color:#15a35b}
 .bcam-badge.pending{background:#fdf2e0;color:var(--warn)}
+.bcam-del{position:absolute;top:10px;right:10px;width:30px;height:30px;display:grid;place-items:center;border:none;cursor:pointer;
+  border-radius:9px;color:#e11d48;background:rgba(255,255,255,.92);box-shadow:0 4px 12px -4px rgba(15,23,42,.35);transition:.15s}
+.bcam-del:hover{background:#e11d48;color:#fff;transform:translateY(-1px)}
+.bcam-del:disabled{opacity:.5;cursor:default;transform:none}
 .bcam-body{padding:16px 18px}
 .bcam-body h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16.5px;font-weight:700;color:var(--ink);line-height:1.3}
 .bcam-meta{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;margin:8px 0 14px}

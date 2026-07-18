@@ -119,7 +119,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage 
           <div className="bpc-stats">
             <span className="bpc-stat-rating">
               <Star size={15} fill="#f5b301" color="#f5b301" />
-              <strong>{ratingTxt}</strong> rating
+              <strong className={reviewCount ? '' : 'is-unrated'}>{ratingTxt}</strong> rating
             </span>
             <span><strong>{reviewCount}</strong> review{reviewCount === 1 ? '' : 's'}</span>
             <span className="bpc-badge">Brand</span>
@@ -225,6 +225,9 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage 
         .bpc-stats span{color:#9296ba;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px}
         .bpc-stats strong{color:#15163a;font-size:17px;font-weight:800}
         .bpc-stat-rating strong{margin:0 2px}
+        /* "New" (no rating yet) shouldn't tower over the "rating" label like a big
+           number does — render it at the label size so the pill reads evenly. */
+        .bpc-stat-rating strong.is-unrated{font-size:12.5px;font-weight:700}
         .bpc-badge{padding:3px 12px;border-radius:20px;background:#eef0ff;color:#5b6bff;font-size:12px!important;font-weight:700!important}
         .bpc-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
         .bpc-hl{min-width:0}

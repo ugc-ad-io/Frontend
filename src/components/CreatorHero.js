@@ -42,7 +42,10 @@ export default function CreatorHero({
   const navigate = useNavigate();
   // Admin-curated showcase (falls back to DEFAULT_REELS). Maps the stored shape
   // (video_url) onto the reel shape (src) the player expects.
-  const [reels, setReels] = useState(DEFAULT_REELS);
+  // Start EMPTY (a neutral placeholder), not with the hardcoded defaults — that's
+  // what made the dummy reel flash for ~1s before the admin data loaded. Fill it
+  // once the fetch resolves: admin's cards if any, else the defaults.
+  const [reels, setReels] = useState([]);
   useEffect(() => {
     let alive = true;
     axios.get(`${API}/home/top-earners`)
@@ -67,9 +70,9 @@ export default function CreatorHero({
             rating: Number(it.rating) || 0,
             level: it.level || '',
           }));
-        if (alive && mapped.length) setReels(mapped);
+        if (alive) setReels(mapped.length ? mapped : DEFAULT_REELS);
       })
-      .catch(() => { /* keep defaults */ });
+      .catch(() => { if (alive) setReels(DEFAULT_REELS); });
     return () => { alive = false; };
   }, []);
   const advancingRef = useRef(false);         // guard so one clip advances only once
@@ -101,7 +104,7 @@ export default function CreatorHero({
     advancingRef.current = false;
   };
 
-  const tc = reels[idx] || reels[0] || DEFAULT_REELS[0]; // the top creator whose reel is currently playing
+  const tc = reels[idx] || reels[0] || null; // the top creator whose reel is currently playing (null until loaded)
   const photoSrc = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : null;
   const dealLogo = activeDeal?.logo
     ? (activeDeal.logo.startsWith('http') ? activeDeal.logo : `${BACKEND_URL}${activeDeal.logo}`)
@@ -155,17 +158,19 @@ export default function CreatorHero({
       <div className="chero-stage">
         <div className="chero-photo">
           <div className="chero-photo-bg" />
-          {[0, 1].map((layer) => (
-            layerReel[layer] == null ? null : (
+          {reels.length > 0 && [0, 1].map((layer) => {
+            const reel = layerReel[layer] == null ? null : reels[layerReel[layer]];
+            if (!reel || !reel.src) return null;
+            return (
               <video
                 // Key on the src so the element REMOUNTS (and reloads) when the reel
-                // changes — a bare src swap doesn't reload an already-playing <video>,
-                // which left the old (default) clip on screen after data loaded.
-                key={`${layer}-${(reels[layerReel[layer]] || DEFAULT_REELS[0]).src}`}
+                // changes — a bare src swap doesn't reload an already-playing <video>.
+                key={`${layer}-${reel.src}`}
                 className={`chero-reel ${layer === leaving ? 'is-leaving' : layer === front ? 'is-front' : 'is-back'}`}
-                src={`${(reels[layerReel[layer]] || DEFAULT_REELS[0]).src}#t=0.1`}
+                src={reel.src}
                 autoPlay
                 muted
+                loop
                 playsInline
                 preload="auto"
                 onTransitionEnd={layer === leaving ? () => setLeaving(null) : undefined}
@@ -177,8 +182,8 @@ export default function CreatorHero({
                 } : undefined}
                 onEnded={layer === front ? nextReel : undefined}
               />
-            )
-          ))}
+            );
+          })}
           <span className="chero-reel-dots">
             {reels.map((_, i) => (
               <i
@@ -194,31 +199,35 @@ export default function CreatorHero({
           </span>
         </div>
 
-        <div className="chero-bubble chero-b1">
-          <span className="chero-stars" style={{ display: 'inline-flex', gap: 1 }}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Star key={n} size={12} fill={n <= Math.round(tc.rating) ? '#f5b301' : 'none'} color="#f5b301" />
-            ))}
-          </span>
-          {tc.rating.toFixed(1)} rating
-        </div>
-        <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {tc.deals} deals done</div>
+        {tc && (
+          <>
+            <div className="chero-bubble chero-b1">
+              <span className="chero-stars" style={{ display: 'inline-flex', gap: 1 }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star key={n} size={12} fill={n <= Math.round(tc.rating) ? '#f5b301' : 'none'} color="#f5b301" />
+                ))}
+              </span>
+              {Number(tc.rating || 0).toFixed(1)} rating
+            </div>
+            <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {tc.deals} deals done</div>
 
-        <div className="chero-stat chero-fade" style={{ animationDelay: '.1s' }}>
-          <small>TOP EARNER</small>
-          <strong>{fmtMoney(tc.earned)}</strong>
-          <span>on UGCad</span>
-        </div>
+            <div className="chero-stat chero-fade" style={{ animationDelay: '.1s' }}>
+              <small>TOP EARNER</small>
+              <strong>{fmtMoney(tc.earned)}</strong>
+              <span>on UGCad</span>
+            </div>
 
-        <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
-          <span className="chero-deal-logo">{getInitial(tc.name.replace('@', ''))}</span>
-          <div className="chero-deal-info">
-            <strong>{tc.name}</strong>
-            <small>{tc.category} creator</small>
-            <b className="chero-deal-amt">{tc.level} level</b>
-            <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {tc.rating.toFixed(1)} · {tc.deals} deals</span>
-          </div>
-        </div>
+            <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
+              <span className="chero-deal-logo">{getInitial(String(tc.name || '').replace('@', ''))}</span>
+              <div className="chero-deal-info">
+                <strong>{tc.name}</strong>
+                <small>{tc.category} creator</small>
+                <b className="chero-deal-amt">{tc.level} level</b>
+                <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {Number(tc.rating || 0).toFixed(1)} · {tc.deals} deals</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <style>{`
@@ -264,7 +273,7 @@ export default function CreatorHero({
         /* ── right stage ── */
         .chero-stage{position:relative;z-index:1;min-height:430px}
         .chero-photo{position:relative;width:74%;margin:0 auto;aspect-ratio:3/4;border-radius:26px;overflow:hidden;box-shadow:0 36px 70px -28px rgba(20,20,50,.5)}
-        .chero-photo-bg{position:absolute;inset:0;background:linear-gradient(160deg,#ff8a47,#ff6a3d 55%,#e85d35);z-index:0}
+        .chero-photo-bg{position:absolute;inset:0;background:linear-gradient(160deg,#20223f,#14152b 55%,#0d0e1f);z-index:0}
         .chero-reel{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1}
         .chero-reel.is-front{z-index:2}
         .chero-reel.is-back{z-index:1}

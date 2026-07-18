@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { brandName } from '../utils/displayName';
 import RejectedGate from '../components/RejectedGate';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -69,6 +70,10 @@ const cardStagger = {
 export default function BrandWelcomePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  // Brands are shown the company name they entered on the form — never the
+  // auto-generated "@nickname" handle. Prefer the explicit business name, then
+  // fall back to the shared resolver (which also strips any leading "@").
+  const companyLabel = user?.profile?.business_name || user?.business_name || brandName(user);
   const [campaigns, setCampaigns] = useState([]);
   const [contentCategories, setContentCategories] = useState([]);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
@@ -184,7 +189,7 @@ export default function BrandWelcomePage() {
     },
     {
       title: 'Your Profile Progress',
-      description: `${user?.nickname || user?.full_name || 'Brand'} • Complete your profile`,
+      description: `${companyLabel} • Complete your profile`,
       icon: CheckCircle,
       path: '/settings',
       accent: '#07074E',
@@ -581,14 +586,14 @@ export default function BrandWelcomePage() {
               onClick={() => setShowMenuDropdown(!showMenuDropdown)}
               aria-label="Menu"
             >
-              {(user?.nickname || user?.full_name || 'P').trim().charAt(0).toUpperCase()}
+              {(companyLabel || 'B').trim().charAt(0).toUpperCase()}
             </button>
 
             {showMenuDropdown && (
               <div className="profile-menu-dropdown" onClick={(e) => e.stopPropagation()}>
                 <div className="dropdown-header">
                   <div className="dropdown-user-info">
-                    <strong>{user?.nickname || user?.full_name || 'Business'}</strong>
+                    <strong>{companyLabel}</strong>
                     <span>Approved Business</span>
                   </div>
                 </div>
@@ -662,7 +667,7 @@ export default function BrandWelcomePage() {
                 <Sparkles size={12} strokeWidth={2.5} />
                 Brand Dashboard
               </span>
-              <h1>Welcome to UGCad, {user?.nickname || user?.full_name || 'Brand'}</h1>
+              <h1>Welcome to UGCad, {companyLabel}</h1>
               <p>Discover how to grow your brand with top-tier creators</p>
             </div>
           </motion.div>

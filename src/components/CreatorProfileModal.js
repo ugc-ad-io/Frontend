@@ -738,7 +738,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           <div className="cpm-stats">
             <span><strong>{deliverables}</strong> deliverables</span>
             <span><strong>{languages.length}</strong> languages</span>
-            <span><strong className={`cpm-lvl ${levelKey}`}>{levelLabel}</strong> level</span>
           </div>
 
           <div className="cpm-highlights">
@@ -908,14 +907,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
               <section className="cpm-sec-block" data-sec="details" ref={detailsRef}>
                 <h4 className="cpm-sec-title">Details</h4>
-                <div className="cpm-level-card">
-                  <div className="cpm-level-info">
-                    <label>Creator Level</label>
-                    <strong>{levelMeta.title}</strong>
-                    <small>{deliverables} completed works</small>
-                  </div>
-                  <span className={`cpm-level-badge ${levelKey}`}>{levelMeta.badge}</span>
-                </div>
                 {detailSections.length === 0 ? (
                   <div className="cpm-empty">This creator hasn't shared more details yet.</div>
                 ) : (

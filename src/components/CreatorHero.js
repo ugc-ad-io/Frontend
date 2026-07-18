@@ -316,17 +316,35 @@ export default function CreatorHero({
         @keyframes cheroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 
         @media (max-width:980px){
-          .chero{grid-template-columns:1fr;gap:10px;padding:32px 26px}
-          .chero-title{font-size:36px}
-          .chero-stage{min-height:380px;margin-top:8px}
+          /* Reset the desktop offset transform — it pushed the card off-screen and
+             caused horizontal scroll on phones. */
+          .chero{grid-template-columns:1fr;gap:14px;padding:28px 22px;transform:none}
+          .chero-title{font-size:34px}
+          .chero-stage{min-height:360px;margin-top:8px}
           .chero-b2{left:0}
         }
         @media (max-width:560px){
-          .chero-title{font-size:30px}
-          .chero-photo{width:88%}
-          .chero-stat{right:0;min-width:140px}
-          .chero-deal{right:0;width:210px}
+          .chero{padding:22px 16px;border-radius:20px}
+          .chero-title{font-size:26px;letter-spacing:-1px}
+          .chero-badge{margin-bottom:14px}
+          .chero-rule{margin:16px 0 14px}
+          .chero-photo{width:100%}
+          .chero-stage{min-height:300px}
+          /* Keep the floating cards inside the viewport, smaller. */
+          .chero-stat{right:2%;min-width:120px;padding:12px 14px}
+          .chero-stat strong{font-size:24px}
+          .chero-deal{right:2%;left:auto;width:190px;padding:11px}
+          .chero-deal-logo{width:44px;height:44px;font-size:16px}
+          .chero-bubble{padding:8px 12px;font-size:12.5px}
+          .chero-b1{left:2%}
+          .chero-facts{flex-wrap:wrap;gap:8px 0}
           .chero-fact{padding:0 14px}
+          .chero-fact:first-child{padding-left:0}
+        }
+        @media (max-width:380px){
+          .chero-title{font-size:22px}
+          .chero-stat{min-width:104px}
+          .chero-deal{width:168px}
         }
         @media (prefers-reduced-motion:reduce){.chero-bubble,.chero-stat,.chero-deal,.chero-fade{animation:none}}
       `}</style>

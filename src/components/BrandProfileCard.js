@@ -186,12 +186,9 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
                     <span>{value}</span>
                   </div>
                 ))}
-                <div className="bpc-f wide">
-                  <label><Globe size={13} /> Website</label>
-                  {websiteHref
-                    ? <a className="bpc-link" href={websiteHref} target="_blank" rel="noreferrer">{website}</a>
-                    : <span>—</span>}
-                </div>
+                {/* Website intentionally omitted here — it's already shown as the
+                    "Visit" link in the highlights strip above, so listing the raw
+                    URL again in Details was a duplicate. */}
               </div>
             </section>
           ) : (

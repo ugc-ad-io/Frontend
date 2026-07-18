@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Star, Plus, Trash2, Save } from 'lucide-react';
+import { Star, Plus, Trash2, Save, Database } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -14,6 +14,24 @@ export default function AdminHomeShowcase() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pulling, setPulling] = useState(false);
+
+  // Seed the editor from the REAL top-earning creators (released payouts).
+  // Replaces the current rows; admin can then edit and Save.
+  const pullFromData = async () => {
+    if (items.some((it) => String(it.name || '').trim()) &&
+        !window.confirm('Replace the current cards with your top earners from live data?')) return;
+    setPulling(true);
+    try {
+      const r = await axios.get(`${API}/admin/top-earners/suggest?limit=3`);
+      const suggested = Array.isArray(r.data?.items) ? r.data.items : [];
+      if (!suggested.length) { toast.message('No paid earnings yet', { description: 'No creator has a released payout to rank. Add cards manually for now.' }); return; }
+      setItems(suggested.map((i) => ({ ...BLANK, ...i })));
+      toast.success(`Pulled ${suggested.length} top earner${suggested.length === 1 ? '' : 's'} — review and Save.`);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Could not pull from data'));
+    } finally { setPulling(false); }
+  };
 
   useEffect(() => {
     axios.get(`${API}/admin/top-earners`)
@@ -58,6 +76,7 @@ export default function AdminHomeShowcase() {
             <p>These cards rotate in the creator home hero. Leave the list empty to fall back to the built-in defaults.</p>
           </div>
           <div className="ahs-head-actions">
+            <button type="button" className="ahs-add" onClick={pullFromData} disabled={pulling}><Database size={15} /> {pulling ? 'Pulling…' : 'Pull top earners'}</button>
             <button type="button" className="ahs-add" onClick={addRow}><Plus size={15} /> Add card</button>
             <button type="button" className="ahs-save" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
           </div>

@@ -12,6 +12,7 @@ import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PlanBrief from './PlanBrief';
 import CreatorProfileModal from '../components/CreatorProfileModal';
+import BrandProfileCard from '../components/BrandProfileCard';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
 
@@ -933,14 +934,6 @@ export default function MessagesPage() {
                 </div>
               </div>
               <div className="msg-chat-actions">
-                <button type="button" title="View profile" onClick={() => setProfileOpen(true)}><User size={18} /></button>
-                <button type="button" title="Report user" onClick={() => setReport({ reason: '', details: '' })}><Flag size={18} /></button>
-                <button
-                  type="button"
-                  title={isMuted ? 'Unmute notifications' : 'Mute notifications'}
-                  className={isMuted ? 'is-on' : ''}
-                  onClick={toggleMute}
-                ><BellOff size={18} /></button>
                 <div className="msg-more-wrap">
                   <button type="button" title="More actions" className={headerMenuOpen ? 'is-on' : ''} onClick={() => setHeaderMenuOpen((o) => !o)}><MoreHorizontal size={18} /></button>
                   {headerMenuOpen && (
@@ -1136,13 +1129,25 @@ export default function MessagesPage() {
         />
       )}
 
+      {/* The person on the other side of a creator↔brand thread is whichever role
+          the viewer is NOT. When a creator opens "View profile" on a brand, show the
+          brand card (rating, brand name, category) — not the creator layout. */}
       {profileOpen && selectedId && (
-        <CreatorProfileModal
-          id={selectedId}
-          fallbackName={nameOf(selectedConv)}
-          onClose={() => setProfileOpen(false)}
-          onMessage={() => setProfileOpen(false)}
-        />
+        selectedConv?.role === 'business' ? (
+          <BrandProfileCard
+            id={selectedId}
+            fallbackName={nameOf(selectedConv)}
+            onClose={() => setProfileOpen(false)}
+            onMessage={() => setProfileOpen(false)}
+          />
+        ) : (
+          <CreatorProfileModal
+            id={selectedId}
+            fallbackName={nameOf(selectedConv)}
+            onClose={() => setProfileOpen(false)}
+            onMessage={() => setProfileOpen(false)}
+          />
+        )
       )}
 
       {report && (

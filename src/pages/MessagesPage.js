@@ -106,7 +106,7 @@ const ACTION_CARD_FORM_FIELDS = {
     ['revisions', 'Revisions', 'text', '1'],
     ['timeline', 'Timeline', 'text', '7 days'],
     ['usage_rights', 'Usage rights', 'text', 'Organic social'],
-    ['diff_vs_original', 'Diff vs original', 'textarea', 'Updated terms']
+    ['diff_vs_original', 'Reason', 'textarea', 'Why are you countering? e.g. budget is too low for 3 videos']
   ],
   revision_request: [
     ['revision_text', 'Revision item', 'textarea', 'Please revise the submitted content.']

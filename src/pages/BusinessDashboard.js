@@ -211,7 +211,8 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
   // A raw 24-char hex string is a Mongo ObjectId, not a real handle — never show it.
   const isObjectId = (s) => /^[0-9a-f]{24}$/i.test(String(s || ''));
   const realName = (b) => {
-    const n = b.creator_nickname || b.creator_name || b.public_creator_id || '';
+    // Prefer the creator's REAL name over the auto-generated @handle, and strip "@".
+    const n = String(b.creator_name || b.creator_nickname || b.public_creator_id || '').replace(/^@+/, '').trim();
     return isObjectId(n) ? '' : n;
   };
   const nameOf = (b) => realName(b) || 'Creator';
@@ -413,7 +414,8 @@ function normalizeCreatorDirectoryItem(item = {}) {
   const languages = item.languages || profile.languages || item.content_languages || [];
   const cityTier = item.city_tier || profile.city_tier || item.location_region || 'Curated';
   const publicCreatorId = item.public_creator_id || item.creator_public_id || '';
-  const handle = String(item.handle || item.nickname || 'Creator').replace(/^@/, '');
+  // Show the creator's real name (backend sends `name`), never the @handle.
+  const handle = String(item.name || item.handle || item.nickname || 'Creator').replace(/^@/, '');
 
   return {
     id: item.id || item.creator_id,
@@ -735,7 +737,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       ...emptyInviteForm,
       campaign_name: campaigns[0]?.title || '',
       budget: campaigns[0] ? formatMoney(campaigns[0].budget_max || campaigns[0].budget_min || 0) : creator.budgetRange || '',
-      message: `Hi ${creator.displayId || creator.handle}, we think your content style could be a strong fit for our brand.`,
+      message: `Hi ${creator.handle}, we think your content style could be a strong fit for our brand.`,
     });
   };
 
@@ -854,7 +856,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${creatorId}`);
       const charged = Number(res.data?.amount_charged) || 0;
       toast.success(
-        `🎉 ${firstName({ nickname: res.data?.creator_nickname }, 'Creator')} selected! ${charged ? `${formatMoney(charged)} held in escrow.` : 'Payment held in escrow.'}`
+        `🎉 ${firstName({ full_name: res.data?.creator_name, nickname: res.data?.creator_nickname }, 'Creator')} selected! ${charged ? `${formatMoney(charged)} held in escrow.` : 'Payment held in escrow.'}`
       );
       fetchCampaigns();
       fetchWallet();
@@ -986,7 +988,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     const creatorEntries = new Map();
     campaigns.forEach(campaign => {
       (campaign.bids || []).forEach(bid => {
-        const creatorName = bid.creator_nickname || bid.creator_name || bid.creator_id;
+        const creatorName = String(bid.creator_name || bid.creator_nickname || bid.creator_id || '').replace(/^@+/, '');
         if (creatorName) {
           creatorEntries.set(bid.creator_id || creatorName, {
             id: bid.creator_id,
@@ -998,7 +1000,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       });
     });
     dashboardActiveDeals.forEach(deal => {
-      const creatorName = deal.creator_nickname || deal.creator_name || deal.creator_id;
+      const creatorName = String(deal.creator_name || deal.creator_nickname || deal.creator_id || '').replace(/^@+/, '');
       if (creatorName) {
         creatorEntries.set(deal.creator_id || creatorName, {
           id: deal.creator_id,
@@ -1009,7 +1011,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       }
     });
     workSubmissions.forEach(work => {
-      const creatorName = work.creator_nickname || work.creator_name || work.creator_id;
+      const creatorName = String(work.creator_name || work.creator_nickname || work.creator_id || '').replace(/^@+/, '');
       if (creatorName) {
         creatorEntries.set(work.creator_id || creatorName, {
           id: work.creator_id,
@@ -1037,7 +1039,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           key: `deal-${deal.campaign_id || deal.campaign_title}`,
           type: 'Deal',
           title: deal.campaign_title || 'Untitled deal',
-          meta: `${deal.creator_nickname ? String(deal.creator_nickname).replace(/^@/, '') : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
+          meta: `${(deal.creator_name || deal.creator_nickname) ? String(deal.creator_name || deal.creator_nickname).replace(/^@/, '') : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
           target: deal.campaign_id ? `/campaign/${deal.campaign_id}` : '/dashboard/business'
         });
       }

@@ -237,7 +237,7 @@ export default function BrandCampaignDetail() {
     setSelecting(bid.creator_id);
     try {
       const { data } = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${encodeURIComponent(bid.creator_id)}`);
-      const who = String(bid.creator_nickname || 'Creator').replace(/^@/, '');
+      const who = String(bid.creator_name || bid.creator_nickname || 'Creator').replace(/^@/, '');
       const left = Number(data?.slots_left ?? 0);
       toast.success(
         left > 0

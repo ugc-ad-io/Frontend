@@ -9,6 +9,7 @@ import {
   User,
   Lock,
   Shield,
+  AlertTriangle,
   Camera,
   Save,
   LayoutDashboard,
@@ -381,6 +382,9 @@ export default function ProfileSettings() {
   // Creator level states
   const [completedWorks, setCompletedWorks] = useState(0);
 
+  // Policy strikes / account standing (applies to creators and brands alike).
+  const [warnings, setWarnings] = useState(null);
+
   // Creator preferences (persisted locally until a backend endpoint exists)
   const [creatorNotif, setCreatorNotif] = useState(() => readLS('ugc_creator_notif', {
     brief_matches: true, bid_updates: true, messages: true, payout_alerts: true, weekly_digest: false,
@@ -429,10 +433,79 @@ export default function ProfileSettings() {
   useEffect(() => {
     fetchUserData();
     check2FAStatus();
+    fetchWarnings();
     if (user?.role === 'creator') {
       fetchCreatorStats();
     }
   }, [user?.role]);
+
+  const fetchWarnings = async () => {
+    try {
+      const res = await axios.get(`${API}/chat/warnings`);
+      setWarnings(res.data);
+    } catch {
+      /* non-critical — the standing card just won't render */
+    }
+  };
+
+  // Policy-strike / account-standing card, shown in both the creator and brand
+  // Privacy & Security tabs so users can always see how many strikes they carry.
+  const renderAccountStanding = () => {
+    if (!warnings) return null;
+    const strikes = warnings.warning_count || 0;
+    const cardsOnly = warnings.action_cards_only_until && new Date(warnings.action_cards_only_until) > new Date();
+    const banned = warnings.banned;
+    // Escalation ladder (mirrors Backend/server.py strike severities):
+    // 0 = clear, 1 = warning, 2 = temporary pause, 3 = action-cards-only, 4+ = suspended.
+    const tone = banned || strikes >= 3 || cardsOnly
+      ? { bg: '#fef2f2', bd: '#fecaca', fg: '#b91c1c', ic: '#dc2626' }
+      : strikes >= 1
+        ? { bg: '#fff7ed', bd: '#fed7aa', fg: '#9a3412', ic: '#ea580c' }
+        : { bg: '#f0fdf4', bd: '#bbf7d0', fg: '#166534', ic: '#16a34a' };
+    const Icon = strikes >= 1 || banned || cardsOnly ? AlertTriangle : Shield;
+    const status = banned
+      ? 'Account suspended'
+      : cardsOnly
+        ? 'Restricted — action cards only'
+        : strikes === 0
+          ? 'Good standing'
+          : `${strikes} active ${strikes === 1 ? 'strike' : 'strikes'}`;
+    const consequence = banned
+      ? 'Your account has been suspended for repeated policy violations. Contact support@ugcad.io to appeal.'
+      : cardsOnly
+        ? 'Free-text chat is temporarily disabled — you can only send structured offer/action cards until the restriction lifts.'
+        : strikes === 0
+          ? 'No policy strikes on your account. Keep chats on-platform and free of contact info to stay clear.'
+          : strikes === 1
+            ? 'You have 1 strike. A 2nd strike temporarily pauses your chat, a 3rd limits you to action cards only, and a 4th can suspend your account.'
+            : strikes === 2
+              ? 'You have 2 strikes and your chat may be paused. A 3rd strike limits you to action cards only, and a 4th can suspend your account.'
+              : 'You are limited to action cards only. Any further violation can suspend your account.';
+    return (
+      <div style={{ border: `1px solid ${tone.bd}`, background: tone.bg, borderRadius: 14, padding: '16px 18px', margin: '4px 0 20px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+        <span style={{ color: tone.ic, flexShrink: 0, marginTop: 2 }}><Icon size={22} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <strong style={{ color: tone.fg, fontSize: 15 }}>Account standing: {status}</strong>
+            <span style={{ color: tone.fg, fontSize: 13, fontWeight: 700, background: '#fff', border: `1px solid ${tone.bd}`, borderRadius: 999, padding: '2px 10px' }}>
+              {strikes} / 3 strikes
+            </span>
+          </div>
+          <p style={{ margin: '8px 0 0', color: tone.fg, fontSize: 13, lineHeight: 1.55, opacity: 0.95 }}>{consequence}</p>
+          {warnings.last_warning_at && strikes > 0 && (
+            <p style={{ margin: '8px 0 0', color: tone.fg, fontSize: 12, opacity: 0.75 }}>
+              Last strike: {new Date(warnings.last_warning_at).toLocaleString()}
+            </p>
+          )}
+          {cardsOnly && (
+            <p style={{ margin: '4px 0 0', color: tone.fg, fontSize: 12, opacity: 0.75 }}>
+              Restriction lifts: {new Date(warnings.action_cards_only_until).toLocaleString()}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     if (user?.role === 'business') {
@@ -1052,6 +1125,7 @@ export default function ProfileSettings() {
               <p>Control who can see and reach your workspace</p>
             </div>
           </div>
+          {renderAccountStanding()}
           <div className="bs-toggle-list">
             {CREATOR_PRIVACY_ROWS.map(([key, title, desc, Icon]) => (
               <div className="bs-toggle-row" key={key}>
@@ -1608,6 +1682,9 @@ export default function ProfileSettings() {
                 <>
                   <h2>Privacy &amp; Security</h2>
                   <p className="ps-panel-desc">Control who can see and reach you.</p>
+
+                  {renderAccountStanding()}
+
                   <div className="ps-toggle-list">
                     {CREATOR_PRIVACY_ROWS.map(([key, title, desc, Icon]) => (
                       <div className="ps-toggle-row" key={key}>

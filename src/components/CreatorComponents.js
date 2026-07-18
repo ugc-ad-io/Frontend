@@ -13,6 +13,10 @@ const getCampaignBudget = (campaign) => {
 };
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
+// Company name from the form — never the "@nickname" handle. Strips any leading "@".
+const brandLabel = (c, fallback = 'Brand') =>
+  String(c?.brand_name || c?.business_name || c?.company_name || c?.business_nickname || c?.brand_handle || '')
+    .replace(/^@+/, '').trim() || fallback;
 
 function EmptyPanel({ text }) {
   return <div className="pcd-empty-panel">{text}</div>;
@@ -32,7 +36,7 @@ function CampaignGrid({ items, empty, renderActions }) {
           <p>{campaign.brief_text ? `${campaign.brief_text.substring(0, 150)}${campaign.brief_text.length > 150 ? '...' : ''}` : 'Creator campaign brief'}</p>
           <dl>
             <div><dt>Budget</dt><dd>{getCampaignBudget(campaign)}</dd></div>
-            <div><dt>Brand</dt><dd>{campaign.business_nickname || campaign.brand_handle || 'Brand'}</dd></div>
+            <div><dt>Brand</dt><dd>{brandLabel(campaign)}</dd></div>
             <div><dt>Objectives</dt><dd>{campaign.objectives?.length || 0}</dd></div>
           </dl>
           <div className="pcd-card-actions">{renderActions(campaign)}</div>

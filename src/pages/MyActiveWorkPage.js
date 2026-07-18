@@ -112,7 +112,7 @@ export default function MyActiveWorkPage() {
         <div className="cmk-awc-grid">
           {rows.map((c) => {
             const meta = statusMeta(c);
-            const brand = c.business_nickname || c.brand_handle || 'Brand';
+            const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
             const channel = (Array.isArray(c.objectives) && c.objectives[0]) || c.industry_type || 'UGC Video';
             const shortId = `#${String(c.id).slice(-4).toUpperCase()}`;
             const cur = stageIndex(c);

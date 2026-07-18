@@ -38,7 +38,12 @@ export default function normalizeBrief(c, index = 0, myBids = []) {
     id: c.id || c._id,
     title: c.title,
     description: cardDescription(c),
-    brand: c.brand_name || c.business_nickname || c.brand_handle || 'Brand',
+    // Creators see the brand's COMPANY name (as entered on the form) — never the
+    // auto-generated "@nickname" handle. Prefer the real business/brand name and
+    // always strip a leading "@" so a nickname-only brand still reads as a name.
+    brand: String(
+      c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || 'Brand'
+    ).replace(/^@+/, '').trim() || 'Brand',
     logo: c.brand_logo,
     image_url: c.image_url || c.cover_image || '',
     tags: objectives.length ? objectives.slice(0, 2) : [(c.industry_type || 'UGC'), 'UGC Video'],

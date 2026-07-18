@@ -397,7 +397,7 @@ export default function CampaignDetails({ embedId, onClose }) {
             <div className="campaign-meta">
               <div className="meta-item">
                 <User size={20} />
-                <span>Posted by {campaign.business_nickname}</span>
+                <span>Posted by {String(campaign.brand_name || campaign.business_name || campaign.company_name || campaign.business_nickname || campaign.brand_handle || 'Brand').replace(/^@+/, '').trim() || 'Brand'}</span>
               </div>
               <div className="meta-item">
                 <IndianRupee size={20} />

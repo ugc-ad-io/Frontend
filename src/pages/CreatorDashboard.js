@@ -84,6 +84,10 @@ const getCampaignBudget = (campaign) => {
 };
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
+// Company name from the form — never the "@nickname" handle. Strips any leading "@".
+const brandLabel = (c, fallback = 'Brand') =>
+  String(c?.brand_name || c?.business_name || c?.company_name || c?.business_nickname || c?.brand_handle || '')
+    .replace(/^@+/, '').trim() || fallback;
 
 const getLevelInfo = (completedWorks) => {
   if (completedWorks >= 20) {
@@ -388,7 +392,7 @@ export default function CreatorDashboard() {
     || String(rawCategory).replace(/_/g, ' ')).trim();
   const heroDeal = activeCampaigns[0];
   const heroActiveDeal = heroDeal ? {
-    brand: String(heroDeal.brand_name || heroDeal.business_nickname || heroDeal.brand_handle || 'Brand').replace(/^@/, ''),
+    brand: String(heroDeal.brand_name || heroDeal.business_name || heroDeal.company_name || heroDeal.business_nickname || heroDeal.brand_handle || 'Brand').replace(/^@+/, ''),
     title: heroDeal.title || 'Active campaign',
     budgetLabel: getCampaignBudget(heroDeal),
     progress: heroDeal.status === 'in_progress' ? 65 : 40,
@@ -458,7 +462,7 @@ function CampaignMiniCard({ campaign, actionLabel, onAction }) {
     <article className="pcd-mini-card">
       <div>
         <h3>{campaign.title}</h3>
-        <p>{campaign.business_nickname || 'Brand campaign'} - {getCampaignBudget(campaign)}</p>
+        <p>{brandLabel(campaign, 'Brand campaign')} - {getCampaignBudget(campaign)}</p>
       </div>
       <button type="button" onClick={onAction}>{actionLabel}</button>
     </article>
@@ -479,7 +483,7 @@ function CampaignGrid({ items, empty, renderActions }) {
           <p>{campaign.brief_text ? `${campaign.brief_text.substring(0, 150)}${campaign.brief_text.length > 150 ? '...' : ''}` : 'Creator campaign brief'}</p>
           <dl>
             <div><dt>Budget</dt><dd>{getCampaignBudget(campaign)}</dd></div>
-            <div><dt>Brand</dt><dd>{campaign.business_nickname || campaign.brand_handle || 'Brand'}</dd></div>
+            <div><dt>Brand</dt><dd>{brandLabel(campaign)}</dd></div>
             <div><dt>Objectives</dt><dd>{campaign.objectives?.length || 0}</dd></div>
           </dl>
           <div className="pcd-card-actions">{renderActions(campaign)}</div>
@@ -532,7 +536,11 @@ function normalizeBrief(campaign, index, myBids) {
     id: campaign.id,
     title: campaign.title || 'Creator Campaign Brief',
     description: campaign.brief_text || 'Review the brand brief, pitch your concept, and manage the collaboration from your creator workspace.',
-    brand: campaign.brand_name || campaign.business_nickname || campaign.brand_handle || fallbackBrand,
+    // Show the brand's COMPANY name (from the form), never the "@nickname" handle;
+    // strip any leading "@" so a nickname-only brand still reads as a plain name.
+    brand: String(
+      campaign.brand_name || campaign.business_name || campaign.company_name || campaign.business_nickname || campaign.brand_handle || ''
+    ).replace(/^@+/, '').trim() || fallbackBrand,
     cover: campaign.cover_image || campaign.image_url || campaign.thumbnail_url || browseCovers[index % browseCovers.length],
     logo: campaign.brand_logo || campaign.business_logo || browseLogos[index % browseLogos.length],
     tags: objectives.length ? objectives.slice(0, 3) : ['UGC', campaign.requires_shipment ? 'Product' : 'Remote', 'Creator'],

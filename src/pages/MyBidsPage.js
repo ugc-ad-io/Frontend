@@ -128,7 +128,7 @@ export default function MyBidsPage() {
                 const c = item.campaign || {};
                 const bid = item.my_bid || item.bid || {};
                 const status = getBidStatus(item);
-                const brand = c.business_nickname || c.brand_handle || 'Brand';
+                const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
                 return (
                   <tr key={bid.id || c.id} className="cmk-row-clickable" onClick={() => openView(item)} title="View bid details">
                     <td className="cmk-td-strong">{c.title || 'Campaign'}</td>
@@ -169,7 +169,7 @@ export default function MyBidsPage() {
         const c = detail || selected.campaign || {};
         const bid = selected.my_bid || selected.bid || {};
         const status = getBidStatus(selected);
-        const brand = c.business_nickname || c.brand_handle || 'Brand';
+        const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
         const budget = (c.budget_min || c.budget_max)
           ? `${formatMoney(c.budget_min || c.budget_max)}${c.budget_max && c.budget_max !== c.budget_min ? ` – ${formatMoney(c.budget_max)}` : ''}`
           : formatMoney(bid.amount);

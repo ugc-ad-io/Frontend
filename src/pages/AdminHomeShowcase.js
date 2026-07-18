@@ -89,9 +89,8 @@ export default function AdminHomeShowcase() {
       video_url: c.video_url || (Array.isArray(c.videos) && c.videos[0]) || '',
     } : it)));
   };
-  // CATEGORY / VIDEO dropdowns: pick a value, or CUSTOM → clear so the text input shows.
+  // CATEGORY dropdown: pick a value, or CUSTOM → clear so the text input shows.
   const pickCategory = (idx, val) => setField(idx, 'category', val === CUSTOM ? '' : val);
-  const pickVideo = (idx, val) => setField(idx, 'video_url', val === CUSTOM ? '' : val);
 
   const save = async () => {
     // Every card needs at least a name.
@@ -139,8 +138,6 @@ export default function AdminHomeShowcase() {
             {items.map((it, idx) => {
               const isCreator = it.source && it.source !== 'custom';
               const catInList = CATEGORIES.includes(it.category);
-              const vids = Array.isArray(it.videos) ? it.videos : [];
-              const vidInList = vids.includes(it.video_url);
               return (
               <div className="ahs-card" key={idx}>
                 <div className="ahs-grid">
@@ -169,20 +166,16 @@ export default function AdminHomeShowcase() {
                   <label>Rating<input inputMode="decimal" value={it.rating} onChange={(e) => setField(idx, 'rating', e.target.value.replace(/[^0-9.]/g, ''))} placeholder="4.9" /></label>
                   <label>Level<input value={it.level} onChange={(e) => setField(idx, 'level', e.target.value)} placeholder="Elite / L2 / New" /></label>
 
-                  {/* VIDEO — pick one of the chosen creator's clips, paste a URL, or upload one. */}
+                  {/* VIDEO — paste a URL or upload a clip. */}
                   <label className="ahs-field ahs-wide">Video
                     <div className="ahs-vid-row">
-                      <select value={vidInList ? it.video_url : CUSTOM} onChange={(e) => pickVideo(idx, e.target.value)}>
-                        <option value={CUSTOM}>Custom / uploaded URL…</option>
-                        {vids.map((v, i) => <option key={v} value={v}>Video {i + 1} — {String(v).split('/').pop()}</option>)}
-                      </select>
+                      <input value={it.video_url} onChange={(e) => setField(idx, 'video_url', e.target.value)} placeholder="/showcase-reel.mp4 or https://… or upload →" />
                       <label className="ahs-upload">
                         <input type="file" accept="video/*" hidden disabled={uploadingIdx === idx}
                           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; uploadVideo(idx, f); }} />
                         <Upload size={15} /> {uploadingIdx === idx ? 'Uploading…' : 'Upload video'}
                       </label>
                     </div>
-                    {!vidInList && <input value={it.video_url} onChange={(e) => setField(idx, 'video_url', e.target.value)} placeholder="/showcase-reel.mp4 or https://…" />}
                   </label>
                 </div>
                 <button type="button" className="ahs-del" onClick={() => removeRow(idx)} aria-label="Remove card"><Trash2 size={16} /></button>
@@ -215,9 +208,10 @@ export default function AdminHomeShowcase() {
           background-repeat:no-repeat;background-position:right 11px center}
         .ahs-field select+input{margin-top:6px}
         .ahs-vid-row{display:flex;gap:10px;align-items:stretch}
-        .ahs-vid-row select{flex:1;min-width:0}
-        .ahs-upload{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;border:1.5px solid #d6dbff;background:#fff;color:#4452f0;font-size:13px;font-weight:600;text-transform:none;letter-spacing:normal;padding:0 14px;border-radius:9px;cursor:pointer;white-space:nowrap}
-        .ahs-upload:hover{background:#eef0ff}
+        .ahs-vid-row input{flex:1;min-width:0}
+        /* Higher specificity so it overrides the .ahs-grid label column/uppercase rule. */
+        .ahs-grid label.ahs-upload{display:inline-flex;flex-direction:row;align-items:center;gap:7px;flex:0 0 auto;border:1.5px solid #d6dbff;background:#fff;color:#4452f0;font-size:13px;font-weight:600;text-transform:none;letter-spacing:normal;padding:0 14px;border-radius:9px;cursor:pointer;white-space:nowrap;margin:0}
+        .ahs-grid label.ahs-upload:hover{background:#eef0ff}
         .ahs-grid input:focus,.ahs-grid select:focus{outline:none;border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.15)}
         .ahs-del{position:absolute;top:12px;right:12px;width:30px;height:30px;display:grid;place-items:center;border:1px solid #fecdca;background:#fff;color:#dc2626;border-radius:8px;cursor:pointer}
         .ahs-del:hover{background:#fef2f2}

@@ -48,11 +48,19 @@ export default function CreatorHero({
     axios.get(`${API}/home/top-earners`)
       .then((r) => {
         const items = Array.isArray(r.data?.items) ? r.data.items : [];
+        // Resolve a relative backend path (e.g. "/uploads/x.mp4") to an absolute
+        // URL so the reel actually loads instead of showing the orange fallback.
+        const resolveSrc = (u) => {
+          const s = String(u || '').trim();
+          if (!s) return '';
+          return /^https?:\/\//i.test(s) ? s : `${BACKEND_URL}${s.startsWith('/') ? '' : '/'}${s}`;
+        };
         const mapped = items
           .filter((it) => it && it.name)
           .map((it) => ({
-            src: it.video_url || it.src || '',
-            name: it.name,
+            src: resolveSrc(it.video_url || it.src),
+            // First name only on the showcase card (e.g. "Deshna Shrimal" → "Deshna").
+            name: String(it.name).replace(/^@+/, '').trim().split(/\s+/)[0] || it.name,
             category: it.category || '',
             earned: Number(it.earned) || 0,
             deals: Number(it.deals) || 0,

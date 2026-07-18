@@ -880,14 +880,14 @@ export default function MessagesPage() {
                   onClick={() => setSelectedId(conv.user_id)}
                 >
                   <div className="msg-avatar-wrap">
-                    <div className="msg-avatar" style={{ background: avatarColor(nameOf(conv)) }}>
-                      {getInitial(nameOf(conv))}
+                    <div className="msg-avatar" style={{ background: avatarColor(peerLabel(conv)) }}>
+                      {getInitial(peerLabel(conv))}
                     </div>
                     <span className="msg-online-dot" />
                   </div>
                   <div className="msg-conv-body">
                     <div className="msg-conv-top">
-                      <strong>{nameOf(conv)}</strong>
+                      <strong>{peerLabel(conv)}</strong>
                       <span className="msg-time-ago">{timeAgo(conv.timestamp || conv.last_message?.timestamp)}</span>
                     </div>
                     <p className="msg-preview">
@@ -920,14 +920,14 @@ export default function MessagesPage() {
                 <ChevronLeft size={22} />
               </button>
               <div className="msg-avatar-wrap" style={{ width: '48px', height: '48px' }}>
-                <div className="msg-avatar" style={{ background: avatarColor(nameOf(selectedConv)) }}>
-                  {getInitial(nameOf(selectedConv))}
+                <div className="msg-avatar" style={{ background: avatarColor(peerLabel(selectedConv)) }}>
+                  {getInitial(peerLabel(selectedConv))}
                 </div>
                 <span className="msg-online-dot"></span>
               </div>
               <div className="msg-header-info">
                 <div>
-                  <strong>{nameOf(selectedConv)}</strong>
+                  <strong>{peerLabel(selectedConv)}</strong>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', background: '#48bb78', borderRadius: '50%', display: 'inline-block' }}></span>
@@ -973,8 +973,8 @@ export default function MessagesPage() {
                   return (
                     <div key={msg.id || idx} className={`msg-bubble-row ${isOwn ? 'is-own' : ''}`}>
                       {!isOwn && (
-                        <div className="msg-avatar sm" style={{ background: avatarColor(nameOf(selectedConv)) }}>
-                          {getInitial(nameOf(selectedConv))}
+                        <div className="msg-avatar sm" style={{ background: avatarColor(peerLabel(selectedConv)) }}>
+                          {getInitial(peerLabel(selectedConv))}
                         </div>
                       )}
                       <div className="msg-bubble">

@@ -35,12 +35,23 @@ const isInactive = (u) => u.banned === true || u.active === false;
 const strikes = (u) => (u.chat?.strikes || []);
 const isFlagged = (u) => strikes(u).length > 0;
 const category = (u) => p(u, 'category', 'industry', 'niche', 'primary_category') || '—';
-const realName = (u) => u.full_name || p(u, 'full_name', 'legal_name', 'real_name') || '—';
+// Real human name. Prefers what the person/KYC actually provided over the
+// auto-generated @handle. Also reads the verified KYC legal name (creators who
+// never set a display name still have their legal name on file — e.g. "Arushi Khare").
+const realName = (u) =>
+  u.full_name ||
+  p(u, 'full_name', 'legal_name', 'real_name') ||
+  (u.kyc && u.kyc.full_legal_name) ||
+  '';
 const businessName = (u) => p(u, 'business_name', 'company_name', 'brand_name') || u.nickname || '—';
 const legalName = (u) => p(u, 'legal_name', 'registered_name') || '—';
 const gstin = (u) => p(u, 'gstin', 'gst', 'gst_number') || '—';
 const phone = (u) => p(u, 'phone', 'phone_number', 'mobile', 'contact_number') || '—';
 const handleOf = (u) => (u.username ? `@${u.username}` : (u.public_creator_id ? `#${u.public_creator_id}` : (u.nickname || '—')));
+// Primary NAME to show anywhere in admin. Show the real/legal name if we have one;
+// only fall back to the handle when there's genuinely no real name — never surface a
+// bare auto-generated @nickname as though it were the person's name.
+const displayName = (u) => String(realName(u) || '').replace(/^@+/, '').trim() || handleOf(u);
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const dateShort = (v) => (v ? String(v).slice(0, 10) : '—');
 
@@ -441,7 +452,7 @@ export default function AdminUsers({
                       <td className="au-check-col"><input type="checkbox" checked={selectedIds.has(u.id)} onChange={() => toggleSelect(u.id)} aria-label="Select user" /></td>
                       <td>
                         <button type="button" className="au-primary au-link" onClick={() => openDetail(u)}>
-                          {isBrand(u) ? businessName(u) : handleOf(u)}
+                          {isBrand(u) ? businessName(u) : displayName(u)}
                         </button>
                         {st === 'banned' && <span className="au-ban-badge">BANNED</span>}
                       </td>
@@ -762,10 +773,10 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
     <div className="aud-overlay" onClick={onClose}>
       <div className="aud-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="aud-head">
-          <div className="aud-avatar">{avatarUrl && !avatarBroken ? <img src={avatarUrl} alt="" onError={() => setAvatarBroken(true)} /> : (brand ? businessName(u) : (u.nickname || u.email || '?')).slice(0, 1).toUpperCase()}</div>
+          <div className="aud-avatar">{avatarUrl && !avatarBroken ? <img src={avatarUrl} alt="" onError={() => setAvatarBroken(true)} /> : (brand ? businessName(u) : (realName(u) || u.nickname || u.email || '?')).slice(0, 1).toUpperCase()}</div>
           <div>
             <h2>
-              {brand ? businessName(u) : (u.nickname || realName(u))}
+              {brand ? businessName(u) : displayName(u)}
               <span className={`au-badge au-state-${userState(u)}`}>{STATE_LABELS[userState(u)]}</span>
             </h2>
             <div className="aud-sub">{handleOf(u)} · {u.email} · {brand ? 'Brand' : (admin ? 'Admin' : 'Creator')}{admin ? ` · ${adminRoleLabel}` : (isCreator(u) ? ` · Level: ${levelLabelOf(u.level_key ?? u.level)}` : '')}</div>
@@ -787,7 +798,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                 <h4><Eye size={14} /> {admin ? 'Admin Account' : 'Public Profile'}</h4>
                 {admin ? (
                   <>
-                    <Row label="Name" value={u.nickname || realName(u) || '—'} />
+                    <Row label="Name" value={displayName(u)} />
                     <Row label="Admin role" value={adminRoleLabel} />
                     {Array.isArray(u.assigned_categories) && u.assigned_categories.length > 0 && (
                       <Row label="Assigned categories" value={u.assigned_categories.join(', ')} />
@@ -1025,7 +1036,7 @@ function BanModal({ target, onClose, onConfirm }) {
   const { user: u, banned } = target;
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
-  const name = isBrand(u) ? businessName(u) : (u.nickname || realName(u));
+  const name = isBrand(u) ? businessName(u) : displayName(u);
 
   const submit = async () => {
     if (!banned && !reason.trim()) return toast.error('A ban reason is required');
@@ -1101,7 +1112,7 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
   const [schedule, setSchedule] = useState('weekly');
   const [busy, setBusy] = useState(false);
   const Icon = meta.icon;
-  const targetName = action.users ? `${action.users.length} user(s)` : (action.user ? (isBrand(action.user) ? businessName(action.user) : (action.user.nickname || action.user.email)) : '');
+  const targetName = action.users ? `${action.users.length} user(s)` : (action.user ? (isBrand(action.user) ? businessName(action.user) : displayName(action.user)) : '');
 
   const submit = async () => {
     setBusy(true);

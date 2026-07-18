@@ -862,9 +862,11 @@ export default function MyDealsPage() {
                 <section className="cmk-card cmk-dr-sec">
                   <div className="cmk-dr-sec-h">
                     <div><h2>Deliverables</h2><span className="meta">{deliverablesDone} of {deliverables.length} completed</span></div>
-                    <button type="button" className="cmk-dr-upload" disabled={primaryAction.type === 'content' ? submitting : primaryAction.disabled} onClick={handleOverviewPrimary}>
-                      <Upload size={16} /> {primaryAction.type === 'content' ? 'Upload / Submit Work' : uploadLabel}
-                    </button>
+                    {primaryAction.type !== 'track_shipment' && primaryAction.type !== 'passive' && (
+                      <button type="button" className="cmk-dr-upload" disabled={primaryAction.type === 'content' ? submitting : primaryAction.disabled} onClick={handleOverviewPrimary}>
+                        <Upload size={16} /> {primaryAction.type === 'content' ? 'Upload / Submit Work' : uploadLabel}
+                      </button>
+                    )}
                   </div>
                   {deliverables.map((d, i) => (
                     <div key={i} className="cmk-dr-del">

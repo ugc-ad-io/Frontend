@@ -324,7 +324,19 @@ export default function BrandWorkReview() {
           <div className="bwr-vid-card" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="bwr-vid-close" aria-label="Close" onClick={() => setVideoModal(null)}>✕</button>
             <div className="bwr-vid-frame">
-              <video src={videoModal.src} controls autoPlay playsInline className="bwr-vid-el" />
+              <video
+                src={videoModal.src}
+                controls
+                autoPlay
+                playsInline
+                className="bwr-vid-el"
+                // Until the deliverable is approved, strip the browser's native
+                // Download menu item and block right-click "Save video as…" so the
+                // brand can only preview (watermarked), not grab the raw file.
+                controlsList={videoModal.watermark ? 'nodownload noremoteplayback' : undefined}
+                disablePictureInPicture={videoModal.watermark}
+                onContextMenu={videoModal.watermark ? (e) => e.preventDefault() : undefined}
+              />
               {videoModal.watermark && <span className="bwr-wm" aria-hidden="true" />}
             </div>
             {videoModal.title && <div className="bwr-vid-name">{videoModal.title}</div>}

@@ -1187,11 +1187,27 @@
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
   color: #9aa0b4;
   font-size: 0.76rem;
   font-weight: 600;
   font-family: var(--font-body);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
 }
+
+.msg-quick-actions-lbl:hover,
+.msg-quick-actions-lbl.is-open {
+  color: #07074e;
+  background: #f5f4ff;
+}
+
+/* Rotate the "+" into an "×" cue when the chip row is open. */
+.msg-quick-actions-lbl svg { transition: transform 0.15s ease; }
+.msg-quick-actions-lbl.is-open svg { transform: rotate(45deg); }
 
 /* Single horizontal row; scrolls sideways when the chips overflow. */
 .msg-actions-row {

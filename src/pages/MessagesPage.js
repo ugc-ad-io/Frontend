@@ -186,6 +186,7 @@ export default function MessagesPage() {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [creatingCard, setCreatingCard] = useState(false);
   const [actionComposerType, setActionComposerType] = useState(null);
+  const [actionChipsOpen, setActionChipsOpen] = useState(false); // "+ Send action card" toggles the chip row
   const [actionForm, setActionForm] = useState({});
   const [counteringCardId, setCounteringCardId] = useState(null); // original offer card this counter replies to
   const [declineCardId, setDeclineCardId] = useState(null); // offer card the decline picker is open for
@@ -995,20 +996,29 @@ export default function MessagesPage() {
             {/* Quick Actions — a single horizontal row. It scrolls sideways when the
                 options don't fit, rather than opening a vertical dropdown. */}
             <div className="msg-quick-actions">
-              <span className="msg-quick-actions-lbl"><Plus size={14} /> Send action card</span>
-              <div className="msg-actions-row">
-                {getAvailableActionCards(user?.role, selectedConv).map((action) => (
-                  <button
-                    key={action}
-                    type="button"
-                    className="msg-action-chip"
-                    disabled={creatingCard}
-                    onClick={() => openActionComposer(action)}
-                  >
-                    {ACTION_CARD_LABELS[action]}
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                className={`msg-quick-actions-lbl${actionChipsOpen ? ' is-open' : ''}`}
+                aria-expanded={actionChipsOpen}
+                onClick={() => setActionChipsOpen((o) => !o)}
+              >
+                <Plus size={14} /> Send action card
+              </button>
+              {actionChipsOpen && (
+                <div className="msg-actions-row">
+                  {getAvailableActionCards(user?.role, selectedConv).map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      className="msg-action-chip"
+                      disabled={creatingCard}
+                      onClick={() => { openActionComposer(action); setActionChipsOpen(false); }}
+                    >
+                      {ACTION_CARD_LABELS[action]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {actionCardsOnly ? (

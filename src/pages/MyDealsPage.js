@@ -595,6 +595,15 @@ export default function MyDealsPage() {
     }
   };
 
+  // Instead of jumping straight to a dispute, let the creator talk it out with the
+  // brand first — open the deal chat with a ready-to-send question about exactly how
+  // many changes the revision covers, so scope is agreed before any work starts.
+  const handleDiscussRevision = () => {
+    setChatOpen(true);
+    markChatSeen();
+    setMessage((prev) => prev || 'Hi! Before I start on these revisions, could we confirm exactly how many changes are included in this request so we\'re on the same page?');
+  };
+
   const handleArchiveDeal = async () => {
     if (!selectedDeal) return;
     if (!isState(selectedDeal, 'Paid - Complete')) {
@@ -952,7 +961,7 @@ export default function MyDealsPage() {
                 )}
                 {isDamageState(deal) && <DamageReportCard deal={deal} onActionCard={handleActionCardRequest} />}
                 <ContentSubmission deal={deal} finalVideoUrl={finalVideoUrl} captionUrl={captionUrl} thumbnailUrl={thumbnailUrl} rawFootageUrl={rawFootageUrl} onUpload={handleFileUpload} setFinalVideoUrl={setFinalVideoUrl} setCaptionUrl={setCaptionUrl} setThumbnailUrl={setThumbnailUrl} setRawFootageUrl={setRawFootageUrl} uploadingFile={uploadingFile} onSubmit={handleSubmitContent} submitting={submitting} />
-                <RevisionTracker deal={deal} onRevisionResponse={handleRevisionResponse} />
+                <RevisionTracker deal={deal} onRevisionResponse={handleRevisionResponse} onDiscussWithBrand={handleDiscussRevision} />
               </div>
             )}
 
@@ -1381,7 +1390,7 @@ const REVISION_RESPONSE_LABEL = {
   partial_dispute: 'You partially accepted and disputed the rest — a dispute was raised for review.',
 };
 
-function RevisionTracker({ deal, onRevisionResponse }) {
+function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand }) {
   const revision = deal?.revision_tracker || {};
   const hasRevision = Boolean(revision.latest_feedback || revision.requested_changes?.length);
   // Once the creator has responded, show what they chose instead of leaving the
@@ -1406,7 +1415,7 @@ function RevisionTracker({ deal, onRevisionResponse }) {
         <div className="deal-revision-actions">
           <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('accepted')}>Accept and revise</button>
           <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep')}>Flag scope creep</button>
-          <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('partial_dispute')}>Partially accept and dispute remaining items</button>
+          <button type="button" disabled={!hasRevision} onClick={() => onDiscussWithBrand?.()}>Chat with brand about changes</button>
         </div>
       )}
     </DealCard>

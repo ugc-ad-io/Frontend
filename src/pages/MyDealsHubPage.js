@@ -17,10 +17,18 @@ const formatMoney = (v) => `Rs. ${Number(v || 0).toLocaleString('en-IN', { maxim
 
 const assetUrl = (u) => (!u ? '' : (u.startsWith('http') ? u : `${BACKEND_URL}${u}`));
 
+// A raw Mongo ObjectId is never a real name — never show one as the brand.
+const isObjectId = (s) => /^[0-9a-f]{24}$/i.test(String(s || ''));
+
 // --- deal helpers -----------------------------------------------------------
-const dealBrand = (d) =>
-  String(d?.brand?.name || d?.campaign?.brand_name || d?.campaign?.business_name || '')
-    .replace(/^@+/, '').trim() || 'Brand';
+// Prefer the brand's REAL business name over an auto-generated @handle, strip "@",
+// and fall back to "Brand" for empty/ObjectId values (mirrors BusinessDashboard).
+const dealBrand = (d) => {
+  const raw = String(
+    d?.brand?.name || d?.campaign?.brand_name || d?.campaign?.business_name || d?.campaign?.business_nickname || ''
+  ).replace(/^@+/, '').trim();
+  return raw && !isObjectId(raw) ? raw : 'Brand';
+};
 const dealLogo = (d) => d?.brand?.logo_url || d?.campaign?.brand_logo_url || '';
 const dealTitle = (d) => d?.campaign?.title || 'Untitled campaign';
 const dealId = (d) => d?.deal_id || d?.campaign?.id;
@@ -35,14 +43,22 @@ const isRequested = (d) =>
 const isDead = (d) =>
   bookingStatus(d) === 'declined' || String(d?.current_state || '').toLowerCase().includes('cancelled');
 
-// Colour + label for an active deal's current state.
+// Colour + a SHORT, single-line label for an active deal's current state — the
+// full backend state (e.g. "Received — Content in Progress") is kept as a tooltip.
 function activeMeta(d) {
-  const s = String(d?.current_state || '').toLowerCase();
-  if (s.includes('paid') || s.includes('complete')) return { label: d.current_state, color: '#22c55e' };
-  if (s.includes('revision')) return { label: 'Revision Requested', color: '#f97316' };
-  if (s.includes('review')) return { label: 'In Review', color: '#f59e0b' };
-  if (s.includes('dispute') || s.includes('damaged')) return { label: d.current_state, color: '#ef4444' };
-  return { label: d.current_state || 'Active', color: '#16a34a' };
+  const full = d?.current_state || 'Active';
+  const s = full.toLowerCase();
+  if (s.includes('paid') || s.includes('complete')) return { label: 'Paid', color: '#22c55e', full };
+  if (s.includes('approved')) return { label: 'Approved', color: '#22c55e', full };
+  if (s.includes('revision')) return { label: 'Revision Requested', color: '#f97316', full };
+  if (s.includes('submitted') || (s.includes('await') && s.includes('review'))) return { label: 'In Review', color: '#f59e0b', full };
+  if (s.includes('dispute')) return { label: 'Disputed', color: '#ef4444', full };
+  if (s.includes('damaged')) return { label: 'Issue Reported', color: '#ef4444', full };
+  if (s.includes('content in progress') || s.includes('received')) return { label: 'Content in Progress', color: '#6366f1', full };
+  if (s.includes('delivered')) return { label: 'Delivered', color: '#6366f1', full };
+  if (s.includes('shipped') || s.includes('transit')) return { label: 'Shipped', color: '#3b82f6', full };
+  if (s.includes('accepted') || s.includes('awaiting shipment')) return { label: 'Awaiting Shipment', color: '#3b82f6', full };
+  return { label: full, color: '#16a34a', full };
 }
 
 const TABS = [
@@ -127,7 +143,7 @@ export default function MyDealsHubPage() {
                   </span>
                   <div className="mdh-lead">
                     <div className="mdh-top">
-                      <span className="mdh-badge"><span className="mdh-dot" /> {meta.label}</span>
+                      <span className="mdh-badge" title={meta.full}><span className="mdh-dot" /> {meta.label}</span>
                       {priv && <span className="mdh-priv"><Lock size={11} /> Private</span>}
                     </div>
                     <h3>{dealTitle(d)}</h3>
@@ -165,20 +181,20 @@ export default function MyDealsHubPage() {
                   </span>
                   <div className="mdh-lead">
                     <div className="mdh-top">
-                      <span className={`mdh-badge ${price ? 'warn' : 'info'}`}>
-                        <Clock size={12} /> {price ? 'Awaiting brand' : 'Awaiting your response'}
+                      <span className={`mdh-badge ${price ? 'warn' : 'info'}`} title={price ? 'You proposed a custom price — waiting for the brand' : 'A brand booked you directly — accept, decline, or counter'}>
+                        <Clock size={12} /> {price ? 'Counter sent — awaiting brand' : 'Awaiting your response'}
                       </span>
-                      <span className="mdh-priv"><Lock size={11} /> {price ? 'Custom price' : 'Private'}</span>
+                      <span className="mdh-priv"><Lock size={11} /> {price ? 'Custom price' : 'Private invite'}</span>
                     </div>
                     <h3>{dealTitle(d)}</h3>
                     <small>{dealBrand(d)} · {d?.campaign?.video_count || 1} video(s)</small>
                   </div>
                   <div className="mdh-amt">
-                    <small>{price ? 'You proposed' : "You'll get"}</small>
+                    <small>{price ? 'You countered' : "You'll get"}</small>
                     <strong>{formatMoney(price ? d?.campaign?.proposed_amount : dealAmount(d))}</strong>
                   </div>
                   <button type="button" className="mdh-review" onClick={(e) => { e.stopPropagation(); openDeal(d); }}>
-                    Review request <ArrowRight size={15} />
+                    {price ? 'View counter' : 'Accept · decline · counter'} <ArrowRight size={15} />
                   </button>
                 </article>
               );
@@ -196,37 +212,39 @@ export default function MyDealsHubPage() {
       {tab === 'bids' && <MyBidsContent />}
 
       <style>{`
-        .mdh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
-        .mdh-card { position: relative; display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 16px;
+        .mdh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 480px)); gap: 16px; }
+        .mdh-card { position: relative; display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center;
+          column-gap: 14px; row-gap: 12px;
           background: #fff; border: 1px solid #eef0f6; border-left: 4px solid var(--mdh, #4452f0); border-radius: 16px;
-          padding: 18px 56px 18px 18px; cursor: pointer; transition: box-shadow .18s, transform .18s; }
+          padding: 16px 54px 16px 16px; cursor: pointer; transition: box-shadow .18s, transform .18s; }
         .mdh-card:hover { box-shadow: 0 18px 40px -26px rgba(15,23,42,.5); transform: translateY(-2px); }
         .mdh-card.is-req { border-left-color: #4452f0; }
-        .mdh-ava { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; overflow: hidden;
-          background: linear-gradient(135deg,#eef0ff,#e0e4ff); color: #4452f0; font-weight: 800; font-size: 20px; }
+        .mdh-ava { width: 48px; height: 48px; border-radius: 13px; display: grid; place-items: center; overflow: hidden;
+          background: linear-gradient(135deg,#eef0ff,#e0e4ff); color: #4452f0; font-weight: 800; font-size: 19px; }
         .mdh-ava img { width: 100%; height: 100%; object-fit: cover; }
         .mdh-lead { min-width: 0; }
-        .mdh-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+        .mdh-top { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; min-width: 0; }
         .mdh-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
-          color: #15803d; background: #e6f6ec; border-radius: 999px; padding: 3px 9px; }
+          color: #15803d; background: #e6f6ec; border-radius: 999px; padding: 3px 10px; max-width: 100%;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .mdh-badge.info { color: #3730a3; background: #eef0ff; }
         .mdh-badge.warn { color: #b45309; background: #fff7ed; }
-        .mdh-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mdh, #16a34a); }
-        .mdh-priv { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700;
-          color: #64748b; background: #f1f3fa; border-radius: 999px; padding: 3px 9px; }
-        .mdh-lead h3 { margin: 0; font-size: 15px; color: #15163a; line-height: 1.3; overflow: hidden;
+        .mdh-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--mdh, #16a34a); }
+        .mdh-priv { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700;
+          color: #64748b; background: #f1f3fa; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+        .mdh-lead h3 { margin: 0; font-size: 15px; font-weight: 700; color: #15163a; line-height: 1.3; overflow: hidden;
           text-overflow: ellipsis; white-space: nowrap; }
         .mdh-lead small { color: #9296ba; font-size: 12.5px; }
-        .mdh-amt { text-align: right; }
+        .mdh-amt { text-align: right; white-space: nowrap; }
         .mdh-amt small { display: block; color: #9296ba; font-size: 11px; font-weight: 600; }
         .mdh-amt strong { color: #15163a; font-size: 15px; font-family: var(--font-head,'Plus Jakarta Sans',sans-serif); }
-        .mdh-go { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px;
+        .mdh-go { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px;
           border: 0; border-radius: 10px; background: #f1f3fa; color: #4452f0; display: grid; place-items: center; cursor: pointer; }
         .mdh-go:hover { background: #e6e9ff; }
-        .mdh-review { grid-column: 1 / -1; margin-top: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        .mdh-review { grid-column: 1 / -1; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
           border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 13.5px; cursor: pointer; font-family: inherit;
           background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
-        .mdh-card.is-req { padding-right: 18px; grid-template-columns: 52px 1fr auto; }
+        .mdh-card.is-req { padding-right: 16px; }
         @media (max-width: 560px) { .mdh-grid { grid-template-columns: 1fr; } }
       `}</style>
     </CreatorTopNavLayout>

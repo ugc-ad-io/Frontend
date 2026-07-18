@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Star, Plus, Trash2, Save } from 'lucide-react';
+import { Star, Plus, Trash2, Save, Upload } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
@@ -30,6 +30,25 @@ export default function AdminHomeShowcase() {
   const [creators, setCreators] = useState([]);   // real creators for the per-card picker
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingIdx, setUploadingIdx] = useState(null);
+
+  // Upload a showcase video straight from the editor and set it as this card's video.
+  const uploadVideo = async (idx, file) => {
+    if (!file) return;
+    if (file.size > 100 * 1024 * 1024) { toast.error('Video too large. Maximum 100MB.'); return; }
+    setUploadingIdx(idx);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = r.data?.file_url || r.data?.url || '';
+      if (!url) throw new Error('No URL returned');
+      setField(idx, 'video_url', url);
+      toast.success('Video uploaded');
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Upload failed'));
+    } finally { setUploadingIdx(null); }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -150,12 +169,19 @@ export default function AdminHomeShowcase() {
                   <label>Rating<input inputMode="decimal" value={it.rating} onChange={(e) => setField(idx, 'rating', e.target.value.replace(/[^0-9.]/g, ''))} placeholder="4.9" /></label>
                   <label>Level<input value={it.level} onChange={(e) => setField(idx, 'level', e.target.value)} placeholder="Elite / L2 / New" /></label>
 
-                  {/* VIDEO — pick one of the chosen creator's clips, or a custom URL. */}
+                  {/* VIDEO — pick one of the chosen creator's clips, paste a URL, or upload one. */}
                   <label className="ahs-field ahs-wide">Video
-                    <select value={vidInList ? it.video_url : CUSTOM} onChange={(e) => pickVideo(idx, e.target.value)}>
-                      <option value={CUSTOM}>Custom URL…</option>
-                      {vids.map((v, i) => <option key={v} value={v}>Video {i + 1} — {String(v).split('/').pop()}</option>)}
-                    </select>
+                    <div className="ahs-vid-row">
+                      <select value={vidInList ? it.video_url : CUSTOM} onChange={(e) => pickVideo(idx, e.target.value)}>
+                        <option value={CUSTOM}>Custom / uploaded URL…</option>
+                        {vids.map((v, i) => <option key={v} value={v}>Video {i + 1} — {String(v).split('/').pop()}</option>)}
+                      </select>
+                      <label className="ahs-upload">
+                        <input type="file" accept="video/*" hidden disabled={uploadingIdx === idx}
+                          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; uploadVideo(idx, f); }} />
+                        <Upload size={15} /> {uploadingIdx === idx ? 'Uploading…' : 'Upload video'}
+                      </label>
+                    </div>
                     {!vidInList && <input value={it.video_url} onChange={(e) => setField(idx, 'video_url', e.target.value)} placeholder="/showcase-reel.mp4 or https://…" />}
                   </label>
                 </div>
@@ -188,6 +214,10 @@ export default function AdminHomeShowcase() {
           background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235b6bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6l4 4 4-4'/></svg>");
           background-repeat:no-repeat;background-position:right 11px center}
         .ahs-field select+input{margin-top:6px}
+        .ahs-vid-row{display:flex;gap:10px;align-items:stretch}
+        .ahs-vid-row select{flex:1;min-width:0}
+        .ahs-upload{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;border:1.5px solid #d6dbff;background:#fff;color:#4452f0;font-size:13px;font-weight:600;text-transform:none;letter-spacing:normal;padding:0 14px;border-radius:9px;cursor:pointer;white-space:nowrap}
+        .ahs-upload:hover{background:#eef0ff}
         .ahs-grid input:focus,.ahs-grid select:focus{outline:none;border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.15)}
         .ahs-del{position:absolute;top:12px;right:12px;width:30px;height:30px;display:grid;place-items:center;border:1px solid #fecdca;background:#fff;color:#dc2626;border-radius:8px;cursor:pointer}
         .ahs-del:hover{background:#fef2f2}

@@ -616,6 +616,20 @@ export default function MyDealsPage() {
     return null;
   };
 
+  // Overview-tab version of the primary action. The upload inputs only exist on the
+  // Deliverables tab, so a "content" submission can never be armed from Overview — the
+  // guard needs an already-uploaded video. Instead of a permanently-disabled dead button,
+  // route the creator to Deliverables to actually attach files; submit inline only if a
+  // video is already uploaded (e.g. they came back from the Deliverables tab).
+  const handleOverviewPrimary = () => {
+    if (primaryAction.type === 'content') {
+      if (submitting) return;
+      if (!primaryAction.disabled) return handleSubmitContent();
+      return setLeftTab('deliverables');
+    }
+    return handlePrimaryAction();
+  };
+
   const selectedState = getState(selectedDeal);
   const activeDeals = deals.filter((item) => (
     !['paid - complete', 'disputed', 'damaged/wrong product reported'].includes(stateKey(item.current_state))
@@ -821,7 +835,7 @@ export default function MyDealsPage() {
                 <section className="cmk-card cmk-dr-sec">
                   <div className="cmk-dr-sec-h">
                     <div><h2>Deliverables</h2><span className="meta">{deliverablesDone} of {deliverables.length} completed</span></div>
-                    <button type="button" className="cmk-dr-upload" disabled={primaryAction.disabled} onClick={handlePrimaryAction}>
+                    <button type="button" className="cmk-dr-upload" disabled={primaryAction.type === 'content' ? submitting : primaryAction.disabled} onClick={handleOverviewPrimary}>
                       <Upload size={16} /> {primaryAction.type === 'content' ? 'Upload / Submit Work' : uploadLabel}
                     </button>
                   </div>

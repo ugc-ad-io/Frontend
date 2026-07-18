@@ -955,7 +955,7 @@ export default function CreatorProfileSetup() {
               <label className="ps-label">First name</label>
               <input
                 className={`ps-input${err('firstName') ? ' ps-input--error' : ''}`}
-                placeholder="Meet"
+                placeholder="First name"
                 value={data.firstName}
                 onChange={(e) => set('firstName', e.target.value)}
               />
@@ -965,7 +965,7 @@ export default function CreatorProfileSetup() {
               <label className="ps-label">Last name</label>
               <input
                 className={`ps-input${err('lastName') ? ' ps-input--error' : ''}`}
-                placeholder="Jain"
+                placeholder="Last name"
                 value={data.lastName}
                 onChange={(e) => set('lastName', e.target.value)}
               />

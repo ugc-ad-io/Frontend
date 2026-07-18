@@ -81,6 +81,24 @@ const collectUrls = (v) => {
 };
 
 const prettifyKey = (k) => String(k).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Preferred display order for "All Submitted Details". First match (by label
+// substring) wins; anything unmatched sorts to the end but keeps its original
+// relative order. Ordered: identity → contact → persona → commercials.
+const FIELD_ORDER = [
+  'full name', 'first name', 'last name', 'nickname', 'name',
+  'gender', 'date of birth', 'dob', 'age',
+  'bio', 'about', 'headline',
+  'country', 'city', 'state', 'address', 'pincode', 'pin code', 'dial code', 'phone', 'contact',
+  'content style', 'content categor', 'primary categor', 'categor', 'tags', 'niche', 'language',
+  'rate card', 'expected payout', 'payout period', 'delivery days',
+  'availability', 'flexible', 'receive brief',
+];
+const fieldRank = (k) => {
+  const lbl = prettifyKey(k).toLowerCase();
+  const i = FIELD_ORDER.findIndex((kw) => lbl.includes(kw));
+  return i === -1 ? FIELD_ORDER.length : i;
+};
 // Empty = null/undefined/blank, an empty (or all-empty) array, or an object whose
 // every value is itself empty — so e.g. Followers: {instagram:'', youtube:''}
 // counts as empty and doesn't render a blank full-width box.
@@ -381,7 +399,10 @@ function ProfileDetail({ profile, onBack, onDecide }) {
       if (seenLabels.has(lbl)) return false;
       seenLabels.add(lbl);
       return true;
-    });
+    })
+    // Show fields in a human order (identity → persona → commercials → rest)
+    // instead of whatever arbitrary order the API returns them in.
+    .sort((a, b) => fieldRank(a[0]) - fieldRank(b[0]));
   function MEDIA_OR_META(k) {
     return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers'].includes(k)
       || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);

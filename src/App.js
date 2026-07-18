@@ -492,6 +492,14 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/sent-briefs"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard page="sent-briefs" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/business/reviews"
               element={
                 <ProtectedRoute allowedRoles={['business']}>

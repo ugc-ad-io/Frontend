@@ -525,6 +525,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [profileView, setProfileView] = useState(null); // { id, name, photo } -> opens a creator profile modal
   const [shipmentsMap, setShipmentsMap] = useState({}); // campaignId -> shipment record (for the shipments table)
   const [shipTab, setShipTab] = useState('all'); // all | transit | delivered
+  const [briefs, setBriefs] = useState([]); // sent briefs/offers (private/custom/counter) + their status
+  const [briefsLoading, setBriefsLoading] = useState(false);
+  const [briefFilter, setBriefFilter] = useState('all'); // all | sent | accepted | declined | countered | expired
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
   const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -592,6 +595,26 @@ export default function BusinessDashboard({ page = 'overview' }) {
       fetchWallet();
     }
   }, [user?.id, page]);
+
+  useEffect(() => {
+    // Load sent briefs/offers whenever the Sent Briefs tab is opened so the brand
+    // always sees the latest accepted/declined/countered statuses.
+    if (user?.approval_status === 'approved' && page === 'sent-briefs') {
+      fetchBriefs();
+    }
+  }, [user?.id, page]);
+
+  const fetchBriefs = async () => {
+    setBriefsLoading(true);
+    try {
+      const res = await axios.get(`${API}/business/briefs?t=${Date.now()}`);
+      setBriefs(res.data || []);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to load sent briefs'));
+    } finally {
+      setBriefsLoading(false);
+    }
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -881,6 +904,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 0, badgeTone: 'orange' },
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
+    { id: 'sent-briefs', label: 'Sent Briefs', icon: Send, path: '/dashboard/business/sent-briefs' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
     { id: 'shipments', label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
@@ -911,6 +935,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     'pending-bids': 'Review creator proposals and select the best fit for each campaign',
     'browse-creator': 'Discover vetted creators and send private invitations',
     'all-campaigns': 'Track every brief from draft to delivery',
+    'sent-briefs': 'Every private invitation, custom and counter offer you sent — and whether creators accepted, declined or countered',
     'work-review': 'Review submitted creator work and approve deliverables',
     shipments: 'Manage product shipments and creator selection for delivery campaigns',
     wallet: 'Track balance, add funds, and review wallet activity',
@@ -1234,7 +1259,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           </div>
         )}
 
-        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
+        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet', 'sent-briefs'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
         {activeTab === 'overview' && (
           <>
             <div className="brand-metrics-grid">
@@ -1609,6 +1634,149 @@ export default function BusinessDashboard({ page = 'overview' }) {
               )}
             </div>
           )}
+
+          {activeTab === 'sent-briefs' && (() => {
+            // Color + label for each lifecycle status the backend buckets briefs into.
+            const STATUS_META = {
+              sent:      { label: 'Sent',      color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+              accepted:  { label: 'Accepted',  color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+              declined:  { label: 'Declined',  color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
+              countered: { label: 'Countered', color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe' },
+              expired:   { label: 'Expired',   color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
+              revoked:   { label: 'Withdrawn', color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
+            };
+            const DECLINE_LABELS = {
+              not_my_niche: 'Not my niche', budget: 'Budget too low',
+              timeline: 'Timeline too tight', unavailable: 'Unavailable', other: 'Other',
+            };
+            const FILTERS = [
+              { key: 'all', label: 'All' },
+              { key: 'sent', label: 'Sent' },
+              { key: 'accepted', label: 'Accepted' },
+              { key: 'declined', label: 'Declined' },
+              { key: 'countered', label: 'Countered' },
+              { key: 'expired', label: 'Expired' },
+            ];
+            const countFor = (key) => key === 'all'
+              ? briefs.length
+              : briefs.filter(b => (key === 'expired' ? ['expired', 'revoked'] : [key]).includes(b.status_bucket)).length;
+            const visible = briefFilter === 'all'
+              ? briefs
+              : briefs.filter(b => (briefFilter === 'expired' ? ['expired', 'revoked'] : [briefFilter]).includes(b.status_bucket));
+            const briefAmount = (b) => {
+              if (b.amount == null || b.amount === '') return '—';
+              const s = String(b.amount);
+              return /^[₹\s]*[\d,.\s]+$/.test(s) ? formatMoney(s.replace(/[₹,\s]/g, '')) : s;
+            };
+            const briefDate = (v) => {
+              if (!v) return '';
+              const d = new Date(v);
+              return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            };
+            return (
+            <div className="all-campaigns-section">
+              <div className="all-campaigns-hero">
+                <div>
+                  <span className="all-campaigns-kicker"><Send size={16} /> Briefs &amp; Offers</span>
+                  <h2>Sent Briefs</h2>
+                  <p>Every private invitation, custom offer and counter offer you sent — see at a glance who accepted, declined or countered.</p>
+                </div>
+                <button type="button" className="btn-secondary" onClick={fetchBriefs} disabled={briefsLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Activity size={16} /> Refresh
+                </button>
+              </div>
+
+              <div className="cmk-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                {FILTERS.map(f => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setBriefFilter(f.key)}
+                    style={{
+                      padding: '7px 14px', borderRadius: 999, cursor: 'pointer',
+                      border: `1px solid ${briefFilter === f.key ? '#07074E' : '#e5e7eb'}`,
+                      background: briefFilter === f.key ? '#07074E' : '#fff',
+                      color: briefFilter === f.key ? '#fff' : '#374151',
+                      fontSize: 13, fontWeight: 600,
+                    }}
+                  >
+                    {f.label} <span style={{ opacity: 0.75 }}>({countFor(f.key)})</span>
+                  </button>
+                ))}
+              </div>
+
+              {briefsLoading ? (
+                <div className="all-campaigns-loading">Loading sent briefs...</div>
+              ) : briefs.length === 0 ? (
+                <div className="all-campaigns-empty">
+                  <span><Send size={48} /></span>
+                  <h3>No briefs sent yet</h3>
+                  <p>When you invite a creator or send a custom/counter offer, it will show up here with its status.</p>
+                  <button className="btn-primary" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse Creators</button>
+                </div>
+              ) : visible.length === 0 ? (
+                <div className="all-campaigns-empty">
+                  <span><Filter size={48} /></span>
+                  <h3>No {briefFilter} briefs</h3>
+                  <p>Try a different status filter.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {visible.map(b => {
+                    const meta = STATUS_META[b.status_bucket] || STATUS_META.sent;
+                    const initial = (b.creator_name || 'C').trim().charAt(0).toUpperCase();
+                    return (
+                      <div key={b.id} data-testid={`brief-${b.id}`} style={{
+                        display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
+                        background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
+                      }}>
+                        {b.creator_photo ? (
+                          <img src={b.creator_photo.startsWith('http') ? b.creator_photo : `${BACKEND_URL}${b.creator_photo}`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#07074E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>{initial}</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                            <strong style={{ fontSize: 15, color: '#07074E' }}>{b.creator_name || 'Creator'}</strong>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#5b6bff', background: '#eef0ff', padding: '2px 8px', borderRadius: 6 }}>{b.type_label}</span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, color: meta.color, background: meta.bg,
+                              border: `1px solid ${meta.border}`, padding: '2px 10px', borderRadius: 999, marginLeft: 'auto',
+                            }}>{meta.label}</span>
+                          </div>
+                          <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginBottom: 6 }}>
+                            {b.campaign_name || b.deliverable_summary || 'Untitled brief'}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 13, color: '#6b7280' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IndianRupee size={13} /> {briefAmount(b)}</span>
+                            {b.timeline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock3 size={13} /> {b.timeline}</span>}
+                            {b.created_at && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><FileText size={13} /> Sent {briefDate(b.created_at)}</span>}
+                          </div>
+                          {b.status_bucket === 'declined' && b.decline_reason && (
+                            <div style={{ marginTop: 8, fontSize: 12.5, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              <AlertCircle size={13} /> Declined: {DECLINE_LABELS[b.decline_reason] || b.decline_reason}{b.response_note ? ` — "${b.response_note}"` : ''}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                          {b.status_bucket === 'accepted' && b.deal_campaign_id ? (
+                            <button type="button" className="btn-primary" style={{ whiteSpace: 'nowrap' }} onClick={() => setModalView({ type: 'campaign', id: b.deal_campaign_id })}>
+                              <Eye size={15} /> View Deal
+                            </button>
+                          ) : (
+                            <button type="button" className="btn-secondary" style={{ whiteSpace: 'nowrap' }} onClick={() => navigate(`/messages?conv=${b.creator_id}`)}>
+                              <MessageSquare size={15} /> Open Chat
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            );
+          })()}
 
           {activeTab === 'pending-bids' && (() => {
             const bidCampaigns = campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator);

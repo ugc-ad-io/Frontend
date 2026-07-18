@@ -634,6 +634,114 @@
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
+/* Brand feedback + new deadline sit as compact cards; the requested changes get
+   their own tickable checklist below so each change is clear and actionable. */
+.deal-revision-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.deal-revision-checklist {
+  margin-top: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 15px;
+  background: #fbfcff;
+  padding: 14px 16px;
+}
+
+.deal-revision-checklist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.deal-revision-checklist-head small {
+  color: #9f9fd1;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.deal-revision-selectall {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #4f63d8;
+  font-weight: 800;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.deal-revision-checklist ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deal-revision-checklist li {
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 11px;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.deal-revision-checklist li.is-checked {
+  border-color: #b7e6cd;
+  background: #f2fbf6;
+}
+
+.deal-revision-checklist li label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.deal-revision-checklist li input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: #067647;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.deal-revision-checklist li input[type='checkbox']:disabled {
+  cursor: default;
+}
+
+.deal-revision-checklist li span {
+  color: #23306b;
+  font-weight: 650;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.deal-revision-checklist li.is-checked span {
+  color: #067647;
+}
+
+.deal-revision-empty {
+  margin: 0;
+  color: #667085;
+  font-weight: 650;
+}
+
+.deal-revision-hint {
+  margin: 14px 0 0;
+  color: #667085;
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
 /* Shown once the creator has answered a revision request, in place of the buttons. */
 .deal-revision-responded {
   display: flex;

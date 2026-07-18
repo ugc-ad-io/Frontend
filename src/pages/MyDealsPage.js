@@ -581,12 +581,17 @@ export default function MyDealsPage() {
     return handleCreateActionCard(label);
   };
 
-  const handleRevisionResponse = async (response) => {
+  const handleRevisionResponse = async (response, acceptedChanges = null) => {
     if (!selectedDeal?.deal_id) return;
     try {
       await axios.post(`${API}/deals/${selectedDeal.deal_id}/revision-response`, {
         response,
-        note: response === 'accepted' ? 'Creator accepted the revision request.' : 'Creator flagged the revision request from Deal Room.'
+        accepted_changes: acceptedChanges || undefined,
+        note: response === 'accepted'
+          ? (acceptedChanges?.length
+              ? `Creator accepted these changes: ${acceptedChanges.join('; ')}.`
+              : 'Creator accepted the revision request.')
+          : 'Creator flagged the revision request from Deal Room.'
       });
       toast.success('Revision response submitted');
       fetchDeals();
@@ -1390,33 +1395,118 @@ const REVISION_RESPONSE_LABEL = {
   partial_dispute: 'You partially accepted and disputed the rest — a dispute was raised for review.',
 };
 
+// Turn the brand's requested changes into a clean, de-duplicated checklist. The
+// backend sometimes derives requested_changes from the feedback text (so both can
+// arrive as one comma-run the creator can't parse) — split any multi-line / multi-
+// sentence entries and drop blanks so each change becomes its own tickable line.
+function toChangeItems(revision) {
+  const raw = revision.requested_changes?.length
+    ? revision.requested_changes
+    : (revision.latest_feedback ? [revision.latest_feedback] : []);
+  const seen = new Set();
+  const items = [];
+  raw.forEach((entry) => {
+    String(entry || '')
+      .split(/\r?\n|(?<=\.)\s+(?=[A-Z0-9])/) // split on new lines and sentence breaks
+      .map((line) => line.replace(/^\s*[-•*\d.)\]]+\s*/, '').trim()) // strip bullet/number prefixes
+      .filter(Boolean)
+      .forEach((line) => {
+        const key = line.toLowerCase();
+        if (!seen.has(key)) { seen.add(key); items.push(line); }
+      });
+  });
+  return items;
+}
+
 function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand }) {
   const revision = deal?.revision_tracker || {};
+  const changeItems = toChangeItems(revision);
   const hasRevision = Boolean(revision.latest_feedback || revision.requested_changes?.length);
   // Once the creator has responded, show what they chose instead of leaving the
   // buttons live (clicking them again looked like nothing was happening).
   const responded = revision.creator_response;
+  const acceptedAlready = revision.accepted_changes || [];
+
+  // The creator ticks the changes they'll actually do. Default to all ticked (the
+  // common case is "I'll do everything"); unticking one signals it's out of scope,
+  // to be settled by chatting with the brand.
+  const [checked, setChecked] = useState(() => changeItems.map(() => true));
+  const toggle = (idx) => setChecked((c) => c.map((v, i) => (i === idx ? !v : v)));
+  const setAll = (value) => setChecked(changeItems.map(() => value));
+
+  const total = changeItems.length;
+  const selectedCount = checked.filter(Boolean).length;
+  const acceptedList = changeItems.filter((_, i) => checked[i]);
+  const allSelected = total === 0 || selectedCount === total;
+
   return (
     <DealCard className="deal-revisions">
       <div className="deal-section-title">
         <span className="warn"><RotateCcw size={18} /></span>
         <div><h2>Revision Tracker</h2><p>Revision {revision.revision_count_used || 0} of {revision.revision_limit || 0} used</p></div>
       </div>
-      <div className="deal-revision-box">
+
+      <div className="deal-revision-meta">
         <p><small>Brand Feedback</small><strong>{revision.latest_feedback || 'No revision requested yet.'}</strong></p>
-        <p><small>Requested Changes</small><strong>{revision.requested_changes?.length ? revision.requested_changes.join(', ') : 'No requested changes.'}</strong></p>
         <p><small>New Deadline</small><strong>{formatDateTime(revision.new_deadline_at)}</strong></p>
       </div>
+
+      <div className="deal-revision-checklist">
+        <div className="deal-revision-checklist-head">
+          <small>Requested Changes {total ? `· ${responded ? acceptedAlready.length : selectedCount}/${total}` : ''}</small>
+          {!responded && total > 1 ? (
+            <button type="button" className="deal-revision-selectall" onClick={() => setAll(!allSelected)}>
+              {allSelected ? 'Clear all' : 'Select all'}
+            </button>
+          ) : null}
+        </div>
+
+        {total ? (
+          <ul>
+            {changeItems.map((item, idx) => {
+              const isDone = responded
+                ? acceptedAlready.some((a) => String(a).toLowerCase() === item.toLowerCase())
+                : checked[idx];
+              return (
+                <li key={`${item}-${idx}`} className={isDone ? 'is-checked' : ''}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={isDone}
+                      disabled={Boolean(responded)}
+                      onChange={() => toggle(idx)}
+                    />
+                    <span>{item}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="deal-revision-empty">No requested changes yet.</p>
+        )}
+      </div>
+
       {responded ? (
         <p className="deal-revision-responded">
           <Check size={15} /> {REVISION_RESPONSE_LABEL[responded] || `Response recorded: ${responded}`}
         </p>
       ) : (
-        <div className="deal-revision-actions">
-          <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('accepted')}>Accept and revise</button>
-          <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep')}>Flag scope creep</button>
-          <button type="button" disabled={!hasRevision} onClick={() => onDiscussWithBrand?.()}>Chat with brand about changes</button>
-        </div>
+        <>
+          <p className="deal-revision-hint">Tick the changes you'll make, then choose how to respond.</p>
+          <div className="deal-revision-actions">
+            <button
+              type="button"
+              className="is-primary"
+              disabled={!hasRevision || (total > 0 && selectedCount === 0)}
+              onClick={() => onRevisionResponse('accepted', total ? acceptedList : null)}
+            >
+              Accept &amp; revise{total && !allSelected ? ` (${selectedCount})` : ''}
+            </button>
+            <button type="button" disabled={!hasRevision} onClick={() => onDiscussWithBrand?.()}>Chat with brand about changes</button>
+            <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep', [])}>Flag scope creep</button>
+          </div>
+        </>
       )}
     </DealCard>
   );

@@ -18,7 +18,6 @@ import {
   Clock,
   FileCheck,
   FileText,
-  Flag,
   Headphones,
   Image,
   IndianRupee,
@@ -992,7 +991,8 @@ export default function MyDealsPage() {
                   <p><span>Estimated Payout</span><strong>{formatDateTime(escrow.estimated_payout_at)}</strong></p>
                 </div>
                 <div className="cmk-dr-support">
-                  <button type="button" onClick={() => handleActionCardRequest('Raise Dispute')}><Flag size={15} /> Raise Dispute</button>
+                  {/* Creators can't open a dispute directly — they resolve with the brand
+                      first, then escalate to admin, who decides if a dispute is warranted. */}
                   <button type="button" onClick={() => handleActionCardRequest('Escalate to Admin')}><Headphones size={15} /> Get Help</button>
                 </div>
               </section>
@@ -1103,7 +1103,7 @@ function StatusHeader({ deal, currentState, escrowAmount, primaryAction, onPrima
           <div className="deal-more">
             <button type="button" aria-label="More deal actions"><MoreHorizontal size={18} /></button>
             <div>
-              <button type="button" onClick={() => onActionCard('Raise Dispute')}>Raise Dispute</button>
+              {/* No direct "Raise Dispute" for creators — escalate to admin instead. */}
               <button type="button" onClick={() => onActionCard('Message Support')}>Get Help</button>
               <button type="button" onClick={onArchive}><Archive size={14} /> Archive if completed</button>
             </div>
@@ -1673,8 +1673,8 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, mess
 
           <div className="deal-help-list">
             {[
+              // Creators escalate to admin (who decides on a dispute) — they can't raise one directly.
               [Headphones, 'Escalate to Admin'],
-              [Flag, 'Raise Dispute'],
               [ShieldAlert, 'Report Damaged / Wrong Product']
             ].map(([Icon, label]) => (
               <button key={label} type="button" onClick={() => onActionCard(label === 'Report Damaged / Wrong Product' ? 'Damage Report' : label)}>

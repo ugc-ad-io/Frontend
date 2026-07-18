@@ -966,7 +966,7 @@ export default function MyDealsPage() {
                 )}
                 {isDamageState(deal) && <DamageReportCard deal={deal} onActionCard={handleActionCardRequest} />}
                 <ContentSubmission deal={deal} finalVideoUrl={finalVideoUrl} captionUrl={captionUrl} thumbnailUrl={thumbnailUrl} rawFootageUrl={rawFootageUrl} onUpload={handleFileUpload} setFinalVideoUrl={setFinalVideoUrl} setCaptionUrl={setCaptionUrl} setThumbnailUrl={setThumbnailUrl} setRawFootageUrl={setRawFootageUrl} uploadingFile={uploadingFile} onSubmit={handleSubmitContent} submitting={submitting} />
-                <RevisionTracker deal={deal} onRevisionResponse={handleRevisionResponse} onDiscussWithBrand={handleDiscussRevision} />
+                <RevisionTracker deal={deal} onRevisionResponse={handleRevisionResponse} onDiscussWithBrand={handleDiscussRevision} onEscalate={() => handleActionCardRequest('Escalate to Admin')} />
               </div>
             )}
 
@@ -1391,8 +1391,8 @@ function DamageReportCard({ deal, onActionCard }) {
 
 const REVISION_RESPONSE_LABEL = {
   accepted: 'You accepted this revision — submit your revised content below.',
-  scope_creep: 'You flagged this as scope creep — a dispute was raised and the platform team will review it.',
-  partial_dispute: 'You partially accepted and disputed the rest — a dispute was raised for review.',
+  scope_creep: 'You told the brand these changes go beyond the brief. Work it out together in chat — if you can’t agree, use “Escalate to admin” below.',
+  partial_dispute: 'You accepted some changes and pushed back on the rest. Sort the rest out with the brand in chat — if you can’t agree, use “Escalate to admin” below.',
 };
 
 // Turn the brand's requested changes into a clean, de-duplicated checklist. The
@@ -1418,7 +1418,7 @@ function toChangeItems(revision) {
   return items;
 }
 
-function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand }) {
+function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand, onEscalate }) {
   const revision = deal?.revision_tracker || {};
   const changeItems = toChangeItems(revision);
   const hasRevision = Boolean(revision.latest_feedback || revision.requested_changes?.length);
@@ -1488,9 +1488,19 @@ function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand }) {
       </div>
 
       {responded ? (
-        <p className="deal-revision-responded">
-          <Check size={15} /> {REVISION_RESPONSE_LABEL[responded] || `Response recorded: ${responded}`}
-        </p>
+        <>
+          <p className="deal-revision-responded">
+            <Check size={15} /> {REVISION_RESPONSE_LABEL[responded] || `Response recorded: ${responded}`}
+          </p>
+          {/* Pushback is a disagreement to settle with the brand first — only offer the
+              admin escalation here, once talking it out is on the table. */}
+          {(responded === 'scope_creep' || responded === 'partial_dispute') && (
+            <div className="deal-revision-actions">
+              <button type="button" onClick={() => onDiscussWithBrand?.()}>Chat with brand</button>
+              <button type="button" className="is-danger" onClick={() => onEscalate?.()}>Escalate to admin</button>
+            </div>
+          )}
+        </>
       ) : (
         <>
           <p className="deal-revision-hint">Tick the changes you'll make, then choose how to respond.</p>
@@ -1504,7 +1514,7 @@ function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand }) {
               Accept &amp; revise{total && !allSelected ? ` (${selectedCount})` : ''}
             </button>
             <button type="button" disabled={!hasRevision} onClick={() => onDiscussWithBrand?.()}>Chat with brand about changes</button>
-            <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep', [])}>Flag scope creep</button>
+            <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep', [])}>These changes go beyond the brief</button>
           </div>
         </>
       )}
@@ -1521,7 +1531,14 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, mess
   const escrow = deal?.escrow || {};
   const deductions = escrow.deductions || [];
   const damaged = isDamageState(currentState);
-  const creatorActions = damaged ? ['Add Evidence', 'Escalate to Admin', 'Raise Dispute', 'Message Support'] : ['Milestone Update', 'Escalate to Admin', 'Raise Dispute', 'Damage Report'];
+  // Creators can't raise a dispute directly anymore. "Escalate to Admin" is the only
+  // path to admin, and it's only offered once the creator has already flagged an issue
+  // with the brand (a revision pushback or a damage report) so they've tried to resolve
+  // it together first. Everything else stays a normal, non-dispute support action.
+  const revisionResponse = deal?.revision_tracker?.creator_response;
+  const canEscalate = damaged || revisionResponse === 'scope_creep' || revisionResponse === 'partial_dispute';
+  const baseActions = damaged ? ['Add Evidence', 'Message Support'] : ['Milestone Update', 'Damage Report'];
+  const creatorActions = canEscalate ? [...baseActions, 'Escalate to Admin'] : baseActions;
 
   const handleMessageFileUpload = async (event) => {
     const files = Array.from(event.target.files || []);

@@ -61,7 +61,9 @@ const DECLINE_REASONS = [
 const ACTION_CARDS_BY_ROLE = {
   // Creators respond to revision requests in the deal room — they don't send them,
   // so revision_request is not in their list.
-  creator: ['custom_offer', 'counter_offer', 'milestone_update', 'damage_report', 'escalate_to_admin', 'raise_dispute'],
+  // Creators can't raise a dispute directly — they resolve with the brand first and
+  // use "Escalate to Admin" only if that fails. So raise_dispute is not in their list.
+  creator: ['custom_offer', 'counter_offer', 'milestone_update', 'damage_report', 'escalate_to_admin'],
   business: ['private_invitation', 'counter_offer', 'revision_request', 'escalate_to_admin', 'raise_dispute']
 };
 

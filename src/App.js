@@ -279,7 +279,7 @@ function App() {
         <ThemeProvider>
         <AuthProvider>
           <ScrollToTop />
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-right" richColors closeButton />
           <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/" element={<Landing />} />

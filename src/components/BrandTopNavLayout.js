@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark } from 'lucide-react';
+import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Star } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
@@ -25,6 +25,7 @@ const MENU_LINKS = [
   { name: 'Saved Creators', to: '/dashboard/business/saved-creators', icon: Bookmark },
   { name: 'Creator Bids', to: '/dashboard/business/pending-bids', icon: UserRoundSearch },
   { name: 'Manage Shipment', to: '/dashboard/business/shipments', icon: Package },
+  { name: 'Reviews', to: '/dashboard/business/reviews', icon: Star },
   { name: 'Wallet', to: '/dashboard/business/wallet', icon: Wallet },
   { sep: true },
   { name: 'Settings', to: '/settings', icon: Settings },

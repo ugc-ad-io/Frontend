@@ -48,6 +48,7 @@ const DisputeDetailPage = lazy(() => import('./pages/DisputeDetailPage'));
 const MyBidsPage = lazy(() => import('./pages/MyBidsPage'));
 const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
+const BrandReviewsPage = lazy(() => import('./pages/BrandReviewsPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns'));
 const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
@@ -487,6 +488,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['business']}>
                   <BusinessDashboard page="wallet" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/reviews"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandReviewsPage />
                 </ProtectedRoute>
               }
             />

@@ -642,6 +642,27 @@
   gap: 14px;
 }
 
+.deal-revision-meta p {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.deal-revision-meta small {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9f9fd1;
+}
+
+.deal-revision-meta strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
 .deal-revision-checklist {
   margin-top: 14px;
   border: 1px solid rgba(226, 232, 240, 0.9);

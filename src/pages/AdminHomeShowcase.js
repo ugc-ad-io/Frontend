@@ -122,7 +122,7 @@ export default function AdminHomeShowcase() {
                     <select value={isCreator ? it.source : CUSTOM} onChange={(e) => pickName(idx, e.target.value)}>
                       <option value={CUSTOM}>Custom (type a name)</option>
                       {creators.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}{c.earned ? ` — ₹${Number(c.earned).toLocaleString('en-IN')}` : ''}</option>
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
                     {!isCreator && <input value={it.name} onChange={(e) => setField(idx, 'name', e.target.value)} placeholder="e.g. Priya Sharma" />}

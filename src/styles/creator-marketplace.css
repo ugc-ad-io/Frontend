@@ -1419,6 +1419,23 @@
 .cmk-post-fab:hover{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border-color:transparent;
   box-shadow:0 14px 30px -12px rgba(68,82,240,.6)}
 
+/* ── Mobile top-bar polish (brand + creator) ─────────────────────────────────
+   Tighten the header so the logo, search, actions and hamburger all fit a phone.
+   The "Post a Campaign" full button collapses to just its + icon. */
+@media (max-width:640px){
+  .cmk-nav-inner{gap:10px;height:62px}
+  .cmk-nav-search{min-width:0;max-width:none;height:40px;padding:0 12px}
+  .cmk-nav-search input{font-size:14px}
+  .cmk-nav-right{gap:8px}
+  .cmk-nav-post-full{width:44px;padding:0;justify-content:center;flex:none}
+  .cmk-nav-post-full .cmk-btn-label{display:none}
+}
+@media (max-width:420px){
+  /* On the narrowest phones the search would squeeze everything — drop it; the
+     dedicated search page / browse is still reachable from the menu. */
+  .cmk-nav-search{display:none}
+}
+
 /* ── Reviews: stats (2x2) + rating breakdown top row, reviews below ──────── */
 .cmk-rev-top{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px;align-items:stretch;margin-top:24px}
 .cmk-rev-stats-2x2{grid-template-columns:repeat(2,1fr);gap:14px;margin-top:0;align-content:start}

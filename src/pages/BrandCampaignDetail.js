@@ -936,6 +936,16 @@ export default function BrandCampaignDetail() {
         .bcd-deliver svg{color:#15a35b;flex:none;margin-top:2px}
         .bcd-muted{color:#9296ba;font-size:14px;margin:0}
         @media (max-width:980px){.bcd-grid{grid-template-columns:1fr}.bcd-grid2{grid-template-columns:1fr}}
+        @media (max-width:600px){
+          .bcd-top{gap:14px}
+          .bcd-title-wrap{flex:1 1 100%;min-width:0}
+          .bcd-title-wrap h1{font-size:22px;word-break:break-word}
+          .bcd-budget{min-width:0;flex:1 1 auto}
+          .bcd-actions{flex:1 1 100%;gap:8px}
+          .bcd-actions button{flex:1;justify-content:center}
+          .bcd-tabs{gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+          .bcd-revcard-foot{gap:16px}
+        }
       `}</style>
 
       {dupOpen && (

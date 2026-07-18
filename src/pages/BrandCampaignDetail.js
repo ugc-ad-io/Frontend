@@ -597,13 +597,13 @@ export default function BrandCampaignDetail() {
                 </div>
                 {cp.bio && <p className="bcd-cre-bio">{cp.bio}</p>}
                 <div className="bcd-cre-actions">
-                  <button className="bcd-cta" onClick={() => creator.id && navigate(`/dashboard/business/creator/${creator.id}`)}><User size={15} /> View Creator Profile</button>
-                  <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat with Creator</button>
+                  <button className="bcd-cta" onClick={() => creator.id && navigate(`/dashboard/business/creator/${creator.id}`)}><User size={14} /> View Profile</button>
+                  <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={14} /> Chat</button>
                   {/* Review CTA lives here too so it's reachable even when the deal
                       completed via a dispute (no work-submission card to hang it on). */}
                   {dealCompleted && (myReview
-                    ? <span className="bcd-reviewed"><Star size={15} fill="#f5b301" color="#f5b301" /> You rated {myReview.rating}★</span>
-                    : <button className="bcd-cta" onClick={() => setReviewOpen(true)}><Star size={15} /> Add a review</button>
+                    ? <span className="bcd-reviewed"><Star size={14} fill="#f5b301" color="#f5b301" /> Rated {myReview.rating}★</span>
+                    : <button className="bcd-cta" onClick={() => setReviewOpen(true)}><Star size={14} /> Review</button>
                   )}
                 </div>
               </>
@@ -833,10 +833,10 @@ export default function BrandCampaignDetail() {
         .bcd-work-tile video,.bcd-work-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
         .bcd-work-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-items:center;color:#5b6bff;pointer-events:none}
         .bcd-reviewed,.bwr-reviewed{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#15803d;padding:6px 2px}
-        .bcd-cre-actions{display:flex;gap:10px;margin-top:18px}
-        .bcd-cre-actions .bcd-cta{margin-top:0}
+        .bcd-cre-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:nowrap}
+        .bcd-cre-actions .bcd-cta{margin-top:0;flex:1 1 0;min-width:0;width:auto;padding:8px 10px;font-size:12.5px;gap:6px}
         @media (max-width:520px){.bcd-kv-row{grid-template-columns:1fr 1fr}.bcd-cre-actions{flex-direction:column}}
-        .bcd-cta{width:100%;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #e9ebf4;background:#fff;color:#5b6bff;border-radius:12px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
+        .bcd-cta{width:100%;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #e9ebf4;background:#fff;color:#5b6bff;border-radius:12px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
         .bcd-cta:hover{border-color:#cdd2f3}
         .bcd-cta.primary{background:#07074e;border-color:#07074e;color:#fff}
         .bcd-cta.primary:hover{background:linear-gradient(100deg,#2e2e94,#1e1e70);border-color:#2e2e94}

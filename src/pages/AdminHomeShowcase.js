@@ -9,6 +9,14 @@ import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const CUSTOM = '__custom__';
+// Level codes ("l1"/"new") → display labels ("L1"/"New").
+const prettyLevel = (v) => {
+  const s = String(v || '').trim();
+  const m = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
+  if (m[s.toLowerCase()]) return m[s.toLowerCase()];
+  if (/^l\d+$/i.test(s)) return s.toUpperCase();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+};
 // Category options (labels) for the Category dropdown; the list already ends in
 // a 'Custom' entry, which we render as our own CUSTOM sentinel.
 const CATEGORIES = CONTENT_CATEGORIES.filter((c) => c.value !== 'custom').map((c) => c.label);
@@ -57,7 +65,7 @@ export default function AdminHomeShowcase() {
       earned: c.earned || '',
       deals: c.deals || '',
       rating: c.rating || '',
-      level: c.level || '',
+      level: prettyLevel(c.level),
       videos: Array.isArray(c.videos) ? c.videos : (c.video_url ? [c.video_url] : []),
       video_url: c.video_url || (Array.isArray(c.videos) && c.videos[0]) || '',
     } : it)));

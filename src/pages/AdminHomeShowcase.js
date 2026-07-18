@@ -2,40 +2,31 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Star, Plus, Trash2, Save, Database } from 'lucide-react';
+import { Star, Plus, Trash2, Save } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
-const BLANK = { name: '', category: '', earned: '', deals: '', rating: '', level: '', video_url: '' };
+// `source: creator_id` marks a card auto-filled from a real creator; '' / 'custom'
+// means the admin typed it by hand.
+const BLANK = { source: '', name: '', category: '', earned: '', deals: '', rating: '', level: '', video_url: '' };
 
 export default function AdminHomeShowcase() {
   const [items, setItems] = useState([]);
+  const [creators, setCreators] = useState([]);   // real creators for the per-card picker
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [pulling, setPulling] = useState(false);
-
-  // Seed the editor from the REAL top-earning creators (released payouts).
-  // Replaces the current rows; admin can then edit and Save.
-  const pullFromData = async () => {
-    if (items.some((it) => String(it.name || '').trim()) &&
-        !window.confirm('Replace the current cards with your top earners from live data?')) return;
-    setPulling(true);
-    try {
-      const r = await axios.get(`${API}/admin/top-earners/suggest?limit=3`);
-      const suggested = Array.isArray(r.data?.items) ? r.data.items : [];
-      if (!suggested.length) { toast.message('No paid earnings yet', { description: 'No creator has a released payout to rank. Add cards manually for now.' }); return; }
-      setItems(suggested.map((i) => ({ ...BLANK, ...i })));
-      toast.success(`Pulled ${suggested.length} top earner${suggested.length === 1 ? '' : 's'} — review and Save.`);
-    } catch (e) {
-      toast.error(apiErrorMessage(e, 'Could not pull from data'));
-    } finally { setPulling(false); }
-  };
 
   useEffect(() => {
-    axios.get(`${API}/admin/top-earners`)
-      .then((r) => setItems(Array.isArray(r.data?.items) ? r.data.items.map((i) => ({ ...BLANK, ...i })) : []))
+    Promise.all([
+      axios.get(`${API}/admin/top-earners`),
+      axios.get(`${API}/admin/top-earners/creators`).catch(() => ({ data: { items: [] } })),
+    ])
+      .then(([saved, cr]) => {
+        setItems(Array.isArray(saved.data?.items) ? saved.data.items.map((i) => ({ ...BLANK, source: 'custom', ...i })) : []);
+        setCreators(Array.isArray(cr.data?.items) ? cr.data.items : []);
+      })
       .catch((e) => toast.error(apiErrorMessage(e, 'Could not load the showcase')))
       .finally(() => setLoading(false));
   }, []);
@@ -43,6 +34,28 @@ export default function AdminHomeShowcase() {
   const setField = (idx, key, val) => setItems((cur) => cur.map((it, i) => (i === idx ? { ...it, [key]: val } : it)));
   const addRow = () => setItems((cur) => [...cur, { ...BLANK }]);
   const removeRow = (idx) => setItems((cur) => cur.filter((_, i) => i !== idx));
+
+  // Picking a creator from the dropdown auto-fills that card from live data;
+  // "custom" leaves the fields for manual entry.
+  const pickCreator = (idx, creatorId) => {
+    if (creatorId === 'custom' || !creatorId) {
+      setField(idx, 'source', 'custom');
+      return;
+    }
+    const c = creators.find((x) => String(x.id) === String(creatorId));
+    if (!c) return;
+    setItems((cur) => cur.map((it, i) => (i === idx ? {
+      ...BLANK,
+      source: String(c.id),
+      name: c.name || '',
+      category: c.category || '',
+      earned: c.earned || '',
+      deals: c.deals || '',
+      rating: c.rating || '',
+      level: c.level || '',
+      video_url: c.video_url || '',
+    } : it)));
+  };
 
   const save = async () => {
     // Every card needs at least a name.
@@ -76,7 +89,6 @@ export default function AdminHomeShowcase() {
             <p>These cards rotate in the creator home hero. Leave the list empty to fall back to the built-in defaults.</p>
           </div>
           <div className="ahs-head-actions">
-            <button type="button" className="ahs-add" onClick={pullFromData} disabled={pulling}><Database size={15} /> {pulling ? 'Pulling…' : 'Pull top earners'}</button>
             <button type="button" className="ahs-add" onClick={addRow}><Plus size={15} /> Add card</button>
             <button type="button" className="ahs-save" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
           </div>
@@ -90,6 +102,21 @@ export default function AdminHomeShowcase() {
           <div className="ahs-list">
             {items.map((it, idx) => (
               <div className="ahs-card" key={idx}>
+                <div className="ahs-pick">
+                  <label>Fill from
+                    <select value={it.source || 'custom'} onChange={(e) => pickCreator(idx, e.target.value)}>
+                      <option value="custom">Custom (type manually)</option>
+                      {creators.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}{c.earned ? ` — ₹${Number(c.earned).toLocaleString('en-IN')}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <span className="ahs-pick-hint">
+                    {it.source && it.source !== 'custom' ? 'Auto-filled from this creator — edit any field below.' : 'Or pick a creator to auto-fill from live data.'}
+                  </span>
+                </div>
                 <div className="ahs-grid">
                   <label>Name<input value={it.name} onChange={(e) => setField(idx, 'name', e.target.value)} placeholder="e.g. Priya Sharma" /></label>
                   <label>Category<input value={it.category} onChange={(e) => setField(idx, 'category', e.target.value)} placeholder="Fashion" /></label>
@@ -119,6 +146,11 @@ export default function AdminHomeShowcase() {
         .ahs-empty{background:#fff;border:1.5px solid #eef2f9;border-radius:14px;padding:40px;text-align:center;color:#8a90a6}
         .ahs-list{display:flex;flex-direction:column;gap:12px}
         .ahs-card{position:relative;background:#fff;border:1.5px solid #eef2f9;border-radius:14px;padding:16px 18px}
+        .ahs-pick{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed #eef0f6}
+        .ahs-pick label{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#8a90a6}
+        .ahs-pick select{text-transform:none;letter-spacing:normal;font:inherit;font-size:13.5px;font-weight:500;color:#15163a;border:1px solid #dfe2ee;border-radius:9px;padding:8px 11px;background:#fff;cursor:pointer;min-width:220px;max-width:340px}
+        .ahs-pick select:focus{outline:none;border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.15)}
+        .ahs-pick-hint{font-size:12px;color:#9296b5}
         .ahs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
         .ahs-grid label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#8a90a6}
         .ahs-grid label.ahs-wide{grid-column:1 / -1}

@@ -19,6 +19,7 @@ function AdminLayout({ children }) {
     '/dashboard/admin/shipping':      'shipping',
     '/dashboard/admin/users':         'users',
     '/dashboard/admin/kyc':           'kyc',
+    '/dashboard/admin/home-showcase': 'showcase',
     '/dashboard/admin/gst':           'gst',
     '/dashboard/admin/financials':    'financials',
     '/dashboard/admin/chat-oversight':'chat',

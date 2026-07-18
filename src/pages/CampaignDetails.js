@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { firstName } from '../utils/displayName';
 import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
@@ -144,7 +145,7 @@ export default function CampaignDetails({ embedId, onClose }) {
     try {
       const response = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${creatorId}`);
       const held = Number(response.data?.amount) || 0;
-      toast.success(`🎉 ${response.data.creator_nickname} selected! Payment of ₹${held.toLocaleString('en-IN')} held in escrow. Opening chat...`);
+      toast.success(`🎉 ${firstName({ nickname: response.data.creator_nickname }, 'Creator')} selected! Payment of ₹${held.toLocaleString('en-IN')} held in escrow. Opening chat...`);
 
       // Wait a moment for the toast to be visible
       await new Promise(resolve => setTimeout(resolve, 1500));

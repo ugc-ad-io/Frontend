@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
+import { firstName } from '../utils/displayName';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -853,7 +854,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${creatorId}`);
       const charged = Number(res.data?.amount_charged) || 0;
       toast.success(
-        `🎉 ${res.data?.creator_nickname || 'Creator'} selected! ${charged ? `${formatMoney(charged)} held in escrow.` : 'Payment held in escrow.'}`
+        `🎉 ${firstName({ nickname: res.data?.creator_nickname }, 'Creator')} selected! ${charged ? `${formatMoney(charged)} held in escrow.` : 'Payment held in escrow.'}`
       );
       fetchCampaigns();
       fetchWallet();

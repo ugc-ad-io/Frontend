@@ -13,7 +13,6 @@ import {
   Save,
   LayoutDashboard,
   Zap,
-  Bookmark,
   Star,
   Briefcase,
   FileCheck,
@@ -802,7 +801,6 @@ export default function ProfileSettings() {
     : [
       { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
       { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-      { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
       { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
       { name: 'Browse Campaigns', icon: Briefcase, action: () => navigate('/browse-briefs') },

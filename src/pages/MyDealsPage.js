@@ -796,7 +796,7 @@ export default function MyDealsPage() {
       <input ref={evidenceInputRef} type="file" hidden multiple accept="image/*,video/*,.pdf" onChange={handleEvidenceUpload} />
       <div className="cmk-dr">
         <div className="cmk-dr-back">
-          <button type="button" onClick={() => navigate('/my-active-work')}><ArrowLeft size={16} /> Back to My Deals</button>
+          <button type="button" onClick={() => navigate('/my-deals')}><ArrowLeft size={16} /> Back to My Deals</button>
           {deals.length > 1 && (
             <select value={String(getDealId(selectedDeal))} onChange={(e) => setSelectedDeal(deals.find((d) => String(getDealId(d)) === e.target.value) || selectedDeal)}>
               {deals.map((d) => <option key={getDealId(d)} value={String(getDealId(d))}>{getDealTitle(d)}</option>)}

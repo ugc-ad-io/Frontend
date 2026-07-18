@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ChevronLeft, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ChevronLeft, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import { displayName, creatorFirstName } from '../utils/displayName';
 import DashboardLayout from '../components/DashboardLayout';
@@ -224,7 +224,6 @@ export default function MessagesPage() {
     : [
       { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
       { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-      { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
       { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
       { name: 'Browse Campaigns', icon: Briefcase, action: () => navigate('/browse-briefs') },

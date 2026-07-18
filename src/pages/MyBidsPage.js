@@ -47,6 +47,21 @@ const TABS = [
 ];
 
 export default function MyBidsPage() {
+  return (
+    <CreatorTopNavLayout notifications={0}>
+      <div className="cmk-page-head">
+        <h1>My Bids</h1>
+        <p>Track all your submitted proposals.</p>
+      </div>
+      <MyBidsContent />
+    </CreatorTopNavLayout>
+  );
+}
+
+// The tabs + table + detail drawer, without the page shell — so the "My Deals"
+// hub can render it as its "My Bids" tab and the standalone /my-bids route can
+// wrap it with the top-nav layout and its own heading.
+export function MyBidsContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bids, setBids] = useState([]);
@@ -99,12 +114,7 @@ export default function MyBidsPage() {
   }, [bids, tab]);
 
   return (
-    <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head">
-        <h1>My Bids</h1>
-        <p>Track all your submitted proposals.</p>
-      </div>
-
+    <>
       <div className="cmk-tabs-row">
         <div className="cmk-tabs">
           {TABS.map((t) => (
@@ -259,6 +269,6 @@ export default function MyBidsPage() {
           </div>
         );
       })()}
-    </CreatorTopNavLayout>
+    </>
   );
 }

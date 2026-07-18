@@ -19,7 +19,7 @@ const PRIMARY_LINKS = [
   { name: 'Active Work', to: '/my-active-work', icon: Zap },
   { name: 'Browse Campaigns', to: '/browse-briefs', icon: Compass },
   { name: 'Saved', to: '/saved', icon: Bookmark },
-  { name: 'My Bids', to: '/my-bids', icon: FileText },
+  { name: 'My Deals', to: '/my-deals', icon: FileText },
   { name: 'Messages', to: '/messages', dot: true, icon: MessageSquare }
 ];
 
@@ -41,7 +41,7 @@ const MENU_LINKS = [
 export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,9 +64,12 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const isActive = (to) => pathname === to || pathname.startsWith(`${to}/`);
 
   // Pages that own the bottom-right corner with their own chat launcher — the
-  // global FAB would land on top of it.
-  const OWN_CHAT_PATHS = ['/messages', '/my-deals'];
-  const hideMsgFab = OWN_CHAT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // global FAB would land on top of it. `/my-deals` is the hub (a list, no chat)
+  // UNLESS it's opened as the Deal Room detail (?campaign / ?deal), which renders
+  // its own deal-scoped chat FAB there.
+  const dealParams = new URLSearchParams(search);
+  const isDealRoom = pathname === '/my-deals' && (dealParams.get('campaign') || dealParams.get('deal'));
+  const hideMsgFab = pathname === '/messages' || pathname.startsWith('/messages/') || isDealRoom;
 
   const handleLogout = () => { logout(); navigate('/'); };
 

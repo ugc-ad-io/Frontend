@@ -142,7 +142,10 @@ function isDamageState(dealOrState) {
 }
 
 function getBrandHandle(deal) {
-  return deal?.brand?.handle || deal?.campaign?.brand_handle || deal?.campaign?.business_nickname || 'Brand';
+  // Company name from the form — never the "@nickname" handle. Strip any "@".
+  const raw = deal?.brand?.name || deal?.campaign?.brand_name || deal?.campaign?.business_name
+    || deal?.brand?.handle || deal?.campaign?.brand_handle || deal?.campaign?.business_nickname || '';
+  return String(raw).replace(/^@+/, '').trim() || 'Brand';
 }
 
 function getDealTitle(deal) {
@@ -248,8 +251,16 @@ function canSubmitUploadedAssets(deal, uploads) {
   return Boolean(deal?.can_submit_content);
 }
 
+function isCancelledDeal(deal) {
+  const status = stateKey(deal?.status || deal?.campaign_status || deal?.campaign?.status || '');
+  return status === 'cancelled' || isState(deal, 'Cancelled');
+}
+
 function getPrimaryActionConfig(deal, uploads, submitting) {
   if (!deal) return { label: 'No deal selected', disabled: true, type: 'none' };
+  // A deal cancelled by the brand is terminal — never offer "Submit Content" (or any
+  // active action) on it, even if a stale response still reports a content-stage state.
+  if (isCancelledDeal(deal)) return { label: 'Deal Cancelled', disabled: true, type: 'passive' };
   if (isDamageState(deal)) return { label: 'Add Evidence', disabled: false, type: 'add_evidence' };
   if (isState(deal, 'Paid - Complete')) return { label: 'Archive Deal', disabled: false, type: 'archive' };
   if (isState(deal, 'Delivered - Awaiting Receipt Confirmation')) {
@@ -281,6 +292,16 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
       }
       return { label: 'Confirm Delivery Address', disabled: false, type: 'ship_address' };
     }
+  }
+  // The product is on its way to (or back from) the creator and the backend's next
+  // action is "Track shipment". As a passive button it was dead — make it live and open
+  // the courier's tracking page. Only enable it once the brand has attached a tracking URL.
+  if (stateKey(deal.primary_next_action || '').includes('track')) {
+    return {
+      label: deal.primary_next_action || 'Track shipment',
+      disabled: !deal?.shipment?.courier_tracking_url,
+      type: 'track_shipment'
+    };
   }
   return {
     label: deal.primary_next_action || 'Waiting',
@@ -611,6 +632,12 @@ export default function MyDealsPage() {
     // because the card already sits just below the button — it read as a dead click.
     if (primaryAction.type === 'ship_address') {
       shipAddressRef.current?.open();
+      return;
+    }
+    // Open the courier's tracking page in a new tab.
+    if (primaryAction.type === 'track_shipment') {
+      const url = selectedDeal?.shipment?.courier_tracking_url;
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
     return null;
@@ -1208,7 +1235,9 @@ function ContentSubmission({
   const currentState = deal?.current_state || '';
   const latestVersion = versions.length ? versions[versions.length - 1] : null;
   let lockReason;
-  if (awaitingReceipt) {
+  if (isCancelledDeal(deal)) {
+    lockReason = 'This deal was cancelled by the brand — no content can be submitted.';
+  } else if (awaitingReceipt) {
     lockReason = 'Confirm you’ve received the product (in Shipping / Receipt above) before uploading your content.';
   } else if (currentState.includes('Awaiting Review') || latestVersion?.status === 'submitted') {
     lockReason = `You’ve submitted${latestVersion ? ` v${latestVersion.version}` : ''} — waiting for the brand to review your content.`;

@@ -1,5 +1,22 @@
 import { useState } from 'react';
-import { X, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { X, Plus, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+
+/**
+ * Keep the deal on-platform: brands must not pass the creator phone numbers or
+ * email addresses through a revision request. Returns 'email' | 'phone' | null.
+ * Mirrors the server-side guard in request_deal_revision (server.py).
+ */
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+const PHONE_RE = /\+?\d[\d\s().-]{5,}\d/g;
+export function findContactInfo(text) {
+  const s = String(text || '');
+  if (EMAIL_RE.test(s)) return 'email';
+  const matches = s.match(PHONE_RE) || [];
+  for (const m of matches) {
+    if (m.replace(/\D/g, '').length >= 7) return 'phone';
+  }
+  return null;
+}
 
 /**
  * Structured revision-request form (PRD 8.5). Brand adds 1–5 items, each with a
@@ -9,23 +26,30 @@ import { X, Plus, Trash2, RefreshCw } from 'lucide-react';
 export default function RevisionRequestModal({ onClose, onSubmit, submitting = false, freeRemaining, nextFee }) {
   const [items, setItems] = useState([{ description: '', severity: 'must-fix', brief_reference: '' }]);
   const [notes, setNotes] = useState('');
-  const [timeline, setTimeline] = useState('48h');   // '48h' | 'custom'
-  const [customAt, setCustomAt] = useState('');
+  const [timeline, setTimeline] = useState('48h');   // '24h' | '48h'
 
   const setItem = (i, patch) => setItems((arr) => arr.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
   const addItem = () => setItems((arr) => (arr.length >= 5 ? arr : [...arr, { description: '', severity: 'must-fix', brief_reference: '' }]));
   const removeItem = (i) => setItems((arr) => (arr.length <= 1 ? arr : arr.filter((_, idx) => idx !== i)));
 
+  // Scan every free-text field the brand can type into for phone/email.
+  const contactHit = (() => {
+    for (const it of items) {
+      if (findContactInfo(it.description) || findContactInfo(it.brief_reference)) return true;
+    }
+    return !!findContactInfo(notes);
+  })();
+
   const submit = () => {
     const clean = items.map((it) => ({ ...it, description: it.description.trim() })).filter((it) => it.description);
     if (!clean.length) return;
-    let deadline_at = null;
-    if (timeline === '48h') deadline_at = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
-    else if (customAt) deadline_at = new Date(customAt).toISOString();
+    if (contactHit) return; // hard block — server rejects it too
+    const hours = timeline === '24h' ? 24 : 48;
+    const deadline_at = new Date(Date.now() + hours * 3600 * 1000).toISOString();
     onSubmit({ items: clean, notes: notes.trim().slice(0, 500), deadline_at });
   };
 
-  const canSubmit = items.some((it) => it.description.trim()) && (timeline === '48h' || customAt);
+  const canSubmit = items.some((it) => it.description.trim()) && !contactHit;
 
   return (
     <div className="rrm-ov" onClick={onClose}>
@@ -44,6 +68,12 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
         )}
         {typeof freeRemaining === 'number' && freeRemaining > 0 && (
           <div className="rrm-free">{freeRemaining} free revision{freeRemaining > 1 ? 's' : ''} remaining.</div>
+        )}
+        {contactHit && (
+          <div className="rrm-warn">
+            <AlertTriangle size={15} />
+            <span>Please remove phone numbers and email addresses. Keep all communication on-platform — sharing contact details isn't allowed.</span>
+          </div>
         )}
 
         <div className="rrm-body">
@@ -89,11 +119,8 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
 
           <label className="rrm-label">Timeline for revision</label>
           <div className="rrm-time">
+            <button type="button" className={timeline === '24h' ? 'on' : ''} onClick={() => setTimeline('24h')}>24 hours from now</button>
             <button type="button" className={timeline === '48h' ? 'on' : ''} onClick={() => setTimeline('48h')}>48 hours from now</button>
-            <button type="button" className={timeline === 'custom' ? 'on' : ''} onClick={() => setTimeline('custom')}>Pick a time</button>
-            {timeline === 'custom' && (
-              <input type="datetime-local" value={customAt} onChange={(e) => setCustomAt(e.target.value)} />
-            )}
           </div>
         </div>
 
@@ -114,6 +141,10 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           .rrm-head p{margin:2px 0 0;color:#9296ba;font-size:13px}
           .rrm-fee{margin:14px 24px 0;padding:10px 14px;background:#fff3e6;border:1px solid #ffd9a8;color:#9a5b00;border-radius:10px;font-size:13px;font-weight:600}
           .rrm-free{margin:14px 24px 0;padding:10px 14px;background:#eafaf0;border:1px solid #b6e6c7;color:#15a35b;border-radius:10px;font-size:13px;font-weight:600}
+          .rrm-warn{display:flex;gap:9px;align-items:flex-start;margin:14px 24px 0;padding:10px 14px;background:#fdecec;border:1px solid #f5c2c2;color:#c0393e;border-radius:10px;font-size:13px;font-weight:600;line-height:1.35}
+          .rrm-warn svg{flex:none;margin-top:1px}
+          .rrm-warn{display:flex;gap:8px;align-items:flex-start;margin:14px 24px 0;padding:10px 14px;background:#fdecec;border:1px solid #f6c3c3;color:#c0392b;border-radius:10px;font-size:12.5px;font-weight:600;line-height:1.4}
+          .rrm-warn svg{flex:none;margin-top:1px}
           .rrm-body{padding:18px 24px;max-height:60vh;overflow:auto}
           .rrm-label{display:block;font-size:12px;font-weight:800;color:#15163a;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 8px}
           .rrm-label span{color:#9296ba;font-weight:600;text-transform:none;letter-spacing:0}

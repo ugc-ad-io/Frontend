@@ -141,8 +141,6 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           .rrm-head p{margin:2px 0 0;color:#9296ba;font-size:13px}
           .rrm-fee{margin:14px 24px 0;padding:10px 14px;background:#fff3e6;border:1px solid #ffd9a8;color:#9a5b00;border-radius:10px;font-size:13px;font-weight:600}
           .rrm-free{margin:14px 24px 0;padding:10px 14px;background:#eafaf0;border:1px solid #b6e6c7;color:#15a35b;border-radius:10px;font-size:13px;font-weight:600}
-          .rrm-warn{display:flex;gap:9px;align-items:flex-start;margin:14px 24px 0;padding:10px 14px;background:#fdecec;border:1px solid #f5c2c2;color:#c0393e;border-radius:10px;font-size:13px;font-weight:600;line-height:1.35}
-          .rrm-warn svg{flex:none;margin-top:1px}
           .rrm-warn{display:flex;gap:8px;align-items:flex-start;margin:14px 24px 0;padding:10px 14px;background:#fdecec;border:1px solid #f6c3c3;color:#c0392b;border-radius:10px;font-size:12.5px;font-weight:600;line-height:1.4}
           .rrm-warn svg{flex:none;margin-top:1px}
           .rrm-body{padding:18px 24px;max-height:60vh;overflow:auto}

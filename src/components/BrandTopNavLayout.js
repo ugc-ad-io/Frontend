@@ -225,17 +225,21 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         </div>
         {mobileOpen && (
           <div className="cmk-mobile-menu">
+            {/* These carry an `icon` just like the other two groups, but the mobile
+                menu was rendering the bare name — so the top four entries sat
+                icon-less and misaligned against everything below them. */}
             {PRIMARY_LINKS.map((link) => (
               <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
-                {link.name}
+                <link.icon size={18} /> {link.name}
               </button>
             ))}
             <div className="cmk-sep" />
             {MENU_LINKS.filter((i) => !i.sep).map((item) => (
-              <button key={item.name} type="button" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
+              <button key={item.name} type="button" className={isActive(item.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(item.to); }}>
                 <item.icon size={18} /> {item.name}
               </button>
             ))}
+            <div className="cmk-sep" />
             {ACCOUNT_LINKS.map((item) => (
               <button
                 key={item.name}

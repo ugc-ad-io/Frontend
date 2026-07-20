@@ -949,10 +949,21 @@
 /* ── Brand Work Review ───────────────────────────────────────────────────── */
 .wr-tabs-row{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);margin:16px 0 22px;flex-wrap:wrap}
 .wr-tabs{display:flex;gap:26px}
-.wr-tabs button{background:none;border:none;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink-2);padding:0 0 14px;position:relative}
+/* Each tab stays on ONE line. Without these, a narrow screen shrank the flex items
+   and broke labels across lines ("All / Campaigns / (4)"); now the strip scrolls
+   sideways instead of stacking. */
+.wr-tabs button{background:none;border:none;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink-2);padding:0 0 14px;position:relative;white-space:nowrap;flex:none}
 .wr-tabs button em{font-style:normal;color:var(--muted)}
 .wr-tabs button.is-active,.wr-tabs button.is-active em{color:var(--indigo)}
 .wr-tabs button.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,var(--indigo),var(--violet))}
+/* Phone: the five tabs can't all fit, so scroll them horizontally on one line. */
+@media (max-width:620px){
+  .wr-tabs{gap:18px;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .wr-tabs::-webkit-scrollbar{display:none}
+  .wr-tabs button{font-size:14px;padding-bottom:12px}
+  /* overflow-x:auto also clips overflow-y, which would eat a -1px underline. */
+  .wr-tabs button.is-active::after{bottom:0}
+}
 .wr-filter{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border:1px solid var(--line);background:#fff;border-radius:12px;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer;font-family:inherit;margin-bottom:8px}
 .wr-list{display:flex;flex-direction:column;gap:14px;max-width:1120px}
 .wr-row{display:grid;grid-template-columns:130px minmax(0,1fr) minmax(0,180px) 160px 46px;gap:18px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow-soft);transition:.18s}
@@ -1308,6 +1319,10 @@
   .cmk-mobile-menu button:hover{background:var(--bg)}
   .cmk-mobile-menu button.is-active{color:var(--indigo)}
   .cmk-mobile-menu button svg{color:var(--muted)}
+  .cmk-mobile-menu button.is-active svg{color:var(--indigo)}
+  /* The divider was only styled under .cmk-menu (the desktop avatar dropdown), so
+     inside the mobile sheet it rendered as a zero-height, invisible element. */
+  .cmk-mobile-menu .cmk-sep{height:1px;background:var(--line);margin:8px 4px}
 }
 
 @media (max-width:760px){

@@ -1110,8 +1110,10 @@ export default function Landing() {
   // would still animate during the exact scroll window the deck assembles, stealing frames
   // and stuttering Q2/Q3 as they rise.
   const card2Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.04, 0.33], heroStatic ? [0, 0] : [0, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card3Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.36, 0.65], heroStatic ? [0, 0] : [35, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card1Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.68, 0.99], heroStatic ? [0, 0] : [-35, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card3Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.36, 0.65], heroStatic ? [0, 0] : [-18, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card1Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.68, 0.99], heroStatic ? [0, 0] : [-36, -800], { ease: easeInOut }), PEEL_SPRING);
+  const auditQ2Scale = useTransform(auditProgress, [0.04, 0.33], [0.96, 1], { ease: easeInOut });
+  const auditQ3Scale = useTransform(auditProgress, [0.36, 0.65], [0.92, 1], { ease: easeInOut });
   // Mobile assemble — bound DIRECTLY to scroll (NO spring). On a phone the soft PEEL_SPRING
   // made the cards trail the finger and keep drifting/settling after the scroll stopped; that
   // overshoot + trailing is what read as "lag", and the spring also runs an extra rAF loop on
@@ -1124,8 +1126,8 @@ export default function Landing() {
   // Peel spans the FULL runway (last card finishes at ~0.99, right as the section unpins) so a card
   // is always moving — no dead stretch where you scroll but nothing happens before the next section.
   const mAuditQ1Y = useTransform(auditProgress, [0.05, 0.36], [0, -760], { ease: easeInOut });
-  const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [0, -760], { ease: easeInOut });
-  const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [0, -760], { ease: easeInOut });
+  const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [-14, -760], { ease: easeInOut });
+  const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [-28, -760], { ease: easeInOut });
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -1627,19 +1629,13 @@ export default function Landing() {
             </motion.div>
           )}
 
-          {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
-          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity, y: boardRiseYUsed }}>
-            <div className="lp-logo3d__boardTrack">
-              {TOP_CREATORS.map((c, i) => (
-                <LeaderboardRow
-                  key={c}
-                  progress={logo3dProgress}
-                  index={i}
-                  count={TOP_CREATORS.length}
-                />
-              ))}
-            </div>
-          </motion.div>
+          {/* Values cube — interactive 3D cube + heading list (replaced the old
+              scroll-scrubbed tagline leaderboard). Stays stable/interactive while
+              the section is pinned; the section's scroll length still drives the
+              hero-logo fly-in + brand-strip rise (both keyed off scroll, not this). */}
+          <div className="lp-logo3d__values">
+            <ValuesCube />
+          </div>
         </div>
       </section>
       </div>{/* /lp-journey */}
@@ -2039,28 +2035,23 @@ export default function Landing() {
 
           <div className="lp-audit__grid">
             {auditQuestions.map((q, i) => {
-              // Peel order: Q1 (front) first, Q2 (right) second, Q3 (back-left) last.
-              // Q3 peels quickly and finishes at the section release so the page scrolls
-              // to the next section the instant the last card goes up.
+              // Centered scroll deck: the front card peels upward to reveal the next.
               const positions = [
-                { x:   0, rotate:  -4, z: 3, y: card2Y },  // Q1 — front, peels first
-                { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
-                { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
+                { x: 0, rotate: 0, z: 3, y: card2Y, scale: 1 },
+                { x: 0, rotate: 0, z: 2, y: card3Y, scale: auditQ2Scale },
+                { x: 0, rotate: 0, z: 1, y: card1Y, scale: auditQ3Scale },
               ];
-              // Mobile: a tighter fan, all three present together from the start, then PEELED UP
-              // by scroll (same as desktop). Q1 is frontmost and peels first, revealing Q2, then
-              // Q3 last — so the deck visibly empties upward as you scroll.
               const mobilePositions = [
-                { x:   0, rotate:  -4, z: 3, y: mAuditQ1Y },  // Q1 — front & centre, peels first
-                { x:  50, rotate:  11, z: 2, y: mAuditQ2Y },  // Q2 — right, peels second
-                { x: -50, rotate: -18, z: 1, y: mAuditQ3Y },  // Q3 — back-left, peels last
+                { x: 0, rotate: 0, z: 3, y: mAuditQ1Y, scale: 1 },
+                { x: 0, rotate: 0, z: 2, y: mAuditQ2Y, scale: auditQ2Scale },
+                { x: 0, rotate: 0, z: 1, y: mAuditQ3Y, scale: auditQ3Scale },
               ];
               const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
               return (
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
+                  style={{ x: p.x, y: p.y, rotate: p.rotate, scale: p.scale, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -3522,6 +3513,18 @@ export default function Landing() {
           padding-right: 0;
           /* transparent — shows the shared animated page background (.lp-bg-animations) */
           background: transparent;
+        }
+        /* Wrapper that centres the interactive values cube in the pinned viewport. */
+        .lp-logo3d__values {
+          position: relative;
+          z-index: 2;
+          width: 100%;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 clamp(16px, 4vw, 48px);
+          box-sizing: border-box;
         }
         /* small 3D logo pinned to the upper-left */
         .lp-logo3d__stage {

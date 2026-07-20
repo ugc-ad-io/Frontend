@@ -9,6 +9,29 @@ import { X, Send, Wallet, Clock, Star, Target, Download } from 'lucide-react';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
+// Force a real download. The bare `download` attribute is IGNORED cross-origin
+// (uploads are served from the backend host, not the app host), so the browser
+// would just open the file instead. Fetching it as a blob and clicking an object
+// URL makes it download for real; falls back to opening in a tab if CORS blocks.
+const downloadFile = async (url, suggestedName) => {
+  const name = suggestedName || (url.split('/').pop() || 'download').split('?')[0];
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error(String(res.status));
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  } catch {
+    window.open(url, '_blank', 'noopener');
+  }
+};
+
 // Map a niche/tag to a consistent colour class so each category reads distinctly.
 const CAT_MAP = [
   [/beauty|skin|makeup|cosmet/i, 'c-beauty'],
@@ -179,7 +202,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
                 {moodImages.map((src, i) => (
                   <div className="bb-d-moodit" key={`${src}-${i}`}>
                     <a href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Mood board ${i + 1}`} /></a>
-                    <a href={src} download target="_blank" rel="noreferrer" className="bb-d-dl" aria-label="Download image"><Download size={13} /></a>
+                    <button type="button" className="bb-d-dl" aria-label="Download image" title="Download image" onClick={() => downloadFile(src, `moodboard-${i + 1}.jpg`)}><Download size={13} /></button>
                   </div>
                 ))}
               </div>
@@ -191,9 +214,23 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
               <h4>Reference videos</h4>
               <div className="bb-d-refvid">
                 {refVideos.map(({ hosted, url }, i) => (
-                  hosted
-                    ? <video key={`${url}-${i}`} src={url} controls preload="metadata" playsInline />
-                    : <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="bb-d-reflink">{url}</a>
+                  hosted ? (
+                    <div className="bb-d-refvidit" key={`${url}-${i}`}>
+                      <video src={url} controls preload="metadata" playsInline />
+                      <button
+                        type="button"
+                        className="bb-d-dl bb-d-dl--vid"
+                        aria-label="Download video"
+                        title="Download video"
+                        onClick={() => downloadFile(url, `reference-${i + 1}.mp4`)}
+                      >
+                        <Download size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    // External links (YouTube/Drive) can't be embedded or downloaded — open them out.
+                    <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="bb-d-reflink">{url}</a>
+                  )
                 ))}
               </div>
             </div>
@@ -246,10 +283,12 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
         .bb-d-mood{display:flex;flex-wrap:wrap;gap:9px}
         .bb-d-moodit{position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;background:#f1f3fa;border:1px solid #e9ebf4}
         .bb-d-moodit img{width:100%;height:100%;object-fit:cover;display:block}
-        .bb-d-dl{position:absolute;bottom:5px;right:5px;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:rgba(21,22,58,.72);color:#fff}
+        .bb-d-dl{position:absolute;bottom:5px;right:5px;width:24px;height:24px;border:0;padding:0;cursor:pointer;border-radius:8px;display:grid;place-items:center;background:rgba(21,22,58,.72);color:#fff}
         .bb-d-dl:hover{background:#5b6bff}
         .bb-d-refvid{display:flex;flex-direction:column;gap:10px}
+        .bb-d-refvidit{position:relative}
         .bb-d-refvid video{width:100%;max-height:280px;border-radius:12px;background:#000;display:block}
+        .bb-d-dl--vid{top:8px;right:8px;bottom:auto;width:28px;height:28px}
         .bb-d-reflink{display:block;padding:10px 12px;border-radius:10px;background:#f6f7fc;border:1px solid #e9ebf4;color:#5b6bff;font-size:13px;word-break:break-all}
         .bb-d-reflink:hover{background:#eef0ff}
         .bb-d-brief{display:flex;flex-direction:column;gap:7px}

@@ -1636,6 +1636,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
           )}
 
           {activeTab === 'sent-briefs' && (() => {
+            // Compact row action (View Deal / Open Chat) — the global .btn-primary is a
+            // full-size CTA, far too chunky sitting inside a list row.
+            const COMPACT_ACTION_BTN = {
+              whiteSpace: 'nowrap', padding: '8px 14px', fontSize: 13,
+              borderRadius: 10, gap: 6, boxShadow: 'none', minWidth: 0,
+            };
             // Color + label for each lifecycle status the backend buckets briefs into.
             const STATUS_META = {
               sent:      { label: 'Sent',      color: '#b45309', bg: '#fffbeb', border: '#fde68a' },

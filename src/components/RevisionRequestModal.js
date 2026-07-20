@@ -24,6 +24,10 @@ export function findContactInfo(text) {
  * onSubmit({ items, notes, deadline_at }) — parent handles the API call.
  */
 export default function RevisionRequestModal({ onClose, onSubmit, submitting = false, freeRemaining, nextFee }) {
+  // `severity` and `brief_reference` are no longer chosen by the brand (the
+  // toggle + reference input were removed) but stay on each item as fixed
+  // defaults so the submitted payload — and the "[must-fix] …" text the creator's
+  // checklist parses — keeps the same shape.
   const [items, setItems] = useState([{ description: '', severity: 'must-fix', brief_reference: '' }]);
   const [notes, setNotes] = useState('');
   const [timeline, setTimeline] = useState('48h');   // '24h' | '48h'
@@ -33,12 +37,7 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
   const removeItem = (i) => setItems((arr) => (arr.length <= 1 ? arr : arr.filter((_, idx) => idx !== i)));
 
   // Scan every free-text field the brand can type into for phone/email.
-  const contactHit = (() => {
-    for (const it of items) {
-      if (findContactInfo(it.description) || findContactInfo(it.brief_reference)) return true;
-    }
-    return !!findContactInfo(notes);
-  })();
+  const contactHit = items.some((it) => findContactInfo(it.description)) || !!findContactInfo(notes);
 
   const submit = () => {
     const clean = items.map((it) => ({ ...it, description: it.description.trim() })).filter((it) => it.description);
@@ -90,18 +89,6 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
                 value={it.description}
                 onChange={(e) => setItem(i, { description: e.target.value })}
               />
-              <div className="rrm-item-row">
-                <div className="rrm-sev">
-                  <button type="button" className={it.severity === 'must-fix' ? 'on' : ''} onClick={() => setItem(i, { severity: 'must-fix' })}>Must-fix</button>
-                  <button type="button" className={it.severity === 'preference' ? 'on' : ''} onClick={() => setItem(i, { severity: 'preference' })}>Preference</button>
-                </div>
-                <input
-                  className="rrm-ref"
-                  placeholder="Brief reference (optional)"
-                  value={it.brief_reference}
-                  onChange={(e) => setItem(i, { brief_reference: e.target.value })}
-                />
-              </div>
             </div>
           ))}
           {items.length < 5 && <button type="button" className="rrm-add" onClick={addItem}><Plus size={15} /> Add another item</button>}
@@ -151,14 +138,10 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           .rrm-item-top strong{font-size:12.5px;color:#585c7e}
           .rrm-del{border:none;background:none;color:#9296ba;cursor:pointer;padding:2px}
           .rrm-del:hover{color:#e5484d}
-          .rrm-item textarea,.rrm-notes,.rrm-ref,.rrm-time input{width:100%;border:1px solid #e6e8f3;border-radius:9px;padding:9px 11px;font-size:13.5px;font-family:inherit;color:#15163a;outline:none;box-sizing:border-box}
-          .rrm-item textarea:focus,.rrm-notes:focus,.rrm-ref:focus{border-color:#5b6bff}
-          .rrm-item-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-          .rrm-sev{display:inline-flex;gap:6px;flex:none}
-          .rrm-sev button,.rrm-time button{border:1px solid #e6e8f3;background:#fff;color:#585c7e;border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
-          .rrm-sev button.on{background:#eef0ff;border-color:#5b6bff;color:#4452f0}
+          .rrm-item textarea,.rrm-notes,.rrm-time input{width:100%;border:1px solid #e6e8f3;border-radius:9px;padding:9px 11px;font-size:13.5px;font-family:inherit;color:#15163a;outline:none;box-sizing:border-box}
+          .rrm-item textarea:focus,.rrm-notes:focus{border-color:#5b6bff}
+          .rrm-time button{border:1px solid #e6e8f3;background:#fff;color:#585c7e;border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
           .rrm-time button.on{background:#eef0ff;border-color:#5b6bff;color:#4452f0}
-          .rrm-ref{flex:1;min-width:160px}
           .rrm-add{display:inline-flex;align-items:center;gap:6px;border:1px dashed #cdd4ff;background:#f6f7ff;color:#5b6bff;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
           .rrm-count{text-align:right;color:#9296ba;font-size:11.5px;margin-top:4px}
           .rrm-time{display:flex;gap:8px;flex-wrap:wrap;align-items:center}

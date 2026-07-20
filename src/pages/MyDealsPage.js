@@ -1525,12 +1525,29 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
   // common case is "I'll do everything"); unticking one signals it's out of scope,
   // to be settled by chatting with the brand.
   const [checked, setChecked] = useState(() => changeItems.map(() => true));
-  const toggle = (idx) => setChecked((c) => c.map((v, i) => (i === idx ? !v : v)));
+
+  // changeItems arrives ASYNCHRONOUSLY (the deal list polls every 10s) and changes
+  // when a different deal is selected — but a useState initializer only runs on the
+  // FIRST mount, so `checked` stayed sized for the previous (usually empty) list.
+  // Re-seed it whenever the actual set of requested changes changes.
+  const changeKey = changeItems.join('|');
+  useEffect(() => {
+    setChecked(changeItems.map(() => true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeKey]);
+
+  // Read through a defaulted view so a stale/short `checked` can never yield
+  // undefined. Passing checked={undefined} made each box UNCONTROLLED: it rendered
+  // ticked while selectedCount counted 0 ("0/3" with every box green) and the
+  // response posted accepted_changes: [] — the brand was told the creator accepted
+  // nothing. Count, tick state and submitted payload now all read from this.
+  const effChecked = changeItems.map((_, i) => checked[i] ?? true);
+  const toggle = (idx) => setChecked(effChecked.map((v, i) => (i === idx ? !v : v)));
   const setAll = (value) => setChecked(changeItems.map(() => value));
 
   const total = changeItems.length;
-  const selectedCount = checked.filter(Boolean).length;
-  const acceptedList = changeItems.filter((_, i) => checked[i]);
+  const selectedCount = effChecked.filter(Boolean).length;
+  const acceptedList = changeItems.filter((_, i) => effChecked[i]);
   const allSelected = total === 0 || selectedCount === total;
 
   return (
@@ -1560,7 +1577,7 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
             {changeItems.map((item, idx) => {
               const isDone = responded
                 ? acceptedAlready.some((a) => String(a).toLowerCase() === item.toLowerCase())
-                : checked[idx];
+                : effChecked[idx];
               return (
                 <li key={`${item}-${idx}`} className={isDone ? 'is-checked' : ''}>
                   <label>

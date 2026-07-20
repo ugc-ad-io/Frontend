@@ -42,6 +42,7 @@ import {
 import { EmptyPanel, formatMoney, getInitial } from '../components/CreatorComponents';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import { openHelpDialog } from '../components/HoverSideRail';
+import ReviewModal from '../components/ReviewModal';
 import ShippingDetailsCard from '../components/ShippingDetailsCard';
 import { Skeleton } from '../components/Skeleton';
 import './CreatorDashboard.css';
@@ -346,6 +347,8 @@ export default function MyDealsPage() {
   const [searchParams] = useSearchParams();
   const [deals, setDeals] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
+  const [brandReviewFor, setBrandReviewFor] = useState(null); // completed deal awaiting a brand rating
+  const reviewPromptedRef = useRef({});                       // campaignId -> already asked this session
   const [loading, setLoading] = useState(true);
   const [briefOpen, setBriefOpen] = useState(false);
   const [fullBrief, setFullBrief] = useState(null);
@@ -385,6 +388,42 @@ export default function MyDealsPage() {
     setBriefOpen(false);
     setFullBrief(null);
   }, [selectedDeal?.deal_id]);
+
+  // Once a deal is paid + complete, ask the creator to rate the brand. Creators could
+  // already review a brand from its profile card in Messages, but were never prompted,
+  // so completed deals went un-reviewed. Asks ONCE per deal: promptedRef stops the
+  // 10s poll from re-opening it, and the /reviews check stops it returning on revisit.
+  useEffect(() => {
+    const campaignId = selectedDeal?.campaign?.id;
+    const businessId = selectedDeal?.campaign?.business_id;
+    if (!isState(selectedDeal, 'Paid - Complete') || !campaignId || !businessId || !user?.id) return;
+    if (reviewPromptedRef.current[campaignId]) return;
+    reviewPromptedRef.current[campaignId] = true;
+
+    let alive = true;
+    axios.get(`${API}/reviews/business/${businessId}`)
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : [];
+        const done = list.some((rv) => rv.campaign_id === campaignId && rv.reviewer_id === user.id);
+        // Only prompt if they haven't already rated this brand for this campaign.
+        if (alive && !done) setBrandReviewFor({ campaignId, businessId });
+      })
+      // Endpoint unavailable → stay silent rather than risk a duplicate-review error.
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [selectedDeal, user?.id]);
+
+  const submitBrandReview = async ({ rating, review }) => {
+    try {
+      await axios.post(`${API}/reviews`, {
+        campaign_id: brandReviewFor.campaignId, business_id: brandReviewFor.businessId, rating, review,
+      });
+      toast.success('Review submitted — thanks for the feedback!');
+      setBrandReviewFor(null);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Could not submit your review'));
+    }
+  };
 
   const fetchDeals = async () => {
     try {
@@ -1085,6 +1124,15 @@ export default function MyDealsPage() {
         {chatOpen ? <X size={22} /> : <MessageSquare size={22} />}
         {!chatOpen && unreadChatCount > 0 && <i className="cmk-dr-fab-badge">{unreadChatCount}</i>}
       </button>
+
+      {brandReviewFor && (
+        <ReviewModal
+          title={`Rate ${brandName}`}
+          subtitle={`How did working on “${getDealTitle(deal)}” go?`}
+          onClose={() => setBrandReviewFor(null)}
+          onSubmit={submitBrandReview}
+        />
+      )}
     </CreatorTopNavLayout>
   );
 }

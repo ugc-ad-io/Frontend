@@ -66,6 +66,7 @@ export default function BrandWorkReview() {
   const [perPage, setPerPage] = useState(10);
   const [videoModal, setVideoModal] = useState(null);
   const [revisionFor, setRevisionFor] = useState(null);
+  const [reviewFor, setReviewFor] = useState(null);   // row awaiting a post-approval rating
   const [trackers, setTrackers] = useState({});   // campaignId -> revision_tracker
   const [revSubmitting, setRevSubmitting] = useState(false);
   const busy = useRef(false);
@@ -335,6 +336,14 @@ export default function BrandWorkReview() {
       )}
 
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
+      {reviewFor && (
+        <ReviewModal
+          title={`Rate ${reviewFor.creator || 'this creator'}`}
+          subtitle={reviewFor.campaign}
+          onClose={() => setReviewFor(null)}
+          onSubmit={submitReview}
+        />
+      )}
       {revisionFor && (
         <RevisionRequestModal
           onClose={() => setRevisionFor(null)}

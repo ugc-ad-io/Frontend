@@ -1108,6 +1108,11 @@
   background:#fdf3e3;border:1px solid #f6e2c0;border-radius:13px;padding:9px 13px}
 .cmk-dr-next small{display:block;font-size:10.5px;color:#b9802e}
 .cmk-dr-next strong{font-size:13px;color:#8a5a13;white-space:nowrap}
+/* Finished deal: green "done" chip instead of the amber "you still owe something"
+   look — a paid + completed deal has no outstanding action. */
+.cmk-dr-next.is-complete{color:#166534;background:#eafaf0;border-color:#c3ebd3}
+.cmk-dr-next.is-complete small{color:#3f8f63}
+.cmk-dr-next.is-complete strong{color:#166534}
 
 /* stepper */
 .cmk-dr-steps{display:flex;padding:24px 24px 18px;margin-top:16px;

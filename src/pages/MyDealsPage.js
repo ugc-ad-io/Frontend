@@ -580,8 +580,13 @@ export default function MyDealsPage() {
     return handleCreateActionCard(label);
   };
 
+  // The backend upserts the response record but appends the system message on EVERY
+  // POST, so a second click posts a duplicate "Creator flagged…" line into the deal
+  // chat. The button stays live until fetchDeals() lands, so guard the click here.
+  const [revisionSubmitting, setRevisionSubmitting] = useState(false);
   const handleRevisionResponse = async (response, acceptedChanges = null) => {
-    if (!selectedDeal?.deal_id) return;
+    if (!selectedDeal?.deal_id || revisionSubmitting) return;
+    setRevisionSubmitting(true);
     try {
       await axios.post(`${API}/deals/${selectedDeal.deal_id}/revision-response`, {
         response,
@@ -596,6 +601,8 @@ export default function MyDealsPage() {
       fetchDeals();
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Revision response failed'));
+    } finally {
+      setRevisionSubmitting(false);
     }
   };
 
@@ -829,7 +836,17 @@ export default function MyDealsPage() {
               <div className="cmk-dr-id">Deal ID: {getDealId(deal)} <span className="cmk-pill info">● {selectedState}</span></div>
               <div className="cmk-dr-tags">{dealTags.map((t, i) => <span key={i}>{t}</span>)}</div>
             </div>
-            <div className="cmk-dr-next"><Clock size={20} /><div><small>Next Action</small><strong>{primaryAction.label}</strong></div></div>
+            {/* A paid + completed deal has nothing left to do, so it shows its STATUS
+                rather than a "Next Action" (archiving is housekeeping, not an action —
+                it stays available in the ... menu and on the Deliverables strip). */}
+            {primaryAction.type === 'archive' ? (
+              <div className="cmk-dr-next is-complete">
+                <CheckCircle size={20} />
+                <div><small>Status</small><strong>Completed &amp; Paid</strong></div>
+              </div>
+            ) : (
+              <div className="cmk-dr-next"><Clock size={20} /><div><small>Next Action</small><strong>{primaryAction.label}</strong></div></div>
+            )}
           </div>
 
           {/* Facts sit on their own quiet strip instead of crowding the title row. */}
@@ -877,7 +894,8 @@ export default function MyDealsPage() {
                     <div><h2>Deliverables</h2><span className="meta">{deliverablesDone} of {deliverables.length} completed</span></div>
                     {primaryAction.type !== 'track_shipment' && primaryAction.type !== 'passive' && (
                       <button type="button" className="cmk-dr-upload" disabled={primaryAction.type === 'content' ? submitting : primaryAction.disabled} onClick={handleOverviewPrimary}>
-                        <Upload size={16} /> {primaryAction.type === 'content' ? 'Upload / Submit Work' : uploadLabel}
+                        {primaryAction.type === 'archive' ? <Archive size={16} /> : <Upload size={16} />}
+                        {' '}{primaryAction.type === 'content' ? 'Upload / Submit Work' : uploadLabel}
                       </button>
                     )}
                   </div>
@@ -965,7 +983,7 @@ export default function MyDealsPage() {
                 )}
                 {isDamageState(deal) && <DamageReportCard deal={deal} onActionCard={handleActionCardRequest} />}
                 <ContentSubmission deal={deal} finalVideoUrl={finalVideoUrl} captionUrl={captionUrl} thumbnailUrl={thumbnailUrl} rawFootageUrl={rawFootageUrl} onUpload={handleFileUpload} setFinalVideoUrl={setFinalVideoUrl} setCaptionUrl={setCaptionUrl} setThumbnailUrl={setThumbnailUrl} setRawFootageUrl={setRawFootageUrl} uploadingFile={uploadingFile} onSubmit={handleSubmitContent} submitting={submitting} />
-                <RevisionTracker deal={deal} onRevisionResponse={handleRevisionResponse} onDiscussWithBrand={handleDiscussRevision} onEscalate={() => handleActionCardRequest('Escalate to Admin')} />
+                <RevisionTracker deal={deal} submitting={revisionSubmitting} onRevisionResponse={handleRevisionResponse} onDiscussWithBrand={handleDiscussRevision} onEscalate={() => handleActionCardRequest('Escalate to Admin')} />
               </div>
             )}
 
@@ -1314,7 +1332,11 @@ function ContentSubmission({
                   <Play size={24} />
                 )}
                 {content.watermark_required_until_approval && version.status !== 'approved' && (version.thumbnail_url || version.video_url) && (
-                  <span className="deal-preview-watermark" aria-hidden="true" />
+                  <span
+                    className="deal-preview-watermark"
+                    aria-hidden="true"
+                    style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo_-_Edited-removebg-preview.png)` }}
+                  />
                 )}
                 {version.video_url && (
                   <a href={getAssetUrl(version.video_url)} target="_blank" rel="noreferrer" aria-label={`Open v${version.version} preview`}>
@@ -1423,7 +1445,7 @@ function toChangeItems(revision) {
   return items;
 }
 
-function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand, onEscalate }) {
+function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBrand, onEscalate }) {
   const revision = deal?.revision_tracker || {};
   const changeItems = toChangeItems(revision);
   const hasRevision = Boolean(revision.latest_feedback || revision.requested_changes?.length);
@@ -1513,13 +1535,13 @@ function RevisionTracker({ deal, onRevisionResponse, onDiscussWithBrand, onEscal
             <button
               type="button"
               className="is-primary"
-              disabled={!hasRevision || (total > 0 && selectedCount === 0)}
+              disabled={!hasRevision || submitting || (total > 0 && selectedCount === 0)}
               onClick={() => onRevisionResponse('accepted', total ? acceptedList : null)}
             >
-              Accept &amp; revise{total && !allSelected ? ` (${selectedCount})` : ''}
+              {submitting ? 'Sending…' : <>Accept &amp; revise{total && !allSelected ? ` (${selectedCount})` : ''}</>}
             </button>
             <button type="button" disabled={!hasRevision} onClick={() => onDiscussWithBrand?.()}>Chat with brand about changes</button>
-            <button type="button" disabled={!hasRevision} onClick={() => onRevisionResponse('scope_creep', [])}>These changes go beyond the brief</button>
+            <button type="button" disabled={!hasRevision || submitting} onClick={() => onRevisionResponse('scope_creep', [])}>These changes go beyond the brief</button>
           </div>
         </>
       )}

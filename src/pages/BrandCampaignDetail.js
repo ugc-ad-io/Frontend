@@ -150,6 +150,62 @@ function extractDeliverables(text) {
   return items;
 }
 
+// The deal-room thread, brand side. Reads deal.chat_summary.messages (db.deal_messages)
+// — the same thread the creator writes to in My Deals, including the backend's system
+// lines. Posting goes to POST /deals/{deal_id}/chat, which accepts either party.
+function DealChatPanel({ deal, onSent }) {
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const messages = deal?.chat_summary?.messages || [];
+  const listRef = useRef(null);
+
+  // Keep the newest message in view as the thread grows.
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [messages.length]);
+
+  const send = async () => {
+    const body = text.trim();
+    if (!body || sending) return;
+    setSending(true);
+    try {
+      await axios.post(`${API}/deals/${deal.deal_id}/chat`, { message: body, attachment_urls: [] });
+      setText('');
+      await onSent?.();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Could not send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bcd-card bcd-dchat">
+      <h3><MessageSquare size={16} /> Deal chat</h3>
+      <p className="bcd-dchat-sub">Shared with the creator. Status updates from the platform appear here too.</p>
+      <div className="bcd-dchat-list" ref={listRef}>
+        {messages.length ? messages.map((m) => (
+          <div key={m.id} className={`bcd-dmsg ${m.sender_type === 'system' ? 'is-system' : m.sender_type === 'creator' ? 'is-creator' : 'is-brand'}`}>
+            {m.sender_type !== 'system' && <small>{m.sender_name}</small>}
+            <p>{m.message}</p>
+          </div>
+        )) : <p className="bcd-dchat-empty">No messages yet. Say hello, or answer the creator's questions about the brief.</p>}
+      </div>
+      <div className="bcd-dchat-input">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder="Type your message…"
+        />
+        <button type="button" onClick={send} disabled={sending || !text.trim()} aria-label="Send">
+          <Send size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function BrandCampaignDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -506,8 +562,12 @@ export default function BrandCampaignDetail() {
                 const answer = rev.creator_response;
                 const ANSWER = {
                   accepted: { cls: 'ok', text: 'Creator accepted the revision and is reworking the content.' },
-                  scope_creep: { cls: 'bad', text: 'Creator flagged this as scope creep — a dispute was opened for the platform team to review.' },
-                  partial_dispute: { cls: 'bad', text: 'Creator partially accepted and disputed the remaining items — a dispute was opened.' },
+                  // A pushback is NOT an automatic dispute — the backend deliberately
+                  // returns dispute_id: None and asks the two of you to settle it in the
+                  // deal chat first. Saying "a dispute was opened" made brands sit and
+                  // wait for an admin who was never coming.
+                  scope_creep: { cls: 'bad', text: 'Creator says these changes go beyond the brief. Nothing is disputed yet — reply in the deal chat below to agree what is in scope.' },
+                  partial_dispute: { cls: 'bad', text: 'Creator accepted some changes and pushed back on the rest. Nothing is disputed yet — reply in the deal chat below to settle the remaining items.' },
                 };
                 const a = ANSWER[answer];
                 const items = revisionItems(rev);
@@ -549,6 +609,12 @@ export default function BrandCampaignDetail() {
                   </div>
                 );
               })()}
+
+              {/* Deal chat. The creator's deal room and the brand's DM popup were two
+                  separate threads (deal_messages vs messages), so every system line
+                  ("Creator flagged the revision request…") and every message the creator
+                  typed here was invisible to the brand. This reads the same thread. */}
+              {deal?.deal_id && <DealChatPanel deal={deal} onSent={load} />}
             </div>
           ) : (
             <EmptyState title="Nothing to review yet" message="Once the creator submits their content, it will appear here for you to review and approve." />
@@ -767,6 +833,26 @@ export default function BrandCampaignDetail() {
       )}
 
       <style>{`
+        /* Deal chat — shared thread with the creator */
+        .bcd-dchat h3{display:flex;align-items:center;gap:7px;margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a}
+        .bcd-dchat-sub{margin:4px 0 12px;color:#8b90b0;font-size:13px}
+        .bcd-dchat-list{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 2px}
+        .bcd-dmsg{max-width:76%;display:flex;flex-direction:column;gap:3px}
+        .bcd-dmsg small{font-size:11px;color:#9296ba;font-weight:600}
+        .bcd-dmsg p{margin:0;font-size:14px;line-height:1.5;padding:9px 13px;border-radius:13px}
+        .bcd-dmsg.is-creator{align-self:flex-start}
+        .bcd-dmsg.is-creator p{background:#f1f3fa;color:#2b2f52;border-bottom-left-radius:5px}
+        .bcd-dmsg.is-brand{align-self:flex-end;align-items:flex-end}
+        .bcd-dmsg.is-brand p{background:#15163a;color:#fff;border-bottom-right-radius:5px}
+        .bcd-dmsg.is-system{align-self:center;max-width:92%;text-align:center}
+        .bcd-dmsg.is-system p{background:none;color:#8b90b0;font-size:13px;font-style:italic;padding:2px 0}
+        .bcd-dchat-empty{margin:0;padding:18px 0;text-align:center;color:#9296ba;font-size:13px}
+        .bcd-dchat-input{display:flex;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid #eef0f6}
+        .bcd-dchat-input input{flex:1;min-width:0;border:1px solid #e4e7f2;border-radius:11px;padding:11px 14px;font-family:inherit;font-size:14px;color:#15163a;outline:none}
+        .bcd-dchat-input input:focus{border-color:#5b6bff}
+        .bcd-dchat-input button{flex:none;width:42px;border:0;border-radius:11px;background:#15163a;color:#fff;cursor:pointer;display:grid;place-items:center}
+        .bcd-dchat-input button:disabled{opacity:.45;cursor:not-allowed}
+
         /* View Details — right-side slide-in drawer */
         .bcd-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
         .bcd-drawer{width:min(680px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-24px 0 60px rgba(15,22,58,.28);animation:bcd-slide .3s cubic-bezier(.2,.7,.2,1)}

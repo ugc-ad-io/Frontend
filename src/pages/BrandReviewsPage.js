@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Star, Trophy, MessagesSquare, TrendingUp, Users, ArrowRight } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
-import { displayName } from '../utils/displayName';
+import { creatorFirstName } from '../utils/displayName';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 
@@ -166,7 +166,9 @@ export default function BrandReviewsPage() {
                   const reviewer = reviewers[review.reviewer_id];
                   const campaign = campaigns[review.campaign_id];
                   const campaignTitle = campaign?.title || 'Campaign';
-                  const creatorName = displayName(reviewer, 'Creator');
+                  // First name only — a creator's full legal name shouldn't be on
+                  // display here (matches the creator card / bid list elsewhere).
+                  const creatorName = creatorFirstName(reviewer);
                   const photo = reviewer?.profile_photo ? (reviewer.profile_photo.startsWith('http') ? reviewer.profile_photo : `${BACKEND_URL}${reviewer.profile_photo}`) : '';
                   return (
                     <article key={review.id} className="cmk-rr-item">

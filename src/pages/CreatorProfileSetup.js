@@ -34,6 +34,16 @@ const DIAL_CODES = [
   { code: '+44', iso: 'gb' },
   { code: '+61', iso: 'au' },
 ];
+// Expected national-number length per dial code — caps the input AND validates it.
+// (The site-wide numeric guard in App.js only covers type=number / inputMode=numeric,
+// so a type="tel" field needs its own digit filtering.)
+const PHONE_LEN = { '+91': 10, '+1': 10, '+44': 10, '+61': 9 };
+// Strip everything that isn't a digit — used on every keystroke and on paste/autofill.
+const onlyDigits = (v) => String(v ?? '').replace(/\D/g, '');
+const phoneMax = (dial) => PHONE_LEN[dial] || 15;
+const phoneValid = (v, dial) => onlyDigits(v).length === phoneMax(dial);
+const PIN_LEN = 6;
+
 const flagUrl = (iso) => `https://flagcdn.com/24x18/${iso}.png`;
 const COUNTRIES = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany'];
 // All 28 states + 8 union territories of India.
@@ -598,6 +608,8 @@ export default function CreatorProfileSetup() {
     const f = STEP_FIELDS[s];
     if (f) {
       const base = Object.fromEntries(f.map((k) => [k, isFilled(data[k])]));
+      // A filled-but-too-short phone must NOT pass the step (e.g. "94068" on +91).
+      if (s === 2) base.phone = base.phone && phoneValid(data.phone, data.dialCode);
       if (s === 2) base.pincode = base.pincode && !pinZoneMismatch(data.pincode, data.state, data.country);
       if (s === 2) base.city = base.city && !cityPinMismatch(data.city, pinLookup);
       if (s === 1) {
@@ -1091,16 +1103,28 @@ export default function CreatorProfileSetup() {
           <div className="ps-field">
             <label className="ps-label">Phone number</label>
             <div className="ps-phone">
-              <DialCodeSelect value={data.dialCode} onChange={(v) => set('dialCode', v)} />
+              {/* Switching country also re-trims the number to that code's length,
+                  so e.g. a 10-digit +91 number can't sit stuck-invalid under +61 (9). */}
+              <DialCodeSelect
+                value={data.dialCode}
+                onChange={(v) => setData((d) => ({ ...d, dialCode: v, phone: onlyDigits(d.phone).slice(0, phoneMax(v)) }))}
+              />
               <input
                 className={`ps-input${err('phone') ? ' ps-input--error' : ''}`}
                 type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                maxLength={phoneMax(data.dialCode)}
                 placeholder="Enter your phone number"
                 value={data.phone}
-                onChange={(e) => set('phone', e.target.value)}
+                // Digits only, capped to the dial code's length. Filtering here (not just
+                // via the keydown guard) also covers paste, autofill and IME input.
+                onChange={(e) => set('phone', onlyDigits(e.target.value).slice(0, phoneMax(data.dialCode)))}
               />
             </div>
-            {reqError('phone')}
+            {isFilled(data.phone) && !phoneValid(data.phone, data.dialCode)
+              ? <span className="ps-error">Enter a valid {phoneMax(data.dialCode)}-digit phone number.</span>
+              : reqError('phone')}
           </div>
 
           {/* Pincode */}
@@ -1108,9 +1132,12 @@ export default function CreatorProfileSetup() {
             <label className="ps-label">Pincode</label>
             <input
               className={`ps-input${(err('pincode') || pinZoneMismatch(data.pincode, data.state, data.country)) ? ' ps-input--error' : ''}`}
+              inputMode="numeric"
+              autoComplete="postal-code"
+              maxLength={PIN_LEN}
               placeholder="e.g- 800001"
               value={data.pincode}
-              onChange={(e) => set('pincode', e.target.value)}
+              onChange={(e) => set('pincode', onlyDigits(e.target.value).slice(0, PIN_LEN))}
             />
             {pinZoneMismatch(data.pincode, data.state, data.country)
               ? <span className="ps-error">This PIN code doesn’t match {data.state || 'the selected state'}.</span>
@@ -1768,10 +1795,20 @@ export default function CreatorProfileSetup() {
         .ps-select__el:disabled { opacity: 0.5; cursor: not-allowed; }
         .ps-select__el:focus { border-color: var(--ps-purple); box-shadow: 0 0 0 4px rgba(7,7,78,0.16); }
         /* Native dropdown list — dark to match the form (bg/colour is all the
-           browser lets us style on a native <select> popup). */
-        .ps-select__el option { background-color: #17171f; color: #eef; }
+           browser lets us style on a native <select> popup).
+           Covers BOTH select flavours: .ps-select__el (the chevron-wrapped field) and
+           .ps-select (the portfolio "Category" fields). Without the .ps-select half the
+           popup fell back to the browser default — a WHITE list rendering the inherited
+           light text invisible (white-on-white), so only the highlighted row was legible. */
+        .ps-select__el option,
+        .ps-select option { background-color: #17171f; color: #eef; }
         .ps-select__el option:checked,
-        .ps-select__el option:hover { background-color: #2a2a3a; color: #fff; }
+        .ps-select__el option:hover,
+        .ps-select option:checked,
+        .ps-select option:hover { background-color: #2a2a3a; color: #fff; }
+        /* Greyed placeholder row ("Category") so it reads as a prompt, not a choice. */
+        .ps-select__el option:disabled,
+        .ps-select option:disabled { color: rgba(238, 238, 255, 0.45); }
         .ps-select__chev { position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
           color: rgba(7,7,78,0.5); pointer-events: none; }
 

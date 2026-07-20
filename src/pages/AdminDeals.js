@@ -25,7 +25,10 @@ const DEAL_STATES = [
   'Approved - Payment Processing',
   'Paid - Complete'
 ];
-const EXCEPTION_STATES = ['Disputed', 'Damaged/Wrong Product Reported'];
+// compute_deal_state() on the backend can also return "Cancelled" (brand ended the
+// deal, or a dispute was refunded in full). Without it here there was no way to
+// filter those deals — they only showed under "All states".
+const EXCEPTION_STATES = ['Disputed', 'Damaged/Wrong Product Reported', 'Cancelled'];
 
 // Who the deal is waiting on, by state. Used for the "Active Party" column.
 const ACTIVE_PARTY = {

@@ -406,6 +406,16 @@ export default function CreatorKYC() {
         .kyc-state.ok{background:#ecfdf3;border:1px solid #abefc6;color:#05603a}
         .kyc-state.wait{background:#fff8ed;border:1px solid #fcd9a4;color:#93370d}
         .kyc-state.bad{background:#fef3f2;border:1px solid #fecdca;color:#b42318}
+        /* Phone: let the CTA drop below the message. Unwrapped, the nowrap button held
+           ~120px and squeezed the status text into a tall thin column. Also trims the
+           card's 26px side padding, which cost 52px of a 360px screen. */
+        @media (max-width:620px){
+          .kyc-state{flex-wrap:wrap}
+          .kyc-state button{margin-left:0;width:100%;padding:11px 14px}
+          .kyc-card{padding:18px 16px}
+          .kyc-back{padding:10px 14px}
+          .kyc-toggle button{padding:11px 18px}
+        }
 
         .kyc-card{background:#fff;border:1px solid #e9ebf5;border-radius:18px;padding:24px 26px;box-shadow:0 4px 24px rgba(7,7,78,.05)}
         .kyc-card h2{margin:0 0 14px;font-size:15px;color:#15163a}

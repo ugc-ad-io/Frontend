@@ -2208,8 +2208,13 @@
   .ps-tab-sidebar {
     flex-direction: row;
     overflow-x: auto;
-    flex-wrap: wrap;
+    /* was flex-wrap:wrap, which beat overflow-x:auto and stacked the tabs into 3 rows
+       instead of the intended single scrolling strip */
+    flex-wrap: nowrap;
+    scrollbar-width: none;
   }
+  .ps-tab-sidebar::-webkit-scrollbar { display: none; }
+  .ps-tab-sidebar .ps-tab-btn { flex: 0 0 auto; white-space: nowrap; }
 
   .ps-photo-upload {
     flex-direction: column;
@@ -2223,6 +2228,13 @@
   .ps-topbar {
     padding: calc(var(--spacing) * 4) calc(var(--spacing) * 5);
   }
+}
+
+/* Phone: reclaim horizontal space. .ps-panel's 32px padding sits INSIDE .ps-content's
+   own padding, so a 360px screen lost ~110px of width before any field was drawn. */
+@media (max-width: 620px) {
+  .ps-panel { padding: 18px 16px; border-radius: 16px; }
+  .ps-info-box, .ps-success-box { padding: 24px 18px; }
 }
 
 /* Brand settings: Privacy legal list + Follow us social grid */

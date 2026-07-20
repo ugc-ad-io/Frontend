@@ -1334,7 +1334,9 @@
 
 @media (max-width:640px){
   .cmk-wrap{padding:0 16px}
-  .cmk-page{padding:18px 0 48px}
+  /* Bottom padding clears the fixed .cmk-post-fab (48px tall at bottom:16px). At 48px
+     the FAB sat on top of the last row's action button on every creator list page. */
+  .cmk-page{padding:18px 0 96px}
 
   /* hero */
   .cmk-hero{padding:28px 22px;min-height:auto}
@@ -1368,9 +1370,16 @@
   .cmk-table-card{overflow-x:auto}
   .cmk-table{min-width:600px}
 
-  /* My Active Work — let the stage timeline scroll */
-  .cmk-aw-steps{overflow-x:auto;padding-bottom:6px}
-  .cmk-aw-steps .cmk-step{min-width:78px}
+  /* My Active Work — let the stage timeline scroll.
+     This rule used to target .cmk-aw-steps/.cmk-step, which NO page renders (the
+     markup is .cmk-awc-steps/.awc-step), so it never applied and the stepper stayed
+     squeezed on phones. */
+  .cmk-awc-steps{overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .cmk-awc-steps::-webkit-scrollbar{display:none}
+  /* Size each step to its own label. With flex:1 the 5 stages split ~330px, leaving
+     ~56px each, which ellipsised "Video Submission" down to "Vid…". */
+  .cmk-awc-steps .awc-step{flex:0 0 auto;min-width:84px}
+  .cmk-awc-steps .awc-step-lbl{max-width:none;overflow:visible;text-overflow:clip}
 
   /* Deal Room */
   .cmk-dr-head{gap:14px;padding:18px;flex-wrap:wrap}

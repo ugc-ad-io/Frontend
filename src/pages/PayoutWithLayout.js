@@ -118,7 +118,10 @@ export default function PayoutWithLayout() {
         </button>
       </div>
 
-      <div className="cmk-stats cmk-stats-2l" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+      {/* No inline gridTemplateColumns here: .cmk-stats-2l already defaults to 4 columns,
+          and an inline style outranks stylesheet media queries — it silently defeated the
+          1080px (→2 col) and 540px (→1 col) rules, so phones got four ~80px cards. */}
+      <div className="cmk-stats cmk-stats-2l">
         {stats.map((s) => (
           <div key={s.lbl} className="cmk-stat cmk-rise">
             <div className="cmk-stat-head">

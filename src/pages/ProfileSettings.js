@@ -1785,6 +1785,15 @@ export default function ProfileSettings() {
         .ps-btn-outline-danger{flex:none;border:1px solid #f2b8c6;background:#fff;color:#e11d48;border-radius:11px;padding:9px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .ps-btn-outline-danger:hover{background:#fff0f4}
         .ps-danger-row .ps-btn-danger{display:inline-flex;align-items:center;gap:7px;flex:none;width:auto;margin:0;padding:9px 18px}
+        /* Phone: stack the label above a full-width button. The row never wrapped, so
+           the non-shrinking Delete/Deactivate button crushed the explanatory copy into
+           a ~150px column. */
+        @media (max-width:620px){
+          .ps-danger-row{flex-wrap:wrap;align-items:flex-start}
+          .ps-danger-row p{max-width:none}
+          .ps-danger-row .ps-btn-outline-danger,
+          .ps-danger-row .ps-btn-danger{width:100%;justify-content:center}
+        }
 
         .ps-social-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         .ps-social-card{display:flex;align-items:center;gap:13px;padding:16px;border:1px solid #eef0f6;border-radius:14px;text-decoration:none;transition:.16s;background:#fff}

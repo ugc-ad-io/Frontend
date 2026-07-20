@@ -247,7 +247,7 @@ export default function VideoReviewModal({
             </details>
 
             <button type="button" className="vrm-submit" onClick={submit} disabled={!canSubmit}>
-              {submitting ? 'Sending…' : `Send ${comments.length || ''} Revision${comments.length === 1 ? '' : 's'}`.replace('  ', ' ')}
+              {submitting ? 'Sending…' : 'Send Changes'}
             </button>
           </div>
         </div>

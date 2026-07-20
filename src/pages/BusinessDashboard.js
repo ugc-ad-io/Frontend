@@ -1760,12 +1760,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
                           {b.status_bucket === 'accepted' && b.deal_campaign_id ? (
-                            <button type="button" className="btn-primary" style={{ whiteSpace: 'nowrap' }} onClick={() => setModalView({ type: 'campaign', id: b.deal_campaign_id })}>
-                              <Eye size={15} /> View Deal
+                            <button type="button" className="btn-primary" style={COMPACT_ACTION_BTN} onClick={() => setModalView({ type: 'campaign', id: b.deal_campaign_id })}>
+                              <Eye size={14} /> View Deal
                             </button>
                           ) : (
-                            <button type="button" className="btn-secondary" style={{ whiteSpace: 'nowrap' }} onClick={() => navigate(`/messages?conv=${b.creator_id}`)}>
-                              <MessageSquare size={15} /> Open Chat
+                            <button type="button" className="btn-secondary" style={COMPACT_ACTION_BTN} onClick={() => navigate(`/messages?conv=${b.creator_id}`)}>
+                              <MessageSquare size={14} /> Open Chat
                             </button>
                           )}
                         </div>

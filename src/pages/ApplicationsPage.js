@@ -80,7 +80,9 @@ const collectUrls = (v) => {
   return out;
 };
 
-const prettifyKey = (k) => String(k).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
+// A few keys read better with an explicit label than the auto-prettified key.
+const KEY_LABELS = { updated_at: 'Submitted At' };
+const prettifyKey = (k) => KEY_LABELS[k] || String(k).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Preferred display order for "All Submitted Details". First match (by label
 // substring) wins; anything unmatched sorts to the end but keeps its original
@@ -404,7 +406,9 @@ function ProfileDetail({ profile, onBack, onDecide }) {
     // instead of whatever arbitrary order the API returns them in.
     .sort((a, b) => fieldRank(a[0]) - fieldRank(b[0]));
   function MEDIA_OR_META(k) {
-    return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers'].includes(k)
+    return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers',
+      // Internal / not useful when reviewing a profile.
+      'availability_calendar', 'curated_brand_visible', 'creator_directory_visible', 'topics', 'balance', 'deliverables_completed'].includes(k)
       || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);
   }
 

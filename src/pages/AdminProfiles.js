@@ -23,9 +23,18 @@ const HIDDEN_KEYS = new Set([
   'id', '_id', 'user_id', 'userId', 'password', '__v', 'token',
   'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed',
   'terms_agreed', 'receive_briefs',
+  // Internal / not useful when reviewing a profile.
+  'availability_calendar', 'curated_brand_visible', 'creator_directory_visible',
+  'topics', 'balance', 'deliverables_completed',
 ]);
 
+// A few keys read better with an explicit label than the auto-prettified key.
+const KEY_LABELS = {
+  updated_at: 'Submitted At',
+};
+
 const prettifyKey = (k) =>
+  KEY_LABELS[k] ||
   String(k)
     .replace(/_/g, ' ')
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')

@@ -42,6 +42,19 @@ const PHONE_LEN = { '+91': 10, '+1': 10, '+44': 10, '+61': 9 };
 const onlyDigits = (v) => String(v ?? '').replace(/\D/g, '');
 const phoneMax = (dial) => PHONE_LEN[dial] || 15;
 const phoneValid = (v, dial) => onlyDigits(v).length === phoneMax(dial);
+// Pasting a full international number ("+91 9406879532") would otherwise merge the
+// country code into the national part. Drop a leading dial code, but ONLY when the
+// result is too long — so a legitimate 10-digit number that happens to start with
+// "91" is left alone.
+const stripDialPrefix = (digits, dial) => {
+  const cc = onlyDigits(dial);
+  return digits.length > phoneMax(dial) && cc && digits.startsWith(cc)
+    ? digits.slice(cc.length)
+    : digits;
+};
+// Full normalise applied on every phone keystroke / paste / autofill.
+const normalisePhone = (raw, dial) =>
+  stripDialPrefix(onlyDigits(raw), dial).slice(0, phoneMax(dial));
 const PIN_LEN = 6;
 
 const flagUrl = (iso) => `https://flagcdn.com/24x18/${iso}.png`;
@@ -1107,7 +1120,7 @@ export default function CreatorProfileSetup() {
                   so e.g. a 10-digit +91 number can't sit stuck-invalid under +61 (9). */}
               <DialCodeSelect
                 value={data.dialCode}
-                onChange={(v) => setData((d) => ({ ...d, dialCode: v, phone: onlyDigits(d.phone).slice(0, phoneMax(v)) }))}
+                onChange={(v) => setData((d) => ({ ...d, dialCode: v, phone: normalisePhone(d.phone, v) }))}
               />
               <input
                 className={`ps-input${err('phone') ? ' ps-input--error' : ''}`}
@@ -1119,7 +1132,7 @@ export default function CreatorProfileSetup() {
                 value={data.phone}
                 // Digits only, capped to the dial code's length. Filtering here (not just
                 // via the keydown guard) also covers paste, autofill and IME input.
-                onChange={(e) => set('phone', onlyDigits(e.target.value).slice(0, phoneMax(data.dialCode)))}
+                onChange={(e) => set('phone', normalisePhone(e.target.value, data.dialCode))}
               />
             </div>
             {isFilled(data.phone) && !phoneValid(data.phone, data.dialCode)

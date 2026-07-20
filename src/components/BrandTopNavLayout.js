@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Star, Send } from 'lucide-react';
+import { ChevronDown, Plus, Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
@@ -28,10 +28,7 @@ const MENU_LINKS = [
   // already existed but nothing linked to it, so the tab was unreachable in the UI.
   { name: 'Sent Briefs', to: '/dashboard/business/sent-briefs', icon: Send },
   { name: 'Manage Shipment', to: '/dashboard/business/shipments', icon: Package },
-  { name: 'Reviews', to: '/dashboard/business/reviews', icon: Star },
   { name: 'Wallet', to: '/dashboard/business/wallet', icon: Wallet },
-  { sep: true },
-  { name: 'Settings', to: '/settings', icon: Settings },
 ];
 
 /**

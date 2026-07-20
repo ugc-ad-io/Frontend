@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogOut, Bell, X, LifeBuoy, Mail, Phone, MessageCircle } from 'lucide-react';
+import { LogOut, X, LifeBuoy, Mail, Phone, MessageCircle } from 'lucide-react';
 
 const LOGO_SRC = '/ugcad-logo_-_Edited-removebg-preview.png';
 
@@ -78,16 +78,6 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         {secondary.length > 0 && <div className="hsr-sep" />}
         {secondary.map(Item)}
       </nav>
-
-      <button type="button" className="hsr-item hsr-notif" onClick={() => { if (open) onNavigate('/notifications'); }}>
-        <span className="hsr-ic"><Bell size={20} /></span>
-        <span className="hsr-label">Notifications</span>
-      </button>
-
-      <button type="button" className="hsr-item hsr-help" onClick={() => { if (open) setHelp(true); }}>
-        <span className="hsr-ic"><LifeBuoy size={20} /></span>
-        <span className="hsr-label">Need help?</span>
-      </button>
 
       <button type="button" className="hsr-item hsr-logout" onClick={() => { if (open) onLogout(); }}>
         <span className="hsr-ic"><LogOut size={20} /></span>

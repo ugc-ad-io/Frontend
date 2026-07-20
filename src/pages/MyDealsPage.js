@@ -90,7 +90,6 @@ function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled, pr
             <img src={getAssetUrl(previewUrl)} alt="Uploaded preview" />
           )}
           {watermark && <span className="deal-upload-watermark" aria-hidden="true" />}
-          <span className="deal-upload-preview-label"><CheckCircle size={14} /> File uploaded successfully</span>
         </div>
       ) : (
         <>

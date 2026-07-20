@@ -18,13 +18,30 @@ const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 const STAGES = ['Accepted', 'Shipment', 'Video Submission', 'Review', 'Payout'];
 // A distinct colour per stage; the final stage (Payout) is green.
 const STAGE_COLORS = ['#3b82f6', '#6366f1', '#6d7bff', '#f59e0b', '#22c55e'];
+
+// Online-only campaigns (app, service, storefront) ship nothing, so a "Shipment"
+// stage is dead weight — the creator starts filming the moment they accept. The
+// brief records this as requires_shipment/shipment_required at post time.
+const dealShips = (c) => (
+  c.requires_shipment === true || c.shipment_required === true || c.shipment_option === 'yes'
+);
+// Stage list + matching colours for this specific deal.
+const stagesFor = (c) => {
+  if (dealShips(c)) return { labels: STAGES, colors: STAGE_COLORS };
+  return { labels: STAGES.filter((s) => s !== 'Shipment'), colors: STAGE_COLORS.filter((_, i) => i !== 1) };
+};
 function stageIndex(c) {
   const s = c.status;
-  if (s === 'completed') return 4;          // Payout
-  if (s === 'under_review') return 3;        // Review
-  if (s === 'work_submitted') return 2;      // Video Submission
+  const ships = dealShips(c);
+  // Without a Shipment segment every later stage shifts one slot left.
+  const at = (i) => (ships ? i : Math.max(0, i - 1));
+  if (s === 'completed') return at(4);       // Payout
+  if (s === 'under_review') return at(3);    // Review
+  if (s === 'work_submitted') return at(2);  // Video Submission
   if (s === 'cancelled') return 0;
-  return 1; // accepted / active / in_progress → Shipment stage
+  // Index 1 is Shipment on a shipping deal, Video Submission on an online one —
+  // in both cases it's the stage the creator is waiting on right after accepting.
+  return 1;
 }
 
 // Has the brand sent this piece of work back for changes?
@@ -144,6 +161,7 @@ export default function MyActiveWorkPage() {
             const channel = (Array.isArray(c.objectives) && c.objectives[0]) || c.industry_type || 'UGC Video';
             const shortId = `#${String(c.id).slice(-4).toUpperCase()}`;
             const cur = stageIndex(c);
+            const steps = stagesFor(c);
             return (
               <article
                 key={c.id}
@@ -200,11 +218,11 @@ export default function MyActiveWorkPage() {
                   </div>
                 ) : (
                   <div className="cmk-awc-steps">
-                    {STAGES.map((label, i) => (
+                    {steps.labels.map((label, i) => (
                       <div
                         key={label}
                         className={`awc-step ${i < cur ? 'done' : ''} ${i === cur ? 'current' : ''}`}
-                        style={{ '--s': STAGE_COLORS[i] }}
+                        style={{ '--s': steps.colors[i] }}
                       >
                         <span className="awc-step-lbl">{label}</span>
                         <i className="awc-step-bar" />

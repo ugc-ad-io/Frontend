@@ -40,6 +40,17 @@ const renderBrief = (text) => {
   return out.length ? out : <p className="bb-bl">No brief details provided.</p>;
 };
 
+// The brief form stores the CTA's destination in ONE field (cta_link), but what it
+// holds depends on the chosen CTA — a URL for "Visit website"/"Swipe up", a social
+// handle for "Follow brand". Mirror PostABrief's CTA_INPUT labels so the creator
+// reads the value the same way the brand entered it. ("Use code" has no link; its
+// value lives in promo_code, which is already shown.)
+const CTA_LINK_LABEL = {
+  'Visit website': 'Website link',
+  'Swipe up': 'Swipe-up link',
+  'Follow brand': 'Brand handle to follow',
+};
+
 export default function BriefDetailDrawer({ brief, onClose, onBid }) {
   if (!brief) return null;
 
@@ -69,6 +80,9 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       ['Required phrases', listVal(c.required_phrases)],
       ['Required shots', listVal(c.required_shots)],
       ['Call to action', c.call_to_action],
+      // The CTA destination itself — without this the creator was told to add a CTA
+      // but never given the URL/handle to point it at. Blank rows self-filter below.
+      [CTA_LINK_LABEL[c.call_to_action] || 'CTA link', c.cta_link],
       ['Promo code', c.promo_code],
       ['Hashtags', c.hashtags],
       ['Brand tag', c.brand_handle_tag ? 'Yes' : ''],

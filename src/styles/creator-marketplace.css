@@ -1337,6 +1337,9 @@
   /* Bottom padding clears the fixed .cmk-post-fab (48px tall at bottom:16px). At 48px
      the FAB sat on top of the last row's action button on every creator list page. */
   .cmk-page{padding:18px 0 96px}
+  /* Messages is a full-height app pane, not a scrolling list — this padding would add
+     ~114px of outer scroll and hide the composer below the fold. */
+  .cmk-page--flush{padding:0}
 
   /* hero */
   .cmk-hero{padding:28px 22px;min-height:auto}
@@ -1402,7 +1405,15 @@
   .cmk-dr-metacol{min-width:42%;white-space:normal}
   .cmk-dr-next{margin-left:0;width:100%;justify-content:center}
   .cmk-dr-ship-grid{grid-template-columns:1fr 1fr}
-  .cmk-dr-tabs{overflow-x:auto;scrollbar-width:none}
+  /* overflow-x alone did nothing: the buttons are shrinkable flex items, so they
+     compressed to min-content and wrapped mid-word instead of triggering scroll.
+     flex:none + nowrap is what actually forces the strip to overflow and scroll. */
+  .cmk-dr-tabs{overflow-x:auto;scrollbar-width:none;gap:18px}
+  .cmk-dr-tabs::-webkit-scrollbar{display:none}
+  .cmk-dr-tabs button{flex:0 0 auto;white-space:nowrap}
+  /* Title + Upload button collided at ≤400px — no wrap, no gap. */
+  .cmk-dr-sec-h{flex-wrap:wrap;gap:10px}
+  .cmk-dr-sec-h h2{min-width:0}
   .cmk-dr-tabs::-webkit-scrollbar{display:none}
   .cmk-dr-msgs{max-height:280px}
   .cmk-dr-support{flex-direction:column}
@@ -1520,7 +1531,20 @@
 .cmk-rev-recent{margin-top:22px;margin-bottom:48px;background:transparent;border:none;box-shadow:none;padding:0}
 .cmk-rev-recent .cmk-rev-phead{margin-bottom:16px}
 @media (max-width:1000px){.cmk-rev-top{grid-template-columns:1fr}}
-@media (max-width:540px){.cmk-rev-stats-2x2{grid-template-columns:1fr}}
+/* 620, not 540: in the 541-620px band each card is ~255px of usable width and has to
+   hold the value PLUS five 16px stars for "Average Rating", which clipped. */
+@media (max-width:620px){.cmk-rev-stats-2x2{grid-template-columns:1fr}}
+/* Reviews carry user-generated text (brand names, campaign titles) in flex rows whose
+   siblings are flex:none pills/timestamps. Without min-width:0 the text can't shrink,
+   so it shoved those siblings past the card edge — real horizontal overflow inside
+   every review card. wrap + min-width:0 lets long values reflow instead. */
+@media (max-width:620px){
+  .cmk-rev-phead{flex-wrap:wrap}
+  .cmk-rr-top{flex-wrap:wrap}
+  .cmk-rr-top strong{min-width:0;overflow-wrap:anywhere}
+  .cmk-rr-camp{flex-wrap:wrap;gap:4px 12px}
+  .cmk-rr-camp span{min-width:0;overflow-wrap:anywhere}
+}
 
 /* ── shared friendly empty state ─────────────────────────────────────────── */
 .cmk-emptystate{display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 20px 44px;max-width:460px;margin:16px auto}

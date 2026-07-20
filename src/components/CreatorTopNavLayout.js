@@ -70,6 +70,10 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const dealParams = new URLSearchParams(search);
   const isDealRoom = pathname === '/my-deals' && (dealParams.get('campaign') || dealParams.get('deal'));
   const hideMsgFab = pathname === '/messages' || pathname.startsWith('/messages/') || isDealRoom;
+  // Messages sizes itself to the viewport (100dvh - nav). The mobile FAB-clearance
+  // padding on .cmk-page would push the composer below the fold, and there's no FAB
+  // here to clear anyway — so that page opts out.
+  const isMessages = pathname === '/messages' || pathname.startsWith('/messages/');
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -181,7 +185,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
         )}
       </header>
 
-      <main className="cmk-wrap cmk-page">
+      <main className={`cmk-wrap cmk-page${isMessages ? ' cmk-page--flush' : ''}`}>
         {showKycBanner && (
           <button type="button" className={`cmk-kyc-banner ${kb.tone}`} onClick={() => navigate('/kyc')}>
             <span className="cmk-kyc-ic"><BadgeCheck size={18} /></span>

@@ -186,6 +186,19 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
             </div>
           )}
 
+          {refVideos.length > 0 && (
+            <div className="bb-d-sec">
+              <h4>Reference videos</h4>
+              <div className="bb-d-refvid">
+                {refVideos.map(({ hosted, url }, i) => (
+                  hosted
+                    ? <video key={`${url}-${i}`} src={url} controls preload="metadata" playsInline />
+                    : <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="bb-d-reflink">{url}</a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {detailSections.map((s) => (
             <div className="bb-d-sec" key={s.h}>
               <h4>{s.h}</h4>
@@ -235,6 +248,10 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
         .bb-d-moodit img{width:100%;height:100%;object-fit:cover;display:block}
         .bb-d-dl{position:absolute;bottom:5px;right:5px;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:rgba(21,22,58,.72);color:#fff}
         .bb-d-dl:hover{background:#5b6bff}
+        .bb-d-refvid{display:flex;flex-direction:column;gap:10px}
+        .bb-d-refvid video{width:100%;max-height:280px;border-radius:12px;background:#000;display:block}
+        .bb-d-reflink{display:block;padding:10px 12px;border-radius:10px;background:#f6f7fc;border:1px solid #e9ebf4;color:#5b6bff;font-size:13px;word-break:break-all}
+        .bb-d-reflink:hover{background:#eef0ff}
         .bb-d-brief{display:flex;flex-direction:column;gap:7px}
         .bb-bl{margin:0;color:#585c7e;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
         .bb-blab{color:#15163a;font-weight:700}

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ChevronDown, Plus, Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send } from 'lucide-react';
+import { ChevronDown, Plus, Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send, Star, Settings, Bell, LifeBuoy } from 'lucide-react';
 import NotificationBell from './NotificationBell';
-import HoverSideRail from './HoverSideRail';
+import HoverSideRail, { openHelpDialog } from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
 import RejectedGate from './RejectedGate';
 import MoreInfoGate from './MoreInfoGate';
@@ -29,6 +29,16 @@ const MENU_LINKS = [
   { name: 'Sent Briefs', to: '/dashboard/business/sent-briefs', icon: Send },
   { name: 'Manage Shipment', to: '/dashboard/business/shipments', icon: Package },
   { name: 'Wallet', to: '/dashboard/business/wallet', icon: Wallet },
+];
+
+// Account-menu only — these were taken off the side rail, so they live in the
+// avatar dropdown (and the mobile menu) instead. "Need help?" opens the support
+// dialog rather than navigating.
+const ACCOUNT_LINKS = [
+  { name: 'Reviews', to: '/dashboard/business/reviews', icon: Star },
+  { name: 'Notifications', to: '/notifications', icon: Bell },
+  { name: 'Settings', to: '/settings', icon: Settings },
+  { name: 'Need help?', icon: LifeBuoy, action: 'help' },
 ];
 
 /**

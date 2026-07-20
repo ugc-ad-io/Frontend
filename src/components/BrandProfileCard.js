@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { X, MessageSquare, Star, Building2, Globe, MapPin, Layers, Briefcase } from 'lucide-react';
+import { X, MessageSquare, Star, Building2, Globe, MapPin, Briefcase } from 'lucide-react';
 import { brandName } from '../utils/displayName';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import ReviewModal from './ReviewModal';
@@ -109,7 +109,6 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
 
   const rows = [
     { Icon: Building2, label: 'Brand Name', value: name },
-    { Icon: Layers, label: 'Category', value: category },
     industry ? { Icon: Briefcase, label: 'Industry', value: industry } : null,
     locationTxt ? { Icon: MapPin, label: 'Location', value: locationTxt } : null,
   ].filter(Boolean);

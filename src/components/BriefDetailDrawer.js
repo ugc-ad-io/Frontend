@@ -123,6 +123,16 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
     .filter((u) => typeof u === 'string' && (u.startsWith('http') || u.startsWith('/')))
     .map((u) => (u.startsWith('http') ? u : `${BACKEND_URL}${u}`));
 
+  // Reference videos: a brand can upload a clip (served from /uploads → playable
+  // inline) or paste an external link (YouTube/Drive → shown as a link out).
+  const refVideos = (Array.isArray(c.reference_videos) ? c.reference_videos : [])
+    .filter((u) => typeof u === 'string' && u.trim())
+    .map((u) => {
+      const raw = u.trim();
+      const hosted = /\/uploads?\//i.test(raw);
+      return { hosted, url: raw.startsWith('http') || !hosted ? raw : `${BACKEND_URL}${raw}` };
+    });
+
   return (
     <div className="bb-drawer-overlay" onClick={onClose}>
       <aside className="bb-drawer" onClick={(e) => e.stopPropagation()}>

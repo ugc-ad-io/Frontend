@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogOut, Bell, X, LifeBuoy, Mail, Phone, MessageCircle } from 'lucide-react';
 
 const LOGO_SRC = '/ugcad-logo_-_Edited-removebg-preview.png';
@@ -6,6 +6,14 @@ const LOGO_SRC = '/ugcad-logo_-_Edited-removebg-preview.png';
 // Persist the open/closed state across route changes — navigating remounts the
 // layout, and without this the rail would snap back to collapsed every click.
 let RAIL_OPEN = false;
+
+// Let any page open the "Need help?" dialog. The dialog's state lives inside this
+// rail, so rather than lift it into a context we broadcast on window — the same
+// module-level coordination idiom as RAIL_OPEN above. The rail is mounted by the
+// creator/brand layouts, so it's listening on every signed-in page; if it somehow
+// isn't mounted the event is simply ignored rather than throwing.
+export const HELP_EVENT = 'ugcad:open-help';
+export const openHelpDialog = () => window.dispatchEvent(new Event(HELP_EVENT));
 
 /**
  * Collapsed icon rail on the left that expands on CLICK (toggle) to reveal
@@ -23,6 +31,15 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
     RAIL_OPEN = next;
     setOpenState(next);
   };
+
+  // Open the help dialog when a page asks for it (see openHelpDialog). Works whether
+  // the rail is expanded or collapsed — unlike the rail's own help button, which is
+  // deliberately inert until the rail is open.
+  useEffect(() => {
+    const onOpenHelp = () => setHelp(true);
+    window.addEventListener(HELP_EVENT, onOpenHelp);
+    return () => window.removeEventListener(HELP_EVENT, onOpenHelp);
+  }, []);
 
   const Item = (l) => (
     <button key={l.name} type="button" className={`hsr-item ${isActive(l.to) ? 'is-active' : ''}`} onClick={() => { if (open) onNavigate(l.to); }}>

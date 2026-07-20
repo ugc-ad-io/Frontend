@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { EmptyPanel, formatMoney, getInitial } from '../components/CreatorComponents';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import { openHelpDialog } from '../components/HoverSideRail';
 import ShippingDetailsCard from '../components/ShippingDetailsCard';
 import { Skeleton } from '../components/Skeleton';
 import './CreatorDashboard.css';
@@ -991,9 +992,11 @@ export default function MyDealsPage() {
                   <p><span>Estimated Payout</span><strong>{formatDateTime(escrow.estimated_payout_at)}</strong></p>
                 </div>
                 <div className="cmk-dr-support">
-                  {/* Creators can't open a dispute directly — they resolve with the brand
-                      first, then escalate to admin, who decides if a dispute is warranted. */}
-                  <button type="button" onClick={() => handleActionCardRequest('Escalate to Admin')}><Headphones size={15} /> Get Help</button>
+                  {/* Payment questions go to support, not to the dispute flow — this opens
+                      the same "Need help?" dialog as the sidebar (email / call / WhatsApp).
+                      Escalate-to-Admin still lives on the Deliverables tab's RevisionTracker,
+                      which is the right place for work disputes. */}
+                  <button type="button" onClick={openHelpDialog}><Headphones size={15} /> Get Help</button>
                 </div>
               </section>
             )}
@@ -1339,7 +1342,7 @@ function ContentSubmission({
         )}
       </div>
       <button type="button" className="deal-submit" disabled={!canSubmit || submitting} onClick={onSubmit}>
-        <Upload size={17} /> {submitting ? 'Submitting...' : 'Submit Final Delivery'}
+        <Upload size={17} /> {submitting ? 'Submitting...' : 'Submit Delivery'}
       </button>
     </DealCard>
   );

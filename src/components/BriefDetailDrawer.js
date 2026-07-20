@@ -1,4 +1,4 @@
-import { X, Send, Wallet, Clock, Star, Target } from 'lucide-react';
+import { X, Send, Wallet, Clock, Star, Target, Download } from 'lucide-react';
 
 // Full campaign-brief detail drawer. Shared by Browse Campaigns and Saved
 // Campaigns so both open the same view in place instead of redirecting.
@@ -95,6 +95,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       ['Filters/effects', c.avoid_filters ? (c.filter_types_text || 'Avoid') : ''],
       ['Other', c.avoid_text],
     ] },
+    // Mood board renders as a thumbnail gallery below, not as a text row.
     { h: 'Style guidance', rows: [
       ['Tone', listVal(c.tone_tags)],
       ['Pacing', c.pacing],
@@ -115,6 +116,12 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
     ] },
   ].map((s) => ({ ...s, rows: s.rows.filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '') }))
    .filter((s) => s.rows.length);
+
+  // Mood board references the brand uploaded. Legacy campaigns stored bare file
+  // names (never real uploads), so keep only entries that are actual URLs.
+  const moodImages = (Array.isArray(c.mood_images) ? c.mood_images : [])
+    .filter((u) => typeof u === 'string' && (u.startsWith('http') || u.startsWith('/')))
+    .map((u) => (u.startsWith('http') ? u : `${BACKEND_URL}${u}`));
 
   return (
     <div className="bb-drawer-overlay" onClick={onClose}>
@@ -152,6 +159,20 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
             <div className="bb-d-sec">
               <h4><Target size={15} /> Objectives</h4>
               <div className="bb-d-chips">{objectives.map((o, i) => <span key={i}>{o}</span>)}</div>
+            </div>
+          )}
+
+          {moodImages.length > 0 && (
+            <div className="bb-d-sec">
+              <h4>Mood board</h4>
+              <div className="bb-d-mood">
+                {moodImages.map((src, i) => (
+                  <div className="bb-d-moodit" key={`${src}-${i}`}>
+                    <a href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Mood board ${i + 1}`} /></a>
+                    <a href={src} download target="_blank" rel="noreferrer" className="bb-d-dl" aria-label="Download image"><Download size={13} /></a>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -199,6 +220,11 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
         .bb-d-tags{display:flex;flex-wrap:wrap;gap:7px}
         .bb-d-tags span{font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
         .bb-d-sec h4{margin:0 0 9px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
+        .bb-d-mood{display:flex;flex-wrap:wrap;gap:9px}
+        .bb-d-moodit{position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;background:#f1f3fa;border:1px solid #e9ebf4}
+        .bb-d-moodit img{width:100%;height:100%;object-fit:cover;display:block}
+        .bb-d-dl{position:absolute;bottom:5px;right:5px;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:rgba(21,22,58,.72);color:#fff}
+        .bb-d-dl:hover{background:#5b6bff}
         .bb-d-brief{display:flex;flex-direction:column;gap:7px}
         .bb-bl{margin:0;color:#585c7e;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
         .bb-blab{color:#15163a;font-weight:700}

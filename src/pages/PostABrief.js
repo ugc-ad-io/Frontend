@@ -543,54 +543,26 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     set(field, next.length ? next : ['']);   // keep at least one empty input
   };
 
-  // ── Reference media uploads ────────────────────────────────────────────────
-  // Mood images and reference videos are stored as real URLs (not filenames), so
-  // the creator actually SEES the reference in the brief instead of a dead
-  // "photo.jpg" string. Both go through the shared /upload/file endpoint.
+  // ── Reference video upload ─────────────────────────────────────────────────
+  // A reference video row accepts EITHER a pasted link or a real upload, so the
+  // creator gets a playable clip instead of only a third-party URL. Mirrors the
+  // mood-board uploader above and shares the /upload/file endpoint.
   const [uploadingKey, setUploadingKey] = useState('');
 
-  const uploadOne = async (file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const { data } = await axios.post(`${API}/upload/file`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data?.file_url || data?.url || '';
-  };
-
-  // Upload a video into a specific reference-video row (alternative to pasting a link).
   const uploadRefVideo = async (index, file) => {
     if (!file) return;
+    if (file.size > 200 * 1024 * 1024) { toast.error(`${file.name} is too large. Max 200MB.`); return; }
     setUploadingKey(`ref-${index}`);
     try {
-      const url = await uploadOne(file);
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = data.file_url || data.url || '';
       if (!url) throw new Error('No URL returned');
       updateTextItem('referenceVideos', index, url);
       toast.success('Reference video uploaded');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Could not upload that video'));
-    } finally {
-      setUploadingKey('');
-    }
-  };
-
-  const uploadMoodImages = async (fileList) => {
-    const room = 5 - form.moodImages.length;
-    const picked = Array.from(fileList || []).slice(0, Math.max(0, room));
-    if (!picked.length) return;
-    setUploadingKey('mood');
-    try {
-      const urls = [];
-      for (const file of picked) {
-        const url = await uploadOne(file);
-        if (url) urls.push(url);
-      }
-      if (urls.length) {
-        set('moodImages', [...form.moodImages, ...urls]);
-        toast.success(`${urls.length} image${urls.length > 1 ? 's' : ''} uploaded`);
-      }
-    } catch (error) {
-      toast.error(apiErrorMessage(error, 'Could not upload those images'));
     } finally {
       setUploadingKey('');
     }
@@ -1275,7 +1247,11 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   )}
                   <small>{form.moodImages.length}/5 added · click an image to view it full size</small>
                 </div>
-                <div className="form-group"><label>Reference videos (up to 3)</label>{renderTextList('referenceVideos', 3, 'Paste reference video link')}</div>
+                <div className="form-group">
+                  <label>Reference videos (up to 3)</label>
+                  {renderRefVideos(3)}
+                  <small>Paste a link, or upload a video file (max 200MB) — creators see uploaded clips inline.</small>
+                </div>
               </>
             )}
 
@@ -1868,6 +1844,25 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           gap: 8px;
         }
         .brief-list-row input { flex: 1; min-width: 0; }
+        /* Per-row "upload a video instead of a link" control */
+        .brief-list-up {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 42px;
+          padding: 0 13px;
+          border-radius: 11px;
+          background: #EEF0FF;
+          color: #07074e;
+          font-size: 13px;
+          font-weight: 500;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .brief-list-up:hover { background: #e2e6ff; }
+        .brief-list-up.is-busy { opacity: 0.6; cursor: progress; }
+        .brief-list-up input { display: none; }
         .brief-list-inputs button.brief-list-del {
           flex: none;
           width: 42px;

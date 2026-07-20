@@ -754,7 +754,30 @@
 .bc-grid{display:grid;grid-template-columns:repeat(5,minmax(0,215px));gap:36px 28px;justify-content:start}
 @media (max-width:1200px){.bc-grid{grid-template-columns:repeat(4,minmax(0,215px))}}
 @media (max-width:1000px){.bc-grid{grid-template-columns:repeat(3,minmax(0,215px))}}
-@media (max-width:620px){.bc-grid{grid-template-columns:repeat(2,minmax(0,215px))}}
+/* Phone: two ROWS that scroll sideways instead of a tall 2-column column-scroll.
+   grid-auto-flow:column with 2 explicit rows fills top→bottom then moves right, so the
+   same markup becomes a 2-row track — no array splitting and no duplicated cards.
+   BrandCreators drifts it automatically via rAF (see gridRef there); this stays a plain
+   scroller, so swiping still works and it degrades gracefully if the JS bails out. */
+@media (max-width:620px){
+  .bc-grid{
+    grid-auto-flow:column;
+    grid-template-columns:none;
+    grid-template-rows:repeat(2,auto);
+    grid-auto-columns:44vw;
+    gap:18px 14px;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding-bottom:4px;
+  }
+  .bc-grid::-webkit-scrollbar{display:none}
+  /* Cards sit in a fixed-width column here, so let them fill it. */
+  .bc-grid>.bc-card{width:100%}
+  /* No hover lift on touch — it fires on tap and leaves the card stuck raised. */
+  .bc-card:hover .bc-reel{transform:none;box-shadow:none}
+}
 .bc-card{display:flex;flex-direction:column;gap:10px}
 .bc-card .bc-reel{transition:transform .2s ease,box-shadow .2s ease}
 .bc-card:hover .bc-reel{transform:translateY(-5px);box-shadow:var(--shadow-card)}

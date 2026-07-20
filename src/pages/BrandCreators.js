@@ -288,6 +288,49 @@ export default function BrandCreators() {
 
   const openChat = (c) => { setChatWith({ id: c.id, name: nameOf(c).replace('@', ''), photo: c.profile_photo }); };
 
+  // Phone only: the grid becomes a two-row horizontal track (see .bc-grid in
+  // creator-marketplace.css) and drifts on its own. Scrolling the real container —
+  // rather than duplicating the cards into a CSS marquee — keeps ONE <video> per
+  // creator; a duplicated track would double the media on a phone.
+  // It reverses at each end instead of snapping back to 0, so there's no visible jump,
+  // and any touch/drag/wheel pauses it for 3s so it never fights the user.
+  const gridRef = useRef(null);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el || !filtered.length) return undefined;
+    if (!window.matchMedia('(max-width: 620px)').matches) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    let raf; let dir = 1; let paused = false; let resumeTimer;
+    const pause = () => {
+      paused = true;
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { paused = false; }, 3000);
+    };
+    const step = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      if (!paused && max > 1) {
+        el.scrollLeft += 0.45 * dir;          // ~27px/s — slow enough to read
+        if (el.scrollLeft >= max - 1) dir = -1;
+        else if (el.scrollLeft <= 0) dir = 1;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+
+    const opts = { passive: true };
+    el.addEventListener('touchstart', pause, opts);
+    el.addEventListener('wheel', pause, opts);
+    el.addEventListener('pointerdown', pause);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(resumeTimer);
+      el.removeEventListener('touchstart', pause, opts);
+      el.removeEventListener('wheel', pause, opts);
+      el.removeEventListener('pointerdown', pause);
+    };
+  }, [filtered.length]);
+
   return (
     <BrandTopNavLayout>
       <div className="bc-head-row">
@@ -308,7 +351,7 @@ export default function BrandCreators() {
       ) : filtered.length === 0 ? (
         <EmptyState title="No creators found" message="No creators match your current search or filters. Try clearing them to see everyone." />
       ) : (
-        <div className="bc-grid">
+        <div className="bc-grid" ref={gridRef}>
           {filtered.map((c) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={viewProfile} onExpand={setVideoCard} />)}
         </div>
       )}

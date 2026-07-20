@@ -686,16 +686,6 @@
   text-transform: uppercase;
 }
 
-.deal-revision-selectall {
-  border: none;
-  background: none;
-  padding: 0;
-  color: #4f63d8;
-  font-weight: 800;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
-
 .deal-revision-checklist ul {
   list-style: none;
   margin: 0;
@@ -717,26 +707,20 @@
   background: #f2fbf6;
 }
 
-.deal-revision-checklist li label {
+/* Read-only list: the rows carry their own padding now that the tick <label> and
+   checkbox are gone. The check icon only appears on items the brand recorded as
+   accepted, after the creator has responded. */
+.deal-revision-checklist ul.is-readonly li {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 9px;
   padding: 11px 13px;
-  cursor: pointer;
-  margin: 0;
 }
 
-.deal-revision-checklist li input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  margin-top: 1px;
-  accent-color: #067647;
+.deal-revision-checklist ul.is-readonly li > svg {
   flex: 0 0 auto;
-  cursor: pointer;
-}
-
-.deal-revision-checklist li input[type='checkbox']:disabled {
-  cursor: default;
+  margin-top: 2px;
+  color: #067647;
 }
 
 .deal-revision-checklist li span {

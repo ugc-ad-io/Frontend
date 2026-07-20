@@ -1521,34 +1521,13 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
   const responded = revision.creator_response;
   const acceptedAlready = revision.accepted_changes || [];
 
-  // The creator ticks the changes they'll actually do. Default to all ticked (the
-  // common case is "I'll do everything"); unticking one signals it's out of scope,
-  // to be settled by chatting with the brand.
-  const [checked, setChecked] = useState(() => changeItems.map(() => true));
-
-  // changeItems arrives ASYNCHRONOUSLY (the deal list polls every 10s) and changes
-  // when a different deal is selected — but a useState initializer only runs on the
-  // FIRST mount, so `checked` stayed sized for the previous (usually empty) list.
-  // Re-seed it whenever the actual set of requested changes changes.
-  const changeKey = changeItems.join('|');
-  useEffect(() => {
-    setChecked(changeItems.map(() => true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [changeKey]);
-
-  // Read through a defaulted view so a stale/short `checked` can never yield
-  // undefined. Passing checked={undefined} made each box UNCONTROLLED: it rendered
-  // ticked while selectedCount counted 0 ("0/3" with every box green) and the
-  // response posted accepted_changes: [] — the brand was told the creator accepted
-  // nothing. Count, tick state and submitted payload now all read from this.
-  const effChecked = changeItems.map((_, i) => checked[i] ?? true);
-  const toggle = (idx) => setChecked(effChecked.map((v, i) => (i === idx ? !v : v)));
-  const setAll = (value) => setChecked(changeItems.map(() => value));
-
+  // The requested changes are shown READ-ONLY. There used to be a per-item tick list
+  // plus a Select all button, but the tick state was seeded by a useState initializer
+  // that only ran on first mount — so it went stale whenever the deal polled or the
+  // creator switched deals, leaving the boxes rendered ticked while the count said 0.
+  // Accepting is now all-or-nothing: "Accept & revise" agrees to the whole list, and
+  // partial disagreement goes through "Chat with brand" / "beyond the brief".
   const total = changeItems.length;
-  const selectedCount = effChecked.filter(Boolean).length;
-  const acceptedList = changeItems.filter((_, i) => effChecked[i]);
-  const allSelected = total === 0 || selectedCount === total;
 
   return (
     <DealCard className="deal-revisions">
@@ -1564,31 +1543,20 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
 
       <div className="deal-revision-checklist">
         <div className="deal-revision-checklist-head">
-          <small>Requested Changes {total ? `· ${responded ? acceptedAlready.length : selectedCount}/${total}` : ''}</small>
-          {!responded && total > 1 ? (
-            <button type="button" className="deal-revision-selectall" onClick={() => setAll(!allSelected)}>
-              {allSelected ? 'Clear all' : 'Select all'}
-            </button>
-          ) : null}
+          <small>Requested Changes {total ? `· ${total}` : ''}</small>
         </div>
 
         {total ? (
-          <ul>
+          <ul className="is-readonly">
             {changeItems.map((item, idx) => {
+              // After responding, tick the ones the brand recorded as accepted so the
+              // creator can still see what they agreed to.
               const isDone = responded
-                ? acceptedAlready.some((a) => String(a).toLowerCase() === item.toLowerCase())
-                : effChecked[idx];
+                && acceptedAlready.some((a) => String(a).toLowerCase() === item.toLowerCase());
               return (
                 <li key={`${item}-${idx}`} className={isDone ? 'is-checked' : ''}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={isDone}
-                      disabled={Boolean(responded)}
-                      onChange={() => toggle(idx)}
-                    />
-                    <span>{renderChangeText(item)}</span>
-                  </label>
+                  {isDone ? <Check size={15} /> : null}
+                  <span>{renderChangeText(item)}</span>
                 </li>
               );
             })}
@@ -1614,15 +1582,17 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
         </>
       ) : (
         <>
-          <p className="deal-revision-hint">Tick the changes you'll make, then choose how to respond.</p>
+          <p className="deal-revision-hint">Review the requested changes, then choose how to respond.</p>
           <div className="deal-revision-actions">
             <button
               type="button"
               className="is-primary"
-              disabled={!hasRevision || submitting || (total > 0 && selectedCount === 0)}
-              onClick={() => onRevisionResponse('accepted', total ? acceptedList : null)}
+              disabled={!hasRevision || submitting}
+              // Accepting agrees to the WHOLE list — send every item so the brand keeps
+              // a record of exactly what was agreed (rather than an empty array).
+              onClick={() => onRevisionResponse('accepted', total ? changeItems : null)}
             >
-              {submitting ? 'Sending…' : <>Accept &amp; revise{total && !allSelected ? ` (${selectedCount})` : ''}</>}
+              {submitting ? 'Sending…' : 'Accept & revise'}
             </button>
             <button type="button" disabled={!hasRevision} onClick={() => onDiscussWithBrand?.()}>Chat with brand about changes</button>
             <button type="button" disabled={!hasRevision || submitting} onClick={() => onRevisionResponse('scope_creep', [])}>These changes go beyond the brief</button>

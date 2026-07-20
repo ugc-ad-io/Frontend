@@ -147,9 +147,11 @@ export default function BrandWorkReview() {
         ...items.map((it) => `[${it.severity || 'must-fix'}] ${it.description}${it.brief_reference ? ` (ref: ${it.brief_reference})` : ''}`),
         payload.notes ? `\nNotes: ${payload.notes}` : '',
       ].filter(Boolean).join('\n');
+      // Send ONLY `feedback`. `requested_changes` used to carry the same items again
+      // (raw, without severity) and the backend appends both into one string — so the
+      // creator saw every change twice: "[must-fix] new look" AND "new look".
       const { data } = await axios.post(`${API}/deals/${revisionFor}/request-revision`, {
         feedback,
-        requested_changes: items.map((it) => it.description).filter(Boolean),
       });
       // Say so when money actually moved — a bare "Revision requested" hid the debit.
       toast.success(data?.paid

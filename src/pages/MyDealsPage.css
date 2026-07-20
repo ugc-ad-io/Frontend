@@ -915,14 +915,17 @@
   display: block;
 }
 
+/* Slanted, tiled "UGC" watermark across the whole preview — matches .bwr-wm.
+   (Was a single black corner box with a white inner square, which just read as a
+   stray black/white square sitting on the image.) */
 .deal-upload-watermark {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background-repeat: no-repeat;
-  background-position: top 10px right 12px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-position: center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Cg fill='%23ffffff' fill-opacity='0.3' font-family='Arial' font-size='19' font-weight='800' text-anchor='middle'%3E%3Ctext x='45' y='34' transform='rotate(-30 45 34)'%3EUGC%3C/text%3E%3Ctext x='135' y='94' transform='rotate(-30 135 94)'%3EUGC%3C/text%3E%3C/g%3E%3C/svg%3E");
 }
 
 .deal-upload-preview-label {
@@ -938,6 +941,8 @@
   font-weight: 800;
   padding: 6px 11px;
   border-radius: 999px;
+  white-space: nowrap;   /* keep it on one line — it was wrapping down to just "File" */
+  z-index: 3;            /* sit above the watermark layer */
 }
 
 .deal-watermark {

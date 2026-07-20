@@ -1414,7 +1414,10 @@ function toChangeItems(revision) {
       .map((line) => line.replace(/^\s*[-•*\d.)\]]+\s*/, '').trim()) // strip bullet/number prefixes
       .filter(Boolean)
       .forEach((line) => {
-        const key = line.toLowerCase();
+        // Dedup ignoring a leading severity tag: older revisions stored the same
+        // change twice — once tagged ("[must-fix] new look") and once raw ("new
+        // look") — which showed up as two identical-looking rows.
+        const key = line.replace(/^\s*\[[^\]]*\]\s*/, '').toLowerCase();
         if (!seen.has(key)) { seen.add(key); items.push(line); }
       });
   });

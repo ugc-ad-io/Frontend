@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Trash2, RefreshCw, AlertTriangle, Send, MessageSquare } from 'lucide-react';
+import { X, Trash2, RefreshCw, AlertTriangle, Send, MessageSquare, Play, Pause, Maximize2 } from 'lucide-react';
 import { findContactInfo } from './RevisionRequestModal';
 
 /**
@@ -8,10 +8,11 @@ import { findContactInfo } from './RevisionRequestModal';
  * SAME payload as RevisionRequestModal — onSubmit({ items, notes, deadline_at }) —
  * with each item carrying `timestamp_seconds`, so the backend/creator flow is shared.
  *
- * Capped at 5 comments because request_revision() rejects more than 5 items.
+ * No comment limit: one revision round can carry as many notes as the brand needs.
+ * (The 1–5 item cap in request_revision() only guards the structured
+ * /work/{id}/request-revision path; this flow posts a flat `feedback` string via
+ * the deal endpoint, which has no such limit.)
  */
-
-const MAX_ITEMS = 5;
 
 export const fmtTs = (s) => {
   const n = Math.max(0, Math.floor(Number(s) || 0));
@@ -26,14 +27,17 @@ export default function VideoReviewModal({
   const [duration, setDuration] = useState(0);
   const [comments, setComments] = useState([]);
   const [draft, setDraft] = useState('');
-  const [severity, setSeverity] = useState('must-fix');
+  // Every video note is a required change — the brand no longer picks a severity,
+  // but we still tag it so the "[must-fix @ 0:04]" format the creator's checklist
+  // parses stays consistent with the text revision form.
+  const severity = 'must-fix';
   // The moment is captured when typing STARTS, so the note stays pinned to what
   // the brand was looking at even if the video keeps playing while they type.
   const [pinned, setPinned] = useState(null);
   const [notes, setNotes] = useState('');
   const [timeline, setTimeline] = useState('48h');
+  const [playing, setPlaying] = useState(false);
 
-  const atFull = comments.length >= MAX_ITEMS;
   const pinnedAt = pinned ?? now;
 
   const onDraftChange = (value) => {
@@ -43,7 +47,7 @@ export default function VideoReviewModal({
 
   const addComment = () => {
     const text = draft.trim();
-    if (!text || atFull) return;
+    if (!text) return;
     const ts = pinned ?? videoRef.current?.currentTime ?? 0;
     setComments((c) => [...c, {
       id: `${Date.now()}-${c.length}`,
@@ -63,6 +67,28 @@ export default function VideoReviewModal({
     v.currentTime = ts;
     v.pause();
     setNow(ts);
+  };
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) v.play().catch(() => {}); else v.pause();
+  };
+
+  // Click anywhere on the track to jump there.
+  const scrub = (e) => {
+    const v = videoRef.current;
+    if (!v || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    v.currentTime = ratio * duration;
+    setNow(v.currentTime);
+  };
+
+  const goFullscreen = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    (v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen)?.call(v);
   };
 
   const ordered = [...comments].sort((a, b) => a.timestamp_seconds - b.timestamp_seconds);
@@ -98,45 +124,59 @@ export default function VideoReviewModal({
           </div>
 
           <div className="vrm-stage">
+            {/* No native `controls` — they render their own scrub bar, which sat
+                right above ours and looked like two timelines. The custom track
+                below is the single source of truth (and carries the markers). */}
             <video
               ref={videoRef}
               src={src}
-              controls
               playsInline
-              controlsList={watermark ? 'nodownload noremoteplayback' : undefined}
               disablePictureInPicture={watermark}
               onContextMenu={watermark ? (e) => e.preventDefault() : undefined}
+              onClick={togglePlay}
               onTimeUpdate={(e) => setNow(e.target.currentTime)}
               onLoadedMetadata={(e) => setDuration(e.target.duration || 0)}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onEnded={() => setPlaying(false)}
             />
             {watermark && <span className="vrm-wm" aria-hidden="true" />}
           </div>
 
-          {/* Marker track — a dot per pinned comment; click to jump back. */}
-          <div className="vrm-track" aria-hidden={ordered.length === 0}>
-            <div className="vrm-track-bar">
+          {/* The one and only scrub bar: click anywhere to seek, dots are comments. */}
+          <div className="vrm-track">
+            <div className="vrm-track-bar" onClick={scrub} role="slider" tabIndex={0}
+                 aria-label="Seek" aria-valuemin={0} aria-valuemax={Math.floor(duration)} aria-valuenow={Math.floor(now)}>
               <span className="vrm-track-played" style={{ width: duration ? `${(now / duration) * 100}%` : 0 }} />
               {duration > 0 && ordered.map((c, i) => (
                 <button
                   key={c.id}
                   type="button"
-                  className={`vrm-marker ${c.severity === 'must-fix' ? 'must' : 'pref'}`}
+                  className="vrm-marker"
                   style={{ left: `${Math.min(100, (c.timestamp_seconds / duration) * 100)}%` }}
-                  onClick={() => seek(c.timestamp_seconds)}
+                  onClick={(e) => { e.stopPropagation(); seek(c.timestamp_seconds); }}
                   title={`${fmtTs(c.timestamp_seconds)} — ${c.text}`}
                 >
                   {i + 1}
                 </button>
               ))}
             </div>
-            <div className="vrm-track-time">{fmtTs(now)} / {fmtTs(duration)}</div>
+            <div className="vrm-ctrls">
+              <button type="button" className="vrm-play" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
+                {playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+              </button>
+              <span className="vrm-track-time">{fmtTs(now)} / {fmtTs(duration)}</span>
+              <button type="button" className="vrm-full" onClick={goFullscreen} aria-label="Fullscreen">
+                <Maximize2 size={15} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* ── Right: comments ──────────────────────────────────────────── */}
         <div className="vrm-right">
           <div className="vrm-rhead">
-            <span>Comments <b>{comments.length}/{MAX_ITEMS}</b></span>
+            <span>Comments{comments.length > 0 && <b>{comments.length}</b>}</span>
             <button type="button" className="vrm-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
           </div>
 
@@ -166,9 +206,6 @@ export default function VideoReviewModal({
                   {fmtTs(c.timestamp_seconds)}
                 </button>
                 <div className="vrm-c-body">
-                  <span className={`vrm-c-sev ${c.severity === 'must-fix' ? 'must' : 'pref'}`}>
-                    {c.severity === 'must-fix' ? 'Must-fix' : 'Preference'}
-                  </span>
                   <p>{c.text}</p>
                 </div>
                 <button type="button" className="vrm-c-del" onClick={() => removeComment(c.id)} aria-label="Remove comment">
@@ -179,21 +216,16 @@ export default function VideoReviewModal({
           </div>
 
           <div className="vrm-compose">
-            <div className="vrm-sev-row">
-              <button type="button" className={severity === 'must-fix' ? 'on' : ''} onClick={() => setSeverity('must-fix')}>Must-fix</button>
-              <button type="button" className={severity === 'preference' ? 'on' : ''} onClick={() => setSeverity('preference')}>Preference</button>
-            </div>
             <div className="vrm-input">
               <span className="vrm-at">{fmtTs(pinnedAt)}</span>
               <textarea
                 rows={2}
                 value={draft}
-                disabled={atFull}
-                placeholder={atFull ? `Maximum ${MAX_ITEMS} comments reached` : 'At this point I want…'}
+                placeholder="At this point I want…"
                 onChange={(e) => onDraftChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(); } }}
               />
-              <button type="button" className="vrm-send" onClick={addComment} disabled={!draft.trim() || atFull} aria-label="Add comment">
+              <button type="button" className="vrm-send" onClick={addComment} disabled={!draft.trim()} aria-label="Add comment">
                 <Send size={16} />
               </button>
             </div>
@@ -230,11 +262,14 @@ export default function VideoReviewModal({
           .vrm-stage video{max-width:100%;max-height:100%;display:block}
           .vrm-wm{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(-30deg,rgba(255,255,255,.09) 0 2px,transparent 2px 190px)}
           .vrm-track{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.07)}
-          .vrm-track-bar{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.14);margin-bottom:8px}
-          .vrm-track-played{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:#5b6bff}
-          .vrm-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:19px;height:19px;border-radius:50%;border:2px solid #0b0d18;color:#fff;font-size:10px;font-weight:800;cursor:pointer;display:grid;place-items:center;padding:0}
-          .vrm-marker.must{background:#e5484d}
-          .vrm-marker.pref{background:#f5a524}
+          .vrm-track-bar{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.14);margin-bottom:10px;cursor:pointer}
+          .vrm-track-bar::before{content:'';position:absolute;inset:-9px 0;}/* bigger click target */
+          .vrm-track-played{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:#5b6bff;pointer-events:none}
+          .vrm-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:19px;height:19px;border-radius:50%;border:2px solid #0b0d18;background:#e5484d;color:#fff;font-size:10px;font-weight:800;cursor:pointer;display:grid;place-items:center;padding:0;z-index:1}
+          .vrm-ctrls{display:flex;align-items:center;gap:12px}
+          .vrm-play,.vrm-full{border:none;background:rgba(255,255,255,.09);color:#e8eaf6;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center;flex:none}
+          .vrm-play:hover,.vrm-full:hover{background:rgba(255,255,255,.18)}
+          .vrm-full{margin-left:auto}
           .vrm-track-time{color:#8b90b5;font-size:12px;font-variant-numeric:tabular-nums}
           .vrm-right{width:370px;flex:none;display:flex;flex-direction:column;background:#141728;border-left:1px solid rgba(255,255,255,.07)}
           .vrm-rhead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;color:#e8eaf6;font-size:14px;border-bottom:1px solid rgba(255,255,255,.07)}
@@ -254,16 +289,12 @@ export default function VideoReviewModal({
           .vrm-c-ts{flex:none;border:none;background:rgba(91,107,255,.2);color:#a5b0ff;font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums}
           .vrm-c-ts:hover{background:rgba(91,107,255,.34);color:#fff}
           .vrm-c-body{flex:1;min-width:0}
-          .vrm-c-sev{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:5px;margin-bottom:4px}
-          .vrm-c-sev.must{background:rgba(229,72,77,.18);color:#ff8085}
-          .vrm-c-sev.pref{background:rgba(245,165,36,.18);color:#f5a524}
           .vrm-c-body p{margin:0;color:#dfe2f5;font-size:13px;line-height:1.45;word-break:break-word}
           .vrm-c-del{flex:none;border:none;background:none;color:#6f74a0;cursor:pointer;padding:2px}
           .vrm-c-del:hover{color:#e5484d}
           .vrm-compose{border-top:1px solid rgba(255,255,255,.07);padding:12px 16px 14px}
-          .vrm-sev-row{display:flex;gap:6px;margin-bottom:8px}
-          .vrm-sev-row button,.vrm-time button{border:1px solid rgba(255,255,255,.12);background:transparent;color:#9ba0c9;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
-          .vrm-sev-row button.on,.vrm-time button.on{background:rgba(91,107,255,.22);border-color:#5b6bff;color:#c3caff}
+          .vrm-time button{border:1px solid rgba(255,255,255,.12);background:transparent;color:#9ba0c9;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+          .vrm-time button.on{background:rgba(91,107,255,.22);border-color:#5b6bff;color:#c3caff}
           .vrm-input{display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:8px}
           .vrm-input:focus-within{border-color:#5b6bff}
           .vrm-at{flex:none;background:rgba(245,165,36,.18);color:#f5a524;font-size:11.5px;font-weight:800;padding:3px 7px;border-radius:6px;font-variant-numeric:tabular-nums;margin-top:2px}

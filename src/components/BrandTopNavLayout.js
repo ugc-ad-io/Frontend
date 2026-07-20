@@ -201,6 +201,20 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                       </button>
                     )
                 ))}
+                <div className="cmk-sep" />
+                {ACCOUNT_LINKS.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (item.action === 'help') openHelpDialog();
+                      else navigate(item.to);
+                    }}
+                  >
+                    <item.icon size={18} /> {item.name}
+                  </button>
+                ))}
                 <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
               </div>
             )}
@@ -219,6 +233,19 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
             <div className="cmk-sep" />
             {MENU_LINKS.filter((i) => !i.sep).map((item) => (
               <button key={item.name} type="button" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
+                <item.icon size={18} /> {item.name}
+              </button>
+            ))}
+            {ACCOUNT_LINKS.map((item) => (
+              <button
+                key={item.name}
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  if (item.action === 'help') openHelpDialog();
+                  else navigate(item.to);
+                }}
+              >
                 <item.icon size={18} /> {item.name}
               </button>
             ))}

@@ -298,37 +298,58 @@ export default function BrandCreators() {
   useEffect(() => {
     const el = gridRef.current;
     if (!el || !filtered.length) return undefined;
-    if (!window.matchMedia('(max-width: 620px)').matches) return undefined;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    // Kept as live queries (not one-shot checks) so start()/stop() can react when the
+    // viewport crosses the breakpoint — an early return here would freeze it at mount.
+    const mq = window.matchMedia('(max-width: 620px)');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    let raf; let dir = 1; let paused = false; let resumeTimer;
-    const pause = () => {
-      paused = true;
-      clearTimeout(resumeTimer);
-      resumeTimer = setTimeout(() => { paused = false; }, 3000);
-    };
+    let raf = 0; let dir = 1; let paused = false; let resumeTimer;
+    let pos = 0;   // our own sub-pixel position — see the note in step()
+
     const step = () => {
       const max = el.scrollWidth - el.clientWidth;
       if (!paused && max > 1) {
-        el.scrollLeft += 0.45 * dir;          // ~27px/s — slow enough to read
-        if (el.scrollLeft >= max - 1) dir = -1;
-        else if (el.scrollLeft <= 0) dir = 1;
+        pos += 0.45 * dir;                    // ~27px/s — slow enough to read
+        if (pos >= max) { pos = max; dir = -1; }
+        else if (pos <= 0) { pos = 0; dir = 1; }
+        // Assign from the float accumulator, never `el.scrollLeft += n`. Reading
+        // scrollLeft back rounds to whole pixels, so a 0.45 step would round away
+        // to 0 every frame and the track would sit still.
+        el.scrollLeft = pos;
       }
       raf = requestAnimationFrame(step);
     };
-    raf = requestAnimationFrame(step);
+    const pause = () => {
+      paused = true;
+      clearTimeout(resumeTimer);
+      // Resync to wherever the user left it, or we'd snap back on resume.
+      resumeTimer = setTimeout(() => { pos = el.scrollLeft; paused = false; }, 3000);
+    };
 
     const opts = { passive: true };
-    el.addEventListener('touchstart', pause, opts);
-    el.addEventListener('wheel', pause, opts);
-    el.addEventListener('pointerdown', pause);
-    return () => {
-      cancelAnimationFrame(raf);
+    const start = () => {
+      if (raf || !mq.matches || reduce.matches) return;
+      pos = el.scrollLeft;
+      el.addEventListener('touchstart', pause, opts);
+      el.addEventListener('wheel', pause, opts);
+      el.addEventListener('pointerdown', pause);
+      raf = requestAnimationFrame(step);
+    };
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
       clearTimeout(resumeTimer);
       el.removeEventListener('touchstart', pause, opts);
       el.removeEventListener('wheel', pause, opts);
       el.removeEventListener('pointerdown', pause);
     };
+    // Crossing the 620px breakpoint has to start/stop it — otherwise resizing into
+    // phone width (or rotating) leaves the track dead until a remount.
+    const onChange = () => { stop(); start(); };
+
+    start();
+    mq.addEventListener('change', onChange);
+    return () => { stop(); mq.removeEventListener('change', onChange); };
   }, [filtered.length]);
 
   return (

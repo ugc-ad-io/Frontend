@@ -649,18 +649,23 @@
   margin: 0;
 }
 
+/* Type scale for this card — everything used to sit at 650-900, so nothing stood
+   out. Now: 800 heading · 700 badges/primary · 600 labels · 500 body copy. */
 .deal-revision-meta small {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11.5px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: #9f9fd1;
 }
 
+/* The brand's feedback is a paragraph to READ, not a heading — keep it light and
+   let the [must-fix @ 0:31] chips inside it carry the emphasis. */
 .deal-revision-meta strong {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #334155;
 }
 
 .deal-revision-checklist {
@@ -681,8 +686,9 @@
 
 .deal-revision-checklist-head small {
   color: #9f9fd1;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -724,10 +730,10 @@
 }
 
 .deal-revision-checklist li span {
-  color: #23306b;
-  font-weight: 650;
+  color: #334155;
+  font-weight: 500;
   font-size: 0.9rem;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .deal-revision-checklist li.is-checked span {
@@ -763,7 +769,7 @@
 .deal-revision-hint {
   margin: 14px 0 0;
   color: #667085;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 0.84rem;
 }
 

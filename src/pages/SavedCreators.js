@@ -47,6 +47,11 @@ export default function SavedCreators() {
               <button type="button" className="scr-save" onClick={(e) => unsave(e, c)} aria-label="Remove from saved" title="Saved">
                 <Bookmark size={16} fill="currentColor" />
               </button>
+              {/* Banner strip — falls back to the brand gradient for older saves
+                  that were bookmarked before banners were captured. */}
+              <span className="scr-banner">
+                {c.banner ? <img src={resolvePhoto(c.banner)} alt="" /> : null}
+              </span>
               <span className="scr-ava">
                 {c.photo ? <img src={resolvePhoto(c.photo)} alt="" /> : getInitial(c.name)}
               </span>
@@ -71,14 +76,18 @@ export default function SavedCreators() {
       <style>{`
         .scr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
         .scr-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
-          padding: 22px 20px; border-radius: 18px; background: #fff; border: 1px solid #eceefb;
+          padding: 0 20px 22px; border-radius: 18px; background: #fff; border: 1px solid #eceefb; overflow: hidden;
           box-shadow: 0 14px 34px -20px rgba(15,22,58,.28); cursor: pointer; transition: .18s; }
         .scr-card:hover { transform: translateY(-3px); border-color: #d6dbff; box-shadow: 0 22px 44px -22px rgba(15,22,58,.4); }
-        .scr-save { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%;
-          border: 1px solid #d6dbff; background: #eef0ff; color: #4452f0; cursor: pointer; display: grid; place-items: center; }
-        .scr-save:hover { background: #e2e5ff; }
+        .scr-save { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%; z-index: 2;
+          border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.92); color: #4452f0; cursor: pointer; display: grid; place-items: center; }
+        .scr-save:hover { background: #fff; }
+        .scr-banner { display: block; width: calc(100% + 40px); margin: 0 -20px; height: 78px; overflow: hidden;
+          background: linear-gradient(120deg,#5b6bff,#23236a); }
+        .scr-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .scr-ava { width: 62px; height: 62px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
-          background: linear-gradient(135deg,#5b6bff,#4452f0); color: #fff; font-weight: 800; font-size: 22px; margin-bottom: 8px; }
+          background: linear-gradient(135deg,#5b6bff,#4452f0); color: #fff; font-weight: 800; font-size: 22px;
+          margin: -32px 0 8px; border: 3px solid #fff; box-sizing: border-box; }
         .scr-ava img { width: 100%; height: 100%; object-fit: cover; }
         .scr-name { font-family: var(--font-head,'Plus Jakarta Sans',sans-serif); font-size: 17px; color: #15163a; }
         .scr-id { font-size: 11.5px; color: #9296ba; font-weight: 600; }

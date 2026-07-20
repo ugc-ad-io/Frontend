@@ -715,7 +715,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     className={`cpm-save ${saved ? 'is-saved' : ''}`}
                     onClick={() => {
                       const now = toggleSavedCreator({
-                        id: id || data?.id, name, public_creator_id: publicId, photo: avatar,
+                        id: id || data?.id, name, public_creator_id: publicId, photo: avatar, banner,
                         category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
                         deliverables, delivery: hlDelivery,
                       });

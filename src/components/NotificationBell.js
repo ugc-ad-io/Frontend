@@ -428,9 +428,25 @@ const NotificationBell = () => {
         }
 
         @media (max-width: 768px) {
+          /* Anchor to the viewport instead of the ~42px bell wrapper, so the
+             panel can never hang off the left edge of the screen. */
           .notification-dropdown {
-            width: 90vw;
-            right: -50%;
+            position: fixed;
+            top: 64px;
+            right: 10px;
+            left: 10px;
+            width: auto;
+            margin-top: 0;
+            max-height: calc(100vh - 84px);
+          }
+
+          .notification-list {
+            max-height: calc(100vh - 148px);
+          }
+
+          .notification-item {
+            padding: 14px 12px;
+            gap: 10px;
           }
         }
       `}</style>

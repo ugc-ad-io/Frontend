@@ -192,16 +192,8 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
 
             {menuOpen && (
               <div className="cmk-menu">
-                {MENU_LINKS.map((item, i) => (
-                  item.sep
-                    ? <div key={`sep-${i}`} className="cmk-sep" />
-                    : (
-                      <button key={item.name} type="button" onClick={() => { setMenuOpen(false); navigate(item.to); }}>
-                        <item.icon size={18} /> {item.name}
-                      </button>
-                    )
-                ))}
-                <div className="cmk-sep" />
+                {/* Only account-level entries here — the rail already lists Saved
+                    Creators / Creator Bids / Sent Briefs / Shipments / Wallet. */}
                 {ACCOUNT_LINKS.map((item) => (
                   <button
                     key={item.name}

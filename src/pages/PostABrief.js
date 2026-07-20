@@ -1086,16 +1086,14 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
                 <div className="form-group">
                   <label>What are you promoting? *</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginTop: 4 }}>
+                  <div className="pab-type-grid">
                     {PRODUCT_TYPES.map(pt => {
                       const on = form.productType === pt.value;
                       return (
                         <button type="button" key={pt.value} onClick={() => set('productType', pt.value)}
-                          style={{ textAlign: 'left', padding: '11px 13px', borderRadius: 12, cursor: 'pointer',
-                            border: on ? '1.5px solid #07074e' : '1.5px solid #e5e8fb',
-                            background: on ? '#f2f3ff' : '#fff', color: '#15163a', fontFamily: 'inherit' }}>
-                          <strong style={{ display: 'block', fontSize: 13.5 }}>{pt.label}</strong>
-                          <small style={{ color: '#8a90a6', fontSize: 11.5 }}>{pt.hint}</small>
+                          className={`pab-type-card${on ? ' on' : ''}`}>
+                          <strong>{pt.label}</strong>
+                          <small>{pt.hint}</small>
                         </button>
                       );
                     })}
@@ -1488,7 +1486,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         }
 
         @media (max-width: 980px) {
-          .brief-builder-page { grid-template-columns: 1fr; }
+          .brief-builder-page { grid-template-columns: minmax(0, 1fr); }
           .brief-stepper .stepper-track { flex-direction: row; overflow-x: auto; padding: 14px; border-radius: 18px; justify-content: flex-start; }
           .brief-stepper .stepper-track::after { display: none; }
           .brief-step { display: flex; flex-direction: column; gap: 8px; min-width: 104px; text-align: center; padding: 8px; }
@@ -1528,8 +1526,79 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           color: #4338ca;
         }
 
+        .pab-type-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 10px;
+          margin-top: 4px;
+        }
+
+        .pab-type-card {
+          text-align: left;
+          padding: 11px 13px;
+          border-radius: 12px;
+          cursor: pointer;
+          border: 1.5px solid #e5e8fb;
+          background: #fff;
+          color: #15163a;
+          font-family: inherit;
+        }
+
+        .pab-type-card.on { border-color: #07074e; background: #f2f3ff; }
+        .pab-type-card strong { display: block; font-size: 13.5px; }
+        .pab-type-card small { color: #8a90a6; font-size: 11.5px; }
+
         @media (max-width: 1280px) {
           .brief-body { grid-template-columns: 1fr; }
+        }
+
+        /* ---- Mobile (must stay after the desktop rules above so it wins) ---- */
+        @media (max-width: 640px) {
+          /* minmax(0,..) not 1fr — plain 1fr lets the wide tab row/stepper
+             stretch the column past the viewport instead of scrolling. */
+          .brief-builder-page { grid-template-columns: minmax(0, 1fr); }
+          .brief-panel, .step-content, .pab-tabs { min-width: 0; max-width: 100%; }
+
+          /* Purple stepper becomes a compact horizontal scroller */
+          .brief-stepper .stepper-track {
+            padding: 12px 10px;
+            gap: 4px;
+            border-radius: 16px;
+          }
+          .brief-step {
+            min-width: 76px;
+            padding: 6px 4px;
+            gap: 6px;
+          }
+          .brief-step small { font-size: 11.5px; text-align: center; }
+          .brief-step span { width: 30px; height: 30px; font-size: 13px; }
+
+          .brief-panel { padding: 18px 14px; }
+
+          /* Tab row: let it scroll instead of pushing the page wide */
+          .pab-tabs {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            margin-bottom: 14px;
+          }
+          .pab-tabs-row {
+            width: 100%;
+            gap: 18px;
+            -webkit-overflow-scrolling: touch;
+          }
+          .pab-tab { font-size: 13px; padding: 11px 2px; }
+
+          .step-header h2 { font-size: 22px; }
+
+          /* Two-column field rows stack */
+          .form-row { grid-template-columns: 1fr; }
+
+          /* One promoting-type card per row so text never clips */
+          .pab-type-grid { grid-template-columns: 1fr; }
+
+          .pab-img-preview { height: 120px; }
+          .pab-img-empty { padding: 18px 12px; }
         }
 
         .brief-body {

@@ -1493,6 +1493,25 @@ function toChangeItems(revision) {
   return items;
 }
 
+// A change can arrive tagged as "[must-fix @ 0:04] Re-shoot the intro" when the
+// brand reviewed on the video. Render the severity + the pinned moment as chips
+// instead of leaving the raw bracket text in the creator's checklist.
+const CHANGE_TAG_RE = /^\s*\[([^\]@]+?)(?:\s*@\s*(\d+:\d{2}))?\]\s*/;
+function renderChangeText(line) {
+  const m = String(line).match(CHANGE_TAG_RE);
+  if (!m) return line;
+  const [, severity, timestamp] = m;
+  const rest = String(line).slice(m[0].length);
+  const sev = (severity || '').trim().toLowerCase();
+  return (
+    <>
+      {timestamp && <span className="deal-chg-ts" title="Moment in your video">{timestamp}</span>}
+      {sev && <span className={`deal-chg-sev ${sev === 'must-fix' ? 'must' : 'pref'}`}>{sev === 'must-fix' ? 'Must-fix' : 'Preference'}</span>}
+      {rest}
+    </>
+  );
+}
+
 function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBrand, onEscalate }) {
   const revision = deal?.revision_tracker || {};
   const changeItems = toChangeItems(revision);
@@ -1551,7 +1570,7 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
                       disabled={Boolean(responded)}
                       onChange={() => toggle(idx)}
                     />
-                    <span>{item}</span>
+                    <span>{renderChangeText(item)}</span>
                   </label>
                 </li>
               );

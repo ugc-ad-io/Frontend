@@ -5,11 +5,12 @@ import { toast } from 'sonner';
 import {
   SlidersHorizontal, MessageSquare, FileText, Download, Play, Clock, Calendar,
   FileVideo, CheckCircle2, Hourglass, RefreshCw, ListChecks, MoreHorizontal,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, MessageSquarePlus,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import RevisionRequestModal from '../components/RevisionRequestModal';
+import VideoReviewModal, { fmtTs } from '../components/VideoReviewModal';
 import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -66,6 +67,7 @@ export default function BrandWorkReview() {
   const [perPage, setPerPage] = useState(10);
   const [videoModal, setVideoModal] = useState(null);
   const [revisionFor, setRevisionFor] = useState(null);
+  const [videoReviewFor, setVideoReviewFor] = useState(null);   // { src, title, watermark }
   const [reviewFor, setReviewFor] = useState(null);   // row awaiting a post-approval rating
   const [trackers, setTrackers] = useState({});   // campaignId -> revision_tracker
   const [revSubmitting, setRevSubmitting] = useState(false);
@@ -160,6 +162,14 @@ export default function BrandWorkReview() {
     }
   };
   const requestRevision = (id) => setRevisionFor(id);
+  // Timestamped video review. Sets `revisionFor` too so submitRevision() (shared
+  // with the text form) posts against the same work item.
+  const openVideoReview = (it) => {
+    const f = it.files.find((x) => isVideo(assetUrl(x)));
+    if (!f) { toast.error('No video on this submission to review'); return; }
+    setRevisionFor(it.id);
+    setVideoReviewFor({ src: assetUrl(f), title: it.title, watermark: it.status !== 'approved' });
+  };
   const submitRevision = async (payload) => {
     if (!revisionFor) return;
     setRevSubmitting(true);
@@ -167,9 +177,16 @@ export default function BrandWorkReview() {
       // The modal produces structured { items, notes, deadline_at }; the deal
       // endpoint takes { feedback, requested_changes }. Flatten the items into a
       // readable feedback string so nothing is lost.
+      // This deal endpoint only accepts a flat `feedback` string (it never receives
+      // the structured items), so a video comment's timestamp must be baked INTO
+      // the line or it's lost. Format matches _fmt_video_ts() on the server:
+      //   "[must-fix @ 0:04] Re-shoot the intro"
       const items = payload.items || [];
       const feedback = [
-        ...items.map((it) => `[${it.severity || 'must-fix'}] ${it.description}${it.brief_reference ? ` (ref: ${it.brief_reference})` : ''}`),
+        ...items.map((it) => {
+          const ts = Number.isFinite(it.timestamp_seconds) ? ` @ ${fmtTs(it.timestamp_seconds)}` : '';
+          return `[${it.severity || 'must-fix'}${ts}] ${it.description}${it.brief_reference ? ` (ref: ${it.brief_reference})` : ''}`;
+        }),
         payload.notes ? `\nNotes: ${payload.notes}` : '',
       ].filter(Boolean).join('\n');
       // Send ONLY `feedback`. `requested_changes` used to carry the same items again
@@ -183,6 +200,7 @@ export default function BrandWorkReview() {
         ? `Revision requested — ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
         : 'Revision requested');
       setRevisionFor(null);
+      setVideoReviewFor(null);
       await load();
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Failed to request revision');
@@ -304,6 +322,10 @@ export default function BrandWorkReview() {
                       <>
                         <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> Approve</button>
                         <button type="button" className="bwr-btn" onClick={() => requestRevision(it.id)}><RefreshCw size={16} /> Request Revision</button>
+                        {/* Timestamped review — only meaningful when there's a video to scrub. */}
+                        {it.files.some((f) => isVideo(assetUrl(f))) && (
+                          <button type="button" className="bwr-btn" onClick={() => openVideoReview(it)}><MessageSquarePlus size={16} /> Review on Video</button>
+                        )}
                       </>
                     )}
                     {it.status === 'revision_requested' && (
@@ -344,9 +366,24 @@ export default function BrandWorkReview() {
           onSubmit={submitReview}
         />
       )}
-      {revisionFor && (
+      {/* Both flows post via submitRevision and share `revisionFor`, so the text
+          form must stand down while the video review is open. */}
+      {revisionFor && !videoReviewFor && (
         <RevisionRequestModal
           onClose={() => setRevisionFor(null)}
+          onSubmit={submitRevision}
+          submitting={revSubmitting}
+          freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
+          nextFee={trackers[String(revisionFor)]?.next_revision_fee}
+        />
+      )}
+
+      {videoReviewFor && (
+        <VideoReviewModal
+          src={videoReviewFor.src}
+          title={videoReviewFor.title}
+          watermark={videoReviewFor.watermark}
+          onClose={() => { setVideoReviewFor(null); setRevisionFor(null); }}
           onSubmit={submitRevision}
           submitting={revSubmitting}
           freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}

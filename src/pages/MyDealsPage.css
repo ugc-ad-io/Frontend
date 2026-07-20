@@ -756,6 +756,26 @@
   font-weight: 650;
 }
 
+/* Chips on a requested change: the moment in the video it refers to, and how
+   hard a requirement it is. Set by the brand's timestamped video review. */
+.deal-chg-ts,
+.deal-chg-sev {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+.deal-chg-ts {
+  background: #eef0ff;
+  color: #4452f0;
+  font-variant-numeric: tabular-nums;
+}
+.deal-chg-sev.must { background: #fdecec; color: #c0392b; }
+.deal-chg-sev.pref { background: #fff4e0; color: #b26a00; }
+
 .deal-revision-hint {
   margin: 14px 0 0;
   color: #667085;

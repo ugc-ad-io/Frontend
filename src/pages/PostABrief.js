@@ -594,6 +594,23 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     setStep(Math.min(8, step + 1));
   };
 
+  // Jump straight to a step from the sidebar. Going back is always allowed; jumping
+  // forward requires every step in between to be complete (same rule as Next), so
+  // the wizard can't be skipped past a half-filled step.
+  const goToStep = (target) => {
+    if (target === step) return;
+    if (target < step) { setStep(target); return; }
+    for (let s = step; s < target; s += 1) {
+      const issues = stepIssues(s);
+      if (issues.length) {
+        toast.error(`Complete step ${s} first: ${issues.join(', ')}`);
+        setStep(s);
+        return;
+      }
+    }
+    setStep(target);
+  };
+
   const saveDraft = async () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
     if (savingDraft) return;
@@ -940,7 +957,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             const active = step === number;
             const done = step > number;
             return (
-              <button key={label} type="button" className={`brief-step ${active ? 'active' : ''} ${done ? 'done' : ''}`} onClick={() => done && setStep(number)}>
+              <button key={label} type="button" className={`brief-step ${active ? 'active' : ''} ${done ? 'done' : ''}`} onClick={() => goToStep(number)}>
                 <span>{done ? <Check size={15} /> : number}</span>
                 <small>{label}</small>
               </button>

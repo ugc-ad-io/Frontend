@@ -743,7 +743,26 @@
 .deal-revision-empty {
   margin: 0;
   color: #667085;
-  font-weight: 650;
+  font-weight: 500;
+}
+
+/* Scoped to this card so the rest of the deal page keeps its existing weights.
+   The subtitle ("Revision 1 of 2 used") was 780 — heavier than most body copy —
+   and the action buttons were 850, which made every control shout. */
+.deal-revisions .deal-section-title h2 {
+  font-weight: 800;
+}
+
+.deal-revisions .deal-section-title p {
+  font-weight: 500;
+}
+
+.deal-revisions .deal-revision-actions button {
+  font-weight: 600;
+}
+
+.deal-revisions .deal-revision-actions button.is-primary {
+  font-weight: 700;
 }
 
 /* Chips on a requested change: the moment in the video it refers to, and how

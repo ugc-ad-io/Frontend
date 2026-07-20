@@ -196,8 +196,7 @@ export default function VideoReviewModal({
           <div className="vrm-list">
             {ordered.length === 0 ? (
               <div className="vrm-empty">
-                <MessageSquare size={30} />
-                <p>No comments yet</p>
+                <p><MessageSquare size={17} /> No comments yet</p>
                 <small>Play the video, pause where you want a change, and type below — your note is pinned to that moment.</small>
               </div>
             ) : ordered.map((c) => (
@@ -289,7 +288,7 @@ export default function VideoReviewModal({
           .vrm-warn svg{flex:none;margin-top:1px}
           .vrm-list{flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
           .vrm-empty{margin:auto;text-align:center;color:#6f74a0;padding:20px}
-          .vrm-empty p{margin:10px 0 4px;color:#9ba0c9;font-weight:600;font-size:14px}
+          .vrm-empty p{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 6px;color:#9ba0c9;font-weight:600;font-size:14px}
           .vrm-empty small{font-size:12px;line-height:1.5;display:block}
           .vrm-c{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:10px}
           .vrm-c-ts{flex:none;border:none;background:rgba(91,107,255,.2);color:#a5b0ff;font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums}

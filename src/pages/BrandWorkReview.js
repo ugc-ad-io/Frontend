@@ -10,6 +10,7 @@ import {
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import RevisionRequestModal from '../components/RevisionRequestModal';
+import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 
@@ -130,9 +131,32 @@ export default function BrandWorkReview() {
   // instead of /work/{workId}/... (which expects a work_submission id and 404s).
   const approve = async (id) => {
     if (busy.current) return; busy.current = true;
-    try { await axios.post(`${API}/deals/${id}/approve`); toast.success('Approved — payment released to the creator'); await load(); }
+    // Capture the row BEFORE load() replaces the list — we need creatorId/name for the
+    // rating prompt, and after the reload this row's status has flipped to 'approved'.
+    const it = items.find((i) => i.id === id);
+    try {
+      await axios.post(`${API}/deals/${id}/approve`);
+      toast.success('Approved — payment released to the creator');
+      await load();
+      // Ask for a rating right after approval. This tab used to approve silently — only
+      // the standalone /work-review/:id page prompted — so brands approving from here
+      // were never asked to review the creator.
+      if (it?.creatorId) setReviewFor(it);
+    }
     catch { toast.error('Failed to approve'); }
     finally { busy.current = false; }
+  };
+
+  const submitReview = async ({ rating, review }) => {
+    try {
+      await axios.post(`${API}/reviews`, {
+        campaign_id: reviewFor.id, creator_id: reviewFor.creatorId, rating, review,
+      });
+      toast.success('Review submitted — thanks for the feedback!');
+      setReviewFor(null);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Could not submit your review');
+    }
   };
   const requestRevision = (id) => setRevisionFor(id);
   const submitRevision = async (payload) => {

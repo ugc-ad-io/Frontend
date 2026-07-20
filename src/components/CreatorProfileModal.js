@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
 import { creatorName, brandName, creatorFirstName } from '../utils/displayName';
-import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star } from 'lucide-react';
+import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star, BadgeCheck } from 'lucide-react';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
@@ -732,7 +732,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             )}
           </div>
 
-          <h2 className="cpm-name">{(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}</h2>
+          <h2 className="cpm-name">
+            {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
+            {/* Identity verified — admin-approved KYC. Tells brands this is a real,
+                verified person. Only the boolean reaches the client. */}
+            {data?.kyc_verified && (
+              <span className="cpm-verified" title="Identity verified (KYC)">
+                <BadgeCheck size={17} /> Verified
+              </span>
+            )}
+          </h2>
           <div className="cpm-id">ID: {publicId}{(city || country) ? ` · ${[city, country].filter(Boolean).join(', ')}` : ''}</div>
 
           <div className="cpm-stats">
@@ -1018,7 +1027,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-save{width:44px;height:44px;border-radius:50%;border:1px solid #e6e8f3;background:#fff;color:#585c7e;cursor:pointer;display:grid;place-items:center}
         .cpm-save:hover{border-color:#cdd4ff;color:#4452f0}
         .cpm-save.is-saved{background:#eef0ff;border-color:#cdd4ff;color:#4452f0}
-        .cpm-name{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:25px;font-weight:800;color:#15163a;margin:12px 0 2px}
+        .cpm-name{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:25px;font-weight:800;color:#15163a;margin:12px 0 2px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .cpm-verified{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body,inherit);font-size:12.5px;font-weight:700;
+          color:#15803d;background:#e7f7ef;border:1px solid #b7e4cd;padding:4px 10px;border-radius:999px}
         .cpm-id{color:#9296ba;font-size:13px;font-weight:600}
         .cpm-stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px}
         .cpm-stats span{color:#9296ba;font-size:12.5px;font-weight:600}

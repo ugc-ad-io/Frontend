@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff } from 'lucide-react';
+import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
@@ -148,6 +148,10 @@ function ReelCard({ c, onView, onExpand }) {
         <button type="button" className="bc-name bc-name-btn" onClick={() => onView(c)}>
           <span className="bc-name-top">
             <strong>{fullName}</strong>
+            {/* Identity verified (admin-approved KYC) — a real, verified person. */}
+            {c.kyc_verified && (
+              <span className="bc-verified" title="Identity verified (KYC)"><BadgeCheck size={14} /></span>
+            )}
             <span className={`bc-cat ${catClass(category)}`}>{category}</span>
           </span>
           <small className="bc-price-txt">{priceText}</small>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { toast } from 'sonner';
 import { Bookmark, MapPin } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -8,18 +9,50 @@ import EmptyState from '../components/EmptyState';
 import { getSavedCreators, toggleSavedCreator } from '../utils/savedCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'C').replace('@', '').trim().charAt(0).toUpperCase();
 const resolvePhoto = (p) => (p ? (p.startsWith('http') ? p : `${BACKEND_URL}${p}`) : '');
 
 export default function SavedCreators() {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(() => getSavedCreators());
+  // Live photo/banner per creator id. The saved record is a one-time snapshot, so
+  // creators bookmarked before they had a photo/banner (or who changed theirs
+  // since) rendered the gradient + initial forever. Re-fetch the real profile and
+  // let it win over the stored copy.
+  const [live, setLive] = useState({});
 
   useEffect(() => {
     const sync = () => setSaved(getSavedCreators());
     window.addEventListener('ugc-saved-creators-changed', sync);
     return () => window.removeEventListener('ugc-saved-creators-changed', sync);
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const ids = saved.map((c) => c.id).filter(Boolean);
+    if (!ids.length) return undefined;
+    Promise.all(
+      ids.map((id) =>
+        axios.get(`${API}/profile/${id}`)
+          .then((r) => [id, r.data])
+          .catch(() => [id, null])
+      )
+    ).then((pairs) => {
+      if (!alive) return;
+      const next = {};
+      pairs.forEach(([id, d]) => {
+        if (!d) return;
+        const p = d.profile || {};
+        next[id] = {
+          photo: d.profile_photo || p.profile_photo || '',
+          banner: d.banner || p.banner || '',
+        };
+      });
+      setLive((cur) => ({ ...cur, ...next }));
+    });
+    return () => { alive = false; };
+  }, [saved]);
 
   const unsave = (e, c) => {
     e.stopPropagation();
@@ -47,14 +80,23 @@ export default function SavedCreators() {
               <button type="button" className="scr-save" onClick={(e) => unsave(e, c)} aria-label="Remove from saved" title="Saved">
                 <Bookmark size={16} fill="currentColor" />
               </button>
-              {/* Banner strip — falls back to the brand gradient for older saves
-                  that were bookmarked before banners were captured. */}
-              <span className="scr-banner">
-                {c.banner ? <img src={resolvePhoto(c.banner)} alt="" /> : null}
-              </span>
-              <span className="scr-ava">
-                {c.photo ? <img src={resolvePhoto(c.photo)} alt="" /> : getInitial(c.name)}
-              </span>
+              {/* Prefer the LIVE profile image over the saved snapshot, so a
+                  creator who added/changed a photo or banner after being saved
+                  still renders. Falls back to the brand gradient + initial. */}
+              {(() => {
+                const banner = live[c.id]?.banner || c.banner;
+                const photo = live[c.id]?.photo || c.photo;
+                return (
+                  <>
+                    <span className="scr-banner">
+                      {banner ? <img src={resolvePhoto(banner)} alt="" /> : null}
+                    </span>
+                    <span className="scr-ava">
+                      {photo ? <img src={resolvePhoto(photo)} alt="" /> : getInitial(c.name)}
+                    </span>
+                  </>
+                );
+              })()}
               <strong className="scr-name">{String(c.name || 'Creator').replace('@', '')}</strong>
               {c.public_creator_id && <span className="scr-id">ID: {c.public_creator_id}</span>}
               {c.location && <span className="scr-loc"><MapPin size={13} /> {c.location}</span>}

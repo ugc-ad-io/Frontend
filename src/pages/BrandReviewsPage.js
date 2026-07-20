@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -40,6 +41,7 @@ function Stars({ rating = 0 }) {
  */
 export default function BrandReviewsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
   const [campaigns, setCampaigns] = useState({});
   const [reviewers, setReviewers] = useState({});
@@ -170,15 +172,39 @@ export default function BrandReviewsPage() {
                   // display here (matches the creator card / bid list elsewhere).
                   const creatorName = creatorFirstName(reviewer);
                   const photo = reviewer?.profile_photo ? (reviewer.profile_photo.startsWith('http') ? reviewer.profile_photo : `${BACKEND_URL}${reviewer.profile_photo}`) : '';
+                  // The reviewer is a creator — let the brand open their full profile
+                  // straight from the review (avatar + name are the hit target).
+                  const creatorId = review.reviewer_id;
+                  const openProfile = () => {
+                    if (!creatorId) { toast.error('This creator is unavailable'); return; }
+                    navigate(`/dashboard/business/creator/${creatorId}`);
+                  };
                   return (
                     <article key={review.id} className="cmk-rr-item">
-                      <span className="cmk-rr-ava" style={{ background: photo ? 'transparent' : avaColor(creatorName) }}>
+                      <span
+                        className={`cmk-rr-ava${creatorId ? ' is-link' : ''}`}
+                        style={{ background: photo ? 'transparent' : avaColor(creatorName) }}
+                        onClick={openProfile}
+                        role={creatorId ? 'button' : undefined}
+                        tabIndex={creatorId ? 0 : undefined}
+                        onKeyDown={(e) => { if (creatorId && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openProfile(); } }}
+                        title={creatorId ? `View ${creatorName}'s profile` : undefined}
+                      >
                         {photo ? <img src={photo} alt="" /> : creatorName.charAt(0).toUpperCase()}
                       </span>
                       <div className="cmk-rr-main">
                         <div className="cmk-rr-top">
-                          <strong>{creatorName}</strong>
+                          {creatorId ? (
+                            <button type="button" className="cmk-rr-name" onClick={openProfile}>{creatorName}</button>
+                          ) : (
+                            <strong>{creatorName}</strong>
+                          )}
                           <span className="cmk-rr-verified">Verified</span>
+                          {creatorId && (
+                            <button type="button" className="cmk-rr-viewbtn" onClick={openProfile}>
+                              View profile <ArrowRight size={13} />
+                            </button>
+                          )}
                         </div>
                         <div className="cmk-rr-rating"><Stars rating={review.rating} /> <b>{(review.rating || 0).toFixed(1)}</b></div>
                         {reviewText && <p className="cmk-rr-text">{reviewText}</p>}

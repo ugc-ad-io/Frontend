@@ -612,6 +612,13 @@
 .cmk-rr-top{display:flex;align-items:center;gap:9px}
 .cmk-rr-top strong{font-size:15px;font-weight:700;color:var(--ink)}
 .cmk-rr-verified{display:inline-flex;align-items:center;background:#f1ecff;color:#6d7bff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px}
+/* Reviewer name / avatar open the creator's full profile */
+.cmk-rr-ava.is-link{cursor:pointer}
+.cmk-rr-ava.is-link:hover{box-shadow:0 0 0 3px rgba(91,107,255,.28)}
+.cmk-rr-name{border:0;background:none;padding:0;font-family:inherit;font-size:15px;font-weight:700;color:var(--ink);cursor:pointer}
+.cmk-rr-name:hover{color:#5b6bff;text-decoration:underline;text-underline-offset:3px}
+.cmk-rr-viewbtn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;border:1px solid #e2e5f3;background:#fff;color:#5b6bff;font-family:inherit;font-size:12px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;flex:none}
+.cmk-rr-viewbtn:hover{background:#eef0ff;border-color:#cdd2f3}
 .cmk-rr-time{margin-left:auto;color:var(--muted);font-size:12.5px;flex:none}
 .cmk-rr-rating{display:flex;align-items:center;gap:7px;margin-top:6px}
 .cmk-rr-rating b{color:var(--ink);font-size:13.5px;font-weight:700}

@@ -129,6 +129,11 @@ const NotificationBell = () => {
     }
   };
 
+  // Only these four tones have styling. Anything else (e.g. the backend's
+  // "message" type) fell through to an unstyled, background-less icon — map it
+  // onto `info` so every notification renders with a proper coloured badge.
+  const TONE = (type) => (['success', 'warning', 'error'].includes(type) ? type : 'info');
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'success':
@@ -178,7 +183,7 @@ const NotificationBell = () => {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`notification-item ${!notification.read ? 'unread' : ''} ${notification.type}`}
+                  className={`notification-item ${!notification.read ? 'unread' : ''} ${TONE(notification.type)}`}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="notification-icon">

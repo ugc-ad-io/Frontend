@@ -260,6 +260,12 @@ export default function VideoReviewModal({
           .vrm-lhead strong{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .vrm-stage{position:relative;flex:1;min-height:0;display:grid;place-items:center;background:#000;overflow:hidden}
           .vrm-stage video{max-width:100%;max-height:100%;display:block}
+          /* Hard-guarantee a single timeline: even if the browser (or a stray
+             \`controls\` attribute) tries to draw native controls, keep them hidden —
+             the custom track below is the only scrub bar. */
+          .vrm-stage video::-webkit-media-controls,
+          .vrm-stage video::-webkit-media-controls-enclosure,
+          .vrm-stage video::-webkit-media-controls-panel{display:none !important;-webkit-appearance:none !important}
           .vrm-wm{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(-30deg,rgba(255,255,255,.09) 0 2px,transparent 2px 190px)}
           .vrm-track{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.07)}
           .vrm-track-bar{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.14);margin-bottom:10px;cursor:pointer}

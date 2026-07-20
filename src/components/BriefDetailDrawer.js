@@ -100,7 +100,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       ['Tone', listVal(c.tone_tags)],
       ['Pacing', c.pacing],
       ['Music', c.music_preference],
-      ['Reference videos', listVal(c.reference_videos)],
+      // Reference videos render as playable media below, not as a text row.
     ] },
     { h: 'Usage rights', rows: [
       ['Platforms', listVal(c.usage_platforms)],

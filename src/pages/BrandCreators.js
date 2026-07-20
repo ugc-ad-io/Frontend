@@ -62,7 +62,9 @@ const priceTextOf = (c) => {
   return 'Rate on request';
 };
 
-function ReelCard({ c, onView, onExpand }) {
+// `cloneStart` marks the first card of the mobile loop's cloned tail — the auto-scroll
+// measures its offset to know exactly where one full pass ends (see gridRef below).
+function ReelCard({ c, onView, onExpand, cloneStart }) {
   const vref = useRef(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -97,7 +99,7 @@ function ReelCard({ c, onView, onExpand }) {
   };
 
   return (
-    <div className="bc-card">
+    <div className="bc-card" data-clone-start={cloneStart ? 'true' : undefined}>
       <div className="bc-reel" onClick={hasVideo ? togglePlay : undefined} onMouseEnter={hasVideo ? hoverPlay : undefined} onMouseLeave={hasVideo ? hoverStop : undefined}>
         {hasVideo ? (
           <>
@@ -288,6 +290,26 @@ export default function BrandCreators() {
 
   const openChat = (c) => { setChatWith({ id: c.id, name: nameOf(c).replace('@', ''), photo: c.profile_photo }); };
 
+  // Track phone width in state (not just inside the effect) because the cloned tail is
+  // RENDERED markup — it must not exist in the desktop grid, where it would show as
+  // duplicate creators.
+  const [isPhone, setIsPhone] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 620px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 620px)');
+    const onChange = () => setIsPhone(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // 6 cards = 3 columns of the 2-row track ≈ 132vw, so the clone always spans more than
+  // one screen — enough to hide the wrap. Skipped when the list is too short to overflow.
+  const cloneTail = useMemo(
+    () => (isPhone && filtered.length > 6 ? filtered.slice(0, 6) : []),
+    [isPhone, filtered]
+  );
+
   // Phone only: the grid becomes a two-row horizontal track (see .bc-grid in
   // creator-marketplace.css) and drifts on its own. Scrolling the real container —
   // rather than duplicating the cards into a CSS marquee — keeps ONE <video> per
@@ -303,15 +325,29 @@ export default function BrandCreators() {
     const mq = window.matchMedia('(max-width: 620px)');
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    let raf = 0; let dir = 1; let paused = false; let resumeTimer;
-    let pos = 0;   // our own sub-pixel position — see the note in step()
+    let raf = 0; let paused = false; let resumeTimer;
+    let pos = 0;       // our own sub-pixel position — see the note in step()
+    let loopWidth = 0; // distance of one full pass, i.e. where the cloned tail begins
+
+    // The clone's offset IS the width of the real list, so wrapping back by exactly
+    // that lands on an identical frame — the seam is invisible. Measured on start and
+    // on resize rather than per-frame, since offsetLeft forces a layout read.
+    const measure = () => {
+      const clone = el.querySelector('[data-clone-start]');
+      loopWidth = clone ? clone.offsetLeft : 0;
+    };
 
     const step = () => {
-      const max = el.scrollWidth - el.clientWidth;
-      if (!paused && max > 1) {
-        pos += 0.45 * dir;                    // ~27px/s — slow enough to read
-        if (pos >= max) { pos = max; dir = -1; }
-        else if (pos <= 0) { pos = 0; dir = 1; }
+      if (!paused) {
+        pos += 0.45;                          // ~27px/s — always leftward, never reverses
+        if (loopWidth > 0) {
+          // Infinite: hop back one full pass once we're into the clones.
+          if (pos >= loopWidth) pos -= loopWidth;
+        } else {
+          // No clones (short list) — just stop at the end instead of jumping.
+          const max = el.scrollWidth - el.clientWidth;
+          if (pos > max) pos = max;
+        }
         // Assign from the float accumulator, never `el.scrollLeft += n`. Reading
         // scrollLeft back rounds to whole pixels, so a 0.45 step would round away
         // to 0 every frame and the track would sit still.
@@ -329,6 +365,7 @@ export default function BrandCreators() {
     const opts = { passive: true };
     const start = () => {
       if (raf || !mq.matches || reduce.matches) return;
+      measure();
       pos = el.scrollLeft;
       el.addEventListener('touchstart', pause, opts);
       el.addEventListener('wheel', pause, opts);
@@ -346,11 +383,20 @@ export default function BrandCreators() {
     // Crossing the 620px breakpoint has to start/stop it — otherwise resizing into
     // phone width (or rotating) leaves the track dead until a remount.
     const onChange = () => { stop(); start(); };
+    // Column width is vw-based, so any resize changes where the clones begin.
+    const onResize = () => measure();
 
     start();
     mq.addEventListener('change', onChange);
-    return () => { stop(); mq.removeEventListener('change', onChange); };
-  }, [filtered.length]);
+    window.addEventListener('resize', onResize, opts);
+    return () => {
+      stop();
+      mq.removeEventListener('change', onChange);
+      window.removeEventListener('resize', onResize, opts);
+    };
+    // cloneTail.length matters: the loop can't measure a wrap point until the cloned
+    // tail is actually in the DOM.
+  }, [filtered.length, cloneTail.length]);
 
   return (
     <BrandTopNavLayout>
@@ -374,6 +420,19 @@ export default function BrandCreators() {
       ) : (
         <div className="bc-grid" ref={gridRef}>
           {filtered.map((c) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={viewProfile} onExpand={setVideoCard} />)}
+          {/* Phone only: a short cloned tail the loop wraps into. Only enough cards to
+              cover one screen (NOT a full second copy), so the jump back to the start
+              is invisible without doubling every <video> on the page. */}
+          {cloneTail.map((c, i) => (
+            <ReelCard
+              key={`loop-${c.id}-${i}`}
+              c={c}
+              onMessage={openChat}
+              onView={viewProfile}
+              onExpand={setVideoCard}
+              cloneStart={i === 0}
+            />
+          ))}
         </div>
       )}
 

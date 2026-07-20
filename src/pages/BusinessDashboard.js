@@ -1639,8 +1639,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
             // Compact row action (View Deal / Open Chat) — the global .btn-primary is a
             // full-size CTA, far too chunky sitting inside a list row.
             const COMPACT_ACTION_BTN = {
+              // Keep the icon + label on ONE row — the global .btn-primary lets its
+              // flex items wrap, so in a narrow column they stacked vertically.
+              display: 'inline-flex', flexDirection: 'row', flexWrap: 'nowrap',
+              alignItems: 'center', justifyContent: 'center',
               whiteSpace: 'nowrap', padding: '8px 14px', fontSize: 13,
-              borderRadius: 10, gap: 6, boxShadow: 'none', minWidth: 0,
+              borderRadius: 10, gap: 6, boxShadow: 'none', minWidth: 0, width: 'auto',
+              // Parent is a column flex (align-items: stretch), which squeezed the
+              // button to the column width — size it to its own content instead.
+              alignSelf: 'flex-start',
             };
             // Color + label for each lifecycle status the backend buckets briefs into.
             const STATUS_META = {

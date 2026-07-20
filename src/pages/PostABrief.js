@@ -10,6 +10,11 @@ import { useAuth } from '../App';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+// A reference that we hosted ourselves (came from /upload/file) rather than a
+// pasted third-party link — used to label the button "Replace" and to render it
+// as playable media instead of a bare link.
+const isUploadedUrl = (v) => typeof v === 'string' && /\/uploads?\//i.test(v);
+
 const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
 const DRAFT_ID_KEY = 'ugcad-brand-brief-draft-id-v2';
 const COMMISSION_RATE = 0.20;
@@ -355,6 +360,35 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       setCampaignImgUploading(false);
     }
   };
+  const [moodUploading, setMoodUploading] = useState(false);
+  // Mood board: uploads to the server and APPENDS to the existing list (max 5),
+  // so picking files a second time adds instead of replacing.
+  const uploadMoodImages = async (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = '';                       // allow re-picking the same file later
+    if (!picked.length) return;
+    const room = 5 - form.moodImages.length;
+    if (room <= 0) { toast.error('You can add up to 5 mood board images.'); return; }
+    const files = picked.slice(0, room);
+    if (picked.length > room) toast.error(`Only ${room} more image${room > 1 ? 's' : ''} can be added.`);
+    setMoodUploading(true);
+    try {
+      for (const file of files) {
+        if (file.size > 5 * 1024 * 1024) { toast.error(`${file.name} is too large. Max 5MB.`); continue; }
+        const fd = new FormData();
+        fd.append('file', file);
+        const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const url = data.file_url || data.url || '';
+        if (url) setForm((f) => ({ ...f, moodImages: [...f.moodImages, url].slice(0, 5) }));
+      }
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not upload mood board image'));
+    } finally {
+      setMoodUploading(false);
+    }
+  };
+  const removeMoodImage = (index) => setForm((f) => ({ ...f, moodImages: f.moodImages.filter((_, i) => i !== index) }));
+
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [publishMode, setPublishMode] = useState('matches');
@@ -507,6 +541,59 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const removeTextItem = (field, index) => {
     const next = form[field].filter((_, idx) => idx !== index);
     set(field, next.length ? next : ['']);   // keep at least one empty input
+  };
+
+  // ── Reference media uploads ────────────────────────────────────────────────
+  // Mood images and reference videos are stored as real URLs (not filenames), so
+  // the creator actually SEES the reference in the brief instead of a dead
+  // "photo.jpg" string. Both go through the shared /upload/file endpoint.
+  const [uploadingKey, setUploadingKey] = useState('');
+
+  const uploadOne = async (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const { data } = await axios.post(`${API}/upload/file`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data?.file_url || data?.url || '';
+  };
+
+  // Upload a video into a specific reference-video row (alternative to pasting a link).
+  const uploadRefVideo = async (index, file) => {
+    if (!file) return;
+    setUploadingKey(`ref-${index}`);
+    try {
+      const url = await uploadOne(file);
+      if (!url) throw new Error('No URL returned');
+      updateTextItem('referenceVideos', index, url);
+      toast.success('Reference video uploaded');
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Could not upload that video'));
+    } finally {
+      setUploadingKey('');
+    }
+  };
+
+  const uploadMoodImages = async (fileList) => {
+    const room = 5 - form.moodImages.length;
+    const picked = Array.from(fileList || []).slice(0, Math.max(0, room));
+    if (!picked.length) return;
+    setUploadingKey('mood');
+    try {
+      const urls = [];
+      for (const file of picked) {
+        const url = await uploadOne(file);
+        if (url) urls.push(url);
+      }
+      if (urls.length) {
+        set('moodImages', [...form.moodImages, ...urls]);
+        toast.success(`${urls.length} image${urls.length > 1 ? 's' : ''} uploaded`);
+      }
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Could not upload those images'));
+    } finally {
+      setUploadingKey('');
+    }
   };
 
   const isStepValid = (target = step) => {
@@ -926,6 +1013,38 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     </div>
   );
 
+  // Reference videos: each row accepts EITHER a pasted link OR a direct upload.
+  const renderRefVideos = (max = 3) => (
+    <div className="brief-list-inputs">
+      {form.referenceVideos.map((item, index) => {
+        const busy = uploadingKey === `ref-${index}`;
+        const uploaded = isUploadedUrl(item);
+        return (
+          <div key={index} className="brief-list-row">
+            <input
+              value={item}
+              onChange={(event) => updateTextItem('referenceVideos', index, event.target.value)}
+              placeholder="Paste reference video link"
+            />
+            <label className={`brief-list-up${busy ? ' is-busy' : ''}`} title="Upload a video file instead">
+              <Upload size={15} /> {busy ? 'Uploading…' : (uploaded ? 'Replace' : 'Upload')}
+              <input
+                type="file"
+                accept="video/*"
+                disabled={busy}
+                onChange={(event) => { uploadRefVideo(index, event.target.files?.[0]); event.target.value = ''; }}
+              />
+            </label>
+            {(form.referenceVideos.length > 1 || item) && (
+              <button type="button" className="brief-list-del" aria-label="Remove" onClick={() => removeTextItem('referenceVideos', index)}><Trash2 size={15} /></button>
+            )}
+          </div>
+        );
+      })}
+      {form.referenceVideos.length < max && <button type="button" className="brief-list-add" onClick={() => addTextItem('referenceVideos', max)}><Plus size={15} /> Add item</button>}
+    </div>
+  );
+
   const requiredPhrases = form.requiredPhrases.filter(Boolean).join(', ') || 'None';
   const requiredShots = form.requiredShots.filter(Boolean).join(', ') || 'None';
   const referenceVideos = form.referenceVideos.filter(Boolean).join(', ') || 'None';
@@ -1132,7 +1251,30 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             )}
             {step === 5 && subStep === 1 && (
               <>
-                <div className="form-group"><label>Mood board images (up to 5)</label><label className="mini-upload"><Upload size={18} /> Upload references<input type="file" multiple accept="image/*" onChange={e => set('moodImages', Array.from(e.target.files || []).slice(0, 5).map(file => file.name))} /></label>{form.moodImages.length > 0 && <small>{form.moodImages.join(', ')}</small>}</div>
+                <div className="form-group">
+                  <label>Mood board images (up to 5)</label>
+                  <label className="mini-upload">
+                    <Upload size={18} /> {moodUploading ? 'Uploading…' : 'Upload references'}
+                    <input type="file" multiple accept="image/*" disabled={moodUploading || form.moodImages.length >= 5} onChange={uploadMoodImages} />
+                  </label>
+                  {form.moodImages.length > 0 && (
+                    <div className="mood-grid">
+                      {form.moodImages.map((item, index) => {
+                        const src = item.startsWith('http') ? item : `${BACKEND_URL}${item}`;
+                        const viewable = item.startsWith('http') || item.startsWith('/');
+                        return (
+                          <div className="mood-thumb" key={`${item}-${index}`}>
+                            {viewable
+                              ? <a href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Mood board ${index + 1}`} /></a>
+                              : <span className="mood-thumb-name">{item}</span>}
+                            <button type="button" onClick={() => removeMoodImage(index)} aria-label="Remove image"><Trash2 size={13} /></button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <small>{form.moodImages.length}/5 added · click an image to view it full size</small>
+                </div>
                 <div className="form-group"><label>Reference videos (up to 3)</label>{renderTextList('referenceVideos', 3, 'Paste reference video link')}</div>
               </>
             )}
@@ -1660,6 +1802,58 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
         .mini-upload input {
           display: none;
+        }
+
+        .mood-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 9px;
+          margin-top: 9px;
+        }
+
+        .mood-thumb {
+          position: relative;
+          width: 84px;
+          height: 84px;
+          border-radius: 11px;
+          overflow: hidden;
+          background: #EEF0FF;
+        }
+
+        .mood-thumb img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .mood-thumb-name {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          padding: 6px;
+          font-size: 10px;
+          color: #07074e;
+          text-align: center;
+          word-break: break-all;
+        }
+
+        .mood-thumb button {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          width: 21px;
+          height: 21px;
+          padding: 0;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 7px;
+          background: rgba(7, 7, 78, 0.72);
+          color: #fff;
+          cursor: pointer;
         }
 
         .brief-list-inputs {

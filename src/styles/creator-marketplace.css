@@ -1361,6 +1361,13 @@
   /* filters + tabs scroll instead of wrapping awkwardly */
   .cmk-filter-row{gap:8px}
   .cmk-select{min-width:auto;flex:1 1 30%}
+  /* Pair the filters two-up and let each select fill its group. Previously every
+     .cmk-sort spanned 100% while the select inside stayed ~140px, so Browse showed
+     three tall rows each with a narrow dropdown hugging the left edge. */
+  .cmk-filter-row .cmk-sort{margin-left:0;width:auto;flex:1 1 calc(50% - 4px);min-width:0}
+  .cmk-filter-row .cmk-sort select{width:100%}
+  /* margin-left:auto threw this onto a 4th row, detached from the filters it clears. */
+  .cmk-filter-row .cmk-filter-clear{margin-left:0;flex:1 1 100%}
   .cmk-sort{margin-left:0;width:100%}
   .cmk-tabs{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .cmk-tabs::-webkit-scrollbar{display:none}
@@ -1380,6 +1387,15 @@
      ~56px each, which ellipsised "Video Submission" down to "Vid…". */
   .cmk-awc-steps .awc-step{flex:0 0 auto;min-width:84px}
   .cmk-awc-steps .awc-step-lbl{max-width:none;overflow:visible;text-overflow:clip}
+
+  /* Touch targets. These sit at 25–32px, well under the ~44px finger minimum, and
+     several are the ONLY route to their action (save a brief, read the brand's
+     revision notes), so a missed tap is a dead end rather than a nuisance. */
+  .cmk-bb-save{width:44px;height:44px;top:8px;right:8px}
+  .cmk-search-clear{min-height:40px;padding:8px 16px}
+  .cmk-awc-revision{padding:10px 14px;font-size:12.5px}
+  .cmk-awc-respond{padding:12px 18px}
+  .cmk-awc-go{width:44px;height:44px}
 
   /* Deal Room */
   .cmk-dr-head{gap:14px;padding:18px;flex-wrap:wrap}

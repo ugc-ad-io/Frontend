@@ -284,6 +284,12 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
         .bb-d-moodit{position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;background:#f1f3fa;border:1px solid #e9ebf4}
         .bb-d-moodit img{width:100%;height:100%;object-fit:cover;display:block}
         .bb-d-dl{position:absolute;bottom:5px;right:5px;width:24px;height:24px;border:0;padding:0;cursor:pointer;border-radius:8px;display:grid;place-items:center;background:rgba(21,22,58,.72);color:#fff}
+        /* Touch: 24px over a 96px thumbnail is effectively untappable, and 34px is
+           still under the ~44px finger minimum. */
+        @media (max-width:620px){
+          .bb-d-dl{width:36px;height:36px;bottom:6px;right:6px}
+          .bb-drawer-close{width:42px;height:42px}
+        }
         .bb-d-dl:hover{background:#5b6bff}
         .bb-d-refvid{display:flex;flex-direction:column;gap:10px}
         .bb-d-refvidit{position:relative}

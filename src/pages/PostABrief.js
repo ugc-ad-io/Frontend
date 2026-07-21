@@ -1138,18 +1138,18 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 </div>
 
                 <div className="form-group">
-                  <label>Campaign Banner / Image</label>
-                  <label className="pab-img-drop">
+                  <label>Campaign Logo</label>
+                  <label className="pab-img-drop pab-logo-drop">
                     {form.image ? (
                       <>
-                        <img src={form.image.startsWith('http') ? form.image : `${BACKEND_URL}${form.image}`} alt="" className="pab-img-preview" />
-                        <span className="pab-img-change">{campaignImgUploading ? 'Uploading…' : 'Change image'}</span>
+                        <img src={form.image.startsWith('http') ? form.image : `${BACKEND_URL}${form.image}`} alt="" className="pab-img-preview pab-logo-preview" />
+                        <span className="pab-img-change">{campaignImgUploading ? 'Uploading…' : 'Change logo'}</span>
                       </>
                     ) : (
                       <span className="pab-img-empty">
                         <ImageIcon size={22} />
-                        <strong>{campaignImgUploading ? 'Uploading…' : 'Add a banner or image for your campaign'}</strong>
-                        <small>Make it look more exciting for creators · JPG/PNG, up to 5MB (optional)</small>
+                        <strong>{campaignImgUploading ? 'Uploading…' : 'Add your brand / campaign logo'}</strong>
+                        <small>Shown on your campaign cards · PNG/JPG, up to 5MB (optional)</small>
                       </span>
                     )}
                     <input type="file" accept="image/*" hidden onChange={uploadCampaignImage} />
@@ -1710,6 +1710,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         .pab-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
         .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
           font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
+        /* Logo (not banner): contain it, centred on a soft tint, so a square/transparent
+           logo isn't stretched edge-to-edge like a cover image. */
+        .pab-logo-preview { height: 130px; object-fit: contain; padding: 18px;
+          background: linear-gradient(140deg, #f4f5ff, #eef0ff); }
 
         .form-group label {
           color: #07074E;

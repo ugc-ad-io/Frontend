@@ -185,7 +185,9 @@ export default function BrandCampaigns() {
         <div className="bcam-grid">
           {rows.map((c) => {
             const s = STATUS[c.status] || STATUS.active;
-            const coverRaw = c.image_url || c.cover_image || c.brand_cover_image_url || '';
+            // Campaign card shows the brand/campaign LOGO (image_url now holds the logo),
+            // falling back to the brand's profile logo — no more banner cover.
+            const coverRaw = c.image_url || c.brand_logo_url || c.logo || '';
             const cover = coverRaw ? (coverRaw.startsWith('http') ? coverRaw : `${BACKEND_URL}${coverRaw}`) : '';
             const spent = c.escrow_amount || c.budget_min || 0;
             const total = c.budget_max || c.budget_min || 0;

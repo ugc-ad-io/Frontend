@@ -238,20 +238,8 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                 <item.icon size={18} /> {item.name}
               </button>
             ))}
-            <div className="cmk-sep" />
-            {ACCOUNT_LINKS.map((item) => (
-              <button
-                key={item.name}
-                type="button"
-                onClick={() => {
-                  setMobileOpen(false);
-                  if (item.action === 'help') openHelpDialog();
-                  else navigate(item.to);
-                }}
-              >
-                <item.icon size={18} /> {item.name}
-              </button>
-            ))}
+            {/* Reviews / Notifications / Settings / Need help? live in the profile
+                (avatar) menu, so they're intentionally omitted here to avoid dupes. */}
             <div className="cmk-mobile-foot">
               <div className="cmk-sep" />
               <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>

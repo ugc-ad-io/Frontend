@@ -714,7 +714,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             ) : (
               <>
                 {onBegin && <button type="button" className="cpm-brief-btn" onClick={onBegin}>Send a Brief</button>}
-                {onMessage && <button type="button" className="cpm-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
+                {onMessage && <button type="button" className="cpm-msg cpm-msg-top" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
                 {viewer?.role === 'business' && (
                   <button
                     type="button"
@@ -1257,6 +1257,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         @media(max-width:640px){
           .cpm-actions{position:static;margin-top:12px}
           .cpm-msg{flex:1}
+          /* Send Message lives in the fixed bottom bar on mobile, so drop the
+             duplicate here — leaving just Send a Brief (+ the bookmark). */
+          .cpm-msg-top{display:none}
           /* Lift the Save/bookmark out of the button row to the top-right, so
              "Send a Brief" + "Send Message" get the full width and stay on one line. */
           .cpm-save{position:absolute;top:56px;right:24px;z-index:5;width:40px;height:40px}

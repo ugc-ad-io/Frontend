@@ -38,8 +38,15 @@ export default function VideoReviewModal({
   // the brand was looking at even if the video keeps playing while they type.
   const [pinned, setPinned] = useState(null);
   const [notes, setNotes] = useState('');
-  const [timeline, setTimeline] = useState('48h');
+  const [timeline, setTimeline] = useState('48h');   // '24h' | '48h' | 'custom'
+  const [customDeadline, setCustomDeadline] = useState('');
   const [playing, setPlaying] = useState(false);
+
+  // datetime-local min = now (can't set a deadline in the past). Local time, no seconds.
+  const minDeadline = (() => {
+    const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 16);
+  })();
 
   const pinnedAt = pinned ?? now;
 
@@ -96,9 +103,21 @@ export default function VideoReviewModal({
 
   const ordered = [...comments].sort((a, b) => a.timestamp_seconds - b.timestamp_seconds);
 
+  // Resolve the chosen deadline to an ISO timestamp. Custom must be a valid future date.
+  const deadlineAt = (() => {
+    if (timeline === 'custom') {
+      const t = customDeadline ? new Date(customDeadline).getTime() : NaN;
+      return Number.isNaN(t) ? null : new Date(t).toISOString();
+    }
+    const hours = timeline === '24h' ? 24 : 48;
+    return new Date(Date.now() + hours * 3600 * 1000).toISOString();
+  })();
+
   // Same on-platform guard as the text form — server rejects contact info too.
   const contactHit = comments.some((c) => findContactInfo(c.text)) || !!findContactInfo(notes) || !!findContactInfo(draft);
-  const canSubmit = comments.length > 0 && !contactHit && !submitting;
+  // A custom deadline must be set and in the future before the brand can send.
+  const deadlineValid = deadlineAt != null && (timeline !== 'custom' || new Date(deadlineAt).getTime() > Date.now());
+  const canSubmit = comments.length > 0 && !contactHit && !submitting && deadlineValid;
 
   const submit = () => {
     if (!canSubmit) return;
@@ -108,11 +127,10 @@ export default function VideoReviewModal({
       brief_reference: '',
       timestamp_seconds: c.timestamp_seconds,
     }));
-    const hours = timeline === '24h' ? 24 : 48;
     onSubmit({
       items,
       notes: notes.trim().slice(0, 500),
-      deadline_at: new Date(Date.now() + hours * 3600 * 1000).toISOString(),
+      deadline_at: deadlineAt,
     });
   };
 
@@ -250,8 +268,27 @@ export default function VideoReviewModal({
               </button>
             </div>
 
+            {/* Revision deadline — how long the creator has to resubmit. */}
+            <div className="vrm-deadline">
+              <label>Revision deadline</label>
+              <div className="vrm-time">
+                <button type="button" className={timeline === '24h' ? 'on' : ''} onClick={() => setTimeline('24h')}>24 hours</button>
+                <button type="button" className={timeline === '48h' ? 'on' : ''} onClick={() => setTimeline('48h')}>48 hours</button>
+                <button type="button" className={timeline === 'custom' ? 'on' : ''} onClick={() => setTimeline('custom')}>Pick a date</button>
+              </div>
+              {timeline === 'custom' && (
+                <input
+                  type="datetime-local"
+                  className="vrm-deadline-input"
+                  value={customDeadline}
+                  min={minDeadline}
+                  onChange={(e) => setCustomDeadline(e.target.value)}
+                />
+              )}
+            </div>
+
             <details className="vrm-more">
-              <summary>Notes &amp; timeline</summary>
+              <summary>Add a note (optional)</summary>
               <textarea
                 className="vrm-notes"
                 rows={2}
@@ -260,10 +297,6 @@ export default function VideoReviewModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
-              <div className="vrm-time">
-                <button type="button" className={timeline === '24h' ? 'on' : ''} onClick={() => setTimeline('24h')}>24 hours</button>
-                <button type="button" className={timeline === '48h' ? 'on' : ''} onClick={() => setTimeline('48h')}>48 hours</button>
-              </div>
             </details>
 
             <button type="button" className="vrm-submit" onClick={submit} disabled={!canSubmit}>
@@ -333,7 +366,11 @@ export default function VideoReviewModal({
           .vrm-more{margin:10px 0}
           .vrm-more summary{color:#9ba0c9;font-size:12.5px;cursor:pointer;user-select:none}
           .vrm-notes{width:100%;box-sizing:border-box;margin-top:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#e8eaf6;border-radius:9px;padding:8px 10px;font-family:inherit;font-size:12.5px;resize:none;outline:none}
-          .vrm-time{display:flex;gap:6px;margin-top:8px}
+          .vrm-time{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+          .vrm-deadline{margin-top:2px}
+          .vrm-deadline > label{display:block;color:#9ba0c9;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+          .vrm-deadline-input{margin-top:8px;width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#e8eaf6;border-radius:9px;padding:8px 10px;font-family:inherit;font-size:12.5px;outline:none;color-scheme:dark}
+          .vrm-deadline-input:focus{border-color:#5b6bff}
           .vrm-submit{width:100%;margin-top:10px;border:none;background:#5b6bff;color:#fff;border-radius:11px;padding:11px;font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer}
           .vrm-submit:hover:not(:disabled){background:#4452f0}
           .vrm-submit:disabled{opacity:.45;cursor:not-allowed}

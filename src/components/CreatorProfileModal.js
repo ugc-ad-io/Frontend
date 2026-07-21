@@ -7,6 +7,7 @@ import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, 
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
+import { Skeleton } from './Skeleton';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
 // uses the exact same choices instead of free text.
@@ -764,7 +765,25 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         </div>
 
         <div className="cpm-tab-body">
-          {loading ? <div className="cpm-empty">Loading…</div> : editing ? (
+          {loading ? (
+            <div className="cpm-empty" aria-hidden="true" style={{ display: 'block' }}>
+              {/* avatar + name/handle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                <Skeleton width={72} height={72} radius="50%" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                  <Skeleton width="45%" height={18} />
+                  <Skeleton width="30%" height={12} />
+                </div>
+              </div>
+              {/* field rows */}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                  <Skeleton width="35%" height={12} />
+                  <Skeleton width="100%" height={40} radius={10} />
+                </div>
+              ))}
+            </div>
+          ) : editing ? (
             <div className="cpm-editform">
               {(() => {
                 const fld = (k) => ({ value: form[k] || '', onChange: (e) => setForm((f) => ({ ...f, [k]: e.target.value })) });

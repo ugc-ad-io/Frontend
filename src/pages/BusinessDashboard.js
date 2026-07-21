@@ -1734,7 +1734,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </div>
               </div>
 
-              <div className="cmk-tabs sent-briefs-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+              <div className="cmk-tabs sent-briefs-tabs">
                 {FILTERS.map(f => (
                   <button
                     key={f.key}

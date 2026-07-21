@@ -973,10 +973,12 @@
   .wr-tabs button.is-active::after{bottom:0}
   /* On pages that opt in (…--select), drop the whole tab strip and put a Filter
      button up on the page-head title row instead — one tap in every tab. */
-  .wr-tabs-row--select,
-  .bwr-tabs-row--select,
+  /* Two classes each so these beat the equal-specificity base display rules that
+     are defined LATER in the file (source order would otherwise re-show them). */
+  .wr-tabs-row.wr-tabs-row--select,
+  .bwr-tabs-row.bwr-tabs-row--select,
   .sent-briefs-tabs,
-  .bc-cats--select{display:none}
+  .bc-cats.bc-cats--select{display:none}
   /* Filter pinned top-right; only the H1 reserves space for it, so the subtitle
      below spans the full width and stays on one line instead of wrapping. */
   .cmk-page-head--filter{position:relative}
@@ -985,6 +987,8 @@
   /* Sent Briefs: Filter lives beside Refresh in the hero, not the page head. */
   .sent-briefs-hero-actions .wr-filter-wrap{display:block;margin:0}
 }
+/* Sent Briefs pill strip — was inline-styled; moved here so mobile can hide it. */
+.sent-briefs-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 /* Hidden on desktop — the tab strip is used there instead. */
 .wr-filter-wrap{display:none;position:relative;margin-left:auto;margin-bottom:8px}
 .wr-filter-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:1px solid var(--line);

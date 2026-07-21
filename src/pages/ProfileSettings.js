@@ -29,6 +29,7 @@ import {
   Wallet,
   CheckCircle,
   ChevronRight,
+  ChevronLeft,
   MoreVertical,
   UserPlus,
   ClipboardList,
@@ -339,6 +340,9 @@ export default function ProfileSettings() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [brandTab, setBrandTab] = useState('profile');
+  // Mobile settings drill-down: show the tab list first, open a panel on tap.
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches);
+  const [brandDetailOpen, setBrandDetailOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
   const [brandProfile, setBrandProfile] = useState(defaultBrandProfile);
@@ -438,6 +442,13 @@ export default function ProfileSettings() {
       fetchCreatorStats();
     }
   }, [user?.role]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const on = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   const fetchWarnings = async () => {
     try {
@@ -1243,14 +1254,37 @@ export default function ProfileSettings() {
         </div>
         <div className="bs-page bs-dashboard-page">
           <section className="bs-left">
-            <div className="bs-tabs">
-              {BRAND_TABS.map(tab => (
-                <button key={tab.id} type="button" className={brandTab === tab.id ? 'active' : ''} onClick={() => setBrandTab(tab.id)}>
-                  <tab.icon size={18} /> {tab.label}
-                </button>
-              ))}
-            </div>
-            {renderBrandPanel()}
+            {isMobile ? (
+              brandDetailOpen ? (
+                <>
+                  <button type="button" className="bs-back" onClick={() => setBrandDetailOpen(false)}>
+                    <ChevronLeft size={18} /> All settings
+                  </button>
+                  {renderBrandPanel()}
+                </>
+              ) : (
+                <div className="bs-menu">
+                  {BRAND_TABS.map(tab => (
+                    <button key={tab.id} type="button" className="bs-menu-item" onClick={() => { setBrandTab(tab.id); setBrandDetailOpen(true); }}>
+                      <span className="bs-menu-ic"><tab.icon size={18} /></span>
+                      <span className="bs-menu-label">{tab.label}</span>
+                      <ChevronRight size={18} className="bs-menu-chev" />
+                    </button>
+                  ))}
+                </div>
+              )
+            ) : (
+              <>
+                <div className="bs-tabs">
+                  {BRAND_TABS.map(tab => (
+                    <button key={tab.id} type="button" className={brandTab === tab.id ? 'active' : ''} onClick={() => setBrandTab(tab.id)}>
+                      <tab.icon size={18} /> {tab.label}
+                    </button>
+                  ))}
+                </div>
+                {renderBrandPanel()}
+              </>
+            )}
           </section>
         </div>
         {legalDoc && (

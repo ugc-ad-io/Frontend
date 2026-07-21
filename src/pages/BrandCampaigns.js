@@ -128,7 +128,7 @@ export default function BrandCampaigns() {
         <p>Manage all your campaigns in one place.</p>
       </div>
 
-      <div className="wr-tabs-row">
+      <div className="wr-tabs-row wr-tabs-row--select">
         <div className="wr-tabs">
           {TABS.map((t) => (
             <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
@@ -136,6 +136,13 @@ export default function BrandCampaigns() {
             </button>
           ))}
         </div>
+        {/* Mobile only: the tab strip is hidden and this right-aligned dropdown
+            replaces it, so the same status filter is reachable in every tab. */}
+        <select className="wr-tabs-select" value={tab} onChange={(e) => setTab(e.target.value)} aria-label="Filter campaigns">
+          {TABS.map((t) => (
+            <option key={t.key} value={t.key}>{t.label} ({counts[t.key] || 0})</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (

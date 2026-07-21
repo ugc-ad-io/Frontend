@@ -1261,7 +1261,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           /* Send Message lives in the fixed bottom bar on mobile — drop the top one. */
           .cpm-msg-top{display:none}
           /* Send a Brief drops down to sit on the name's line, right side. */
-          .cpm-actions{position:absolute;top:104px;right:24px;left:auto;margin:0}
+          .cpm-actions{position:absolute;top:120px;right:24px;left:auto;margin:0}
           .cpm-brief-btn{padding:8px 18px;font-size:13px}
           /* Bookmark pinned up in the top-right (above Send a Brief). */
           .cpm-save{position:absolute;top:58px;right:24px;left:auto;width:40px;height:40px;margin:0;z-index:5}

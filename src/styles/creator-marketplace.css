@@ -977,8 +977,11 @@
   .bwr-tabs-row--select,
   .sent-briefs-tabs,
   .bc-cats--select{display:none}
-  .cmk-page-head--filter{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .cmk-page-head--filter .wr-filter-wrap{display:block;margin:0}
+  /* Filter pinned top-right; only the H1 reserves space for it, so the subtitle
+     below spans the full width and stays on one line instead of wrapping. */
+  .cmk-page-head--filter{position:relative}
+  .cmk-page-head--filter h1{padding-right:112px}
+  .cmk-page-head--filter .wr-filter-wrap{display:block;position:absolute;top:0;right:0;margin:0}
   /* Sent Briefs: Filter lives beside Refresh in the hero, not the page head. */
   .sent-briefs-hero-actions .wr-filter-wrap{display:block;margin:0}
 }

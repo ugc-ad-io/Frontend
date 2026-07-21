@@ -62,7 +62,6 @@ const PRODUCT_TYPES = [
   { value: 'physical', label: 'Physical product', hint: 'You ship an item to the creator', ships: true },
   { value: 'digital',  label: 'Digital / App',    hint: 'App, software or download — nothing to ship' },
   { value: 'service',  label: 'Service',          hint: 'A service, subscription or experience' },
-  { value: 'promo',    label: 'Promo / mention',  hint: 'Just a code, link or brand mention' },
   { value: 'other',    label: 'Other',            hint: 'Describe it yourself' },
 ];
 const typeNeedsShipping = (t) => t === 'physical';

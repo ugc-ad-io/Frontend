@@ -7230,10 +7230,46 @@ export default function BusinessDashboard({ page = 'overview' }) {
             grid-template-columns: 1fr;
           }
 
+          /* Tighter chrome so cards aren't squeezed by desktop-sized padding. */
+          .wallet-hero-card { padding: 20px; }
+          .wallet-hero-card h2 { font-size: 34px; word-break: break-word; }
+          .wallet-history-head { padding: 18px 16px; }
+          .wallet-filter-tabs { flex-wrap: wrap; }
+          .wallet-panel { padding: 18px 16px; }
+          .wallet-recharge-card { padding: 18px 16px; }
+          .wallet-table { padding: 0 12px 16px; }
+
+          /* Data table → stacked labeled cards. The <head> row is hidden and each
+             cell shows its own "Date/Type/…" label via data-label, so a collapsed
+             single column stays readable instead of a pile of unlabeled values. */
+          .wallet-head { display: none; }
           .wallet-row {
-            grid-template-columns: 1fr;
-            gap: 6px;
+            display: block;
+            border: 1px solid #EEF0FF;
+            border-radius: 14px;
+            padding: 8px 14px;
+            margin-bottom: 10px;
           }
+          .wallet-row > * {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 7px 0;
+            border-bottom: 1px solid #F3F4FB;
+            text-align: right;
+          }
+          .wallet-row > *:last-child { border-bottom: 0; }
+          .wallet-row > *::before {
+            content: attr(data-label);
+            color: #9296ba;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            text-align: left;
+          }
+          .wallet-status { justify-self: auto; align-self: stretch; }
 
           .actions-grid {
             grid-template-columns: 1fr 1fr;

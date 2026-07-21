@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck } from 'lucide-react';
+import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
@@ -257,6 +257,8 @@ export default function BrandCreators() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState(searchParams.get('q') || '');
   const [cat, setCat] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false); // mobile category-filter menu
+  const filterRef = useRef(null);
   const [chatWith, setChatWith] = useState(null);
   const [briefFor, setBriefFor] = useState(null);
   const [videoCard, setVideoCard] = useState(null);
@@ -286,6 +288,14 @@ export default function BrandCreators() {
     const set = new Set(creators.map((c) => (c.primary_category || '').trim().toLowerCase()).filter(Boolean));
     return ['all', ...Array.from(set)];
   }, [creators]);
+
+  // Close the mobile category-filter menu on any outside click.
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+    const onDoc = (e) => { if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [filterOpen]);
 
   const filtered = useMemo(() => creators.filter((c) => {
     const catv = (c.primary_category || '').toLowerCase();
@@ -408,12 +418,36 @@ export default function BrandCreators() {
   return (
     <BrandTopNavLayout>
       <div className="bc-head-row">
-        <div className="cmk-page-head">
-          <h1>Browse Creators</h1>
-          <p>Find the perfect creators for your campaign.</p>
+        <div className="cmk-page-head cmk-page-head--filter">
+          <div>
+            <h1>Browse Creators</h1>
+            <p>Find the perfect creators for your campaign.</p>
+          </div>
+          {/* Mobile only: sits on the title row, replaces the category chips. */}
+          <div className="wr-filter-wrap" ref={filterRef}>
+            <button type="button" className="wr-filter-btn" onClick={() => setFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={filterOpen}>
+              <SlidersHorizontal size={16} /> Filter
+            </button>
+            {filterOpen && (
+              <div className="wr-filter-menu" role="menu">
+                {categories.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={cat === k}
+                    className={cat === k ? 'is-active' : ''}
+                    onClick={() => { setCat(k); setFilterOpen(false); }}
+                  >
+                    {k === 'all' ? 'All' : k.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="bc-cats">
+        <div className="bc-cats bc-cats--select">
           {categories.map((k) => (
             <button key={k} type="button" className={cat === k ? 'is-active' : ''} onClick={() => setCat(k)}>{k === 'all' ? 'All' : k.replace(/_/g, ' ')}</button>
           ))}

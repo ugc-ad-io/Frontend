@@ -607,6 +607,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   }, [user?.id, page]);
 
+  // Close the mobile Sent-Briefs filter menu on any outside click.
+  useEffect(() => {
+    if (!briefFilterOpen) return undefined;
+    const onDoc = (e) => { if (briefFilterRef.current && !briefFilterRef.current.contains(e.target)) setBriefFilterOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [briefFilterOpen]);
+
   const fetchBriefs = async () => {
     setBriefsLoading(true);
     try {
@@ -1697,12 +1705,36 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <h2>Sent Briefs</h2>
                   <p>Every private invitation, custom offer and counter offer you sent — see at a glance who accepted, declined or countered.</p>
                 </div>
-                <button type="button" className="btn-secondary" onClick={fetchBriefs} disabled={briefsLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <Activity size={16} /> Refresh
-                </button>
+                <div className="sent-briefs-hero-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                  {/* Mobile only: replaces the tab strip below with a dropdown. */}
+                  <div className="wr-filter-wrap" ref={briefFilterRef}>
+                    <button type="button" className="wr-filter-btn" onClick={() => setBriefFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={briefFilterOpen}>
+                      <Filter size={16} /> Filter
+                    </button>
+                    {briefFilterOpen && (
+                      <div className="wr-filter-menu" role="menu">
+                        {FILTERS.map(f => (
+                          <button
+                            key={f.key}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={briefFilter === f.key}
+                            className={briefFilter === f.key ? 'is-active' : ''}
+                            onClick={() => { setBriefFilter(f.key); setBriefFilterOpen(false); }}
+                          >
+                            {f.label} <em>({countFor(f.key)})</em>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" className="btn-secondary" onClick={fetchBriefs} disabled={briefsLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Activity size={16} /> Refresh
+                  </button>
+                </div>
               </div>
 
-              <div className="cmk-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+              <div className="cmk-tabs sent-briefs-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
                 {FILTERS.map(f => (
                   <button
                     key={f.key}

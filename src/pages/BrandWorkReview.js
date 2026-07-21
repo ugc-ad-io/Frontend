@@ -14,7 +14,7 @@ import VideoReviewModal, { fmtTs } from '../components/VideoReviewModal';
 import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
-import { SkeletonCards } from '../components/Skeleton';
+import { Skeleton } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -254,7 +254,31 @@ export default function BrandWorkReview() {
       </div>
 
       {loading ? (
-        <SkeletonCards count={6} height={150} />
+        <div className="bwr-list">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <article className="bwr-card" key={i} aria-hidden="true">
+              {/* left: 16/9 thumb — matches <Thumb> */}
+              <Skeleton className="bwr-thumb" width={220} height="auto" radius={14} style={{ aspectRatio: '16 / 9' }} />
+              {/* middle: title, by-line, campaign box, meta row */}
+              <div className="bwr-body" style={{ flex: 1, minWidth: 0 }}>
+                <Skeleton width="45%" height={18} />
+                <Skeleton width="30%" height={12} style={{ marginTop: 10 }} />
+                <Skeleton width="100%" height={54} radius={12} style={{ marginTop: 14 }} />
+                <div style={{ display: 'flex', gap: 24, marginTop: 14 }}>
+                  <Skeleton width={70} height={30} />
+                  <Skeleton width={70} height={30} />
+                  <Skeleton width={90} height={30} />
+                </div>
+              </div>
+              {/* right: status pill + action buttons */}
+              <div className="bwr-side" style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 200 }}>
+                <Skeleton width={110} height={30} radius={16} style={{ alignSelf: 'flex-end' }} />
+                <Skeleton width="100%" height={44} radius={12} style={{ marginTop: 'auto' }} />
+                <Skeleton width="100%" height={44} radius={12} />
+              </div>
+            </article>
+          ))}
+        </div>
       ) : total === 0 ? (
         <EmptyState title={`Nothing in “${TABS.find((t) => t.key === tab).label}”`} message="Submitted creator content will show up here for you to review and approve." />
       ) : (

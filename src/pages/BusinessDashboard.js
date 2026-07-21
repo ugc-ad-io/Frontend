@@ -1809,10 +1809,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                             <strong style={{ fontSize: 15, color: '#07074E' }}>{b.creator_name || 'Creator'}</strong>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#5b6bff', background: '#eef0ff', padding: '2px 8px', borderRadius: 6 }}>{b.type_label}</span>
-                            <span style={{
-                              fontSize: 11, fontWeight: 700, color: meta.color, background: meta.bg,
-                              border: `1px solid ${meta.border}`, padding: '2px 10px', borderRadius: 999, marginLeft: 'auto',
-                            }}>{meta.label}</span>
                           </div>
                           <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginBottom: 6 }}>
                             {b.campaign_name || b.deliverable_summary || 'Untitled brief'}
@@ -1828,7 +1824,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                             </div>
                           )}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, alignItems: 'flex-end' }}>
+                          {/* Status pill lives here (not in the name row) so it doesn't
+                              wrap to its own line and push "Video" + the meta down. */}
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, color: meta.color, background: meta.bg,
+                            border: `1px solid ${meta.border}`, padding: '2px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+                          }}>{meta.label}</span>
                           {b.status_bucket === 'accepted' && b.deal_campaign_id ? (
                             <button type="button" className="btn-primary" style={COMPACT_ACTION_BTN} onClick={() => setModalView({ type: 'campaign', id: b.deal_campaign_id })}>
                               <Eye size={14} /> View Deal

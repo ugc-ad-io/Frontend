@@ -212,6 +212,9 @@ export default function MessagesPage() {
   const typingSentAtRef = useRef(0);
   const messageContainerRef = useRef(null);
   const userScrolledUpRef = useRef(false);
+  // Set when a conversation is opened, so the first message render jumps straight
+  // to the latest message instead of leaving the view at the top of the thread.
+  const justOpenedRef = useRef(false);
 
   const navItems = user?.role === 'business'
     ? [
@@ -270,6 +273,10 @@ export default function MessagesPage() {
   // Fetch messages when conversation selected
   useEffect(() => {
     if (!selectedId) return;
+    // Opening a (different) conversation: the next messages render should land at
+    // the bottom, and any "user scrolled up" state from the previous chat resets.
+    justOpenedRef.current = true;
+    userScrolledUpRef.current = false;
     fetchMessages(selectedId);
     fetchTyping(selectedId);
     const interval = setInterval(() => fetchMessages(selectedId), 3000);
@@ -284,6 +291,21 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!messageContainerRef.current) return;
     const container = messageContainerRef.current;
+
+    // First render after opening a conversation: jump straight to the newest
+    // message. Must be an instant scrollTop set on the container itself — the
+    // container starts at scrollTop 0 (the top), so the "already at bottom" rule
+    // below never fires on open, which is why mobile opened chats at the top.
+    if (justOpenedRef.current && messages.length) {
+      justOpenedRef.current = false;
+      const jump = () => { container.scrollTop = container.scrollHeight; };
+      jump();
+      // Run again next frame so late-laid-out content (attachments, cards) can't
+      // leave us a screen short of the bottom.
+      requestAnimationFrame(jump);
+      return;
+    }
+
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
     if (isAtBottom && !userScrolledUpRef.current) {

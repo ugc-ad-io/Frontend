@@ -7230,6 +7230,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
             grid-template-columns: 1fr;
           }
 
+          /* Force the single-column stack. The @media(max-width:980px) rule that
+             does this is defined BEFORE the base two-column rule, so source order
+             let the base win and the 400px sidebar overflowed the screen. This
+             block sits after the base rule, so it actually takes effect. */
+          .wallet-section { grid-template-columns: 1fr; }
+          .wallet-history-full { grid-column: auto; }
+
           /* Tighter chrome so cards aren't squeezed by desktop-sized padding. */
           .wallet-hero-card { padding: 20px; }
           .wallet-hero-card h2 { font-size: 34px; word-break: break-word; }
@@ -7242,7 +7249,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
           /* Data table → stacked labeled cards. The <head> row is hidden and each
              cell shows its own "Date/Type/…" label via data-label, so a collapsed
              single column stays readable instead of a pile of unlabeled values. */
-          .wallet-head { display: none; }
+          /* Two classes so it beats the equal-specificity .wallet-row{display:block}
+             below it — otherwise the empty header row renders as a ghost card. */
+          .wallet-row.wallet-head { display: none; }
           .wallet-row {
             display: block;
             border: 1px solid #EEF0FF;

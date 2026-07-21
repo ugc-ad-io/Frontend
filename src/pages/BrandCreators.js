@@ -450,18 +450,18 @@ export default function BrandCreators() {
       if (raf || !mq.matches || reduce.matches) return;
       measure();
       pos = el.scrollLeft;
-      el.addEventListener('touchstart', pause, opts);
+      // Pause only on an actual DRAG (touchmove) or wheel — a plain tap (to play/open
+      // a card) must NOT stop the auto-scroll.
+      el.addEventListener('touchmove', pause, opts);
       el.addEventListener('wheel', pause, opts);
-      el.addEventListener('pointerdown', pause);
       raf = requestAnimationFrame(step);
     };
     const stop = () => {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       clearTimeout(resumeTimer);
-      el.removeEventListener('touchstart', pause, opts);
+      el.removeEventListener('touchmove', pause, opts);
       el.removeEventListener('wheel', pause, opts);
-      el.removeEventListener('pointerdown', pause);
     };
     // Crossing the 620px breakpoint has to start/stop it — otherwise resizing into
     // phone width (or rotating) leaves the track dead until a remount.

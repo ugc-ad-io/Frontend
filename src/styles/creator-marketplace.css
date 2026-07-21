@@ -1611,7 +1611,15 @@
    hold the value PLUS five 16px stars for "Average Rating", which clipped. */
 /* Keep the 4 review stat tiles as a 2×2 grid on phones (was collapsing to 1 col).
    Wins over the .cmk-stats-2l ≤540 single-column rule via later source order. */
-@media (max-width:620px){.cmk-rev-stats-2x2{grid-template-columns:repeat(2,1fr);gap:10px}}
+@media (max-width:620px){
+  .cmk-rev-stats-2x2{grid-template-columns:repeat(2,1fr);gap:10px}
+  /* Value + stars share one line in the tight 2-col card: never break "5.0 / 5",
+     let the row wrap only as a fallback, and shrink the stars so they fit. */
+  .cmk-rev-stats-2x2 .cmk-stat-row{flex-wrap:wrap;gap:6px}
+  .cmk-rev-stats-2x2 .cmk-stat-val{white-space:nowrap;font-size:20px}
+  .cmk-rev-stats-2x2 .cmk-stat-val span{white-space:nowrap}
+  .cmk-rev-stats-2x2 .cmk-stat-meta svg{width:13px;height:13px}
+}
 /* Reviews carry user-generated text (brand names, campaign titles) in flex rows whose
    siblings are flex:none pills/timestamps. Without min-width:0 the text can't shrink,
    so it shoved those siblings past the card edge — real horizontal overflow inside

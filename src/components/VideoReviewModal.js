@@ -21,11 +21,14 @@ export const fmtTs = (s) => {
 
 export default function VideoReviewModal({
   src, title, onClose, onSubmit, submitting = false, freeRemaining, nextFee, watermark = true,
+  // Read-only mode: the CREATOR opens the brand's review to see exactly where each
+  // change is pinned. Comments are pre-loaded; compose/submit are hidden.
+  readOnly = false, initialComments = [],
 }) {
   const videoRef = useRef(null);
   const [now, setNow] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [comments, setComments] = useState([]);
+  const [comments, setComments] = useState(initialComments);
   const [draft, setDraft] = useState('');
   // Every video note is a required change — the brand no longer picks a severity,
   // but we still tag it so the "[must-fix @ 0:04]" format the creator's checklist

@@ -506,7 +506,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const country = p.country || 'India';
   const languages = Array.isArray(p.languages) ? p.languages : (p.languages ? [p.languages] : []);
   const priceNum = String(p.rate_card?.expected_payout || p.expectedPayout || '').replace(/[^0-9]/g, '');
-  const avatar = assetUrl(localPhoto || data?.profile_photo || photo);
+  const avatar = assetUrl(localPhoto || data?.profile_photo || data?.profile_picture || p.profile_photo || p.profile_picture || photo);
   const banner = assetUrl(localBanner || data?.banner || p.banner || '');
   const deliverables = Number(data?.deliverables_completed ?? p.deliverables_completed ?? 0);
   // Keep each portfolio item's own metadata (category / price / delivery) so the
@@ -1062,7 +1062,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-hl label{display:block;color:#9296ba;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
         .cpm-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        @media (max-width:520px){.cpm-highlights{grid-template-columns:1fr 1fr}}
+        /* Keep Category / Price / Delivery on ONE line (3 cols) even on phones —
+           just shrink the text so ₹50,000 etc. still fit. */
+        @media (max-width:520px){.cpm-highlights{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+          .cpm-hl label{font-size:10px}.cpm-hl strong{font-size:14px}}
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
@@ -1237,6 +1240,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         @media(max-width:640px){
           .cpm-actions{position:static;margin-top:12px}
           .cpm-msg{flex:1}
+          /* Lift the Save/bookmark out of the button row to the top-right, so
+             "Send a Brief" + "Send Message" get the full width and stay on one line. */
+          .cpm-save{position:absolute;top:14px;right:24px;z-index:5;width:40px;height:40px}
         }
       `}</style>
       </div>

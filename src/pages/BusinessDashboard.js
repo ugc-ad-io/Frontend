@@ -2143,16 +2143,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         label (right-aligned), rather than below the amount. */}
                     <div className="wallet-bal-line">
                       <p>Available Balance</p>
-                      <small className={`wallet-chat-status ${walletData.chat_unlocked ? 'is-unlocked' : ''}`}>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
+                      {/* Don't show the locked/unlocked status until the balance has
+                          actually loaded — otherwise the default 0 makes it read
+                          "minimum required" for a moment. */}
+                      {!walletLoading && (
+                        <small className={`wallet-chat-status ${walletData.chat_unlocked ? 'is-unlocked' : ''}`}>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
+                      )}
                     </div>
-                    <h2>{walletLoading ? <Skeleton width={160} height={34} style={{ background: 'rgba(255,255,255,.35)' }} /> : formatMoney(walletData.available_balance)}</h2>
+                    <h2>{walletLoading ? <span className="wallet-bal-loading">Loading…</span> : formatMoney(walletData.available_balance)}</h2>
                   </div>
                   {/* The side panel's only remaining row (Platform chat · Unlocked) now
                       duplicates the inline status next to Available Balance, so it's
                       removed — leaving the hero as a single clean balance block. */}
                 </section>
 
-                {!walletData.chat_unlocked && (
+                {!walletLoading && !walletData.chat_unlocked && (
                   <section className="wallet-warning">
                     <AlertCircle size={18} />
                     <div>
@@ -6165,6 +6170,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #6ee7b7;
           border: 1px solid rgba(52, 211, 153, 0.4);
         }
+        .wallet-bal-loading { font-size: 20px; font-weight: 700; color: rgba(255, 255, 255, 0.72); }
 
         .wallet-hero-side {
           display: flex;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -288,21 +288,23 @@ export default function MessagesPage() {
   }, [selectedId]);
 
   // Smart auto-scroll: only scroll if user is at bottom
-  useEffect(() => {
+  // useLayoutEffect (not useEffect): the open-jump must happen BEFORE the browser
+  // paints, so the first frame the user sees is already at the newest message.
+  // With useEffect it painted the top first, then jumped — a visible flash.
+  useLayoutEffect(() => {
     if (!messageContainerRef.current) return;
     const container = messageContainerRef.current;
 
-    // First render after opening a conversation: jump straight to the newest
-    // message. Must be an instant scrollTop set on the container itself — the
-    // container starts at scrollTop 0 (the top), so the "already at bottom" rule
-    // below never fires on open, which is why mobile opened chats at the top.
+    // First render after opening a conversation: land straight at the newest
+    // message. An instant scrollTop set on the container — it starts at scrollTop
+    // 0 (the top), so the "already at bottom" rule below never fires on open,
+    // which is why mobile opened chats at the top.
     if (justOpenedRef.current && messages.length) {
       justOpenedRef.current = false;
-      const jump = () => { container.scrollTop = container.scrollHeight; };
-      jump();
-      // Run again next frame so late-laid-out content (attachments, cards) can't
+      container.scrollTop = container.scrollHeight;
+      // Re-pin next frame so late-laid-out content (attachments, cards) can't
       // leave us a screen short of the bottom.
-      requestAnimationFrame(jump);
+      requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
       return;
     }
 

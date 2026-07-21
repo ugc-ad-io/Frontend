@@ -972,13 +972,25 @@
   /* overflow-x:auto also clips overflow-y, which would eat a -1px underline. */
   .wr-tabs button.is-active::after{bottom:0}
   /* On pages that opt in (wr-tabs-row--select), swap the scrolling tab strip for a
-     right-aligned status dropdown so the filter is one tap in every tab. */
+     right-aligned Filter button + popup so the filter is one tap in every tab. */
   .wr-tabs-row--select .wr-tabs{display:none}
-  .wr-tabs-row--select .wr-tabs-select{display:block}
+  .wr-tabs-row--select .wr-filter-wrap{display:block}
 }
 /* Hidden on desktop — the tab strip is used there instead. */
-.wr-tabs-select{display:none;margin-left:auto;height:40px;padding:0 12px;border:1px solid var(--line);
-  border-radius:10px;background:#fff;font-family:inherit;font-weight:600;font-size:14px;color:var(--ink);cursor:pointer}
+.wr-filter-wrap{display:none;position:relative;margin-left:auto;margin-bottom:8px}
+.wr-filter-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:1px solid var(--line);
+  border-radius:10px;background:#fff;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer}
+.wr-filter-btn svg{color:var(--muted)}
+.wr-filter-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:40;min-width:190px;padding:6px;
+  background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 44px rgba(17,20,45,.16);
+  display:flex;flex-direction:column;gap:2px}
+.wr-filter-menu button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+  padding:11px 12px;border:none;background:none;border-radius:9px;cursor:pointer;font-family:inherit;
+  font-weight:600;font-size:14.5px;color:var(--ink);text-align:left}
+.wr-filter-menu button em{font-style:normal;color:var(--muted)}
+.wr-filter-menu button:hover{background:var(--bg)}
+.wr-filter-menu button.is-active{background:var(--indigo);color:#fff}
+.wr-filter-menu button.is-active em{color:rgba(255,255,255,.8)}
 .wr-filter{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border:1px solid var(--line);background:#fff;border-radius:12px;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer;font-family:inherit;margin-bottom:8px}
 .wr-list{display:flex;flex-direction:column;gap:14px;max-width:1120px}
 .wr-row{display:grid;grid-template-columns:130px minmax(0,1fr) minmax(0,180px) 160px 46px;gap:18px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow-soft);transition:.18s}

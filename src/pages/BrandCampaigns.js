@@ -46,6 +46,8 @@ export default function BrandCampaigns() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
+  const filterRef = useRef(null);
   const [briefOpen, setBriefOpen] = useState(false);
   // Id of the draft being edited in the modal — null when writing a fresh brief.
   const [editingDraftId, setEditingDraftId] = useState(null);
@@ -99,6 +101,14 @@ export default function BrandCampaigns() {
 
   useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
 
+  // Close the mobile filter menu on any outside click.
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+    const onDoc = (e) => { if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [filterOpen]);
+
   // Save whatever's been typed as a draft before the modal goes away, so an
   // accidental click outside doesn't throw the brief away.
   const briefRef = useRef(null);
@@ -136,13 +146,29 @@ export default function BrandCampaigns() {
             </button>
           ))}
         </div>
-        {/* Mobile only: the tab strip is hidden and this right-aligned dropdown
-            replaces it, so the same status filter is reachable in every tab. */}
-        <select className="wr-tabs-select" value={tab} onChange={(e) => setTab(e.target.value)} aria-label="Filter campaigns">
-          {TABS.map((t) => (
-            <option key={t.key} value={t.key}>{t.label} ({counts[t.key] || 0})</option>
-          ))}
-        </select>
+        {/* Mobile only: the tab strip is hidden and this right-aligned Filter
+            button replaces it, so the same status filter is one tap in every tab. */}
+        <div className="wr-filter-wrap" ref={filterRef}>
+          <button type="button" className="wr-filter-btn" onClick={() => setFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={filterOpen}>
+            <SlidersHorizontal size={16} /> Filter
+          </button>
+          {filterOpen && (
+            <div className="wr-filter-menu" role="menu">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={tab === t.key}
+                  className={tab === t.key ? 'is-active' : ''}
+                  onClick={() => { setTab(t.key); setFilterOpen(false); }}
+                >
+                  {t.label} <em>({counts[t.key] || 0})</em>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (

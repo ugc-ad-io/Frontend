@@ -7269,7 +7269,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
             letter-spacing: 0.03em;
             text-align: left;
           }
-          .wallet-status { justify-self: auto; align-self: stretch; }
+          /* Drop the pill bg here — otherwise it wraps the injected label too.
+             Colour still comes from .wallet-status.success / .failed. */
+          .wallet-status { background: none; padding: 0; justify-self: auto; }
 
           .actions-grid {
             grid-template-columns: 1fr 1fr;

@@ -2211,13 +2211,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     </div>
                     {walletTransactions.slice(0, 8).map((transaction) => (
                       <div className="wallet-row" key={transaction.id}>
-                        <span>{formatWalletDate(transaction.date)}</span>
-                        <strong>{transaction.type}</strong>
-                        <span>{transaction.reference || '-'}</span>
-                        <strong className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
+                        <span data-label="Date">{formatWalletDate(transaction.date)}</span>
+                        <strong data-label="Type">{transaction.type}</strong>
+                        <span data-label="Reference">{transaction.reference || '-'}</span>
+                        <strong data-label="Amount" className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
                           {transaction.direction === 'debit' ? '-' : '+'}{formatMoney(transaction.amount)}
                         </strong>
-                        <span className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
+                        <span data-label="Status" className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
                       </div>
                     ))}
                   </div>

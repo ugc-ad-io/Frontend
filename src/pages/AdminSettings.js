@@ -173,25 +173,15 @@ export default function AdminSettings() {
         <section className="as-card">
           <h3>Recharge bonus tiers</h3>
           <p className="as-hint">A brand recharging ≥ the amount gets that instant % bonus. Highest matching tier wins.</p>
-          <div className="as-tier-head"><span>Recharge ≥ (₹)</span><span>Bonus %</span><span /></div>
+          <div className="as-tier-head"><span>Recharge ≥ (₹)</span><span>Bonus %</span></div>
           {(draft.wallet_bonus_tiers || []).map((t, i) => (
             <div className="as-tier-row" key={i}>
               <input type="number" min="0" value={t.amount ?? ''} disabled={!isFounder}
                 onChange={(e) => setField('wallet_bonus_tiers', draft.wallet_bonus_tiers.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
               <input type="number" min="0" value={t.bonus_percent ?? ''} disabled={!isFounder}
                 onChange={(e) => setField('wallet_bonus_tiers', draft.wallet_bonus_tiers.map((x, j) => j === i ? { ...x, bonus_percent: e.target.value } : x))} />
-              {isFounder && (
-                <button type="button" className="as-tier-del" title="Remove tier"
-                  onClick={() => setField('wallet_bonus_tiers', draft.wallet_bonus_tiers.filter((_, j) => j !== i))}>×</button>
-              )}
             </div>
           ))}
-          {isFounder && (
-            <button type="button" className="as-tier-add"
-              onClick={() => setField('wallet_bonus_tiers', [...(draft.wallet_bonus_tiers || []), { amount: '', bonus_percent: '', label: '' }])}>
-              + Add tier
-            </button>
-          )}
         </section>
       </div>
 
@@ -228,11 +218,9 @@ export default function AdminSettings() {
         .as-card textarea { width:100%; padding:8px 10px; border:1px solid #e2e4f0; border-radius:8px; box-sizing:border-box; }
         .as-flag { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px; text-transform:capitalize; }
         .as-hint { margin:0 0 12px; font-size:12.5px; color:#8a8fb0; line-height:1.5; }
-        .as-tier-head, .as-tier-row { display:grid; grid-template-columns:1fr 1fr 28px; gap:8px; align-items:center; margin-bottom:8px; }
+        .as-tier-head, .as-tier-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:center; margin-bottom:8px; }
         .as-tier-head span { font-size:11.5px; font-weight:700; color:#8a8fb0; text-transform:uppercase; letter-spacing:.3px; }
         .as-tier-row input { width:100%; padding:7px 10px; border:1px solid #e2e4f0; border-radius:8px; box-sizing:border-box; }
-        .as-tier-del { border:1px solid #fecaca; background:#fff5f5; color:#b42318; border-radius:8px; width:28px; height:32px; cursor:pointer; font-size:16px; line-height:1; }
-        .as-tier-add { margin-top:6px; border:1px dashed #c7cdff; background:#f6f7ff; color:#4452f0; font-weight:700; font-size:13px; padding:8px 12px; border-radius:8px; cursor:pointer; }
         .as-card h3 { margin:0 0 12px; font-size:15px; color:#07074e; }
         .as-field input:focus, .as-card textarea:focus { outline:none; border-color:#5b6bff; box-shadow:0 0 0 3px rgba(91,107,255,0.16); }
         .as-save { margin-top:18px; display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border:1px solid transparent; border-radius:10px; background:linear-gradient(100deg,#12124f,#07074e); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 12px 26px -12px rgba(7,7,78,.7); }

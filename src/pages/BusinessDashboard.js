@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { firstName } from '../utils/displayName';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { Skeleton } from '../components/Skeleton';
@@ -2147,13 +2147,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     </div>
                     <h2>{walletLoading ? <Skeleton width={160} height={34} style={{ background: 'rgba(255,255,255,.35)' }} /> : formatMoney(walletData.available_balance)}</h2>
                   </div>
-                  <div className="wallet-hero-side">
-                    <div className="whs-panel">
-                      {/* Plan and Recharge-bonus rows removed per request — only the
-                          platform-chat lock state remains in this panel. */}
-                      <div className="whs-row"><span>Platform chat</span><b className={walletData.chat_unlocked ? 'ok' : 'warn'} style={walletData.chat_unlocked ? undefined : { color: '#ff4d6d' }}>{walletData.chat_unlocked ? 'Unlocked' : 'Locked'}</b></div>
-                    </div>
-                  </div>
+                  {/* The side panel's only remaining row (Platform chat · Unlocked) now
+                      duplicates the inline status next to Available Balance, so it's
+                      removed — leaving the hero as a single clean balance block. */}
                 </section>
 
                 {!walletData.chat_unlocked && (
@@ -2268,7 +2264,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <span>Status</span>
                     </div>
                     {walletTransactions.slice(0, 8).map((transaction) => (
-                      <div className="wallet-row" key={transaction.id}>
+                      <div className={`wallet-row wallet-row--${transaction.direction === 'debit' ? 'out' : 'in'}`} key={transaction.id}>
+                        {/* Icon column — desktop hides it (the table has no icon column);
+                            mobile shows the reference-style circular in/out badge. */}
+                        <span className="wallet-row-ic" aria-hidden="true">
+                          {transaction.direction === 'debit' ? <ArrowUpRight size={17} /> : <ArrowDownLeft size={17} />}
+                        </span>
                         <span data-label="Date">{formatWalletDate(transaction.date)}</span>
                         <strong data-label="Type">{transaction.type}</strong>
                         <span data-label="Reference">{transaction.reference || '-'}</span>
@@ -6323,6 +6324,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           padding: 0 32px 24px;
         }
 
+        /* Desktop keeps the 5-column table — the in/out icon is mobile-only. */
+        .wallet-row-ic { display: none; }
         .wallet-row {
           display: grid;
           grid-template-columns: 1fr 1.2fr 1.5fr 1fr 0.9fr;
@@ -7360,41 +7363,61 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .wallet-recharge-card { padding: 18px 16px; }
           .wallet-table { padding: 0 12px 16px; }
 
-          /* Data table → stacked labeled cards. The <head> row is hidden and each
-             cell shows its own "Date/Type/…" label via data-label, so a collapsed
-             single column stays readable instead of a pile of unlabeled values. */
-          /* Two classes so it beats the equal-specificity .wallet-row{display:block}
-             below it — otherwise the empty header row renders as a ghost card. */
-          .wallet-row.wallet-head { display: none; }
+          /* Mobile transaction list — reference-style rows: a circular in/out icon,
+             the type + date stacked on the left, and the signed amount + status on
+             the right. Replaces the old "labeled cell stack". */
+          .wallet-row.wallet-head { display: none; }   /* two classes to beat the base */
           .wallet-row {
-            display: block;
-            border: 1px solid #EEF0FF;
-            border-radius: 14px;
-            padding: 8px 14px;
-            margin-bottom: 10px;
-          }
-          .wallet-row > * {
-            display: flex;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-areas:
+              "icon type   amount"
+              "icon date   status";
             align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            padding: 7px 0;
-            border-bottom: 1px solid #F3F4FB;
-            text-align: right;
+            column-gap: 12px;
+            row-gap: 2px;
+            border: 1px solid #EEF0FF;
+            border-radius: 16px;
+            padding: 13px 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 6px 16px -12px rgba(15, 22, 58, 0.3);
           }
-          .wallet-row > *:last-child { border-bottom: 0; }
-          .wallet-row > *::before {
-            content: attr(data-label);
-            color: #9296ba;
-            font-size: 11.5px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            text-align: left;
+          /* Reset the desktop grid-cell behaviour and remove the data-label prefixes. */
+          .wallet-row > * { display: block; text-align: left; border: 0; padding: 0; }
+          .wallet-row > *::before { content: none; }
+
+          .wallet-row-ic {
+            grid-area: icon;
+            display: grid;
+            place-items: center;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: #f2f3fb;
+            color: #5b6bff;
           }
-          /* Drop the pill bg here — otherwise it wraps the injected label too.
-             Colour still comes from .wallet-status.success / .failed. */
-          .wallet-status { background: none; padding: 0; justify-self: auto; }
+          .wallet-row--in  .wallet-row-ic { background: #E8F8EE; color: #27AE60; }
+          .wallet-row--out .wallet-row-ic { background: #FEECEF; color: #E11D48; }
+
+          .wallet-row [data-label="Type"] {
+            grid-area: type;
+            font-size: 14.5px; font-weight: 700; color: #15163a;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          }
+          .wallet-row [data-label="Date"] {
+            grid-area: date;
+            font-size: 12px; color: #9296ba; font-weight: 500;
+          }
+          .wallet-row [data-label="Reference"] { display: none; }  /* not shown in this layout */
+          .wallet-row [data-label="Amount"] {
+            grid-area: amount;
+            text-align: right; font-size: 15px; font-weight: 800; white-space: nowrap;
+          }
+          .wallet-row [data-label="Status"] {
+            grid-area: status;
+            text-align: right; justify-self: end;
+            background: none; padding: 0;
+            font-size: 11.5px; font-weight: 600; text-transform: capitalize;
+          }
 
           .actions-grid {
             grid-template-columns: 1fr 1fr;

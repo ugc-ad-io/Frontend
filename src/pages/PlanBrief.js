@@ -21,6 +21,8 @@ const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
 // brand doesn't re-enter them. Mirrors PostABrief's proven payload shape.
 const ASPECT_BY_ORIENTATION = { Portrait: '9:16', Landscape: '16:9', Square: '1:1' };
 const durationToSeconds = (d) => parseInt(String(d).replace(/\D/g, ''), 10) || 30;
+const CTA_OPTIONS = ['None', 'Visit website', 'Use code', 'Follow brand', 'Swipe up'];
+const RIGHTS_OPTIONS = ['Organic social', '30 days paid', '90 days paid', '6 months', '1 year', 'Perpetual'];
 
 // Delivery date: Today, Tomorrow, or a custom date the brand picks. Dates are
 // computed live (never hardcoded).
@@ -87,8 +89,19 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const [activeVideo, setActiveVideo] = useState(0);
   // Brief basics — REQUIRED so the brief can go through the same admin-review flow as
   // Post a Campaign (the campaign validator needs product/description/hook/message).
-  const [brief, setBrief] = useState({ productName: '', productDescription: '', hook: '', keyMessage: '' });
+  const [brief, setBrief] = useState({
+    // Basics
+    productName: '', productDescription: '', hook: '', keyMessage: '', targetAudience: '',
+    // Must-include
+    productVisibleSecs: '', cta: 'None', hashtags: '', brandTag: true,
+    // Must-avoid
+    noCompetitors: false, competitors: '', noOtherProducts: false, noProfanity: true, avoidText: '',
+    // Usage rights + timeline
+    platforms: '', rightsDuration: 'Organic social', exclusivity: false, revisions: '1',
+  });
   const setBriefField = (k) => (e) => setBrief((b) => ({ ...b, [k]: e.target.value }));
+  const setBriefVal = (k, val) => setBrief((b) => ({ ...b, [k]: val }));
+  const toggleBrief = (k) => setBrief((b) => ({ ...b, [k]: !b[k] }));
   const briefComplete = brief.productName.trim().length > 0
     && brief.productDescription.trim().length >= 10
     && brief.hook.trim().length > 0
@@ -335,6 +348,26 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         budget_min: plan?.price || 0,
         budget_max: plan?.price || 0,
         per_video_budget: plan?.price || 0,
+        // Basics
+        target_audience: brief.targetAudience.trim(),
+        // Must-include
+        product_visible: !!Number(brief.productVisibleSecs),
+        product_visible_seconds: Number(brief.productVisibleSecs) || 0,
+        call_to_action: brief.cta,
+        hashtags: brief.hashtags.trim(),
+        brand_handle_tag: brief.brandTag,
+        // Must-avoid
+        no_competitors: brief.noCompetitors,
+        competitors_text: brief.competitors.trim(),
+        no_other_products: brief.noOtherProducts,
+        no_profanity: brief.noProfanity,
+        avoid_text: brief.avoidText.trim(),
+        // Usage rights + timeline
+        usage_platforms: brief.platforms.split(',').map((p) => p.trim()).filter(Boolean),
+        rights_duration: brief.rightsDuration,
+        exclusivity: brief.exclusivity,
+        revision_limit: Number(brief.revisions) || 0,
+        free_revisions: Number(brief.revisions) || 0,
         requires_shipment: hasProduct,
         shipment_option: hasProduct ? 'yes' : 'no',
         due_date: deliveryDate,
@@ -362,16 +395,22 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
   const v = videos[activeVideo] || newVideo();
 
-  // Dynamic steps: a "Brand Guidelines" step only appears once guidelines are
-  // added to any video — otherwise step 2 is Payment directly.
-  const hasGuidelines = videos.some((vid) => vid.guidelinesOpen);
-  // Payment step removed: the brief is booked straight from wallet credits (money is
-  // already in the wallet, exactly like Post a Campaign). The final step just HOLDS the
-  // funds — no separate pay screen.
-  const steps = hasGuidelines
-    ? ['Plan & Videos', 'Brand Guidelines']
-    : ['Plan & Videos'];
-  const currentStep = stage === 'guidelines' ? 1 : 0;
+  // Condensed 5-tab wizard covering the Post-a-Campaign sections (Basics, Deliverables,
+  // Must-Include/Avoid, Usage Rights, Guidelines) — each SHORT — then submit for admin
+  // review. No Payment step: the brief books straight from wallet credits like a campaign.
+  const STEP_LIST = [
+    { key: 'setup', label: 'Plan & Videos' },
+    { key: 'basics', label: 'Basics' },
+    { key: 'rules', label: 'Content Rules' },
+    { key: 'usage', label: 'Usage & Timeline' },
+    { key: 'guidelines', label: 'Brand Guidelines' },
+  ];
+  const stepIdx = Math.max(0, STEP_LIST.findIndex((s) => s.key === stage));
+  const isLastStep = stepIdx === STEP_LIST.length - 1;
+  const goNext = () => setStage(STEP_LIST[Math.min(stepIdx + 1, STEP_LIST.length - 1)].key);
+  const goBack = () => setStage(STEP_LIST[Math.max(stepIdx - 1, 0)].key);
+  // Basics carries the review flow's required fields — can't move past it until filled.
+  const nextBlocked = stage === 'basics' && !briefComplete;
 
   // The money-holding action, shared by both possible last steps (setup when there are
   // no guidelines, otherwise the guidelines step). A short balance opens the inline
@@ -471,10 +510,10 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
           {/* Progress stepper — reflects whether a Brand Guidelines step exists */}
           <div className="pb-stepper">
-            {steps.map((label, i) => (
-              <div key={label} className={`pb-stepper-item ${i === currentStep ? 'active' : ''}`}>
+            {STEP_LIST.map((s, i) => (
+              <div key={s.key} className={`pb-stepper-item ${i === stepIdx ? 'active' : ''}`}>
                 <span className="pb-stepper-num">{i + 1}</span>
-                <span className="pb-stepper-label">{label}</span>
+                <span className="pb-stepper-label">{s.label}</span>
               </div>
             ))}
           </div>
@@ -516,34 +555,65 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <Field label="Does it feature a product"><Select value={v.product} onChange={(val) => updateVideo({ product: val })} options={PRODUCTS} placeholder="Select" /></Field>
             </div>
 
-            {/* Brief basics — the short version of Post a Campaign's brief. Required so the
-                brief can be reviewed + published the same way (admin approval → escrow hold). */}
-            <div className="pb-video-title"><Check size={16} className="pb-video-title-check" /> About your brief</div>
+          </div>
+          </>
+          ) : stage === 'basics' ? (
+          <>
+          <div className="pb-head">
+            <h2>Tell us about your brief</h2>
+            <p>The essentials our team reviews before it goes live.</p>
+          </div>
+          <div className="pb-scroll">
             <div className="pb-brief-fields">
               <Field label="Product / brand name *"><input type="text" value={brief.productName} onChange={setBriefField('productName')} placeholder="e.g. Nova Running Shoes" /></Field>
               <Field label="What are you promoting? *"><textarea rows={2} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two (min 10 characters)" /></Field>
               <Field label="Hook / main idea *"><input type="text" value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
               <Field label="Key message *"><input type="text" value={brief.keyMessage} onChange={setBriefField('keyMessage')} placeholder="The one thing the viewer must take away" /></Field>
+              <Field label="Target audience"><textarea rows={2} value={brief.targetAudience} onChange={setBriefField('targetAudience')} placeholder="Who is this for? (age, interests, region)" /></Field>
             </div>
-
-            {v.guidelinesOpen ? (
-              <button type="button" className="pb-guidelines-toggle is-added" onClick={() => setStage('guidelines')}>
-                <Check size={15} /> Brand Guidelines added — Edit
-              </button>
-            ) : (
-              <button type="button" className="pb-guidelines-toggle" onClick={() => { updateVideo({ guidelinesOpen: true }); setStage('guidelines'); }}>
-                <Plus size={15} /> Add Brand Guidelines
-              </button>
-            )}
-          </div>
-
-          <div className="pb-footer">
-            {hasGuidelines ? (
-              <button type="button" className="pb-proceed" onClick={() => setStage('guidelines')} disabled={submitting || priceMissing || !briefComplete} title={priceMissing ? "This creator hasn't set a price yet" : (!briefComplete ? 'Fill the brief basics first' : undefined)}>Proceed</button>
-            ) : holdMoneyBtn}
           </div>
           </>
-          ) : stage === 'guidelines' ? (
+          ) : stage === 'rules' ? (
+          <>
+          <div className="pb-head">
+            <h2>Content rules</h2>
+            <p>What the video must include — and must avoid.</p>
+          </div>
+          <div className="pb-scroll">
+            <div className="pb-video-title">Must include</div>
+            <div className="pb-brief-fields">
+              <Field label="Product on screen (seconds)"><input type="number" min="0" value={brief.productVisibleSecs} onChange={setBriefField('productVisibleSecs')} placeholder="e.g. 5" /></Field>
+              <Field label="Call to action"><Select value={brief.cta} onChange={(val) => setBriefVal('cta', val)} options={CTA_OPTIONS} /></Field>
+              <Field label="Hashtags"><input type="text" value={brief.hashtags} onChange={setBriefField('hashtags')} placeholder="#brand #launch" /></Field>
+              <label className="pb-check"><input type="checkbox" checked={brief.brandTag} onChange={() => toggleBrief('brandTag')} /> Tag the brand handle</label>
+            </div>
+            <div className="pb-video-title">Must avoid</div>
+            <div className="pb-brief-fields">
+              <label className="pb-check"><input type="checkbox" checked={brief.noCompetitors} onChange={() => toggleBrief('noCompetitors')} /> No competitor brands</label>
+              {brief.noCompetitors && <Field label="Competitors to avoid"><input type="text" value={brief.competitors} onChange={setBriefField('competitors')} placeholder="Brand A, Brand B" /></Field>}
+              <label className="pb-check"><input type="checkbox" checked={brief.noOtherProducts} onChange={() => toggleBrief('noOtherProducts')} /> No other products on screen</label>
+              <label className="pb-check"><input type="checkbox" checked={brief.noProfanity} onChange={() => toggleBrief('noProfanity')} /> No profanity</label>
+              <Field label="Anything else to avoid"><textarea rows={2} value={brief.avoidText} onChange={setBriefField('avoidText')} placeholder="Optional" /></Field>
+            </div>
+          </div>
+          </>
+          ) : stage === 'usage' ? (
+          <>
+          <div className="pb-head">
+            <h2>Usage &amp; timeline</h2>
+            <p>Where you can use the content, and delivery terms.</p>
+          </div>
+          <div className="pb-scroll">
+            <div className="pb-brief-fields">
+              <Field label="Platforms"><input type="text" value={brief.platforms} onChange={setBriefField('platforms')} placeholder="Instagram, TikTok, YouTube…" /></Field>
+              <Field label="Rights duration"><Select value={brief.rightsDuration} onChange={(val) => setBriefVal('rightsDuration', val)} options={RIGHTS_OPTIONS} /></Field>
+              <label className="pb-check"><input type="checkbox" checked={brief.exclusivity} onChange={() => toggleBrief('exclusivity')} /> Exclusive (creator can’t post similar for competitors)</label>
+              <Field label="Revisions included"><input type="number" min="0" value={brief.revisions} onChange={setBriefField('revisions')} /></Field>
+            </div>
+            <p className="pb-usage-note"><Info size={13} /> Delivery date &amp; slot are set on the left. Budget is the plan rate ({inr(plan?.price || 0)}/video).</p>
+          </div>
+          </>
+          ) : (
           <>
           <div className="pb-head">
             <h2>Brand Guidelines</h2>
@@ -586,88 +656,26 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
             </div>
           </div>
 
-          <div className="pb-footer">
-            <button type="button" className="pb-goback" onClick={() => { updateVideo({ guidelinesOpen: false }); setStage('setup'); }} disabled={submitting}>Remove &amp; Go Back</button>
-            {holdMoneyBtn}
-          </div>
           </>
-          ) : (
-          <>
-          <div className="pb-head">
-            <h2>Payment</h2>
-            <p>You&apos;re one step away from getting your video in motion 🎬</p>
-          </div>
+          )}
 
-          <div className="pb-scroll pb-pay-body">
-            <div className="pb-pay-videos">
-              {videos.map((vid, i) => (
-                <div key={i} className="pb-pay-card">
-                  <div className="pb-pay-card-head">
-                    <strong>{videoName(vid, i)} Details</strong>
-                    <button type="button" className="pb-rename" onClick={() => renameVideo(i)}><Tag size={13} /> Rename</button>
-                  </div>
-                  <p className="pb-pay-specs">{vid.duration} / {vid.language} / Standard / {vid.orientation} / {vid.background} / {vid.product === 'Yes' ? 'Product added' : 'No product added'}</p>
-                  <p className="pb-pay-actor">{displayName} - - -</p>
-                  <div className="pb-pay-actions">
-                    <button type="button" className="pb-pay-del" onClick={() => deleteVideo(i)}><Trash2 size={14} /> Delete</button>
-                    <button type="button" className="pb-pay-mod" onClick={() => modifyVideo(i)}><Pencil size={14} /> Modify</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <aside className="pb-summary">
-              <div className="pb-summary-rows">
-                {videos.map((vid, i) => (
-                  <div key={i} className="pb-summary-row">
-                    <span>{videoName(vid, i)}</span>
-                    <div><strong>{inr(plan?.price || 0)}</strong><small>Breakdown</small></div>
-                  </div>
-                ))}
-              </div>
-              <div className="pb-summary-foot">
-                <p className="pb-credits">
-                  <Info size={13} /> Available credits: {wallet === null ? '…' : inr(wallet)}
-                </p>
-                <div className="pb-summary-line"><span>Subtotal</span><strong>{inr(subtotal)}</strong></div>
-                <div className="pb-summary-line"><span>Platform fee <em>{feePercent}%</em></span><strong>{inr(platformFee)}</strong></div>
-                <div className="pb-summary-line pb-summary-total"><span>Total</span><strong>{inr(total)}</strong></div>
-                {insufficient && (
-                  <p className="pb-shortfall">
-                    Add {inr(gap)} more in credits to book this creator.
-                  </p>
-                )}
-              </div>
-            </aside>
-          </div>
-
+          {/* Shared footer — Back through the tabs, Next until the last step, then submit. */}
           <div className="pb-footer">
-            <button type="button" className="pb-goback" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'setup')} disabled={submitting}>Go Back</button>
-            {insufficient ? (
-              // Dead-end fix: a short balance is fixable, so open the inline top-up
-              // panel instead of showing a disabled "Not enough credits" button.
-              <button
-                type="button"
-                className="pb-proceed pb-addfunds"
-                onClick={openTopup}
-                disabled={submitting}
-                title={`You're ${inr(gap)} short`}
-              >
-                <Wallet size={15} /> Add Funds
-              </button>
-            ) : (
+            {stepIdx > 0 && (
+              <button type="button" className="pb-goback" onClick={goBack} disabled={submitting}>Back</button>
+            )}
+            {isLastStep ? holdMoneyBtn : (
               <button
                 type="button"
                 className="pb-proceed"
-                onClick={proceed}
-                disabled={submitting || !(total > 0)}
+                onClick={goNext}
+                disabled={submitting || priceMissing || nextBlocked}
+                title={priceMissing ? "This creator hasn't set a price yet" : (nextBlocked ? 'Fill the brief basics first' : undefined)}
               >
-                {submitting ? 'Processing…' : `Pay ${inr(total)} from credits`}
+                Next
               </button>
             )}
           </div>
-          </>
-          )}
         </section>
 
         {/* Inline top-up sheet — keeps the brief alive while they add credits. */}
@@ -790,8 +798,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-video-title { display: flex; align-items: center; gap: 6px; font-weight: 800; color: #0f172a; padding-bottom: 10px; border-bottom: 2px solid #07074e; width: fit-content; margin-bottom: 18px; }
         .pb-video-title-check { color: #16a34a; }
         .pb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
-        .pb-brief-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+        .pb-brief-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; margin-bottom: 8px; }
         .pb-brief-fields textarea { resize: vertical; min-height: 46px; }
+        .pb-check { display: flex; align-items: center; gap: 9px; font-size: 0.9rem; color: #334155; cursor: pointer; }
+        .pb-check input { width: 16px; height: 16px; accent-color: #12124f; cursor: pointer; }
+        .pb-usage-note { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 0.8rem; color: #64748b; }
         .pb-field { display: grid; gap: 7px; font-size: 0.85rem; font-weight: 700; color: #334155; }
         .pb-field > span { color: #334155; }
         .pb-field input[type=text], .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; color: #0f172a; background: #fff; resize: vertical; }

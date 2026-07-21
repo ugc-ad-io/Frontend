@@ -14,6 +14,7 @@ import VideoReviewModal, { fmtTs } from '../components/VideoReviewModal';
 import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { SkeletonCards } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -253,7 +254,7 @@ export default function BrandWorkReview() {
       </div>
 
       {loading ? (
-        <div className="cmk-empty">Loading…</div>
+        <SkeletonCards count={6} height={150} />
       ) : total === 0 ? (
         <EmptyState title={`Nothing in “${TABS.find((t) => t.key === tab).label}”`} message="Submitted creator content will show up here for you to review and approve." />
       ) : (

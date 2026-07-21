@@ -53,6 +53,24 @@ export function SkeletonTable({ rows = 6, cols = 5, header = true }) {
   );
 }
 
+// Row-list placeholder (e.g. conversation list, notification list) — each row
+// is a small avatar + two text lines.
+export function SkeletonList({ rows = 6, avatar = true }) {
+  return (
+    <div className="sk-list" role="status" aria-label="Loading">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div className="sk-row" key={i}>
+          {avatar && <Skeleton width={40} height={40} radius="50%" />}
+          <div className="sk-row-lines">
+            <Skeleton height={12} width={`${55 + (i % 3) * 12}%`} />
+            <Skeleton height={10} width={`${30 + (i % 4) * 10}%`} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Card-grid placeholder (e.g. application cards, dashboards).
 export function SkeletonCards({ count = 6, height = 120 }) {
   return (

@@ -29,6 +29,11 @@
 .sk-td { flex: 1; min-width: 0; }
 .sk-td:first-child { flex: 1.4; }
 
+/* Row-list placeholder */
+.sk-list { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.sk-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.sk-row-lines { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+
 /* Card-grid placeholder */
 .sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .sk-card { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid #eef0f6; border-radius: 14px; background: #fff; }

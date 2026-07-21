@@ -7,6 +7,7 @@ import ChatPopup from '../components/ChatPopup';
 import CreatorInviteModal from '../components/CreatorInviteModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { creatorFirstName } from '../utils/displayName';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -414,7 +415,21 @@ export default function BrandCreators() {
       </div>
 
       {loading ? (
-        <div className="cmk-empty">Loading creators…</div>
+        <div className="bc-grid">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div className="bc-card" key={i} aria-hidden="true">
+              {/* mirrors ReelCard: portrait 9/16 reel, then avatar + name/price row */}
+              <Skeleton height="100%" radius={16} style={{ aspectRatio: '9 / 16', display: 'block' }} />
+              <div className="bc-meta">
+                <Skeleton width={30} height={30} radius="50%" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                  <Skeleton width="70%" height={12} />
+                  <Skeleton width="45%" height={10} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState title="No creators found" message="No creators match your current search or filters. Try clearing them to see everyone." />
       ) : (

@@ -13,6 +13,7 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import CreatorInviteModal from '../components/CreatorInviteModal';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import BrandProfileCard from '../components/BrandProfileCard';
+import { SkeletonList } from '../components/Skeleton';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
 
@@ -871,7 +872,7 @@ export default function MessagesPage() {
 
           <div className="msg-conv-list">
             {loading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>Loading...</div>
+              <SkeletonList rows={7} />
             ) : filteredConversations.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No conversations</div>
             ) : (

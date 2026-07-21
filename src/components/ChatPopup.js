@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { X, Send, FileText, User } from 'lucide-react';
 import { useAuth } from '../App';
 import { apiErrorMessage } from '../utils/apiError';
-import PlanBrief from '../pages/PlanBrief';
+import CreatorInviteModal from './CreatorInviteModal';
 import CreatorProfileModal from './CreatorProfileModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -141,9 +141,8 @@ export default function ChatPopup({ user, onClose }) {
     </div>
 
       {briefOpen && (
-        <PlanBrief
+        <CreatorInviteModal
           creatorId={user.id}
-          creatorName={peerName}
           onClose={() => setBriefOpen(false)}
           onPublished={() => setBriefOpen(false)}
         />

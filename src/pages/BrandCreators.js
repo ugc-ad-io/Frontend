@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
-import PlanBrief from './PlanBrief';
+import CreatorInviteModal from '../components/CreatorInviteModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { creatorFirstName } from '../utils/displayName';
@@ -457,9 +457,8 @@ export default function BrandCreators() {
       )}
 
       {briefFor && (
-        <PlanBrief
+        <CreatorInviteModal
           creatorId={briefFor.id}
-          creatorName={nameOf(briefFor).replace('@', '')}
           onClose={() => setBriefFor(null)}
           onPublished={() => setBriefFor(null)}
         />

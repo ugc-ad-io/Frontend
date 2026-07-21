@@ -1568,7 +1568,9 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
       </div>
 
       <div className="deal-revision-meta">
-        <p><small>Brand Feedback</small><strong>{revision.latest_feedback || 'No revision requested yet.'}</strong></p>
+        {/* Brand feedback isn't shown raw here — it repeated the tagged string
+            ("[must-fix @ 0:31] asd …") that the parsed checklist below already
+            lists cleanly. Notes the brand added (if any) still surface there. */}
         <p><small>New Deadline</small><strong>{formatDateTime(revision.new_deadline_at)}</strong></p>
       </div>
 

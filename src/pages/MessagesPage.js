@@ -10,7 +10,7 @@ import { displayName, creatorFirstName } from '../utils/displayName';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
-import PlanBrief from './PlanBrief';
+import CreatorInviteModal from '../components/CreatorInviteModal';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import BrandProfileCard from '../components/BrandProfileCard';
 import './CreatorDashboard.css';
@@ -1133,9 +1133,8 @@ export default function MessagesPage() {
       </div>
 
       {briefTarget && (
-        <PlanBrief
+        <CreatorInviteModal
           creatorId={briefTarget}
-          creatorName={creatorFirstName(selectedConv)}
           onClose={() => setBriefTarget(null)}
           onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
         />

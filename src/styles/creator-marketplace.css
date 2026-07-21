@@ -1556,3 +1556,19 @@
   font-weight:700;font-size:14.5px;color:#fff;padding:13px 24px;border-radius:14px;
   background:linear-gradient(100deg,#5b6bff,#4452f0);box-shadow:0 14px 30px -12px rgba(68,82,240,.7);transition:.18s}
 .cmk-emptystate-btn:hover{transform:translateY(-2px)}
+
+/* ── Brand pages: phone-width fixes ──────────────────────────────────────────
+   Audited each brand tab: Creators (.bc-grid), Campaigns (.bcam-grid), Work
+   Review (.bwr-card), Reviews (.cmk-rev-*) and Saved Creators already collapse.
+   These were the ones still stuck multi-column on a phone. */
+@media (max-width:560px){
+  /* Overview campaign cards were still 2-up — too narrow to read the title/budget. */
+  .bo-camp-grid{grid-template-columns:1fr}
+  /* Creator tiles are just avatar+name, so 3-up reads better than 2 stretched ones. */
+  .bo-cre-grid{grid-template-columns:repeat(3,1fr);gap:12px}
+}
+@media (max-width:420px){
+  /* Label/value pairs and preview thumbs get too cramped at the smallest widths. */
+  .bc-details{grid-template-columns:1fr}
+  .bcq-thumbs{grid-template-columns:repeat(2,1fr)}
+}

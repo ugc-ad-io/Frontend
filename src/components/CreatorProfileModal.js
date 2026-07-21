@@ -1042,7 +1042,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-avatar-lg{box-sizing:border-box;display:grid;place-items:center;width:108px;height:108px;border-radius:50%;border:4px solid #fff;overflow:hidden;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:38px;box-shadow:0 8px 22px -8px rgba(15,22,58,.4)}
         .cpm-avatar-lg img{width:100%;height:100%;object-fit:cover}
         .cpm-actions{position:absolute;right:28px;top:122px;display:flex;align-items:center;gap:10px}
-        .cpm-msg{display:inline-flex;align-items:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
+        .cpm-msg{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-msg:hover{filter:brightness(1.12)}
         .cpm-brief-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-brief-btn:hover{transform:translateY(-1px)}
@@ -1056,15 +1056,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px}
         .cpm-stats span{color:#9296ba;font-size:12.5px;font-weight:600}
         .cpm-stats strong{color:#15163a;font-size:17px;font-weight:800;margin-right:4px}
-        .cpm-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;
-          padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
+        .cpm-highlights{display:grid;grid-template-columns:auto auto auto;justify-content:space-between;gap:12px;margin-top:18px;
+          padding:16px 18px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
+        .cpm-highlights .cpm-hl:last-child{text-align:right}
         .cpm-hl{min-width:0}
         .cpm-hl label{display:block;color:#9296ba;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
         .cpm-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         /* Keep Category / Price / Delivery on ONE line (3 cols) even on phones —
            just shrink the text so ₹50,000 etc. still fit. */
-        @media (max-width:520px){.cpm-highlights{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+        @media (max-width:520px){.cpm-highlights{grid-template-columns:auto auto auto;justify-content:space-between;gap:10px}
           .cpm-hl label{font-size:10px}.cpm-hl strong{font-size:14px}}
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
@@ -1242,7 +1243,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           .cpm-msg{flex:1}
           /* Lift the Save/bookmark out of the button row to the top-right, so
              "Send a Brief" + "Send Message" get the full width and stay on one line. */
-          .cpm-save{position:absolute;top:14px;right:24px;z-index:5;width:40px;height:40px}
+          .cpm-save{position:absolute;top:56px;right:24px;z-index:5;width:40px;height:40px}
         }
       `}</style>
       </div>

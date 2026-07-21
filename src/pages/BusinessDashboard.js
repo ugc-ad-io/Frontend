@@ -1156,7 +1156,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
     return true;
   });
   const walletBonusTiers = walletData.bonus_tiers || [];
-  const walletBonus = walletData.recharge_bonus || {};
   const performanceLeftMax = 120;
   const performanceRightMax = 80;
   const chartTop = 28;
@@ -2143,7 +2142,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         label (right-aligned), rather than below the amount. */}
                     <div className="wallet-bal-line">
                       <p>Available Balance</p>
-                      <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
+                      <small className={`wallet-chat-status ${walletData.chat_unlocked ? 'is-unlocked' : ''}`}>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
                     </div>
                     <h2>{walletLoading ? <Skeleton width={160} height={34} style={{ background: 'rgba(255,255,255,.35)' }} /> : formatMoney(walletData.available_balance)}</h2>
                   </div>
@@ -2168,7 +2167,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <h2>Recharge Bonus</h2>
                     <p>Bigger recharges earn a bigger instant bonus.</p>
                   </div>
-                  <span>Active: +{walletBonus.current_tier_percent || 0}%</span>
                   <div className="wallet-tier-grid">
                     {walletBonusTiers.map((tier) => (
                       <button key={tier.amount} type="button" onClick={() => setWalletAmount(String(tier.amount))}>
@@ -6121,6 +6119,23 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
         .wallet-bal-line p { margin: 0; }
         .wallet-bal-line small { margin: 0; text-align: right; }
+        /* Platform-chat status pill. When unlocked it reads as a green success badge. */
+        .wallet-chat-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 12.5px;
+          background: rgba(255, 255, 255, 0.14);
+          color: rgba(255, 255, 255, 0.9);
+        }
+        .wallet-chat-status.is-unlocked {
+          background: rgba(52, 211, 153, 0.18);
+          color: #6ee7b7;
+          border: 1px solid rgba(52, 211, 153, 0.4);
+        }
 
         .wallet-hero-side {
           display: flex;

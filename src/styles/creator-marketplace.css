@@ -977,13 +977,13 @@
      are defined LATER in the file (source order would otherwise re-show them). */
   .wr-tabs-row.wr-tabs-row--select,
   .bwr-tabs-row.bwr-tabs-row--select,
-  .sent-briefs-tabs,
+  .cmk-tabs.sent-briefs-tabs,
   .bc-cats.bc-cats--select{display:none}
-  /* Filter pinned top-right; only the H1 reserves space for it, so the subtitle
-     below spans the full width and stays on one line instead of wrapping. */
-  .cmk-page-head--filter{position:relative}
-  .cmk-page-head--filter h1{padding-right:112px}
-  .cmk-page-head--filter .wr-filter-wrap{display:block;position:absolute;top:0;right:0;margin:0}
+  /* Title on the left, Filter flush to the far right. margin-left:auto eats all
+     the space between them so the button always sits at the right edge. */
+  .cmk-page-head--filter{display:flex;align-items:flex-start;gap:12px}
+  .cmk-page-head--filter h1{padding-right:0}
+  .cmk-page-head--filter .wr-filter-wrap{display:block;position:relative;flex:none;margin:0 0 0 auto}
   /* Sent Briefs: Filter lives beside Refresh in the hero, not the page head. */
   .sent-briefs-hero-actions .wr-filter-wrap{display:block;margin:0}
 }

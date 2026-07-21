@@ -255,14 +255,17 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       {/* Floating Message button — hidden on the Messages page itself (redundant there). */}
       {!(pathname === '/messages' || pathname.startsWith('/messages/')) && (
         <>
-          <button
-            type="button"
-            className="cmk-btn-primary-sm cmk-post-fab"
-            onClick={() => setMsgOpen((v) => !v)}
-            title="Messages"
-          >
-            <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
-          </button>
+          {/* Hidden while the popup is open so the FAB doesn't peek out behind it. */}
+          {!msgOpen && (
+            <button
+              type="button"
+              className="cmk-btn-primary-sm cmk-post-fab"
+              onClick={() => setMsgOpen((v) => !v)}
+              title="Messages"
+            >
+              <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
+            </button>
+          )}
 
           {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
         </>

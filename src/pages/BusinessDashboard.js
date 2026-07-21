@@ -2923,6 +2923,17 @@ export default function BusinessDashboard({ page = 'overview' }) {
           margin: 0 auto;
         }
 
+        /* Phones: the 40px side padding wasted most of a narrow screen, making
+           tab content (Sent Briefs, Wallet, etc.) look cramped and pushing the
+           filter dropdown/cards against the edge. Reclaim the width and stop any
+           child from forcing a sideways scroll (overflow-y:auto also clips X). */
+        @media (max-width: 600px) {
+          .dashboard-content { padding: 16px 14px 40px; }
+          .transparent-tab-shell,
+          .all-campaigns-section { min-width: 0; max-width: 100%; }
+          .all-campaigns-section .wr-filter-menu { max-width: calc(100vw - 28px); }
+        }
+
         .post-brief-shell {
           padding-top: 8px;
         }

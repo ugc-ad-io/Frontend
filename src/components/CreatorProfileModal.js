@@ -259,6 +259,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const bannerRef = useRef(null);
   const workRef = useRef(null);
 
+  // Sticky compact header: appears once the main name/header scrolls out of view.
+  const headSentinelRef = useRef(null);
+  const [stuck, setStuck] = useState(false);
+
   // Scroll-spy: tabs double as anchors — clicking scrolls to the section, and
   // scrolling between stacked sections updates the active tab.
   const videosRef = useRef(null);
@@ -284,6 +288,19 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     axios.get(`${API}/reviews/creator/${id}`).then((r) => { if (a) setReviews(Array.isArray(r.data) ? r.data : []); }).catch(() => {});
     return () => { a = false; };
   }, [id]);
+
+  // Reveal the compact sticky header once the sentinel (placed just under the main
+  // name) scrolls above the viewport. Viewport root works for both page + overlay.
+  useEffect(() => {
+    const el = headSentinelRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(
+      ([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < 0),
+      { threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loading]);
 
   const [reviewers, setReviewers] = useState({});
   const reviewCount = reviews.length;
@@ -655,6 +672,22 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const content = (
       <div className="cpm" onClick={(e) => e.stopPropagation()}>
+        {/* Compact sticky header — appears once the main name scrolls out of view. */}
+        <div className={`cpm-ministicky ${stuck ? 'is-shown' : ''}`} aria-hidden={!stuck}>
+          <span className="cpm-mini-ava">
+            {avatar ? <img src={avatar} alt="" /> : name.replace('@', '').charAt(0).toUpperCase()}
+          </span>
+          <div className="cpm-mini-id">
+            <strong>{(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}</strong>
+            <span>
+              {reviewCount > 0 && <><Star size={12} fill="#f5b301" color="#f5b301" /> {avgRating.toFixed(1)} · </>}
+              {hlCategory}
+            </span>
+          </div>
+          {!editable && onMessage && (
+            <button type="button" className="cpm-mini-cta" onClick={onMessage}><MessageSquare size={14} /> Message</button>
+          )}
+        </div>
         <div
           className={`cpm-banner ${editable ? 'is-editable' : ''}`}
           // Layer the banner image OVER the gradient (not instead of it): a broken or
@@ -708,33 +741,32 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
               <>
                 {onBegin && <button type="button" className="cpm-brief-btn" onClick={onBegin}>Send a Brief</button>}
                 {onMessage && <button type="button" className="cpm-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
-                {/* Saving a creator to a shortlist is a brand-only action. A creator
-                    who opens this modal (e.g. viewing the brand they're chatting with
-                    in Messages) must not see a "Save creator" button — they'd be
-                    "saving a brand", which isn't a thing here (creators save campaigns).
-                    Gate on the viewer's role rather than hiding it everywhere. */}
-                {viewer?.role === 'business' && (
-                  <button
-                    type="button"
-                    className={`cpm-save ${saved ? 'is-saved' : ''}`}
-                    onClick={() => {
-                      const now = toggleSavedCreator({
-                        id: id || data?.id, name, public_creator_id: publicId, photo: avatar, banner,
-                        category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
-                        deliverables, delivery: hlDelivery,
-                      });
-                      setSaved(now);
-                      toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
-                    }}
-                    aria-label={saved ? 'Saved' : 'Save creator'}
-                    title={saved ? 'Saved' : 'Save creator'}
-                  >
-                    <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
-                  </button>
-                )}
               </>
             )}
           </div>
+
+          {/* Save/bookmark lives outside .cpm-actions so that row can become a
+              fixed bottom bar on mobile without dragging the bookmark down with it.
+              Brand-only: a creator viewing this must not "save a brand". */}
+          {!editable && !onEdit && viewer?.role === 'business' && (
+            <button
+              type="button"
+              className={`cpm-save ${saved ? 'is-saved' : ''}`}
+              onClick={() => {
+                const now = toggleSavedCreator({
+                  id: id || data?.id, name, public_creator_id: publicId, photo: avatar, banner,
+                  category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
+                  deliverables, delivery: hlDelivery,
+                });
+                setSaved(now);
+                toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+              }}
+              aria-label={saved ? 'Saved' : 'Save creator'}
+              title={saved ? 'Saved' : 'Save creator'}
+            >
+              <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+            </button>
+          )}
 
           <h2 className="cpm-name">
             {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
@@ -747,6 +779,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             )}
           </h2>
           <div className="cpm-id">ID: {publicId}{(city || country) ? ` · ${[city, country].filter(Boolean).join(', ')}` : ''}</div>
+          {/* Sentinel: when this scrolls above the viewport, the compact header shows. */}
+          <div ref={headSentinelRef} aria-hidden="true" style={{ position: 'absolute', height: 1, width: 1 }} />
 
           <div className="cpm-stats">
             <span><strong>{deliverables}</strong> deliverables</span>
@@ -1067,6 +1101,23 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
            just shrink the text so ₹50,000 etc. still fit. */
         @media (max-width:520px){.cpm-highlights{grid-template-columns:auto auto auto;justify-content:space-between;gap:10px}
           .cpm-hl label{font-size:10px}.cpm-hl strong{font-size:14px}}
+        /* Compact sticky header — fixed (out of flow) so it never reserves space
+           while hidden; slides in from the top once scrolled past the name. */
+        .cpm-ministicky{position:fixed;top:0;left:0;right:0;z-index:8;display:flex;align-items:center;gap:12px;
+          padding:10px 20px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+          border-bottom:1px solid #eef0f6;transform:translateY(-100%);opacity:0;pointer-events:none;
+          transition:transform .22s ease,opacity .22s ease;margin-bottom:-1px}
+        .cpm-ministicky.is-shown{transform:translateY(0);opacity:1;pointer-events:auto}
+        .cpm-mini-ava{width:34px;height:34px;border-radius:50%;flex:none;overflow:hidden;background:#4452f0;color:#fff;
+          display:grid;place-items:center;font-weight:800;font-size:14px}
+        .cpm-mini-ava img{width:100%;height:100%;object-fit:cover}
+        .cpm-mini-id{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.2}
+        .cpm-mini-id strong{font-size:15px;color:#15163a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .cpm-mini-id span{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#7a7fa6;text-transform:capitalize}
+        .cpm-mini-cta{flex:none;display:inline-flex;align-items:center;gap:6px;background:#15163a;color:#fff;border:none;
+          border-radius:22px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit}
+        .cpm-page .cpm-ministicky{top:72px}
+        @media (max-width:760px){.cpm-page .cpm-ministicky{top:0}}
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
@@ -1076,8 +1127,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
         .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
         .cpm-page .cpm{overflow:visible}
-        .cpm-page .cpm-tabs{position:sticky;top:72px;z-index:6;margin-top:0}
-        @media (max-width:760px){.cpm-page .cpm-tabs{top:0}}
+        /* Tabs stick just BELOW the compact header (nav 72 + ~54 bar) so the two
+           don't fight for the same top slot; on mobile the nav scrolls away so the
+           offset is just the bar height. */
+        .cpm-page .cpm-tabs{position:sticky;top:126px;z-index:6;margin-top:0}
+        @media (max-width:760px){.cpm-page .cpm-tabs{top:54px}}
         .cpm-stars{display:inline-flex;gap:2px;vertical-align:middle}
         .cpm-reviews{display:flex;flex-direction:column;gap:18px}
         .cpm-rev-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -1239,11 +1293,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-begin{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-begin:hover{filter:brightness(1.06)}
         @media(max-width:640px){
-          .cpm-actions{position:static;margin-top:12px}
-          .cpm-msg{flex:1}
-          /* Lift the Save/bookmark out of the button row to the top-right, so
-             "Send a Brief" + "Send Message" get the full width and stay on one line. */
+          /* Fixed bottom action bar (like a marketplace "Contact" CTA). */
+          .cpm-actions{position:fixed;left:0;right:0;bottom:0;margin:0;gap:10px;z-index:60;
+            padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+            background:#fff;border-top:1px solid #eef0f6;box-shadow:0 -6px 20px rgba(15,22,58,.10)}
+          .cpm-msg,.cpm-brief-btn{flex:1}
+          /* Save/bookmark stays pinned in the header (top-right), not the bottom bar. */
           .cpm-save{position:absolute;top:56px;right:24px;z-index:5;width:40px;height:40px}
+          /* Clear the fixed bar so it never covers the last content. */
+          .cpm-tab-body{padding-bottom:92px}
         }
       `}</style>
       </div>

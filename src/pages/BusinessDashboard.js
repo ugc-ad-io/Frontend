@@ -2145,11 +2145,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   </div>
                   <div className="wallet-hero-side">
                     <div className="whs-panel">
-                      <div className="whs-row"><span>Plan</span><strong>{walletData.plan_name}</strong></div>
+                      {/* Plan and Recharge-bonus rows removed per request — only the
+                          platform-chat lock state remains in this panel. */}
                       <div className="whs-row"><span>Platform chat</span><b className={walletData.chat_unlocked ? 'ok' : 'warn'} style={walletData.chat_unlocked ? undefined : { color: '#ff4d6d' }}>{walletData.chat_unlocked ? 'Unlocked' : 'Locked'}</b></div>
-                      {(walletBonus.current_tier_percent || 0) > 0 && (
-                        <div className="whs-row"><span>Recharge bonus</span><b className="ok">+{walletBonus.current_tier_percent}%</b></div>
-                      )}
                     </div>
                   </div>
                 </section>

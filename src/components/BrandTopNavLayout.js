@@ -195,7 +195,6 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                 <strong>{displayName}</strong>
                 <small>Brand Account</small>
               </span>
-              <ChevronDown size={16} color="#9296ba" />
             </button>
 
             {menuOpen && (

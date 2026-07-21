@@ -306,16 +306,17 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
       });
       const charged = Number(res.data?.amount_charged) || 0;
       setWallet(Number(res.data?.wallet_balance) || 0);
-      toast.success(`Paid ${inr(charged)} from your credits — the deal has started with the creator`);
+      toast.success(`Brief sent — ${inr(charged)} held from your credits, released to the creator when the deal completes.`);
       if (onPublished) onPublished();
     } catch (e) {
-      // A short wallet isn't an error to bury in a toast — tell them the gap and
-      // send them somewhere they can fix it.
+      // A short wallet isn't an error to bury in a toast — tell them the gap AND open the
+      // inline top-up sheet (there's no payment screen to fall back to anymore).
       if (e?.response?.status === 402) {
         const d = e.response.data || {};
         setWallet(Number(d.available) || 0);
         setShortfall(Number(d.shortfall) || 0);
         toast.error(d.detail || 'Not enough credits.');
+        setTopupOpen(true);
       } else {
         toast.error(apiErrorMessage(e, 'Payment failed'));
       }
@@ -329,10 +330,26 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   // Dynamic steps: a "Brand Guidelines" step only appears once guidelines are
   // added to any video — otherwise step 2 is Payment directly.
   const hasGuidelines = videos.some((vid) => vid.guidelinesOpen);
+  // Payment step removed: the brief is booked straight from wallet credits (money is
+  // already in the wallet, exactly like Post a Campaign). The final step just HOLDS the
+  // funds — no separate pay screen.
   const steps = hasGuidelines
-    ? ['Plan & Videos', 'Brand Guidelines', 'Payment']
-    : ['Plan & Videos', 'Payment'];
-  const currentStep = stage === 'setup' ? 0 : stage === 'guidelines' ? 1 : steps.length - 1;
+    ? ['Plan & Videos', 'Brand Guidelines']
+    : ['Plan & Videos'];
+  const currentStep = stage === 'guidelines' ? 1 : 0;
+
+  // The money-holding action, shared by both possible last steps (setup when there are
+  // no guidelines, otherwise the guidelines step). A short balance opens the inline
+  // top-up sheet instead of a dead-end; otherwise it books + holds the funds.
+  const holdMoneyBtn = insufficient ? (
+    <button type="button" className="pb-proceed pb-addfunds" onClick={openTopup} disabled={submitting} title={`You're ${inr(gap)} short`}>
+      <Wallet size={15} /> Add Funds
+    </button>
+  ) : (
+    <button type="button" className="pb-proceed" onClick={proceed} disabled={submitting || priceMissing || !(total > 0)} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>
+      {submitting ? 'Processing…' : `Send Brief · Hold ${inr(total)}`}
+    </button>
+  );
 
   return (
     <div className="pb-overlay" onClick={onClose}>
@@ -470,7 +487,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
 
           <div className="pb-footer">
-            <button type="button" className="pb-proceed" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'payment')} disabled={submitting || priceMissing} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>Proceed</button>
+            {hasGuidelines ? (
+              <button type="button" className="pb-proceed" onClick={() => setStage('guidelines')} disabled={submitting || priceMissing} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>Proceed</button>
+            ) : holdMoneyBtn}
           </div>
           </>
           ) : stage === 'guidelines' ? (
@@ -518,7 +537,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
           <div className="pb-footer">
             <button type="button" className="pb-goback" onClick={() => { updateVideo({ guidelinesOpen: false }); setStage('setup'); }} disabled={submitting}>Remove &amp; Go Back</button>
-            <button type="button" className="pb-proceed" onClick={() => setStage('payment')} disabled={submitting || priceMissing} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>Proceed</button>
+            {holdMoneyBtn}
           </div>
           </>
           ) : (

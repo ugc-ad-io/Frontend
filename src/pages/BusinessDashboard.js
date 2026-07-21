@@ -1807,7 +1807,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                            <strong style={{ fontSize: 15, color: '#07074E' }}>{b.creator_name || 'Creator'}</strong>
+                            <strong style={{ fontSize: 15, color: '#07074E' }}>{String(b.creator_name || 'Creator').trim().split(/\s+/)[0]}</strong>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#5b6bff', background: '#eef0ff', padding: '2px 8px', borderRadius: 6 }}>{b.type_label}</span>
                           </div>
                           <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginBottom: 6 }}>

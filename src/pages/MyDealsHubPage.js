@@ -193,7 +193,7 @@ export default function MyDealsHubPage() {
       {/* ---------------- Requested Deals ---------------- */}
       {tab === 'requested' && (
         loading ? (
-          <div className="cmk-empty">Loading…</div>
+          <DealsSkeleton />
         ) : requested.length ? (
           <div className="mdh-grid">
             {requested.map((d) => {

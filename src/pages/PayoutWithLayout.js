@@ -5,6 +5,7 @@ import { Search, Wallet, Clock, TrendingUp, IndianRupee, ChevronDown, ArrowUpRig
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { SkeletonTable } from '../components/Skeleton';
 import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -173,7 +174,7 @@ export default function PayoutWithLayout() {
 
       <div className="cmk-table-card cmk-rise">
         {loading ? (
-          <div className="cmk-empty">Loading earnings…</div>
+          <SkeletonTable rows={6} cols={tab === 'earnings' ? 6 : 5} />
         ) : tab === 'earnings' ? (
           earnings.length === 0 ? (
             <EmptyState

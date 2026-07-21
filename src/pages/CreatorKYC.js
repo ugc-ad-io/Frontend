@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ShieldCheck, Upload, FileCheck2, Hourglass, XCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import { Skeleton } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -179,7 +180,23 @@ export default function CreatorKYC() {
         </header>
 
         {loading ? (
-          <div className="kyc-card">Loading…</div>
+          <div className="kyc-card" aria-hidden="true">
+            <Skeleton width={180} height={20} style={{ marginBottom: 20 }} />
+            <div className="kyc-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <Skeleton width="45%" height={12} />
+                  <Skeleton width="100%" height={42} radius={10} />
+                </div>
+              ))}
+            </div>
+            <Skeleton width={150} height={20} style={{ margin: '24px 0 16px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+              <Skeleton width="100%" height={90} radius={12} />
+              <Skeleton width="100%" height={90} radius={12} />
+            </div>
+            <Skeleton width={200} height={46} radius={12} style={{ marginTop: 24 }} />
+          </div>
         ) : (
           <>
             {status === 'verified' && (

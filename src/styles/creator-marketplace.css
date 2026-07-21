@@ -996,6 +996,9 @@
   .cmk-page-head--filter .wr-filter-wrap{display:block;position:relative;flex:none;margin:0 0 0 auto}
   /* Sent Briefs: Filter lives beside Refresh in the hero, not the page head. */
   .sent-briefs-hero-actions .wr-filter-wrap{display:block;margin:0}
+  /* The hidden tab strip carried the header→cards gap (margin:16px 0 22px). With it
+     gone on mobile the campaign cards hugged the title — restore that breathing room. */
+  .bcam-grid{margin-top:20px}
 }
 /* Sent Briefs pill strip — was inline-styled; moved here so mobile can hide it. */
 .sent-briefs-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}

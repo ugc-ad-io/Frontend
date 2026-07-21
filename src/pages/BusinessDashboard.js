@@ -619,7 +619,25 @@ export default function BusinessDashboard({ page = 'overview' }) {
     setBriefsLoading(true);
     try {
       const res = await axios.get(`${API}/business/briefs?t=${Date.now()}`);
-      setBriefs(res.data || []);
+      let list = Array.isArray(res.data) ? res.data : [];
+      // Some briefs return without a creator_photo (the photo can be stored under a
+      // few different keys). Backfill from the creator directory — which already
+      // resolves the photo robustly — so the avatar renders instead of an initial.
+      if (list.some((b) => !b.creator_photo && b.creator_id)) {
+        try {
+          const dir = await axios.get(`${API}/business/creator-directory`);
+          const items = Array.isArray(dir.data) ? dir.data : (dir.data?.creators || []);
+          const photoById = {};
+          items.forEach((it) => {
+            const id = it.id || it.creator_id;
+            const profile = it.profile || {};
+            const photo = it.profile_photo || it.profile_picture || profile.profile_photo || profile.profile_picture;
+            if (id && photo) photoById[id] = photo;
+          });
+          list = list.map((b) => (b.creator_photo || !photoById[b.creator_id]) ? b : { ...b, creator_photo: photoById[b.creator_id] });
+        } catch { /* directory is a best-effort fallback */ }
+      }
+      setBriefs(list);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to load sent briefs'));
     } finally {

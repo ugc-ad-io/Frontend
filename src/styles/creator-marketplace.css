@@ -929,9 +929,9 @@
 .bcam-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s}
 .bcam-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card)}
 .bcam-img{position:relative;height:150px;overflow:hidden;background:linear-gradient(135deg,#e9ebff,#efeaff);display:grid;place-items:center;color:#b9c0e8;font-size:32px;font-weight:800}
-/* Campaign card shows the brand LOGO, not a banner: contain + centre it on the tint
-   so a square/transparent logo sits nicely instead of being cropped edge-to-edge. */
-.bcam-img img{position:relative;inset:auto;max-width:70%;max-height:78px;width:auto;height:auto;object-fit:contain;display:block}
+/* Campaign card shows the brand LOGO, not a banner: fill the panel width and contain
+   it (so a wide logo spans full width; a square/transparent one isn't cropped). */
+.bcam-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:16px;display:block}
 .bcam-badge{position:absolute;top:12px;left:12px;font-size:10.5px;font-weight:800;padding:5px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
 .bcam-badge.live{background:#dcfce7;color:#15a35b}
 .bcam-badge.review{background:#e0e7ff;color:#4452f0}

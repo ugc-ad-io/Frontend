@@ -878,10 +878,18 @@
 .bcq-thumb:hover,.bcq-thumb.on{box-shadow:0 0 0 2px var(--periwinkle,#07074e)}
 .bcq-thumb:hover video,.bcq-thumb.on video{transform:scale(1.05)}
 .bcq-work > label small{color:#b3b6d4;font-weight:600;text-transform:none;letter-spacing:0}
+/* Mobile: two thumbs per row; more than two becomes a swipeable, gently
+   auto-scrolling strip (see thumbsRef effect in BrandCreators.js). */
+@media (max-width:560px){
+  .bcq-thumbs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:9px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .bcq-thumbs::-webkit-scrollbar{display:none}
+  .bcq-thumb{flex:0 0 calc((100% - 9px) / 2);scroll-snap-align:start}
+}
 .bcq-actions{display:flex;gap:10px;margin-top:20px}
 /* Save (bookmark) — square, doesn't grow like the two text buttons. */
-.bcq-save{flex:none;width:46px;height:46px;display:grid;place-items:center;border-radius:13px;border:1px solid var(--line);
-  background:#fff;color:#4452f0;cursor:pointer;transition:.18s}
+/* Sits stacked under the close (X) in the top-right corner of the card. */
+.bcq-save{position:absolute;top:56px;right:12px;z-index:4;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.92);color:#4452f0;cursor:pointer;transition:.18s;box-shadow:0 4px 14px rgba(0,0,0,.12)}
 .bcq-save:hover{border-color:#cdd2f3;background:#f2f3ff}
 .bcq-save.is-saved{background:#eef0ff;border-color:#c7cdff}
 .bcq-ghost,.bcq-primary{flex:1;height:46px;border-radius:13px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:.18s}

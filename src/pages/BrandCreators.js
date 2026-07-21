@@ -193,6 +193,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const rating = c.avg_rating || c.rating;
   const [bigVid, setBigVid] = useState(baseVid);
   const bigRef = useRef(null);
+  const thumbsRef = useRef(null); // Recent-work row (mobile auto-scroll)
   const [saved, setSaved] = useState(() => isCreatorSaved(c.id));
   // The big auto-playing preview is desktop-only. On phones it's just a heavy
   // header nobody can hover, so drop it entirely — tap a "Recent work" thumb to play.
@@ -203,6 +204,41 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     mq.addEventListener('change', on);
     return () => mq.removeEventListener('change', on);
   }, []);
+
+  // Mobile: two Recent-work thumbs per row; more than two gently auto-scrolls the
+  // strip so the rest are discoverable. Pauses whenever the user touches/scrolls it.
+  useEffect(() => {
+    const el = thumbsRef.current;
+    if (!el) return;
+    if (!window.matchMedia('(max-width: 560px)').matches || thumbs.length <= 2) return;
+    let raf, dir = 1, paused = false, resumeTimer, pos = el.scrollLeft;
+    const step = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      if (!paused && max > 0) {
+        pos += dir * 0.4; // ~24px/sec — "a bit slow"
+        if (pos >= max) { pos = max; dir = -1; }
+        else if (pos <= 0) { pos = 0; dir = 1; }
+        el.scrollLeft = pos;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    const pause = () => {
+      paused = true;
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { pos = el.scrollLeft; paused = false; }, 2500);
+    };
+    raf = requestAnimationFrame(step);
+    el.addEventListener('pointerdown', pause);
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('wheel', pause, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(resumeTimer);
+      el.removeEventListener('pointerdown', pause);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('wheel', pause);
+    };
+  }, [thumbs.length, isMobile]);
 
   const toggleSave = () => {
     const now = toggleSavedCreator({
@@ -221,6 +257,9 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     <div className="bcq-overlay" onClick={onClose}>
       <div className="bcq-card" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="bcq-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
+        <button type="button" className={`bcq-save ${saved ? 'is-saved' : ''}`} onClick={toggleSave} aria-label={saved ? 'Saved' : 'Save creator'} title={saved ? 'Saved' : 'Save creator'}>
+          <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
+        </button>
         {!isMobile && (
           <div className="bcq-video">
             {hasVideo ? (
@@ -248,7 +287,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
           {thumbs.length > 0 && (
             <div className="bcq-work">
               <label>Recent work <small>· hover to preview</small></label>
-              <div className="bcq-thumbs">
+              <div className="bcq-thumbs" ref={thumbsRef}>
                 {thumbs.map((tv, k) => {
                   const src = `${tv}#t=0.5`;
                   return (
@@ -268,9 +307,6 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
             </div>
           )}
           <div className="bcq-actions">
-            <button type="button" className={`bcq-save ${saved ? 'is-saved' : ''}`} onClick={toggleSave} aria-label={saved ? 'Saved' : 'Save creator'} title={saved ? 'Saved' : 'Save creator'}>
-              <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
-            </button>
             <button type="button" className="bcq-ghost" onClick={onMessage}>Message</button>
             <button type="button" className="bcq-primary" onClick={onFull}>View full details</button>
           </div>

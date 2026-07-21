@@ -149,6 +149,9 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       />
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
+          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
           </button>
@@ -215,9 +218,6 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                 <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
               </div>
             )}
-            <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
           </div>
         </div>
         {mobileOpen && (

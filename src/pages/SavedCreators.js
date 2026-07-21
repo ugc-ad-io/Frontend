@@ -73,10 +73,11 @@ export default function SavedCreators() {
     };
   }), [saved, dir]);
 
-  // Phone-only cloned tail so the two-row sideways track loops seamlessly — mirrors
-  // Browse Creators. ≤2 cards fit one column with nothing to scroll, so skip it.
+  // Phone layout is count-driven: ≤2 → a single row; 3–4 → two rows that still fit
+  // one screen; >4 → two rows that overflow and auto-scroll. The cloned tail (for the
+  // seamless loop) is therefore only needed past 4.
   const cloneTail = useMemo(
-    () => (isPhone && cards.length > 2 ? cards.slice(0, Math.min(6, cards.length)) : []),
+    () => (isPhone && cards.length > 4 ? cards.slice(0, Math.min(6, cards.length)) : []),
     [isPhone, cards]
   );
 
@@ -166,7 +167,7 @@ export default function SavedCreators() {
       </div>
 
       {cards.length ? (
-        <div className="bc-grid" ref={gridRef}>
+        <div className={`bc-grid scr-saved${cards.length <= 2 ? ' scr-onerow' : ''}`} ref={gridRef}>
           {cards.map((c) => (
             <div key={c.id} className="scr-reel">
               {/* Unsave sits top-right of the reel — the tier badge is top-left and
@@ -221,6 +222,15 @@ export default function SavedCreators() {
           box-shadow: 0 4px 12px -4px rgba(15,22,58,.4); transition: background .15s;
         }
         .scr-unsave:hover { background: #fff; }
+
+        @media (max-width: 620px) {
+          /* Count-driven rows. The base .bc-grid phone rule lays out a two-row
+             sideways track (grid-auto-flow:column, 2 rows). With ≤2 saved creators
+             that stacked them into one column — collapse to a SINGLE row instead so
+             they sit side by side. 3+ keep the two-row track; >4 overflows it and the
+             auto-scroll drift + cloned tail take over. */
+          .bc-grid.scr-onerow { grid-template-rows: auto; }
+        }
       `}</style>
     </BrandTopNavLayout>
   );

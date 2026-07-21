@@ -165,7 +165,10 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           /* The rail is gone on mobile, so the tap-hamburger + its dropdown menu
              must work again (both were hidden while the rail was the nav). */
           .cmk-app.has-rail .cmk-mobile-menu{display:flex}
-          .cmk-app.has-rail .cmk-page{padding-left:0}
+          /* No desktop rail offset on mobile, but give the PAGE CONTENT a small side
+             inset so headings/chips don't hug the edge — the top nav is unaffected
+             (it only uses .cmk-wrap, not .cmk-page). */
+          .cmk-app.has-rail .cmk-page{padding-left:12px;padding-right:12px}
           .cmk-app.has-rail .cmk-wrap{margin-left:auto}
         }
       `}</style>

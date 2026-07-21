@@ -212,6 +212,8 @@ export default function SavedCreators() {
       )}
 
       <style>{`
+        /* Breathing room between the page header and the reel cards. */
+        .bc-grid.scr-saved { margin-top: 22px; }
         /* Wrapper just hosts the unsave overlay; the card itself is the shared ReelCard. */
         .scr-reel { position: relative; width: 100%; min-width: 0; }
         .scr-unsave {

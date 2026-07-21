@@ -264,6 +264,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const videosRef = useRef(null);
   const detailsRef = useRef(null);
   const reviewsRef = useRef(null);
+  const vidTrackRef = useRef(null); // the horizontal video row (mobile auto-scroll)
   const scrollLock = useRef(false);
   const goTab = (t) => {
     const map = { videos: videosRef, details: detailsRef, reviews: reviewsRef };
@@ -531,6 +532,43 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     .filter((v) => v.url && !String(v.url).startsWith('blob:'));
   // Only the creator's own uploaded videos — no stock/sample fallback.
   const vids = realVids;
+
+  // Mobile only: when the creator has more than two clips, gently auto-scroll the
+  // video row so the extra ones are discoverable. Two (or fewer) sit in one row
+  // with nothing to scroll. Pauses for a bit whenever the user touches/scrolls it.
+  useEffect(() => {
+    const el = vidTrackRef.current;
+    if (!el) return;
+    if (!window.matchMedia('(max-width: 560px)').matches || vids.length <= 2) return;
+    let raf, dir = 1, paused = false, resumeTimer, pos = el.scrollLeft;
+    const step = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      if (!paused && max > 0) {
+        pos += dir * 0.4; // ~24px/sec — "a bit slow"
+        if (pos >= max) { pos = max; dir = -1; }
+        else if (pos <= 0) { pos = 0; dir = 1; }
+        el.scrollLeft = pos;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    const pause = () => {
+      paused = true;
+      clearTimeout(resumeTimer);
+      // Resync to wherever the user left it, then resume after a short idle.
+      resumeTimer = setTimeout(() => { pos = el.scrollLeft; paused = false; }, 2500);
+    };
+    raf = requestAnimationFrame(step);
+    el.addEventListener('pointerdown', pause);
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('wheel', pause, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(resumeTimer);
+      el.removeEventListener('pointerdown', pause);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('wheel', pause);
+    };
+  }, [vids.length]);
 
   // All the signup-form details (stored under user.profile via extra="allow").
   const phone = [p.dialCode, p.phone].filter(Boolean).join(' ');
@@ -916,7 +954,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     </div>
                   </>
                 ) : (
-                  <div className="cpm-vids">
+                  <div className="cpm-vids cpm-vids--scroll" ref={vidTrackRef}>
                     {vids.length === 0 && (
                       <div className="cpm-vids-empty" style={{ gridColumn: '1 / -1', padding: '28px', textAlign: 'center', color: 'var(--text-muted, #8a90a6)', fontSize: 14 }}>
                         No videos uploaded yet.
@@ -1145,6 +1183,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--indigo,#5b6bff);box-shadow:0 3px 10px rgba(0,0,0,.3)}
         @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-media{position:absolute;top:16px;right:18px;width:118px}.cpm-rev-who,.cpm-rev-meta{padding-right:130px}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:8px;flex-wrap:nowrap;justify-content:space-between}.cpm-rev-fact{padding:0;flex:1;min-width:0}.cpm-rev-fact+.cpm-rev-fact{border-left:none}.cpm-rev-fact strong{font-size:14px}.cpm-rev-cat{font-size:13px}}
         .cpm-vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+        /* Mobile: two clips per row; more than two turns the row into a
+           swipeable, gently auto-scrolling strip (see vidTrackRef effect). */
+        @media (max-width:560px){
+          .cpm-vids--scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+          .cpm-vids--scroll::-webkit-scrollbar{display:none}
+          .cpm-vids--scroll .cpm-vid-item{flex:0 0 calc((100% - 14px) / 2);scroll-snap-align:start}
+        }
         .cpm-vid{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#0b1020;cursor:pointer;box-shadow:0 8px 22px -12px rgba(15,22,58,.4)}
         /* per-video caption: category chip + price / duration */
         .cpm-vid-item{display:flex;flex-direction:column;gap:8px}
@@ -1237,6 +1282,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-sec-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
         .cpm-sections h4{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:13px;font-weight:800;color:#15163a;text-transform:uppercase;letter-spacing:.5px;margin:0}
         .cpm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+        /* On phones the auto-fit min was too wide → 1 column with blank space on the
+           right. Force two columns so fields (Age|Gender, Body|Skin…) sit side by side. */
+        @media (max-width:640px){.cpm-grid{grid-template-columns:1fr 1fr;gap:12px 14px}}
         .cpm-f{display:flex;flex-direction:column;gap:3px;min-width:0}
         .cpm-f.wide{grid-column:1/-1}
         .cpm-f label{font-size:11px;font-weight:700;color:#9296ba;text-transform:uppercase;letter-spacing:.3px}
@@ -1257,6 +1305,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         /* Hide the app's floating message FAB on mobile while a profile is open —
            it would sit right on top of the bottom Send Message bar. */
         @media(max-width:640px){body.cpm-open .cmk-post-fab{display:none}}
+        /* When a chat popup is open on top, hide this profile's fixed bottom bar so
+           it doesn't overlap the chat's composer. */
+        body.cpop-open .cpm-mobilebar{display:none}
         @media(max-width:640px){
           /* Send Message lives in the fixed bottom bar on mobile — drop the top one. */
           .cpm-msg-top{display:none}

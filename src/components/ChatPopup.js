@@ -74,6 +74,13 @@ export default function ChatPopup({ user, onClose }) {
     return () => { alive = false; };
   }, [user.id, user.name, user.photo]);
 
+  // Mark the body while the chat is open so the creator profile's fixed bottom
+  // "Send Message" bar (if the profile is still mounted behind) can be hidden.
+  useEffect(() => {
+    document.body.classList.add('cpop-open');
+    return () => document.body.classList.remove('cpop-open');
+  }, []);
+
   const resolvedName = (user.name && user.name !== 'Creator') ? user.name : (peer?.name || 'Creator');
   // A brand sees the creator by FIRST NAME only (never full name / @username).
   const peerName = me?.role === 'business'

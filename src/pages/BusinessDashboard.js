@@ -1725,9 +1725,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       </div>
                     )}
                   </div>
-                  <button type="button" className="btn-secondary" onClick={fetchBriefs} disabled={briefsLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <Activity size={16} /> Refresh
-                  </button>
                 </div>
               </div>
 

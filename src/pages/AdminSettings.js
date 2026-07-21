@@ -72,6 +72,11 @@ export default function AdminSettings() {
         ? draft.restricted_categories
         : String(draft.restricted_categories || '').split(',').map((s) => s.trim()).filter(Boolean);
       payload.feature_flags = draft.feature_flags;
+      // Wallet recharge-bonus tiers: keep valid rows only (amount > 0), numeric.
+      payload.wallet_bonus_tiers = (draft.wallet_bonus_tiers || [])
+        .map((t) => ({ amount: Number(t.amount) || 0, bonus_percent: Number(t.bonus_percent) || 0, label: t.label || '' }))
+        .filter((t) => t.amount > 0)
+        .sort((a, b) => a.amount - b.amount);
       const res = await axios.put(`${API}/admin/settings`, payload);
       setSettings(res.data.settings);
       toast.success('Settings updated (logged to audit trail)');
@@ -163,6 +168,30 @@ export default function AdminSettings() {
               {flag}
             </label>
           ))}
+        </section>
+
+        <section className="as-card">
+          <h3>Recharge bonus tiers</h3>
+          <p className="as-hint">A brand recharging ≥ the amount gets that instant % bonus. Highest matching tier wins.</p>
+          <div className="as-tier-head"><span>Recharge ≥ (₹)</span><span>Bonus %</span><span /></div>
+          {(draft.wallet_bonus_tiers || []).map((t, i) => (
+            <div className="as-tier-row" key={i}>
+              <input type="number" min="0" value={t.amount ?? ''} disabled={!isFounder}
+                onChange={(e) => setField('wallet_bonus_tiers', draft.wallet_bonus_tiers.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
+              <input type="number" min="0" value={t.bonus_percent ?? ''} disabled={!isFounder}
+                onChange={(e) => setField('wallet_bonus_tiers', draft.wallet_bonus_tiers.map((x, j) => j === i ? { ...x, bonus_percent: e.target.value } : x))} />
+              {isFounder && (
+                <button type="button" className="as-tier-del" title="Remove tier"
+                  onClick={() => setField('wallet_bonus_tiers', draft.wallet_bonus_tiers.filter((_, j) => j !== i))}>×</button>
+              )}
+            </div>
+          ))}
+          {isFounder && (
+            <button type="button" className="as-tier-add"
+              onClick={() => setField('wallet_bonus_tiers', [...(draft.wallet_bonus_tiers || []), { amount: '', bonus_percent: '', label: '' }])}>
+              + Add tier
+            </button>
+          )}
         </section>
       </div>
 

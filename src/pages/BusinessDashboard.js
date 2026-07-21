@@ -2139,9 +2139,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 <section className="wallet-hero-card">
                   <div>
                     <span className="wallet-kicker"><Wallet size={18} /> Brand Wallet • UGCad</span>
-                    <p>Available Balance</p>
+                    {/* Chat-status sits on the SAME line as the "Available Balance"
+                        label (right-aligned), rather than below the amount. */}
+                    <div className="wallet-bal-line">
+                      <p>Available Balance</p>
+                      <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
+                    </div>
                     <h2>{walletLoading ? <Skeleton width={160} height={34} style={{ background: 'rgba(255,255,255,.35)' }} /> : formatMoney(walletData.available_balance)}</h2>
-                    <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
                   </div>
                   <div className="wallet-hero-side">
                     <div className="whs-panel">
@@ -2165,8 +2169,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
                 <section className="wallet-panel wallet-bonus-tiers">
                   <div>
-                    <h2>Recharge Bonus Tiers</h2>
-                    <p>Get more with bigger recharges. Bonus credited instantly after payment confirmation.</p>
+                    <h2>Recharge Bonus</h2>
+                    <p>Bigger recharges earn a bigger instant bonus.</p>
                   </div>
                   <span>Active: +{walletBonus.current_tier_percent || 0}%</span>
                   <div className="wallet-tier-grid">
@@ -6103,6 +6107,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 400;
         }
 
+        /* "Available Balance" label and the platform-chat status share one row
+           (label left, status right). Defined after the p/small rules above so it
+           wins the equal-specificity tie and can reset their standalone margins. */
+        .wallet-bal-line {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin: 18px 0 6px;
+        }
+        .wallet-bal-line p { margin: 0; }
+        .wallet-bal-line small { margin: 0; text-align: right; }
+
         .wallet-hero-side {
           display: flex;
           flex-direction: column;
@@ -7301,11 +7319,30 @@ export default function BusinessDashboard({ page = 'overview' }) {
           }
 
           .wallet-side-column,
-          .wallet-tier-grid,
-          .wallet-presets,
           .wallet-progress-body {
             grid-template-columns: 1fr;
           }
+
+          /* Mobile: the three amount chips (bonus tiers + Quick Recharge presets)
+             sit in ONE ROW, three across, instead of stacking full-width. */
+          .wallet-tier-grid,
+          .wallet-presets {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+          }
+          .wallet-tier-grid button,
+          .wallet-presets button {
+            padding: 10px 6px;
+            text-align: center;
+          }
+          .wallet-tier-grid strong { font-size: 13px; }
+          .wallet-tier-grid small { font-size: 11px; margin-top: 2px; }
+
+          /* Compact the Recharge Bonus panel itself. */
+          .wallet-bonus-tiers { gap: 12px; }
+          .wallet-bonus-tiers h2 { font-size: 18px; }
+          .wallet-bonus-tiers p { font-size: 13px; }
+          .wallet-bonus-tiers > span { padding: 6px 11px; font-size: 12px; }
 
           /* Force the single-column stack. The @media(max-width:980px) rule that
              does this is defined BEFORE the base two-column rule, so source order

@@ -1105,7 +1105,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-rev-track i{display:block;height:100%;background:#15163a;border-radius:6px}
         .cpm-rev-bar em{font-style:normal;color:#9296ba;text-align:right}
         .cpm-rev-list{display:flex;flex-direction:column;gap:14px;border-top:1px solid #eef0f6;padding-top:18px}
-        .cpm-rev-card{border:1px solid #eef0f6;border-radius:14px;padding:16px 18px;background:#fff;display:flex;gap:20px;align-items:center}
+        .cpm-rev-card{position:relative;border:1px solid #eef0f6;border-radius:14px;padding:16px 18px;background:#fff;display:flex;gap:20px;align-items:center}
         .cpm-rev-main{flex:1;min-width:0}
         .cpm-rev-media{flex:none}
         .cpm-rev-who{display:flex;align-items:center;gap:10px}
@@ -1261,9 +1261,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           /* Send Message lives in the fixed bottom bar on mobile — drop the top one. */
           .cpm-msg-top{display:none}
           /* Send a Brief drops down to sit on the name's line, right side. */
-          .cpm-actions{position:absolute;top:64px;right:24px;left:auto;margin:0}
+          .cpm-actions{position:absolute;top:82px;right:24px;left:auto;margin:0}
           /* Bookmark pinned up in the top-right (above Send a Brief). */
-          .cpm-save{position:absolute;top:8px;right:24px;left:auto;width:40px;height:40px;margin:0;z-index:5}
+          .cpm-save{position:absolute;top:24px;right:24px;left:auto;width:40px;height:40px;margin:0;z-index:5}
           /* Reserve room so a longer name doesn't run under Send a Brief. */
           .cpm-name{padding-right:130px}
           /* Persistent bottom Send Message bar. */

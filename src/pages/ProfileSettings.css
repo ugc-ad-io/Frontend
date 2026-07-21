@@ -564,6 +564,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 16px;
 }
 .bs-menu-item {
   display: flex;
@@ -575,9 +576,9 @@
   border-radius: 15px;
   background: #fff;
   box-shadow: 0 10px 24px rgba(7, 7, 78, 0.05);
-  color: #15163a;
+  color: #0f1030;
   font-size: 15.5px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   text-align: left;
 }
@@ -594,9 +595,10 @@
   background: #eef0ff;
   color: #4452f0;
 }
-.bs-menu-label {
+.bs-menu-txt {
   flex: 1;
   min-width: 0;
+  color: #0f1030;
 }
 .bs-menu-chev {
   flex: none;

@@ -1267,7 +1267,7 @@ export default function ProfileSettings() {
                   {BRAND_TABS.map(tab => (
                     <button key={tab.id} type="button" className="bs-menu-item" onClick={() => { setBrandTab(tab.id); setBrandDetailOpen(true); }}>
                       <span className="bs-menu-ic"><tab.icon size={18} /></span>
-                      <span className="bs-menu-label">{tab.label}</span>
+                      <span className="bs-menu-txt">{tab.label}</span>
                       <ChevronRight size={18} className="bs-menu-chev" />
                     </button>
                   ))}

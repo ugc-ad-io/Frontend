@@ -1,26 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, MapPin } from 'lucide-react';
+import { Bookmark, X } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { ReelCard } from './BrandCreators';
 import { getSavedCreators, toggleSavedCreator } from '../utils/savedCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const getInitial = (name) => (name || 'C').replace('@', '').trim().charAt(0).toUpperCase();
-const resolvePhoto = (p) => (p ? (p.startsWith('http') ? p : `${BACKEND_URL}${p}`) : '');
 
 export default function SavedCreators() {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(() => getSavedCreators());
-  // Live photo/banner per creator id. The saved record is a one-time snapshot, so
-  // creators bookmarked before they had a photo/banner (or who changed theirs
-  // since) rendered the gradient + initial forever. Re-fetch the real profile and
-  // let it win over the stored copy.
-  const [live, setLive] = useState({});
+  // Full creator directory keyed by id — gives the reel/video + all the fields the
+  // shared ReelCard needs. The saved record is only a lightweight snapshot (name,
+  // photo, category, price), so on its own it can't show a video; we look each
+  // saved creator up in the live directory and fall back to the snapshot if absent.
+  const [dir, setDir] = useState({});
+  const [videoCard, setVideoCard] = useState(null);   // expanded reel modal
 
   useEffect(() => {
     const sync = () => setSaved(getSavedCreators());
@@ -28,36 +28,52 @@ export default function SavedCreators() {
     return () => window.removeEventListener('ugc-saved-creators-changed', sync);
   }, []);
 
+  // Pull the same directory Browse Creators uses, so a saved creator renders with
+  // their real reel and identical card. One call, cached in a { id: creator } map.
   useEffect(() => {
     let alive = true;
-    const ids = saved.map((c) => c.id).filter(Boolean);
-    if (!ids.length) return undefined;
-    Promise.all(
-      ids.map((id) =>
-        axios.get(`${API}/profile/${id}`)
-          .then((r) => [id, r.data])
-          .catch(() => [id, null])
-      )
-    ).then((pairs) => {
-      if (!alive) return;
-      const next = {};
-      pairs.forEach(([id, d]) => {
-        if (!d) return;
-        const p = d.profile || {};
-        next[id] = {
-          photo: d.profile_photo || p.profile_photo || '',
-          banner: d.banner || p.banner || '',
-        };
-      });
-      setLive((cur) => ({ ...cur, ...next }));
-    });
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/business/creator-directory`);
+        const list = Array.isArray(res.data) ? res.data : (res.data?.creators || []);
+        if (!alive) return;
+        const map = {};
+        list.forEach((c) => { if (c?.id) map[c.id] = c; });
+        setDir(map);
+      } catch { /* directory unavailable — fall back to the saved snapshot below */ }
+    })();
     return () => { alive = false; };
-  }, [saved]);
+  }, []);
+
+  // Merge each saved snapshot with its live directory entry. Directory wins (it has
+  // the video + full data); the snapshot is the fallback so a creator who left the
+  // directory still shows, just without a reel.
+  const cards = useMemo(() => saved.map((s) => {
+    const live = dir[s.id];
+    if (live) return live;
+    return {
+      id: s.id,
+      nickname: s.name,
+      name: s.name,
+      profile_photo: s.photo,
+      category: s.category,
+      price: s.price,
+      location_region: s.location,
+      public_creator_id: s.public_creator_id,
+    };
+  }), [saved, dir]);
 
   const unsave = (e, c) => {
     e.stopPropagation();
-    toggleSavedCreator(c);
+    // toggleSavedCreator matches on id, so pass the id even when we're holding the
+    // merged/live object rather than the original snapshot.
+    toggleSavedCreator({ id: c.id });
     toast.success('Removed from saved');
+  };
+
+  const viewProfile = (c) => {
+    if (c.id) navigate(`/dashboard/business/creator/${c.id}`);
+    else toast.error('This creator is unavailable');
   };
 
   return (
@@ -67,44 +83,23 @@ export default function SavedCreators() {
         <p>Creators you bookmarked to revisit or invite to a campaign.</p>
       </div>
 
-      {saved.length ? (
-        <div className="scr-grid">
-          {saved.map((c) => (
-            <article
-              key={c.id}
-              className="scr-card cmk-rise"
-              onClick={() => c.id ? navigate(`/dashboard/business/creator/${c.id}`) : toast.error('This creator is unavailable')}
-              role="button"
-              tabIndex={0}
-            >
-              <button type="button" className="scr-save" onClick={(e) => unsave(e, c)} aria-label="Remove from saved" title="Saved">
-                <Bookmark size={16} fill="currentColor" />
+      {cards.length ? (
+        <div className="bc-grid">
+          {cards.map((c) => (
+            <div key={c.id} className="scr-reel">
+              {/* Unsave sits top-right of the reel — the tier badge is top-left and
+                  the mute/expand controls are along the bottom, so it never clashes. */}
+              <button
+                type="button"
+                className="scr-unsave"
+                onClick={(e) => unsave(e, c)}
+                aria-label="Remove from saved"
+                title="Saved — click to remove"
+              >
+                <Bookmark size={15} fill="currentColor" />
               </button>
-              {/* Prefer the LIVE profile image over the saved snapshot, so a
-                  creator who added/changed a photo or banner after being saved
-                  still renders. Falls back to the brand gradient + initial. */}
-              {(() => {
-                const banner = live[c.id]?.banner || c.banner;
-                const photo = live[c.id]?.photo || c.photo;
-                return (
-                  <>
-                    <span className="scr-banner">
-                      {banner ? <img src={resolvePhoto(banner)} alt="" /> : null}
-                    </span>
-                    <span className="scr-ava">
-                      {photo ? <img src={resolvePhoto(photo)} alt="" /> : getInitial(c.name)}
-                    </span>
-                  </>
-                );
-              })()}
-              <strong className="scr-name">{String(c.name || 'Creator').replace('@', '')}</strong>
-              {c.public_creator_id && <span className="scr-id">ID: {c.public_creator_id}</span>}
-              {c.location && <span className="scr-loc"><MapPin size={13} /> {c.location}</span>}
-              <div className="scr-meta">
-                {c.category && <span className="scr-tag">{c.category}</span>}
-                {c.price && <span className="scr-price">{c.price}</span>}
-              </div>
-            </article>
+              <ReelCard c={c} onView={viewProfile} onExpand={setVideoCard} />
+            </div>
           ))}
         </div>
       ) : (
@@ -115,28 +110,28 @@ export default function SavedCreators() {
         />
       )}
 
+      {/* Expanded reel — same overlay markup/styles as Browse Creators. */}
+      {videoCard && (
+        <div className="bc-vid-overlay" onClick={() => setVideoCard(null)}>
+          <div className="bc-vid-card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="bc-vid-close" onClick={() => setVideoCard(null)} aria-label="Close"><X size={18} /></button>
+            {videoCard.name && <div className="bc-vid-name">{videoCard.name}</div>}
+            <video src={videoCard.src} controls autoPlay playsInline className="bc-vid-el" />
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .scr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
-        .scr-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
-          padding: 0 20px 22px; border-radius: 18px; background: #fff; border: 1px solid #eceefb; overflow: hidden;
-          box-shadow: 0 14px 34px -20px rgba(15,22,58,.28); cursor: pointer; transition: .18s; }
-        .scr-card:hover { transform: translateY(-3px); border-color: #d6dbff; box-shadow: 0 22px 44px -22px rgba(15,22,58,.4); }
-        .scr-save { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%; z-index: 2;
-          border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.92); color: #4452f0; cursor: pointer; display: grid; place-items: center; }
-        .scr-save:hover { background: #fff; }
-        .scr-banner { display: block; width: calc(100% + 40px); margin: 0 -20px; height: 78px; overflow: hidden;
-          background: linear-gradient(120deg,#5b6bff,#23236a); }
-        .scr-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .scr-ava { width: 62px; height: 62px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
-          background: linear-gradient(135deg,#5b6bff,#4452f0); color: #fff; font-weight: 800; font-size: 22px;
-          margin: -32px 0 8px; border: 3px solid #fff; box-sizing: border-box; }
-        .scr-ava img { width: 100%; height: 100%; object-fit: cover; }
-        .scr-name { font-family: var(--font-head,'Plus Jakarta Sans',sans-serif); font-size: 17px; color: #15163a; }
-        .scr-id { font-size: 11.5px; color: #9296ba; font-weight: 600; }
-        .scr-loc { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: #6b6f9c; }
-        .scr-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-        .scr-tag { background: #eef0ff; color: #4452f0; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
-        .scr-price { font-size: 13px; font-weight: 800; color: #15163a; }
+        /* Wrapper just hosts the unsave overlay; the card itself is the shared ReelCard. */
+        .scr-reel { position: relative; }
+        .scr-unsave {
+          position: absolute; top: 10px; right: 10px; z-index: 4;
+          width: 32px; height: 32px; border-radius: 50%;
+          border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.92);
+          color: #4452f0; cursor: pointer; display: grid; place-items: center;
+          box-shadow: 0 4px 12px -4px rgba(15,22,58,.4); transition: background .15s;
+        }
+        .scr-unsave:hover { background: #fff; }
       `}</style>
     </BrandTopNavLayout>
   );

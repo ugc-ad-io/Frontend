@@ -2084,7 +2084,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <div>
                     <span className="wallet-kicker"><Wallet size={18} /> Brand Wallet • UGCad</span>
                     <p>Available Balance</p>
-                    <h2>{walletLoading ? 'Loading...' : formatMoney(walletData.available_balance)}</h2>
+                    <h2>{walletLoading ? <Skeleton width={160} height={34} style={{ background: 'rgba(255,255,255,.35)' }} /> : formatMoney(walletData.available_balance)}</h2>
                     <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
                   </div>
                   <div className="wallet-hero-side">
@@ -2184,7 +2184,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 {walletError ? (
                   <div className="wallet-empty">{walletError}</div>
                 ) : walletLoading ? (
-                  <div className="wallet-empty">Loading wallet activity...</div>
+                  <div className="wallet-table" aria-hidden="true">
+                    <div className="wallet-row wallet-head">
+                      <span>Date</span><span>Type</span><span>Reference</span><span>Amount</span><span>Status</span>
+                    </div>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div className="wallet-row" key={i}>
+                        <Skeleton width="70%" height={12} />
+                        <Skeleton width="55%" height={12} />
+                        <Skeleton width="60%" height={12} />
+                        <Skeleton width="45%" height={12} />
+                        <Skeleton width={64} height={18} radius={999} />
+                      </div>
+                    ))}
+                  </div>
                 ) : walletTransactions.length === 0 ? (
                   <div className="wallet-empty">No wallet transactions yet.</div>
                 ) : (

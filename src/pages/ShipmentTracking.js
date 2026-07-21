@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-react';
+import { Skeleton } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -240,7 +241,36 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
     });
   };
 
-  if (loading) return <div className="loading-page">Loading...</div>;
+  if (loading) return (
+    <div className={`shipment-page ${onClose ? 'is-embed' : ''}`} aria-hidden="true">
+      <div className="page-header">
+        <Skeleton width={90} height={36} radius={10} />
+      </div>
+      <div className="shipment-container">
+        {/* st-header: icon + title + campaign line */}
+        <div className="st-header">
+          <Skeleton width={52} height={52} radius={14} />
+          <div className="st-head-text" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Skeleton width={200} height={22} />
+            <Skeleton width={150} height={13} />
+          </div>
+        </div>
+        {/* a status/details card block */}
+        <div style={{ marginTop: 20, padding: 24, border: '1px solid #eef0f5', borderRadius: 16, background: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <Skeleton width={48} height={48} radius="50%" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+              <Skeleton width="40%" height={16} />
+              <Skeleton width="60%" height={12} />
+            </div>
+          </div>
+          <Skeleton width="100%" height={12} style={{ marginBottom: 10 }} />
+          <Skeleton width="85%" height={12} style={{ marginBottom: 10 }} />
+          <Skeleton width="70%" height={12} />
+        </div>
+      </div>
+    </div>
+  );
   if (!campaign) return <div className="error-page">Campaign not found</div>;
 
   const isBusiness = user?.role === 'business' && campaign.business_id === user.id;

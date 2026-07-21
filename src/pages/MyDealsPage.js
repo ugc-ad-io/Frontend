@@ -741,12 +741,28 @@ export default function MyDealsPage() {
     if (primaryAction.type === 'content') {
       if (submitting) return;
       if (!primaryAction.disabled) return handleSubmitContent();
-      return setLeftTab('deliverables');
+      return openTab('deliverables');
     }
     return handlePrimaryAction();
   };
 
   const selectedState = getState(selectedDeal);
+
+  // Switch tab AND reflect it in the URL (?tab=…) so a refresh/back keeps the tab.
+  const openTab = (key) => {
+    setLeftTab(key);
+    const next = new URLSearchParams(searchParams);
+    if (key === 'overview') next.delete('tab'); else next.set('tab', key);
+    setSearchParams(next, { replace: true });
+  };
+
+  // Clicking the status pill jumps to the tab that holds this status's task and
+  // scrolls it into view — so "Revision requested" lands on the RevisionTracker.
+  const goToTask = () => {
+    openTab(taskTabFor(primaryAction, selectedState));
+    requestAnimationFrame(() => mainRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+
   const activeDeals = deals.filter((item) => (
     !['paid - complete', 'disputed', 'damaged/wrong product reported'].includes(stateKey(item.current_state))
   ));
@@ -902,7 +918,16 @@ export default function MyDealsPage() {
             </div>
             <div className="cmk-dr-title">
               <h1>{getDealTitle(deal)}</h1>
-              <div className="cmk-dr-id">Deal ID: {getDealId(deal)} <span className="cmk-pill info">● {selectedState}</span></div>
+              <div className="cmk-dr-id">Deal ID: {getDealId(deal)}{' '}
+                <span
+                  className="cmk-pill info is-link"
+                  role="button"
+                  tabIndex={0}
+                  onClick={goToTask}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToTask(); } }}
+                  title="Go to the task for this status"
+                >● {selectedState}</span>
+              </div>
               <div className="cmk-dr-tags">{dealTags.map((t, i) => <span key={i}>{t}</span>)}</div>
             </div>
             {/* A paid + completed deal has nothing left to do, so it shows its STATUS
@@ -944,13 +969,13 @@ export default function MyDealsPage() {
 
         {/* body */}
         <div className="cmk-dr-body">
-          <main>
+          <main ref={mainRef}>
             {/* A direct booking isn't real work until the creator accepts it. */}
             <BookingCard deal={deal} role="creator" onDone={fetchDeals} />
 
             <div className="cmk-dr-tabs">
-              {['overview', 'brief', 'deliverables', 'timeline', 'payments'].map((t) => (
-                <button key={t} type="button" className={leftTab === t ? 'on' : ''} onClick={() => setLeftTab(t)}>
+              {TAB_KEYS.map((t) => (
+                <button key={t} type="button" className={leftTab === t ? 'on' : ''} onClick={() => openTab(t)}>
                   {t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
@@ -1098,7 +1123,7 @@ export default function MyDealsPage() {
               <div className="cmk-dr-details">
                 <p><span>Brand</span><strong>{brandName}</strong></p>
                 <p><span>Deal ID</span><strong>{getDealId(deal)}</strong></p>
-                <p><span>Status</span><strong>{selectedState}</strong></p>
+                <p><span>Status</span><button type="button" className="cmk-dr-status-link" onClick={goToTask} title="Go to the task for this status">{selectedState}</button></p>
                 <p><span>Deadline</span><strong>{formatDate(getDealDeadline(deal))}</strong></p>
                 <p><span>Budget</span><strong>{formatMoney(escrowAmount)}</strong></p>
               </div>
@@ -1116,7 +1141,7 @@ export default function MyDealsPage() {
                 <span className={`pt ${escStage >= 2 ? 'on' : ''}`} />
               </div>
               <div className="lbls"><span>Funded</span><span className={escStage < 2 ? 'c' : ''}>In Escrow</span><span>Release</span></div>
-              <button type="button" className="esc-btn" onClick={() => setLeftTab('payments')}>View Payment Details</button>
+              <button type="button" className="esc-btn" onClick={() => openTab('payments')}>View Payment Details</button>
             </section>
           </aside>
         </div>

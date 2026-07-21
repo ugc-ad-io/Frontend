@@ -5,7 +5,7 @@ import axios from 'axios';
 import { SlidersHorizontal, Megaphone, Plus, X, Trash2 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PostABrief from './PostABrief';
-import { SkeletonCards } from '../components/Skeleton';
+import { Skeleton } from '../components/Skeleton';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -139,7 +139,19 @@ export default function BrandCampaigns() {
       </div>
 
       {loading ? (
-        <SkeletonCards count={6} height={160} />
+        <div className="bcam-grid">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <article className="bcam-card" key={i} aria-hidden="true">
+              {/* 150px cover — matches .bcam-img */}
+              <Skeleton height={150} radius={0} style={{ display: 'block' }} />
+              <div className="bcam-body">
+                <Skeleton width="70%" height={16} />
+                <Skeleton width="45%" height={12} style={{ marginTop: 10 }} />
+                <Skeleton width={110} height={14} style={{ marginTop: 16 }} />
+              </div>
+            </article>
+          ))}
+        </div>
       ) : rows.length === 0 ? (
         <div className="bcam-empty">
           <span className="bcam-empty-ic"><Megaphone size={30} /></span>

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { SkeletonTable } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -126,7 +127,7 @@ export function MyBidsContent() {
       </div>
 
       {loading ? (
-        <div className="cmk-empty">Loading…</div>
+        <div className="cmk-table-card"><SkeletonTable rows={6} cols={6} /></div>
       ) : rows.length ? (
         <div className="cmk-table-card">
           <table className="cmk-table">

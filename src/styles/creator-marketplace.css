@@ -471,6 +471,13 @@
 .cmk-pill.warn{background:#fdf2e0;color:var(--warn)}
 .cmk-pill.bad{background:#fdeaef;color:var(--bad)}
 .cmk-pill.info{background:#eef0ff;color:var(--indigo)}
+/* Clickable status pill — jumps to the tab holding this status's task */
+.cmk-pill.is-link{cursor:pointer;transition:filter .15s ease,box-shadow .15s ease}
+.cmk-pill.is-link:hover{filter:brightness(.97);box-shadow:0 0 0 3px rgba(91,107,255,.16)}
+.cmk-pill.is-link:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(91,107,255,.28)}
+/* Status value in the details aside, made clickable (button reset to match the strong) */
+.cmk-dr-status-link{border:0;background:none;padding:0;font-family:inherit;font-size:inherit;font-weight:700;color:var(--indigo);cursor:pointer;text-align:right}
+.cmk-dr-status-link:hover{text-decoration:underline;text-underline-offset:3px}
 
 /* ── portfolio ───────────────────────────────────────────────────────────── */
 .cmk-pf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-top:6px;flex-wrap:wrap}

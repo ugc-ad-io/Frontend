@@ -1128,26 +1128,26 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   )}
                 </div>
 
-                {/* Logo sits inline with Brand name + Category — a small tile, not a banner. */}
-                <div className="pab-logo-row">
-                  <div className="form-group">
-                    <label>Campaign Logo</label>
-                    <label className="pab-img-drop pab-logo-drop">
-                      {form.image ? (
-                        <>
-                          <img src={form.image.startsWith('http') ? form.image : `${BACKEND_URL}${form.image}`} alt="" className="pab-img-preview pab-logo-preview" />
-                          <span className="pab-img-change">{campaignImgUploading ? 'Uploading…' : 'Change'}</span>
-                        </>
-                      ) : (
-                        <span className="pab-img-empty">
-                          <ImageIcon size={20} />
-                          <strong>{campaignImgUploading ? 'Uploading…' : 'Add logo'}</strong>
-                          <small>PNG/JPG · 5MB</small>
-                        </span>
-                      )}
-                      <input type="file" accept="image/*" hidden onChange={uploadCampaignImage} />
-                    </label>
-                  </div>
+                {/* Logo floats in the TOP-RIGHT corner of the Basics step (small tile). */}
+                <div className="pab-logo-float">
+                  <label>Campaign Logo</label>
+                  <label className="pab-img-drop pab-logo-drop">
+                    {form.image ? (
+                      <>
+                        <img src={form.image.startsWith('http') ? form.image : `${BACKEND_URL}${form.image}`} alt="" className="pab-img-preview pab-logo-preview" />
+                        <span className="pab-img-change">{campaignImgUploading ? 'Uploading…' : 'Change'}</span>
+                      </>
+                    ) : (
+                      <span className="pab-img-empty">
+                        <ImageIcon size={20} />
+                        <strong>{campaignImgUploading ? 'Uploading…' : 'Add logo'}</strong>
+                        <small>PNG/JPG · 5MB</small>
+                      </span>
+                    )}
+                    <input type="file" accept="image/*" hidden onChange={uploadCampaignImage} />
+                  </label>
+                </div>
+                <div className="form-row">
                   <div className="form-group"><label>Brand name</label><input className="input-field" value={form.brandName} disabled /></div>
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
@@ -1612,7 +1612,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
           /* Two-column field rows stack */
           .form-row { grid-template-columns: 1fr; }
-          .pab-logo-row { grid-template-columns: 1fr; }
+          /* Phone: unpin the logo and let it sit back in the normal flow. */
+          .pab-logo-float { position: static; width: 100%; }
+          .step-fields > .form-group:first-child { padding-right: 0; }
 
           /* One promoting-type card per row so text never clips */
           .pab-type-grid { grid-template-columns: 1fr; }
@@ -1648,6 +1650,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           flex-direction: column;
           gap: 18px;
           padding-bottom: 20px;
+          position: relative;   /* anchor for the top-right logo float */
         }
         /* Fields flow naturally; the CARD itself scrolls (see .cmk-brief-modal),
            so there's a single scrollbar inside the card, not on the page. */
@@ -1703,8 +1706,11 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         .pab-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
         .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
           font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
-        /* Logo row: a narrow logo tile beside Brand name + Category, on one line. */
-        .pab-logo-row { display: grid; grid-template-columns: 160px 1fr 1fr; gap: 20px; align-items: start; }
+        /* Logo pinned to the top-right corner of the Basics step. */
+        .pab-logo-float { position: absolute; top: 0; right: 0; width: 150px; z-index: 3; margin: 0; }
+        .pab-logo-float > label:first-child { display: block; }
+        /* Reserve room so the first field (Campaign name) doesn't run under the float. */
+        .step-fields > .form-group:first-child { padding-right: 170px; }
         .pab-logo-drop .pab-img-empty { padding: 14px 10px; gap: 4px; }
         .pab-logo-drop .pab-img-empty strong { font-size: 12.5px; }
         .pab-logo-drop .pab-img-empty small { font-size: 11px; }

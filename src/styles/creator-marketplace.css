@@ -1613,11 +1613,13 @@
    Wins over the .cmk-stats-2l ≤540 single-column rule via later source order. */
 @media (max-width:620px){
   .cmk-rev-stats-2x2{grid-template-columns:repeat(2,1fr);gap:10px}
-  /* Value + stars share one line in the tight 2-col card: never break "5.0 / 5",
-     let the row wrap only as a fallback, and shrink the stars so they fit. */
-  .cmk-rev-stats-2x2 .cmk-stat-row{flex-wrap:wrap;gap:6px}
+  /* Stack the big number over its caption in the tight 2-col cards, so the long
+     labels ("From completed campaigns") sit cleanly below instead of being
+     squeezed beside the number. "5.0 / 5" stays on one line; stars shrink. */
+  .cmk-rev-stats-2x2 .cmk-stat-row{flex-direction:column;align-items:flex-start;gap:6px}
   .cmk-rev-stats-2x2 .cmk-stat-val{white-space:nowrap;font-size:20px}
   .cmk-rev-stats-2x2 .cmk-stat-val span{white-space:nowrap}
+  .cmk-rev-stats-2x2 .cmk-stat-meta{font-size:11.5px}
   .cmk-rev-stats-2x2 .cmk-stat-meta svg{width:13px;height:13px}
 }
 /* Reviews carry user-generated text (brand names, campaign titles) in flex rows whose

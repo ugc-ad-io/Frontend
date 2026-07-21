@@ -123,7 +123,7 @@ export default function SavedCreators() {
 
       <style>{`
         /* Wrapper just hosts the unsave overlay; the card itself is the shared ReelCard. */
-        .scr-reel { position: relative; }
+        .scr-reel { position: relative; width: 100%; min-width: 0; }
         .scr-unsave {
           position: absolute; top: 10px; right: 10px; z-index: 4;
           width: 32px; height: 32px; border-radius: 50%;

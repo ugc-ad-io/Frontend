@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -21,11 +21,21 @@ export default function SavedCreators() {
   // saved creator up in the live directory and fall back to the snapshot if absent.
   const [dir, setDir] = useState({});
   const [videoCard, setVideoCard] = useState(null);   // expanded reel modal
+  const [isPhone, setIsPhone] = useState(false);
 
   useEffect(() => {
     const sync = () => setSaved(getSavedCreators());
     window.addEventListener('ugc-saved-creators-changed', sync);
     return () => window.removeEventListener('ugc-saved-creators-changed', sync);
+  }, []);
+
+  // Track phone width so the cloned loop tail only mounts where the sideways track exists.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 620px)');
+    const update = () => setIsPhone(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
   }, []);
 
   // Pull the same directory Browse Creators uses, so a saved creator renders with
@@ -63,6 +73,78 @@ export default function SavedCreators() {
     };
   }), [saved, dir]);
 
+  // Phone-only cloned tail so the two-row sideways track loops seamlessly — mirrors
+  // Browse Creators. ≤2 cards fit one column with nothing to scroll, so skip it.
+  const cloneTail = useMemo(
+    () => (isPhone && cards.length > 2 ? cards.slice(0, Math.min(6, cards.length)) : []),
+    [isPhone, cards]
+  );
+
+  // Auto-scroll drift for the phone two-row track (ported from BrandCreators). It
+  // creeps left at ~27px/s, wraps invisibly at the clone seam, and pauses 3s on any
+  // touch/wheel/drag so it never fights the user. `data-clone-start` sits on the
+  // .scr-reel WRAPPER (a direct grid child) so its offsetLeft measures the loop width.
+  const gridRef = useRef(null);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el || !cards.length) return undefined;
+    const mq = window.matchMedia('(max-width: 620px)');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let raf = 0; let paused = false; let resumeTimer;
+    let pos = 0; let loopWidth = 0;
+
+    const measure = () => {
+      const clone = el.querySelector('[data-clone-start]');
+      loopWidth = clone ? clone.offsetLeft : 0;
+    };
+    const step = () => {
+      if (!paused) {
+        pos += 0.45;
+        if (loopWidth > 0) {
+          if (pos >= loopWidth) pos -= loopWidth;
+        } else {
+          const max = el.scrollWidth - el.clientWidth;
+          if (pos > max) pos = max;
+        }
+        el.scrollLeft = pos;   // assign from the float accumulator, never += (rounds to 0)
+      }
+      raf = requestAnimationFrame(step);
+    };
+    const pause = () => {
+      paused = true;
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { pos = el.scrollLeft; paused = false; }, 3000);
+    };
+    const opts = { passive: true };
+    const start = () => {
+      if (raf || !mq.matches || reduce.matches) return;
+      measure();
+      pos = el.scrollLeft;
+      el.addEventListener('touchstart', pause, opts);
+      el.addEventListener('wheel', pause, opts);
+      el.addEventListener('pointerdown', pause);
+      raf = requestAnimationFrame(step);
+    };
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      clearTimeout(resumeTimer);
+      el.removeEventListener('touchstart', pause, opts);
+      el.removeEventListener('wheel', pause, opts);
+      el.removeEventListener('pointerdown', pause);
+    };
+    const onChange = () => { stop(); start(); };
+    const onResize = () => measure();
+    start();
+    mq.addEventListener('change', onChange);
+    window.addEventListener('resize', onResize, opts);
+    return () => {
+      stop();
+      mq.removeEventListener('change', onChange);
+      window.removeEventListener('resize', onResize, opts);
+    };
+  }, [cards.length, cloneTail.length]);
+
   const unsave = (e, c) => {
     e.stopPropagation();
     // toggleSavedCreator matches on id, so pass the id even when we're holding the
@@ -84,7 +166,7 @@ export default function SavedCreators() {
       </div>
 
       {cards.length ? (
-        <div className="bc-grid">
+        <div className="bc-grid" ref={gridRef}>
           {cards.map((c) => (
             <div key={c.id} className="scr-reel">
               {/* Unsave sits top-right of the reel — the tier badge is top-left and
@@ -98,6 +180,13 @@ export default function SavedCreators() {
               >
                 <Bookmark size={15} fill="currentColor" />
               </button>
+              <ReelCard c={c} onView={viewProfile} onExpand={setVideoCard} />
+            </div>
+          ))}
+          {/* Phone-only cloned tail the loop wraps into (decorative duplicates, no
+              unsave). The first one carries data-clone-start for the wrap measurement. */}
+          {cloneTail.map((c, i) => (
+            <div key={`loop-${c.id}-${i}`} className="scr-reel" data-clone-start={i === 0 ? 'true' : undefined} aria-hidden="true">
               <ReelCard c={c} onView={viewProfile} onExpand={setVideoCard} />
             </div>
           ))}

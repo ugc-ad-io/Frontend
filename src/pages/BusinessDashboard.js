@@ -2932,6 +2932,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .transparent-tab-shell,
           .all-campaigns-section { min-width: 0; max-width: 100%; }
           .all-campaigns-section .wr-filter-menu { max-width: calc(100vw - 28px); }
+
+          /* Sent Briefs: lift the Filter up onto the title line (top-right),
+             instead of it sitting on its own row below the description. Anchored
+             to .bd-topnav-main; nothing between it and the row is positioned. */
+          .bd-topnav-main { position: relative; }
+          .sent-briefs-actions-row {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0 !important;
+            z-index: 6;
+          }
         }
 
         .post-brief-shell {

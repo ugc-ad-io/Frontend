@@ -9,6 +9,7 @@ import { firstName } from '../utils/displayName';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import { Skeleton } from '../components/Skeleton';
 import RejectedGate from '../components/RejectedGate';
 import MoreInfoGate from '../components/MoreInfoGate';
 import ChatPopup from '../components/ChatPopup';
@@ -1719,7 +1720,35 @@ export default function BusinessDashboard({ page = 'overview' }) {
               </div>
 
               {briefsLoading ? (
-                <div className="all-campaigns-loading">Loading sent briefs...</div>
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} aria-hidden="true" style={{
+                      display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
+                      background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
+                    }}>
+                      {/* 44px avatar — matches the creator photo/initial */}
+                      <Skeleton width={44} height={44} radius="50%" style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* name + type chip + status pill (pill pushed right) */}
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                          <Skeleton width={120} height={14} />
+                          <Skeleton width={60} height={16} radius={6} />
+                          <Skeleton width={80} height={18} radius={999} style={{ marginLeft: 'auto' }} />
+                        </div>
+                        {/* campaign name */}
+                        <Skeleton width="55%" height={14} style={{ marginBottom: 10 }} />
+                        {/* meta row: amount / timeline / sent date */}
+                        <div style={{ display: 'flex', gap: 14 }}>
+                          <Skeleton width={70} height={12} />
+                          <Skeleton width={70} height={12} />
+                          <Skeleton width={90} height={12} />
+                        </div>
+                      </div>
+                      {/* action button (View Deal / Open Chat) */}
+                      <Skeleton width={110} height={36} radius={8} style={{ flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </div>
               ) : briefs.length === 0 ? (
                 <div className="all-campaigns-empty">
                   <span><Send size={48} /></span>

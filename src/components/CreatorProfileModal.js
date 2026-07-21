@@ -1143,7 +1143,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-clip-wm span{color:#fff;font-size:12px;font-weight:800;letter-spacing:.3px;text-shadow:0 1px 4px rgba(0,0,0,.7)}
         .cpm-rev-clip-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;
           border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--indigo,#5b6bff);box-shadow:0 3px 10px rgba(0,0,0,.3)}
-        @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:8px;flex-wrap:nowrap;justify-content:space-between}.cpm-rev-fact{padding:0;flex:1;min-width:0}.cpm-rev-fact+.cpm-rev-fact{border-left:none}.cpm-rev-fact strong{font-size:14px}.cpm-rev-cat{font-size:13px}}
+        @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-media{position:absolute;top:16px;right:18px;width:118px}.cpm-rev-who,.cpm-rev-meta{padding-right:130px}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:8px;flex-wrap:nowrap;justify-content:space-between}.cpm-rev-fact{padding:0;flex:1;min-width:0}.cpm-rev-fact+.cpm-rev-fact{border-left:none}.cpm-rev-fact strong{font-size:14px}.cpm-rev-cat{font-size:13px}}
         .cpm-vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
         .cpm-vid{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#0b1020;cursor:pointer;box-shadow:0 8px 22px -12px rgba(15,22,58,.4)}
         /* per-video caption: category chip + price / duration */

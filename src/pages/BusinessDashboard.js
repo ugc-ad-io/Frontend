@@ -1699,12 +1699,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
             };
             return (
             <div className="all-campaigns-section">
-              <div className="all-campaigns-hero">
-                <div>
-                  <span className="all-campaigns-kicker"><Send size={16} /> Briefs &amp; Offers</span>
-                  <h2>Sent Briefs</h2>
-                  <p>Every private invitation, custom offer and counter offer you sent — see at a glance who accepted, declined or countered.</p>
-                </div>
+              {/* Title/description live in the page header above — this row only
+                  carries the actions so the heading isn't duplicated. */}
+              <div className="sent-briefs-actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
                 <div className="sent-briefs-hero-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
                   {/* Mobile only: replaces the tab strip below with a dropdown. */}
                   <div className="wr-filter-wrap" ref={briefFilterRef}>

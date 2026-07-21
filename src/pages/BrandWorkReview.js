@@ -61,6 +61,8 @@ export default function BrandWorkReview() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
+  const filterRef = useRef(null);
   const [chatWith, setChatWith] = useState(null);
   const [durations, setDurations] = useState({});
   const [menuId, setMenuId] = useState(null);
@@ -115,6 +117,14 @@ export default function BrandWorkReview() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { setPage(1); }, [tab, perPage]);
+
+  // Close the mobile filter menu on any outside click.
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+    const onDoc = (e) => { if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [filterOpen]);
 
   const counts = useMemo(() => {
     const o = { all: items.length };
@@ -238,12 +248,36 @@ export default function BrandWorkReview() {
 
   return (
     <BrandTopNavLayout>
-      <div className="cmk-page-head" style={{ marginBottom: 6 }}>
-        <h1>Work Review</h1>
-        <p>Review submitted content and provide feedback.</p>
+      <div className="cmk-page-head cmk-page-head--filter" style={{ marginBottom: 6 }}>
+        <div>
+          <h1>Work Review</h1>
+          <p>Review submitted content and provide feedback.</p>
+        </div>
+        {/* Mobile only: sits on the title row and replaces the chip strip. */}
+        <div className="wr-filter-wrap" ref={filterRef}>
+          <button type="button" className="wr-filter-btn" onClick={() => setFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={filterOpen}>
+            <SlidersHorizontal size={16} /> Filter
+          </button>
+          {filterOpen && (
+            <div className="wr-filter-menu" role="menu">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={tab === t.key}
+                  className={tab === t.key ? 'is-active' : ''}
+                  onClick={() => { setTab(t.key); setFilterOpen(false); }}
+                >
+                  {t.label} <em>({counts[t.key] || 0})</em>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="bwr-tabs-row">
+      <div className="bwr-tabs-row bwr-tabs-row--select">
         <div className="bwr-tabs">
           {TABS.map((t) => (
             <button key={t.key} type="button" className={`bwr-chip ${tab === t.key ? 'is-active' : ''}`} onClick={() => setTab(t.key)}>

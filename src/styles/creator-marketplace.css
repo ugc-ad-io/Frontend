@@ -971,9 +971,10 @@
   .wr-tabs button{font-size:14px;padding-bottom:12px}
   /* overflow-x:auto also clips overflow-y, which would eat a -1px underline. */
   .wr-tabs button.is-active::after{bottom:0}
-  /* On pages that opt in (wr-tabs-row--select), drop the whole tab strip and put a
-     Filter button up on the page-head title row instead — one tap in every tab. */
-  .wr-tabs-row--select{display:none}
+  /* On pages that opt in (…--select), drop the whole tab strip and put a Filter
+     button up on the page-head title row instead — one tap in every tab. */
+  .wr-tabs-row--select,
+  .bwr-tabs-row--select{display:none}
   .cmk-page-head--filter{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .cmk-page-head--filter .wr-filter-wrap{display:block;margin:0}
 }
@@ -1371,6 +1372,13 @@
 @media (max-width:760px){
   .cmk-nav-search{display:none}
   .cmk-nav-inner{gap:14px}
+  /* Pull the hamburger + logo tighter to the screen edge on mobile. The nav wrap
+     inherited the page's 28px side padding and the 42px hamburger centres its
+     icon, so the ☰ sat ~40px in — trim the nav's left padding and offset the
+     button's own centring so it hugs the edge. (Right padding is untouched so the
+     bell/avatar keep their inset.) */
+  .cmk-nav .cmk-nav-inner{padding-left:10px}
+  .cmk-hamburger{margin-left:-6px}
   /* On mobile hide only the Details card; keep Payment/Escrow reachable. */
   .cmk-dr-details-card{display:none}
 }

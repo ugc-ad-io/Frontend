@@ -7,6 +7,10 @@ import AdminLayout from '../components/AdminLayout';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+// Show the business's real company name — never their @username handle
+// (business_nickname / brand_handle are the handle sources, so they're excluded).
+const brandName = (c) => String(c?.brand_name || c?.business_name || c?.company_name || '').replace(/^@+/, '').trim() || '—';
+
 export default function AdminCampaigns() {
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +92,7 @@ export default function AdminCampaigns() {
                   <span className="ac-badge">{campaign.status.replace('_', ' ')}</span>
                 </div>
                 <div className="ac-card-body">
-                  <p><strong>Business:</strong> {campaign.business_nickname || '—'}</p>
+                  <p><strong>Business:</strong> {brandName(campaign)}</p>
                   <p><strong>Budget:</strong> ₹{campaign.budget_min} - ₹{campaign.budget_max}</p>
                   <p className="ac-brief"><strong>Brief:</strong> {campaign.brief_text || '—'}</p>
                   {campaign.objectives?.length > 0 && (
@@ -120,7 +124,7 @@ export default function AdminCampaigns() {
               <span className="ac-badge">{String(selected.status || '').replace('_', ' ')}</span>
             </div>
             <div className="ac-modal-body">
-              <div className="ac-row"><label>Business</label><span>{selected.business_nickname || '—'}</span></div>
+              <div className="ac-row"><label>Business</label><span>{brandName(selected)}</span></div>
               <div className="ac-row"><label>Budget</label><span>₹{selected.budget_min} - ₹{selected.budget_max}</span></div>
               {selected.product_category && <div className="ac-row"><label>Category</label><span>{selected.product_category}</span></div>}
               {selected.product_name && <div className="ac-row"><label>Product</label><span>{selected.product_name}</span></div>}

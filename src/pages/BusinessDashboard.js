@@ -1824,7 +1824,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                             </div>
                           )}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 26, flexShrink: 0, alignItems: 'flex-end' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, alignItems: 'flex-end' }}>
                           {/* Status pill lives here (not in the name row) so it doesn't
                               wrap to its own line and push "Video" + the meta down. */}
                           <span style={{

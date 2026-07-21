@@ -687,8 +687,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       // Reveal the compact header once the tab bar has stuck to the top. Runs even
       // while scrollLock is set (during smooth-scroll) so the header can't get stuck off.
       if (tabwrapRef.current) {
-        const top = tabwrapRef.current.getBoundingClientRect().top;
-        setStuck((prev) => { const next = top <= 180; return prev === next ? prev : next; });
+        // Reveal once the name itself has scrolled up to the top edge.
+        const bottom = tabwrapRef.current.getBoundingClientRect().bottom;
+        setStuck((prev) => { const next = bottom <= 70; return prev === next ? prev : next; });
       }
       if (scrollLock.current) return;
       const line = 150; // reference line just below the sticky tab bar
@@ -790,7 +791,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             </button>
           )}
 
-          <h2 className="cpm-name">
+          <h2 className="cpm-name" ref={tabwrapRef}>
             {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
             {/* Identity verified — admin-approved KYC. Tells brands this is a real,
                 verified person. Only the boolean reaches the client. */}

@@ -133,21 +133,13 @@ export default function BrandCampaigns() {
 
   return (
     <BrandTopNavLayout>
-      <div className="cmk-page-head">
-        <h1>Campaigns</h1>
-        <p>Manage all your campaigns in one place.</p>
-      </div>
-
-      <div className="wr-tabs-row wr-tabs-row--select">
-        <div className="wr-tabs">
-          {TABS.map((t) => (
-            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
-              {t.label} <em>({counts[t.key] || 0})</em>
-            </button>
-          ))}
+      <div className="cmk-page-head cmk-page-head--filter">
+        <div>
+          <h1>Campaigns</h1>
+          <p>Manage all your campaigns in one place.</p>
         </div>
-        {/* Mobile only: the tab strip is hidden and this right-aligned Filter
-            button replaces it, so the same status filter is one tap in every tab. */}
+        {/* Mobile only: sits on the title row (right side) and replaces the tab
+            strip, so the status filter is one tap in every tab. */}
         <div className="wr-filter-wrap" ref={filterRef}>
           <button type="button" className="wr-filter-btn" onClick={() => setFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={filterOpen}>
             <SlidersHorizontal size={16} /> Filter
@@ -168,6 +160,16 @@ export default function BrandCampaigns() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="wr-tabs-row wr-tabs-row--select">
+        <div className="wr-tabs">
+          {TABS.map((t) => (
+            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
+              {t.label} <em>({counts[t.key] || 0})</em>
+            </button>
+          ))}
         </div>
       </div>
 

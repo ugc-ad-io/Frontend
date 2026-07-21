@@ -971,10 +971,11 @@
   .wr-tabs button{font-size:14px;padding-bottom:12px}
   /* overflow-x:auto also clips overflow-y, which would eat a -1px underline. */
   .wr-tabs button.is-active::after{bottom:0}
-  /* On pages that opt in (wr-tabs-row--select), swap the scrolling tab strip for a
-     right-aligned Filter button + popup so the filter is one tap in every tab. */
-  .wr-tabs-row--select .wr-tabs{display:none}
-  .wr-tabs-row--select .wr-filter-wrap{display:block}
+  /* On pages that opt in (wr-tabs-row--select), drop the whole tab strip and put a
+     Filter button up on the page-head title row instead — one tap in every tab. */
+  .wr-tabs-row--select{display:none}
+  .cmk-page-head--filter{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .cmk-page-head--filter .wr-filter-wrap{display:block;margin:0}
 }
 /* Hidden on desktop — the tab strip is used there instead. */
 .wr-filter-wrap{display:none;position:relative;margin-left:auto;margin-bottom:8px}

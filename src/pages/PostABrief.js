@@ -1707,7 +1707,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
           font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
         /* Logo pinned to the top-right corner of the Basics step. */
-        .pab-logo-float { position: absolute; top: 0; right: 0; width: 150px; z-index: 3; margin: 0; }
+        .pab-logo-float { position: absolute; top: 28px; right: 0; width: 150px; z-index: 3; margin: 0; }
         .pab-logo-float > label:first-child { display: block; }
         /* Reserve room so the first field (Campaign name) doesn't run under the float. */
         .step-fields > .form-group:first-child { padding-right: 170px; }

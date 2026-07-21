@@ -55,11 +55,20 @@ const newVideo = () => ({
   notes: '',
 });
 
-function Field({ label, children }) {
+function Field({ label, children, value, max }) {
+  const len = (value || '').length;
   return (
     <label className="pb-field">
       <span>{label}</span>
       {children}
+      {max != null && (
+        <small
+          className="pb-count"
+          style={{ display: 'block', textAlign: 'right', fontSize: 11, marginTop: 4, fontWeight: 600, color: len >= max ? '#dc2626' : '#9296ba' }}
+        >
+          {len}/{max}
+        </small>
+      )}
     </label>
   );
 }
@@ -577,11 +586,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
           <div className="pb-scroll">
             <div className="pb-brief-fields">
-              <Field label="Product / brand name *"><input type="text" value={brief.productName} onChange={setBriefField('productName')} placeholder="e.g. Nova Running Shoes" /></Field>
-              <Field label="What are you promoting? *"><textarea rows={2} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two (min 10 characters)" /></Field>
-              <Field label="Hook / main idea *"><input type="text" value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
-              <Field label="Key message *"><input type="text" value={brief.keyMessage} onChange={setBriefField('keyMessage')} placeholder="The one thing the viewer must take away" /></Field>
-              <Field label="Target audience"><textarea rows={2} value={brief.targetAudience} onChange={setBriefField('targetAudience')} placeholder="Who is this for? (age, interests, region)" /></Field>
+              <Field label="Product / brand name *" value={brief.productName} max={80}><input type="text" maxLength={80} value={brief.productName} onChange={setBriefField('productName')} placeholder="e.g. Nova Running Shoes" /></Field>
+              <Field label="What are you promoting? *" value={brief.productDescription} max={500}><textarea rows={2} maxLength={500} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two (min 10 characters)" /></Field>
+              <Field label="Hook / main idea *" value={brief.hook} max={150}><input type="text" maxLength={150} value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
+              <Field label="Key message *" value={brief.keyMessage} max={200}><input type="text" maxLength={200} value={brief.keyMessage} onChange={setBriefField('keyMessage')} placeholder="The one thing the viewer must take away" /></Field>
+              <Field label="Target audience" value={brief.targetAudience} max={250}><textarea rows={2} maxLength={250} value={brief.targetAudience} onChange={setBriefField('targetAudience')} placeholder="Who is this for? (age, interests, region)" /></Field>
             </div>
           </div>
           </>
@@ -596,16 +605,16 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
             <div className="pb-brief-fields">
               <Field label="Product on screen (seconds)"><input type="number" min="0" value={brief.productVisibleSecs} onChange={setBriefField('productVisibleSecs')} placeholder="e.g. 5" /></Field>
               <Field label="Call to action"><Select value={brief.cta} onChange={(val) => setBriefVal('cta', val)} options={CTA_OPTIONS} /></Field>
-              <Field label="Hashtags"><input type="text" value={brief.hashtags} onChange={setBriefField('hashtags')} placeholder="#brand #launch" /></Field>
+              <Field label="Hashtags" value={brief.hashtags} max={150}><input type="text" maxLength={150} value={brief.hashtags} onChange={setBriefField('hashtags')} placeholder="#brand #launch" /></Field>
               <label className="pb-check"><input type="checkbox" checked={brief.brandTag} onChange={() => toggleBrief('brandTag')} /> Tag the brand handle</label>
             </div>
             <div className="pb-video-title">Must avoid</div>
             <div className="pb-brief-fields">
               <label className="pb-check"><input type="checkbox" checked={brief.noCompetitors} onChange={() => toggleBrief('noCompetitors')} /> No competitor brands</label>
-              {brief.noCompetitors && <Field label="Competitors to avoid"><input type="text" value={brief.competitors} onChange={setBriefField('competitors')} placeholder="Brand A, Brand B" /></Field>}
+              {brief.noCompetitors && <Field label="Competitors to avoid" value={brief.competitors} max={200}><input type="text" maxLength={200} value={brief.competitors} onChange={setBriefField('competitors')} placeholder="Brand A, Brand B" /></Field>}
               <label className="pb-check"><input type="checkbox" checked={brief.noOtherProducts} onChange={() => toggleBrief('noOtherProducts')} /> No other products on screen</label>
               <label className="pb-check"><input type="checkbox" checked={brief.noProfanity} onChange={() => toggleBrief('noProfanity')} /> No profanity</label>
-              <Field label="Anything else to avoid"><textarea rows={2} value={brief.avoidText} onChange={setBriefField('avoidText')} placeholder="Optional" /></Field>
+              <Field label="Anything else to avoid" value={brief.avoidText} max={400}><textarea rows={2} maxLength={400} value={brief.avoidText} onChange={setBriefField('avoidText')} placeholder="Optional" /></Field>
             </div>
           </div>
           </>

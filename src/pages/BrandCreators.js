@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal } from 'lucide-react';
+import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
@@ -9,6 +9,8 @@ import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import { creatorFirstName } from '../utils/displayName';
+import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
+import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -189,6 +191,18 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const rating = c.avg_rating || c.rating;
   const [bigVid, setBigVid] = useState(baseVid);
   const bigRef = useRef(null);
+  const [saved, setSaved] = useState(() => isCreatorSaved(c.id));
+
+  const toggleSave = () => {
+    const now = toggleSavedCreator({
+      id: c.id, name, public_creator_id: c.public_creator_id,
+      photo: c.profile_photo, banner: c.banner,
+      category, price: priceTextOf(c),
+      location: c.city_tier || c.location_region || 'India',
+    });
+    setSaved(now);
+    toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+  };
 
   useEffect(() => { const v = bigRef.current; if (v) { v.play().catch(() => {}); } }, [bigVid]);
 
@@ -241,6 +255,9 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
             </div>
           )}
           <div className="bcq-actions">
+            <button type="button" className={`bcq-save ${saved ? 'is-saved' : ''}`} onClick={toggleSave} aria-label={saved ? 'Saved' : 'Save creator'} title={saved ? 'Saved' : 'Save creator'}>
+              <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
+            </button>
             <button type="button" className="bcq-ghost" onClick={onMessage}>Message</button>
             <button type="button" className="bcq-primary" onClick={onFull}>View full details</button>
           </div>

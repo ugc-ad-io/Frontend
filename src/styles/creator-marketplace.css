@@ -47,6 +47,10 @@
   background-attachment:fixed;
   color:var(--ink);
   font-family:var(--font-body,'Inter',system-ui,sans-serif);
+  /* A stray wide child (e.g. an open filter dropdown or a card) must never make
+     the whole page scroll sideways on mobile — that's the "content goes off the
+     screen" bug. Wide-by-design content (tables) has its own overflow-x wrapper. */
+  overflow-x:hidden;
 }
 .cmk-wrap{max-width:1320px;margin:0 auto;padding:0 28px}
 
@@ -874,6 +878,11 @@
 .bcq-thumb:hover video,.bcq-thumb.on video{transform:scale(1.05)}
 .bcq-work > label small{color:#b3b6d4;font-weight:600;text-transform:none;letter-spacing:0}
 .bcq-actions{display:flex;gap:10px;margin-top:20px}
+/* Save (bookmark) — square, doesn't grow like the two text buttons. */
+.bcq-save{flex:none;width:46px;height:46px;display:grid;place-items:center;border-radius:13px;border:1px solid var(--line);
+  background:#fff;color:#4452f0;cursor:pointer;transition:.18s}
+.bcq-save:hover{border-color:#cdd2f3;background:#f2f3ff}
+.bcq-save.is-saved{background:#eef0ff;border-color:#c7cdff}
 .bcq-ghost,.bcq-primary{flex:1;height:46px;border-radius:13px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:.18s}
 .bcq-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
 .bcq-ghost:hover{border-color:#cdd2f3;background:#f7f8ff}
@@ -1599,7 +1608,9 @@
 @media (max-width:1000px){.cmk-rev-top{grid-template-columns:1fr}}
 /* 620, not 540: in the 541-620px band each card is ~255px of usable width and has to
    hold the value PLUS five 16px stars for "Average Rating", which clipped. */
-@media (max-width:620px){.cmk-rev-stats-2x2{grid-template-columns:1fr}}
+/* Keep the 4 review stat tiles as a 2×2 grid on phones (was collapsing to 1 col).
+   Wins over the .cmk-stats-2l ≤540 single-column rule via later source order. */
+@media (max-width:620px){.cmk-rev-stats-2x2{grid-template-columns:repeat(2,1fr);gap:10px}}
 /* Reviews carry user-generated text (brand names, campaign titles) in flex rows whose
    siblings are flex:none pills/timestamps. Without min-width:0 the text can't shrink,
    so it shoved those siblings past the card edge — real horizontal overflow inside

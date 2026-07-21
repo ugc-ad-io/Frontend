@@ -88,13 +88,18 @@ function ReelCard({ c, onView, onExpand, cloneStart }) {
     else { vref.current.pause(); setPlaying(false); }
   };
 
-  // Hover to preview: play the clip (which hides the play icon) on enter,
-  // pause + reset on leave.
+  // Hover to preview — DESKTOP ONLY. On touch devices a tap fires mouseenter, which
+  // made reels auto-play while just scrolling/tapping; there, the clip plays only on
+  // an explicit tap (togglePlay). `hover: hover` is false on touchscreens.
+  const canHover = typeof window !== 'undefined' && window.matchMedia
+    && window.matchMedia('(hover: hover)').matches;
   const hoverPlay = () => {
+    if (!canHover) return;
     const v = vref.current; if (!v) return;
     v.play().then(() => setPlaying(true)).catch(() => {});
   };
   const hoverStop = () => {
+    if (!canHover) return;
     const v = vref.current; if (!v) return;
     v.pause(); setPlaying(false);
   };

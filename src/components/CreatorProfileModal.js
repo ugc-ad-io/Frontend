@@ -154,9 +154,12 @@ function VideoTile({ url, onRemove, onEdit }) {
   const [failed, setFailed] = useState(false); // broken / removed media URL
   const src = mediaUrl(url);   // signed with ?token= so gated deliverable videos play
   const video = isVideo(url);  // classify on the raw url (the token contains dots)
-  // Hover to preview: play the clip muted (hides the play icon) + zoom, reset on leave.
-  const hoverPlay = () => { const v = ref.current; if (v && video) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
-  const hoverStop = () => { const v = ref.current; if (v) { v.pause(); try { v.currentTime = 0.5; } catch {} setPlaying(false); } };
+  // Hover to preview — DESKTOP ONLY. On touch a tap fires mouseenter, which made the
+  // clip auto-play while scrolling/tapping; there it plays only via the big lightbox.
+  const canHover = typeof window !== 'undefined' && window.matchMedia
+    && window.matchMedia('(hover: hover)').matches;
+  const hoverPlay = () => { if (!canHover) return; const v = ref.current; if (v && video) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
+  const hoverStop = () => { if (!canHover) return; const v = ref.current; if (v) { v.pause(); try { v.currentTime = 0.5; } catch {} setPlaying(false); } };
   return (
     <>
       <div className="cpm-vid" onClick={() => !failed && setOpen(true)} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>

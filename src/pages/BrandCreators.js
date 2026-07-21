@@ -67,7 +67,9 @@ const priceTextOf = (c) => {
 
 // `cloneStart` marks the first card of the mobile loop's cloned tail — the auto-scroll
 // measures its offset to know exactly where one full pass ends (see gridRef below).
-function ReelCard({ c, onView, onExpand, cloneStart }) {
+// Exported so Saved Creators renders the SAME reel card as Browse Creators
+// (video preview + tier + avatar/name/price) instead of a separate banner card.
+export function ReelCard({ c, onView, onExpand, cloneStart }) {
   const vref = useRef(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);

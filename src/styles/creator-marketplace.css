@@ -49,8 +49,9 @@
   font-family:var(--font-body,'Inter',system-ui,sans-serif);
   /* A stray wide child (e.g. an open filter dropdown or a card) must never make
      the whole page scroll sideways on mobile — that's the "content goes off the
-     screen" bug. Wide-by-design content (tables) has its own overflow-x wrapper. */
-  overflow-x:hidden;
+     screen" bug. Wide-by-design content (tables) has its own overflow-x wrapper.
+     `clip` (not hidden) so this never becomes a scroll container / breaks sticky. */
+  overflow-x:clip;
 }
 .cmk-wrap{max-width:1320px;margin:0 auto;padding:0 28px}
 

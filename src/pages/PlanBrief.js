@@ -22,7 +22,15 @@ const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
 const ASPECT_BY_ORIENTATION = { Portrait: '9:16', Landscape: '16:9', Square: '1:1' };
 const durationToSeconds = (d) => parseInt(String(d).replace(/\D/g, ''), 10) || 30;
 const CTA_OPTIONS = ['None', 'Visit website', 'Use code', 'Follow brand', 'Swipe up'];
+// CTAs that need a value the brand types (website link, promo code, handle, swipe-up link).
+const CTA_INPUT = {
+  'Visit website': { label: 'Website link', ph: 'https://yourbrand.com' },
+  'Use code': { label: 'Promo code', ph: 'SUMMER20' },
+  'Follow brand': { label: 'Brand handle to follow', ph: '@yourbrand' },
+  'Swipe up': { label: 'Swipe-up link', ph: 'https://yourbrand.com/offer' },
+};
 const RIGHTS_OPTIONS = ['Organic social', '30 days paid', '90 days paid', '6 months', '1 year', 'Perpetual'];
+const REVISION_OPTIONS = ['0', '1', '2', '3', '4', '5'];
 
 // Delivery date: Today, Tomorrow, or a custom date the brand picks. Dates are
 // computed live (never hardcoded).
@@ -102,7 +110,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     // Basics
     productName: '', productDescription: '', hook: '', keyMessage: '', targetAudience: '',
     // Must-include
-    productVisibleSecs: '', cta: 'None', hashtags: '', brandTag: true,
+    productVisibleSecs: '', cta: 'None', ctaValue: '', hashtags: '', brandTag: true,
     // Must-avoid
     noCompetitors: false, competitors: '', noOtherProducts: false, noProfanity: true, avoidText: '',
     // Usage rights + timeline
@@ -363,6 +371,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         product_visible: !!Number(brief.productVisibleSecs),
         product_visible_seconds: Number(brief.productVisibleSecs) || 0,
         call_to_action: brief.cta,
+        cta_link: (CTA_INPUT[brief.cta] ? brief.ctaValue.trim() : ''),
         hashtags: brief.hashtags.trim(),
         brand_handle_tag: brief.brandTag,
         // Must-avoid
@@ -605,6 +614,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
             <div className="pb-brief-fields">
               <Field label="Product on screen (seconds)"><input type="number" min="0" value={brief.productVisibleSecs} onChange={setBriefField('productVisibleSecs')} placeholder="e.g. 5" /></Field>
               <Field label="Call to action"><Select value={brief.cta} onChange={(val) => setBriefVal('cta', val)} options={CTA_OPTIONS} /></Field>
+              {CTA_INPUT[brief.cta] && (
+                <Field label={CTA_INPUT[brief.cta].label}>
+                  <input type="text" value={brief.ctaValue} onChange={setBriefField('ctaValue')} placeholder={CTA_INPUT[brief.cta].ph} />
+                </Field>
+              )}
               <Field label="Hashtags" value={brief.hashtags} max={150}><input type="text" maxLength={150} value={brief.hashtags} onChange={setBriefField('hashtags')} placeholder="#brand #launch" /></Field>
               <label className="pb-check"><input type="checkbox" checked={brief.brandTag} onChange={() => toggleBrief('brandTag')} /> Tag the brand handle</label>
             </div>
@@ -626,10 +640,10 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
           <div className="pb-scroll">
             <div className="pb-brief-fields">
-              <Field label="Platforms"><input type="text" value={brief.platforms} onChange={setBriefField('platforms')} placeholder="Instagram, TikTok, YouTube…" /></Field>
+              <Field label="Platforms" value={brief.platforms} max={150}><input type="text" maxLength={150} value={brief.platforms} onChange={setBriefField('platforms')} placeholder="Instagram, TikTok, YouTube…" /></Field>
               <Field label="Rights duration"><Select value={brief.rightsDuration} onChange={(val) => setBriefVal('rightsDuration', val)} options={RIGHTS_OPTIONS} /></Field>
               <label className="pb-check"><input type="checkbox" checked={brief.exclusivity} onChange={() => toggleBrief('exclusivity')} /> Exclusive (creator can’t post similar for competitors)</label>
-              <Field label="Revisions included"><input type="number" min="0" value={brief.revisions} onChange={setBriefField('revisions')} /></Field>
+              <Field label="Revisions included"><Select value={String(brief.revisions)} onChange={(val) => setBriefVal('revisions', val)} options={REVISION_OPTIONS} /></Field>
             </div>
             <p className="pb-usage-note"><Info size={13} /> Delivery date &amp; slot are set on the left. Budget is the plan rate ({inr(plan?.price || 0)}/video).</p>
           </div>
@@ -657,14 +671,14 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               )}
 
               <div className="pb-or"><span>or</span></div>
-              <Field label="Supporting links"><input type="text" value={v.links} onChange={(e) => updateVideo({ links: e.target.value })} placeholder="Paste reference / asset links" /></Field>
+              <Field label="Supporting links" value={v.links} max={500}><input type="text" maxLength={500} value={v.links} onChange={(e) => updateVideo({ links: e.target.value })} placeholder="Paste reference / asset links" /></Field>
 
               <Field label="Preferred logo position in Video"><Select value={v.logoPosition} onChange={(val) => updateVideo({ logoPosition: val })} options={LOGO_POSITIONS} /></Field>
 
               <div className="pb-field">
                 <span>Add Brand Name Pronunciation (Optional)</span>
                 <div className="pb-pronounce">
-                  <input type="text" value={v.pronunciation} onChange={(e) => updateVideo({ pronunciation: e.target.value })} placeholder="Type how the brand name is pronounced" />
+                  <input type="text" maxLength={80} value={v.pronunciation} onChange={(e) => updateVideo({ pronunciation: e.target.value })} placeholder="Type how the brand name is pronounced" />
                   <span className="pb-mic" title="Type the pronunciation"><Mic size={15} /></span>
                 </div>
               </div>
@@ -672,7 +686,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <div className="pb-field">
                 <span>Additional Instructions (Optional)</span>
                 <div className="pb-notes-tabs"><span className="active"><FileText size={13} /> Add Notes</span><span><Link2 size={13} /> Upload files &amp; Links</span></div>
-                <textarea value={v.notes} onChange={(e) => updateVideo({ notes: e.target.value })} rows={3} placeholder="Add notes and additional details to be noted of.." />
+                <textarea value={v.notes} maxLength={1000} onChange={(e) => updateVideo({ notes: e.target.value })} rows={3} placeholder="Add notes and additional details to be noted of.." />
+                <small style={{ display: 'block', textAlign: 'right', fontSize: 11, marginTop: 4, fontWeight: 600, color: (v.notes || '').length >= 1000 ? '#dc2626' : '#9296ba' }}>{(v.notes || '').length}/1000</small>
               </div>
             </div>
           </div>
@@ -828,7 +843,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-usage-note { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 0.8rem; color: #64748b; }
         .pb-field { display: grid; gap: 7px; font-size: 0.85rem; font-weight: 700; color: #334155; }
         .pb-field > span { color: #334155; }
-        .pb-field input[type=text], .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; color: #0f172a; background: #fff; resize: vertical; }
+        .pb-field input, .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; color: #0f172a; background: #fff; resize: vertical; box-sizing: border-box; }
         .pb-field input:focus, .pb-field textarea:focus { outline: none; border-color: #07074e; }
         .pb-select { position: relative; }
         .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 600; }

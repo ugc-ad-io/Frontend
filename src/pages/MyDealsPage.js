@@ -335,21 +335,29 @@ function taskTabFor(primaryAction, state) {
   return 'overview';
 }
 
-// 7-step reference stepper. Map the detailed deal state onto one of these steps.
-const DEAL_STEPS = ['Accepted', 'In Progress', 'Submitted', 'In Review', 'Approved', 'Shipped', 'Paid'];
-const STEP_SUBS = ['Deal accepted', 'Working on it', 'Waiting for you', 'Waiting for review', 'Waiting for approval', 'Waiting for delivery', 'Waiting for payout'];
+// Reference stepper. "Shipped" is an EARLY step (the product goes to the creator
+// BEFORE they produce content), so it sits right after Accepted — not near the end.
+// It only appears for deals that actually ship a product; digital-only deals skip it.
+const DEAL_STEPS_SHIP = ['Accepted', 'Shipped', 'In Progress', 'Submitted', 'In Review', 'Approved', 'Paid'];
+const DEAL_STEPS_NOSHIP = ['Accepted', 'In Progress', 'Submitted', 'In Review', 'Approved', 'Paid'];
+const STEP_SUBS_SHIP = ['Deal accepted', 'Product on the way', 'Working on it', 'Waiting for you', 'Waiting for review', 'Waiting for approval', 'Waiting for payout'];
+const STEP_SUBS_NOSHIP = ['Deal accepted', 'Working on it', 'Waiting for you', 'Waiting for review', 'Waiting for approval', 'Waiting for payout'];
+const dealSteps = (hasShipping) => (hasShipping ? DEAL_STEPS_SHIP : DEAL_STEPS_NOSHIP);
+const dealSubs = (hasShipping) => (hasShipping ? STEP_SUBS_SHIP : STEP_SUBS_NOSHIP);
 
-function getDealStepIndex(state) {
+function getDealStepIndex(state, hasShipping) {
   const s = stateKey(state);
-  if (s.includes('paid')) return 6;
-  if (s.includes('approved')) return 4;
-  if (s.includes('await') && s.includes('review')) return 3;
-  if (s.includes('content submitted')) return 2;
-  if (s.includes('revision')) return 1;
-  if (s.includes('content in progress') || s.includes('received')) return 1;
-  if (s.includes('delivered')) return 1;
-  if (s.includes('shipped') || s.includes('transit') || s.includes('accepted')) return 0;
-  return 0;
+  const steps = dealSteps(hasShipping);
+  const at = (label) => Math.max(0, steps.indexOf(label));
+  if (s.includes('paid')) return at('Paid');
+  if (s.includes('approved')) return at('Approved');
+  if (s.includes('await') && s.includes('review')) return at('In Review');
+  if (s.includes('content submitted')) return at('Submitted');
+  // Revision / received / delivered / in-progress all mean "creator is working".
+  if (s.includes('revision') || s.includes('content in progress') || s.includes('received') || s.includes('delivered')) return at('In Progress');
+  // In transit to the creator — only a step when the deal ships.
+  if (hasShipping && (s.includes('shipped') || s.includes('transit'))) return at('Shipped');
+  return at('Accepted');   // accepted / awaiting-shipment / anything earlier
 }
 
 // Build a display-only deliverables summary from the deal's content submission.
@@ -866,7 +874,11 @@ export default function MyDealsPage() {
     ['Budget', (fb.budget_min || fb.budget_max) ? formatMoney(fb.budget_max || fb.budget_min) : null],
   ].filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '').map(([label, value]) => ({ label, value: String(value) }));
 
-  const stepIndex = getDealStepIndex(selectedState);
+  // A deal only shows the Shipped step if a physical product is being sent.
+  const hasShipping = Boolean(deal?.shipment?.required || deal?.campaign?.requires_shipment || deal?.requires_shipment);
+  const dealStepList = dealSteps(hasShipping);
+  const dealSubList = dealSubs(hasShipping);
+  const stepIndex = getDealStepIndex(selectedState, hasShipping);
   const brandName = deal?.brand?.name || getBrandHandle(deal);
   const creatorName = user?.nickname || user?.full_name || (user?.username ? String(user.username).replace(/^@/, '') : 'You');
   const dealTags = (Array.isArray(deal?.campaign?.objectives) && deal.campaign.objectives.length
@@ -954,14 +966,14 @@ export default function MyDealsPage() {
 
         {/* stepper */}
         <section className="cmk-dr-steps">
-          {DEAL_STEPS.map((label, i) => {
+          {dealStepList.map((label, i) => {
             const state = i < stepIndex ? 'done' : i === stepIndex ? 'active' : 'todo';
             return (
               <div key={label} className={`cmk-dr-step ${state}`}>
                 <span className="dot">{state === 'done' ? <Check size={15} /> : i + 1}</span>
-                {i < DEAL_STEPS.length - 1 && <i className={`line ${i < stepIndex ? 'on' : ''}`} />}
+                {i < dealStepList.length - 1 && <i className={`line ${i < stepIndex ? 'on' : ''}`} />}
                 <span className="lbl">{label}</span>
-                <span className="sub">{STEP_SUBS[i]}</span>
+                <span className="sub">{dealSubList[i]}</span>
               </div>
             );
           })}

@@ -888,8 +888,9 @@
 }
 .bcq-actions{display:flex;gap:10px;margin-top:20px}
 /* Save (bookmark) — square, doesn't grow like the two text buttons. */
-/* Plain icon next to the creator's name — no background/border. */
-.bcq-save{flex:none;margin-left:8px;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;border:none;
+/* Plain icon right beside the creator's name — no background/border. */
+.bcq-name-row{display:flex;align-items:center;gap:2px}
+.bcq-save{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:8px;border:none;
   background:transparent;color:#4452f0;cursor:pointer;transition:.18s;padding:0}
 .bcq-save:hover{background:#f2f3ff}
 .bcq-save.is-saved{color:#07074e}

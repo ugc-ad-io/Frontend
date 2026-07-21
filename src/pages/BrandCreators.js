@@ -270,12 +270,14 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
           <div className="bcq-head">
             <span className="bcq-ava">{assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}</span>
             <div className="bcq-id">
-              <strong>{name}</strong>
+              <div className="bcq-name-row">
+                <strong>{name}</strong>
+                <button type="button" className={`bcq-save ${saved ? 'is-saved' : ''}`} onClick={toggleSave} aria-label={saved ? 'Saved' : 'Save creator'} title={saved ? 'Saved' : 'Save creator'}>
+                  <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+                </button>
+              </div>
               <span className={`bcq-cat ${catClass(category)}`}>{category}</span>
             </div>
-            <button type="button" className={`bcq-save ${saved ? 'is-saved' : ''}`} onClick={toggleSave} aria-label={saved ? 'Saved' : 'Save creator'} title={saved ? 'Saved' : 'Save creator'}>
-              <Bookmark size={20} fill={saved ? 'currentColor' : 'none'} />
-            </button>
           </div>
           <p className="bcq-bio">{c.bio || c.description || `${category} creator crafting scroll-stopping UGC for brands. Authentic, on-brief, and delivered fast.`}</p>
           <div className="bcq-facts">

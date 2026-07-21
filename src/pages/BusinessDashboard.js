@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { firstName } from '../utils/displayName';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { Skeleton } from '../components/Skeleton';
@@ -540,6 +540,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const walletLoadedRef = useRef(false); // true once the wallet has loaded at least once
   const [walletAmount, setWalletAmount] = useState('');
   const [walletFilter, setWalletFilter] = useState('all');
+  const [txnDetail, setTxnDetail] = useState(null);   // wallet transaction shown in the detail modal
   const [rechargingWallet, setRechargingWallet] = useState(false);
   const [performancePeriod, setPerformancePeriod] = useState('Monthly');
   const [performanceCampaignId, setPerformanceCampaignId] = useState('all');
@@ -2262,7 +2263,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <span>Status</span>
                     </div>
                     {walletTransactions.slice(0, 8).map((transaction) => (
-                      <div className={`wallet-row wallet-row--${transaction.direction === 'debit' ? 'out' : 'in'}`} key={transaction.id}>
+                      <div className={`wallet-row wallet-row--clickable wallet-row--${transaction.direction === 'debit' ? 'out' : 'in'}`} key={transaction.id}
+                        role="button" tabIndex={0}
+                        onClick={() => setTxnDetail(transaction)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTxnDetail(transaction); } }}
+                        title="View details">
                         {/* Icon column — desktop hides it (the table has no icon column);
                             mobile shows the reference-style circular in/out badge. */}
                         <span className="wallet-row-ic" aria-hidden="true">
@@ -2280,6 +2285,30 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   </div>
                 )}
               </section>
+
+              {txnDetail && (
+                <div className="txn-overlay" onClick={() => setTxnDetail(null)}>
+                  <div className="txn-modal" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" className="txn-close" aria-label="Close" onClick={() => setTxnDetail(null)}><X size={18} /></button>
+                    <span className={`txn-amt ${txnDetail.direction === 'debit' ? 'out' : 'in'}`}>
+                      {txnDetail.direction === 'debit' ? '-' : '+'}{formatMoney(txnDetail.amount)}
+                    </span>
+                    <strong className="txn-type">{txnDetail.type}</strong>
+                    <span className={`wallet-status ${txnDetail.status}`}>{txnDetail.status || 'success'}</span>
+                    <div className="txn-rows">
+                      <div className="txn-r"><span>Direction</span><strong>{txnDetail.direction === 'debit' ? 'Debit (out)' : 'Credit (in)'}</strong></div>
+                      <div className="txn-r"><span>Date</span><strong>{formatWalletDate(txnDetail.date)}</strong></div>
+                      {txnDetail.reference && <div className="txn-r"><span>Campaign / Ref</span><strong>{txnDetail.reference}</strong></div>}
+                      <div className="txn-r"><span>Transaction ID</span><strong className="txn-mono">{txnDetail.id}</strong></div>
+                    </div>
+                    {txnDetail.reference && /^[0-9a-f-]{8,}$/i.test(String(txnDetail.reference)) && (
+                      <button type="button" className="txn-open" onClick={() => { setTxnDetail(null); setModalView({ type: 'campaign', id: txnDetail.reference }); }}>
+                        View campaign
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -6351,6 +6380,28 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #6B6B9E;
           font-weight: 400;
         }
+        .wallet-row--clickable { cursor: pointer; transition: background .14s; }
+        .wallet-row--clickable:hover { background: #f7f8ff; }
+
+        /* Transaction detail modal */
+        .txn-overlay { position: fixed; inset: 0; z-index: 1400; background: rgba(15,22,58,.5); backdrop-filter: blur(3px);
+          display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .txn-modal { position: relative; width: min(400px, 100%); background: #fff; border-radius: 20px; padding: 26px 24px;
+          box-shadow: 0 30px 70px -20px rgba(15,22,58,.5); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        .txn-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: none; background: #f1f3fa;
+          color: #15163a; border-radius: 9px; cursor: pointer; display: grid; place-items: center; }
+        .txn-close:hover { background: #e7eaf5; }
+        .txn-amt { font-family: var(--font-head,'Plus Jakarta Sans',sans-serif); font-size: 30px; font-weight: 800; line-height: 1; }
+        .txn-amt.out { color: #e5484d; }
+        .txn-amt.in { color: #16a34a; }
+        .txn-type { font-size: 16px; color: #15163a; }
+        .txn-rows { width: 100%; margin-top: 10px; border-top: 1px solid #eef0f6; padding-top: 12px; display: grid; gap: 10px; }
+        .txn-r { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+        .txn-r span { color: #8a8fb0; }
+        .txn-r strong { color: #15163a; text-align: right; overflow-wrap: anywhere; }
+        .txn-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+        .txn-open { margin-top: 16px; width: 100%; padding: 12px; border: none; border-radius: 12px; cursor: pointer;
+          background: linear-gradient(100deg,#12124f,#07074e); color: #fff; font-weight: 700; font-size: 14px; }
 
         .wallet-head {
           color: #9296ba;

@@ -1818,11 +1818,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
                         background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
                       }}>
-                        {b.creator_photo ? (
-                          <img src={b.creator_photo.startsWith('http') ? b.creator_photo : `${BACKEND_URL}${b.creator_photo}`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                        ) : (
-                          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#07074E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>{initial}</div>
-                        )}
+                        <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0 }}>
+                          {/* Initial sits underneath as the fallback; the photo overlays it
+                              and, if it fails to load, hides to reveal the initial again. */}
+                          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#07074E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{initial}</div>
+                          {b.creator_photo && (
+                            <img
+                              src={b.creator_photo.startsWith('http') ? b.creator_photo : `${BACKEND_URL}${b.creator_photo.startsWith('/') ? '' : '/'}${b.creator_photo}`}
+                              alt=""
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              style={{ position: 'absolute', inset: 0, width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                          )}
+                        </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                             <strong style={{ fontSize: 15, color: '#07074E' }}>{String(b.creator_name || 'Creator').trim().split(/\s+/)[0]}</strong>

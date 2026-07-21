@@ -7,6 +7,7 @@ import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, Refre
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { isSelectedCreator } from '../utils/campaignCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -152,7 +153,20 @@ export default function MyActiveWorkPage() {
       </div>
 
       {loading ? (
-        <div className="cmk-empty">Loading…</div>
+        <div className="cmk-awc-grid">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <article className="cmk-awc" key={i} aria-hidden="true">
+              <Skeleton width={46} height={46} radius={12} />
+              <div className="cmk-awc-lead" style={{ flex: 1, minWidth: 0 }}>
+                <Skeleton width={120} height={12} />
+                <Skeleton width="55%" height={16} style={{ marginTop: 8 }} />
+                <Skeleton width="40%" height={12} style={{ marginTop: 6 }} />
+              </div>
+              <Skeleton width={140} height={30} radius={8} />
+              <Skeleton width={38} height={38} radius="50%" />
+            </article>
+          ))}
+        </div>
       ) : rows.length ? (
         <div className="cmk-awc-grid">
           {rows.map((c) => {

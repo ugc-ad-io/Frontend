@@ -6,6 +6,7 @@ import { useAuth } from '../App';
 import { apiErrorMessage } from '../utils/apiError';
 import CreatorInviteModal from './CreatorInviteModal';
 import CreatorProfileModal from './CreatorProfileModal';
+import { findContactInfo } from './RevisionRequestModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -80,13 +81,28 @@ export default function ChatPopup({ user, onClose }) {
   const send = async (e) => {
     e.preventDefault();
     if (!text.trim() || sending) return;
+    // Keep everything on-platform: block phone numbers / email addresses before they
+    // ever reach the server (this popup previously sent them through unchecked). Uses
+    // the app's shared detector so the rule matches revision requests + video reviews.
+    const contact = findContactInfo(text);
+    if (contact) {
+      toast.error(contact === 'email'
+        ? 'Email addresses aren’t allowed — keep all communication on-platform.'
+        : 'Phone numbers aren’t allowed — keep all communication on-platform.');
+      return;
+    }
     setSending(true);
     try {
-      await axios.post(`${API}/chat/send`, { recipient_id: user.id, message: text.trim() });
+      const res = await axios.post(`${API}/chat/send`, { recipient_id: user.id, message: text.trim() });
+      // Backend may still flag/redact; surface it instead of silently "sending".
+      if (res.data?.filtered) {
+        toast.warning(`Message filtered for sharing contact details${res.data.warning_count ? ` — warning ${res.data.warning_count}/3` : ''}.`);
+      }
       setText('');
       const r = await axios.get(`${API}/chat/${user.id}`);
       setMessages(r.data || []);
     } catch (err) {
+      // 400 with a contact-info reason from the server → show its message, not a generic one.
       toast.error(apiErrorMessage(err, 'Failed to send message'));
     } finally { setSending(false); }
   };

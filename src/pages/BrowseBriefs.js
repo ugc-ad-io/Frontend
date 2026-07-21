@@ -8,6 +8,7 @@ import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import BriefDetailDrawer from '../components/BriefDetailDrawer';
+import { Skeleton } from '../components/Skeleton';
 import normalizeBrief from '../utils/normalizeBrief';
 import { isOpenForBids } from '../utils/campaignCreators';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
@@ -261,8 +262,25 @@ export default function BrowseBriefs() {
             </article>
           ))}
         </div>
+      ) : loading ? (
+        <div className="cmk-bb-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <article className="cmk-bb-card" key={i} aria-hidden="true">
+              <Skeleton height={150} radius={0} style={{ display: 'block' }} />
+              <div className="cmk-bb-body">
+                <div className="cmk-bb-brandrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Skeleton width={26} height={26} radius="50%" />
+                  <Skeleton width={90} height={12} />
+                </div>
+                <Skeleton width="80%" height={16} style={{ marginTop: 10 }} />
+                <Skeleton width="55%" height={12} style={{ marginTop: 8 }} />
+                <Skeleton width={90} height={16} style={{ marginTop: 12 }} />
+              </div>
+            </article>
+          ))}
+        </div>
       ) : (
-        loading ? <div className="cmk-empty">Loading briefs…</div> : <EmptyState title="No campaigns found" message="No campaigns match your search or filters right now. Try a different category or check back soon." />
+        <EmptyState title="No campaigns found" message="No campaigns match your search or filters right now. Try a different category or check back soon." />
       )}
 
       {visible < filtered.length && (

@@ -7,7 +7,31 @@ import { ArrowRight, Clock, Lock } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import EmptyState from '../components/EmptyState';
 import { MyBidsContent } from './MyBidsPage';
+import { Skeleton } from '../components/Skeleton';
 import '../styles/creator-marketplace.css';
+
+// Row skeleton matching an .mdh-card: avatar + lead lines + amount + arrow.
+function DealsSkeleton() {
+  return (
+    <div className="mdh-grid" aria-hidden="true">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <article className="mdh-card" key={i}>
+          <Skeleton width={46} height={46} radius={12} />
+          <div className="mdh-lead" style={{ flex: 1, minWidth: 0 }}>
+            <Skeleton width={130} height={14} />
+            <Skeleton width="55%" height={16} style={{ marginTop: 8 }} />
+            <Skeleton width="40%" height={12} style={{ marginTop: 6 }} />
+          </div>
+          <div className="mdh-amt" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Skeleton width={50} height={10} />
+            <Skeleton width={80} height={16} />
+          </div>
+          <Skeleton width={38} height={38} radius="50%" />
+        </article>
+      ))}
+    </div>
+  );
+}
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -130,7 +154,7 @@ export default function MyDealsHubPage() {
       {/* ---------------- Active Deals ---------------- */}
       {tab === 'active' && (
         loading ? (
-          <div className="cmk-empty">Loading…</div>
+          <DealsSkeleton />
         ) : active.length ? (
           <div className="mdh-grid">
             {active.map((d) => {

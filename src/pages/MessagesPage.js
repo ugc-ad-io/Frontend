@@ -11,6 +11,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import CreatorInviteModal from '../components/CreatorInviteModal';
+import { findContactInfo } from '../components/RevisionRequestModal';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import BrandProfileCard from '../components/BrandProfileCard';
 import { SkeletonList } from '../components/Skeleton';
@@ -409,6 +410,16 @@ export default function MessagesPage() {
 
     if (selectedFiles.length && !attachmentUrls.length) {
       toast.error('File upload did not complete. Please attach the file again.');
+      return;
+    }
+
+    // Block phone/email client-side too — don't wait for the server to reject, and don't
+    // let a message that slips past the backend get sent silently. Shared detector.
+    const contact = findContactInfo(newMessage);
+    if (contact) {
+      toast.error(contact === 'email'
+        ? 'Email addresses aren’t allowed — keep all communication on-platform.'
+        : 'Phone numbers aren’t allowed — keep all communication on-platform.');
       return;
     }
 

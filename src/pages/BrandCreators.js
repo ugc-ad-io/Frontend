@@ -304,10 +304,11 @@ export default function BrandCreators() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
-  // 6 cards = 3 columns of the 2-row track ≈ 132vw, so the clone always spans more than
-  // one screen — enough to hide the wrap. Skipped when the list is too short to overflow.
+  // Clone up to 6 leading cards (3 columns ≈ 132vw) so the loop always has a full-screen
+  // tail to wrap into. Any list past a single column (2 cards) overflows the phone and
+  // needs the loop — with only ≤2 cards there's nothing to scroll, so skip the clone.
   const cloneTail = useMemo(
-    () => (isPhone && filtered.length > 6 ? filtered.slice(0, 6) : []),
+    () => (isPhone && filtered.length > 2 ? filtered.slice(0, Math.min(6, filtered.length)) : []),
     [isPhone, filtered]
   );
 

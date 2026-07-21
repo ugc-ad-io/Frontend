@@ -257,8 +257,11 @@ export default function BrandWorkReview() {
         <div className="bwr-list">
           {Array.from({ length: 4 }).map((_, i) => (
             <article className="bwr-card" key={i} aria-hidden="true">
-              {/* left: 16/9 thumb — matches <Thumb> */}
-              <Skeleton className="bwr-thumb" width={220} height="auto" radius={14} style={{ aspectRatio: '16 / 9' }} />
+              {/* left: 16/9 thumb — matches <Thumb>. NOTE: don't reuse the .bwr-thumb class
+                  here — its dark #0b1020 video background overrides the skeleton shimmer and
+                  paints the placeholder solid black. Size it inline instead so it keeps the
+                  light shimmer like the other bars. */}
+              <Skeleton width={220} height="auto" radius={14} style={{ aspectRatio: '16 / 9', flexShrink: 0 }} />
               {/* middle: title, by-line, campaign box, meta row */}
               <div className="bwr-body" style={{ flex: 1, minWidth: 0 }}>
                 <Skeleton width="45%" height={18} />

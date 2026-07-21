@@ -1683,10 +1683,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         .pab-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
         .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
           font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
-        /* Logo (not banner): contain it, centred on a soft tint, so a square/transparent
-           logo isn't stretched edge-to-edge like a cover image. */
-        .pab-logo-preview { height: 130px; object-fit: contain; padding: 18px;
-          background: linear-gradient(140deg, #f4f5ff, #eef0ff); }
+        /* Logo preview fills the dropzone edge-to-edge (matches the campaign card). */
+        .pab-logo-preview { height: 150px; object-fit: cover; }
 
         .form-group label {
           color: #07074E;

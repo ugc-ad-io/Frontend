@@ -1344,6 +1344,8 @@
   /* The divider was only styled under .cmk-menu (the desktop avatar dropdown), so
      inside the mobile sheet it rendered as a zero-height, invisible element. */
   .cmk-mobile-menu .cmk-sep{height:1px;background:var(--line);margin:8px 4px}
+  /* Pins Log out (and its divider) to the bottom of the drawer. */
+  .cmk-mobile-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px}
 }
 
 @media (max-width:760px){

@@ -252,7 +252,10 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                 <item.icon size={18} /> {item.name}
               </button>
             ))}
-            <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+            <div className="cmk-mobile-foot">
+              <div className="cmk-sep" />
+              <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+            </div>
           </div>
         )}
       </header>

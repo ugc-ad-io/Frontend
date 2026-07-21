@@ -1316,12 +1316,21 @@
 .cmk-hamburger{display:none;width:42px;height:42px;border-radius:12px;border:none;
   background:none;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
 .cmk-mobile-menu{display:none}
+.cmk-mobile-backdrop{display:none}
+
+@keyframes cmk-drawer-in{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 
 @media (max-width:900px){
   .cmk-links{display:none}
   .cmk-hamburger{display:inline-flex}
-  .cmk-mobile-menu{display:flex;flex-direction:column;gap:2px;padding:10px 16px 16px;
-    border-top:1px solid var(--line);background:#fff}
+  /* Dim backdrop — taps close the drawer. Sits under the sheet, over the page. */
+  .cmk-mobile-backdrop{display:block;position:fixed;inset:0;z-index:1200;
+    background:rgba(17,20,45,.42)}
+  /* Left slide-in drawer covering ~70% of the screen, not the full-width top sheet. */
+  .cmk-mobile-menu{display:flex;flex-direction:column;gap:2px;padding:16px 14px 24px;
+    position:fixed;top:0;left:0;bottom:0;z-index:1201;width:min(320px,72vw);
+    background:#fff;box-shadow:2px 0 24px rgba(17,20,45,.18);overflow-y:auto;
+    animation:cmk-drawer-in .22s ease}
   .cmk-mobile-menu button{display:flex;align-items:center;gap:12px;padding:13px 12px;border:none;background:none;
     font-family:inherit;font-weight:600;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;border-radius:10px}
   .cmk-mobile-menu button:hover{background:var(--bg)}

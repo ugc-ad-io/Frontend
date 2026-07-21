@@ -220,6 +220,9 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </div>
         </div>
         {mobileOpen && (
+          <div className="cmk-mobile-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+        )}
+        {mobileOpen && (
           <div className="cmk-mobile-menu">
             {/* These carry an `icon` just like the other two groups, but the mobile
                 menu was rendering the bare name — so the top four entries sat

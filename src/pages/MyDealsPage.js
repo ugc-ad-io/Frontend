@@ -311,6 +311,30 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
   };
 }
 
+// Deal Room tab keys (also the URL `?tab=` values).
+const TAB_KEYS = ['overview', 'brief', 'deliverables', 'timeline', 'payments'];
+
+// Which tab holds the task for the current status, so the status pill can jump
+// straight to it. Prefer the primary action's type (it already encodes the next
+// task); fall back to the state string for passive/waiting states.
+const TASK_TAB_BY_ACTION = {
+  content: 'deliverables',        // submit content / submit revision (RevisionTracker + ContentSubmission)
+  add_evidence: 'deliverables',   // dispute — upload damage evidence
+  receipt: 'deliverables',        // mark received / unboxing (ShippingBlock)
+  ship_address: 'overview',       // confirm delivery address — that block lives in Overview
+  ship_address_done: 'overview',
+  track_shipment: 'timeline',
+  archive: 'payments',
+};
+function taskTabFor(primaryAction, state) {
+  const byAction = TASK_TAB_BY_ACTION[primaryAction?.type];
+  if (byAction) return byAction;
+  const s = stateKey(state);
+  if (/revision|review|dispute|damaged/.test(s)) return 'deliverables';
+  if (/paid|approved|payment/.test(s)) return 'payments';
+  return 'overview';
+}
+
 // 7-step reference stepper. Map the detailed deal state onto one of these steps.
 const DEAL_STEPS = ['Accepted', 'In Progress', 'Submitted', 'In Review', 'Approved', 'Shipped', 'Paid'];
 const STEP_SUBS = ['Deal accepted', 'Working on it', 'Waiting for you', 'Waiting for review', 'Waiting for approval', 'Waiting for delivery', 'Waiting for payout'];
@@ -345,7 +369,7 @@ function buildDeliverables(deal) {
 export default function MyDealsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [deals, setDeals] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [brandReviewFor, setBrandReviewFor] = useState(null); // completed deal awaiting a brand rating
@@ -354,7 +378,12 @@ export default function MyDealsPage() {
   const [briefOpen, setBriefOpen] = useState(false);
   const [fullBrief, setFullBrief] = useState(null);
   const [briefLoading, setBriefLoading] = useState(false);
-  const [leftTab, setLeftTab] = useState('overview');
+  // Open on the tab named by ?tab= (deep-linkable, survives refresh/back), else Overview.
+  const [leftTab, setLeftTab] = useState(() => {
+    const t = searchParams.get('tab');
+    return TAB_KEYS.includes(t) ? t : 'overview';
+  });
+  const mainRef = useRef(null);   // tabbed <main> — scroll target when jumping to a task
   const [chatOpen, setChatOpen] = useState(false);
   // Bumped when the chat is marked seen, to re-read the per-deal seen count from
   // localStorage so the unread badge clears. (Declared here — above the early

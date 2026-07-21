@@ -5,6 +5,7 @@ import { Bell, Check } from 'lucide-react';
 import { useAuth } from '../App';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import { Skeleton } from '../components/Skeleton';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -54,7 +55,19 @@ export default function NotificationsPage() {
         </div>
 
         {loading ? (
-          <div className="cmk-empty">Loading…</div>
+          <div className="np-list">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div className="np-item" key={i} aria-hidden="true">
+                {/* 40px round icon + title / message / time — matches .np-item */}
+                <Skeleton width={40} height={40} radius="50%" style={{ flex: 'none' }} />
+                <span className="np-body">
+                  <Skeleton width={`${40 + (i % 3) * 12}%`} height={14} />
+                  <Skeleton width="85%" height={12} style={{ marginTop: 4 }} />
+                  <Skeleton width={90} height={10} style={{ marginTop: 6 }} />
+                </span>
+              </div>
+            ))}
+          </div>
         ) : items.length === 0 ? (
           <div className="cmk-empty"><Bell size={40} /><p>No notifications yet</p></div>
         ) : (

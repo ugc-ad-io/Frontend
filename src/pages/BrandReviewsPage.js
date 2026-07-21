@@ -8,6 +8,7 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { creatorFirstName } from '../utils/displayName';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -95,7 +96,58 @@ export default function BrandReviewsPage() {
       </div>
 
       {loading ? (
-        <div className="cmk-empty">Loading reviews…</div>
+        <>
+          <div className="cmk-rev-top">
+            {/* 4 stat tiles — matches the 2×2 stats grid */}
+            <div className="cmk-stats cmk-stats-sm cmk-stats-2l cmk-rev-stats cmk-rev-stats-2x2" aria-hidden="true">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div className="cmk-stat" key={i}>
+                  <div className="cmk-stat-head">
+                    <Skeleton width={38} height={38} radius={12} />
+                    <Skeleton width={100} height={12} />
+                  </div>
+                  <div className="cmk-stat-row" style={{ marginTop: 12 }}>
+                    <Skeleton width={70} height={26} />
+                    <Skeleton width={90} height={12} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Rating breakdown panel */}
+            <section className="cmk-rev-panel cmk-rev-top-breakdown" aria-hidden="true">
+              <Skeleton width={150} height={16} style={{ marginBottom: 16 }} />
+              <div className="cmk-rb-list">
+                {[5, 4, 3, 2, 1].map((s) => (
+                  <div key={s} className="cmk-rb-row" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Skeleton width={54} height={12} />
+                    <Skeleton height={8} radius={999} style={{ flex: 1 }} />
+                    <Skeleton width={50} height={12} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {/* Recent reviews list */}
+          <section className="cmk-rev-panel cmk-rev-recent" aria-hidden="true">
+            <Skeleton width={150} height={16} style={{ marginBottom: 16 }} />
+            <div className="cmk-rr-list">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <article className="cmk-rr-item" key={i} style={{ display: 'flex', gap: 14 }}>
+                  <Skeleton width={44} height={44} radius="50%" style={{ flex: 'none' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                      <Skeleton width={110} height={14} />
+                      <Skeleton width={90} height={14} />
+                    </div>
+                    <Skeleton width="100%" height={12} style={{ marginBottom: 6 }} />
+                    <Skeleton width="75%" height={12} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </>
       ) : (
       <>
       <div className="cmk-rev-top">

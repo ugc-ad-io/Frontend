@@ -859,6 +859,7 @@
 .bcq-video video{width:100%;height:100%;aspect-ratio:9/16;object-fit:cover;display:block}
 .bcq-body{flex:1;min-width:0;padding:24px 24px 22px;display:flex;flex-direction:column}
 .bcq-head{display:flex;align-items:center;gap:12px}
+.bcq-head .bcq-id{flex:1;min-width:0}
 .bcq-ava{width:50px;height:50px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
   background:linear-gradient(135deg,#56b8ff,#5b6bff);color:#fff;font-weight:800;font-size:18px}
 .bcq-ava img{width:100%;height:100%;object-fit:cover}
@@ -887,11 +888,11 @@
 }
 .bcq-actions{display:flex;gap:10px;margin-top:20px}
 /* Save (bookmark) — square, doesn't grow like the two text buttons. */
-/* Sits stacked under the close (X) in the top-right corner of the card. */
-.bcq-save{position:absolute;top:56px;right:12px;z-index:4;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;border:1px solid var(--line);
-  background:rgba(255,255,255,.92);color:#4452f0;cursor:pointer;transition:.18s;box-shadow:0 4px 14px rgba(0,0,0,.12)}
-.bcq-save:hover{border-color:#cdd2f3;background:#f2f3ff}
-.bcq-save.is-saved{background:#eef0ff;border-color:#c7cdff}
+/* Plain icon next to the creator's name — no background/border. */
+.bcq-save{flex:none;margin-left:8px;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;border:none;
+  background:transparent;color:#4452f0;cursor:pointer;transition:.18s;padding:0}
+.bcq-save:hover{background:#f2f3ff}
+.bcq-save.is-saved{color:#07074e}
 .bcq-ghost,.bcq-primary{flex:1;height:46px;border-radius:13px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:.18s}
 .bcq-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
 .bcq-ghost:hover{border-color:#cdd2f3;background:#f7f8ff}

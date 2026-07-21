@@ -257,9 +257,6 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     <div className="bcq-overlay" onClick={onClose}>
       <div className="bcq-card" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="bcq-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
-        <button type="button" className={`bcq-save ${saved ? 'is-saved' : ''}`} onClick={toggleSave} aria-label={saved ? 'Saved' : 'Save creator'} title={saved ? 'Saved' : 'Save creator'}>
-          <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
-        </button>
         {!isMobile && (
           <div className="bcq-video">
             {hasVideo ? (
@@ -276,6 +273,9 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
               <strong>{name}</strong>
               <span className={`bcq-cat ${catClass(category)}`}>{category}</span>
             </div>
+            <button type="button" className={`bcq-save ${saved ? 'is-saved' : ''}`} onClick={toggleSave} aria-label={saved ? 'Saved' : 'Save creator'} title={saved ? 'Saved' : 'Save creator'}>
+              <Bookmark size={20} fill={saved ? 'currentColor' : 'none'} />
+            </button>
           </div>
           <p className="bcq-bio">{c.bio || c.description || `${category} creator crafting scroll-stopping UGC for brands. Authentic, on-brief, and delivered fast.`}</p>
           <div className="bcq-facts">
@@ -286,7 +286,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
           </div>
           {thumbs.length > 0 && (
             <div className="bcq-work">
-              <label>Recent work <small>· hover to preview</small></label>
+              <label>Recent work {!isMobile && <small>· hover to preview</small>}</label>
               <div className="bcq-thumbs" ref={thumbsRef}>
                 {thumbs.map((tv, k) => {
                   const src = `${tv}#t=0.5`;
@@ -295,8 +295,8 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
                       type="button"
                       key={k}
                       className={`bcq-thumb ${bigVid === src ? 'on' : ''}`}
-                      onMouseEnter={() => setBigVid(src)}
-                      onMouseLeave={() => setBigVid(baseVid)}
+                      onMouseEnter={isMobile ? undefined : () => setBigVid(src)}
+                      onMouseLeave={isMobile ? undefined : () => setBigVid(baseVid)}
                       onClick={() => onExpand({ src: tv, name })}
                     >
                       <video src={src} muted playsInline preload="metadata" />

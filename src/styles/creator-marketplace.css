@@ -100,8 +100,8 @@
 .cmk-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:var(--bad);
   color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px;border:2px solid #fff}
 .cmk-avatar-btn{display:flex;align-items:center;gap:7px;cursor:pointer;padding:3px;border-radius:40px;
-  border:1px solid var(--line);background:#fff}
-.cmk-avatar-btn:hover{border-color:#d6d9ee}
+  border:none;background:none}
+.cmk-avatar-btn:hover{border-color:transparent}
 .cmk-avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;display:grid;place-items:center;
   background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;font-weight:700;overflow:hidden}
 .cmk-avatar img{width:100%;height:100%;object-fit:cover}
@@ -1313,8 +1313,8 @@
 }
 
 /* ── MOBILE OPTIMISATION (whole creator side) ────────────────────────────── */
-.cmk-hamburger{display:none;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
-  background:#fff;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
+.cmk-hamburger{display:none;width:42px;height:42px;border-radius:12px;border:none;
+  background:none;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
 .cmk-mobile-menu{display:none}
 
 @media (max-width:900px){

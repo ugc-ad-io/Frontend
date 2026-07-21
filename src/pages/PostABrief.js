@@ -68,6 +68,18 @@ const PRODUCT_TYPES = [
 const typeNeedsShipping = (t) => t === 'physical';
 
 const CATEGORIES = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Food', 'Gaming', 'Lifestyle', 'Home Decor', 'Wellness'];
+// Map a stored category (any case / phrasing) to one of CATEGORIES so the <select>
+// pre-selects it. e.g. "beauty" / "Beauty & Skincare" -> "Beauty".
+const matchCategory = (...raws) => {
+  for (const raw of raws) {
+    const s = String(raw || '').trim().toLowerCase();
+    if (!s) continue;
+    const hit = CATEGORIES.find((c) => c.toLowerCase() === s)
+      || CATEGORIES.find((c) => s.includes(c.toLowerCase()) || c.toLowerCase().includes(s));
+    if (hit) return hit;
+  }
+  return '';
+};
 const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial', 'Tutorial', 'Unboxing', 'Comparison', 'Sale promotion', 'Customer education', 'Other'];
 const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)'];
 const ASPECTS = ['9:16', '1:1', '16:9', '4:5'];
@@ -409,10 +421,16 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     axios.get(`${API}/business/settings/profile`)
       .then(res => {
         const profile = res.data || {};
+        const up = user?.profile || {};
         setForm(current => ({
           ...current,
           brandName: current.brandName || profile.brand_name || user?.nickname || user?.full_name || '',
-          category: current.category || profile.primary_category || profile.business_category || ''
+          // Pre-select the brand's category by default (still changeable).
+          category: current.category || matchCategory(
+            profile.primary_category, profile.business_category, profile.industry_category,
+            profile.category, profile.product_type,
+            up.industry_category, up.business_category, up.category
+          )
         }));
       })
       .catch(() => {

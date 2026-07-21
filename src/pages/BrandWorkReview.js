@@ -346,10 +346,10 @@ export default function BrandWorkReview() {
                     {it.status === 'pending_review' && (
                       <>
                         <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> Approve</button>
-                        <button type="button" className="bwr-btn" onClick={() => requestRevision(it.id)}><RefreshCw size={16} /> Request Revision</button>
-                        {/* Timestamped review — only meaningful when there's a video to scrub. */}
+                        {/* Single revision path: the timestamped video-review flow, labelled
+                            "Request Revision". Only shown when there's a video to scrub. */}
                         {it.files.some((f) => isVideo(assetUrl(f))) && (
-                          <button type="button" className="bwr-btn" onClick={() => openVideoReview(it)}><MessageSquarePlus size={16} /> Review on Video</button>
+                          <button type="button" className="bwr-btn" onClick={() => openVideoReview(it)}><MessageSquarePlus size={16} /> Request Revision</button>
                         )}
                       </>
                     )}

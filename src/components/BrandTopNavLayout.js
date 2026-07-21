@@ -75,9 +75,11 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   // `body` alone leaves that second scrollbar visible.
   useEffect(() => {
     if (!briefOpen) return undefined;
-    // The floating message popup would otherwise sit on top of the full-screen brief
-    // modal — close it when Post a Campaign opens.
+    // The floating message popup / per-creator chat would otherwise sit on top of the
+    // full-screen brief modal — close them when Post a Campaign opens. ChatPopup lives
+    // in other components, so reach it via a broadcast event.
     setMsgOpen(false);
+    window.dispatchEvent(new Event('ugcad:brief-opened'));
     const html = document.documentElement;
     const prevHtml = html.style.overflow;
     const prevBody = document.body.style.overflow;

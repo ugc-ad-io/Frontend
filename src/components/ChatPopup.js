@@ -65,6 +65,14 @@ export default function ChatPopup({ user, onClose }) {
   const [profOpen, setProfOpen] = useState(false);
   const endRef = useRef(null);
 
+  // Close this floating chat when the full-screen Post-a-Campaign brief opens — it
+  // shouldn't sit on top of the wizard. (Broadcast from BrandTopNavLayout.)
+  useEffect(() => {
+    const close = () => onClose?.();
+    window.addEventListener('ugcad:brief-opened', close);
+    return () => window.removeEventListener('ugcad:brief-opened', close);
+  }, [onClose]);
+
   useEffect(() => {
     let active = true;
     const load = async () => {

@@ -17,6 +17,11 @@ const PRODUCTS = ['Yes', 'No'];
 const LOGO_POSITIONS = ['No Preference', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right', 'Center'];
 const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
 
+// Derive the campaign fields the review flow needs from the plan's video specs, so the
+// brand doesn't re-enter them. Mirrors PostABrief's proven payload shape.
+const ASPECT_BY_ORIENTATION = { Portrait: '9:16', Landscape: '16:9', Square: '1:1' };
+const durationToSeconds = (d) => parseInt(String(d).replace(/\D/g, ''), 10) || 30;
+
 // Delivery date: Today, Tomorrow, or a custom date the brand picks. Dates are
 // computed live (never hardcoded).
 const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -80,6 +85,14 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const [videoCount, setVideoCount] = useState(1);
   const [videos, setVideos] = useState([newVideo()]);
   const [activeVideo, setActiveVideo] = useState(0);
+  // Brief basics — REQUIRED so the brief can go through the same admin-review flow as
+  // Post a Campaign (the campaign validator needs product/description/hook/message).
+  const [brief, setBrief] = useState({ productName: '', productDescription: '', hook: '', keyMessage: '' });
+  const setBriefField = (k) => (e) => setBrief((b) => ({ ...b, [k]: e.target.value }));
+  const briefComplete = brief.productName.trim().length > 0
+    && brief.productDescription.trim().length >= 10
+    && brief.hook.trim().length > 0
+    && brief.keyMessage.trim().length > 0;
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resolvedName, setResolvedName] = useState('');   // brand-facing handle from the profile
@@ -289,36 +302,58 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   // server re-prices the brief from the creator's rate card and its own commission
   // setting, so no amount is sent from here; the figures on screen are a quote.
   const proceed = async () => {
+    if (!briefComplete) {
+      toast.error('Add the brief basics (product, description, hook, key message) first.');
+      setStage('setup');
+      return;
+    }
     setSubmitting(true);
     try {
-      const res = await axios.post(`${API}/checkout/brief`, {
-        creator_id: creatorId,
-        video_count: videoCount,
-        brief: {
-          title: `${plan?.name || 'Creator Plan'} — ${videoCount} video${videoCount > 1 ? 's' : ''}`,
-          brief_text: composeBrief(),
-          deliverables: `${videoCount} x ${plan?.name || 'Creator Plan'} (${videos[0].duration}, ${videos[0].orientation})`,
-          requires_shipment: videos.some((v) => v.product === 'Yes'),
-          delivery_date: deliveryDate,
-          delivery_slot: slot,
-          plan: plan?.id,
-        },
+      // SAME AS POST A CAMPAIGN: create the brief as a campaign that goes to ADMIN REVIEW
+      // (status pending_approval). The backend holds the budget on the wallet and releases
+      // it to the creator when the deal completes — no charge/pay step here. selected_creator
+      // ties it to this specific creator. Enum fields mirror PostABrief's proven payload.
+      const v0 = videos[0] || newVideo();
+      const aspect = ASPECT_BY_ORIENTATION[v0.orientation] || '9:16';
+      const hasProduct = videos.some((vd) => vd.product === 'Yes');
+      await axios.post(`${API}/campaigns`, {
+        title: `${brief.productName.trim()} — ${plan?.name || 'Creator Plan'}`,
+        status: 'pending_approval',
+        selected_creator: creatorId,
+        product_name: brief.productName.trim(),
+        category: 'Other',
+        product_category: 'Other',
+        product_description: brief.productDescription.trim(),
+        campaign_hook: brief.hook.trim(),
+        key_message: brief.keyMessage.trim(),
+        brief_text: composeBrief(),
+        video_format: 'Reel',
+        aspect_ratio: aspect,
+        duration_seconds: durationToSeconds(v0.duration),
+        creator_level: 'New',
+        deliverable_items: [{ type: 'Reel', quantity: videoCount, duration: v0.duration, aspect_ratios: [aspect], raw_required: false }],
+        budget_min: plan?.price || 0,
+        budget_max: plan?.price || 0,
+        per_video_budget: plan?.price || 0,
+        requires_shipment: hasProduct,
+        shipment_option: hasProduct ? 'yes' : 'no',
+        due_date: deliveryDate,
+        deadline: deliveryDate,
+        delivery_slot: slot,
       });
-      const charged = Number(res.data?.amount_charged) || 0;
-      setWallet(Number(res.data?.wallet_balance) || 0);
-      toast.success(`Brief sent — ${inr(charged)} held from your credits, released to the creator when the deal completes.`);
+      toast.success('Brief sent for review — our team approves it shortly. Funds are held on your wallet and released to the creator when the deal completes.');
       if (onPublished) onPublished();
     } catch (e) {
-      // A short wallet isn't an error to bury in a toast — tell them the gap AND open the
-      // inline top-up sheet (there's no payment screen to fall back to anymore).
+      // Wallet too short to hold the budget → open the inline top-up sheet (no pay screen
+      // to fall back to). The campaign publish holds the budget the moment it's submitted.
       if (e?.response?.status === 402) {
         const d = e.response.data || {};
         setWallet(Number(d.available) || 0);
         setShortfall(Number(d.shortfall) || 0);
-        toast.error(d.detail || 'Not enough credits.');
+        toast.error(d.detail || 'Not enough credits to hold this brief.');
         setTopupOpen(true);
       } else {
-        toast.error(apiErrorMessage(e, 'Payment failed'));
+        toast.error(apiErrorMessage(e, 'Could not send the brief for review'));
       }
     } finally {
       setSubmitting(false);
@@ -346,8 +381,14 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
       <Wallet size={15} /> Add Funds
     </button>
   ) : (
-    <button type="button" className="pb-proceed" onClick={proceed} disabled={submitting || priceMissing || !(total > 0)} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>
-      {submitting ? 'Processing…' : `Send Brief · Hold ${inr(total)}`}
+    <button
+      type="button"
+      className="pb-proceed"
+      onClick={proceed}
+      disabled={submitting || priceMissing || !(total > 0) || !briefComplete}
+      title={priceMissing ? "This creator hasn't set a price yet" : (!briefComplete ? 'Fill the brief basics first' : undefined)}
+    >
+      {submitting ? 'Sending…' : 'Send Brief for Review'}
     </button>
   );
 
@@ -475,6 +516,16 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <Field label="Does it feature a product"><Select value={v.product} onChange={(val) => updateVideo({ product: val })} options={PRODUCTS} placeholder="Select" /></Field>
             </div>
 
+            {/* Brief basics — the short version of Post a Campaign's brief. Required so the
+                brief can be reviewed + published the same way (admin approval → escrow hold). */}
+            <div className="pb-video-title"><Check size={16} className="pb-video-title-check" /> About your brief</div>
+            <div className="pb-brief-fields">
+              <Field label="Product / brand name *"><input type="text" value={brief.productName} onChange={setBriefField('productName')} placeholder="e.g. Nova Running Shoes" /></Field>
+              <Field label="What are you promoting? *"><textarea rows={2} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two (min 10 characters)" /></Field>
+              <Field label="Hook / main idea *"><input type="text" value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
+              <Field label="Key message *"><input type="text" value={brief.keyMessage} onChange={setBriefField('keyMessage')} placeholder="The one thing the viewer must take away" /></Field>
+            </div>
+
             {v.guidelinesOpen ? (
               <button type="button" className="pb-guidelines-toggle is-added" onClick={() => setStage('guidelines')}>
                 <Check size={15} /> Brand Guidelines added — Edit
@@ -488,7 +539,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
           <div className="pb-footer">
             {hasGuidelines ? (
-              <button type="button" className="pb-proceed" onClick={() => setStage('guidelines')} disabled={submitting || priceMissing} title={priceMissing ? "This creator hasn't set a price yet" : undefined}>Proceed</button>
+              <button type="button" className="pb-proceed" onClick={() => setStage('guidelines')} disabled={submitting || priceMissing || !briefComplete} title={priceMissing ? "This creator hasn't set a price yet" : (!briefComplete ? 'Fill the brief basics first' : undefined)}>Proceed</button>
             ) : holdMoneyBtn}
           </div>
           </>
@@ -739,6 +790,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-video-title { display: flex; align-items: center; gap: 6px; font-weight: 800; color: #0f172a; padding-bottom: 10px; border-bottom: 2px solid #07074e; width: fit-content; margin-bottom: 18px; }
         .pb-video-title-check { color: #16a34a; }
         .pb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+        .pb-brief-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+        .pb-brief-fields textarea { resize: vertical; min-height: 46px; }
         .pb-field { display: grid; gap: 7px; font-size: 0.85rem; font-weight: 700; color: #334155; }
         .pb-field > span { color: #334155; }
         .pb-field input[type=text], .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; color: #0f172a; background: #fff; resize: vertical; }

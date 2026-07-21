@@ -1701,8 +1701,12 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         .pab-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
         .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
           font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
-        /* Logo preview fills the dropzone edge-to-edge (matches the campaign card). */
-        .pab-logo-preview { height: 150px; object-fit: cover; }
+        /* A logo is small — cap the dropzone width instead of spanning the whole form,
+           and shrink its empty state so it reads as a compact tile, not a banner. */
+        .pab-logo-drop { max-width: 260px; }
+        .pab-logo-drop .pab-img-empty { padding: 18px 14px; }
+        .pab-logo-drop .pab-img-empty strong { font-size: 13px; }
+        .pab-logo-preview { height: 120px; object-fit: contain; background: #fff; }
 
         .form-group label {
           color: #07074E;

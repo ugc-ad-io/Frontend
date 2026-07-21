@@ -1356,7 +1356,8 @@
 }
 
 @media (max-width:640px){
-  .cmk-wrap{padding:0 16px}
+  /* A touch more side inset so headings/chips don't hug the screen edge on phones. */
+  .cmk-wrap{padding:0 20px}
   /* Nav shrinks to 62px here, so the drawer/backdrop start lower to stay under it. */
   .cmk-mobile-backdrop{top:62px}
   .cmk-mobile-menu{top:62px}

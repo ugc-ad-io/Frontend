@@ -50,6 +50,13 @@ export default function MessagesPopup({ onClose }) {
   // A brand sees a creator by FIRST NAME only; a creator keeps the brand's full name.
   const nameOf = (c) => (user?.role === 'business' ? creatorFirstName(c) : displayName(c, 'User'));
 
+  // Close on Escape — pairs with the tap-outside backdrop below.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   useEffect(() => {
     let alive = true;
     const load = async () => {
@@ -74,7 +81,11 @@ export default function MessagesPopup({ onClose }) {
     nameOf(c).toLowerCase().includes(q.trim().toLowerCase()));
 
   return (
-    <div className="mpop">
+    <>
+      {/* Tap anywhere outside the card to dismiss. Transparent on desktop (just a
+          click-catcher); dimmed on phones so it reads as a modal layer. */}
+      <div className="mpop-backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="mpop">
       <div className="mpop-head">
         <strong>Messages</strong>
         <button type="button" className="mpop-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
@@ -116,6 +127,8 @@ export default function MessagesPopup({ onClose }) {
       </div>
 
       <style>{`
+        .mpop-backdrop{position:fixed;inset:0;z-index:1199;background:transparent}
+        @media (max-width:640px){ .mpop-backdrop{background:rgba(15,22,58,.35)} }
         .mpop{position:fixed;right:24px;bottom:24px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 48px);
           background:#fff;border:1px solid #e9ebf4;border-radius:18px;box-shadow:0 28px 64px rgba(15,22,58,.32);
           display:flex;flex-direction:column;overflow:hidden;z-index:1200;animation:mpop-in .22s cubic-bezier(.2,.7,.2,1)}
@@ -141,6 +154,7 @@ export default function MessagesPopup({ onClose }) {
         .mpop-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#5b6bff;color:#fff;
           font-size:11.5px;font-weight:700;display:grid;place-items:center}
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }

@@ -996,7 +996,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                           const selBid = (camp.bids || []).find((b) => b.creator_id === camp.selected_creator) || {};
                           const cat = (camp.category || camp.industry_type || 'UGC').replace(/_/g, ' ');
                           const price = (camp.budget_max || camp.budget_min)
-                            ? `Up to ${inr(camp.budget_max || camp.budget_min)}` : 'On request';
+                            ? inr(camp.budget_max || camp.budget_min) : 'On request';
                           const days = selBid.estimated_delivery_days || camp.estimated_delivery_days;
                           const duration = days ? `${days} day${Number(days) > 1 ? 's' : ''}` : '—';
                           // Prefer the actually-delivered work video; if the campaign

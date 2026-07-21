@@ -194,6 +194,15 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const [bigVid, setBigVid] = useState(baseVid);
   const bigRef = useRef(null);
   const [saved, setSaved] = useState(() => isCreatorSaved(c.id));
+  // The big auto-playing preview is desktop-only. On phones it's just a heavy
+  // header nobody can hover, so drop it entirely — tap a "Recent work" thumb to play.
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 560px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 560px)');
+    const on = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   const toggleSave = () => {
     const now = toggleSavedCreator({
@@ -212,13 +221,15 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     <div className="bcq-overlay" onClick={onClose}>
       <div className="bcq-card" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="bcq-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
-        <div className="bcq-video">
-          {hasVideo ? (
-            <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} autoPlay muted loop playsInline />
-          ) : (
-            <div className="bc-novideo"><VideoOff size={30} /><span>No video yet</span></div>
-          )}
-        </div>
+        {!isMobile && (
+          <div className="bcq-video">
+            {hasVideo ? (
+              <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} autoPlay muted loop playsInline />
+            ) : (
+              <div className="bc-novideo"><VideoOff size={30} /><span>No video yet</span></div>
+            )}
+          </div>
+        )}
         <div className="bcq-body">
           <div className="bcq-head">
             <span className="bcq-ava">{assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}</span>

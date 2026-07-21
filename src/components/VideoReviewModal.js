@@ -179,17 +179,20 @@ export default function VideoReviewModal({
         {/* ── Right: comments ──────────────────────────────────────────── */}
         <div className="vrm-right">
           <div className="vrm-rhead">
-            <span>Comments{comments.length > 0 && <b>{comments.length}</b>}</span>
+            <span>{readOnly ? 'Requested changes' : 'Comments'}{comments.length > 0 && <b>{comments.length}</b>}</span>
             <button type="button" className="vrm-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
           </div>
 
-          {typeof nextFee === 'number' && nextFee > 0 && (
+          {readOnly && (
+            <div className="vrm-free">Tap a timestamp to jump to the exact moment the brand marked for a change.</div>
+          )}
+          {!readOnly && typeof nextFee === 'number' && nextFee > 0 && (
             <div className="vrm-fee">Paid revision — ₹{nextFee} will be charged from your wallet.</div>
           )}
-          {typeof freeRemaining === 'number' && freeRemaining > 0 && (
+          {!readOnly && typeof freeRemaining === 'number' && freeRemaining > 0 && (
             <div className="vrm-free">{freeRemaining} free revision{freeRemaining > 1 ? 's' : ''} remaining.</div>
           )}
-          {contactHit && (
+          {!readOnly && contactHit && (
             <div className="vrm-warn">
               <AlertTriangle size={15} />
               <span>Remove phone numbers and email addresses — keep communication on-platform.</span>
@@ -200,23 +203,36 @@ export default function VideoReviewModal({
             {ordered.length === 0 ? (
               <div className="vrm-empty">
                 <p><MessageSquare size={17} /> No comments yet</p>
-                <small>Play the video, pause where you want a change, and type below — your note is pinned to that moment.</small>
+                <small>{readOnly
+                  ? 'The brand left no timestamped notes on this video.'
+                  : 'Play the video, pause where you want a change, and type below — your note is pinned to that moment.'}</small>
               </div>
             ) : ordered.map((c) => (
               <div className="vrm-c" key={c.id}>
-                <button type="button" className="vrm-c-ts" onClick={() => seek(c.timestamp_seconds)}>
-                  {fmtTs(c.timestamp_seconds)}
-                </button>
+                {c.timestamp_seconds != null ? (
+                  <button type="button" className="vrm-c-ts" onClick={() => seek(c.timestamp_seconds)}>
+                    {fmtTs(c.timestamp_seconds)}
+                  </button>
+                ) : (
+                  <span className="vrm-c-ts vrm-c-ts--general" title="General note (no timestamp)">general</span>
+                )}
                 <div className="vrm-c-body">
                   <p>{c.text}</p>
                 </div>
-                <button type="button" className="vrm-c-del" onClick={() => removeComment(c.id)} aria-label="Remove comment">
-                  <Trash2 size={14} />
-                </button>
+                {!readOnly && (
+                  <button type="button" className="vrm-c-del" onClick={() => removeComment(c.id)} aria-label="Remove comment">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
 
+          {readOnly ? (
+            <div className="vrm-compose">
+              <button type="button" className="vrm-submit" onClick={onClose}>Got it</button>
+            </div>
+          ) : (
           <div className="vrm-compose">
             <div className="vrm-input">
               <span className="vrm-at">{fmtTs(pinnedAt)}</span>
@@ -252,6 +268,7 @@ export default function VideoReviewModal({
               {submitting ? 'Sending…' : 'Send Changes'}
             </button>
           </div>
+          )}
         </div>
 
         <style>{`
@@ -296,6 +313,7 @@ export default function VideoReviewModal({
           .vrm-c{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:10px}
           .vrm-c-ts{flex:none;border:none;background:rgba(91,107,255,.2);color:#a5b0ff;font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums}
           .vrm-c-ts:hover{background:rgba(91,107,255,.34);color:#fff}
+          .vrm-c-ts--general{background:rgba(255,255,255,.08);color:#9ba0c9;cursor:default}
           .vrm-c-body{flex:1;min-width:0}
           .vrm-c-body p{margin:0;color:#dfe2f5;font-size:13px;line-height:1.45;word-break:break-word}
           .vrm-c-del{flex:none;border:none;background:none;color:#6f74a0;cursor:pointer;padding:2px}

@@ -43,6 +43,7 @@ import { EmptyPanel, formatMoney, getInitial } from '../components/CreatorCompon
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import { openHelpDialog } from '../components/HoverSideRail';
 import ReviewModal from '../components/ReviewModal';
+import VideoReviewModal from '../components/VideoReviewModal';
 import ShippingDetailsCard from '../components/ShippingDetailsCard';
 import { Skeleton } from '../components/Skeleton';
 import './CreatorDashboard.css';
@@ -1512,9 +1513,39 @@ function renderChangeText(line) {
   );
 }
 
+// Parse "0:13" -> seconds. Returns null when there's no timestamp.
+function tsToSeconds(ts) {
+  if (!ts) return null;
+  const [m, s] = String(ts).split(':').map(Number);
+  if (Number.isNaN(m) || Number.isNaN(s)) return null;
+  return m * 60 + s;
+}
+
+// Turn the change lines into VideoReviewModal comments: strip the "[…]" tag, keep
+// the clean text, and lift the pinned moment out to `timestamp_seconds`.
+function changeItemsToComments(items) {
+  return items.map((line, i) => {
+    const m = String(line).match(CHANGE_TAG_RE);
+    const timestamp = m ? m[2] : null;
+    const text = m ? String(line).slice(m[0].length).trim() : String(line).trim();
+    return { id: `chg-${i}`, text, timestamp_seconds: tsToSeconds(timestamp) };
+  });
+}
+
 function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBrand, onEscalate }) {
   const revision = deal?.revision_tracker || {};
   const changeItems = toChangeItems(revision);
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  // The video the brand reviewed = the creator's most recent submitted version.
+  const versions = deal?.content_submission?.versions || [];
+  const reviewedVideo = [...versions].reverse().find((v) => v.video_url)?.video_url
+    || deal?.content_submission?.video_url
+    || '';
+  const reviewedVideoUrl = reviewedVideo ? getAssetUrl(reviewedVideo) : '';
+  const reviewComments = changeItemsToComments(changeItems);
+  const hasTimestamps = reviewComments.some((c) => c.timestamp_seconds != null);
+  const canReviewOnVideo = Boolean(reviewedVideoUrl) && reviewComments.length > 0;
   const hasRevision = Boolean(revision.latest_feedback || revision.requested_changes?.length);
   // Once the creator has responded, show what they chose instead of leaving the
   // buttons live (clicking them again looked like nothing was happening).
@@ -1544,6 +1575,11 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
       <div className="deal-revision-checklist">
         <div className="deal-revision-checklist-head">
           <small>Requested Changes {total ? `· ${total}` : ''}</small>
+          {canReviewOnVideo && (
+            <button type="button" className="deal-review-video-btn" onClick={() => setVideoOpen(true)}>
+              <Play size={14} /> {hasTimestamps ? 'See changes on video' : 'View submitted video'}
+            </button>
+          )}
         </div>
 
         {total ? (
@@ -1598,6 +1634,17 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
             <button type="button" disabled={!hasRevision || submitting} onClick={() => onRevisionResponse('scope_creep', [])}>These changes go beyond the brief</button>
           </div>
         </>
+      )}
+
+      {videoOpen && (
+        <VideoReviewModal
+          readOnly
+          src={reviewedVideoUrl}
+          title="Requested changes on your video"
+          watermark={false}
+          initialComments={reviewComments}
+          onClose={() => setVideoOpen(false)}
+        />
       )}
     </DealCard>
   );

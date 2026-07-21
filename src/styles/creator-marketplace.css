@@ -1331,7 +1331,10 @@
   .cmk-mobile-menu{display:flex;flex-direction:column;gap:2px;padding:16px 14px 24px;
     position:fixed;top:72px;left:0;bottom:0;z-index:1201;width:min(320px,72vw);
     background:#fff;box-shadow:2px 0 24px rgba(17,20,45,.18);overflow-y:auto;
-    animation:cmk-drawer-in .22s ease}
+    animation:cmk-drawer-in .22s ease;
+    /* Clip the shadow's top/bottom bleed (it was leaking up into the gap under the
+       nav as a grey line); -30px on the right lets only the side shadow show. */
+    clip-path:inset(0 -30px 0 0)}
   .cmk-mobile-menu button{display:flex;align-items:center;gap:12px;padding:13px 12px;border:none;background:none;
     font-family:inherit;font-weight:600;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;border-radius:10px}
   .cmk-mobile-menu button:hover{background:var(--bg)}

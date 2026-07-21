@@ -411,6 +411,12 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const goBack = () => setStage(STEP_LIST[Math.max(stepIdx - 1, 0)].key);
   // Basics carries the review flow's required fields — can't move past it until filled.
   const nextBlocked = stage === 'basics' && !briefComplete;
+  // Clicking a step in the stepper jumps to it. Going back is always fine; jumping PAST
+  // Basics (index 1) needs the required fields, so it bounces to Basics with a nudge.
+  const goToStep = (i) => {
+    if (i > 1 && !briefComplete) { setStage('basics'); toast.error('Fill the brief basics first.'); return; }
+    setStage(STEP_LIST[i].key);
+  };
 
   // The money-holding action, shared by both possible last steps (setup when there are
   // no guidelines, otherwise the guidelines step). A short balance opens the inline
@@ -511,10 +517,16 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           {/* Progress stepper — reflects whether a Brand Guidelines step exists */}
           <div className="pb-stepper">
             {STEP_LIST.map((s, i) => (
-              <div key={s.key} className={`pb-stepper-item ${i === stepIdx ? 'active' : ''}`}>
+              <button
+                type="button"
+                key={s.key}
+                className={`pb-stepper-item ${i === stepIdx ? 'active' : ''} ${i > 1 && !briefComplete ? 'is-locked' : ''}`}
+                onClick={() => goToStep(i)}
+                title={i > 1 && !briefComplete ? 'Fill the brief basics first' : `Go to ${s.label}`}
+              >
                 <span className="pb-stepper-num">{i + 1}</span>
                 <span className="pb-stepper-label">{s.label}</span>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -776,7 +788,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-head { padding: 22px 28px 14px; border-bottom: 1px solid #f1f5f9; }
         /* progress stepper */
         .pb-stepper { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 20px 28px 0; }
-        .pb-stepper-item { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px; background: #f1f2fb; color: #8a8fc0; font-weight: 700; font-size: 0.8rem; }
+        .pb-stepper-item { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px; background: #f1f2fb; color: #8a8fc0; font-weight: 700; font-size: 0.8rem; border: none; font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
+        .pb-stepper-item:hover:not(.active):not(.is-locked) { background: #e6e8ff; color: #5b6bff; }
+        .pb-stepper-item.is-locked { cursor: not-allowed; opacity: 0.55; }
         .pb-stepper-item + .pb-stepper-item { position: relative; margin-left: 10px; }
         .pb-stepper-item + .pb-stepper-item::before { content: "›"; position: absolute; left: -14px; color: #c3cbff; font-weight: 800; }
         .pb-stepper-num { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #d7d9f2; color: #fff; font-size: 0.72rem; font-weight: 800; }

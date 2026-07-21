@@ -152,16 +152,18 @@ export default function VideoReviewModal({
                  aria-label="Seek" aria-valuemin={0} aria-valuemax={Math.floor(duration)} aria-valuenow={Math.floor(now)}>
               <span className="vrm-track-played" style={{ width: duration ? `${(now / duration) * 100}%` : 0 }} />
               {duration > 0 && ordered.map((c, i) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className="vrm-marker"
-                  style={{ left: `${Math.min(100, (c.timestamp_seconds / duration) * 100)}%` }}
-                  onClick={(e) => { e.stopPropagation(); seek(c.timestamp_seconds); }}
-                  title={`${fmtTs(c.timestamp_seconds)} — ${c.text}`}
-                >
-                  {i + 1}
-                </button>
+                c.timestamp_seconds == null ? null : (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="vrm-marker"
+                    style={{ left: `${Math.min(100, (c.timestamp_seconds / duration) * 100)}%` }}
+                    onClick={(e) => { e.stopPropagation(); seek(c.timestamp_seconds); }}
+                    title={`${fmtTs(c.timestamp_seconds)} — ${c.text}`}
+                  >
+                    {i + 1}
+                  </button>
+                )
               ))}
             </div>
             <div className="vrm-ctrls">

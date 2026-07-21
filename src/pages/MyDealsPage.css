@@ -692,6 +692,27 @@
   text-transform: uppercase;
 }
 
+/* "See changes on video" — opens the read-only timestamped review */
+.deal-review-video-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  border: 1px solid #d6dcff;
+  background: #eef0ff;
+  color: #4452f0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.deal-review-video-btn:hover {
+  background: #e2e6ff;
+  border-color: #b9c2ff;
+}
+
 .deal-revision-checklist ul {
   list-style: none;
   margin: 0;

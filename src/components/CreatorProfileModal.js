@@ -1167,7 +1167,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           transform:translateY(-120%);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .2s ease}
         .cpm-fixedhead.is-shown{transform:translateY(0);opacity:1;pointer-events:auto}
         .cpm-page .cpm-fixedhead{top:72px}
-        @media (max-width:760px){.cpm-page .cpm-fixedhead{top:62px}}
+        /* On mobile the app nav is hidden while the profile is open, so the compact
+           header sits at the very top. */
+        @media (max-width:760px){
+          .cpm-page .cpm-fixedhead{top:0}
+          body.cpm-open .cmk-nav{display:none}
+        }
         .cpm-sh-ava{width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;background:#4452f0;color:#fff;
           display:grid;place-items:center;font-weight:800;font-size:15px}
         .cpm-sh-ava img{width:100%;height:100%;object-fit:cover}

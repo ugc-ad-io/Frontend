@@ -715,28 +715,31 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
               <>
                 {onBegin && <button type="button" className="cpm-brief-btn" onClick={onBegin}>Send a Brief</button>}
                 {onMessage && <button type="button" className="cpm-msg cpm-msg-top" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
-                {viewer?.role === 'business' && (
-                  <button
-                    type="button"
-                    className={`cpm-save ${saved ? 'is-saved' : ''}`}
-                    onClick={() => {
-                      const now = toggleSavedCreator({
-                        id: id || data?.id, name, public_creator_id: publicId, photo: avatar, banner,
-                        category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
-                        deliverables, delivery: hlDelivery,
-                      });
-                      setSaved(now);
-                      toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
-                    }}
-                    aria-label={saved ? 'Saved' : 'Save creator'}
-                    title={saved ? 'Saved' : 'Save creator'}
-                  >
-                    <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
-                  </button>
-                )}
               </>
             )}
           </div>
+
+          {/* Bookmark outside .cpm-actions so it can be pinned top-right on mobile
+              while Send a Brief drops down beside the name. Brand-only. */}
+          {!editable && !onEdit && viewer?.role === 'business' && (
+            <button
+              type="button"
+              className={`cpm-save ${saved ? 'is-saved' : ''}`}
+              onClick={() => {
+                const now = toggleSavedCreator({
+                  id: id || data?.id, name, public_creator_id: publicId, photo: avatar, banner,
+                  category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
+                  deliverables, delivery: hlDelivery,
+                });
+                setSaved(now);
+                toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+              }}
+              aria-label={saved ? 'Saved' : 'Save creator'}
+              title={saved ? 'Saved' : 'Save creator'}
+            >
+              <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+            </button>
+          )}
 
           <h2 className="cpm-name">
             {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
@@ -1140,7 +1143,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-clip-wm span{color:#fff;font-size:12px;font-weight:800;letter-spacing:.3px;text-shadow:0 1px 4px rgba(0,0,0,.7)}
         .cpm-rev-clip-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;
           border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--indigo,#5b6bff);box-shadow:0 3px 10px rgba(0,0,0,.3)}
-        @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:12px}.cpm-rev-fact{padding:2px 14px}.cpm-rev-fact + .cpm-rev-fact{border-left:none}}
+        @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:8px;flex-wrap:nowrap;justify-content:space-between}.cpm-rev-fact{padding:0;flex:1;min-width:0}.cpm-rev-fact+.cpm-rev-fact{border-left:none}.cpm-rev-fact strong{font-size:14px}.cpm-rev-cat{font-size:13px}}
         .cpm-vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
         .cpm-vid{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#0b1020;cursor:pointer;box-shadow:0 8px 22px -12px rgba(15,22,58,.4)}
         /* per-video caption: category chip + price / duration */
@@ -1255,14 +1258,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
            it would sit right on top of the bottom Send Message bar. */
         @media(max-width:640px){body.cpm-open .cmk-post-fab{display:none}}
         @media(max-width:640px){
-          .cpm-actions{position:static;margin-top:12px}
-          .cpm-msg{flex:1}
-          /* Send Message lives in the fixed bottom bar on mobile, so drop the
-             duplicate here — leaving just Send a Brief (+ the bookmark). */
+          /* Send Message lives in the fixed bottom bar on mobile — drop the top one. */
           .cpm-msg-top{display:none}
-          /* Lift the Save/bookmark out of the button row to the top-right, so
-             "Send a Brief" + "Send Message" get the full width and stay on one line. */
-          .cpm-save{position:absolute;top:56px;right:24px;z-index:5;width:40px;height:40px}
+          /* Send a Brief drops down to sit on the name's line, right side. */
+          .cpm-actions{position:absolute;top:64px;right:24px;left:auto;margin:0}
+          /* Bookmark pinned up in the top-right (above Send a Brief). */
+          .cpm-save{position:absolute;top:8px;right:24px;left:auto;width:40px;height:40px;margin:0;z-index:5}
+          /* Reserve room so a longer name doesn't run under Send a Brief. */
+          .cpm-name{padding-right:130px}
           /* Persistent bottom Send Message bar. */
           .cpm-mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:1500;
             padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));

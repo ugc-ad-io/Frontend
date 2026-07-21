@@ -54,10 +54,31 @@ function ActionCardMini({ card }) {
  */
 export default function ChatPopup({ user, onClose }) {
   const { user: me } = useAuth();
+  // The opener sometimes passes a bare { id } (e.g. from a deal/conversation row)
+  // with no name/photo — fetch the peer's profile to fill both in.
+  const [peer, setPeer] = useState(null);
+  useEffect(() => {
+    const needName = !user.name || user.name === 'Creator';
+    const needPhoto = !user.photo;
+    if (!user.id || !(needName || needPhoto)) return undefined;
+    let alive = true;
+    axios.get(`${API}/profile/${user.id}`).then((r) => {
+      if (!alive) return;
+      const d = r.data || {};
+      const prof = d.profile || {};
+      setPeer({
+        name: d.nickname || d.name || prof.full_name || prof.fullName || '',
+        photo: d.profile_photo || d.profile_picture || prof.profile_photo || prof.profile_picture || '',
+      });
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [user.id, user.name, user.photo]);
+
+  const resolvedName = (user.name && user.name !== 'Creator') ? user.name : (peer?.name || 'Creator');
   // A brand sees the creator by FIRST NAME only (never full name / @username).
   const peerName = me?.role === 'business'
-    ? (String(user.name || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator')
-    : (user.name || 'Creator');
+    ? (String(resolvedName || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator')
+    : (resolvedName || 'Creator');
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -115,7 +136,7 @@ export default function ChatPopup({ user, onClose }) {
     } finally { setSending(false); }
   };
 
-  const photo = user.photo ? (user.photo.startsWith('http') ? user.photo : `${BACKEND_URL}${user.photo}`) : '';
+  const photo = assetUrl(user.photo || peer?.photo || '');
 
   return (
     <>

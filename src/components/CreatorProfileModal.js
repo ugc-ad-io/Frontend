@@ -688,7 +688,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       // while scrollLock is set (during smooth-scroll) so the header can't get stuck off.
       if (tabwrapRef.current) {
         const top = tabwrapRef.current.getBoundingClientRect().top;
-        setStuck((prev) => { const next = top <= 74; return prev === next ? prev : next; });
+        setStuck((prev) => { const next = top <= 180; return prev === next ? prev : next; });
       }
       if (scrollLock.current) return;
       const line = 150; // reference line just below the sticky tab bar

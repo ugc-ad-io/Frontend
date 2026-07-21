@@ -843,7 +843,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-field input, .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; font-weight: 400; color: #0f172a; background: #fff; resize: vertical; box-sizing: border-box; }
         .pb-field input:focus, .pb-field textarea:focus { outline: none; border-color: #07074e; }
         .pb-select { position: relative; }
-        .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 600; }
+        .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 400; }
         .pb-select svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
         .pb-guidelines-toggle { margin-top: 18px; background: none; border: 0; color: #07074e; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 0; }
         .pb-guidelines-toggle.is-added { color: #15a35b; }

@@ -285,6 +285,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     return () => { a = false; };
   }, [id]);
 
+  // While the profile is open, mark the body so the app's floating message FAB can
+  // be hidden on mobile (it would otherwise overlap the bottom Send Message bar).
+  useEffect(() => {
+    document.body.classList.add('cpm-open');
+    return () => document.body.classList.remove('cpm-open');
+  }, []);
+
   const [reviewers, setReviewers] = useState({});
   const reviewCount = reviews.length;
   const avgRating = reviewCount ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviewCount) : 0;
@@ -1023,6 +1030,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           )}
         </div>
 
+        {/* Mobile-only persistent bottom CTA — Send Message is always reachable while
+            the profile is open. Rendered separately from the header actions so it
+            can't disturb their layout. */}
+        {!editable && !onEdit && onMessage && (
+          <div className="cpm-mobilebar">
+            <button type="button" className="cpm-msg" onClick={onMessage} style={{ width: '100%' }}>
+              <MessageSquare size={16} /> Send Message
+            </button>
+          </div>
+        )}
 
       <style>{`
         .cpm-ov{position:fixed;inset:0;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);z-index:1400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto}
@@ -1233,12 +1250,22 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-foot-text p{margin:2px 0 0;color:#585c7e;font-size:12.5px}
         .cpm-begin{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-begin:hover{filter:brightness(1.06)}
+        .cpm-mobilebar{display:none}
+        /* Hide the app's floating message FAB on mobile while a profile is open —
+           it would sit right on top of the bottom Send Message bar. */
+        @media(max-width:640px){body.cpm-open .cmk-post-fab{display:none}}
         @media(max-width:640px){
           .cpm-actions{position:static;margin-top:12px}
           .cpm-msg{flex:1}
           /* Lift the Save/bookmark out of the button row to the top-right, so
              "Send a Brief" + "Send Message" get the full width and stay on one line. */
           .cpm-save{position:absolute;top:56px;right:24px;z-index:5;width:40px;height:40px}
+          /* Persistent bottom Send Message bar. */
+          .cpm-mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:1500;
+            padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+            background:#fff;border-top:1px solid #eef0f6;box-shadow:0 -6px 20px rgba(15,22,58,.12)}
+          /* Room so the bar never covers the last content. */
+          .cpm-tab-body{padding-bottom:84px}
         }
       `}</style>
       </div>

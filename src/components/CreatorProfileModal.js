@@ -259,6 +259,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const bannerRef = useRef(null);
   const workRef = useRef(null);
 
+  // Compact sticky header: the tab bar reveals a name/rating/Send-a-Brief row once
+  // the main header scrolls out. Reuses the (reliable) sticky tab bar — no fixed el.
+  const tabwrapRef = useRef(null);
+  const [stuck, setStuck] = useState(false);
+
   // Scroll-spy: tabs double as anchors — clicking scrolls to the section, and
   // scrolling between stacked sections updates the active tab.
   const videosRef = useRef(null);
@@ -679,6 +684,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     const order = [['videos', videosRef], ['details', detailsRef], ['reviews', reviewsRef]].filter(([, r]) => r.current);
     if (!order.length) return undefined;
     const onScroll = () => {
+      // Reveal the compact header once the tab bar has stuck to the top. Runs even
+      // while scrollLock is set (during smooth-scroll) so the header can't get stuck off.
+      if (tabwrapRef.current) {
+        const top = tabwrapRef.current.getBoundingClientRect().top;
+        setStuck((prev) => { const next = top <= 74; return prev === next ? prev : next; });
+      }
       if (scrollLock.current) return;
       const line = 150; // reference line just below the sticky tab bar
       let active = order[0][0];
@@ -804,10 +815,30 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
         </div>
 
-        <div className="cpm-tabs">
-          <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
-          <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
-          {!editable && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>}
+        <div className={`cpm-tabwrap ${stuck ? 'is-stuck' : ''}`} ref={tabwrapRef}>
+          {/* Compact header row — collapsed until the bar sticks to the top. */}
+          <div className="cpm-stickhead" aria-hidden={!stuck}>
+            <span className="cpm-sh-ava">
+              {avatar ? <img src={avatar} alt="" /> : name.replace('@', '').charAt(0).toUpperCase()}
+            </span>
+            <div className="cpm-sh-id">
+              <strong>
+                {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
+                {data?.kyc_verified && <span className="cpm-sh-verified"><BadgeCheck size={13} /> Verified</span>}
+              </strong>
+              {reviewCount > 0 && (
+                <span className="cpm-sh-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {avgRating.toFixed(1)} ({reviewCount})</span>
+              )}
+            </div>
+            {!editable && onBegin && (
+              <button type="button" className="cpm-sh-cta" onClick={onBegin}>Send a Brief</button>
+            )}
+          </div>
+          <div className="cpm-tabs">
+            <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
+            <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
+            {!editable && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>}
+          </div>
         </div>
 
         <div className="cpm-tab-body">
@@ -1129,8 +1160,23 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
         .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
         .cpm-page .cpm{overflow:visible}
-        .cpm-page .cpm-tabs{position:sticky;top:72px;z-index:6;margin-top:0}
-        @media (max-width:760px){.cpm-page .cpm-tabs{top:0}}
+        .cpm-page .cpm-tabwrap{position:sticky;top:72px;z-index:6}
+        @media (max-width:760px){.cpm-page .cpm-tabwrap{top:0}}
+        .cpm-tabwrap{background:#fff;margin-top:20px}
+        .cpm-tabwrap .cpm-tabs{margin-top:0}
+        /* Compact header row: collapsed until the bar sticks, then expands. */
+        .cpm-stickhead{display:flex;align-items:center;gap:12px;padding:0 28px;max-height:0;overflow:hidden;opacity:0;
+          transition:max-height .22s ease,opacity .2s ease,padding .22s ease}
+        .cpm-tabwrap.is-stuck .cpm-stickhead{max-height:64px;opacity:1;padding:10px 28px;border-bottom:1px solid #f1f2f8}
+        .cpm-sh-ava{width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;background:#4452f0;color:#fff;
+          display:grid;place-items:center;font-weight:800;font-size:15px}
+        .cpm-sh-ava img{width:100%;height:100%;object-fit:cover}
+        .cpm-sh-id{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px;line-height:1.2}
+        .cpm-sh-id strong{display:flex;align-items:center;gap:7px;font-size:15px;color:#15163a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .cpm-sh-verified{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#15a35b;background:#e3f7ec;padding:1px 7px;border-radius:20px}
+        .cpm-sh-rate{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#7a7fa6;font-weight:600}
+        .cpm-sh-cta{flex:none;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:22px;
+          padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
         .cpm-stars{display:inline-flex;gap:2px;vertical-align:middle}
         .cpm-reviews{display:flex;flex-direction:column;gap:18px}
         .cpm-rev-head{display:flex;align-items:center;justify-content:space-between;gap:12px}

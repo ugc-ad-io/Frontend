@@ -63,10 +63,13 @@ const newVideo = () => ({
   notes: '',
 });
 
-function Field({ label, children }) {
+function Field({ label, children, hint }) {
   return (
     <label className="pb-field">
-      <span>{label}</span>
+      <span className="pb-field-lbl">
+        {label}
+        {hint && <em className="pb-field-hint">{hint}</em>}
+      </span>
       {children}
     </label>
   );
@@ -587,7 +590,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           <div className="pb-scroll">
             <div className="pb-brief-fields">
               <Field label="Product / brand name *"><input type="text" value={brief.productName} onChange={setBriefField('productName')} placeholder="e.g. Nova Running Shoes" /></Field>
-              <Field label="What are you promoting? *"><textarea rows={2} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two (min 10 characters)" /></Field>
+              <Field label="What are you promoting? *" hint="min 10 characters"><textarea rows={2} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two" /></Field>
               <Field label="Hook / main idea *"><input type="text" value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
               <Field label="Key message *"><input type="text" value={brief.keyMessage} onChange={setBriefField('keyMessage')} placeholder="The one thing the viewer must take away" /></Field>
               <Field label="Target audience"><textarea rows={2} value={brief.targetAudience} onChange={setBriefField('targetAudience')} placeholder="Who is this for? (age, interests, region)" /></Field>
@@ -833,7 +836,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-usage-note { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 0.8rem; color: #64748b; }
         .pb-field { display: grid; gap: 7px; font-size: 0.85rem; font-weight: 700; color: #334155; }
         .pb-field > span { color: #334155; }
-        .pb-field input, .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; color: #0f172a; background: #fff; resize: vertical; box-sizing: border-box; }
+        .pb-field-lbl { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+        .pb-field-hint { font-style: normal; font-weight: 500; font-size: 11px; color: #9296ba; white-space: nowrap; }
+        /* font: inherit pulls in the label's 700 weight — force the typed value back
+           to a normal weight so entered text isn't bold. */
+        .pb-field input, .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; font-weight: 400; color: #0f172a; background: #fff; resize: vertical; box-sizing: border-box; }
         .pb-field input:focus, .pb-field textarea:focus { outline: none; border-color: #07074e; }
         .pb-select { position: relative; }
         .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 600; }

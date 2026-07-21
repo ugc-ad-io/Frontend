@@ -236,10 +236,10 @@ export default function MyDealsHubPage() {
       {tab === 'bids' && <MyBidsContent />}
 
       <style>{`
-        /* One deal per row. Each card is already an internal horizontal row
-           (avatar · details · escrow · arrow), so a single column reads as a clean
-           list rather than a packed multi-column grid. */
-        .mdh-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+        /* auto-fit + 1fr: cards STRETCH to fill the full row width instead of
+           being capped at 480px with empty tracks to the right. One deal spans
+           the whole width; several deals fill the row with no dead space. */
+        .mdh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
         .mdh-card { position: relative; display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center;
           column-gap: 14px; row-gap: 12px;
           background: #fff; border: 1px solid #eef0f6; border-left: 4px solid var(--mdh, #4452f0); border-radius: 16px;

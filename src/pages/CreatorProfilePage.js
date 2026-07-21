@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import ChatPopup from '../components/ChatPopup';
-import CreatorInviteModal from '../components/CreatorInviteModal';
+import PlanBrief from './PlanBrief';
 
 /**
  * Full-page creator profile (route /dashboard/business/creator/:id).
@@ -26,7 +26,7 @@ export default function CreatorProfilePage() {
       />
 
       {briefOpen && (
-        <CreatorInviteModal
+        <PlanBrief
           creatorId={id}
           onClose={() => setBriefOpen(false)}
           onPublished={() => setBriefOpen(false)}

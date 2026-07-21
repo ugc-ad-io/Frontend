@@ -932,41 +932,14 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     try {
       setSubmitting(true);
 
-      // Creator-targeted brief → PRIVATE INVITATION (not an instant deal).
-      // The brand fills the full 8-section brief here; on submit we (1) store it as a
-      // campaign draft so the invitation can reference the complete brief, then (2) send
-      // it as a Private Invitation card in the creator's chat. The creator has 72h to
-      // accept / decline / counter, and the ₹500 listing fee is charged by the backend
-      // ONLY if they accept — nothing is debited now. (Was: `selected_creator`, which
-      // started a paid deal immediately — replaced per the invitation flow.)
+      // Direct brief for a creator who accepted a private invitation: skip the
+      // matches/approval path — publish straight to a deal with that creator.
       const directCreator = embeddedCreatorId || searchParams.get('creator');
       if (directCreator) {
-        const payload = buildPayload();
-        // Reuse the existing draft, else create one, to get an id the invite references.
-        let campaignId = draftId;
-        if (campaignId) {
-          await axios.patch(`${API}/campaigns/${campaignId}`, payload);
-        } else {
-          const draftRes = await axios.post(`${API}/campaigns/draft`, payload);
-          campaignId = draftRes.data?.campaign_id || draftRes.data?.id || draftRes.data?._id;
-        }
-        // Short human summary for the invitation card; brief_details carries the full
-        // 8-section brief (backend requires brief_details for a private_invitation).
-        const deliverableSummary = form.deliverables
-          .map((d) => `${d.quantity || 1} x ${d.type || 'video'}`).join(', ');
-        await axios.post(`${API}/business/creator-directory/${directCreator}/invite`, {
-          campaign_id: campaignId || null,
-          campaign_name: form.campaignName,
-          deliverable_summary: deliverableSummary,
-          budget: `Rs. ${budget}`,
-          timeline: form.finalDeliveryBy ? `Final delivery by ${form.finalDeliveryBy}` : '',
-          usage_rights: [form.platforms.join(', '), form.rightsDuration].filter(Boolean).join(' · '),
-          message: '',
-          brief_details: briefText(),
-        });
+        await axios.post(`${API}/campaigns`, { ...buildPayload(), selected_creator: directCreator });
         clearDraftStorage();
-        toast.success('Invitation sent — the creator has 72 hours to accept, decline, or counter. The ₹500 fee applies only if they accept.');
-        if (onPublished) onPublished(); else navigate('/dashboard/business/sent-briefs');
+        toast.success('Brief sent — the deal has started with the creator');
+        if (onPublished) onPublished(); else navigate('/dashboard/business');
         return;
       }
 

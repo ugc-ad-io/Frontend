@@ -574,6 +574,24 @@
   color: #5b6bff;
 }
 
+/* "Send a Brief" is a labelled pill, not a 38px icon button — override the icon sizing
+   and give it the navy primary look so it reads as the main action in the header. */
+.msg-chat-actions button.msg-send-brief {
+  width: auto;
+  height: 38px;
+  padding: 0 16px;
+  gap: 7px;
+  background: #12124f;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.msg-chat-actions button.msg-send-brief:hover {
+  background: #07074e;
+  color: #fff;
+}
+
 /* More-actions dropdown */
 .msg-more-wrap { position: relative; display: flex; }
 .msg-more-backdrop { position: fixed; inset: 0; z-index: 40; }
@@ -1487,6 +1505,9 @@
   .msg-chat-header { padding: 12px 14px; gap: 10px; }
   .msg-chat-actions { gap: 4px; }
   .msg-chat-actions button { width: 34px; height: 34px; }
+  /* Keep the labelled pill labelled on mobile (the blanket 34px rule above would
+     squash it into an unreadable sliver). */
+  .msg-chat-actions button.msg-send-brief { width: auto; height: 34px; padding: 0 12px; }
 
   .msg-messages { padding: 16px 14px 14px; }
   .msg-bubble { max-width: 82%; }

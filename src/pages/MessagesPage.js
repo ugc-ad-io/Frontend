@@ -10,7 +10,7 @@ import { displayName, creatorFirstName } from '../utils/displayName';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
-import CreatorInviteModal from '../components/CreatorInviteModal';
+import PlanBrief from './PlanBrief';
 import { findContactInfo } from '../components/RevisionRequestModal';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import BrandProfileCard from '../components/BrandProfileCard';
@@ -949,6 +949,14 @@ export default function MessagesPage() {
                 </div>
               </div>
               <div className="msg-chat-actions">
+                {/* Brand → creator: quick "Send a Brief" that opens the brief wizard for
+                    this creator (same action as the "Send a Brief" chip in the chat popup).
+                    Only a brand sends briefs, so it's hidden on the creator's side. */}
+                {isBusiness && (
+                  <button type="button" className="msg-send-brief" title="Send a brief to this creator" onClick={openBriefFromCard}>
+                    <FileText size={15} /> Send a Brief
+                  </button>
+                )}
                 <div className="msg-more-wrap">
                   <button type="button" title="More actions" className={headerMenuOpen ? 'is-on' : ''} onClick={() => setHeaderMenuOpen((o) => !o)}><MoreHorizontal size={18} /></button>
                   {headerMenuOpen && (
@@ -1145,8 +1153,9 @@ export default function MessagesPage() {
       </div>
 
       {briefTarget && (
-        <CreatorInviteModal
+        <PlanBrief
           creatorId={briefTarget}
+          creatorName={creatorFirstName(selectedConv)}
           onClose={() => setBriefTarget(null)}
           onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
         />

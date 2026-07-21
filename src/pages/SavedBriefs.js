@@ -8,6 +8,7 @@ import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import BriefDetailDrawer from '../components/BriefDetailDrawer';
+import { Skeleton } from '../components/Skeleton';
 import normalizeBrief from '../utils/normalizeBrief';
 import { getSavedBriefs, toggleSavedBrief, hydrateSavedFromServer } from '../utils/savedBriefs';
 
@@ -36,13 +37,17 @@ export default function SavedBriefs() {
   const [saved, setSaved] = useState(() => getSavedBriefs());
   const [openBrief, setOpenBrief] = useState(null); // brief shown in the detail drawer
   const [opening, setOpening] = useState(null);     // id currently being fetched
+  // True until the first server sync finishes. Only used to show a skeleton when
+  // the local cache is empty (e.g. a fresh device) — a populated cache renders
+  // instantly and never sees it.
+  const [hydrating, setHydrating] = useState(true);
 
   // Reflect saves/removes made here or on the Browse page.
   useEffect(() => {
     const sync = () => setSaved(getSavedBriefs());
     window.addEventListener('ugc-saved-changed', sync);
     // Pull the durable saved set from the backend (syncs across devices).
-    hydrateSavedFromServer().then(setSaved).catch(() => {});
+    hydrateSavedFromServer().then(setSaved).catch(() => {}).finally(() => setHydrating(false));
     return () => window.removeEventListener('ugc-saved-changed', sync);
   }, []);
 
@@ -113,6 +118,23 @@ export default function SavedBriefs() {
                 <h3 className="cmk-bb-title">{b.title}</h3>
                 <p className="cmk-bb-sub">{[b.tags?.[0], b.deliveryLabel].filter(Boolean).join(' · ')}</p>
                 <div className="cmk-bb-budget">{b.budget}</div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : hydrating ? (
+        <div className="cmk-bb-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <article className="cmk-bb-card" key={i} aria-hidden="true">
+              <Skeleton height={150} radius={0} style={{ display: 'block' }} />
+              <div className="cmk-bb-body">
+                <div className="cmk-bb-brandrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Skeleton width={26} height={26} radius="50%" />
+                  <Skeleton width={90} height={12} />
+                </div>
+                <Skeleton width="80%" height={16} style={{ marginTop: 10 }} />
+                <Skeleton width="55%" height={12} style={{ marginTop: 8 }} />
+                <Skeleton width={90} height={16} style={{ marginTop: 12 }} />
               </div>
             </article>
           ))}

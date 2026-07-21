@@ -815,9 +815,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
         </div>
 
-        <div className={`cpm-tabwrap ${stuck ? 'is-stuck' : ''}`} ref={tabwrapRef}>
-          {/* Compact header row — collapsed until the bar sticks to the top. */}
-          <div className="cpm-stickhead" aria-hidden={!stuck}>
+        {/* Fixed compact header — persists across the whole scroll once the main
+            name is out of view. Name + Verified + rating + Send a Brief only. */}
+        {!editable && (
+          <div className={`cpm-fixedhead ${stuck ? 'is-shown' : ''}`} aria-hidden={!stuck}>
             <span className="cpm-sh-ava">
               {avatar ? <img src={avatar} alt="" /> : name.replace('@', '').charAt(0).toUpperCase()}
             </span>
@@ -830,15 +831,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                 <span className="cpm-sh-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {avgRating.toFixed(1)} ({reviewCount})</span>
               )}
             </div>
-            {!editable && onBegin && (
-              <button type="button" className="cpm-sh-cta" onClick={onBegin}>Send a Brief</button>
-            )}
+            {onBegin && <button type="button" className="cpm-sh-cta" onClick={onBegin}>Send a Brief</button>}
           </div>
-          <div className="cpm-tabs">
-            <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
-            <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
-            {!editable && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>}
-          </div>
+        )}
+
+        <div className="cpm-tabs" ref={tabwrapRef}>
+          <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
+          <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
+          {!editable && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>}
         </div>
 
         <div className="cpm-tab-body">
@@ -1160,14 +1160,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
         .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
         .cpm-page .cpm{overflow:visible}
-        .cpm-page .cpm-tabwrap{position:sticky;top:72px;z-index:6}
-        @media (max-width:760px){.cpm-page .cpm-tabwrap{top:0}}
-        .cpm-tabwrap{background:#fff;margin-top:20px}
-        .cpm-tabwrap .cpm-tabs{margin-top:0}
-        /* Compact header row: collapsed until the bar sticks, then expands. */
-        .cpm-stickhead{display:flex;align-items:center;gap:12px;padding:0 28px;max-height:0;overflow:hidden;opacity:0;
-          transition:max-height .22s ease,opacity .2s ease,padding .22s ease}
-        .cpm-tabwrap.is-stuck .cpm-stickhead{max-height:64px;opacity:1;padding:10px 28px;border-bottom:1px solid #f1f2f8}
+        /* Tabs scroll normally now — the fixed compact header is the only pinned bar. */
+        /* Fixed compact header — stays at the top the whole time once shown. */
+        .cpm-fixedhead{position:fixed;top:0;left:0;right:0;z-index:1450;display:flex;align-items:center;gap:12px;
+          padding:10px 20px;background:#fff;border-bottom:1px solid #eef0f6;box-shadow:0 4px 16px rgba(15,22,58,.08);
+          transform:translateY(-120%);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .2s ease}
+        .cpm-fixedhead.is-shown{transform:translateY(0);opacity:1;pointer-events:auto}
+        .cpm-page .cpm-fixedhead{top:72px}
+        @media (max-width:760px){.cpm-page .cpm-fixedhead{top:62px}}
         .cpm-sh-ava{width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;background:#4452f0;color:#fff;
           display:grid;place-items:center;font-weight:800;font-size:15px}
         .cpm-sh-ava img{width:100%;height:100%;object-fit:cover}

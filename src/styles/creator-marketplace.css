@@ -1029,6 +1029,10 @@
   .wr-tabs-row.wr-tabs-row--select,
   .bwr-tabs-row.bwr-tabs-row--select,
   .cmk-tabs.sent-briefs-tabs,
+  /* The Sent Briefs desktop filter row is `cf-filter-row sent-briefs-tabs`; without
+     this it showed a SECOND Filter above the deal on mobile (the title-row one is
+     the mobile filter). Higher specificity than the base .sent-briefs-tabs. */
+  .cf-filter-row.sent-briefs-tabs,
   .bc-cats.bc-cats--select{display:none}
   /* Title on the left, Filter flush to the far right. margin-left:auto eats all
      the space between them so the button always sits at the right edge. */

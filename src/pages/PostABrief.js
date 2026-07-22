@@ -1574,9 +1574,6 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
           /* Two-column field rows stack */
           .form-row { grid-template-columns: 1fr; }
-          /* Phone: unpin the logo and let it sit back in the normal flow. */
-          .pab-logo-float { position: static; width: 100%; }
-          .step-fields > .form-group:first-child { padding-right: 0; }
 
           /* One promoting-type card per row so text never clips */
           .pab-type-grid { grid-template-columns: 1fr; }
@@ -1668,15 +1665,6 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         .pab-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
         .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
           font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
-        /* Logo pinned to the top-right corner of the Basics step. */
-        .pab-logo-float { position: absolute; top: 28px; right: 0; width: 150px; z-index: 3; margin: 0; }
-        .pab-logo-float > label:first-child { display: block; }
-        /* Reserve room so the first field (Campaign name) doesn't run under the float. */
-        .step-fields > .form-group:first-child { padding-right: 170px; }
-        .pab-logo-drop .pab-img-empty { padding: 14px 10px; gap: 4px; }
-        .pab-logo-drop .pab-img-empty strong { font-size: 12.5px; }
-        .pab-logo-drop .pab-img-empty small { font-size: 11px; }
-        .pab-logo-preview { height: 88px; object-fit: contain; background: #fff; }
 
         .form-group label {
           color: #07074E;

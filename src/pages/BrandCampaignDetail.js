@@ -995,6 +995,9 @@ export default function BrandCampaignDetail() {
         /* Shipment details always show, so the layout is static — both columns
            stretch to equal height and Deliverables fills the left column. */
         .bcd-row-main{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:stretch}
+        /* min-width:0 lets the columns shrink instead of a wide child (the horizontal
+           stepper / long deliverables text) forcing the whole page off-screen. */
+        .bcd-row-main > *,.bcd-col-left,.bcd-col-left > *,.bcd-card{min-width:0;max-width:100%}
         .bcd-col-left{display:flex;flex-direction:column;gap:20px}
         .bcd-col-left .bcd-deliver-card{flex:1}
         .bcd-creator-card{display:flex;flex-direction:column}
@@ -1094,7 +1097,7 @@ export default function BrandCampaignDetail() {
         .bcd-more:hover{background:#e2e5ff}
         .bcd-more-down{transform:rotate(90deg)}
         .bcd-more-up{transform:rotate(-90deg)}
-        .bcd-deliver{display:flex;align-items:flex-start;gap:9px;color:#585c7e;font-size:14px;line-height:1.5;padding:7px 0}
+        .bcd-deliver{display:flex;align-items:flex-start;gap:9px;color:#585c7e;font-size:14px;line-height:1.5;padding:7px 0;min-width:0;overflow-wrap:anywhere}
         .bcd-deliver svg{color:#15a35b;flex:none;margin-top:2px}
         .bcd-muted{color:#9296ba;font-size:14px;margin:0}
         @media (max-width:980px){.bcd-grid{grid-template-columns:1fr}.bcd-grid2{grid-template-columns:1fr}}

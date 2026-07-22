@@ -254,7 +254,7 @@ export default function BrowseBriefs() {
                   className="cmk-bb-apply"
                   onClick={(e) => { e.stopPropagation(); b.id ? setOpenBrief(b) : toast.error('This brief is unavailable'); }}
                 >
-                  Apply now
+                  View details
                 </button>
               </div>
             </article>

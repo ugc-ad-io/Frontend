@@ -1449,11 +1449,6 @@
     padding: 14px 16px;
     border-radius: 0;
     background: transparent;
-    border-top: 1px solid #eef0f6;
-  }
-  .cmk-mobile-menu .cmk-mobile-item:first-child,
-  .cmk-mobile-menu .cmk-mobile-logout:first-child {
-    border-top: none;
   }
   /* The divider was only styled under .cmk-menu (the desktop avatar dropdown), so
      inside the mobile sheet it rendered as a zero-height, invisible element. */
@@ -1463,8 +1458,12 @@
 }
 
 @media (max-width:760px){
-  .cmk-mobile-backdrop{top:var(--cmk-nav-height,62px);left:0;right:0;bottom:0;}
-  .cmk-mobile-menu{top:var(--cmk-nav-height,62px);}
+  /* The header itself only shrinks to 62px at ≤640px (below) — between 641–760px
+     it's still 72px tall. Using a 62px fallback here left a ~10px gap under the
+     header (through which the page's lavender background gradient showed as a
+     thin purple line) before the nav actually shrank to match. */
+  .cmk-mobile-backdrop{top:var(--cmk-nav-height,72px);left:0;right:0;bottom:0;}
+  .cmk-mobile-menu{top:var(--cmk-nav-height,72px);}
   .cmk-nav-search{display:none}
   .cmk-nav-inner{gap:14px}
   /* Pull the hamburger + logo tighter to the screen edge on mobile. The nav wrap
@@ -1793,7 +1792,6 @@
     width: 100%;
     padding: 14px 16px;
     border: none;
-    border-top: 1px solid #eef0f6;
     border-radius: 0;
     background: transparent;
     color: #585c7e;
@@ -1802,10 +1800,6 @@
     text-align: left;
     cursor: pointer;
     transition: background .15s, color .15s;
-  }
-
-  .cmk-mobile-item:first-child {
-    border-top: none;
   }
 
   .cmk-mobile-item:hover {
@@ -1834,7 +1828,6 @@
     width: 100%;
     padding: 14px 16px;
     border: none;
-    border-top: 1px solid #eef0f6;
     border-radius: 0;
     background: transparent;
     color: #585c7e;
@@ -1843,10 +1836,6 @@
     text-align: left;
     cursor: pointer;
     transition: background .15s, color .15s;
-  }
-
-  .cmk-mobile-item:first-child {
-    border-top: none;
   }
 
   .cmk-mobile-item:hover {
@@ -1874,7 +1863,6 @@
     width: 100%;
     padding: 14px 22px;
     border: none;
-    border-top: 1px solid #eef0f6;
     background: transparent;
     color: #e11d48;
     font-size: 14px;

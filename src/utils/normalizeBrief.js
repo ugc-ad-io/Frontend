@@ -39,6 +39,32 @@ export function cardDescription(c) {
   return 'Create engaging UGC content for this brand.';
 }
 
+// A short, human line describing what the creator must deliver — e.g.
+// "1× Reel · 9:16 · under 30s". Prefers an explicit deliverables field/items,
+// else composes one from the campaign's format fields.
+export function summarizeDeliverables(c) {
+  if (!c) return '';
+  if (Array.isArray(c.deliverable_items) && c.deliverable_items.length) {
+    const parts = c.deliverable_items
+      .map((d) => (typeof d === 'string' ? d : (d.label || d.type || d.name || '')))
+      .filter(Boolean);
+    if (parts.length) return parts.slice(0, 2).join(', ');
+  }
+  if (c.deliverables && String(c.deliverables).trim()) {
+    return String(c.deliverables).split(/[\n;]+/).map((s) => s.trim()).filter(Boolean)[0] || '';
+  }
+  const qty = c.video_count || c.quantity || c.deliverable_count || 1;
+  const fmt = c.video_format || c.content_format || c.deliverable_type;
+  const aspect = c.aspect_ratio;
+  const secs = Number(c.duration_seconds);
+  const dur = secs ? (secs < 60 ? `under ${secs}s` : `${Math.round(secs / 60)} min`) : (c.duration || '');
+  const parts = [];
+  if (fmt) parts.push(`${qty}× ${fmt}`);
+  if (aspect) parts.push(aspect);
+  if (dur) parts.push(dur);
+  return parts.join(' · ');
+}
+
 export default function normalizeBrief(c, index = 0, myBids = []) {
   const objectives = Array.isArray(c.objectives) ? c.objectives.filter(Boolean) : [];
   const hasBid = myBids.some((b) => b.id === c.id);
@@ -63,6 +89,7 @@ export default function normalizeBrief(c, index = 0, myBids = []) {
     budgetMax,
     deliveryLabel: d ? `${d} Days` : '3 - 5 Days',
     deliveryDays: Number(d) || 5,
+    deliverables: summarizeDeliverables(c),
     matchScore,
     hasBid,
     createdAt: c.created_at ? new Date(c.created_at).getTime() : 0,

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, X, Send } from 'lucide-react';
+import { Bookmark, X, Send, FileText } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -246,6 +246,9 @@ export default function BrowseBriefs() {
                   <span className="cmk-bb-pill" key={i}>{t}</span>
                 ))}
               </div>
+              {b.deliverables && (
+                <div className="cmk-bb-deliv"><FileText size={13} /> <span>{b.deliverables}</span></div>
+              )}
               <div className="cmk-bb-divider" />
               <div className="cmk-bb-foot">
                 <div className="cmk-bb-price">{b.budget}<small>{b.matchScore}% match</small></div>

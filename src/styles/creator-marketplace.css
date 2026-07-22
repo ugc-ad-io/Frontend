@@ -327,6 +327,10 @@
 /* tag pills (deliverable type, delivery window) */
 .cmk-bb-tags{display:flex;flex-wrap:wrap;gap:8px}
 .cmk-bb-pill{background:#f1f3f9;color:#4a5578;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;white-space:nowrap;text-transform:capitalize}
+/* Deliverable summary line — what the creator must produce for this brief. */
+.cmk-bb-deliv{display:flex;align-items:flex-start;gap:6px;margin-top:10px;color:#585c7e;font-size:12.5px;font-weight:600;line-height:1.35}
+.cmk-bb-deliv svg{flex:none;margin-top:1px;color:var(--indigo,#5b6bff)}
+.cmk-bb-deliv span{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 /* divider + footer: price/meta left, apply button right */
 .cmk-bb-divider{border-top:1px solid var(--line);margin-top:2px}
 .cmk-bb-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}

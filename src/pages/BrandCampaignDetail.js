@@ -713,6 +713,8 @@ export default function BrandCampaignDetail() {
               </div>
             )}
           </div>
+          {/* Desktop: full horizontal stepper. Hidden on mobile — replaced by the
+              collapsed summary bar + tap-to-expand timeline below. */}
           <div className="bcd-hsteps">
             {steps.map((s, i) => (
               <div key={i} className={`bcd-hstep ${s.done ? 'done' : ''} ${s.current ? 'current' : ''} ${!s.done && !s.current ? 'todo' : ''}`}>
@@ -722,6 +724,50 @@ export default function BrandCampaignDetail() {
               </div>
             ))}
           </div>
+
+          {/* Mobile only: collapsed to start/end + a position marker on the track
+              (mirrors a shipment-tracker bar). Tap to reveal the full timeline. */}
+          <button
+            type="button"
+            className="bcd-progress-mini"
+            onClick={() => setProgressExpanded((v) => !v)}
+            aria-expanded={progressExpanded}
+          >
+            <div className="bcd-progress-mini-top">
+              <div className="bcd-progress-mini-end">
+                <strong>{steps[0].label}</strong>
+                <small>{steps[0].date ? fmtDate(steps[0].date) : '—'}</small>
+              </div>
+              <div className="bcd-progress-mini-end right">
+                <strong>{steps[steps.length - 1].label}</strong>
+                <small>{steps[steps.length - 1].date ? fmtDate(steps[steps.length - 1].date) : '—'}</small>
+              </div>
+            </div>
+            <div className="bcd-progress-mini-track">
+              <span className="bcd-progress-mini-fill" style={{ width: `${progressPct}%` }} />
+              <span className="bcd-progress-mini-dot start" />
+              <span className="bcd-progress-mini-marker" style={{ left: `${progressPct}%` }}><Truck size={14} /></span>
+              <span className="bcd-progress-mini-dot end" />
+            </div>
+            <div className="bcd-progress-mini-foot">
+              <span>{steps[progressIdx]?.current ? `${steps[progressIdx].label} — in progress` : steps[progressIdx]?.label}</span>
+              <ChevronRight size={15} className="bcd-progress-mini-chev" />
+            </div>
+          </button>
+
+          {progressExpanded && (
+            <div className="bcd-vsteps">
+              {steps.map((s, i) => (
+                <div key={i} className={`bcd-vstep ${s.done ? 'done' : ''} ${s.current ? 'current' : ''}`}>
+                  <span className="bcd-vstep-dot">{s.done ? <Check size={12} /> : null}</span>
+                  <div className="bcd-vstep-body">
+                    <strong>{s.label}</strong>
+                    <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '—')}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {(campaign.requires_shipment || ship.required) && (
             <div className="bcd-ship-detail">
               <div className="bcd-kv"><label>Status</label><strong>{delivered ? 'Delivered' : shipped ? 'Shipped' : 'Pending'}</strong></div>
@@ -1043,14 +1089,52 @@ export default function BrandCampaignDetail() {
         .bcd-hstep strong{display:block;margin-top:9px;font-size:13px;color:#15163a;line-height:1.25}
         .bcd-hstep small{color:#9296ba;font-size:11.5px;margin-top:2px}
         .bcd-hstep.todo strong{color:#9296ba}
-        /* Mobile: keep the 6 steps on ONE line (horizontal scroll) instead of wrapping
-           to two rows of three. The connector line stays between the dots. */
+        /* Mobile: the mini summary bar replaces the full horizontal stepper. */
+        .bcd-progress-mini{display:none}
+        .bcd-vsteps{display:none}
         @media (max-width:720px){
-          .bcd-hsteps{flex-wrap:nowrap;overflow-x:auto;gap:0;padding-bottom:8px;scrollbar-width:none;-ms-overflow-style:none}
-          .bcd-hsteps::-webkit-scrollbar{display:none}
-          .bcd-hstep{flex:0 0 88px;padding:0 2px}
-          .bcd-hstep strong{font-size:11.5px}
-          .bcd-hstep small{font-size:10.5px}
+          .bcd-hsteps{display:none}
+
+          .bcd-progress-mini{
+            display:flex;flex-direction:column;gap:16px;width:100%;margin-top:16px;
+            background:#f6f7ff;border:1px solid #e6e9ff;border-radius:16px;padding:16px;
+            font-family:inherit;text-align:left;cursor:pointer;
+          }
+          .bcd-progress-mini-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+          .bcd-progress-mini-end{display:flex;flex-direction:column;gap:2px}
+          .bcd-progress-mini-end.right{align-items:flex-end;text-align:right}
+          .bcd-progress-mini-end strong{font-size:13px;color:#15163a;font-weight:700}
+          .bcd-progress-mini-end small{font-size:11px;color:#9296ba}
+          .bcd-progress-mini-track{position:relative;height:28px}
+          .bcd-progress-mini-track::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:#dfe2f7;transform:translateY(-50%)}
+          .bcd-progress-mini-fill{position:absolute;left:0;top:50%;height:2px;background:#5b6bff;transform:translateY(-50%);transition:width .3s ease}
+          .bcd-progress-mini-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:#5b6bff;transform:translate(-50%,-50%);z-index:1}
+          .bcd-progress-mini-dot.start{left:0}
+          .bcd-progress-mini-dot.end{left:100%}
+          .bcd-progress-mini-marker{
+            position:absolute;top:50%;width:30px;height:30px;border-radius:50%;
+            background:#5b6bff;color:#fff;display:grid;place-items:center;z-index:2;
+            transform:translate(-50%,-50%);box-shadow:0 6px 14px -4px rgba(91,107,255,.6);
+            transition:left .3s ease;
+          }
+          .bcd-progress-mini-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;color:#5b6bff}
+          .bcd-progress-mini-foot span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .bcd-progress-mini-chev{flex:none;transition:transform .2s ease}
+          .bcd-progress-mini[aria-expanded="true"] .bcd-progress-mini-chev{transform:rotate(90deg)}
+
+          /* Full timeline, revealed on tap — a vertical dot-and-line list. */
+          .bcd-vsteps{display:flex;flex-direction:column;margin-top:14px;padding:2px 4px 0}
+          .bcd-vstep{display:flex;gap:12px;position:relative;padding-bottom:22px}
+          .bcd-vstep:last-child{padding-bottom:0}
+          .bcd-vstep::before{content:"";position:absolute;left:10px;top:22px;bottom:0;width:2px;background:#e7e9f7}
+          .bcd-vstep:last-child::before{display:none}
+          .bcd-vstep.done::before{background:#15a35b}
+          .bcd-vstep-dot{flex:none;width:21px;height:21px;border-radius:50%;border:2px solid #dfe2f0;background:#fff;display:grid;place-items:center;color:#fff;z-index:1}
+          .bcd-vstep.done .bcd-vstep-dot{background:#15a35b;border-color:#15a35b}
+          .bcd-vstep.current .bcd-vstep-dot{border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.2)}
+          .bcd-vstep-body strong{display:block;font-size:13.5px;color:#15163a;font-weight:700}
+          .bcd-vstep-body small{color:#9296ba;font-size:12px}
+          .bcd-vstep:not(.done):not(.current) .bcd-vstep-body strong{color:#9296ba}
         }
         .bcd-ship-on{color:#585c7e;font-size:13px;margin:12px 0 2px}
         .bcd-ship-date{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;font-weight:800;color:#15163a;margin-bottom:8px}

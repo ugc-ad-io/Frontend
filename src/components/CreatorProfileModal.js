@@ -263,6 +263,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // the main header scrolls out. Reuses the (reliable) sticky tab bar — no fixed el.
   const tabwrapRef = useRef(null);
   const [stuck, setStuck] = useState(false);
+  // On phones the modal is full-screen (page-like), so show a back arrow like the
+  // real profile page instead of the X close.
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const on = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   // Scroll-spy: tabs double as anchors — clicking scrolls to the section, and
   // scrolling between stacked sections updates the active tab.
@@ -719,7 +728,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           style={banner ? { backgroundImage: `url(${banner}), linear-gradient(120deg,#5b6bff,#23236a 55%,#4452f0)` } : undefined}
           onClick={editable ? () => bannerRef.current?.click() : undefined}
         >
-          {asPage
+          {(asPage || isMobile)
             ? <button type="button" className="cpm-banner-back" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Back"><ChevronLeft size={20} /></button>
             : <button type="button" className="cpm-x" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close"><X size={18} /></button>}
           {editable && (

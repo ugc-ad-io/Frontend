@@ -394,8 +394,15 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   // stored under two spellings (deliveryDays + delivery_days → "Delivery Days")
   // only shows once.
   const seenLabels = new Set();
+  // The profile stores BOTH `content_styles` (the picked array) and a legacy
+  // `content_style` (just the first item). They prettify to different labels
+  // ("Content Styles" vs "Content Style"), so the label de-dupe below doesn't
+  // catch them — drop the singular when the array is present so the same styles
+  // aren't shown twice.
+  const hasStyleArray = !isEmptyVal(flat.content_styles) || !isEmptyVal(flat.contentStyles);
   const entries = Object.entries(flat)
     .filter(([k, v]) => !MEDIA_OR_META(k) && !isEmptyVal(v))
+    .filter(([k]) => !(hasStyleArray && (k === 'content_style' || k === 'contentStyle')))
     .filter(([k]) => {
       const lbl = prettifyKey(k).toLowerCase();
       if (seenLabels.has(lbl)) return false;

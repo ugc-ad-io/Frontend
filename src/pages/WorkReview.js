@@ -118,7 +118,7 @@ export default function WorkReview({ embedId, onClose }) {
         <div className="review-header">
           <h1>Review Submitted Work</h1>
           <p>Campaign: {work.campaign_title}</p>
-          <p className="creator-info">By {work.creator_nickname}</p>
+          <p className="creator-info">By {String(work.creator_name || work.creator_nickname || 'Creator').replace(/^@+/, '')}</p>
         </div>
 
         <div className="work-section">

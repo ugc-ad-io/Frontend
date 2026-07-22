@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { displayName } from '../utils/displayName';
 import { ArrowLeft, Send, AlertTriangle, Shield } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -120,7 +121,7 @@ export default function ChatPage() {
             <ArrowLeft size={20} />
           </button>
           <div className="chat-user-info">
-            <h2>{otherUser?.nickname || 'Loading...'}</h2>
+            <h2>{otherUser ? displayName(otherUser, 'User') : 'Loading...'}</h2>
             <span className="user-role">{otherUser?.role}</span>
           </div>
         </div>

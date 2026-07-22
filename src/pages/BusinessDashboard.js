@@ -960,7 +960,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   }, [campaigns]);
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
   const pageDescription = {
-    overview: `Welcome back, ${user?.nickname}!`,
+    overview: `Welcome back, ${firstName(user, 'there')}!`,
     'post-brief': 'Create a new campaign and attract top creators',
     'pending-bids': 'Review creator proposals and select the best fit for each campaign',
     'browse-creator': 'Discover vetted creators and send private invitations',
@@ -970,7 +970,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     shipments: 'Manage product shipments and creator selection for delivery campaigns',
     wallet: 'Track balance, add funds, and review wallet activity',
     settings: 'Manage brand preferences, profile, billing, and notifications'
-  }[activeTab] || `Welcome back, ${user?.nickname}!`;
+  }[activeTab] || `Welcome back, ${firstName(user, 'there')}!`;
   const dashboardMetrics = dashboardData?.metrics || {};
   const dashboardPerformanceRaw = (dashboardData?.campaign_performance || []).length
     ? dashboardData.campaign_performance

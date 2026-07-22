@@ -3,13 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, Star, X, Send } from 'lucide-react';
+import { Bookmark, X, Send } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import BriefDetailDrawer from '../components/BriefDetailDrawer';
 import { Skeleton } from '../components/Skeleton';
-import normalizeBrief from '../utils/normalizeBrief';
+import normalizeBrief, { timeAgo } from '../utils/normalizeBrief';
 import { isOpenForBids } from '../utils/campaignCreators';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
 
@@ -17,22 +17,6 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
-
-// Cover banner gradient — deterministic per brand so each card reads distinctly
-// (mirrors the brand-side campaign cards' thumbnail look).
-const COVER_GRADIENTS = [
-  'linear-gradient(135deg,#c7d2fe,#a5b4fc)',
-  'linear-gradient(135deg,#fbcfe8,#f9a8d4)',
-  'linear-gradient(135deg,#bfdbfe,#93c5fd)',
-  'linear-gradient(135deg,#bbf7d0,#86efac)',
-  'linear-gradient(135deg,#fde68a,#fcd34d)',
-  'linear-gradient(135deg,#ddd6fe,#c4b5fd)',
-];
-const coverBg = (name) => {
-  let h = 0;
-  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return COVER_GRADIENTS[h % COVER_GRADIENTS.length];
-};
 
 const CATEGORIES = ['All Categories', 'Beauty', 'Fashion', 'Tech', 'Fitness', 'Food', 'Lifestyle', 'Travel', 'Home', 'Gaming', 'Kids'];
 
@@ -236,9 +220,11 @@ export default function BrowseBriefs() {
         <div className="cmk-bb-grid">
           {shown.map((b) => (
             <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? setOpenBrief(b) : toast.error('This brief is unavailable')}>
-              <div className="cmk-bb-cover" style={b.image_url ? undefined : { background: coverBg(b.brand) }}>
-                {b.image_url && <img className="cmk-bb-cover-img" src={b.image_url.startsWith('http') ? b.image_url : `${BACKEND_URL}${b.image_url}`} alt="" />}
-                <span className="cmk-bb-badge"><Star size={11} /> {b.matchScore}% Match</span>
+              <div className="cmk-bb-top">
+                {/* Brand logo pulled from the brand's profile (brand_logo) */}
+                <span className="cmk-bb-logo">
+                  {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
+                </span>
                 <button
                   type="button"
                   className={`cmk-bb-save${savedIds.has(String(b.id)) ? ' is-saved' : ''}`}
@@ -248,16 +234,28 @@ export default function BrowseBriefs() {
                   <Bookmark size={16} fill={savedIds.has(String(b.id)) ? 'currentColor' : 'none'} />
                 </button>
               </div>
-              <div className="cmk-bb-body">
+              <div className="cmk-bb-head">
                 <div className="cmk-bb-brandrow">
-                  <span className="cmk-bb-logo">
-                    {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
-                  </span>
                   <strong className="cmk-bb-brand">{b.brand}</strong>
+                  {b.createdAt ? <span className="cmk-bb-time">{timeAgo(b.createdAt)}</span> : null}
                 </div>
                 <h3 className="cmk-bb-title">{b.title}</h3>
-                <p className="cmk-bb-sub">{[b.tags[0], b.deliveryLabel].filter(Boolean).join(' · ')}</p>
-                <div className="cmk-bb-budget">{b.budget}</div>
+              </div>
+              <div className="cmk-bb-tags">
+                {[...(b.tags || []).slice(0, 2), b.deliveryLabel].filter(Boolean).map((t, i) => (
+                  <span className="cmk-bb-pill" key={i}>{t}</span>
+                ))}
+              </div>
+              <div className="cmk-bb-divider" />
+              <div className="cmk-bb-foot">
+                <div className="cmk-bb-price">{b.budget}<small>{b.matchScore}% match</small></div>
+                <button
+                  type="button"
+                  className="cmk-bb-apply"
+                  onClick={(e) => { e.stopPropagation(); b.id ? setOpenBrief(b) : toast.error('This brief is unavailable'); }}
+                >
+                  Apply now
+                </button>
               </div>
             </article>
           ))}

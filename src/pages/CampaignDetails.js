@@ -533,7 +533,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                       <div className="bid-row-left">
                         <div className="bid-number">#{idx + 1}</div>
                         <div className="bid-info">
-                          <div className="bid-creator-name">{bid.creator_nickname}</div>
+                          <div className="bid-creator-name">{String(bid.creator_name || bid.creator_nickname || 'Creator').replace(/^@+/, '')}</div>
                           <div className="bid-meta-inline">
                             <span className="bid-amount-inline">₹{bid.amount}</span>
                             <span className="bid-separator">•</span>
@@ -725,7 +725,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                 {/* Profile Header */}
                 <div className="creator-header">
                   <div className="creator-info">
-                    <h3>{creatorDetails.profile.nickname}</h3>
+                    <h3>{displayName(creatorDetails.profile, 'Creator')}</h3>
                     <p className="creator-bio">{creatorDetails.profile.bio}</p>
                     {creatorDetails.profile.tags && creatorDetails.profile.tags.length > 0 && (
                       <div className="creator-tags">

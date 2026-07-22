@@ -10,6 +10,13 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 const ATTACHMENT_MESSAGE_PREFIX = '__UGCAD_ATTACHMENT__:';
 
+// Build a full URL for a stored photo path (absolute URLs pass through).
+const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
+// The conversations API returns the avatar as `profile_picture` (brands may only
+// have a profile.logo). Cover every shape so the photo actually resolves.
+const photoOf = (c) => c?.profile_picture || c?.profile_photo || c?.photo
+  || (c?.profile && (c.profile.logo || c.profile.profile_photo)) || '';
+
 const avatarColor = (name) => {
   const s = String(name || 'U');
   let h = 0;
@@ -110,9 +117,14 @@ export default function MessagesPopup({ onClose }) {
               key={c.user_id}
               type="button"
               className="mpop-item"
-              onClick={() => setActive({ id: c.user_id, name: nameOf(c), photo: c.profile_photo || c.photo })}
+              onClick={() => setActive({ id: c.user_id, name: nameOf(c), photo: photoOf(c) })}
             >
-              <span className="mpop-ava" style={{ background: avatarColor(nameOf(c)) }}>{getInitial(nameOf(c))}</span>
+              <span className="mpop-ava" style={{ background: avatarColor(nameOf(c)) }}>
+                {getInitial(nameOf(c))}
+                {assetUrl(photoOf(c)) && (
+                  <img src={assetUrl(photoOf(c))} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </span>
               <span className="mpop-body">
                 <span className="mpop-top">
                   <strong>{nameOf(c)}</strong>
@@ -145,7 +157,8 @@ export default function MessagesPopup({ onClose }) {
         .mpop-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px;border:none;background:none;cursor:pointer;
           border-radius:12px;text-align:left;font-family:inherit;transition:background .15s}
         .mpop-item:hover{background:#f5f6fc}
-        .mpop-ava{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+        .mpop-ava{position:relative;width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;overflow:hidden}
+        .mpop-ava img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
         .mpop-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
         .mpop-top{display:flex;align-items:baseline;gap:8px}
         .mpop-top strong{flex:1;min-width:0;font-size:14px;color:#15163a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

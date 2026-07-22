@@ -5,7 +5,6 @@ import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { ChevronDown, CheckCircle } from 'lucide-react';
 import { apiErrorMessage } from '../utils/apiError';
-import { CONTENT_CATEGORIES, resolveCategory } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -57,8 +56,6 @@ export default function BusinessProfileSetup() {
     country: '',
     industry: '',
     customIndustry: '',    // free-text industry when "Other" is selected
-    category: '',          // primary UGC content category (work-distribution tag)
-    customCategory: '',
     gstin: '',
   });
 
@@ -86,10 +83,6 @@ export default function BusinessProfileSetup() {
         // spreading would silently drop every field.
         const industry = pr.industry_category || '';
         const knownIndustry = INDUSTRIES.includes(industry);
-        // `category` is stored as a slug ('street_interview'); anything unrecognised
-        // was a free-text custom value.
-        const category = pr.category || '';
-        const knownCategory = CONTENT_CATEGORIES.some((c) => c.value === category);
 
         // Phone is stored with the dial code baked in ("+91 98765 43210").
         const storedPhone = String(pr.phone || '').trim();
@@ -107,8 +100,6 @@ export default function BusinessProfileSetup() {
           country: pr.country || f.country,
           industry: industry ? (knownIndustry ? industry : 'Other') : f.industry,
           customIndustry: industry && !knownIndustry ? industry : f.customIndustry,
-          category: category ? (knownCategory ? category : 'custom') : f.category,
-          customCategory: category && !knownCategory ? category : f.customCategory,
           gstin: pr.gstin || f.gstin,
         }));
       } catch {
@@ -198,7 +189,6 @@ export default function BusinessProfileSetup() {
       website: withScheme(form.website),
       social_links: { instagram: withScheme(form.instagram), linkedin: '' },
       industry_category: form.industry === 'Other' ? (form.customIndustry.trim() || 'Other') : form.industry,
-      category: resolveCategory(form.category, form.customCategory),
       business_description: '',
       product_type: '',
       country: form.country,
@@ -380,29 +370,6 @@ export default function BusinessProfileSetup() {
               placeholder="Enter your industry"
               value={form.customIndustry}
               onChange={(e) => set('customIndustry', e.target.value)}
-            />
-          )}
-        </div>
-
-        {/* Content category — the kind of UGC you want (routes the application) */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-category">Content category</label>
-          <select
-            id="bp-category"
-            className={`bp-input bp-select${!form.category ? ' bp-select--placeholder' : ''}`}
-            value={form.category}
-            onChange={(e) => set('category', e.target.value)}
-          >
-            <option value="" disabled>Select content category...</option>
-            {CONTENT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
-          {form.category === 'custom' && (
-            <input
-              className="bp-input"
-              style={{ marginTop: 10 }}
-              placeholder="Describe the content category"
-              value={form.customCategory}
-              onChange={(e) => set('customCategory', e.target.value)}
             />
           )}
         </div>

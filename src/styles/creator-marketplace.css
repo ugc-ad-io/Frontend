@@ -1413,7 +1413,7 @@
 
 /* ── MOBILE OPTIMISATION (whole creator side) ────────────────────────────── */
 .cmk-hamburger{display:none;width:42px;height:42px;border-radius:12px;border:none;
-  background:none;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
+  background:none;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);flex:none}
 .cmk-mobile-menu{display:none}
 .cmk-mobile-backdrop{display:none}
 
@@ -1457,6 +1457,8 @@
      bell/avatar keep their inset.) */
   .cmk-nav .cmk-nav-inner{padding-left:10px}
   .cmk-hamburger{margin-left:-6px}
+  .cmk-brand{margin-left:0}
+  .cmk-nav-right{margin-left:auto}
   /* On mobile hide only the Details card; keep Payment/Escrow reachable. */
   .cmk-dr-details-card{display:none}
 }

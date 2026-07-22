@@ -306,6 +306,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
         .bb-d-row{display:grid;grid-template-columns:150px 1fr;gap:14px;font-size:14px;line-height:1.5}
         .bb-d-row-k{color:#9296ba;font-weight:600}
         .bb-d-row-v{color:#15163a;overflow-wrap:anywhere}
+        .bb-d-row-v::before{content:' - ';color:#9296ba;font-weight:600}
         @media (max-width:560px){.bb-d-row{grid-template-columns:120px 1fr;gap:10px}}
         .bb-d-foot{display:flex;gap:10px;padding:16px 22px;border-top:1px solid #e9ebf4}
         .bb-d-ghost,.bb-d-primary{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent}

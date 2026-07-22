@@ -102,6 +102,10 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
       />
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
+          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
           </button>
@@ -145,7 +149,6 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
                 <strong>{displayName}</strong>
                 <small>Creator</small>
               </span>
-              <ChevronDown size={16} color="#9296ba" />
             </button>
 
             {menuOpen && (
@@ -162,16 +165,13 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
                 <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
               </div>
             )}
-            <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
           </div>
         </div>
         {mobileOpen && (
           <div className="cmk-mobile-menu">
             {PRIMARY_LINKS.map((link) => (
               <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
-                {link.name}
+                <link.icon size={18} /> {link.name}
               </button>
             ))}
             <div className="cmk-sep" />
@@ -180,7 +180,9 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
                 <item.icon size={18} /> {item.name}
               </button>
             ))}
-            <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+            <div className="cmk-mobile-foot">
+              <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+            </div>
           </div>
         )}
       </header>

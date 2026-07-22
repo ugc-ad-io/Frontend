@@ -406,9 +406,9 @@ export default function AdminRoles() {
                       <tr key={m.id} data-testid={`staff-row-${m.id}`}>
                         <td>
                           <div className="arl-member">
-                            <span className="arl-avatar">{(m.nickname || m.email)[0]?.toUpperCase()}</span>
+                            <span className="arl-avatar">{String(m.full_name || m.name || m.nickname || m.email).replace(/^@+/, '')[0]?.toUpperCase()}</span>
                             <div>
-                              <strong>{m.nickname || m.email.split('@')[0]}</strong>
+                              <strong>{String(m.full_name || m.name || m.nickname || m.email.split('@')[0]).replace(/^@+/, '')}</strong>
                               <span className="arl-email">{m.email}</span>
                             </div>
                           </div>

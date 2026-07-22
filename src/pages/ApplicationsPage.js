@@ -217,7 +217,7 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   // Show the applicant's REAL name for review (not their @username/id) — the
   // reviewer verifies a real person/business; the public id comes after approval.
   const realName = brand ? (p.business_name || p.businessName) : (p.fullName || p.full_name);
-  const displayName = (realName && String(realName).trim()) || profile.nickname || (profile.username ? `@${profile.username}` : '—');
+  const displayName = (realName && String(realName).trim()) || String(profile.nickname || profile.username || '—').replace(/^@+/, '');
   const email = profile.email || p.business_email || '—';
   const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '—';
   const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
@@ -382,7 +382,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   const uname = full.username || profile.username;
   // Real name is the review identity; the @username/id is secondary (shown after approval).
   const realName = brand ? (p.business_name || p.businessName || full.business_name) : (p.fullName || p.full_name || full.full_name);
-  const displayName = (realName && String(realName).trim()) || full.nickname || profile.nickname || (uname ? `@${uname}` : '—');
+  const displayName = (realName && String(realName).trim()) || String(full.nickname || profile.nickname || uname || '—').replace(/^@+/, '');
   const headerEmail = full.email || p.business_email || profile.email;
   const flagName = !brand && looksLikeRealName(uname || '');
   const gst = gstStatus(p);

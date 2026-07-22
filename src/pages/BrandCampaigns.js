@@ -230,28 +230,37 @@ export default function BrandCampaigns() {
             const total = c.budget_max || c.budget_min || 0;
             return (
               <article key={c.id || c._id} className="bcam-card" onClick={() => openCampaign(c)}>
-                <div className="bcam-img">
-                  {cover ? <img src={cover} alt="" /> : (c.title || 'C').charAt(0).toUpperCase()}
-                  <span className={`bcam-badge ${s.cls}`}>{s.badge}</span>
-                  {['draft', 'rejected'].includes(c.status) && (
-                    <button
-                      type="button"
-                      className="bcam-del"
-                      aria-label="Delete draft"
-                      title="Delete draft"
-                      disabled={deletingId === (c.id || c._id)}
-                      onClick={(e) => deleteDraft(e, c)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-                <div className="bcam-body">
-                  <h3>{c.title || 'Untitled campaign'}</h3>
-                  <div className="bcam-meta">{subLine(c)}</div>
-                  <div className="bcam-foot">
-                    <span className="bcam-budget">{inr(spent)} <small>/ {inr(total)}</small></span>
+                <div className="bcam-top">
+                  {/* Campaign/brand logo (from image_url, falling back to the brand profile logo) */}
+                  <span className="bcam-logo">
+                    {cover ? <img src={cover} alt="" /> : (c.title || 'C').charAt(0).toUpperCase()}
+                  </span>
+                  <div className="bcam-top-actions">
+                    <span className={`bcam-badge ${s.cls}`}>{s.badge}</span>
+                    {['draft', 'rejected'].includes(c.status) && (
+                      <button
+                        type="button"
+                        className="bcam-del"
+                        aria-label="Delete draft"
+                        title="Delete draft"
+                        disabled={deletingId === (c.id || c._id)}
+                        onClick={(e) => deleteDraft(e, c)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
+                </div>
+                <div className="bcam-head-txt">
+                  <h3 className="bcam-title">{c.title || 'Untitled campaign'}</h3>
+                  <div className="bcam-meta">{subLine(c)}</div>
+                </div>
+                <div className="bcam-divider" />
+                <div className="bcam-foot">
+                  <span className="bcam-budget">{inr(spent)} <small>/ {inr(total)}</small></span>
+                  <button type="button" className="bcam-view" onClick={(e) => { e.stopPropagation(); openCampaign(c); }}>
+                    {c.status === 'draft' ? 'Edit' : 'View'}
+                  </button>
                 </div>
               </article>
             );

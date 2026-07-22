@@ -949,29 +949,36 @@
 
 /* ── Brand Campaigns ─────────────────────────────────────────────────────── */
 .bcam-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:6px}
+/* Job-card style (matches the creator brief cards): logo header + status,
+   title/meta, divider, budget + action. */
 .bcam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
-.bcam-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s}
-.bcam-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card)}
-.bcam-img{position:relative;height:150px;overflow:hidden;background:linear-gradient(135deg,#e9ebff,#efeaff);display:grid;place-items:center;color:#b9c0e8;font-size:32px;font-weight:800}
-/* Campaign card image fills the whole panel edge-to-edge (full width + height). */
-.bcam-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-.bcam-badge{position:absolute;top:12px;left:12px;font-size:10.5px;font-weight:800;padding:5px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+.bcam-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px;box-shadow:var(--shadow-soft);cursor:pointer;transition:.2s;display:flex;flex-direction:column;gap:13px}
+.bcam-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card);border-color:#dfe2f4}
+.bcam-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.bcam-logo{width:46px;height:46px;border-radius:13px;flex:none;position:relative;overflow:hidden;display:grid;place-items:center;
+  background:linear-gradient(135deg,#e9ebff,#efeaff);color:#8a90c8;font-size:20px;font-weight:800}
+.bcam-logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.bcam-top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.bcam-badge{font-size:10.5px;font-weight:800;padding:5px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
 .bcam-badge.live{background:#dcfce7;color:#15a35b}
 .bcam-badge.review{background:#e0e7ff;color:#4452f0}
 .bcam-badge.draft{background:#eef1f6;color:#64748b}
 .bcam-badge.done{background:#dcfce7;color:#15a35b}
 .bcam-badge.pending{background:#fdf2e0;color:var(--warn)}
-.bcam-del{position:absolute;top:10px;right:10px;width:30px;height:30px;display:grid;place-items:center;border:none;cursor:pointer;
-  border-radius:9px;color:#e11d48;background:rgba(255,255,255,.92);box-shadow:0 4px 12px -4px rgba(15,23,42,.35);transition:.15s}
-.bcam-del:hover{background:#e11d48;color:#fff;transform:translateY(-1px)}
-.bcam-del:disabled{opacity:.5;cursor:default;transform:none}
-.bcam-body{padding:16px 18px}
-.bcam-body h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16.5px;font-weight:700;color:var(--ink);line-height:1.3}
-.bcam-meta{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;margin:8px 0 14px}
+.bcam-del{width:32px;height:32px;display:grid;place-items:center;border:none;cursor:pointer;border-radius:9px;color:#e11d48;background:#fff1f3;transition:.15s;flex:none}
+.bcam-del:hover{background:#e11d48;color:#fff}
+.bcam-del:disabled{opacity:.5;cursor:default}
+.bcam-head-txt{display:flex;flex-direction:column;gap:6px}
+.bcam-title{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16.5px;font-weight:700;color:var(--ink);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bcam-meta{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;margin:0}
 .bcam-meta i{width:4px;height:4px;border-radius:50%;background:var(--muted);display:inline-block}
-.bcam-foot{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
-.bcam-budget{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-weight:800;color:var(--ink);font-size:15px;white-space:nowrap}
+.bcam-divider{border-top:1px solid var(--line)}
+.bcam-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bcam-budget{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-weight:800;color:var(--ink);font-size:16px;white-space:nowrap}
 .bcam-budget small{color:var(--muted);font-weight:600;font-size:13px}
+.bcam-view{flex:none;border:none;background:var(--indigo);color:#fff;font-family:inherit;font-weight:700;font-size:13px;padding:10px 16px;border-radius:11px;cursor:pointer;transition:.15s}
+.bcam-view:hover{background:var(--indigo-strong);transform:translateY(-1px)}
 .bcam-pct{font-weight:800;color:var(--ink);font-size:14px}
 .bcam-bar{height:7px;border-radius:6px;background:#e7e9f7;overflow:hidden}
 .bcam-bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--indigo),var(--violet));transition:width .8s cubic-bezier(.2,.7,.2,1)}

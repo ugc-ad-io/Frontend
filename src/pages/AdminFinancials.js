@@ -383,7 +383,7 @@ export default function AdminFinancials() {
                   <tbody>
                     {wallets.map((u) => (
                       <tr key={u.id} data-testid={`wallet-${u.id}`}>
-                        <td className="afn-strong">{u.username ? `@${u.username}` : (u.nickname || u.email)}</td>
+                        <td className="afn-strong">{u.full_name || u.business_name || u.name || u.nickname || u.email}</td>
                         <td><span className="afn-badge neutral">{u.role}</span></td>
                         <td className="afn-strong">{inr(u.balance)}</td>
                         <td>{inr(u.pending_commitments ?? u.pending ?? 0)}</td>
@@ -495,7 +495,7 @@ export default function AdminFinancials() {
           <div className="afn-scrim" onClick={() => setWalletDetail(null)} />
           <aside className="afn-drawer" data-testid="wallet-drawer">
             <header className="afn-modal-head">
-              <h2>Wallet — {walletDetail.username ? `@${walletDetail.username}` : (walletDetail.nickname || walletDetail.email)}</h2>
+              <h2>Wallet — {walletDetail.full_name || walletDetail.business_name || walletDetail.name || walletDetail.nickname || walletDetail.email}</h2>
               <button className="afn-icon" onClick={() => setWalletDetail(null)} aria-label="Close"><X size={18} /></button>
             </header>
             <div className="afn-drawer-summary">
@@ -540,7 +540,7 @@ export default function AdminFinancials() {
               <button className="afn-icon" onClick={() => setAdjustUser(null)} aria-label="Close"><X size={18} /></button>
             </header>
             <div className="afn-modal-body">
-              <p className="afn-modal-user">{adjustUser.username ? `@${adjustUser.username}` : (adjustUser.nickname || adjustUser.email)} · current balance <strong>{inr(adjustUser.balance)}</strong></p>
+              <p className="afn-modal-user">{adjustUser.full_name || adjustUser.business_name || adjustUser.name || adjustUser.nickname || adjustUser.email} · current balance <strong>{inr(adjustUser.balance)}</strong></p>
               <label className="afn-field">
                 <span>Reason code</span>
                 <select value={adjustReasonCode} onChange={(e) => setAdjustReasonCode(e.target.value)} data-testid="adjust-reason-code">

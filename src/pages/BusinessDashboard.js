@@ -2335,7 +2335,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 const TABS = [['all', 'All Shipments'], ['transit', 'In Transit'], ['delivered', 'Delivered']];
                 const rows = ship.filter((c) => (shipTab === 'all' ? true : statusOf(c) === shipTab));
                 const cr = (id) => creatorDirectory.find((x) => x.id === id) || {};
-                const cname = (c) => { const u = cr(c.selected_creator); return u.nickname || u.full_name || (u.username ? String(u.username).replace(/^@/, '') : (c.selected_creator ? 'Creator' : 'Not selected')); };
+                const cname = (c) => { const u = cr(c.selected_creator); return String(u.full_name || u.name || u.nickname || u.username || (c.selected_creator ? 'Creator' : 'Not selected')).replace(/^@+/, ''); };
                 const cinit = (c) => (cname(c).replace('@', '')[0] || 'C').toUpperCase();
                 const cphoto = (c) => cr(c.selected_creator).profile_photo;
 

@@ -121,9 +121,13 @@ function ProfileCard({ profile, onApprove, onReject }) {
     ([k, v]) => !HIDDEN_KEYS.has(k) && !isEmptyValue(v)
   ).length;
 
-  const displayName = profile.username
-    ? `@${profile.username}`
-    : (profile.nickname || profile.profile?.fullName || profile.profile?.business_name || '—');
+  // Show a real NAME, never an "@handle": prefer full/business name, then nickname
+  // or username with the leading "@" stripped.
+  const displayName = String(
+    profile.full_name || profile.profile?.fullName || profile.profile?.full_name ||
+    profile.business_name || profile.profile?.business_name ||
+    profile.name || profile.nickname || profile.username || '—'
+  ).replace(/^@+/, '');
   const avatarUrl = getAvatarUrl(details) || getAvatarUrl(profile);
 
   return (

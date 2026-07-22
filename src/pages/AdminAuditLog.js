@@ -234,7 +234,7 @@ export default function AdminAuditLog() {
                     <span className="aud-caret">{open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</span>
                     <span className="aud-when">{fmtTime(l.created_at)}</span>
                     <span className="aud-admin">
-                      {l.admin_nickname}
+                      {String(l.admin_name || l.admin_nickname || 'Admin').replace(/^@+/, '')}
                       {l.admin_role && <em className="aud-role">{l.admin_role}</em>}
                     </span>
                     <span className="aud-action">

@@ -416,7 +416,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         }));
       })
       .catch(() => {
-        setForm(current => ({ ...current, brandName: current.brandName || user?.nickname || user?.full_name || '' }));
+        setForm(current => ({ ...current, brandName: current.brandName || user?.business_name || user?.full_name || String(user?.nickname || '').replace(/^@+/, '') || '' }));
       });
   }, [user?.id]);
 

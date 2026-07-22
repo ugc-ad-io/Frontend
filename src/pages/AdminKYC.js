@@ -80,7 +80,7 @@ export default function AdminKYC() {
               return (
                 <article key={row.id} className="akyc-card" data-testid={`kyc-row-${row.id}`}>
                   <div className="akyc-who">
-                    <strong>{row.nickname || (row.username ? `@${row.username}` : row.email)}</strong>
+                    <strong>{String(row.full_name || row.name || row.nickname || row.username || row.email || '—').replace(/^@+/, '')}</strong>
                     <small>{row.email}</small>
                     <span className={`akyc-badge ${k.status}`}>{k.status}</span>
                   </div>

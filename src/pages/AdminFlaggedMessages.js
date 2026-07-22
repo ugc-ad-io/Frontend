@@ -13,9 +13,13 @@ const API = `${BACKEND_URL}/api`;
 
 const displayHandle = (obj, nicknameKey = 'nickname', usernameKey = 'username') => {
   if (!obj) return '—';
-  const uname = obj[usernameKey];
-  const nick = obj[nicknameKey];
-  return uname ? `@${uname}` : (nick || '—');
+  // Show a NAME, never an "@handle": prefer real name, then the nickname/username
+  // with any leading "@" stripped, then a dash.
+  const clean = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
+  return (
+    clean(obj.full_name) || clean(obj.business_name) || clean(obj.name) ||
+    clean(obj[nicknameKey]) || clean(obj[usernameKey]) || '—'
+  );
 };
 
 // Queue categories per the Chat Oversight spec (11.12)

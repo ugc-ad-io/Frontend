@@ -102,9 +102,12 @@ export default function AdminDashboard() {
 
   const displayHandle = (obj, nicknameKey = 'nickname', usernameKey = 'username') => {
     if (!obj) return '—';
-    const uname = obj[usernameKey];
-    const nick = obj[nicknameKey];
-    return uname ? `@${uname}` : (nick || '—');
+    // Show a NAME, never an "@handle".
+    const clean = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
+    return (
+      clean(obj.full_name) || clean(obj.business_name) || clean(obj.name) ||
+      clean(obj[nicknameKey]) || clean(obj[usernameKey]) || '—'
+    );
   };
 
   useEffect(() => {
@@ -1149,7 +1152,7 @@ export default function AdminDashboard() {
                     <tbody>
                       {staff.map((member) => (
                         <tr key={member.id}>
-                          <td>{member.nickname}</td>
+                          <td>{String(member.full_name || member.name || member.nickname || member.email || '—').replace(/^@+/, '')}</td>
                           <td>{member.email}</td>
                           <td><span className="badge badge-active">{member.role.replace('_', ' ')}</span></td>
                           <td><span className={`status-badge ${member.approval_status === 'approved' ? 'active' : 'inactive'}`}>
@@ -1301,7 +1304,7 @@ export default function AdminDashboard() {
                     <div key={member.id} className="staff-card">
                       <div className="staff-header">
                         <div className="staff-info">
-                          <h3>{member.nickname}</h3>
+                          <h3>{String(member.full_name || member.name || member.nickname || member.email || '—').replace(/^@+/, '')}</h3>
                           <p className="staff-email">{member.email}</p>
                         </div>
                         <span className={`role-badge ${member.role}`}>

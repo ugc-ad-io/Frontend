@@ -13,7 +13,7 @@ import ShipmentTracking from './ShipmentTracking';
 import PostABrief from './PostABrief';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
-import RevisionRequestModal from '../components/RevisionRequestModal';
+import VideoReviewModal from '../components/VideoReviewModal';
 import ReviewModal from '../components/ReviewModal';
 import CampaignDetails from './CampaignDetails';
 import BookingCard from '../components/BookingCard';
@@ -456,7 +456,7 @@ export default function BrandCampaignDetail() {
 
         <div className="bcd-top">
           <div className="bcd-title-wrap">
-            <span className={`bcd-badge ${campaign.status === 'completed' ? 'done' : 'live'}`}>{campaign.status === 'completed' ? 'Completed' : 'Live'}</span>
+            <span className={`bcd-badge ${statusBadge(campaign.status).cls}`}>{statusBadge(campaign.status).label}</span>
             <h1>{campaign.title}</h1>
             <span className="bcd-sub">Campaign ID: CMP-{String(campaign.id || campaign._id || '').slice(-6).toUpperCase()} · Launched on {fmtDate(campaign.createdAt || campaign.created_at)}</span>
           </div>
@@ -804,7 +804,10 @@ export default function BrandCampaignDetail() {
       {/* Feed the modal the live fee/allowance so a ₹500 debit is never a surprise —
           these props existed but were never passed, so the warning banner never showed. */}
       {revisionOpen && (
-        <RevisionRequestModal
+        <VideoReviewModal
+          src={assetUrl(wsFiles.find((x) => isVideo(x)) || wsFirst)}
+          title={campaign.title}
+          watermark={wsStatus !== 'approved'}
           onClose={() => setRevisionOpen(false)}
           onSubmit={submitRevision}
           submitting={revSubmitting}
@@ -884,6 +887,9 @@ export default function BrandCampaignDetail() {
         .bcd-title-wrap{display:flex;flex-direction:column;gap:6px;flex:1;min-width:240px}
         .bcd-badge{align-self:flex-start;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;text-transform:uppercase}
         .bcd-badge.live{background:#dcfce7;color:#15a35b}.bcd-badge.done{background:#dcfce7;color:#15a35b}
+        .bcd-badge.review{background:#eef0ff;color:#4452f0}
+        .bcd-badge.pending{background:#fff7ed;color:#b45309}
+        .bcd-badge.rejected{background:#fef2f2;color:#dc2626}
         .bcd-title-wrap h1{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:26px;font-weight:800;color:#15163a}
         .bcd-sub{color:#9296ba;font-size:13px}
         .bcd-budget{display:flex;flex-direction:column;gap:5px;min-width:230px}

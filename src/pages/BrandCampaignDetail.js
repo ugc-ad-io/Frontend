@@ -256,6 +256,9 @@ export default function BrandCampaignDetail() {
   const [selecting, setSelecting] = useState(null); // creator_id being accepted
   const [myReview, setMyReview] = useState(null);    // this brand's review of the creator (or null)
   const [reviewOpen, setReviewOpen] = useState(false);
+  // Mobile: the Campaign Progress card collapses to a start/end summary bar with
+  // a position marker; tapping it reveals the full step-by-step timeline.
+  const [progressExpanded, setProgressExpanded] = useState(false);
 
   const load = async () => {
     try {
@@ -312,6 +315,15 @@ export default function BrandCampaignDetail() {
     const firstTodo = defs.findIndex((s) => !s.done);
     return defs.map((s, i) => ({ ...s, current: i === firstTodo }));
   }, [deal, campaign]);
+
+  // Where the mobile mini-bar's marker sits along the track (0–100%).
+  const progressIdx = useMemo(() => {
+    const cur = steps.findIndex((s) => s.current);
+    if (cur >= 0) return cur;
+    const doneCount = steps.filter((s) => s.done).length;
+    return Math.min(doneCount, steps.length - 1);
+  }, [steps]);
+  const progressPct = steps.length > 1 ? (progressIdx / (steps.length - 1)) * 100 : 0;
 
   if (loading) return (
     <BrandTopNavLayout>

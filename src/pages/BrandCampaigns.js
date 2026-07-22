@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { SlidersHorizontal, Megaphone, Plus, X, Trash2 } from 'lucide-react';
+import { SlidersHorizontal, Megaphone, Plus, X, Trash2, FileText } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PostABrief from './PostABrief';
 import { Skeleton } from '../components/Skeleton';
+import { summarizeDeliverables } from '../utils/normalizeBrief';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -257,6 +258,7 @@ export default function BrandCampaigns() {
             const cover = coverRaw ? (coverRaw.startsWith('http') ? coverRaw : `${BACKEND_URL}${coverRaw}`) : '';
             const spent = c.escrow_amount || c.budget_min || 0;
             const total = c.budget_max || c.budget_min || 0;
+            const deliv = summarizeDeliverables(c);
             return (
               <article key={c.id || c._id} className="bcam-card" onClick={() => openCampaign(c)}>
                 <div className="bcam-top">
@@ -284,6 +286,9 @@ export default function BrandCampaigns() {
                   <h3 className="bcam-title">{c.title || 'Untitled campaign'}</h3>
                   <div className="bcam-meta">{subLine(c)}</div>
                 </div>
+                {deliv && (
+                  <div className="bcam-deliv"><FileText size={13} /> <span>{deliv}</span></div>
+                )}
                 <div className="bcam-divider" />
                 <div className="bcam-foot">
                   <span className="bcam-budget">{inr(spent)} <small>/ {inr(total)}</small></span>

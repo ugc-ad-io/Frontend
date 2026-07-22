@@ -100,10 +100,10 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
         onLogout={handleLogout}
         account={{ name: displayName, role: 'Creator', photo }}
       />
-      <header className="cmk-nav">
+      <header className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
           <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
-            <Menu size={22} />
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
@@ -173,12 +173,6 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
               onClick={() => setMobileOpen(false)}
             />
             <div className="cmk-mobile-menu">
-              <div className="cmk-mobile-menu-top">
-                <img src="/ugcad-logo_-_Edited-removebg-preview.png" alt="UGCad.io" style={{ height: 36 }} />
-                <button type="button" className="cmk-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
-                  <X size={20} />
-                </button>
-              </div>
               <nav className="cmk-mobile-nav">
                 {PRIMARY_LINKS.map((link) => (
                   <button key={link.name} type="button" className={`cmk-mobile-item ${isActive(link.to) ? 'is-active' : ''}`} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
@@ -194,6 +188,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
                   </button>
                 ))}
               </nav>
+              <div className="cmk-mobile-sep" />
               <button type="button" className="cmk-mobile-logout" onClick={handleLogout}>
                 <LogOut size={18} /> Log out
               </button>

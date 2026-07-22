@@ -147,7 +147,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         onLogout={handleLogout}
         account={{ name: displayName, role: 'Brand Account', photo }}
       />
-      <header className="cmk-nav">
+      <header className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
           <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}

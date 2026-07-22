@@ -72,8 +72,9 @@
 @keyframes cmk-rise{to{opacity:1;transform:none}}
 
 /* ── TOP NAV ─────────────────────────────────────────────────────────────── */
-.cmk-nav{position:sticky;top:0;z-index:50;background:#fff;
-  border-bottom:1px solid var(--line);--cmk-nav-height:72px}
+.cmk-nav{position:sticky;top:0;z-index:1300;background:#fff;
+  border-bottom:1px solid var(--line)}
+.cmk-nav--open{border-bottom:none;}
 .cmk-nav-inner{display:flex;align-items:center;gap:22px;height:72px}
 .cmk-brand{display:flex;align-items:center;gap:10px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);
   font-weight:800;font-size:19px;color:var(--ink);cursor:pointer;background:none;border:none}
@@ -281,26 +282,26 @@
 .cmk-cat-bar button.is-active{background:linear-gradient(135deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(7,7,78,.6)}
 .cmk-cat-more{color:var(--muted)!important}
 
-.cmk-filter-row{display:flex;align-items:center;gap:10px;margin:6px 0 18px;flex-wrap:wrap}
-.cmk-select{display:inline-flex;align-items:center;gap:18px;justify-content:space-between;min-width:140px;height:44px;
+.cmk-filter-row{display:flex;align-items:center;gap:12px;margin:6px 0 22px;flex-wrap:wrap}
+.cmk-select{display:inline-flex;align-items:center;gap:24px;justify-content:space-between;min-width:140px;height:44px;
   padding:0 14px;background:#fff;border:1px solid var(--line);border-radius:12px;color:var(--ink-2);font-weight:600;
   font-size:14px;cursor:pointer;transition:.18s}
 .cmk-select:hover{border-color:#cdd2f3}
 .cmk-select svg{color:var(--muted)}
-.cmk-sort{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-weight:600;font-size:13px}
-.cmk-sort select{height:42px;padding:0 34px 0 12px;background:#fff;border:1px solid var(--line);border-radius:12px;
+.cmk-sort{display:inline-flex;align-items:center;gap:8px;margin-left:auto;color:var(--ink-2);font-weight:600;font-size:14px}
+.cmk-sort select{height:44px;padding:0 38px 0 14px;background:#fff;border:1px solid var(--line);border-radius:12px;
   font-family:inherit;font-weight:600;font-size:14px;color:var(--ink);cursor:pointer;
   -webkit-appearance:none;-moz-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239296ba' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 12px center;background-size:14px}
-.cmk-filter-btn{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:12px;
-  background:#eef0ff;border:1px solid #cdd4ff;color:var(--indigo);font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
+  background-repeat:no-repeat;background-position:right 13px center;background-size:15px}
+.cmk-filter-btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:12px;
+  background:#eef0ff;border:1px solid #cdd4ff;color:var(--indigo);font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
 .cmk-filter-btn:hover{background:#e2e5ff}
-/* Browse Briefs filter row — keep label and select inline for each control. */
-.cmk-filter-row .cmk-sort{margin-left:0;flex-direction:row;align-items:center;gap:10px}
-.cmk-filter-row .cmk-sort label{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.25px;white-space:nowrap}
-.cmk-sort select{min-width:200px;max-width:240px}
-.cmk-filter-clear{margin-left:auto;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--indigo);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+/* Browse Briefs working filter row — label stacked above each select so it's
+   clearly tied to its own dropdown (not floating between two of them). */
+.cmk-filter-row .cmk-sort{margin-left:0;flex-direction:column;align-items:flex-start;gap:5px}
+.cmk-filter-row .cmk-sort label{color:var(--muted);font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.cmk-filter-clear{margin-left:auto;height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--indigo);font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
 .cmk-filter-clear:hover{background:#f6f7ff;border-color:#cdd4ff}
 
 /* ── brief cards — job-card style: logo header, tag pills, price + apply ──── */
@@ -426,11 +427,6 @@
 .cmk-awc-title{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;font-weight:800;
   color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmk-awc-sub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:capitalize}
-.cmk-awc-stage-summary{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-top:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.cmk-awc-stage-summary::-webkit-scrollbar{display:none}
-.cmk-awc-stage-pill{flex:0 0 auto;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;color:var(--muted);background:rgba(148,163,184,.12);white-space:nowrap}
-.cmk-awc-stage-pill.done{color:var(--indigo);background:rgba(59,130,246,.14)}
-.cmk-awc-stage-pill.current{color:var(--ink);background:rgba(59,130,246,.18)}
 /* "See what they asked for" — only rendered when the brand wants changes */
 .cmk-awc-revision{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;border:1.5px solid #fcd9a4;border-radius:8px;background:#fff8ed;color:#b45309;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
 .cmk-awc-revision:hover{background:#fdefd8;border-color:#f8c471}
@@ -1418,7 +1414,7 @@
 
 /* ── MOBILE OPTIMISATION (whole creator side) ────────────────────────────── */
 .cmk-hamburger{display:none;width:42px;height:42px;border-radius:12px;border:none;
-  background:none;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);flex:none}
+  background:none;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
 .cmk-mobile-menu{display:none}
 .cmk-mobile-backdrop{display:none}
 
@@ -1429,22 +1425,36 @@
   .cmk-hamburger{display:inline-flex}
   /* Dim backdrop — taps close the drawer. Starts below the nav so the logo/actions
      bar stays visible and tappable, like a below-header drawer. */
-  .cmk-mobile-backdrop{display:block;position:fixed;top:var(--cmk-nav-height);left:0;right:0;bottom:0;z-index:1200;
+  .cmk-mobile-backdrop{display:block;position:fixed;top:var(--cmk-nav-height,72px);left:0;right:0;bottom:0;z-index:1200;
     background:rgba(17,20,45,.42)}
   /* Left slide-in drawer covering ~70% of the screen, opening under the top bar. */
-  .cmk-mobile-menu{display:flex;flex-direction:column;gap:2px;padding:16px 14px 24px;
-    position:fixed;top:var(--cmk-nav-height);left:0;bottom:0;z-index:1201;width:min(320px,72vw);
+  .cmk-mobile-menu{display:flex;flex-direction:column;gap:2px;padding:0 0 24px;
+    position:fixed;top:var(--cmk-nav-height,72px);left:0;bottom:0;z-index:1201;width:min(320px,72vw);
     background:#fff;box-shadow:2px 0 24px rgba(17,20,45,.18);overflow-y:auto;
     animation:cmk-drawer-in .22s ease;
-    /* Clip the shadow's top/bottom bleed (it was leaking up into the gap under the
-       nav as a grey line); -30px on the right lets only the side shadow show. */
-    clip-path:inset(0 -30px 0 0)}
+    clip-path:inset(0 -30px 0 0);
+    scrollbar-width:none;-ms-overflow-style:none}
+  /* Shared by both CreatorTopNavLayout and BrandTopNavLayout — the drawer's own
+     scroll thumb read as a stray purple/blue line down its right edge. Every
+     other scroll strip in this file hides its scrollbar the same way. */
+  .cmk-mobile-menu::-webkit-scrollbar{display:none}
   .cmk-mobile-menu button{display:flex;align-items:center;gap:12px;padding:13px 12px;border:none;background:none;
     font-family:inherit;font-weight:600;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;border-radius:10px}
   .cmk-mobile-menu button:hover{background:var(--bg)}
   .cmk-mobile-menu button.is-active{color:var(--indigo)}
   .cmk-mobile-menu button svg{color:var(--muted)}
   .cmk-mobile-menu button.is-active svg{color:var(--indigo)}
+  .cmk-mobile-menu .cmk-mobile-item,
+  .cmk-mobile-menu .cmk-mobile-logout {
+    padding: 14px 16px;
+    border-radius: 0;
+    background: transparent;
+    border-top: 1px solid #eef0f6;
+  }
+  .cmk-mobile-menu .cmk-mobile-item:first-child,
+  .cmk-mobile-menu .cmk-mobile-logout:first-child {
+    border-top: none;
+  }
   /* The divider was only styled under .cmk-menu (the desktop avatar dropdown), so
      inside the mobile sheet it rendered as a zero-height, invisible element. */
   .cmk-mobile-menu .cmk-sep{height:1px;background:var(--line);margin:8px 4px}
@@ -1453,6 +1463,8 @@
 }
 
 @media (max-width:760px){
+  .cmk-mobile-backdrop{top:var(--cmk-nav-height,62px);left:0;right:0;bottom:0;}
+  .cmk-mobile-menu{top:var(--cmk-nav-height,62px);}
   .cmk-nav-search{display:none}
   .cmk-nav-inner{gap:14px}
   /* Pull the hamburger + logo tighter to the screen edge on mobile. The nav wrap
@@ -1462,18 +1474,15 @@
      bell/avatar keep their inset.) */
   .cmk-nav .cmk-nav-inner{padding-left:10px}
   .cmk-hamburger{margin-left:-6px}
-  .cmk-brand{margin-left:0}
-  .cmk-nav-right{margin-left:auto}
   /* On mobile hide only the Details card; keep Payment/Escrow reachable. */
   .cmk-dr-details-card{display:none}
 }
 
 @media (max-width:640px){
   .cmk-wrap{padding:0 16px}
-  /* Nav shrinks to 62px here, so the drawer/backdrop stay under it. */
-  .cmk-nav{--cmk-nav-height:62px}
-  .cmk-mobile-backdrop{top:var(--cmk-nav-height)}
-  .cmk-mobile-menu{top:var(--cmk-nav-height)}
+  /* Nav shrinks to 62px here, so the drawer/backdrop start lower to stay under it. */
+  .cmk-mobile-backdrop{top:62px}
+  .cmk-mobile-menu{top:62px}
   /* Bottom padding clears the fixed .cmk-post-fab (48px tall at bottom:16px). At 48px
      the FAB sat on top of the last row's action button on every creator list page. */
   .cmk-page{padding:18px 0 96px}
@@ -1738,7 +1747,7 @@
   .cmk-mobile-backdrop {
     display: block;
     position: fixed;
-    top: var(--cmk-nav-height);
+    top: var(--cmk-nav-height, 72px);
     left: 0;
     right: 0;
     bottom: 0;
@@ -1750,7 +1759,7 @@
 
   .cmk-mobile-menu {
     position: fixed;
-    top: var(--cmk-nav-height);
+    top: var(--cmk-nav-height, 72px);
     left: 0;
     bottom: 0;
     width: 272px;
@@ -1774,23 +1783,39 @@
   }
 
   .cmk-mobile-menu-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 16px 14px;
-    border-bottom: 1px solid #eef0f6;
+    display: none;
   }
 
-  .cmk-mobile-close {
-    width: 36px;
-    height: 36px;
-    display: grid;
-    place-items: center;
+  .cmk-mobile-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
     border: none;
-    background: #f2f3fb;
-    border-radius: 10px;
-    color: #15163a;
+    border-top: 1px solid #eef0f6;
+    border-radius: 0;
+    background: transparent;
+    color: #585c7e;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
     cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+
+  .cmk-mobile-item:first-child {
+    border-top: none;
+  }
+
+  .cmk-mobile-item:hover {
+    background: #f2f3fb;
+    color: #15163a;
+  }
+
+  .cmk-mobile-item.is-active {
+    background: linear-gradient(100deg, #23236a, #12124f);
+    color: #fff;
   }
 
   .cmk-mobile-nav {
@@ -1807,9 +1832,10 @@
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 11px 12px;
+    padding: 14px 16px;
     border: none;
-    border-radius: 12px;
+    border-top: 1px solid #eef0f6;
+    border-radius: 0;
     background: transparent;
     color: #585c7e;
     font-size: 14px;
@@ -1817,6 +1843,10 @@
     text-align: left;
     cursor: pointer;
     transition: background .15s, color .15s;
+  }
+
+  .cmk-mobile-item:first-child {
+    border-top: none;
   }
 
   .cmk-mobile-item:hover {

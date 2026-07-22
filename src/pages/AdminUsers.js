@@ -240,6 +240,7 @@ export default function AdminUsers({
   const filtered = useMemo(() => allUsers.filter((u) => {
     if (tab === 'creators' && !isCreator(u)) return false;
     if (tab === 'brands' && !isBrand(u)) return false;
+    if (tab === 'admins' && !isAdmin(u)) return false;
     if (stateFilter && userState(u) !== stateFilter) return false;
     if (categoryFilter && category(u) !== categoryFilter) return false;
     if (flaggedOnly && !isFlagged(u)) return false;
@@ -335,7 +336,7 @@ export default function AdminUsers({
 
         {/* directory tabs */}
         <div className="au-tabs">
-          {[['all', 'All'], ['creators', 'Creator Directory'], ['brands', 'Brand Directory']].map(([k, label]) => (
+          {[['all', 'All'], ['creators', 'Creator Directory'], ['brands', 'Brand Directory'], ['admins', 'Admin Directory']].map(([k, label]) => (
             <button key={k} type="button" className={tab === k ? 'active' : ''} onClick={() => { setTab(k); setStateFilter(''); setCategoryFilter(''); setVerifyFilter(''); }}>
               {label}
             </button>

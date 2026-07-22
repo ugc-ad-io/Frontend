@@ -1043,7 +1043,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     const creatorEntries = new Map();
     campaigns.forEach(campaign => {
       (campaign.bids || []).forEach(bid => {
-        const creatorName = String(bid.creator_name || bid.creator_nickname || bid.creator_id || '').replace(/^@+/, '');
+        const creatorName = String(bid.creator_name || bid.creator_nickname || bid.creator_id || '').replace(/^@+/, '').trim().split(/\s+/)[0];
         if (creatorName) {
           creatorEntries.set(bid.creator_id || creatorName, {
             id: bid.creator_id,

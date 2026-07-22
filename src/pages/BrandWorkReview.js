@@ -422,7 +422,7 @@ export default function BrandWorkReview() {
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
       {reviewFor && (
         <ReviewModal
-          title={`Rate ${reviewFor.creator || 'this creator'}`}
+          title={`Rate ${reviewFor.creator ? handleLabelSafe(reviewFor.creator) : 'this creator'}`}
           subtitle={reviewFor.campaign}
           onClose={() => setReviewFor(null)}
           onSubmit={submitReview}

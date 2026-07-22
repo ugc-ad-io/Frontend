@@ -8,6 +8,7 @@ import {
   Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy, Truck, Star,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import { Skeleton } from '../components/Skeleton';
 import PageModal from '../components/PageModal';
 import ShipmentTracking from './ShipmentTracking';
 import PostABrief from './PostABrief';
@@ -305,7 +306,47 @@ export default function BrandCampaignDetail() {
     return defs.map((s, i) => ({ ...s, current: i === firstTodo }));
   }, [deal, campaign]);
 
-  if (loading) return <BrandTopNavLayout><div className="cmk-empty">Loading…</div></BrandTopNavLayout>;
+  if (loading) return (
+    <BrandTopNavLayout>
+      <div className="bcd" aria-hidden="true">
+        {/* Breadcrumb */}
+        <div className="bcd-bc" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Skeleton width={110} height={14} />
+          <Skeleton width={90} height={14} />
+        </div>
+
+        {/* Title / budget / actions row */}
+        <div className="bcd-top">
+          <div className="bcd-title-wrap">
+            <Skeleton width={92} height={22} radius={999} style={{ display: 'block' }} />
+            <Skeleton width="60%" height={28} style={{ display: 'block', marginTop: 12 }} />
+            <Skeleton width={280} height={13} style={{ display: 'block', marginTop: 10 }} />
+          </div>
+          <div className="bcd-budget">
+            <Skeleton width={80} height={12} style={{ display: 'block' }} />
+            <Skeleton width={140} height={20} style={{ display: 'block', marginTop: 8 }} />
+          </div>
+          <div className="bcd-actions" style={{ display: 'flex', gap: 10 }}>
+            <Skeleton width={110} height={38} radius={10} />
+            <Skeleton width={110} height={38} radius={10} />
+          </div>
+        </div>
+
+        {/* Tab strip */}
+        <div className="bcd-tabs" style={{ display: 'flex', gap: 22, margin: '22px 0' }}>
+          <Skeleton width={80} height={16} />
+          <Skeleton width={120} height={16} />
+          <Skeleton width={100} height={16} />
+        </div>
+
+        {/* Content cards */}
+        <div style={{ display: 'grid', gap: 16 }}>
+          <Skeleton height={150} radius={16} />
+          <Skeleton height={220} radius={16} />
+        </div>
+      </div>
+    </BrandTopNavLayout>
+  );
   if (!campaign) return <BrandTopNavLayout><div className="cmk-empty">Campaign not found.</div></BrandTopNavLayout>;
 
   const refresh = async () => {

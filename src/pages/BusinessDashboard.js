@@ -280,6 +280,13 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
                 <div className="cb-bid-name">
                   <strong>{handleOf(bid)}</strong>
                   {isTop && <span className="cb-top-match">TOP MATCH</span>}
+                  <button
+                    type="button"
+                    className={`cb-star ${isShort ? 'on' : ''}`}
+                    aria-label={isShort ? 'Remove from shortlist' : 'Shortlist'}
+                    title={isShort ? 'Shortlisted' : 'Add to shortlist'}
+                    onClick={() => toggleShortlist(id)}
+                  >★</button>
                 </div>
                 {(bid.category || campaign.category) && <span className="cb-bid-cat">{bid.category || campaign.category}</span>}
                 <p className="cb-bid-pitch">{bid.proposal || 'No proposal message provided.'}</p>
@@ -293,13 +300,6 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
                 <span>Delivery</span>
               </div>
               <div className="cb-bid-actions">
-                <button
-                  type="button"
-                  className={`cb-star ${isShort ? 'on' : ''}`}
-                  aria-label={isShort ? 'Remove from shortlist' : 'Shortlist'}
-                  title={isShort ? 'Shortlisted' : 'Add to shortlist'}
-                  onClick={() => toggleShortlist(id)}
-                >★</button>
                 <button type="button" className="cb-view-profile" onClick={() => onViewProfile(campaign.id, bid)}>View Profile</button>
                 {/* A declined bid can't be accepted/declined again — show its state. */}
                 {declined.has(id) ? (
@@ -5346,6 +5346,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
         .cb-star:hover { border-color: #ffd24a; color: #ffb800; }
         .cb-star.on { border-color: #ffd24a; background: #fff8e6; color: #ffb800; }
+        /* Star now lives on the name row, pushed to the far right of it. */
+        .cb-bid-name { width: 100%; }
+        .cb-bid-name .cb-star { margin-left: auto; width: 32px; height: 32px; font-size: 15px; }
         .cb-view-profile {
           min-height: 40px; padding: 0 18px;
           border: 1px solid #e0e2f0; border-radius: 11px;
@@ -5378,8 +5381,24 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .cb-bid-avatar { width: 56px; height: 56px; }
           .cb-bid-main { flex: 1 1 200px; }
           .cb-bid-stat { flex: 0 0 auto; margin-right: 22px; }
-          .cb-bid-actions { flex: 1 1 100%; justify-content: flex-start; flex-wrap: wrap; }
-          .cb-tabs-row { flex-wrap: wrap; }
+          /* View Profile · Accept · Decline stay on ONE line */
+          .cb-bid-actions { flex: 1 1 100%; justify-content: flex-start; flex-wrap: nowrap; gap: 8px; }
+          .cb-view-profile { flex: 1 1 auto; padding: 0 12px; min-width: 0; }
+          .cb-accept { flex: 1 1 auto; padding: 0 14px; min-width: 0; }
+          .cb-decline { flex: 0 0 auto; padding: 4px 2px; }
+
+          /* Campaign header: View Campaign drops to its own full-width row so the
+             "Budget: … • N Application" line has room to sit on ONE line. */
+          .cb-campaign { flex-wrap: wrap; }
+          .cb-view-campaign { flex: 1 1 100%; }
+          .cb-campaign-info p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+          /* Tabs on ONE scrollable line, Filters pinned to the right. */
+          .cb-tabs-row { flex-wrap: nowrap; gap: 10px; }
+          .cb-tabs { flex-wrap: nowrap; overflow-x: auto; flex: 1; min-width: 0; gap: 16px; scrollbar-width: none; }
+          .cb-tabs::-webkit-scrollbar { display: none; }
+          .cb-tabs button { white-space: nowrap; }
+          .cb-filters-wrap { flex: none; }
         }
 
         .shipments-section {

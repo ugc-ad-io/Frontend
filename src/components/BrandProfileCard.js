@@ -94,7 +94,6 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
   const website = p.website || p.website_url || '';
   const websiteHref = website ? (/^https?:\/\//i.test(website) ? website : `https://${website}`) : '';
   const industry = p.industry_category || p.industry || '';
-  const category = categoryLabel(p.category) || industry || 'General';
   const city = p.city || p.location || '';
   const country = p.country || '';
   const locationTxt = [city, country].filter(Boolean).join(', ');
@@ -155,7 +154,6 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
           </div>
 
           <div className="bpc-highlights">
-            <div className="bpc-hl"><label>Category</label><strong>{category}</strong></div>
             <div className="bpc-hl"><label>Rating</label><strong>{reviewCount ? `${avgRating.toFixed(1)} / 5` : 'Not rated yet'}</strong></div>
             <div className="bpc-hl">
               <label>Website</label>
@@ -267,7 +265,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
            number does — render it at the label size so the pill reads evenly. */
         .bpc-stat-rating strong.is-unrated{font-size:12.5px;font-weight:700}
         .bpc-badge{padding:3px 12px;border-radius:20px;background:#eef0ff;color:#5b6bff;font-size:12px!important;font-weight:700!important}
-        .bpc-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
+        .bpc-highlights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px;padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
         .bpc-hl{min-width:0}
         .bpc-hl label{display:block;color:#9296ba;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
         .bpc-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

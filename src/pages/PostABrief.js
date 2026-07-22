@@ -5,7 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
 import { useAuth } from '../App';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -354,23 +354,6 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const [form, setForm] = useState(initialForm);
   const subs = subsFor(step);
   useEffect(() => { setSubStep(0); }, [step]);
-  const [campaignImgUploading, setCampaignImgUploading] = useState(false);
-  const uploadCampaignImage = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('Image too large. Max 5MB.'); return; }
-    setCampaignImgUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setForm((f) => ({ ...f, image: data.file_url || data.url || '' }));
-    } catch (err) {
-      toast.error(apiErrorMessage(err, 'Could not upload image'));
-    } finally {
-      setCampaignImgUploading(false);
-    }
-  };
   const [moodUploading, setMoodUploading] = useState(false);
   // Mood board: uploads to the server and APPENDS to the existing list (max 5),
   // so picking files a second time adds instead of replacing.
@@ -945,7 +928,6 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   };
 
   const publish = async () => {
-    if (campaignImgUploading) { toast.error('Please wait — your campaign image is still uploading.'); return; }
     try {
       setSubmitting(true);
 
@@ -1127,25 +1109,6 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   )}
                 </div>
 
-                {/* Logo floats in the TOP-RIGHT corner of the Basics step (small tile). */}
-                <div className="pab-logo-float">
-                  <label>Campaign Logo</label>
-                  <label className="pab-img-drop pab-logo-drop">
-                    {form.image ? (
-                      <>
-                        <img src={form.image.startsWith('http') ? form.image : `${BACKEND_URL}${form.image}`} alt="" className="pab-img-preview pab-logo-preview" />
-                        <span className="pab-img-change">{campaignImgUploading ? 'Uploading…' : 'Change'}</span>
-                      </>
-                    ) : (
-                      <span className="pab-img-empty">
-                        <ImageIcon size={20} />
-                        <strong>{campaignImgUploading ? 'Uploading…' : 'Add logo'}</strong>
-                        <small>PNG/JPG · 5MB</small>
-                      </span>
-                    )}
-                    <input type="file" accept="image/*" hidden onChange={uploadCampaignImage} />
-                  </label>
-                </div>
                 <div className="form-row">
                   <div className="form-group"><label>Brand name</label><input className="input-field" value={form.brandName} disabled /></div>
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>

@@ -5,6 +5,7 @@ import { getInitial } from './CreatorComponents';
 import { displayName, creatorFirstName } from '../utils/displayName';
 import { useAuth } from '../App';
 import ChatPopup from './ChatPopup';
+import { Skeleton } from './Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -52,6 +53,7 @@ const previewText = (conv) => {
 export default function MessagesPopup({ onClose }) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(null); // { id, name, photo }
   // A brand sees a creator by FIRST NAME only; a creator keeps the brand's full name.
@@ -71,6 +73,7 @@ export default function MessagesPopup({ onClose }) {
         const r = await axios.get(`${API}/chat/conversations`);
         if (alive) setConversations(Array.isArray(r.data) ? r.data : []);
       } catch { /* thread list may be empty / offline */ }
+      finally { if (alive) setLoading(false); }
     };
     load();
     const t = setInterval(load, 5000);
@@ -109,7 +112,19 @@ export default function MessagesPopup({ onClose }) {
       </div>
 
       <div className="mpop-list">
-        {filtered.length === 0 ? (
+        {loading && conversations.length === 0 ? (
+          // Skeleton rows while the first load is in flight — avoids a brief
+          // "No conversations yet" flash before the threads arrive.
+          Array.from({ length: 4 }).map((_, i) => (
+            <div className="mpop-item" key={`sk-${i}`} aria-hidden="true" style={{ cursor: 'default' }}>
+              <Skeleton width={40} height={40} radius="50%" />
+              <span className="mpop-body">
+                <Skeleton width="55%" height={13} />
+                <Skeleton width="80%" height={11} style={{ marginTop: 7 }} />
+              </span>
+            </div>
+          ))
+        ) : filtered.length === 0 ? (
           <div className="mpop-empty">{conversations.length ? 'No matches' : 'No conversations yet'}</div>
         ) : (
           filtered.map((c) => (

@@ -740,7 +740,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         <div className="cpm-phead">
           <div className="cpm-avatar-wrap">
             <span className={`cpm-avatar-lg ${editable ? 'is-editable' : ''}`} onClick={editable ? () => photoRef.current?.click() : undefined}>
-              {avatar ? <img src={avatar} alt="" /> : name.replace('@', '').charAt(0).toUpperCase()}
+              {avatar ? <img src={avatar} alt="" /> : (loading ? null : name.replace('@', '').charAt(0).toUpperCase())}
             </span>
             {editable && <button type="button" className="cpm-avatar-cam" onClick={() => photoRef.current?.click()} aria-label="Change photo"><Camera size={16} /></button>}
             {editable && <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />}
@@ -792,26 +792,34 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           )}
 
           <h2 className="cpm-name" ref={tabwrapRef}>
-            {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
-            {/* Identity verified — admin-approved KYC. Tells brands this is a real,
-                verified person. Only the boolean reaches the client. */}
-            {data?.kyc_verified && (
-              <span className="cpm-verified" title="Identity verified (KYC)">
-                <BadgeCheck size={17} /> Verified
-              </span>
+            {loading ? <Skeleton width={170} height={26} /> : (
+              <>
+                {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
+                {/* Identity verified — admin-approved KYC. Tells brands this is a real,
+                    verified person. Only the boolean reaches the client. */}
+                {data?.kyc_verified && (
+                  <span className="cpm-verified" title="Identity verified (KYC)">
+                    <BadgeCheck size={17} /> Verified
+                  </span>
+                )}
+              </>
             )}
           </h2>
-          <div className="cpm-id">ID: {publicId}{(city || country) ? ` · ${[city, country].filter(Boolean).join(', ')}` : ''}</div>
+          <div className="cpm-id">{loading ? <Skeleton width={210} height={13} /> : <>ID: {publicId}{(city || country) ? ` · ${[city, country].filter(Boolean).join(', ')}` : ''}</>}</div>
 
           <div className="cpm-stats">
-            <span><strong>{deliverables}</strong> deliverables</span>
-            <span><strong>{languages.length}</strong> languages</span>
+            {loading ? <Skeleton width={170} height={15} /> : (
+              <>
+                <span><strong>{deliverables}</strong> deliverables</span>
+                <span><strong>{languages.length}</strong> languages</span>
+              </>
+            )}
           </div>
 
           <div className="cpm-highlights">
-            <div className="cpm-hl"><label>Category</label><strong>{hlCategory}</strong></div>
-            <div className="cpm-hl"><label>Price / video</label><strong>{hlPrice}</strong></div>
-            <div className="cpm-hl"><label>Delivery</label><strong>{hlDelivery}</strong></div>
+            <div className="cpm-hl"><label>Category</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlCategory}</strong>}</div>
+            <div className="cpm-hl"><label>Price / video</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlPrice}</strong>}</div>
+            <div className="cpm-hl"><label>Delivery</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlDelivery}</strong>}</div>
           </div>
 
         </div>

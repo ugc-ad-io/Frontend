@@ -533,7 +533,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                       <div className="bid-row-left">
                         <div className="bid-number">#{idx + 1}</div>
                         <div className="bid-info">
-                          <div className="bid-creator-name">{String(bid.creator_name || bid.creator_nickname || 'Creator').replace(/^@+/, '')}</div>
+                          <div className="bid-creator-name">{String(bid.creator_name || bid.creator_nickname || 'Creator').replace(/^@+/, '').trim().split(/\s+/)[0]}</div>
                           <div className="bid-meta-inline">
                             <span className="bid-amount-inline">₹{bid.amount}</span>
                             <span className="bid-separator">•</span>

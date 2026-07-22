@@ -1094,7 +1094,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           key: `deal-${deal.campaign_id || deal.campaign_title}`,
           type: 'Deal',
           title: deal.campaign_title || 'Untitled deal',
-          meta: `${(deal.creator_name || deal.creator_nickname) ? String(deal.creator_name || deal.creator_nickname).replace(/^@/, '') : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
+          meta: `${(deal.creator_name || deal.creator_nickname) ? (String(deal.creator_name || deal.creator_nickname).replace(/^@/, '').trim().split(/\s+/)[0]) : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
           target: deal.campaign_id ? `/campaign/${deal.campaign_id}` : '/dashboard/business'
         });
       }
@@ -1396,7 +1396,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     return (
                     <div className="deals-row" key={deal.campaign_id}>
                       <strong className="deal-title" data-label="Campaign">{deal.campaign_title || 'Untitled Campaign'}</strong>
-                      <span className="creator-handle" data-label="Creator">{deal.creator_nickname ? deal.creator_nickname.replace(/^@/, '') : (deal.public_creator_id || '-')}</span>
+                      <span className="creator-handle" data-label="Creator">{(deal.creator_name || deal.creator_nickname) ? String(deal.creator_name || deal.creator_nickname).replace(/^@/, '').trim().split(/\s+/)[0] : (deal.public_creator_id || '-')}</span>
                       <span className={`deal-stage ${tone}`} data-label="Stage">{deal.stage_label || deal.stage || '-'}</span>
                       <span className="deal-date" data-label="Due Date">{formatDate(deal.due_date)}</span>
                       <strong className="deal-funds" data-label="Funds Hold">{formatMoney(deal.escrow_amount)}</strong>
@@ -2335,7 +2335,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 const TABS = [['all', 'All Shipments'], ['transit', 'In Transit'], ['delivered', 'Delivered']];
                 const rows = ship.filter((c) => (shipTab === 'all' ? true : statusOf(c) === shipTab));
                 const cr = (id) => creatorDirectory.find((x) => x.id === id) || {};
-                const cname = (c) => { const u = cr(c.selected_creator); return String(u.full_name || u.name || u.nickname || u.username || (c.selected_creator ? 'Creator' : 'Not selected')).replace(/^@+/, ''); };
+                const cname = (c) => { const u = cr(c.selected_creator); const nm = String(u.full_name || u.name || u.nickname || u.username || (c.selected_creator ? 'Creator' : 'Not selected')).replace(/^@+/, '').trim(); return c.selected_creator ? (nm.split(/\s+/)[0] || nm) : nm; };
                 const cinit = (c) => (cname(c).replace('@', '')[0] || 'C').toUpperCase();
                 const cphoto = (c) => cr(c.selected_creator).profile_photo;
 

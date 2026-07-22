@@ -179,12 +179,18 @@ export default function BrandCampaigns() {
         <div className="bcam-grid">
           {Array.from({ length: 6 }).map((_, i) => (
             <article className="bcam-card" key={i} aria-hidden="true">
-              {/* 150px cover — matches .bcam-img */}
-              <Skeleton height={150} radius={0} style={{ display: 'block' }} />
-              <div className="bcam-body">
-                <Skeleton width="70%" height={16} />
-                <Skeleton width="45%" height={12} style={{ marginTop: 10 }} />
-                <Skeleton width={110} height={14} style={{ marginTop: 16 }} />
+              <div className="bcam-top">
+                <Skeleton width={46} height={46} radius={13} />
+                <Skeleton width={60} height={22} radius={20} />
+              </div>
+              <div className="bcam-head-txt">
+                <Skeleton width="75%" height={16} />
+                <Skeleton width="45%" height={12} style={{ marginTop: 6 }} />
+              </div>
+              <div className="bcam-divider" />
+              <div className="bcam-foot">
+                <Skeleton width={90} height={20} />
+                <Skeleton width={72} height={38} radius={11} />
               </div>
             </article>
           ))}

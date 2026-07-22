@@ -264,15 +264,22 @@ export default function BrowseBriefs() {
         <div className="cmk-bb-grid">
           {Array.from({ length: 8 }).map((_, i) => (
             <article className="cmk-bb-card" key={i} aria-hidden="true">
-              <Skeleton height={150} radius={0} style={{ display: 'block' }} />
-              <div className="cmk-bb-body">
-                <div className="cmk-bb-brandrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Skeleton width={26} height={26} radius="50%" />
-                  <Skeleton width={90} height={12} />
-                </div>
-                <Skeleton width="80%" height={16} style={{ marginTop: 10 }} />
-                <Skeleton width="55%" height={12} style={{ marginTop: 8 }} />
-                <Skeleton width={90} height={16} style={{ marginTop: 12 }} />
+              <div className="cmk-bb-top">
+                <Skeleton width={46} height={46} radius={13} />
+                <Skeleton width={34} height={34} radius={10} />
+              </div>
+              <div className="cmk-bb-head">
+                <Skeleton width="45%" height={12} />
+                <Skeleton width="80%" height={16} style={{ marginTop: 6 }} />
+              </div>
+              <div className="cmk-bb-tags">
+                <Skeleton width={64} height={24} radius={8} />
+                <Skeleton width={74} height={24} radius={8} />
+              </div>
+              <div className="cmk-bb-divider" />
+              <div className="cmk-bb-foot">
+                <Skeleton width={84} height={22} />
+                <Skeleton width={92} height={38} radius={11} />
               </div>
             </article>
           ))}

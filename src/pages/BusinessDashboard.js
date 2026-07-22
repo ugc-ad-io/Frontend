@@ -5376,7 +5376,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
            icon, nudged further right (away from the name) via extra margin. */
         .cb-bid-name { width: 100%; }
         .cb-bid-name .cb-star {
-          margin-left: auto; margin-right: 6px; width: 28px; height: 28px; font-size: 16px;
+          margin-left: auto; margin-right: 12px; width: 34px; height: 34px; font-size: 21px;
           border: none; background: none;
         }
         .cb-bid-name .cb-star:hover { background: none; }

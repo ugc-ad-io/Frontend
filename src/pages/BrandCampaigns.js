@@ -29,6 +29,7 @@ const TABS = [
   { key: 'live', label: 'Live', match: (s) => ['active', 'in_progress'].includes(s) },
   { key: 'review', label: 'In Review', match: (s) => s === 'work_submitted' },
   { key: 'completed', label: 'Completed', match: (s) => s === 'completed' },
+  { key: 'rejected', label: 'Rejected', match: (s) => s === 'rejected' },
   { key: 'drafts', label: 'Drafts', match: (s) => s === 'draft' },
 ];
 

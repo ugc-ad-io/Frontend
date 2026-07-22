@@ -371,6 +371,13 @@ export default function AdminDisputes() {
               <button type="button" className="disp-close" onClick={() => setSelected(null)}><X size={20} /></button>
             </div>
 
+            {selected && (
+              <div className="disp-parties">
+                <span className="disp-party disp-party--brand"><em>Brand</em> {selected.brand_name || '—'}</span>
+                <span className="disp-party disp-party--creator"><em>Creator</em> {selected.creator_name || '—'}</span>
+              </div>
+            )}
+
             {detailLoading || !selected ? (
               <div className="disp-empty">Loading evidence…</div>
             ) : (
@@ -612,6 +619,11 @@ export default function AdminDisputes() {
         .disp-claim { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; padding: 8px 12px; border-radius: 8px; }
         .disp-brief-text { white-space: pre-wrap; color: #4b4b66; font-size: 13px; }
         .disp-meta { font-size: 13px; }
+        .disp-parties { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 20px; border-bottom: 1px solid #eef0f6; background: #fafbff; }
+        .disp-party { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: #15163a; padding: 6px 12px; border-radius: 10px; border: 1px solid #e6e8f3; background: #fff; }
+        .disp-party em { font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; padding: 2px 7px; border-radius: 20px; }
+        .disp-party--brand em { background: #eef0ff; color: #4452f0; }
+        .disp-party--creator em { background: #e3f7ec; color: #15a35b; }
         .disp-timeline { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
         .disp-timeline li { padding: 6px 0; border-bottom: 1px solid #f4f4f8; }
         .disp-timeline span { color: #9a9ab0; margin-right: 6px; }

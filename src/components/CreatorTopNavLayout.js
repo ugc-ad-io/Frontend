@@ -80,6 +80,16 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
+  const toggleMobileMenu = () => {
+    setMenuOpen(false);
+    setMobileOpen((open) => !open);
+  };
+
+  const toggleAccountMenu = () => {
+    setMobileOpen(false);
+    setMenuOpen((open) => !open);
+  };
+
   // KYC nudge: creators who haven't verified see a banner across every page
   // (except the KYC page itself) prompting them to finish verification.
   const kycStatus = user?.kyc?.status || 'not_submitted';
@@ -105,7 +115,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
       />
       <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={toggleMobileMenu}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">
@@ -142,7 +152,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
 
           <div className="cmk-nav-right" ref={menuRef}>
             <NotificationBell />
-            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
+            <button type="button" className="cmk-avatar-btn" onClick={toggleAccountMenu} aria-label="Account menu" aria-expanded={menuOpen}>
               <span className="cmk-avatar">
                 {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
               </span>

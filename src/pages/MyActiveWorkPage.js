@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw, Inbox, IndianRupee } from 'lucide-react';
+import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw, Inbox, IndianRupee, ListFilter, ChevronDown } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -93,6 +93,9 @@ export default function MyActiveWorkPage() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('active');
+  const [expandedProgress, setExpandedProgress] = useState(() => new Set());
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const mobileFilterRef = useRef(null);
   // Land on the Requests tab once if there's a booking waiting on the creator — the
   // whole point of the "New booking request" notification is to not miss it. Only
   // fires on the first load that has requests; manual tab switches stick after that.
@@ -124,6 +127,14 @@ export default function MyActiveWorkPage() {
     }
   }, [campaigns, loading]);
 
+  useEffect(() => {
+    const closeMobileFilter = (event) => {
+      if (!mobileFilterRef.current?.contains(event.target)) setMobileFilterOpen(false);
+    };
+    document.addEventListener('pointerdown', closeMobileFilter);
+    return () => document.removeEventListener('pointerdown', closeMobileFilter);
+  }, []);
+
   const counts = useMemo(() => {
     const o = {};
     TABS.forEach((t) => { o[t.key] = campaigns.filter(t.match).length; });
@@ -145,10 +156,26 @@ export default function MyActiveWorkPage() {
       <div className="cmk-tabs-row">
         <div className="cmk-tabs">
           {TABS.map((t) => (
-            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
+            <button key={t.key} type="button" className={`${tab === t.key ? 'is-active' : ''} ${['requests', 'completed', 'cancelled'].includes(t.key) ? 'cmk-aw-mobile-filtered' : ''}`} onClick={() => setTab(t.key)}>
               {t.label} <em>({counts[t.key] || 0})</em>
             </button>
           ))}
+        </div>
+        <div className="cmk-aw-mobile-filter" ref={mobileFilterRef}>
+          <button type="button" className={`cmk-aw-filter-btn ${['requests', 'completed', 'cancelled'].includes(tab) ? 'is-active' : ''}`} onClick={() => setMobileFilterOpen((open) => !open)} aria-haspopup="menu" aria-expanded={mobileFilterOpen}>
+            <ListFilter size={16} />
+            {['requests', 'completed', 'cancelled'].includes(tab) ? TABS.find((item) => item.key === tab).label : 'Filter'}
+            <ChevronDown size={15} />
+          </button>
+          {mobileFilterOpen && (
+            <div className="cmk-aw-filter-menu" role="menu">
+              {TABS.filter((item) => ['requests', 'completed', 'cancelled'].includes(item.key)).map((item) => (
+                <button key={item.key} type="button" role="menuitem" className={tab === item.key ? 'is-active' : ''} onClick={() => { setTab(item.key); setMobileFilterOpen(false); }}>
+                  <span>{item.label}</span><em>({counts[item.key] || 0})</em>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -176,6 +203,8 @@ export default function MyActiveWorkPage() {
             const shortId = `#${String(c.id).slice(-4).toUpperCase()}`;
             const cur = stageIndex(c);
             const steps = stagesFor(c);
+            const progress = steps.labels.length > 1 ? (cur / (steps.labels.length - 1)) * 100 : 0;
+            const progressOpen = expandedProgress.has(c.id);
             return (
               <article
                 key={c.id}
@@ -231,17 +260,43 @@ export default function MyActiveWorkPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="cmk-awc-steps">
-                    {steps.labels.map((label, i) => (
-                      <div
-                        key={label}
-                        className={`awc-step ${i < cur ? 'done' : ''} ${i === cur ? 'current' : ''}`}
-                        style={{ '--s': steps.colors[i] }}
-                      >
-                        <span className="awc-step-lbl">{label}</span>
-                        <i className="awc-step-bar" />
-                      </div>
-                    ))}
+                  <div className={`cmk-awc-progress ${progressOpen ? 'is-expanded' : ''}`} onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="cmk-awc-progress-summary"
+                      onClick={() => setExpandedProgress((current) => {
+                        const next = new Set(current);
+                        if (next.has(c.id)) next.delete(c.id);
+                        else next.add(c.id);
+                        return next;
+                      })}
+                      aria-expanded={progressOpen}
+                      aria-controls={`campaign-progress-${c.id}`}
+                    >
+                      <span className="cmk-awc-progress-labels">
+                        <strong>Start</strong>
+                        <em>{steps.labels[cur]}</em>
+                        <strong>Payout</strong>
+                      </span>
+                      <span className="cmk-awc-progress-track" aria-hidden="true">
+                        <i style={{ width: `${progress}%` }} />
+                        <b style={{ left: `${progress}%` }} />
+                      </span>
+                      <small>{progressOpen ? 'Hide stages' : 'View stages'} <ChevronDown size={13} /></small>
+                    </button>
+
+                    <div id={`campaign-progress-${c.id}`} className="cmk-awc-steps">
+                      {steps.labels.map((label, i) => (
+                        <div
+                          key={label}
+                          className={`awc-step ${i < cur ? 'done' : ''} ${i === cur ? 'current' : ''}`}
+                          style={{ '--s': steps.colors[i] }}
+                        >
+                          <span className="awc-step-lbl">{label}</span>
+                          <i className="awc-step-bar" />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

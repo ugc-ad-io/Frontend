@@ -343,9 +343,15 @@ export default function ProfileSettings() {
   // Mobile settings drill-down: show the tab list first, open a panel on tap.
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches);
   const [brandDetailOpen, setBrandDetailOpen] = useState(false);
+  const [creatorDetailOpen, setCreatorDetailOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
   const [brandProfile, setBrandProfile] = useState(defaultBrandProfile);
+
+  const closeCreatorSettingsDetail = () => {
+    setCreatorDetailOpen(false);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
   const [company, setCompany] = useState(defaultCompany);
   const [team, setTeam] = useState(defaultTeam);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -1335,19 +1341,37 @@ export default function ProfileSettings() {
       </div>
       <div className="ps-content">
           <div className="ps-container">
-            <div className="ps-tab-sidebar">
-              {CREATOR_TABS.map((t) => (
-                <button
-                  key={t.id}
-                  className={`ps-tab-btn ${activeTab === t.id ? 'is-active' : ''}`}
-                  onClick={() => setActiveTab(t.id)}
-                >
-                  <t.icon size={20} /> {t.label}
-                </button>
-              ))}
-            </div>
+            {isMobile && !creatorDetailOpen ? (
+              <div className="bs-menu ps-settings-menu">
+                {CREATOR_TABS.map((tab) => (
+                  <button key={tab.id} type="button" className="bs-menu-item" onClick={() => { setActiveTab(tab.id); setCreatorDetailOpen(true); }}>
+                    <span className="bs-menu-ic"><tab.icon size={18} /></span>
+                    <span className="bs-menu-txt">{tab.label}</span>
+                    <ChevronRight size={18} className="bs-menu-chev" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <>
+                {isMobile ? (
+                  <button type="button" className="bs-back ps-settings-back" onClick={closeCreatorSettingsDetail}>
+                    <ChevronLeft size={18} /> Back
+                  </button>
+                ) : (
+                  <div className="ps-tab-sidebar">
+                    {CREATOR_TABS.map((t) => (
+                      <button
+                        key={t.id}
+                        className={`ps-tab-btn ${activeTab === t.id ? 'is-active' : ''}`}
+                        onClick={() => setActiveTab(t.id)}
+                      >
+                        <t.icon size={20} /> {t.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-            <div className="ps-panel">
+                <div className="ps-panel">
               {activeTab === 'profile' && user?.id && (
                 <CreatorProfileModal
                   id={user.id}
@@ -1785,7 +1809,9 @@ export default function ProfileSettings() {
                   </div>
                 </>
               )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
       </div>
 
@@ -1839,7 +1865,45 @@ export default function ProfileSettings() {
         .ps-social-card.is-soon strong{color:#585c7e}
         .ps-social-card strong{display:block;font-size:14.5px;color:#15163a}
         .ps-social-card small{color:#9296ba;font-size:12.5px}
-        @media (max-width:640px){.ps-social-grid{grid-template-columns:1fr}}
+        @media (max-width:640px){
+          .ps-social-grid{grid-template-columns:1fr}
+          .cmk-page-head h1{font-size:24px;line-height:1.2}
+          .cmk-page-head p{font-size:13.5px;line-height:1.45}
+          .ps-content{padding:14px 12px}
+          .ps-panel{padding:16px 14px;border-radius:15px}
+          .ps-panel h2{font-size:22px;line-height:1.2;margin:0 0 6px}
+          .ps-panel-desc{font-size:13px;line-height:1.45;margin-bottom:20px}
+          .ps-form-group{margin-bottom:17px}
+          .ps-form-group label{font-size:13px;margin-bottom:6px}
+          .ps-form-group input[type="text"],
+          .ps-form-group input[type="password"],
+          .ps-form-group input[type="file"],
+          .ps-form-group textarea,
+          .ps-form-group select{padding:10px 12px;border-width:1.5px;border-radius:10px;font-size:14px;letter-spacing:normal}
+          .ps-form-group input::placeholder,
+          .ps-form-group textarea::placeholder{font-size:13px;letter-spacing:normal}
+          .ps-btn-primary,.ps-btn-danger{padding:10px 18px;border-radius:10px;font-size:13.5px}
+          .ps-btn-primary svg,.ps-btn-danger svg{width:17px;height:17px}
+          .ps-info-box,.ps-success-box{padding:20px 14px;margin-bottom:17px}
+          .ps-info-box svg,.ps-success-box svg{width:38px;height:38px;margin-bottom:10px}
+          .ps-info-box h3,.ps-success-box h3{font-size:18px;line-height:1.3;margin:0 0 5px}
+          .ps-info-box p,.ps-success-box p{font-size:12.5px;line-height:1.45;margin:0}
+          .ps-toggle-list{gap:8px;margin-bottom:17px}
+          .ps-toggle-row{gap:10px;padding:11px 12px;border-radius:12px}
+          .ps-toggle-ic{width:34px;height:34px;border-radius:9px}
+          .ps-toggle-ic svg{width:16px;height:16px}
+          .ps-toggle-txt strong{font-size:13px;line-height:1.3}
+          .ps-toggle-txt p{font-size:11px;line-height:1.35}
+          .ps-switch{width:40px;height:23px}
+          .ps-switch i{width:17px;height:17px}
+          .ps-switch.is-on i{left:20px}
+          .ps-social-grid{gap:8px}
+          .ps-social-card{gap:10px;padding:11px 12px;border-radius:12px}
+          .ps-social-ic{width:38px;height:38px;border-radius:10px}
+          .ps-social-ic svg{width:18px;height:18px}
+          .ps-social-card strong{font-size:13px;line-height:1.3}
+          .ps-social-card small{font-size:11px}
+        }
       `}</style>
       {legalDoc && (
         <div className="ps-legal-overlay" onClick={() => setLegalDoc(null)}>

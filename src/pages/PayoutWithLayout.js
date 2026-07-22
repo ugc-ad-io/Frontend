@@ -29,6 +29,7 @@ export default function PayoutWithLayout() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [showDrop, setShowDrop] = useState(false);
+  const [expandedEarning, setExpandedEarning] = useState(null);
 
   // Withdrawal request modal
   const [showRequest, setShowRequest] = useState(false);
@@ -109,20 +110,22 @@ export default function PayoutWithLayout() {
 
   return (
     <CreatorTopNavLayout>
-      <div className="cmk-page-head cmk-rise" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className="cmk-page-head cmk-rise pwl-page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1>Earnings</h1>
           <p>See what each brand paid you, what's still in escrow, and your withdrawals.</p>
         </div>
         <button type="button" className="pwl-req-btn" onClick={() => setShowRequest(true)}>
-          <ArrowUpRight size={17} /> Request Withdrawal
+          <ArrowUpRight size={17} />
+          <span className="pwl-req-full">Request Withdrawal</span>
+          <span className="pwl-req-short">Withdraw</span>
         </button>
       </div>
 
       {/* No inline gridTemplateColumns here: .cmk-stats-2l already defaults to 4 columns,
           and an inline style outranks stylesheet media queries — it silently defeated the
           1080px (→2 col) and 540px (→1 col) rules, so phones got four ~80px cards. */}
-      <div className="cmk-stats cmk-stats-2l">
+      <div className="cmk-stats cmk-stats-2l pwl-stats">
         {stats.map((s) => (
           <div key={s.lbl} className="cmk-stat cmk-rise">
             <div className="cmk-stat-head">
@@ -182,7 +185,8 @@ export default function PayoutWithLayout() {
               message="When a brand's payment for a completed deal is released, it shows up here with who paid and how much."
             />
           ) : (
-            <table className="cmk-table">
+            <>
+            <table className="cmk-table pwl-desktop-earnings">
               <thead>
                 <tr>
                   <th>From</th><th>Campaign</th><th>Deal amount</th>
@@ -211,6 +215,38 @@ export default function PayoutWithLayout() {
                 })}
               </tbody>
             </table>
+            <div className="pwl-mobile-earnings">
+              {earnings.map((row) => {
+                const fees = Number(row.commission_amount || 0)
+                  + Number(row.tds_amount || 0)
+                  + Number(row.penalty_amount || 0);
+                const open = expandedEarning === row.id;
+                return (
+                  <article key={row.id} className={`pwl-earning-card ${open ? 'is-open' : ''}`}>
+                    <button type="button" className="pwl-earning-summary" onClick={() => setExpandedEarning(open ? null : row.id)} aria-expanded={open}>
+                      <span className="pwl-earning-main">
+                        <strong>{row.brand_name || 'Brand'}</strong>
+                        <small>{row.campaign_title || 'Campaign'}</small>
+                      </span>
+                      <span className="pwl-earning-net">
+                        <small>Received</small>
+                        <strong>{inr(row.net_amount)}</strong>
+                      </span>
+                      <ChevronDown size={17} className="pwl-earning-chevron" />
+                    </button>
+                    {open && (
+                      <div className="pwl-earning-details">
+                        <p><span>Deal amount</span><strong>{inr(row.gross_amount)}</strong></p>
+                        <p><span>Platform fee</span><strong>{fees ? `− ${inr(fees)}` : '—'}</strong></p>
+                        <p><span>You received</span><strong>{inr(row.net_amount)}</strong></p>
+                        <p><span>Date</span><strong>{row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '—'}</strong></p>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+            </>
           )
         ) : filtered.length === 0 ? (
           <EmptyState title="No withdrawals yet" message="Money you move to your bank or UPI will appear here." />
@@ -299,12 +335,14 @@ export default function PayoutWithLayout() {
 
       <style>{`
         .pwl-req-btn { display: inline-flex; align-items: center; gap: 8px; background: #07074e; color: #fff; border: none; border-radius: 11px; padding: 11px 18px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 10px 22px -12px rgba(7,7,78,0.5); }
+        .pwl-req-short { display: none; }
         .pwl-req-btn:hover { background: #12124f; }
         .pwl-tabs { display: flex; gap: 6px; margin: 18px 0 12px; border-bottom: 1.5px solid #eef2f9; }
         .pwl-tabs button { display: inline-flex; align-items: center; gap: 7px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1.5px; padding: 10px 14px; font-size: 0.9rem; font-weight: 700; color: #94a3b8; cursor: pointer; }
         .pwl-tabs button:hover { color: #475569; }
         .pwl-tabs button.on { color: #07074e; border-bottom-color: #07074e; }
         .pwl-count { background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 1px 8px; font-size: 0.72rem; font-weight: 700; }
+        .pwl-mobile-earnings { display: none; }
         .pwl-modal-ov { position: fixed; inset: 0; background: rgba(15,18,40,0.5); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .pwl-modal { background: #fff; width: 100%; max-width: 460px; border-radius: 18px; padding: 24px; box-shadow: 0 30px 70px rgba(7,7,78,0.3); max-height: 90vh; overflow-y: auto; }
         .pwl-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
@@ -324,6 +362,37 @@ export default function PayoutWithLayout() {
         .pwl-submit { flex: 2; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; background: #07074e; color: #fff; border-radius: 11px; padding: 12px; font-weight: 600; cursor: pointer; }
         .pwl-submit:disabled, .pwl-cancel:disabled { opacity: 0.6; cursor: default; }
         .pwl-note { font-size: 0.74rem; color: #9296ba; text-align: center; margin: 14px 0 0; }
+        @media (max-width: 540px) {
+          .pwl-page-head { flex-wrap: nowrap !important; gap: 10px !important; }
+          .pwl-page-head > div { flex: 1; min-width: 0; }
+          .pwl-page-head .pwl-req-btn { flex: none; padding: 10px 13px; font-size: 0.8rem; }
+          .pwl-req-full { display: none; }
+          .pwl-req-short { display: inline; }
+          .pwl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+          .pwl-stats .cmk-stat { min-width: 0; padding: 14px; border-radius: 16px; }
+          .pwl-stats .cmk-stat-head { align-items: center; gap: 8px; margin-bottom: 14px; }
+          .pwl-stats .cmk-stat-head .cmk-ic { width: 38px; height: 38px; border-radius: 11px; }
+          .pwl-stats .cmk-stat-head .cmk-ic svg { width: 17px; height: 17px; }
+          .pwl-stats .cmk-stat-lbl { min-width: 0; font-size: 12px; line-height: 1.25; }
+          .pwl-stats .cmk-stat-row { align-items: flex-start; flex-direction: column; gap: 5px; }
+          .pwl-stats .cmk-stat-val { font-size: 21px; white-space: nowrap; }
+          .pwl-stats .cmk-stat-meta { min-width: 0; font-size: 10.5px; line-height: 1.25; }
+          .pwl-desktop-earnings { display: none; }
+          .pwl-mobile-earnings { display: flex; flex-direction: column; }
+          .pwl-earning-card + .pwl-earning-card { border-top: 1px solid #eef0f6; }
+          .pwl-earning-summary { width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto 18px; align-items: center; gap: 10px; padding: 14px; border: 0; background: #fff; color: #15163a; text-align: left; cursor: pointer; font-family: inherit; }
+          .pwl-earning-main, .pwl-earning-net { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+          .pwl-earning-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+          .pwl-earning-main small, .pwl-earning-net small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #9296ba; font-size: 10.5px; }
+          .pwl-earning-net { text-align: right; }
+          .pwl-earning-net strong { white-space: nowrap; font-size: 14px; }
+          .pwl-earning-chevron { color: #7777b7; transition: transform .18s; }
+          .pwl-earning-card.is-open .pwl-earning-chevron { transform: rotate(180deg); }
+          .pwl-earning-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 14px 14px; background: #fafaff; }
+          .pwl-earning-details p { margin: 0; padding-top: 11px; border-top: 1px solid #eceef7; display: flex; flex-direction: column; gap: 4px; }
+          .pwl-earning-details span { color: #9296ba; font-size: 10.5px; }
+          .pwl-earning-details strong { color: #15163a; font-size: 12.5px; }
+        }
       `}</style>
     </CreatorTopNavLayout>
   );

@@ -362,6 +362,21 @@
 .cmk-tabs button.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;
   background:linear-gradient(90deg,var(--indigo),var(--violet))}
 .cmk-tabs-tools{display:flex;align-items:center;gap:12px;padding-bottom:8px}
+.cmk-aw-mobile-filter{display:none}
+
+@media (max-width:620px){
+  .cmk-tabs-row{flex-wrap:nowrap;gap:12px}
+  .cmk-tabs{gap:20px;overflow:visible}
+  .cmk-tabs .cmk-aw-mobile-filtered{display:none}
+  .cmk-aw-mobile-filter{display:block;position:relative;margin-left:auto;padding-bottom:8px;flex:none}
+  .cmk-aw-filter-btn{height:38px;display:flex;align-items:center;gap:6px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink-2);font:700 13px/1 var(--font-body,inherit);cursor:pointer}
+  .cmk-aw-filter-btn.is-active{border-color:var(--indigo);color:var(--indigo);background:#f4f5ff}
+  .cmk-aw-filter-menu{position:absolute;right:0;top:calc(100% + 2px);z-index:50;width:180px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 36px rgba(17,20,45,.16)}
+  .cmk-aw-filter-menu button{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font:600 14px/1.2 var(--font-body,inherit);cursor:pointer}
+  .cmk-aw-filter-menu button em{font-style:normal;color:var(--muted)}
+  .cmk-aw-filter-menu button.is-active{background:var(--indigo);color:#fff}
+  .cmk-aw-filter-menu button.is-active em{color:rgba(255,255,255,.8)}
+}
 
 /* ── active work rows ────────────────────────────────────────────────────── */
 .cmk-aw-list{display:flex;flex-direction:column;gap:16px}
@@ -433,6 +448,8 @@
 
 /* segmented stage progress bar — label above each segment */
 .cmk-awc-steps{flex:1;min-width:0;display:flex;gap:12px;align-items:flex-end}
+.cmk-awc-progress{flex:1;min-width:0;display:flex}
+.cmk-awc-progress-summary{display:none}
 .awc-step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px}
 .awc-step-lbl{max-width:100%;font-size:11.5px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .awc-step-bar{width:100%;height:7px;border-radius:6px;background:#e7e9f7}
@@ -1512,11 +1529,11 @@
   /* filters + tabs scroll instead of wrapping awkwardly */
   .cmk-filter-row{gap:8px}
   .cmk-select{min-width:auto;flex:1 1 30%}
-  /* Pair the filters two-up and let each select fill its group. Previously every
-     .cmk-sort spanned 100% while the select inside stayed ~140px, so Browse showed
-     three tall rows each with a narrow dropdown hugging the left edge. */
-  .cmk-filter-row .cmk-sort{margin-left:0;width:auto;flex:1 1 calc(50% - 4px);min-width:0}
-  .cmk-filter-row .cmk-sort select{width:100%}
+  /* Keep Budget, Delivery and Sort by on one compact row on creator mobile. */
+  .cmk-filter-row .cmk-sort{margin-left:0;width:auto;flex:0 1 30%;min-width:0;gap:4px}
+  .cmk-filter-row .cmk-sort:nth-of-type(3){flex-basis:calc(40% - 16px)}
+  .cmk-filter-row .cmk-sort label{font-size:11px;letter-spacing:.15px;white-space:nowrap}
+  .cmk-filter-row .cmk-sort select{width:100%;min-width:0;height:42px;padding:0 25px 0 10px;font-size:12px;background-position:right 8px center;background-size:13px}
   /* margin-left:auto threw this onto a 4th row, detached from the filters it clears. */
   .cmk-filter-row .cmk-filter-clear{margin-left:0;flex:1 1 100%}
   .cmk-sort{margin-left:0;width:100%}
@@ -1532,7 +1549,20 @@
      This rule used to target .cmk-aw-steps/.cmk-step, which NO page renders (the
      markup is .cmk-awc-steps/.awc-step), so it never applied and the stepper stayed
      squeezed on phones. */
-  .cmk-awc-steps{overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .cmk-awc-progress{flex:1 1 100%;order:3;display:block;min-width:0}
+  .cmk-awc-progress-summary{width:100%;display:flex;flex-direction:column;gap:7px;padding:2px 7px 0;border:0;background:transparent;color:var(--ink);font-family:inherit;cursor:pointer}
+  .cmk-awc-progress-labels{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;font-size:11px}
+  .cmk-awc-progress-labels strong:first-child{text-align:left}
+  .cmk-awc-progress-labels strong:last-child{text-align:right}
+  .cmk-awc-progress-labels em{max-width:130px;color:var(--indigo);font-style:normal;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cmk-awc-progress-track{position:relative;width:calc(100% - 14px);height:7px;display:block;margin:0 7px;border-radius:999px;background:#e7e9f7}
+  .cmk-awc-progress-track i{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:linear-gradient(90deg,#3b82f6,#6d7bff)}
+  .cmk-awc-progress-track b{position:absolute;top:50%;width:15px;height:15px;border:3px solid #fff;border-radius:50%;background:#6d7bff;box-shadow:0 0 0 1px rgba(109,123,255,.24);transform:translate(-50%,-50%)}
+  .cmk-awc-progress-summary small{display:flex;align-items:center;align-self:center;gap:3px;color:var(--muted);font-size:10px;font-weight:700}
+  .cmk-awc-progress-summary small svg{transition:transform .18s ease}
+  .cmk-awc-progress.is-expanded .cmk-awc-progress-summary small svg{transform:rotate(180deg)}
+  .cmk-awc-steps{display:none;overflow-x:auto;padding:7px 0 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .cmk-awc-progress.is-expanded .cmk-awc-steps{display:flex}
   .cmk-awc-steps::-webkit-scrollbar{display:none}
   /* Size each step to its own label. With flex:1 the 5 stages split ~330px, leaving
      ~56px each, which ellipsised "Video Submission" down to "Vid…". */
@@ -1751,8 +1781,8 @@
     right: 0;
     bottom: 0;
     z-index: 149;
-    background: rgba(8, 8, 30, 0.52);
-    backdrop-filter: blur(3px);
+    background: transparent;
+    backdrop-filter: none;
     animation: cmkFadeIn .2s ease;
   }
 
@@ -1843,12 +1873,16 @@
     color: #15163a;
   }
 
-  .cmk-mobile-item.is-active {
-    background: linear-gradient(100deg, #23236a, #12124f);
-    color: #fff;
+  /* Creator drawer: indicate the current page with colour only. A full-width dark
+     block felt like a pressed button and stayed behind after navigation. */
+  .cmk-mobile-item.is-active,
+  .cmk-mobile-item.is-active:hover,
+  .cmk-mobile-item:active {
+    background: transparent;
+    color: var(--indigo);
   }
 
-  .cmk-mobile-item.is-active svg { color: #fff; }
+  .cmk-mobile-item.is-active svg { color: var(--indigo); }
 
   .cmk-mobile-sep {
     height: 1px;

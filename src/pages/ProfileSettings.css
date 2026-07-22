@@ -2288,6 +2288,19 @@
     padding: calc(var(--spacing) * 4);
   }
 
+  .ps-settings-menu {
+    width: 100%;
+  }
+
+  .ps-settings-back {
+    width: fit-content;
+    margin-bottom: 14px;
+    position: sticky;
+    top: calc(var(--cmk-nav-height, 72px) + 8px);
+    z-index: 110;
+    box-shadow: 0 6px 18px rgba(15, 22, 58, 0.1);
+  }
+
   .ps-topbar {
     padding: calc(var(--spacing) * 4) calc(var(--spacing) * 5);
   }
@@ -2296,6 +2309,7 @@
 /* Phone: reclaim horizontal space. .ps-panel's 32px padding sits INSIDE .ps-content's
    own padding, so a 360px screen lost ~110px of width before any field was drawn. */
 @media (max-width: 620px) {
+  .ps-content { overflow: visible; }
   .ps-panel { padding: 18px 16px; border-radius: 16px; }
   .ps-info-box, .ps-success-box { padding: 24px 18px; }
 }

@@ -272,7 +272,15 @@ export default function MyDealsHubPage() {
           border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 13.5px; cursor: pointer; font-family: inherit;
           background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .mdh-card.is-req { padding-right: 16px; }
-        @media (max-width: 560px) { .mdh-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 560px) {
+          .mdh-grid { grid-template-columns: 1fr; }
+          .mdh-card:not(.is-req) { padding-right: 16px; }
+          .mdh-card:not(.is-req) .mdh-amt { justify-self: end; padding-top: 16px; }
+          .mdh-go { right: 10px; top: 9px; transform: none; width: 24px; height: 24px;
+            border-radius: 0; background: transparent; }
+          .mdh-go:hover, .mdh-go:active { background: transparent; }
+          .mdh-go svg { width: 15px; height: 15px; }
+        }
       `}</style>
     </CreatorTopNavLayout>
   );

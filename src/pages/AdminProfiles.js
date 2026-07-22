@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Users as UsersIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, XCircle, Users as UsersIcon, ChevronDown, ChevronUp, Play, ExternalLink } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -48,15 +48,40 @@ const isEmptyValue = (v) =>
   (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
 
 const isUrl = (v) => typeof v === 'string' && /^https?:\/\//i.test(v.trim());
+const isVideoUrl = (v) => typeof v === 'string' && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(v.trim());
+
+// A raw Cloudinary/asset URL is unreadable and wraps across the row — show a
+// short, clickable action instead ("Watch video" / "Open link") so admins can
+// review submitted work with one tap instead of hunting through pasted text.
+function LinkChip({ url, index, total }) {
+  const n = total > 1 ? ` ${index + 1}` : '';
+  const video = isVideoUrl(url);
+  return (
+    <a href={String(url).trim()} target="_blank" rel="noreferrer" className="ap-link">
+      {video ? <Play size={13} /> : <ExternalLink size={13} />}
+      {video ? `Watch video${n}` : `Open link${n}`}
+    </a>
+  );
+}
 
 function DetailValue({ value }) {
   if (typeof value === 'boolean') return <span>{value ? 'Yes' : 'No'}</span>;
-  if (isUrl(value)) {
-    return <a href={value.trim()} target="_blank" rel="noreferrer" className="ap-link">{value}</a>;
-  }
+  if (isUrl(value)) return <LinkChip url={value} index={0} total={1} />;
   if (Array.isArray(value)) {
     const allPrimitive = value.every((v) => v === null || typeof v !== 'object');
-    if (allPrimitive) return <span>{value.filter((v) => !isEmptyValue(v)).join(', ')}</span>;
+    if (allPrimitive) {
+      const clean = value.filter((v) => !isEmptyValue(v));
+      // A portfolio/attachments field is usually an array of URLs — each one
+      // needs its own clickable action, not a single comma-joined blob of text.
+      if (clean.length && clean.every((v) => isUrl(v))) {
+        return (
+          <div className="ap-link-list">
+            {clean.map((v, i) => <LinkChip key={i} url={v} index={i} total={clean.length} />)}
+          </div>
+        );
+      }
+      return <span>{clean.join(', ')}</span>;
+    }
     return (
       <div className="ap-nested">
         {value.map((v, i) => (
@@ -577,13 +602,29 @@ export default function AdminProfiles() {
         }
 
         .ap-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
           color: #4f46e5;
+          background: #eef0ff;
+          border: 1px solid #dfe2ff;
+          border-radius: 8px;
+          padding: 5px 10px;
+          font-size: 0.8rem;
+          font-weight: 700;
           text-decoration: none;
-          overflow-wrap: break-word;
+          white-space: nowrap;
         }
 
         .ap-link:hover {
-          text-decoration: underline;
+          background: #e2e5ff;
+          border-color: #c7ccf0;
+        }
+
+        .ap-link-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
         }
 
         .ap-nested {

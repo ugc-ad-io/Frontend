@@ -137,7 +137,6 @@ export default function VideoReviewModal({
   return (
     <div className="vrm-ov" onClick={onClose}>
       <div className="vrm" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="vrm-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         {/* ── Left: player ─────────────────────────────────────────────── */}
         <div className="vrm-left">
           <div className="vrm-lhead">
@@ -201,6 +200,7 @@ export default function VideoReviewModal({
         <div className="vrm-right">
           <div className="vrm-rhead">
             <span>{readOnly ? 'Requested changes' : 'Comments'}{comments.length > 0 && <b>{comments.length}</b>}</span>
+            <button type="button" className="vrm-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
           </div>
 
           {readOnly && (
@@ -334,8 +334,6 @@ export default function VideoReviewModal({
           .vrm-play:hover,.vrm-full:hover{background:rgba(255,255,255,.18)}
           .vrm-full{margin-left:auto}
           .vrm-track-time{color:#8b90b5;font-size:12px;font-variant-numeric:tabular-nums}
-          .vrm-close{position:absolute;top:28px;right:20px;z-index:5;width:38px;height:38px;border:none;border-radius:12px;background:transparent;color:#edf2ff;cursor:pointer;display:grid;place-items:center;transition:all .2s ease}
-          .vrm-close:hover{background:rgba(255,255,255,.12)}
           .vrm-right{width:370px;flex:none;display:flex;flex-direction:column;background:#141728;border-left:1px solid rgba(255,255,255,.07)}
           .vrm-rhead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;color:#e8eaf6;font-size:14px;border-bottom:1px solid rgba(255,255,255,.07)}
           .vrm-rhead b{color:#8b90b5;font-weight:600;margin-left:4px}

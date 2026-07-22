@@ -257,11 +257,9 @@ export default function CampaignDetails({ embedId, onClose }) {
   const Wrap = embedId ? Fragment : CreatorShell;
   const wrapProps = embedId ? {} : { isCreator: user?.role === 'creator' };
 
-  const isEmbedded = Boolean(embedId);
-
   return (
     <Wrap {...wrapProps}>
-    <div className={`campaign-details-page${isEmbedded ? ' embedded' : ''}`}>
+    <div className="campaign-details-page">
       <style>{`
         /* Marketplace restyle — only applies under the creator top-nav shell (.cmk-app) */
         .cmk-app .campaign-details-page{min-height:auto;background:transparent;padding:0;display:block}
@@ -601,70 +599,6 @@ export default function CampaignDetails({ embedId, onClose }) {
           {/* Sidebar content - bids moved to main area */}
         </div>
       </div>
-
-      <style>{`
-        .campaign-details-page.embedded {
-          padding: 20px 16px;
-        }
-
-        .campaign-details-page.embedded .campaign-container {
-          grid-template-columns: 1fr;
-          max-width: 100%;
-        }
-
-        .campaign-details-page.embedded .campaign-sidebar {
-          display: none;
-        }
-
-        .campaign-details-page.embedded .campaign-title-section {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .campaign-details-page.embedded .campaign-meta {
-          gap: 12px;
-        }
-
-        .campaign-details-page.embedded .meta-item {
-          flex: 1 1 100%;
-          min-width: 0;
-        }
-
-        .campaign-details-page.embedded .campaign-info-card,
-        .campaign-details-page.embedded .bids-card {
-          padding: 24px;
-        }
-
-        .campaign-details-page.embedded .brief-text,
-        .campaign-details-page.embedded .brief-line,
-        .campaign-details-page.embedded .proposal-text,
-        .campaign-details-page.embedded .bid-creator-name,
-        .campaign-details-page.embedded .bid-meta-inline,
-        .campaign-details-page.embedded .bid-row-actions,
-        .campaign-details-page.embedded .detail-row {
-          min-width: 0;
-          word-break: break-word;
-          overflow-wrap: anywhere;
-        }
-
-        .campaign-details-page.embedded .detail-row {
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-
-        .campaign-details-page.embedded .bid-row-main {
-          flex-wrap: wrap;
-        }
-
-        .campaign-details-page.embedded .bid-row-actions {
-          width: 100%;
-        }
-
-        .campaign-details-page.embedded .bid-row-actions button {
-          flex: 1 1 auto;
-          min-width: 0;
-        }
-      `}</style>
 
       {inviteTarget && (
         <div className="modal-overlay" onClick={() => !shortlistBusy && setInviteTarget(null)}>

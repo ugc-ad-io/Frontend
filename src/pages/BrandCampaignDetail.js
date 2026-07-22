@@ -125,37 +125,6 @@ const safeText = (v, fb = '—') => {
 // The brief is stored as newline-separated "Label: value" lines. Render it as a
 // readable definition list so labels (sub-headings) stand apart from the values
 // instead of collapsing into one grey wall of text.
-function normalizeBriefPart(item) {
-  const trimmed = String(item).trim();
-  if (!trimmed || trimmed.includes(' - ') || trimmed.includes(':')) return trimmed;
-  const firstSpace = trimmed.search(/\s+/);
-  if (firstSpace < 0) return trimmed;
-  const key = trimmed.slice(0, firstSpace);
-  const rest = trimmed.slice(firstSpace + 1).trim();
-  if (!rest) return trimmed;
-  if (/^(https?:\/\/|www\.|\d+)/i.test(rest) || /^[A-Z]/.test(rest) || /^[0-9]/.test(rest)) {
-    return `${key} - ${rest}`;
-  }
-  return trimmed;
-}
-
-function renderBriefValue(val) {
-  const text = String(val).trim();
-  const parts = text.split(/\s*;\s*/).filter((item) => item);
-  const normalized = parts.map(normalizeBriefPart);
-  if (normalized.length <= 1) {
-    return <span className="bcd-bl-val">{normalized[0] || ''}</span>;
-  }
-
-  return (
-    <div className="bcd-bl-val-list">
-      {normalized.map((item, idx) => (
-        <div key={idx} className="bcd-bl-val-item">{item}</div>
-      ))}
-    </div>
-  );
-}
-
 function renderBrief(text) {
   if (!text) return [<p key="none" className="bcd-bl">No description provided.</p>];
   const out = [];
@@ -175,12 +144,7 @@ function renderBrief(text) {
         return;
       }
       skip = false;
-      out.push(
-        <div key={i} className="bcd-bl">
-          <span className="bcd-blab">{label}:</span>
-          {renderBriefValue(val)}
-        </div>
-      );
+      out.push(<p key={i} className="bcd-bl"><span className="bcd-blab">{label}:</span> {val}</p>);
       return;
     }
     skip = false;
@@ -562,7 +526,7 @@ export default function BrandCampaignDetail() {
           </div>
           <div className="bcd-actions">
             <button className="cmk-btn-ghost-sm" onClick={duplicateBrief}><Copy size={16} /> Duplicate</button>
-            <button className="cmk-btn-ghost-sm bcd-action-details" onClick={() => setDetailsOpen(true)}>View Details</button>
+            <button className="cmk-btn-ghost-sm" onClick={() => setDetailsOpen(true)}>View Details</button>
           </div>
         </div>
 
@@ -732,7 +696,7 @@ export default function BrandCampaignDetail() {
         ) : tab === 'about' ? (
           <div className="bcd-card bcd-about-card">
             <h3>About Campaign</h3>
-            <div className="bcd-about">{renderBrief(campaign.brief_text)}</div>
+            <div className="bcd-about" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 48px', alignContent: 'start' }}>{renderBrief(campaign.brief_text)}</div>
           </div>
         ) : (
         <>
@@ -1020,8 +984,8 @@ export default function BrandCampaignDetail() {
         .bcd-drawer-head strong{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a}
         .bcd-drawer-close{border:0;background:#f1f3fa;color:#15163a;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px;flex:none}
         .bcd-drawer-close:hover{background:#e7eaf6}
-        .bcd-drawer-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:22px 24px}
-        @media (max-width:600px){.bcd-drawer{width:100%}.bcd-action-details{display:none!important;}}
+        .bcd-drawer-body{flex:1;min-height:0;overflow-y:auto;padding:22px 24px}
+        @media (max-width:600px){.bcd-drawer{width:100%}}
         .bcd-bc{display:flex;align-items:center;gap:8px;margin-bottom:16px}
         .bcd-bc button{display:inline-flex;align-items:center;gap:6px;color:#5b6bff;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px}
         .bcd-bc strong{color:#15163a;font-weight:700;font-size:14px}
@@ -1107,13 +1071,6 @@ export default function BrandCampaignDetail() {
         .bcd-ship-btn:hover{background:#4452f0}
         .bcd-ship-wait{margin-left:auto;color:#8a90a6;font-size:12.5px;font-weight:600}
         @media (max-width:980px){.bcd-row-main{grid-template-columns:1fr;align-items:start}}
-        @media (max-width:760px){
-          .bcd-top{align-items:center;flex-wrap:wrap;}
-          .bcd-title-wrap{flex:1 1 100%;min-width:0;}
-          .bcd-budget{flex:1 1 auto;min-width:0;max-width:calc(100% - 150px);}
-          .bcd-actions{flex:none;margin-left:auto;}
-          .bcd-actions button{flex:none;}
-        }
         /* horizontal campaign progress */
         .bcd-progress-card{margin-bottom:0}
         .bcd-progress-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
@@ -1224,14 +1181,9 @@ export default function BrandCampaignDetail() {
         .bcd-creator small{color:#9296ba;font-size:13px;text-transform:capitalize}
         .bcd-about-card h3{color:#5b6bff}
         /* About details laid out in two columns (each "Label: value" is one cell) */
-        .bcd-about{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 48px;align-content:start;min-width:0}
-        .bcd-bl{color:#585c7e;font-size:14px;line-height:1.6;margin:0;padding:10px 0;border-bottom:1px solid #f3f4fb;word-break:break-word;overflow-wrap:anywhere;min-width:0}
-        .bcd-blab{display:block;color:#15163a;font-weight:700;margin-bottom:3px;white-space:normal}
-        .bcd-bl-val{display:block;color:#4b4f7e;line-height:1.7;white-space:normal;word-break:break-word;overflow-wrap:anywhere;margin-top:6px}
-        .bcd-bl-val-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
-        .bcd-bl-val-item{padding:10px 12px;border-radius:16px;background:#f6f7ff;color:#364072;font-size:14px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere}
-        .bcd-bl-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-width:0}
-        .bcd-bl-list-item{display:inline-flex;padding:6px 10px;border-radius:999px;background:#eef0ff;color:#30356a;font-size:13px;line-height:1.4;word-break:break-word;overflow-wrap:anywhere;max-width:100%}
+        .bcd-about{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:14px 48px;align-content:start}
+        .bcd-bl{color:#585c7e;font-size:14px;line-height:1.6;margin:0;padding:10px 0;border-bottom:1px solid #f3f4fb}
+        .bcd-blab{display:block;color:#15163a;font-weight:700;margin-bottom:3px}
         .bcd-bsub{grid-column:1/-1;color:#5b6bff;font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 2px}
         .bcd-bl-item{grid-column:1/-1;padding-left:14px;position:relative}
         @media (max-width:760px){.bcd-about{grid-template-columns:1fr;gap:0}}
@@ -1246,14 +1198,14 @@ export default function BrandCampaignDetail() {
         .bcd-muted{color:#9296ba;font-size:14px;margin:0}
         @media (max-width:980px){.bcd-grid{grid-template-columns:1fr}.bcd-grid2{grid-template-columns:1fr}}
         @media (max-width:600px){
-          .bcd-top{gap:14px;align-items:center;}
+          .bcd-top{gap:14px}
           .bcd-title-wrap{flex:1 1 100%;min-width:0}
           .bcd-title-wrap h1{font-size:22px;word-break:break-word}
-          .bcd-budget{min-width:0;flex:1 1 auto;max-width:calc(100% - 140px)}
-          .bcd-actions{flex:none;margin-left:auto;gap:8px}
-          .bcd-actions button{flex:none;justify-content:center;min-width:120px}
+          .bcd-budget{min-width:0;flex:1 1 auto}
+          .bcd-actions{flex:1 1 100%;gap:8px}
+          .bcd-actions button{flex:1;justify-content:center}
           /* Spread the three tabs evenly across the row on mobile. */
-          .bcd-tabs{gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;justify-content:flex-start;padding-left:16px}
+          .bcd-tabs{gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;justify-content:space-between}
           .bcd-tabs .bcd-tab-right{margin-left:0}
           .bcd-revcard-foot{gap:16px}
         }

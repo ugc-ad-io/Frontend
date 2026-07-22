@@ -103,9 +103,8 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
       <header className="cmk-nav">
         <div className="cmk-wrap cmk-nav-inner">
           <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            <Menu size={22} />
           </button>
-
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
           </button>
@@ -140,7 +139,6 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
 
           <div className="cmk-nav-right" ref={menuRef}>
             <NotificationBell />
-
             <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
               <span className="cmk-avatar">
                 {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
@@ -149,6 +147,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
                 <strong>{displayName}</strong>
                 <small>Creator</small>
               </span>
+              <ChevronDown size={16} color="#9296ba" />
             </button>
 
             {menuOpen && (
@@ -168,22 +167,38 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
           </div>
         </div>
         {mobileOpen && (
-          <div className="cmk-mobile-menu">
-            {PRIMARY_LINKS.map((link) => (
-              <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
-                <link.icon size={18} /> {link.name}
+          <>
+            <div
+              className="cmk-mobile-backdrop"
+              onClick={() => setMobileOpen(false)}
+            />
+            <div className="cmk-mobile-menu">
+              <div className="cmk-mobile-menu-top">
+                <img src="/ugcad-logo_-_Edited-removebg-preview.png" alt="UGCad.io" style={{ height: 36 }} />
+                <button type="button" className="cmk-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+                  <X size={20} />
+                </button>
+              </div>
+              <nav className="cmk-mobile-nav">
+                {PRIMARY_LINKS.map((link) => (
+                  <button key={link.name} type="button" className={`cmk-mobile-item ${isActive(link.to) ? 'is-active' : ''}`} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
+                    <link.icon size={18} />
+                    {link.name}
+                    {link.dot && <span className="cmk-link-dot" />}
+                  </button>
+                ))}
+                <div className="cmk-mobile-sep" />
+                {MENU_LINKS.filter((i) => !i.sep).map((item) => (
+                  <button key={item.name} type="button" className="cmk-mobile-item" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
+                    <item.icon size={18} /> {item.name}
+                  </button>
+                ))}
+              </nav>
+              <button type="button" className="cmk-mobile-logout" onClick={handleLogout}>
+                <LogOut size={18} /> Log out
               </button>
-            ))}
-            <div className="cmk-sep" />
-            {MENU_LINKS.filter((i) => !i.sep).map((item) => (
-              <button key={item.name} type="button" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
-                <item.icon size={18} /> {item.name}
-              </button>
-            ))}
-            <div className="cmk-mobile-foot">
-              <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
             </div>
-          </div>
+          </>
         )}
       </header>
 

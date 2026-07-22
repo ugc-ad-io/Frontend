@@ -393,6 +393,7 @@ export default function BrandWorkReview() {
                               <button type="button" onClick={() => { setMenuId(null); openFile(it); }}><Play size={15} /> Open file</button>
                               {it.status !== 'approved' && <button type="button" onClick={() => { setMenuId(null); it.files.some((f) => isVideo(assetUrl(f))) ? openVideoReview(it) : requestRevision(it.id); }}><RefreshCw size={15} /> Request revision</button>}
                               {it.status === 'pending_review' && <button type="button" onClick={() => { setMenuId(null); approve(it.id); }}><CheckCircle2 size={15} /> Approve</button>}
+                              <button type="button" onClick={() => { setMenuId(null); message(it); }}><MessageSquare size={15} /> Message creator</button>
                             </div>
                           </>
                         )}
@@ -415,6 +416,7 @@ export default function BrandWorkReview() {
                     {it.status === 'revision_requested' && (
                       <button type="button" className="bwr-btn" disabled><RefreshCw size={16} /> Awaiting resubmit</button>
                     )}
+                    <button type="button" className="bwr-btn" onClick={() => message(it)}><MessageSquare size={16} /> Message Creator</button>
                   </div>
                 </article>
               );

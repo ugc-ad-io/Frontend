@@ -834,8 +834,8 @@ export default function BrandCampaignDetail() {
         )}
       </div>
 
-      {chatOpen && creator && <ChatPopup user={{ id: creator.id, name: (handle || '').replace('@', ''), photo: creator.profile_photo }} onClose={() => setChatOpen(false)} />}
-      {profOpen && creator && <CreatorProfileModal id={creator.id} fallbackName={handle} photo={creator.profile_photo} onClose={() => setProfOpen(false)} onMessage={() => { setProfOpen(false); setChatOpen(true); }} />}
+      {chatOpen && creator && <ChatPopup user={{ id: creator.id, name: (handle || '').replace('@', ''), photo: creatorPhoto(creator) }} onClose={() => setChatOpen(false)} />}
+      {profOpen && creator && <CreatorProfileModal id={creator.id} fallbackName={handle} photo={creatorPhoto(creator)} onClose={() => setProfOpen(false)} onMessage={() => { setProfOpen(false); setChatOpen(true); }} />}
       {detailsOpen && (
         <div className="bcd-drawer-overlay" onClick={() => setDetailsOpen(false)}>
           <aside className="bcd-drawer" onClick={(e) => e.stopPropagation()}>

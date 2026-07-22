@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { firstName } from '../utils/displayName';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X, ChevronDown } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { Skeleton } from '../components/Skeleton';
@@ -137,6 +137,16 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
   );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sort, setSort] = useState('match'); // match | price-low | price-high | delivery-fast
+  // Mobile: a bid row collapses to name + star + arrow; the arrow expands it to
+  // reveal the pitch, price/delivery, and actions.
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const toggleExpanded = (id) => setExpandedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  // Show at most 3 bids by default; "View all" reveals the rest.
+  const [showAllBids, setShowAllBids] = useState(false);
 
   const idOf = (b) => b.id ?? b.creator_id;
   const hasResponded = (b) => !!(b.proposal && b.proposal.trim());
@@ -235,7 +245,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
       <div className="cb-tabs-row">
         <div className="cb-tabs">
           {TABS.map(t => (
-            <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+            <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => { setTab(t.id); setShowAllBids(false); }}>
               {t.label} ({counts[t.id]})
             </button>
           ))}
@@ -269,12 +279,13 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
       <div className="cb-bid-list">
         {visible.length === 0 ? (
           <div className="cb-empty">No bids in this view.</div>
-        ) : visible.map((bid, idx) => {
+        ) : (showAllBids ? visible : visible.slice(0, 3)).map((bid, idx) => {
           const id = idOf(bid);
           const isTop = idx === 0 && tab === 'all' && sort === 'match';
           const isShort = shortlist.has(id);
+          const isOpen = expandedIds.has(id);
           return (
-            <div key={id} className="cb-bid">
+            <div key={id} className={`cb-bid${isOpen ? ' is-open' : ''}`}>
               <div className="cb-bid-avatar">{initialOf(bid)}</div>
               <div className="cb-bid-main">
                 <div className="cb-bid-name">
@@ -287,19 +298,29 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
                     title={isShort ? 'Shortlisted' : 'Add to shortlist'}
                     onClick={() => toggleShortlist(id)}
                   >★</button>
+                  {/* Mobile only: collapses everything below to just name + star by default. */}
+                  <button
+                    type="button"
+                    className="cb-expand"
+                    aria-label={isOpen ? 'Collapse bid' : 'Expand bid'}
+                    aria-expanded={isOpen}
+                    onClick={() => toggleExpanded(id)}
+                  ><ChevronDown size={18} /></button>
                 </div>
-                {(bid.category || campaign.category) && <span className="cb-bid-cat">{bid.category || campaign.category}</span>}
-                <p className="cb-bid-pitch">{bid.proposal || 'No proposal message provided.'}</p>
+                <div className="cb-bid-collapsible">
+                  {(bid.category || campaign.category) && <span className="cb-bid-cat">{bid.category || campaign.category}</span>}
+                  <p className="cb-bid-pitch">{bid.proposal || 'No proposal message provided.'}</p>
+                </div>
               </div>
-              <div className="cb-bid-stat">
+              <div className="cb-bid-collapsible cb-bid-stat">
                 <strong>{formatMoney(bid.amount)}</strong>
                 <span>Price / video</span>
               </div>
-              <div className="cb-bid-stat">
+              <div className="cb-bid-collapsible cb-bid-stat">
                 <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} Days` : '—'}</strong>
                 <span>Delivery</span>
               </div>
-              <div className="cb-bid-actions">
+              <div className="cb-bid-collapsible cb-bid-actions">
                 <button type="button" className="cb-view-profile" onClick={() => onViewProfile(campaign.id, bid)}>View Profile</button>
                 {/* A declined bid can't be accepted/declined again — show its state. */}
                 {declined.has(id) ? (
@@ -313,6 +334,11 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
           );
         })}
       </div>
+      {!showAllBids && visible.length > 3 && (
+        <button type="button" className="cb-view-all" onClick={() => setShowAllBids(true)}>
+          View all {visible.length} bids <ChevronDown size={15} />
+        </button>
+      )}
     </article>
   );
 }
@@ -5346,9 +5372,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
         .cb-star:hover { border-color: #ffd24a; color: #ffb800; }
         .cb-star.on { border-color: #ffd24a; background: #fff8e6; color: #ffb800; }
-        /* Star now lives on the name row, pushed to the far right of it. */
+        /* Star now lives on the name row: no button box/background, just the
+           icon, nudged further right (away from the name) via extra margin. */
         .cb-bid-name { width: 100%; }
-        .cb-bid-name .cb-star { margin-left: auto; width: 32px; height: 32px; font-size: 15px; }
+        .cb-bid-name .cb-star {
+          margin-left: auto; margin-right: 6px; width: 28px; height: 28px; font-size: 16px;
+          border: none; background: none;
+        }
+        .cb-bid-name .cb-star:hover { background: none; }
+        .cb-bid-name .cb-star.on { background: none; }
         .cb-view-profile {
           min-height: 40px; padding: 0 18px;
           border: 1px solid #e0e2f0; border-radius: 11px;
@@ -5372,6 +5404,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .cb-declined-tag { display:inline-flex; align-items:center; padding:7px 14px; border-radius:999px; background:#fee2e2; color:#b42318; font-weight:700; font-size:13px; }
         .cb-empty { padding: 40px; text-align: center; color: #9296ba; font-size: 14px; }
 
+        /* "View all N bids" — only 3 show by default, this reveals the rest. */
+        .cb-view-all {
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          width: 100%; padding: 14px; margin-top: -1px;
+          border: none; border-top: 1px solid #f0f1f9; border-radius: 0 0 20px 20px;
+          background: #fafbff; color: #5b6bff; font-family: inherit; font-weight: 700; font-size: 13.5px;
+          cursor: pointer; transition: background .15s;
+        }
+        .cb-view-all:hover { background: #f2f3ff; }
+
+        /* Mobile expand/collapse arrow — hidden on desktop where everything already shows. */
+        .cb-expand { display: none; }
+
         @media (max-width: 860px) {
           .cb-bid {
             display: flex;
@@ -5387,17 +5432,34 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .cb-accept { flex: 1 1 auto; padding: 0 14px; min-width: 0; }
           .cb-decline { flex: 0 0 auto; padding: 4px 2px; }
 
+          /* Collapsed by default: just avatar + name + star + arrow. Everything
+             else (pitch, price, delivery, actions) is hidden until expanded. */
+          .cb-expand {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; margin-left: auto; flex-shrink: 0;
+            border: none; background: none; color: #868ab0; cursor: pointer;
+            transition: transform .2s ease;
+          }
+          .cb-bid.is-open .cb-expand { transform: rotate(180deg); color: #5b6bff; }
+          .cb-bid-collapsible { display: none; }
+          .cb-bid.is-open .cb-bid-collapsible { display: block; }
+          .cb-bid.is-open .cb-bid-actions.cb-bid-collapsible { display: flex; }
+          .cb-bid-avatar { align-self: flex-start; }
+
           /* Campaign header: View Campaign drops to its own full-width row so the
              "Budget: … • N Application" line has room to sit on ONE line. */
           .cb-campaign { flex-wrap: wrap; }
           .cb-view-campaign { flex: 1 1 100%; }
           .cb-campaign-info p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-          /* Tabs on ONE scrollable line, Filters pinned to the right. */
+          /* Tabs on ONE horizontally-scrollable line, Filters pinned to the right.
+             overflow-y:hidden stops the strip from also scrolling up/down (which
+             the active-tab underline, sitting 15px below the button, triggered). */
           .cb-tabs-row { flex-wrap: nowrap; gap: 10px; }
-          .cb-tabs { flex-wrap: nowrap; overflow-x: auto; flex: 1; min-width: 0; gap: 16px; scrollbar-width: none; }
+          .cb-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; flex: 1; min-width: 0; gap: 16px; scrollbar-width: none; }
           .cb-tabs::-webkit-scrollbar { display: none; }
           .cb-tabs button { white-space: nowrap; }
+          .cb-tabs button.active::after { display: none; } /* underline caused the vertical overflow; active tab stays colour-coded */
           .cb-filters-wrap { flex: none; }
         }
 

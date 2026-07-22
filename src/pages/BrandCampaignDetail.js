@@ -28,6 +28,13 @@ const API = `${BACKEND_URL}/api`;
 const inr = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}${String(u).startsWith('/') ? '' : '/'}${u}`));
+// The /profile endpoint stores the photo under several keys (top-level or nested
+// under `profile`), so a single `.profile_photo` check missed most creators and
+// fell back to the initial. Resolve it the same way CreatorProfileModal does.
+const creatorPhoto = (c) => {
+  const p = c?.profile || {};
+  return assetUrl(c?.profile_photo || c?.profile_picture || p.profile_photo || p.profile_picture || c?.photo || '');
+};
 const isVideo = (u) => /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(String(u || '').split('?')[0]);
 const fmtDur = (s) => { if (!s || !isFinite(s)) return ''; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
 const fileExt = (f) => (f ? (String(f).split('?')[0].split('.').pop() || '').toUpperCase() : '');
@@ -527,7 +534,7 @@ export default function BrandCampaignDetail() {
                 const st = WS_STATUS[wsStatus] || WS_STATUS.pending_review;
                 const StIcon = st.icon;
                 const creatorLabel = handle ? handle.replace(/^@/, '') : 'Creator';
-                const photo = creator?.profile_photo ? (creator.profile_photo.startsWith('http') ? creator.profile_photo : `${BACKEND_URL}${creator.profile_photo}`) : '';
+                const photo = creatorPhoto(creator);
                 return (
                   <article className="bwr-card">
                     <div className="bwr-thumb" onClick={openWork}>
@@ -747,7 +754,7 @@ export default function BrandCampaignDetail() {
             {creator ? (
               <>
                 <div className="bcd-creator">
-                  <span className="bcd-cre-ava">{creator.profile_photo ? <img src={creator.profile_photo.startsWith('http') ? creator.profile_photo : `${BACKEND_URL}${creator.profile_photo}`} alt="" /> : (handle || 'C').replace('@', '').charAt(0).toUpperCase()}</span>
+                  <span className="bcd-cre-ava">{creatorPhoto(creator) ? <img src={creatorPhoto(creator)} alt="" /> : (handle || 'C').replace('@', '').charAt(0).toUpperCase()}</span>
                   <div><strong>{handle}</strong><small>{(cp.category || 'UGC Creator').replace(/_/g, ' ')}</small></div>
                 </div>
                 <div className="bcd-kv-row">
@@ -1021,7 +1028,15 @@ export default function BrandCampaignDetail() {
         .bcd-hstep strong{display:block;margin-top:9px;font-size:13px;color:#15163a;line-height:1.25}
         .bcd-hstep small{color:#9296ba;font-size:11.5px;margin-top:2px}
         .bcd-hstep.todo strong{color:#9296ba}
-        @media (max-width:720px){.bcd-hsteps{flex-wrap:wrap;gap:16px}.bcd-hstep{flex:0 0 calc(33.33% - 12px)}.bcd-hstep::before{display:none}}
+        /* Mobile: keep the 6 steps on ONE line (horizontal scroll) instead of wrapping
+           to two rows of three. The connector line stays between the dots. */
+        @media (max-width:720px){
+          .bcd-hsteps{flex-wrap:nowrap;overflow-x:auto;gap:0;padding-bottom:8px;scrollbar-width:none;-ms-overflow-style:none}
+          .bcd-hsteps::-webkit-scrollbar{display:none}
+          .bcd-hstep{flex:0 0 88px;padding:0 2px}
+          .bcd-hstep strong{font-size:11.5px}
+          .bcd-hstep small{font-size:10.5px}
+        }
         .bcd-ship-on{color:#585c7e;font-size:13px;margin:12px 0 2px}
         .bcd-ship-date{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;font-weight:800;color:#15163a;margin-bottom:8px}
         .bcd-kv{display:flex;flex-direction:column;gap:2px;margin-top:12px}

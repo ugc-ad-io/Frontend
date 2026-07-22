@@ -1369,6 +1369,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
            it doesn't overlap the chat's composer. */
         body.cpop-open .cpm-mobilebar{display:none}
         @media(max-width:640px){
+          /* On phones the modal fills the screen like a real page (no floating card). */
+          .cpm-ov{padding:0;align-items:stretch;background:#fff;backdrop-filter:none}
+          .cpm-ov > .cpm{width:100%;min-height:100vh;border-radius:0;box-shadow:none}
           /* Send Message lives in the fixed bottom bar on mobile — drop the top one. */
           .cpm-msg-top{display:none}
           /* Send a Brief drops down to sit on the name's line, right side. */

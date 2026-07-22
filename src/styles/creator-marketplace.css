@@ -1426,7 +1426,7 @@
   /* Dim backdrop — taps close the drawer. Starts below the nav so the logo/actions
      bar stays visible and tappable, like a below-header drawer. */
   .cmk-mobile-backdrop{display:block;position:fixed;top:var(--cmk-nav-height,72px);left:0;right:0;bottom:0;z-index:1200;
-    background:rgba(17,20,45,.42)}
+    background:transparent;backdrop-filter:none}
   /* Left slide-in drawer covering ~70% of the screen, opening under the top bar. */
   .cmk-mobile-menu{display:flex;flex-direction:column;gap:2px;padding:0 0 24px;
     position:fixed;top:var(--cmk-nav-height,72px);left:0;bottom:0;z-index:1201;width:min(320px,72vw);

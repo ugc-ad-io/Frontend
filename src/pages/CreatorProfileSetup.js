@@ -334,7 +334,19 @@ function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
   const chosen = options.filter((o) => selected.includes(o.value)).map((o) => o.label);
   return (
     <div className={`ps-msel${hasError ? ' ps-msel--error' : ''}`} ref={ref}>
-      <button type="button" className={`ps-msel__btn${open ? ' is-open' : ''}`} onClick={() => setOpen((o) => !o)}>
+      <button
+        type="button"
+        className={`ps-msel__btn${open ? ' is-open' : ''}`}
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          // Bring the field near the top of the viewport when opening, so the
+          // dropdown always has room to show from its FIRST option downward —
+          // otherwise a field low on the page leaves little room below and the
+          // list opens already scrolled into its middle/end.
+          if (next) requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        }}
+      >
         <span className={chosen.length ? '' : 'ps-msel__ph'}>
           {chosen.length ? chosen.join(', ') : (placeholder || 'Select')}
         </span>
@@ -1847,7 +1859,7 @@ export default function CreatorProfileSetup() {
         .ps-dial__opt--on { background: rgba(7,7,78,0.16); }
 
         /* Multi-select dropdown (Content style / category) */
-        .ps-msel { position: relative; }
+        .ps-msel { position: relative; scroll-margin-top: 16px; }
         .ps-msel__btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
           padding: 11px 13px; border-radius: 10px; font-size: 0.88rem; color: #6d7bff; text-align: left;
           background: rgba(7,7,78,0.045); border: 1px solid rgba(7,7,78,0.12); cursor: pointer; font-family: inherit; transition: all 0.2s; }

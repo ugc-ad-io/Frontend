@@ -49,6 +49,7 @@ export default function BrandCampaigns() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
+  const [filterExpanded, setFilterExpanded] = useState(false); // desktop: Filter expands its options left→right
   const filterRef = useRef(null);
   const [briefOpen, setBriefOpen] = useState(false);
   // Id of the draft being edited in the modal — null when writing a fresh brief.
@@ -165,13 +166,24 @@ export default function BrandCampaigns() {
         </div>
       </div>
 
-      <div className="wr-tabs-row wr-tabs-row--select">
-        <div className="wr-tabs">
-          {TABS.map((t) => (
-            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
-              {t.label} <em>({counts[t.key] || 0})</em>
-            </button>
-          ))}
+      {/* Desktop: a collapsed "Filter" that expands its status options left→right
+          on hover or click. Hidden on mobile (the page-head Filter is used there). */}
+      <div
+        className={`cf-filter-row${filterExpanded ? ' is-open' : ''}`}
+        onMouseEnter={() => setFilterExpanded(true)}
+        onMouseLeave={() => setFilterExpanded(false)}
+      >
+        <button type="button" className="cf-filter-btn" onClick={() => setFilterExpanded((v) => !v)} aria-expanded={filterExpanded}>
+          <SlidersHorizontal size={16} /> Filter
+        </button>
+        <div className="cf-options">
+          <div className="cf-options-inner">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
+                {t.label} <em>({counts[t.key] || 0})</em>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

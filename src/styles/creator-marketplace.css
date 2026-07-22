@@ -947,6 +947,26 @@
 .bc-modal-body p{margin:0;color:var(--ink-2);font-size:13.5px;text-transform:capitalize}
 .bc-modal-msg{background:#f97316;color:#fff;border:none;border-radius:12px;padding:12px;font-weight:800;cursor:pointer;font-family:inherit}
 
+/* ── Collapsible "Filter" that reveals its options left→right on hover/click ─ */
+.cf-filter-row{display:flex;align-items:center;margin:18px 0 22px}
+@media (max-width:620px){.cf-filter-row{display:none}}
+.cf-filter-btn{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;flex:none;
+  border:1px solid var(--line);background:#fff;border-radius:12px;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink);cursor:pointer;transition:.15s}
+.cf-filter-btn:hover{border-color:#cdd4ff;background:#f6f7ff}
+.cf-filter-btn svg{color:var(--indigo)}
+.cf-filter-row.is-open .cf-filter-btn{background:#07074e;color:#fff;border-color:#07074e}
+.cf-filter-row.is-open .cf-filter-btn svg{color:#fff}
+/* grid 0fr→1fr animates the reveal smoothly from left to right */
+.cf-options{display:grid;grid-template-columns:0fr;opacity:0;margin-left:0;
+  transition:grid-template-columns .4s cubic-bezier(.2,.7,.2,1),opacity .3s ease,margin-left .3s ease}
+.cf-filter-row.is-open .cf-options{grid-template-columns:1fr;opacity:1;margin-left:10px}
+.cf-options-inner{overflow:hidden;display:flex;align-items:center;gap:8px;padding:2px}
+.cf-options-inner button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 15px;
+  font-family:inherit;font-weight:600;font-size:13px;color:#4a5578;cursor:pointer;white-space:nowrap;transition:.15s}
+.cf-options-inner button:hover{border-color:#cdd4ff}
+.cf-options-inner button.is-active{background:#07074e;color:#fff;border-color:#07074e}
+.cf-options-inner em{font-style:normal;opacity:.7;margin-left:3px}
+
 /* ── Brand Campaigns ─────────────────────────────────────────────────────── */
 .bcam-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:6px}
 /* Job-card style (matches the creator brief cards): logo header + status,

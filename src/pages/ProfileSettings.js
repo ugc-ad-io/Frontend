@@ -1335,16 +1335,19 @@ export default function ProfileSettings() {
 
   return (
     <CreatorTopNavLayout>
-      <div className="cmk-page-head cmk-rise" style={{ marginBottom: 18 }}>
+      <div className="cmk-page-head cmk-rise ps-page-head" style={{ marginBottom: 18 }}>
         <h1>Settings</h1>
         <p>Manage your account information and security.</p>
       </div>
-      <div className="ps-content">
+      <div className={`ps-content ${isMobile && creatorDetailOpen && activeTab === 'profile' ? 'ps-content-profile-full' : ''}`}>
           <div className="ps-container">
             {isMobile && !creatorDetailOpen ? (
               <div className="bs-menu ps-settings-menu">
                 {CREATOR_TABS.map((tab) => (
-                  <button key={tab.id} type="button" className="bs-menu-item" onClick={() => { setActiveTab(tab.id); setCreatorDetailOpen(true); }}>
+                  <button key={tab.id} type="button" className="bs-menu-item" onClick={() => {
+                    if (tab.id === 'profile') navigate('/profile');
+                    else { setActiveTab(tab.id); setCreatorDetailOpen(true); }
+                  }}>
                     <span className="bs-menu-ic"><tab.icon size={18} /></span>
                     <span className="bs-menu-txt">{tab.label}</span>
                     <ChevronRight size={18} className="bs-menu-chev" />
@@ -1353,11 +1356,7 @@ export default function ProfileSettings() {
               </div>
             ) : (
               <>
-                {isMobile ? (
-                  <button type="button" className="bs-back ps-settings-back" onClick={closeCreatorSettingsDetail}>
-                    <ChevronLeft size={18} /> Back
-                  </button>
-                ) : (
+                {!isMobile && (
                   <div className="ps-tab-sidebar">
                     {CREATOR_TABS.map((t) => (
                       <button
@@ -1371,7 +1370,12 @@ export default function ProfileSettings() {
                   </div>
                 )}
 
-                <div className="ps-panel">
+                <div className={`ps-panel ${isMobile && activeTab === 'profile' ? 'ps-panel-profile-full' : ''}`}>
+              {isMobile && activeTab !== 'profile' && (
+                  <button type="button" className="bs-back ps-settings-back" onClick={closeCreatorSettingsDetail}>
+                    <ChevronLeft size={18} /> <span>Back</span>
+                  </button>
+              )}
               {activeTab === 'profile' && user?.id && (
                 <CreatorProfileModal
                   id={user.id}
@@ -1866,11 +1870,17 @@ export default function ProfileSettings() {
         .ps-social-card strong{display:block;font-size:14.5px;color:#15163a}
         .ps-social-card small{color:#9296ba;font-size:12.5px}
         @media (max-width:640px){
+          .ps-page-head{display:none}
+          .cmk-page:has(> .ps-content){max-width:none;padding:0 0 88px}
+          .cmk-page:has(> .ps-content).cmk-wrap{padding-left:0;padding-right:0}
           .ps-social-grid{grid-template-columns:1fr}
           .cmk-page-head h1{font-size:24px;line-height:1.2}
           .cmk-page-head p{font-size:13.5px;line-height:1.45}
-          .ps-content{padding:14px 12px}
-          .ps-panel{padding:16px 14px;border-radius:15px}
+          .ps-content{padding:0;overflow:visible}
+          .ps-container{gap:0;max-width:none}
+          .ps-settings-back{margin:0 0 14px}
+          .ps-panel{min-height:calc(100dvh - var(--cmk-nav-height,72px) - 58px);padding:16px 14px;border-radius:0;box-shadow:none}
+          .ps-settings-menu{border-radius:0;border-left:0;border-right:0;box-shadow:none}
           .ps-panel h2{font-size:22px;line-height:1.2;margin:0 0 6px}
           .ps-panel-desc{font-size:13px;line-height:1.45;margin-bottom:20px}
           .ps-form-group{margin-bottom:17px}

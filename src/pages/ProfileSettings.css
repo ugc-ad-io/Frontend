@@ -2301,6 +2301,41 @@
     box-shadow: 0 6px 18px rgba(15, 22, 58, 0.1);
   }
 
+  .ps-content-profile-full {
+    padding: 0;
+    position: relative;
+  }
+
+  .ps-content-profile-full .ps-container {
+    max-width: none;
+    gap: 0;
+  }
+
+  .ps-content-profile-full .ps-settings-back {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 120;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .ps-content-profile-full .ps-settings-back span {
+    display: none;
+  }
+
+  .ps-panel-profile-full {
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   .ps-topbar {
     padding: calc(var(--spacing) * 4) calc(var(--spacing) * 5);
   }
@@ -2311,6 +2346,7 @@
 @media (max-width: 620px) {
   .ps-content { overflow: visible; }
   .ps-panel { padding: 18px 16px; border-radius: 16px; }
+  .ps-panel.ps-panel-profile-full { padding: 0; border-radius: 0; }
   .ps-info-box, .ps-success-box { padding: 24px 18px; }
 }
 

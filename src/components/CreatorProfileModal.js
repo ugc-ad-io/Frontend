@@ -763,10 +763,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                   <button type="button" className="cpm-ghost" onClick={() => setEditing(false)}>Cancel</button>
                 </>
               ) : (
-                <>
-                  <button type="button" className="cpm-ghost" onClick={() => { resetAddForm(); setAddOpen(true); goTab('videos'); }}><Plus size={16} /> Add Work</button>
-                  <button type="button" className="cpm-msg" onClick={() => { setTab('details'); setEditing(true); }}><Pencil size={15} /> Edit Profile</button>
-                </>
+                <button type="button" className="cpm-msg" onClick={() => { setTab('details'); setEditing(true); }}><Pencil size={15} /> Edit Profile</button>
               )
             ) : onEdit ? (
               <button type="button" className="cpm-msg" onClick={onEdit}><Pencil size={15} /> Edit Profile</button>
@@ -856,7 +853,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         <div className="cpm-tabs" ref={tabwrapRef}>
           <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
           <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
-          {!editable && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>}
+          <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>
+          {editable && !editing && (
+            <button type="button" className="cpm-tab-add" onClick={() => { resetAddForm(); setAddOpen(true); goTab('videos'); }}>
+              <Plus size={14} /> Add Work
+            </button>
+          )}
         </div>
 
         <div className="cpm-tab-body">
@@ -979,7 +981,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       </div>
                     )}
                     <div className="cpm-vids">
-                      {!addOpen && <button type="button" className="cpm-vid cpm-add-tile" onClick={() => { resetAddForm(); setAddOpen(true); }}><Plus size={26} /><span>Add Work</span></button>}
                       {(pf || []).map((it, i) => {
                         const u = pfUrl(it);
                         if (!u) return null;
@@ -1045,8 +1046,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                 )}
               </section>
 
-              {!editable && (
-                <section className="cpm-sec-block" data-sec="reviews" ref={reviewsRef}>
+              <section className="cpm-sec-block" data-sec="reviews" ref={reviewsRef}>
                   <h4 className="cpm-sec-title">Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</h4>
                   {reviewCount === 0 ? (
                     <div className="cpm-rev-empty">
@@ -1114,8 +1114,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       </div>
                     </div>
                   )}
-                </section>
-              )}
+              </section>
             </>
           )}
         </div>
@@ -1144,8 +1143,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-avatar-lg{box-sizing:border-box;display:grid;place-items:center;width:108px;height:108px;border-radius:50%;border:4px solid #fff;overflow:hidden;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:38px;box-shadow:0 8px 22px -8px rgba(15,22,58,.4)}
         .cpm-avatar-lg img{width:100%;height:100%;object-fit:cover}
         .cpm-actions{position:absolute;right:28px;top:122px;display:flex;align-items:center;gap:10px}
+        .cpm-phead.is-editable .cpm-actions{top:66px}
         .cpm-msg{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-msg:hover{filter:brightness(1.12)}
+        .cpm-profile-add{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:8px 14px;border:1px solid #dfe2f0;border-radius:999px;background:#fff;color:#15163a;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+        .cpm-profile-add:hover{border-color:#bfc6f5;background:#f8f9ff}
         .cpm-brief-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-brief-btn:hover{transform:translateY(-1px)}
         .cpm-save{width:44px;height:44px;border-radius:50%;border:1px solid #e6e8f3;background:#fff;color:#585c7e;cursor:pointer;display:grid;place-items:center}
@@ -1172,6 +1174,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
+        .cpm-tabs .cpm-tab-add{display:inline-flex;align-items:center;gap:4px;margin-left:auto;margin-bottom:7px;padding:7px 10px;border:1px solid #dfe2f0;border-radius:999px;color:#15163a;font-size:11.5px;white-space:nowrap}
+        .cpm-tabs .cpm-tab-add:hover{border-color:#bfc6f5;background:#f8f9ff}
         .cpm-tab-body{padding:22px 28px 4px}
         /* scroll-spy: each tab maps to a stacked section; the tab bar sticks while scrolling */
         .cpm-sec-block{scroll-margin-top:130px;padding-top:4px}
@@ -1394,8 +1398,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
              the brand view's one narrow "Send a Brief" — pinning them absolute here
              overlapped the Verified badge and name. Let them flow in-line below the
              avatar instead, like a normal row, same as everything else on this page. */
-          .cpm-phead.is-editable .cpm-actions{position:static;margin:16px 0 0;flex-wrap:wrap}
-          .cpm-phead.is-editable .cpm-name{padding-right:0}
+          .cpm-phead.is-editable .cpm-actions{position:absolute;top:62px;right:24px;margin:0}
+          .cpm-phead.is-editable .cpm-actions .cpm-msg{min-height:34px;padding:7px 15px;font-size:12.5px}
+          .cpm-phead.is-editable .cpm-actions .cpm-msg svg{width:14px;height:14px}
+          .cpm-phead.is-editable .cpm-name{padding-right:132px}
+          .cpm-tabs{gap:16px;margin-top:8px;padding:0 20px}
+          .cpm-tabs button{padding-top:9px;padding-bottom:9px}
+          .cpm-tabs .cpm-tab-add{margin-bottom:3px;padding:5px 9px}
           /* Persistent bottom Send Message bar. */
           .cpm-mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:1500;
             padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));

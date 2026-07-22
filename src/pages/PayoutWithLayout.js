@@ -365,7 +365,8 @@ export default function PayoutWithLayout() {
         @media (max-width: 540px) {
           .pwl-page-head { flex-wrap: nowrap !important; gap: 10px !important; }
           .pwl-page-head > div { flex: 1; min-width: 0; }
-          .pwl-page-head .pwl-req-btn { flex: none; padding: 10px 13px; font-size: 0.8rem; }
+          .pwl-page-head .pwl-req-btn { flex: none; min-height: 34px; padding: 7px 12px; font-size: 0.8rem; }
+          .pwl-page-head .pwl-req-btn svg { width: 15px; height: 15px; }
           .pwl-req-full { display: none; }
           .pwl-req-short { display: inline; }
           .pwl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

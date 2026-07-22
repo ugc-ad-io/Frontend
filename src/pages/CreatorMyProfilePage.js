@@ -18,7 +18,7 @@ export default function CreatorMyProfilePage() {
         asPage
         editable
         photo={user?.profile_photo || user?.profile_picture}
-        onClose={() => navigate('/dashboard/creator')}
+        onClose={() => navigate('/settings')}
       />
     </CreatorTopNavLayout>
   );

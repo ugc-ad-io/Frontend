@@ -961,7 +961,7 @@
   transition:grid-template-columns .4s cubic-bezier(.2,.7,.2,1),opacity .3s ease,margin-left .3s ease}
 .cf-filter-row.is-open .cf-options{grid-template-columns:1fr;opacity:1;margin-left:10px}
 .cf-options-inner{overflow:hidden;display:flex;align-items:center;gap:8px;padding:2px}
-.cf-options-inner button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 15px;
+.cf-options-inner button{flex:none;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 15px;
   font-family:inherit;font-weight:600;font-size:13px;color:#4a5578;cursor:pointer;white-space:nowrap;transition:.15s}
 .cf-options-inner button:hover{border-color:#cdd4ff}
 .cf-options-inner button.is-active{background:#07074e;color:#fff;border-color:#07074e}

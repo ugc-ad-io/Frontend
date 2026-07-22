@@ -530,7 +530,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [briefsLoading, setBriefsLoading] = useState(false);
   const [briefFilter, setBriefFilter] = useState('all'); // all | sent | accepted | declined | countered | expired
   const [briefFilterOpen, setBriefFilterOpen] = useState(false); // mobile filter menu
+  const [briefFilterExpanded, setBriefFilterExpanded] = useState(false); // desktop: click PINS options open
+  const [briefFilterHover, setBriefFilterHover] = useState(false);       // desktop: hover opens transiently
   const briefFilterRef = useRef(null);
+  const cfBriefRef = useRef(null);
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
   const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -615,6 +618,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [briefFilterOpen]);
+
+  // Desktop: a click PINS the Sent-Briefs filter open — close on an outside click.
+  useEffect(() => {
+    if (!briefFilterExpanded) return undefined;
+    const onDoc = (e) => { if (cfBriefRef.current && !cfBriefRef.current.contains(e.target)) setBriefFilterExpanded(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [briefFilterExpanded]);
 
   const fetchBriefs = async () => {
     setBriefsLoading(true);
@@ -1746,23 +1757,26 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 </div>
               </div>
 
-              <div className="cmk-tabs sent-briefs-tabs">
-                {FILTERS.map(f => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    onClick={() => setBriefFilter(f.key)}
-                    style={{
-                      padding: '7px 14px', borderRadius: 999, cursor: 'pointer',
-                      border: `1px solid ${briefFilter === f.key ? '#07074E' : '#e5e7eb'}`,
-                      background: briefFilter === f.key ? '#07074E' : '#fff',
-                      color: briefFilter === f.key ? '#fff' : '#374151',
-                      fontSize: 13, fontWeight: 600,
-                    }}
-                  >
-                    {f.label} <span style={{ opacity: 0.75 }}>({countFor(f.key)})</span>
-                  </button>
-                ))}
+              {/* Desktop: "Filter" expands its status options left→right on hover/click.
+                  Hidden on mobile (the actions-row Filter is used there). */}
+              <div
+                ref={cfBriefRef}
+                className={`cf-filter-row sent-briefs-tabs${(briefFilterExpanded || briefFilterHover) ? ' is-open' : ''}`}
+                onMouseEnter={() => setBriefFilterHover(true)}
+                onMouseLeave={() => setBriefFilterHover(false)}
+              >
+                <button type="button" className="cf-filter-btn" onClick={() => setBriefFilterExpanded((v) => !v)} aria-expanded={briefFilterExpanded || briefFilterHover}>
+                  <Filter size={16} /> Filter
+                </button>
+                <div className="cf-options">
+                  <div className="cf-options-inner">
+                    {FILTERS.map(f => (
+                      <button key={f.key} type="button" className={briefFilter === f.key ? 'is-active' : ''} onClick={() => setBriefFilter(f.key)}>
+                        {f.label} <em>({countFor(f.key)})</em>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {briefsLoading ? (

@@ -516,7 +516,7 @@ export default function BrandCampaignDetail() {
 
         <div className="bcd-tabs">
           {[['overview', 'Overview'], ['about', 'About Campaign'], ['work', `Work Review${campaign.work_submission ? ' (1)' : ''}`]].map(([k, l]) => (
-            <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{l}</button>
+            <button key={k} className={`${tab === k ? 'is-active' : ''}${k === 'work' ? ' bcd-tab-right' : ''}`} onClick={() => setTab(k)}>{l}</button>
           ))}
         </div>
 
@@ -1091,6 +1091,8 @@ export default function BrandCampaignDetail() {
           .bcd-actions{flex:1 1 100%;gap:8px}
           .bcd-actions button{flex:1;justify-content:center}
           .bcd-tabs{gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+          /* Push the Work Review tab to the right edge on mobile. */
+          .bcd-tabs .bcd-tab-right{margin-left:auto}
           .bcd-revcard-foot{gap:16px}
         }
       `}</style>

@@ -62,6 +62,9 @@ export default function BrandWorkReview() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
+  const [filterExpanded, setFilterExpanded] = useState(false); // desktop: click PINS the options open
+  const [filterHover, setFilterHover] = useState(false);       // desktop: hover opens transiently
+  const cfRef = useRef(null);
   const filterRef = useRef(null);
   const [chatWith, setChatWith] = useState(null);
   const [durations, setDurations] = useState({});
@@ -125,6 +128,14 @@ export default function BrandWorkReview() {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [filterOpen]);
+
+  // Desktop: a click PINS the filter open — close it again on an outside click.
+  useEffect(() => {
+    if (!filterExpanded) return undefined;
+    const onDoc = (e) => { if (cfRef.current && !cfRef.current.contains(e.target)) setFilterExpanded(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [filterExpanded]);
 
   const counts = useMemo(() => {
     const o = { all: items.length };
@@ -277,13 +288,25 @@ export default function BrandWorkReview() {
         </div>
       </div>
 
-      <div className="bwr-tabs-row bwr-tabs-row--select">
-        <div className="bwr-tabs">
-          {TABS.map((t) => (
-            <button key={t.key} type="button" className={`bwr-chip ${tab === t.key ? 'is-active' : ''}`} onClick={() => setTab(t.key)}>
-              <t.icon size={16} /> {t.label} ({counts[t.key] || 0})
-            </button>
-          ))}
+      {/* Desktop: "Filter" expands its status options left→right on hover/click.
+          Hidden on mobile (the page-head Filter is used there). */}
+      <div
+        ref={cfRef}
+        className={`cf-filter-row${(filterExpanded || filterHover) ? ' is-open' : ''}`}
+        onMouseEnter={() => setFilterHover(true)}
+        onMouseLeave={() => setFilterHover(false)}
+      >
+        <button type="button" className="cf-filter-btn" onClick={() => setFilterExpanded((v) => !v)} aria-expanded={filterExpanded || filterHover}>
+          <SlidersHorizontal size={16} /> Filter
+        </button>
+        <div className="cf-options">
+          <div className="cf-options-inner">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
+                <t.icon size={15} /> {t.label} <em>({counts[t.key] || 0})</em>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

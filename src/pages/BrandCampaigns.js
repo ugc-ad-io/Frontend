@@ -49,8 +49,10 @@ export default function BrandCampaigns() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
-  const [filterExpanded, setFilterExpanded] = useState(false); // desktop: Filter expands its options left→right
+  const [filterExpanded, setFilterExpanded] = useState(false); // desktop: click PINS the options open
+  const [filterHover, setFilterHover] = useState(false);       // desktop: hover opens transiently
   const filterRef = useRef(null);
+  const cfRef = useRef(null);
   const [briefOpen, setBriefOpen] = useState(false);
   // Id of the draft being edited in the modal — null when writing a fresh brief.
   const [editingDraftId, setEditingDraftId] = useState(null);
@@ -112,6 +114,14 @@ export default function BrandCampaigns() {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [filterOpen]);
 
+  // Desktop: a click PINS the filter open — close it again on an outside click.
+  useEffect(() => {
+    if (!filterExpanded) return undefined;
+    const onDoc = (e) => { if (cfRef.current && !cfRef.current.contains(e.target)) setFilterExpanded(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [filterExpanded]);
+
   // Save whatever's been typed as a draft before the modal goes away, so an
   // accidental click outside doesn't throw the brief away.
   const briefRef = useRef(null);
@@ -169,11 +179,12 @@ export default function BrandCampaigns() {
       {/* Desktop: a collapsed "Filter" that expands its status options left→right
           on hover or click. Hidden on mobile (the page-head Filter is used there). */}
       <div
-        className={`cf-filter-row${filterExpanded ? ' is-open' : ''}`}
-        onMouseEnter={() => setFilterExpanded(true)}
-        onMouseLeave={() => setFilterExpanded(false)}
+        ref={cfRef}
+        className={`cf-filter-row${(filterExpanded || filterHover) ? ' is-open' : ''}`}
+        onMouseEnter={() => setFilterHover(true)}
+        onMouseLeave={() => setFilterHover(false)}
       >
-        <button type="button" className="cf-filter-btn" onClick={() => setFilterExpanded((v) => !v)} aria-expanded={filterExpanded}>
+        <button type="button" className="cf-filter-btn" onClick={() => setFilterExpanded((v) => !v)} aria-expanded={filterExpanded || filterHover}>
           <SlidersHorizontal size={16} /> Filter
         </button>
         <div className="cf-options">

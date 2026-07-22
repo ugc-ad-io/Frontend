@@ -9,6 +9,7 @@ import NotificationBell from './NotificationBell';
 import HoverSideRail from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
 import { creatorFirstName } from '../utils/displayName';
+import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -47,6 +48,8 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [msgOpen, setMsgOpen] = useState(false);
   const menuRef = useRef(null);
+  const headerRef = useRef(null);
+  useNavHeightVar(headerRef);
 
   const runSearch = () => {
     const q = searchTerm.trim();
@@ -100,7 +103,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
         onLogout={handleLogout}
         account={{ name: displayName, role: 'Creator', photo }}
       />
-      <header className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
+      <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
           <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}

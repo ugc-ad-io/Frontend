@@ -9,6 +9,7 @@ import RejectedGate from './RejectedGate';
 import MoreInfoGate from './MoreInfoGate';
 import { brandName } from '../utils/displayName';
 import PostABrief from '../pages/PostABrief';
+import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -54,6 +55,8 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const [briefOpen, setBriefOpen] = useState(false);
   const [msgOpen, setMsgOpen] = useState(false);
   const menuRef = useRef(null);
+  const headerRef = useRef(null);
+  useNavHeightVar(headerRef);
 
   // Closing the brief modal (backdrop click or X) saves what's been typed as a
   // draft first, so an accidental click doesn't throw the work away.
@@ -147,7 +150,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         onLogout={handleLogout}
         account={{ name: displayName, role: 'Brand Account', photo }}
       />
-      <header className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
+      <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
           <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}

@@ -3,7 +3,6 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { X, MessageSquare, Star, Building2, Globe, MapPin, Briefcase } from 'lucide-react';
 import { brandName } from '../utils/displayName';
-import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import ReviewModal from './ReviewModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -18,13 +17,6 @@ const relTime = (ts) => {
   if (d < 30) return `${Math.floor(d / 7)}w ago`;
   if (d < 365) return `${Math.floor(d / 30)}mo ago`;
   return `${Math.floor(d / 365)}y ago`;
-};
-
-// Turn a stored content-category slug ('try_on') into its human label ('Try-On / Haul').
-const categoryLabel = (slug) => {
-  if (!slug) return '';
-  const hit = CONTENT_CATEGORIES.find((c) => c.value === slug);
-  return hit ? hit.label : String(slug).replace(/_/g, ' ');
 };
 
 function Stars({ n = 0, size = 14 }) {

@@ -746,7 +746,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           )}
         </div>
 
-        <div className="cpm-phead">
+        <div className={`cpm-phead ${editable ? 'is-editable' : ''}`}>
           <div className="cpm-avatar-wrap">
             <span className={`cpm-avatar-lg ${editable ? 'is-editable' : ''}`} onClick={editable ? () => photoRef.current?.click() : undefined}>
               {avatar ? <img src={avatar} alt="" /> : (loading ? null : name.replace('@', '').charAt(0).toUpperCase())}
@@ -1390,6 +1390,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           .cpm-save{position:absolute;top:58px;right:24px;left:auto;width:40px;height:40px;margin:0;z-index:5}
           /* Reserve room so a longer name doesn't run under Send a Brief. */
           .cpm-name{padding-right:130px}
+          /* Self (editable) view has TWO wide buttons (Add Work / Edit Profile), not
+             the brand view's one narrow "Send a Brief" — pinning them absolute here
+             overlapped the Verified badge and name. Let them flow in-line below the
+             avatar instead, like a normal row, same as everything else on this page. */
+          .cpm-phead.is-editable .cpm-actions{position:static;margin:16px 0 0;flex-wrap:wrap}
+          .cpm-phead.is-editable .cpm-name{padding-right:0}
           /* Persistent bottom Send Message bar. */
           .cpm-mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:1500;
             padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));

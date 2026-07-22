@@ -312,8 +312,11 @@ export default function VideoReviewModal({
           .vrm-left{flex:1;min-width:0;display:flex;flex-direction:column;background:#0b0d18}
           .vrm-lhead{display:flex;align-items:center;gap:9px;padding:14px 18px;color:#e8eaf6;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.07)}
           .vrm-lhead strong{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-          .vrm-stage{position:relative;flex:1;min-height:0;display:grid;place-items:center;background:#000;overflow:hidden}
-          .vrm-stage video{max-width:100%;max-height:100%;display:block}
+          .vrm-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+          /* Fill the stage and letterbox with object-fit:contain so the WHOLE frame
+             is always visible (a portrait clip no longer overflows and gets its
+             bottom cropped) — no fullscreen needed. */
+          .vrm-stage video{width:100%;height:100%;object-fit:contain;display:block}
           /* Hard-guarantee a single timeline: even if the browser (or a stray
              \`controls\` attribute) tries to draw native controls, keep them hidden —
              the custom track below is the only scrub bar. */

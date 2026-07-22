@@ -33,6 +33,20 @@ const fileExt = (f) => (f ? (String(f).split('?')[0].split('.').pop() || '').toU
 // Levels are stored as codes like "l1"/"l2"; show them capitalised ("L1"/"L2").
 // Word labels ("New", "Elite", "Verified") are left as-is.
 const fmtLevel = (v) => String(v || '').replace(/^l(\d+)$/i, (_, n) => `L${n}`);
+// Campaign status → header badge. Previously everything non-completed read "Live",
+// so a REJECTED (or pending) campaign still showed a green LIVE badge.
+const STATUS_BADGE = {
+  active: { label: 'Live', cls: 'live' },
+  in_progress: { label: 'Live', cls: 'live' },
+  work_submitted: { label: 'In Review', cls: 'review' },
+  completed: { label: 'Completed', cls: 'done' },
+  pending_approval: { label: 'Pending Approval', cls: 'pending' },
+  rejected: { label: 'Rejected', cls: 'rejected' },
+  cancelled: { label: 'Cancelled', cls: 'rejected' },
+  draft: { label: 'Draft', cls: 'pending' },
+};
+const statusBadge = (s) => STATUS_BADGE[s] || { label: 'Live', cls: 'live' };
+
 const WS_STATUS = {
   approved: { cls: 'ok', label: 'Approved', icon: CheckCircle2 },
   pending_review: { cls: 'pending', label: 'Pending Review', icon: Hourglass },

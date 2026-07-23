@@ -280,6 +280,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         .cmk-app .bid-submitted-banner,.cmk-app .creator-bid-banner{background:linear-gradient(135deg,#eef0ff,#f4f0ff);
           border:1px solid #e0e3ff;border-radius:18px;padding:22px;margin:20px 0}
         .cmk-app .bid-submitted-header h3,.cmk-app .creator-bid-banner h3{color:#4452f0}
+        .cmk-app .bid-mobile-campaign-status{display:none}
         .cmk-app .creator-bid-banner .banner-content p{color:#585c7e;opacity:1}
         .cmk-app .detail-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
         .cmk-app .detail-label{color:#585c7e;font-weight:600}
@@ -304,6 +305,45 @@ export default function CampaignDetails({ embedId, onClose }) {
         .cmk-app .objectives-grid{display:flex;flex-wrap:wrap;gap:10px}
         .cmk-app .objective-item{background:#eef0ff;color:#5b6bff;font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:20px}
         .cmk-app .shipment-notice{background:#fff7ed;border:1px solid #ffe0bd;border-radius:14px;padding:16px;color:#9a5b14}
+        @media (max-width:640px){
+          .cmk-app .campaign-details-page{
+            position:relative;width:auto;min-height:calc(100dvh - var(--cmk-nav-height,72px));overflow-x:hidden;
+            margin:-18px -16px -96px;padding:10px 0 96px;background:#fff
+          }
+          .cmk-app .page-header{position:absolute;top:28px;left:16px;z-index:2;width:28px;margin:0;padding:0}
+          .cmk-app .back-btn{width:28px;height:28px;display:grid;place-items:center;gap:0;padding:0;border:0;border-radius:0;background:transparent;font-size:0}
+          .cmk-app .back-btn:hover{border:0;transform:none;box-shadow:none}
+          .cmk-app .back-btn svg{width:18px;height:18px}
+          .cmk-app .campaign-container{width:100%;max-width:none;margin:0;gap:0}
+          .cmk-app .campaign-main{gap:0;min-width:0}
+          .cmk-app .campaign-info-card{
+            width:100%;min-width:0;padding:16px;border:0;border-radius:0;box-shadow:none
+          }
+          .cmk-app .campaign-title-section{margin-bottom:14px;padding-left:34px;align-items:flex-start}
+          .cmk-app .campaign-title-section h1{font-size:24px;line-height:1.2}
+          .cmk-app .campaign-title-section > .badge{display:none}
+          .cmk-app .bid-submitted-banner,.cmk-app .creator-bid-banner{
+            width:100%;margin:14px 0;padding:14px;border-radius:14px
+          }
+          .cmk-app .bid-submitted-content{gap:12px}
+          .cmk-app .bid-submitted-header{gap:9px}
+          .cmk-app .bid-submitted-header svg{width:20px;height:20px}
+          .cmk-app .bid-submitted-header h3{flex:1;min-width:0;font-size:18px;line-height:1.25}
+          .cmk-app .bid-mobile-campaign-status{display:inline-flex;flex:none;padding:5px 10px;font-size:11px}
+          .cmk-app .bid-submitted-details{padding:12px;border-radius:11px}
+          .cmk-app .detail-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:7px 0}
+          .cmk-app .detail-label{font-size:13px}
+          .cmk-app .detail-value,.cmk-app .status-badge{max-width:150px;text-align:right;font-size:13px}
+          .cmk-app .status-badge{padding:6px 10px}
+          .cmk-app .bid-submitted-proposal{padding:12px;border-radius:11px;margin-top:0}
+          .cmk-app .proposal-text{font-size:13px;overflow-wrap:anywhere}
+          .cmk-app .campaign-meta{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0;padding:14px 0}
+          .cmk-app .meta-item{min-width:0;font-size:13px}
+          .cmk-app .meta-item span{min-width:0;overflow-wrap:anywhere}
+          .cmk-app .campaign-section{margin:18px 0}
+          .cmk-app .campaign-section h3{font-size:18px}
+          .cmk-app .brief-text,.cmk-app .brief-line{font-size:13.5px}
+        }
 
         .shortlist-section { border: 1px solid #ececf1; border-radius: 16px; padding: 20px 22px; margin: 18px 0; background: #fff; }
         .shortlist-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
@@ -369,6 +409,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   <div className="bid-submitted-header">
                     <CheckCircle size={24} />
                     <h3>Bid Already Submitted</h3>
+                    <span className={`badge bid-mobile-campaign-status badge-${campaign.status}`}>{campaign.status.replace('_', ' ')}</span>
                   </div>
                   <div className="bid-submitted-details">
                     <div className="detail-row">

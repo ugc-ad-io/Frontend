@@ -989,7 +989,6 @@ export default function MessagesPage() {
                       <div className="msg-more-menu" role="menu">
                         <button type="button" onClick={() => { setHeaderMenuOpen(false); setProfileOpen(true); }}><User size={15} /> View profile</button>
                         <button type="button" onClick={toggleMute}><BellOff size={15} /> {isMuted ? 'Unmute chat' : 'Mute chat'}</button>
-                        <button type="button" onClick={() => { setHeaderMenuOpen(false); navigate('/messages'); }}><MessageSquare size={15} /> Back to all chats</button>
                         <button type="button" className="danger" onClick={() => { setHeaderMenuOpen(false); setReport({ reason: '', details: '' }); }}><Flag size={15} /> Report user</button>
                       </div>
                     </>
@@ -1010,8 +1009,12 @@ export default function MessagesPage() {
 
                   if (isSystem) {
                     return (
-                      <div key={msg.id || idx} className="msg-system-pill">
-                        {msg.message}
+                      <div key={msg.id || idx} className="msg-system-wrap">
+                        <div className="msg-system-pill msg-system-desktop">{msg.message}</div>
+                        <details className="msg-system-mobile">
+                          <summary><span>Campaign update</span><em>View details</em></summary>
+                          <p>{msg.message}</p>
+                        </details>
                       </div>
                     );
                   }

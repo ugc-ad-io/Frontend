@@ -981,7 +981,7 @@ export default function ProfileSettings() {
               <h2>Company Details</h2>
               <p>Official information for billing, verification, and legal compliance</p>
             </div>
-            <em className={`bs-kyb ${company.kyb_status}`}>KYB {company.kyb_status || 'pending'}</em>
+            <em className={`bs-kyb ${company.kyb_status}`}>KYB {company.kyb_status === 'verified' ? 'Verified' : (company.kyb_status || 'Pending')}</em>
           </div>
           <div className="bs-card-body bs-form-grid">
             {renderBrandField('Business Type', company.business_type, value => setCompany(current => ({ ...current, business_type: value })), { options: BUSINESS_TYPES, placeholder: 'Select business type' })}
@@ -1264,7 +1264,7 @@ export default function ProfileSettings() {
               brandDetailOpen ? (
                 <>
                   <button type="button" className="bs-back" onClick={() => setBrandDetailOpen(false)}>
-                    <ChevronLeft size={18} /> All settings
+                    <ChevronLeft size={18} /> <span>All settings</span>
                   </button>
                   {renderBrandPanel()}
                 </>
@@ -1382,7 +1382,7 @@ export default function ProfileSettings() {
                   asPage
                   editable
                   photo={user?.profile_photo || user?.profile_picture}
-                  onClose={() => navigate('/dashboard/creator')}
+                  onClose={() => navigate('/settings', { replace: true })}
                 />
               )}
               {false && (

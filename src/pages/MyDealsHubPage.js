@@ -134,7 +134,7 @@ export default function MyDealsHubPage() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head">
+      <div className="cmk-page-head my-deals-head">
         <h1>My Deals</h1>
         <p>All your deals and invites in one place — active work, booking requests, and the campaigns you've bid on.</p>
       </div>
@@ -273,7 +273,9 @@ export default function MyDealsHubPage() {
           background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .mdh-card.is-req { padding-right: 16px; }
         @media (max-width: 560px) {
-          .mdh-grid { grid-template-columns: 1fr; }
+          .mdh-grid { grid-template-columns: 1fr; gap: 0; }
+          .mdh-card { border-top: 0; border-right: 0; border-bottom: 1px solid #eef0f6; border-radius: 0; box-shadow: none; }
+          .mdh-card:hover { box-shadow: none; transform: none; }
           .mdh-card:not(.is-req) { padding-right: 16px; }
           .mdh-card:not(.is-req) .mdh-amt { justify-self: end; padding-top: 16px; }
           .mdh-go { right: 10px; top: 9px; transform: none; width: 24px; height: 24px;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
@@ -230,6 +231,14 @@ function RevClip({ src: rawSrc }) {
  */
 export default function CreatorProfileModal({ id, fallbackName, photo, onClose, onMessage, onBegin, onEdit, asPage = false, editable = false }) {
   const { user: viewer } = useAuth();
+  const navigate = useNavigate();
+  const handleClose = () => {
+    if (editable) {
+      navigate('/settings', { replace: true });
+      return;
+    }
+    onClose?.();
+  };
   // Contact + payment details belong to the creator alone. A brand viewing this
   // profile must never see their real name, phone, address or pincode — that's
   // both a privacy leak and a way to take the deal off-platform. The backend
@@ -440,8 +449,24 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const resetAddForm = () => { setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' }); setEditIdx(null); };
 
+  const openAddWork = () => {
+    if ((pf || []).filter((item) => pfUrl(item)).length >= 5) {
+      toast.error('You can add a maximum of 5 work videos.');
+      return;
+    }
+    resetAddForm();
+    setAddOpen(true);
+    goTab('videos');
+  };
+
   const saveWork = async () => {
     if (!addForm.url) { toast.error('Upload a video first'); return; }
+    if (editIdx == null && (pf || []).filter((existing) => pfUrl(existing)).length >= 5) {
+      toast.error('You can add a maximum of 5 work videos.');
+      setAddOpen(false);
+      resetAddForm();
+      return;
+    }
     const item = { title: addForm.title || 'Untitled', brand: addForm.brand || '', description: addForm.desc || '', category: addForm.category || '', price: addForm.price || '', delivery: addForm.delivery || '', videoUrl: addForm.url, urls: [addForm.url] };
     const next = editIdx != null
       ? (pf || []).map((x, i) => (i === editIdx ? item : x))
@@ -547,18 +572,23 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // Only the creator's own uploaded videos — no stock/sample fallback.
   const vids = realVids;
 
+  const visibleWorkCount = editable
+    ? (pf || []).filter((item) => pfUrl(item)).slice(0, 5).length
+    : vids.slice(0, 5).length;
+
   // Mobile only: when the creator has more than two clips, gently auto-scroll the
   // video row so the extra ones are discoverable. Two (or fewer) sit in one row
   // with nothing to scroll. Pauses for a bit whenever the user touches/scrolls it.
   useEffect(() => {
     const el = vidTrackRef.current;
     if (!el) return;
-    if (!window.matchMedia('(max-width: 560px)').matches || vids.length <= 2) return;
-    let raf, dir = 1, paused = false, resumeTimer, pos = el.scrollLeft;
+    if (!window.matchMedia('(max-width: 560px)').matches || visibleWorkCount <= 2) return;
+    let raf, dir = 1, paused = false, pos = el.scrollLeft;
     const step = () => {
       const max = el.scrollWidth - el.clientWidth;
       if (!paused && max > 0) {
         pos += dir * 0.4; // ~24px/sec — "a bit slow"
+        pos -= dir * 0.22;
         if (pos >= max) { pos = max; dir = -1; }
         else if (pos <= 0) { pos = 0; dir = 1; }
         el.scrollLeft = pos;
@@ -567,9 +597,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     };
     const pause = () => {
       paused = true;
-      clearTimeout(resumeTimer);
-      // Resync to wherever the user left it, then resume after a short idle.
-      resumeTimer = setTimeout(() => { pos = el.scrollLeft; paused = false; }, 2500);
     };
     raf = requestAnimationFrame(step);
     el.addEventListener('pointerdown', pause);
@@ -577,12 +604,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     el.addEventListener('wheel', pause, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
-      clearTimeout(resumeTimer);
       el.removeEventListener('pointerdown', pause);
       el.removeEventListener('touchstart', pause);
       el.removeEventListener('wheel', pause);
     };
-  }, [vids.length]);
+  }, [visibleWorkCount]);
 
   // All the signup-form details (stored under user.profile via extra="allow").
   const phone = [p.dialCode, p.phone].filter(Boolean).join(' ');
@@ -729,7 +755,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           onClick={editable ? () => bannerRef.current?.click() : undefined}
         >
           {(asPage || isMobile)
-            ? <button type="button" className="cpm-banner-back" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Back"><ChevronLeft size={20} /></button>
+            ? <button type="button" className="cpm-banner-back" onClick={(e) => { e.stopPropagation(); handleClose(); }} aria-label="Back to settings"><ChevronLeft size={20} /></button>
             : <button type="button" className="cpm-x" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close"><X size={18} /></button>}
           {editable && (
             <>
@@ -855,7 +881,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
           <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>
           {editable && !editing && (
-            <button type="button" className="cpm-tab-add" onClick={() => { resetAddForm(); setAddOpen(true); goTab('videos'); }}>
+            <button type="button" className="cpm-tab-add" onClick={openAddWork} disabled={(pf || []).filter((item) => pfUrl(item)).length >= 5} title={(pf || []).filter((item) => pfUrl(item)).length >= 5 ? 'Maximum 5 work videos' : 'Add work'}>
               <Plus size={14} /> Add Work
             </button>
           )}
@@ -980,8 +1006,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                         </div>
                       </div>
                     )}
-                    <div className="cpm-vids">
-                      {(pf || []).map((it, i) => {
+                    <div className="cpm-vids cpm-vids--scroll" ref={vidTrackRef}>
+                      {(pf || []).slice(0, 5).map((it, i) => {
                         const u = pfUrl(it);
                         if (!u) return null;
                         const meta = typeof it === 'string' ? {} : it;
@@ -1010,7 +1036,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                         No videos uploaded yet.
                       </div>
                     )}
-                    {vids.slice(0, 12).map((v, i) => (
+                    {vids.slice(0, 5).map((v, i) => (
                       <div className="cpm-vid-item" key={i}>
                         <VideoTile url={v.url} />
                         <div className="cpm-vid-cap">
@@ -1176,6 +1202,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
         .cpm-tabs .cpm-tab-add{display:inline-flex;align-items:center;gap:4px;margin-left:auto;margin-bottom:7px;padding:7px 10px;border:1px solid #dfe2f0;border-radius:999px;color:#15163a;font-size:11.5px;white-space:nowrap}
         .cpm-tabs .cpm-tab-add:hover{border-color:#bfc6f5;background:#f8f9ff}
+        .cpm-tabs .cpm-tab-add:disabled{opacity:.45;cursor:not-allowed;background:#f5f6fa;border-color:#e6e8f1}
         .cpm-tab-body{padding:22px 28px 4px}
         /* scroll-spy: each tab maps to a stacked section; the tab bar sticks while scrolling */
         .cpm-sec-block{scroll-margin-top:130px;padding-top:4px}
@@ -1402,9 +1429,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           .cpm-phead.is-editable .cpm-actions .cpm-msg{min-height:34px;padding:7px 15px;font-size:12.5px}
           .cpm-phead.is-editable .cpm-actions .cpm-msg svg{width:14px;height:14px}
           .cpm-phead.is-editable .cpm-name{padding-right:132px}
-          .cpm-tabs{gap:16px;margin-top:8px;padding:0 20px}
-          .cpm-tabs button{padding-top:9px;padding-bottom:9px}
-          .cpm-tabs .cpm-tab-add{margin-bottom:3px;padding:5px 9px}
+          .cpm-tabs{gap:16px;padding:0 20px}
           /* Persistent bottom Send Message bar. */
           .cpm-mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:1500;
             padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
@@ -1417,5 +1442,5 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   );
 
   if (asPage) return <div className="cpm-page">{content}</div>;
-  return <div className="cpm-ov" onClick={onClose}>{content}</div>;
+  return <div className="cpm-ov" onClick={handleClose}>{content}</div>;
 }

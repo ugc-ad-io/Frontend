@@ -1030,7 +1030,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
   return (
     <div className="pab-page brief-builder-page">
-      <div style={{ display: 'flex', marginBottom: 14, gridColumn: '1 / -1' }}>
+      <div className="pab-back-row">
         <button
           type="button"
           className="btn-secondary"
@@ -1058,6 +1058,17 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
       <div className="pab-body brief-body">
         <div className="pab-form-panel brief-panel">
+          <div className="pab-mobile-step-row">
+            <button
+              type="button"
+              className="pab-mobile-back"
+              aria-label="Back"
+              onClick={() => (onClose ? onClose() : navigate(-1))}
+            >
+              <ChevronLeft size={21} />
+            </button>
+            <span className="pab-mobile-step-count">{step}/{STEPS.length}</span>
+          </div>
           <div className="pab-tabs">
             <div className="pab-tabs-row">
               {subs.map((label, i) => (
@@ -1565,8 +1576,20 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           }
           .pab-tabs-row {
             width: 100%;
-            gap: 18px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            justify-content: center;
             -webkit-overflow-scrolling: touch;
+          }
+
+          .pab-tab {
+            width: 100%;
+            padding-left: 2px;
+            padding-right: 2px;
+            text-align: center;
+            white-space: nowrap;
+            font-size: 11px;
           }
           .pab-tab { font-size: 13px; padding: 11px 2px; }
 
@@ -2239,6 +2262,101 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           .brief-body,
           .form-row {
             grid-template-columns: 1fr;
+          }
+        }
+
+        .pab-back-row {
+          display: flex;
+          margin-bottom: 14px;
+          grid-column: 1 / -1;
+        }
+
+        .pab-mobile-step-row,
+        .pab-mobile-back,
+        .pab-mobile-step-count { display: none; }
+
+        @media (max-width: 640px) {
+          /* On phones the builder is an edge-to-edge page, not a card within a page. */
+          .brief-builder-page {
+            display: block;
+            width: calc(100% + 28px);
+            max-width: none;
+            margin: 0 -14px -40px;
+            overflow-x: hidden;
+            background: #fff;
+          }
+
+          .pab-back-row {
+            display: none;
+          }
+
+          /* The compact counter replaces the large purple step strip on mobile. */
+          .brief-stepper { display: none; }
+
+          .brief-body { display: block; }
+
+          .brief-panel {
+            min-height: calc(100dvh - 70px);
+            padding: 12px 26px 28px;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+          }
+
+          .pab-mobile-step-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            min-height: 44px;
+            margin-bottom: 12px;
+          }
+
+          .pab-mobile-back {
+            display: grid;
+            flex: none;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border: 1px solid #e2e4f5;
+            border-radius: 50%;
+            background: #fff;
+            color: #07074e;
+            box-shadow: 0 3px 10px rgba(7, 7, 78, 0.08);
+            cursor: pointer;
+          }
+
+          .pab-mobile-step-count {
+            display: grid;
+            flex: none;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border: 2px solid #786fff;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 800;
+            box-shadow: 0 0 0 4px #eeecff;
+          }
+
+          .pab-progress { display: none; }
+          .pab-footer { justify-content: flex-end; }
+
+          .brief-panel .pab-tabs-row {
+            grid-template-columns: .65fr 1.2fr 1.35fr;
+            column-gap: 3px;
+          }
+
+          .brief-panel .pab-tabs-row .pab-tab {
+            min-width: 0;
+            padding: 11px 0;
+            font-size: 10.5px;
+            letter-spacing: -0.15px;
+            white-space: nowrap;
           }
         }
       `}</style>

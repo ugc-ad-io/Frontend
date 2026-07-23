@@ -409,6 +409,7 @@ export default function MyDealsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [mobileSection, setMobileSection] = useState('workspace');
   const [showAllActivity, setShowAllActivity] = useState(false);
+  const [stepsExpanded, setStepsExpanded] = useState(false);
   const evidenceInputRef = useRef(null);
   const shipAddressRef = useRef(null);   // "Confirm Delivery Address" scrolls here
 
@@ -425,6 +426,7 @@ export default function MyDealsPage() {
   useEffect(() => {
     setBriefOpen(false);
     setFullBrief(null);
+    setStepsExpanded(false);
   }, [selectedDeal?.deal_id]);
 
   // Once a deal is paid + complete, ask the creator to rate the brand. Creators could
@@ -913,7 +915,7 @@ export default function MyDealsPage() {
       <input ref={evidenceInputRef} type="file" hidden multiple accept="image/*,video/*,.pdf" onChange={handleEvidenceUpload} />
       <div className="cmk-dr">
         <div className="cmk-dr-back">
-          <button type="button" onClick={() => navigate('/my-deals')}><ArrowLeft size={16} /> Back to My Deals</button>
+          <button type="button" aria-label="Back to My Deals" title="Back to My Deals" onClick={() => navigate('/my-deals')}><ArrowLeft size={20} /></button>
           {deals.length > 1 && (
             <select value={String(getDealId(selectedDeal))} onChange={(e) => setSelectedDeal(deals.find((d) => String(getDealId(d)) === e.target.value) || selectedDeal)}>
               {deals.map((d) => <option key={getDealId(d)} value={String(getDealId(d))}>{getDealTitle(d)}</option>)}
@@ -931,14 +933,12 @@ export default function MyDealsPage() {
             <div className="cmk-dr-title">
               <h1>{getDealTitle(deal)}</h1>
               <div className="cmk-dr-id">Deal ID: {getDealId(deal)}{' '}
-                <span
+                <button
+                  type="button"
                   className="cmk-pill info is-link"
-                  role="button"
-                  tabIndex={0}
                   onClick={goToTask}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToTask(); } }}
                   title="Go to the task for this status"
-                >● {selectedState}</span>
+                >● {selectedState}</button>
               </div>
               <div className="cmk-dr-tags">{dealTags.map((t, i) => <span key={i}>{t}</span>)}</div>
             </div>
@@ -951,7 +951,7 @@ export default function MyDealsPage() {
                 <div><small>Status</small><strong>Completed &amp; Paid</strong></div>
               </div>
             ) : (
-              <div className="cmk-dr-next"><Clock size={20} /><div><small>Next Action</small><strong>{primaryAction.label}</strong></div></div>
+              <button type="button" className="cmk-dr-next" onClick={goToTask} title={`Go to ${primaryAction.label}`}><Clock size={20} /><span><small>Next Action</small><strong>{primaryAction.label}</strong></span></button>
             )}
           </div>
 
@@ -965,7 +965,20 @@ export default function MyDealsPage() {
         </section>
 
         {/* stepper */}
-        <section className="cmk-dr-steps">
+        <section
+          className={`cmk-dr-steps ${stepsExpanded ? 'is-expanded' : 'is-collapsed'}`}
+          role="button"
+          tabIndex={0}
+          aria-expanded={stepsExpanded}
+          aria-label={stepsExpanded ? 'Collapse work progress' : 'Show all work progress stages'}
+          onClick={() => setStepsExpanded((expanded) => !expanded)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setStepsExpanded((expanded) => !expanded);
+            }
+          }}
+        >
           {dealStepList.map((label, i) => {
             const state = i < stepIndex ? 'done' : i === stepIndex ? 'active' : 'todo';
             return (
@@ -1602,6 +1615,7 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
   const revision = deal?.revision_tracker || {};
   const changeItems = toChangeItems(revision);
   const [videoOpen, setVideoOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   // The video the brand reviewed = the creator's most recent submitted version.
   const versions = deal?.content_submission?.versions || [];
@@ -1687,19 +1701,17 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
       ) : (
         <>
           <p className="deal-revision-hint">Review the requested changes, then choose how to respond.</p>
-          <div className="deal-revision-actions">
-            <button
-              type="button"
-              className="is-primary"
-              disabled={!hasRevision || submitting}
-              // Accepting agrees to the WHOLE list — send every item so the brand keeps
-              // a record of exactly what was agreed (rather than an empty array).
-              onClick={() => onRevisionResponse('accepted', total ? changeItems : null)}
-            >
-              {submitting ? 'Sending…' : 'Accept & revise'}
+          <div className="deal-revision-options">
+            <button type="button" className="deal-revision-options-trigger" disabled={!hasRevision || submitting} aria-expanded={optionsOpen} onClick={() => setOptionsOpen((open) => !open)}>
+              Options <ChevronDown size={16} />
             </button>
-            <button type="button" disabled={!hasRevision} onClick={() => onDiscussWithBrand?.()}>Chat with brand about changes</button>
-            <button type="button" disabled={!hasRevision || submitting} onClick={() => onRevisionResponse('scope_creep', [])}>These changes go beyond the brief</button>
+            {optionsOpen && (
+              <div className="deal-revision-options-menu">
+                <button type="button" onClick={() => { setOptionsOpen(false); onRevisionResponse('accepted', total ? changeItems : null); }}>Accept &amp; revise</button>
+                <button type="button" onClick={() => { setOptionsOpen(false); onDiscussWithBrand?.(); }}>Chat with brand about changes</button>
+                <button type="button" onClick={() => { setOptionsOpen(false); onRevisionResponse('scope_creep', []); }}>These changes go beyond the brief</button>
+              </div>
+            )}
           </div>
         </>
       )}

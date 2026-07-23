@@ -471,6 +471,23 @@
 .cmk-awc-respond:hover{background:#3542d6;transform:translateY(-1px)}
 
 @media (max-width:760px){
+  /* Creator list/hub pages use the phone viewport as one continuous surface. */
+  .cmk-page.cmk-wrap:has(> .saved-campaigns-head),
+  .cmk-page.cmk-wrap:has(> .browse-campaigns-head),
+  .cmk-page.cmk-wrap:has(> .my-deals-head){
+    max-width:none;padding-left:0;padding-right:0;background:#fff
+  }
+  .saved-campaigns-head,.browse-campaigns-head,.my-deals-head{padding:0 16px}
+  .cmk-page:has(> .browse-campaigns-head) .cmk-filter-row,
+  .cmk-page:has(> .browse-campaigns-head) .cmk-search-note{margin-left:16px;margin-right:16px}
+  .cmk-page:has(> .saved-campaigns-head) .cmk-bb-grid,
+  .cmk-page:has(> .browse-campaigns-head) .cmk-bb-grid{gap:0}
+  .cmk-page:has(> .saved-campaigns-head) .cmk-bb-card,
+  .cmk-page:has(> .browse-campaigns-head) .cmk-bb-card{
+    border-left:0;border-right:0;border-top:0;border-radius:0;box-shadow:none;padding:18px 16px
+  }
+  .cmk-page:has(> .saved-campaigns-head) .cmk-bb-card:hover,
+  .cmk-page:has(> .browse-campaigns-head) .cmk-bb-card:hover{transform:none;box-shadow:none}
   .cmk-awc{flex-wrap:wrap;gap:14px}
   .cmk-awc-lead{width:auto;flex:1}
   .cmk-awc-steps{flex:1 1 100%;order:3}
@@ -545,8 +562,32 @@
   background:#fff;color:#07074E;box-shadow:0 4px 14px rgba(7,7,78,.12);cursor:pointer;transition:.18s}
 .cmk-brief-close:hover{background:#EEF0FF;transform:translateY(-1px)}
 @media (max-width:600px){
-  .cmk-brief-overlay{padding:16px 10px}
-  .cmk-brief-modal{border-radius:16px;padding:18px}
+  .cmk-brief-overlay{
+    display:block;
+    padding:0;
+    overflow:hidden;
+    background:#fff;
+    backdrop-filter:none;
+  }
+  .cmk-brief-modal{
+    width:100%;
+    max-width:none;
+    height:100dvh;
+    margin:0;
+    padding:64px 0 0;
+    box-sizing:border-box;
+    overflow-x:hidden;
+    overflow-y:auto;
+    border-radius:0;
+    box-shadow:none;
+    background:#fff;
+  }
+  .cmk-brief-close{
+    position:fixed;
+    top:10px;
+    right:12px;
+    z-index:230;
+  }
 }
 
 /* expanding-panel featured row (top 3) */
@@ -1241,10 +1282,10 @@
 .cmk-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-soft)}
 .cmk-dr{padding-top:4px}
 .cmk-dr-back{display:flex;align-items:center;gap:14px;margin:4px 0 16px}
-.cmk-dr-back button{display:inline-flex;align-items:center;gap:7px;background:none;border:none;color:var(--indigo);
-  font-family:inherit;font-weight:600;font-size:14px;cursor:pointer}
+.cmk-dr-back button{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:none;border:none;color:var(--indigo);
+  font-family:inherit;cursor:pointer;flex:none}
 .cmk-dr-back select{height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-family:inherit;
-  font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;cursor:pointer}
+  margin-left:auto;font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;cursor:pointer}
 
 /* header */
 /* Header is two calm rows now: [logo · title · next action] over a quiet facts strip.
@@ -1266,6 +1307,7 @@
 .cmk-dr-title h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cmk-dr-id{display:flex;align-items:center;gap:10px;margin-top:5px;font-size:12.5px;color:var(--muted)}
+.cmk-dr-id .cmk-pill{font-family:inherit;text-align:left}
 .cmk-dr-tags{display:flex;gap:6px;margin-top:9px}
 .cmk-dr-tags span{background:#eef0ff;color:var(--indigo);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
 .cmk-dr-metacol{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -1273,7 +1315,9 @@
 .cmk-dr-metacol small{color:var(--muted);font-size:11px}
 .cmk-dr-metacol b{font-weight:700;font-size:13.5px}
 .cmk-dr-next{margin-left:auto;flex:none;display:flex;align-items:center;gap:9px;color:#9a6212;
-  background:#fdf3e3;border:1px solid #f6e2c0;border-radius:13px;padding:9px 13px}
+  background:#fdf3e3;border:1px solid #f6e2c0;border-radius:13px;padding:9px 13px;font-family:inherit;text-align:left;cursor:pointer}
+.cmk-dr-next:hover{border-color:#e9c98f;background:#fbeed9}
+.cmk-dr-next:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(245,158,11,.2)}
 .cmk-dr-next small{display:block;font-size:10.5px;color:#b9802e}
 .cmk-dr-next strong{font-size:13px;color:#8a5a13;white-space:nowrap}
 /* Finished deal: green "done" chip instead of the amber "you still owe something"
@@ -1579,9 +1623,35 @@
   .cmk-awc-go{width:44px;height:44px}
 
   /* Deal Room */
+  .cmk-page.cmk-wrap:has(.cmk-dr){max-width:none;padding:0 0 96px;background:#fff}
+  .cmk-page.cmk-wrap:has(.cmk-dr){padding-left:0;padding-right:0}
+  .cmk-dr{width:100%;padding-top:0;background:#fff}
+  .cmk-dr-back{margin:0;padding:12px 16px;background:#fff;border-bottom:1px solid var(--line)}
   .cmk-dr-head{gap:14px;padding:18px;flex-wrap:wrap}
+  .cmk-dr-head{border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+  .cmk-dr-top{position:relative;display:grid;grid-template-columns:1fr;width:100%;gap:10px}
+  .cmk-dr-logo{grid-row:1}
+  .cmk-dr-title{grid-row:2;width:100%}
+  .cmk-dr-next{position:absolute;top:0;right:0;margin:0;width:auto;max-width:190px;justify-content:flex-start;padding:8px 11px}
+  .cmk-dr-next strong{white-space:normal;line-height:1.25}
+  .cmk-dr-id{flex-wrap:nowrap;gap:8px;white-space:nowrap;width:100%}
+  .cmk-dr-id .cmk-pill{display:none}
+  .cmk-dr-id .cmk-pill{flex:1;max-width:190px;min-height:44px;padding:6px 12px;border-radius:20px;white-space:normal;line-height:1.25;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
   .cmk-dr-metacol{min-width:42%;white-space:normal}
-  .cmk-dr-next{margin-left:0;width:100%;justify-content:center}
+  .cmk-dr-steps{margin-top:0;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+  .cmk-dr-steps.is-collapsed{position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation}
+  .cmk-dr-steps.is-collapsed .cmk-dr-step:not(:first-child):not(:last-of-type){display:none}
+  .cmk-dr-steps.is-collapsed .cmk-dr-step{min-width:0}
+  .cmk-dr-steps.is-collapsed .cmk-dr-step:first-child{align-items:flex-start;text-align:left}
+  .cmk-dr-steps.is-collapsed .cmk-dr-step:last-of-type{align-items:flex-end;text-align:right}
+  .cmk-dr-steps.is-collapsed .cmk-dr-step:first-child .line{left:17px;width:calc(200% - 34px)}
+  .cmk-dr-steps.is-expanded{cursor:pointer;touch-action:manipulation}
+  .cmk-dr-body{gap:0;margin:0 0 36px}
+  .cmk-dr-body>main{width:100%;max-width:100%;min-width:0;overflow:hidden}
+  .cmk-dr-tabs{padding:0 16px;border-left:0;border-right:0;border-radius:0}
+  .cmk-dr-sec.cmk-card{margin-top:0;padding:20px 16px;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+  .cmk-dr-legacy{width:100%;max-width:100%;min-width:0;margin-top:0;padding:16px;box-sizing:border-box}
+  .cmk-dr-legacy>.deal-card{width:100%;max-width:100%;min-width:0}
   .cmk-dr-ship-grid{grid-template-columns:1fr 1fr}
   /* overflow-x alone did nothing: the buttons are shrinkable flex items, so they
      compressed to min-content and wrapped mid-word instead of triggering scroll.

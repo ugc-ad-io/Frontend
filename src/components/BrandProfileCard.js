@@ -269,7 +269,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
         .bpc-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
         .bpc-body{padding:22px 28px 26px}
         .bpc-sec{padding-top:2px}
-        .bpc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+        .bpc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
         .bpc-f{display:flex;flex-direction:column;gap:5px;min-width:0}
         .bpc-f.wide{grid-column:1/-1}
         .bpc-f label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#9296ba;text-transform:uppercase;letter-spacing:.3px}
@@ -294,7 +294,14 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
         .bpc-rev-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:34px 20px;border:1px dashed #e6e8f3;border-radius:16px;background:#fafbff}
         .bpc-rev-empty strong{color:#15163a;font-size:15px;font-weight:800}
         .bpc-rev-empty span{color:#9296ba;font-size:13px;max-width:320px}
-        @media(max-width:640px){.bpc-actions{position:static;margin-top:12px}.bpc-msg{flex:1}}
+          @media(max-width:640px){
+            .bpc-actions{position:static;margin-top:12px}
+            .bpc-msg{flex:1}
+            .bpc-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+            .bpc-f label{font-size:9.5px;line-height:1.25}
+            .bpc-f span{font-size:13px;line-height:1.35}
+          }
+          @media(max-width:340px){.bpc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
       `}</style>
     </div>
   );

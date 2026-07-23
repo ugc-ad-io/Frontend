@@ -162,7 +162,7 @@ export default function BrowseBriefs() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head">
+      <div className="cmk-page-head browse-campaigns-head">
         <h1>Browse Campaigns</h1>
         <p>Find exciting brands to collaborate with and create content.</p>
       </div>

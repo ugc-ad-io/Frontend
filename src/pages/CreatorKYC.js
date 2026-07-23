@@ -427,9 +427,11 @@ export default function CreatorKYC() {
            ~120px and squeezed the status text into a tall thin column. Also trims the
            card's 26px side padding, which cost 52px of a 360px screen. */
         @media (max-width:620px){
+          .kyc-page{width:auto;max-width:none;min-height:calc(100dvh - var(--cmk-nav-height,72px));margin:-18px -16px -96px;padding:14px 16px 96px;background:#fff}
           .kyc-state{flex-wrap:wrap}
           .kyc-state button{margin-left:0;width:100%;padding:11px 14px}
-          .kyc-card{padding:18px 16px}
+          .kyc-page .kyc-card{padding:18px 0;border:0;border-radius:0;box-shadow:none}
+          .kyc-page .kyc-onfile{border-top:1px solid #e9ebf5}
           .kyc-back{padding:10px 14px}
           .kyc-toggle button{padding:11px 18px}
         }

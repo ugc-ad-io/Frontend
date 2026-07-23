@@ -1191,6 +1191,7 @@
   font-weight: 400;
   font-family: var(--font-body);
 }
+.msg-system-mobile { display: none; }
 
 /* Action-card dropdown (replaces the overflowing chip row). */
 .msg-quick-actions {
@@ -1478,14 +1479,26 @@
 }
 
 @media (max-width: 768px) {
+  .cmk-page--flush.cmk-wrap {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
   .msg-layout {
     flex-direction: column;
     /* Fill the viewport under the top nav; inner panes scroll, so the
        message input always stays pinned and visible. */
-    height: calc(100dvh - 84px);
+    width: 100%;
+    height: calc(100dvh - var(--cmk-nav-height, 72px));
     min-height: 460px;
-    border-radius: 12px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
+
+  .msg-layout,
+  .msg-layout * { box-sizing: border-box; }
 
   /* One pane at a time. */
   .msg-list-panel { width: 100%; height: 100%; }
@@ -1497,36 +1510,96 @@
     border-left: none;
   }
 
-  .msg-back-btn { display: flex; }
+  .msg-back-btn { display: flex; width: 28px; height: 34px; margin-right: -2px; }
 
   /* Tighter chrome so more of the screen is content. */
   .msg-search { margin: 12px 12px 4px; }
   .msg-filters { padding: 10px 12px 12px; overflow-x: auto; }
-  .msg-chat-header { padding: 12px 14px; gap: 10px; }
+  .msg-chat-header { padding: 10px 6px; gap: 6px; }
   .msg-chat-actions { gap: 4px; }
   .msg-chat-actions button { width: 34px; height: 34px; }
   /* Keep the labelled pill labelled on mobile (the blanket 34px rule above would
      squash it into an unreadable sliver). */
   .msg-chat-actions button.msg-send-brief { width: auto; height: 34px; padding: 0 12px; }
 
-  .msg-messages { padding: 16px 14px 14px; }
-  .msg-bubble { max-width: 82%; }
+  .msg-messages { width: 100%; padding: 16px 14px 14px; overflow-x: hidden; }
+  .msg-messages > *,
+  .msg-bubble-row { min-width: 0; max-width: 100%; }
+  .msg-bubble {
+    min-width: 0;
+    max-width: 82%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .msg-bubble p,
+  .msg-system-pill,
+  .msg-action-card,
+  .msg-action-card-fields strong,
+  .msg-action-card-note {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .msg-system-pill { width: auto; max-width: calc(100% - 20px); padding: 12px 14px; }
+  .msg-system-wrap { width: 100%; max-width: 100%; min-width: 0; }
+  .msg-system-desktop { display: none; }
+  .msg-system-mobile {
+    display: block;
+    width: calc(100% - 16px);
+    margin: 6px auto;
+    border: 1px solid #dfe2f2;
+    border-left: 3px solid #6366f1;
+    border-radius: 12px;
+    background: #fff;
+    color: #15163a;
+    overflow: hidden;
+  }
+  .msg-system-mobile summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 12px;
+    cursor: pointer;
+    list-style: none;
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .msg-system-mobile summary::-webkit-details-marker { display: none; }
+  .msg-system-mobile summary em {
+    flex: none;
+    color: #5b6bff;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+  }
+  .msg-system-mobile[open] summary { border-bottom: 1px solid #eef0f6; }
+  .msg-system-mobile p {
+    margin: 0;
+    padding: 12px;
+    color: #585c7e;
+    font-size: 12.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 
   /* Cards and composer go full width instead of a fixed pixel width. */
-  .msg-action-card { width: 100%; }
+  .msg-action-card { width: 100%; min-width: 0; }
   .msg-action-card-fields p { grid-template-columns: 110px 1fr; }
   .msg-action-composer { margin: 0 14px 12px; }
   .msg-action-composer-grid { grid-template-columns: 1fr; }
   .msg-policy-banner { padding: 10px 14px; }
   .msg-quick-actions { padding: 10px 14px 12px; }
 
-  .msg-input-row { padding: 12px 14px 16px; gap: 8px; }
-  .msg-input { padding: 11px 16px; }
+  .msg-input-row { width: 100%; min-width: 0; padding: 12px 14px 16px; gap: 8px; }
+  .msg-input { flex: 1 1 auto; min-width: 0; width: 0; padding: 11px 16px; }
+  .msg-input-icon,.msg-send,.msg-emoji-wrap { flex: 0 0 auto; }
 }
 
 /* Extra-small phones. */
 @media (max-width: 480px) {
-  .msg-layout { height: calc(100dvh - 72px); border-radius: 0; }
+  .msg-layout { height: calc(100dvh - var(--cmk-nav-height, 62px)); border-radius: 0; }
   .msg-bubble { max-width: 88%; }
   .msg-avatar, .msg-avatar-wrap { width: 40px; height: 40px; min-width: 40px; }
   /* Icon-only header actions can crowd; keep the essentials, drop the

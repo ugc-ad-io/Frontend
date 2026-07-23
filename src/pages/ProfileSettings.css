@@ -1795,6 +1795,97 @@
   }
 }
 
+@media (max-width: 640px) {
+  /* Brand settings use the whole phone canvas; the top-level Settings title is
+     redundant once a settings section or the All settings menu is open. */
+  .cmk-page:has(> .cmk-page-head + .bs-dashboard-page) {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .cmk-page-head:has(+ .bs-dashboard-page) {
+    display: none;
+  }
+
+  .bs-dashboard-page {
+    position: relative;
+    width: 100%;
+    min-height: calc(100dvh - var(--cmk-nav-height, 72px));
+    padding: 12px 0 36px;
+    background: #fff;
+  }
+
+  .bs-dashboard-page .bs-left {
+    width: 100%;
+  }
+
+  .bs-dashboard-page .bs-back {
+    position: absolute;
+    top: 30px;
+    left: 4px;
+    z-index: 3;
+    margin: 0;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .bs-dashboard-page .bs-back span {
+    display: none;
+  }
+
+  .bs-dashboard-page:has(.bs-back) .bs-card {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .bs-dashboard-page:has(.bs-back) {
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  .bs-dashboard-page:has(.bs-back) .bs-card-head {
+    min-height: 76px;
+    padding: 18px 22px 16px 56px;
+    background: #fff;
+  }
+
+  .bs-dashboard-page:has(.bs-back) .bs-card-head p {
+    display: none;
+  }
+
+  .bs-dashboard-page:has(.bs-back) .bs-card-head .bs-kyb {
+    padding: 7px 11px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .bs-dashboard-page:has(.bs-back) .bs-card-body,
+  .bs-dashboard-page:has(.bs-back) .bs-toggle-list,
+  .bs-dashboard-page:has(.bs-back) .bs-security-grid {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .bs-dashboard-page:has(.bs-back) .bs-card-actions {
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-bottom: 16px;
+  }
+}
+
 .ps-topbar {
   display: flex;
   justify-content: space-between;

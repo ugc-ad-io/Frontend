@@ -167,14 +167,16 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
             <strong>{b.title}</strong>
             <small>{b.brand}</small>
           </div>
-          <button type="button" className="bb-drawer-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
+          <div className="bb-d-head-actions">
+            <span className="bb-d-head-match"><Star size={14} /> <span>Match</span> <strong>{b.matchScore}%</strong></span>
+            <button type="button" className="bb-drawer-close" aria-label="Close" onClick={onClose}><X size={20} /></button>
+          </div>
         </div>
 
         <div className="bb-d-body">
           <div className="bb-d-stats">
             <div><span className="bb-d-ic"><Wallet size={16} /></span><div><label>Budget</label><strong>{b.budget}</strong></div></div>
             <div><span className="bb-d-ic"><Clock size={16} /></span><div><label>Delivery</label><strong>{b.deliveryLabel}</strong></div></div>
-            <div><span className="bb-d-ic"><Star size={16} /></span><div><label>Match</label><strong>{b.matchScore}%</strong></div></div>
           </div>
 
           {b.tags?.length > 0 && (
@@ -269,10 +271,13 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
         .bb-d-id{flex:1;min-width:0}
         .bb-d-id strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;color:#15163a;line-height:1.25}
         .bb-d-id small{color:#9296ba;font-size:13px}
-        .bb-drawer-close{flex:none;width:34px;height:34px;border-radius:10px;border:none;background:#f1f3fa;color:#15163a;cursor:pointer;display:grid;place-items:center}
-        .bb-drawer-close:hover{background:#e7eaf5}
+        .bb-d-head-actions{flex:none;display:flex;align-items:center;gap:8px}
+        .bb-d-head-match{display:inline-flex;align-items:center;gap:5px;color:#5b6bff;font-size:12px;font-weight:700;white-space:nowrap}
+        .bb-d-head-match strong{color:#15163a;font-size:14px}
+        .bb-drawer-close{flex:none;width:34px;height:34px;border-radius:0;border:none;background:transparent;color:#15163a;cursor:pointer;display:grid;place-items:center;padding:0}
+        .bb-drawer-close:hover{background:transparent;color:#5b6bff}
         .bb-d-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
-        .bb-d-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+        .bb-d-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         .bb-d-stats>div{display:flex;align-items:center;gap:9px;background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:11px 12px}
         .bb-d-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
         .bb-d-stats label{display:block;color:#9296ba;font-size:11px;font-weight:600}
@@ -313,7 +318,16 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
         .bb-d-ghost:hover{border-color:#d3d7f0}
         .bb-d-primary{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .bb-d-primary:hover{transform:translateY(-1px)}
-        @media (max-width:520px){.bb-d-stats{grid-template-columns:1fr}}
+        @media (max-width:520px){
+          .bb-d-head{gap:9px;padding:18px 16px}
+          .bb-d-id strong{font-size:15px}
+          .bb-d-head-match{display:none}
+          .bb-d-head-actions{gap:3px}
+          .bb-d-stats{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+          .bb-d-stats>div{padding:10px 8px;gap:7px}
+          .bb-d-ic{width:28px;height:28px}
+          .bb-d-stats strong{font-size:13px;white-space:nowrap}
+        }
       `}</style>
     </div>
   );

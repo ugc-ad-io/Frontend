@@ -62,7 +62,7 @@ export default function SavedBriefs() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head">
+      <div className="cmk-page-head saved-campaigns-head">
         <h1>Saved Campaigns</h1>
         <p>Campaigns you bookmarked to review or apply to later.</p>
       </div>

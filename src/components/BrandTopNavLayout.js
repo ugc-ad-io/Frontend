@@ -152,7 +152,15 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       />
       <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+          <button
+            type="button"
+            className="cmk-hamburger"
+            aria-label="Menu"
+            onClick={() => {
+              setMenuOpen(false);
+              setMobileOpen((v) => !v);
+            }}
+          >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">
@@ -184,13 +192,31 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
-            <button type="button" className="cmk-btn-primary-sm cmk-nav-post-full" onClick={() => setBriefOpen(true)} title="Post a Campaign" aria-label="Post a Campaign">
+            <button
+              type="button"
+              className="cmk-btn-primary-sm cmk-nav-post-full"
+              onClick={() => {
+                setMobileOpen(false);
+                setMenuOpen(false);
+                setBriefOpen(true);
+              }}
+              title="Post a Campaign"
+              aria-label="Post a Campaign"
+            >
               <Plus size={18} /><span className="cmk-btn-label">Post a Campaign</span>
             </button>
 
             <NotificationBell />
 
-            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
+            <button
+              type="button"
+              className="cmk-avatar-btn"
+              onClick={() => {
+                setMobileOpen(false);
+                setMenuOpen((v) => !v);
+              }}
+              aria-label="Account menu"
+            >
               <span className="cmk-avatar">
                 {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
               </span>

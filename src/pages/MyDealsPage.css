@@ -1138,6 +1138,62 @@
   margin-top: 18px;
 }
 
+.deal-revision-options {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 18px;
+}
+
+.deal-revision-options-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 126px;
+  border: 1px solid rgba(7, 7, 78, 0.22);
+  border-radius: 12px;
+  background: #07074e;
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.deal-revision-options-trigger:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.deal-revision-options-menu {
+  position: static;
+  width: min(300px, calc(100vw - 64px));
+  display: grid;
+  gap: 4px;
+  padding: 7px;
+  border: 1px solid #e6e8f3;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 36px rgba(7, 7, 78, 0.16);
+  margin-top: 8px;
+}
+
+.deal-revision-options-menu button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #07074e;
+  padding: 11px 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deal-revision-options-menu button:hover {
+  background: #f3f3ff;
+}
+
 .deal-revision-actions button,
 .deal-action-menu button {
   min-width: 0;

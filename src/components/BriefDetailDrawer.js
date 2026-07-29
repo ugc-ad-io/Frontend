@@ -262,7 +262,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       </aside>
 
       <style>{`
-        .bb-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px}
+        .bb-drawer-overlay{position:fixed;inset:0;z-index:10000;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px}
         .bb-drawer{position:relative;width:min(680px,100%);max-height:88vh;height:auto;background:#fff;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px rgba(15,22,58,.42);animation:bb-pop .24s ease}
         @keyframes bb-pop{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
         .bb-d-head{display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid #e9ebf4}

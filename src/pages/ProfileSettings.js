@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import {
   User,
+  UserX,
   Lock,
   Shield,
   AlertTriangle,
@@ -191,7 +192,6 @@ const BRAND_TABS = [
 
 const CREATOR_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'security', label: 'Password', icon: Lock },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   { id: 'follow', label: 'Follow Us', icon: Heart }
@@ -404,6 +404,7 @@ export default function ProfileSettings() {
   }));
 
   const [legalDoc, setLegalDoc] = useState(null);
+  const [accountAction, setAccountAction] = useState(null);
   const saveCreatorNotif = async () => {
     localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif));
     try { await axios.put(`${API}/profile/preferences`, { notification_prefs: creatorNotif }); } catch { /* cached locally */ }
@@ -415,8 +416,7 @@ export default function ProfileSettings() {
     toast.success('Privacy settings saved');
   };
 
-  const handleDeactivate = async () => {
-    if (!window.confirm('Deactivate your account? Your profile will be hidden until you log back in.')) return;
+  const confirmDeactivate = async () => {
     try {
       await axios.post(`${API}/profile/deactivate`);
       toast.success('Account deactivated');
@@ -427,9 +427,7 @@ export default function ProfileSettings() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('Permanently delete your account? This cannot be undone.')) return;
-    if (!window.confirm('Are you absolutely sure? All your data will be removed forever.')) return;
+  const confirmDeleteAccount = async () => {
     try {
       await axios.delete(`${API}/profile`);
       toast.success('Account deleted');
@@ -438,6 +436,66 @@ export default function ProfileSettings() {
     } catch {
       toast.error('Could not delete right now — please email support@ugcad.io');
     }
+  };
+
+  const handleDeactivate = () => setAccountAction('deactivate');
+  const handleDeleteAccount = () => setAccountAction('delete');
+
+  const runAccountAction = async () => {
+    const action = accountAction;
+    if (!action) return;
+    setLoading(true);
+    if (action === 'deactivate') await confirmDeactivate();
+    else await confirmDeleteAccount();
+    setLoading(false);
+  };
+
+  const renderAccountActionCard = () => {
+    if (!accountAction) return null;
+    const deleting = accountAction === 'delete';
+    return (
+      <div className="account-confirm-overlay" role="presentation" onMouseDown={() => !loading && setAccountAction(null)}>
+        <section
+          className="account-confirm-card"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="account-confirm-title"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <span className={`account-confirm-icon${deleting ? ' is-delete' : ''}`}>
+            {deleting ? <Trash2 size={25} /> : <UserX size={25} />}
+          </span>
+          <h2 id="account-confirm-title">{deleting ? 'Delete account permanently?' : 'Deactivate your account?'}</h2>
+          <p>
+            {deleting
+              ? 'All your profile information, activity, and account data will be permanently removed. This action cannot be undone.'
+              : 'Your profile will be hidden until you log back in. You can reactivate your account at any time.'}
+          </p>
+          <div className="account-confirm-actions">
+            <button type="button" className="account-confirm-cancel" onClick={() => setAccountAction(null)} disabled={loading}>Cancel</button>
+            <button type="button" className={`account-confirm-submit${deleting ? ' is-delete' : ''}`} onClick={runAccountAction} disabled={loading}>
+              {loading ? 'Please wait…' : deleting ? 'Delete permanently' : 'Deactivate account'}
+            </button>
+          </div>
+        </section>
+        <style>{`
+          .account-confirm-overlay{position:fixed;inset:0;z-index:1600;display:grid;place-items:center;padding:20px;background:rgba(15,22,58,.55);backdrop-filter:blur(5px)}
+          .account-confirm-card{width:min(460px,100%);padding:30px;background:#fff;border:1px solid #eef0f6;border-radius:22px;box-shadow:0 30px 80px rgba(15,22,58,.3);text-align:center;animation:accountConfirmIn .18s ease}
+          @keyframes accountConfirmIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+          .account-confirm-icon{width:56px;height:56px;margin:0 auto 17px;display:grid;place-items:center;border-radius:16px;background:#fff4e5;color:#c56a08}
+          .account-confirm-icon.is-delete{background:#fff0f3;color:#e11d48}
+          .account-confirm-card h2{margin:0 0 9px;color:#15163a;font-size:21px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
+          .account-confirm-card p{margin:0 auto;color:#6f7494;font-size:14px;line-height:1.6;max-width:390px}
+          .account-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:25px}
+          .account-confirm-actions button{min-height:42px;padding:10px 17px;border-radius:11px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+          .account-confirm-actions button:disabled{opacity:.6;cursor:not-allowed}
+          .account-confirm-cancel{border:1px solid #dfe2ee;background:#fff;color:#4b506d}
+          .account-confirm-submit{border:1px solid #e5a544;background:#fff7e8;color:#a85705}
+          .account-confirm-submit.is-delete{border-color:#e11d48;background:#e11d48;color:#fff}
+          @media(max-width:520px){.account-confirm-card{padding:24px 18px}.account-confirm-actions{flex-direction:column-reverse}.account-confirm-actions button{width:100%}}
+        `}</style>
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -568,7 +626,22 @@ export default function ProfileSettings() {
     setLoading(true);
     try {
       const res = await axios.put(`${API}/business/settings/profile`, brandProfile);
-      setBrandProfile({ ...brandProfile, ...(res.data || {}) });
+      const savedProfile = { ...brandProfile, ...(res.data || {}) };
+      setBrandProfile(savedProfile);
+      setUser(current => current ? ({
+        ...current,
+        brand_name: savedProfile.brand_name || current.brand_name,
+        business_name: savedProfile.brand_name || current.business_name,
+        profile: {
+          ...(current.profile || {}),
+          business_name: savedProfile.brand_name || current.profile?.business_name,
+          brand_name: savedProfile.brand_name || current.profile?.brand_name,
+          contact_person: savedProfile.contact_person,
+          work_email: savedProfile.work_email,
+          phone_number: savedProfile.phone_number,
+          website_url: savedProfile.website_url
+        }
+      }) : current);
       toast.success('Profile settings saved');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to save profile settings'));
@@ -613,7 +686,20 @@ export default function ProfileSettings() {
       const res = await axios.post(`${API}/business/settings/logo`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setBrandProfile(current => ({ ...current, logo_url: res.data.logo_url || res.data.photo_url || res.data.url || current.logo_url }));
+      const nextLogo = res.data.logo_url
+        || res.data.brand_logo
+        || res.data.photo_url
+        || res.data.url
+        || res.data.profile?.logo_url;
+      if (!nextLogo) throw new Error('The server did not return the uploaded logo URL.');
+      setBrandProfile(current => ({ ...current, logo_url: nextLogo }));
+      if (user?.id) localStorage.removeItem(`ugc_brand_logo_removed:${user.id}`);
+      setUser(current => current ? ({
+        ...current,
+        brand_logo: nextLogo,
+        brand_logo_removed: false,
+        profile: { ...(current.profile || {}), logo_url: nextLogo, brand_logo: nextLogo }
+      }) : current);
       toast.success('Logo updated');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to upload logo'));
@@ -625,8 +711,17 @@ export default function ProfileSettings() {
 
   const removeLogo = async () => {
     try {
-      await axios.delete(`${API}/business/settings/logo`);
+      if (brandProfile.logo_url) {
+        await axios.delete(`${API}/business/settings/logo`);
+      }
       setBrandProfile(current => ({ ...current, logo_url: '' }));
+      if (user?.id) localStorage.setItem(`ugc_brand_logo_removed:${user.id}`, '1');
+      setUser(current => current ? ({
+        ...current,
+        brand_logo: '',
+        brand_logo_removed: true,
+        profile: { ...(current.profile || {}), logo_url: '', brand_logo: '' }
+      }) : current);
       toast.success('Logo removed');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to remove logo'));
@@ -905,6 +1000,12 @@ export default function ProfileSettings() {
     : brandProfile.logo_url
       ? `${BACKEND_URL}${brandProfile.logo_url}`
       : '';
+  const googlePhotoSuppressed = Boolean(user?.brand_logo_removed)
+    || (user?.id && localStorage.getItem(`ugc_brand_logo_removed:${user.id}`) === '1');
+  const existingBrandPhoto = user?.profile_photo || user?.brand_logo || user?.profile_picture || '';
+  const brandHeaderImage = logoSrc || (!googlePhotoSuppressed && existingBrandPhoto
+    ? (existingBrandPhoto.startsWith('http') ? existingBrandPhoto : `${BACKEND_URL}${existingBrandPhoto}`)
+    : '');
 
   const renderBrandField = (label, value, onChange, props = {}) => (
     <label className={props.full ? 'bs-field bs-full' : 'bs-field'}>
@@ -940,10 +1041,21 @@ export default function ProfileSettings() {
       return (
         <section className="bs-card">
           <div className="bs-card-head">
-            <span><User size={20} /></span>
+            <span className="bs-profile-head-icon"><User size={20} /></span>
             <div>
               <h2>Profile Settings</h2>
               <p>Update your basic brand information and workspace presence</p>
+            </div>
+            <div className="bs-profile-head-media">
+              <label className="bs-profile-head-logo">
+                {brandHeaderImage ? <img src={brandHeaderImage} alt="Brand logo" /> : <strong>{getInitial(brandProfile.brand_name || displayName)}</strong>}
+                <input type="file" accept="image/*" onChange={handleLogoUpload} />
+              </label>
+              {brandHeaderImage && (
+                <button type="button" onClick={removeLogo} disabled={logoUploading}>
+                  {logoUploading ? 'Uploading...' : 'Remove Logo'}
+                </button>
+              )}
             </div>
           </div>
           <div className="bs-card-body bs-profile-grid">
@@ -952,9 +1064,11 @@ export default function ProfileSettings() {
                 {logoSrc ? <img src={logoSrc} alt="Brand logo" /> : <strong>{getInitial(brandProfile.brand_name || displayName)}</strong>}
                 <input type="file" accept="image/*" onChange={handleLogoUpload} />
               </label>
-              <button type="button" onClick={removeLogo} disabled={!brandProfile.logo_url || logoUploading}>
-                {logoUploading ? 'Uploading...' : 'Remove Logo'}
-              </button>
+              {logoSrc && (
+                <button type="button" onClick={removeLogo} disabled={logoUploading}>
+                  {logoUploading ? 'Uploading...' : 'Remove Logo'}
+                </button>
+              )}
             </div>
             <div className="bs-form-grid">
               {renderBrandField('Brand Name', brandProfile.brand_name, value => setBrandProfile(current => ({ ...current, brand_name: value })))}
@@ -981,7 +1095,6 @@ export default function ProfileSettings() {
               <h2>Company Details</h2>
               <p>Official information for billing, verification, and legal compliance</p>
             </div>
-            <em className={`bs-kyb ${company.kyb_status}`}>KYB {company.kyb_status === 'verified' ? 'Verified' : (company.kyb_status || 'Pending')}</em>
           </div>
           <div className="bs-card-body bs-form-grid">
             {renderBrandField('Business Type', company.business_type, value => setCompany(current => ({ ...current, business_type: value })), { options: BUSINESS_TYPES, placeholder: 'Select business type' })}
@@ -1329,6 +1442,7 @@ export default function ProfileSettings() {
             `}</style>
           </div>
         )}
+        {renderAccountActionCard()}
       </BrandTopNavLayout>
     );
   }
@@ -1591,10 +1705,12 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'security' && (
+              {activeTab === 'privacy' && (
                 <>
-                  <h2>Change Password</h2>
-                  <form onSubmit={handleChangePassword}>
+                  <h2>Privacy &amp; Security</h2>
+                  <p className="ps-panel-desc">Manage your password, account protection, and privacy preferences.</p>
+                  <h3>Change Password</h3>
+                  <form onSubmit={handleChangePassword} className="ps-password-compact">
                     <div className="ps-form-group">
                       <label>Current Password</label>
                       <input
@@ -1635,18 +1751,18 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'security' && (
+              {activeTab === 'privacy' && (
                 <>
-                  <h2 style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Two-Factor Authentication</h2>
-                  <p className="ps-panel-desc">
+                  <h2 className="ps-2fa-compact-title" style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Two-Factor Authentication</h2>
+                  <p className="ps-panel-desc ps-2fa-compact-desc">
                     Add an extra layer of security to your account with 2FA using Google Authenticator.
                   </p>
 
                   {!twoFAEnabled ? (
                     <>
                       {!showQR ? (
-                        <div className="ps-2fa-setup">
-                          <div className="ps-info-box">
+                        <div className="ps-2fa-setup ps-2fa-setup--compact">
+                          <div className="ps-info-box ps-info-box--compact">
                             <Shield size={48} />
                             <h3>Enable Two-Factor Authentication</h3>
                             <p>Protect your account with an additional security layer</p>
@@ -1742,7 +1858,7 @@ export default function ProfileSettings() {
 
               {activeTab === 'privacy' && (
                 <>
-                  <h2>Privacy &amp; Security</h2>
+                  <h2 style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Privacy Preferences</h2>
                   <p className="ps-panel-desc">Control who can see and reach you.</p>
 
                   {renderAccountStanding()}
@@ -1952,6 +2068,7 @@ export default function ProfileSettings() {
           `}</style>
         </div>
       )}
+      {renderAccountActionCard()}
     </CreatorTopNavLayout>
   );
 }

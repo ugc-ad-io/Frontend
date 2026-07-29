@@ -16,6 +16,21 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
+// The directory has shipped with a few response envelopes across backend versions.
+// Treat each supported envelope as the same creator list so a valid response never
+// becomes the misleading "No creators found" state.
+const creatorListFrom = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+  for (const key of ['creators', 'items', 'results', 'data']) {
+    if (Array.isArray(payload[key])) return payload[key];
+    if (payload[key] && typeof payload[key] === 'object') {
+      const nested = creatorListFrom(payload[key]);
+      if (nested.length) return nested;
+    }
+  }
+  return [];
+};
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
 // Portfolio items may be plain URL strings or rich objects ({ urls, videoUrl, ... }).
 const pfUrl = (it) => {
@@ -86,34 +101,76 @@ export function ReelCard({ c, onView, onExpand, cloneStart }) {
   const priceText = priceTextOf(c);
   const category = catOf(c);
 
+  // Autoplay all real creator reels, whether the creator is verified or not.
+  // Pause only while off-screen to avoid decoding the entire directory at once.
+  useEffect(() => {
+    const video = vref.current;
+    if (!video || !hasVideo) return undefined;
+
+    video.defaultMuted = true;
+    video.muted = true;
+    const play = () => video.play()
+      .then(() => setPlaying(true))
+      .catch(() => setPlaying(false));
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) play();
+      else {
+        video.pause();
+        setPlaying(false);
+      }
+    }, { threshold: 0.15 });
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [hasVideo, videoSrc]);
+
   const togglePlay = () => {
     if (!vref.current) return;
     if (vref.current.paused) { vref.current.play().then(() => setPlaying(true)).catch(() => {}); }
     else { vref.current.pause(); setPlaying(false); }
   };
 
+  const hoverUnmute = () => {
+    if (!window.matchMedia('(hover: hover)').matches || !vref.current) return;
+    const video = vref.current;
+    document.querySelectorAll('.bc-reel video').forEach((other) => {
+      if (other !== video) other.muted = true;
+    });
+    video.muted = false;
+    video.volume = 1;
+    setMuted(false);
+  };
+
+  const hoverMute = () => {
+    if (!window.matchMedia('(hover: hover)').matches || !vref.current) return;
+    vref.current.muted = true;
+    setMuted(true);
+  };
+
   // Hover to preview — DESKTOP ONLY. On touch devices a tap fires mouseenter, which
   // made reels auto-play while just scrolling/tapping; there, the clip plays only on
   // an explicit tap (togglePlay). `hover: hover` is false on touchscreens.
-  const canHover = typeof window !== 'undefined' && window.matchMedia
-    && window.matchMedia('(hover: hover)').matches;
-  const hoverPlay = () => {
-    if (!canHover) return;
-    const v = vref.current; if (!v) return;
-    v.play().then(() => setPlaying(true)).catch(() => {});
-  };
-  const hoverStop = () => {
-    if (!canHover) return;
-    const v = vref.current; if (!v) return;
-    v.pause(); setPlaying(false);
-  };
-
   return (
     <div className="bc-card" data-clone-start={cloneStart ? 'true' : undefined}>
-      <div className="bc-reel" onClick={hasVideo ? togglePlay : undefined} onMouseEnter={hasVideo ? hoverPlay : undefined} onMouseLeave={hasVideo ? hoverStop : undefined}>
+      <div
+        className="bc-reel"
+        onClick={hasVideo ? togglePlay : undefined}
+        onMouseEnter={hasVideo ? hoverUnmute : undefined}
+        onMouseLeave={hasVideo ? hoverMute : undefined}
+      >
         {hasVideo ? (
           <>
-            <video ref={vref} src={videoSrc} muted={muted} loop playsInline preload="metadata" />
+            <video
+              ref={vref}
+              src={videoSrc}
+              autoPlay
+              muted={muted}
+              loop
+              playsInline
+              preload="metadata"
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+            />
             {!playing && <span className="bc-play"><Play size={20} fill="currentColor" /></span>}
             <button type="button" className="bc-mute" aria-label={muted ? 'Unmute' : 'Mute'} onClick={(e) => {
               e.stopPropagation();
@@ -323,6 +380,8 @@ export default function BrandCreators() {
   const navigate = useNavigate();
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [q, setQ] = useState(searchParams.get('q') || '');
   const [cat, setCat] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false); // mobile category-filter menu
@@ -336,15 +395,32 @@ export default function BrandCreators() {
   useEffect(() => {
     let active = true;
     (async () => {
+      if (active) {
+        setLoading(true);
+        setLoadError('');
+      }
       try {
-        const res = await axios.get(`${API}/business/creator-directory`);
-        const list = Array.isArray(res.data) ? res.data : (res.data?.creators || []);
+        // `discovery_only` identifies this as the read/message discovery surface.
+        // Pending-review brands may use it; publishing and paid actions remain gated.
+        const res = await axios.get(`${API}/business/creator-directory`, {
+          params: { discovery_only: true },
+        });
+        const list = creatorListFrom(res.data);
         if (active) setCreators(list);
-      } catch { /* ignore */ }
+      } catch (err) {
+        if (active) {
+          setCreators([]);
+          setLoadError(
+            err?.response?.data?.detail
+            || err?.response?.data?.message
+            || 'Creator profiles could not be loaded. Please try again.'
+          );
+        }
+      }
       finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, []);
+  }, [reloadKey]);
 
   // Sync the search box when the nav-bar search updates the ?q= param.
   useEffect(() => {
@@ -538,6 +614,12 @@ export default function BrandCreators() {
             </div>
           ))}
         </div>
+      ) : loadError ? (
+        <EmptyState
+          title="Could not load creators"
+          message={loadError}
+          action={{ label: 'Try again', onClick: () => setReloadKey((v) => v + 1) }}
+        />
       ) : filtered.length === 0 ? (
         <EmptyState title="No creators found" message="No creators match your current search or filters. Try clearing them to see everyone." />
       ) : (

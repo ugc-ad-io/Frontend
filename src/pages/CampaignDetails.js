@@ -8,6 +8,7 @@ import { firstName } from '../utils/displayName';
 import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -210,6 +211,11 @@ export default function CampaignDetails({ embedId, onClose }) {
 
   const handleSubmitBid = async (e) => {
     e.preventDefault();
+    const maximum = maxCampaignBid(campaign);
+    if (maximum && Number(bidAmount) > maximum) {
+      toast.error(bidOverBudgetMessage(maximum));
+      return;
+    }
     try {
       await axios.post(`${API}/campaigns/${id}/bid`, {
         campaign_id: id,
@@ -705,6 +711,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   onChange={(e) => setBidAmount(e.target.value)}
                   placeholder="Enter your bid amount"
                   min="1"
+                  max={maxCampaignBid(campaign) || undefined}
                   required
                   data-testid="bid-amount-input"
                 />

@@ -619,3 +619,28 @@ a[href*="emergent.sh"] {
     align-items: flex-start;
   }
 }
+.ops-session-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10050;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 7px 16px;
+  background: #fff4d6;
+  border-bottom: 1px solid #f3cc73;
+  color: #713f12;
+  font-size: 13px;
+}
+
+.ops-session-banner button {
+  border: 1px solid #9a6700;
+  background: #fff;
+  color: #713f12;
+  padding: 5px 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

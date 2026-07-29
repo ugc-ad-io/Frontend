@@ -5,9 +5,11 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import {
   Briefcase, Search, X, ArrowRight, MessageSquare, FileVideo, StickyNote, AlertTriangle,
-  Clock3, Eye, Scale, IndianRupee, RotateCcw, Send, ExternalLink, Truck, Wallet, Users, FileText
+  Clock3, Eye, Scale, IndianRupee, RotateCcw, Send, ExternalLink, Truck, Wallet, Users, FileText,
+  BadgeCheck
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import { useAuth } from '../App';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import { SkeletonTable } from '../components/Skeleton';
 import BrandProfileModal from '../components/BrandProfileModal';
@@ -81,6 +83,37 @@ const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '—');
 const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
 
+// Deal-room messages have appeared under different response envelopes. Normalize
+// all supported shapes so the admin sees user, test and system-generated entries.
+const messagesFrom = (payload) => {
+  if (!payload) return [];
+  const candidates = [
+    payload?.chat_summary?.messages,
+    payload?.deal?.chat_summary?.messages,
+    payload?.data?.chat_summary?.messages,
+    payload?.data?.deal?.chat_summary?.messages,
+    payload?.messages,
+    payload?.chat,
+    payload?.data?.messages,
+    payload?.system_messages,
+    payload?.data?.system_messages,
+  ];
+  return candidates.filter(Array.isArray).flat();
+};
+
+const mergeMessages = (...lists) => {
+  const seen = new Set();
+  return lists.flat().filter((message) => {
+    const key = message?.id || [
+      message?.sender_type, message?.sender_name, message?.message || message?.text,
+      message?.created_at || message?.timestamp || message?.sent_at
+    ].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 // Known section titles that may appear in a flattened brief. Rendered as headings.
 const BRIEF_HEADINGS = new Set([
   'deliverable', 'brief', 'deliverables', 'campaign basics', 'creative requirements',
@@ -127,6 +160,7 @@ const getFlags = (d) => {
 };
 
 export default function AdminDeals() {
+  const { startBrandSession } = useAuth();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -138,6 +172,8 @@ export default function AdminDeals() {
   const [dateTo, setDateTo] = useState('');
 
   const [selected, setSelected] = useState(null);
+  const [chatView, setChatView] = useState(null);
+  const [chatLoading, setChatLoading] = useState(false);
   const [profileView, setProfileView] = useState(null); // { type: 'brand'|'creator', id, name }
   const [noteDraft, setNoteDraft] = useState('');
   const [targetState, setTargetState] = useState('');
@@ -146,33 +182,17 @@ export default function AdminDeals() {
   const [chatDraft, setChatDraft] = useState('');
   const [contactParty, setContactParty] = useState('both');
   const [contactMessage, setContactMessage] = useState('');
+  const [revisionFeedback, setRevisionFeedback] = useState('');
   const [working, setWorking] = useState(false);
   const [disputeDeal, setDisputeDeal] = useState(null);   // deal a dispute is being raised on
   const [disputeReason, setDisputeReason] = useState('');
   const [confirmBox, setConfirmBox] = useState(null);     // { title, message, confirmLabel, tone, icon, run }
-  // When opened via "Intervene in chat", jump straight to the chat instead of
-  // landing on the brief/description at the top of the drawer.
-  const [focusChat, setFocusChat] = useState(false);
-  const chatSectionRef = useRef(null);
-  const chatInputRef = useRef(null);
   // Deep-link support: /dashboard/admin/deals?deal=<campaignId> auto-opens that
   // deal's drawer (used by the admin brand-profile Campaigns tab). Fires once.
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkedRef = useRef(false);
 
   useEffect(() => { fetchDeals(); }, []);
-
-  // After the drawer opens for a chat intervention, scroll to the chat section
-  // and focus the compose box.
-  useEffect(() => {
-    if (!selected || !focusChat) return;
-    const t = setTimeout(() => {
-      chatSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      chatInputRef.current?.focus();
-      setFocusChat(false);
-    }, 150);
-    return () => clearTimeout(t);
-  }, [selected, focusChat]);
 
   const fetchDeals = async () => {
     setLoading(true);
@@ -187,16 +207,44 @@ export default function AdminDeals() {
     }
   };
 
-  const openDeal = async (deal, opts = {}) => {
+  const openDeal = async (deal) => {
     setSelected(deal);
     setNoteDraft(''); setTargetState(''); setReasonCode(''); setTransitionReason('');
-    setChatDraft(''); setContactParty('both'); setContactMessage('');
-    setFocusChat(!!opts.focusChat); // "Intervene in chat" jumps straight to the chat
+    setChatDraft(''); setContactParty('both'); setContactMessage(''); setRevisionFeedback('');
     try {
       const res = await axios.get(`${API}/admin/deals/${getId(deal)}`);
       if (res.data) setSelected({ ...deal, ...res.data });
     } catch {
       /* fall back to the row data we already have */
+    }
+  };
+
+  const openDealChat = async (deal) => {
+    setChatView(deal);
+    setChatDraft('');
+    setChatLoading(true);
+    try {
+      const id = getId(deal);
+      const results = await Promise.allSettled([
+        axios.get(`${API}/admin/deals/${id}`),
+        axios.get(`${API}/admin/deals/${id}/messages`),
+        axios.get(`${API}/admin/deals/${id}/chat`),
+      ]);
+      const payloads = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => result.value.data);
+      const detail = payloads[0] || {};
+      const detailDeal = detail?.deal || detail?.data?.deal || detail?.data || detail;
+      const messages = mergeMessages(messagesFrom(deal), ...payloads.map(messagesFrom));
+      setChatView({
+        ...deal,
+        ...detailDeal,
+        chat_summary: { ...(detailDeal?.chat_summary || {}), messages }
+      });
+    } catch {
+      /* Keep the row data visible if the detail request fails. */
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -331,12 +379,20 @@ export default function AdminDeals() {
 
   const handleIntervene = async () => {
     if (!chatDraft.trim()) return;
+    const targetDeal = chatView || selected;
+    if (!targetDeal) return;
     setWorking(true);
     try {
-      await axios.post(`${API}/admin/deals/${getId(selected)}/message`, { message: chatDraft.trim() });
-      toast.success('Message posted to the deal room');
-      const msg = { sender_nickname: 'Admin', message: chatDraft.trim(), timestamp: new Date().toISOString(), admin: true };
-      setSelected((s) => ({ ...s, chat: [...(s?.chat || s?.messages || []), msg] }));
+      await axios.post(`${API}/admin/deals/${getId(targetDeal)}/message`, { message: chatDraft.trim() });
+      toast.success('Admin comment added to the deal chat');
+      const msg = { sender_name: 'Admin', sender_type: 'admin', message: chatDraft.trim(), created_at: new Date().toISOString(), admin: true };
+      const appendMessage = (s) => {
+        if (!s) return s;
+        const current = s?.chat_summary?.messages || s?.chat || s?.messages || [];
+        return { ...s, chat_summary: { ...(s?.chat_summary || {}), messages: [...current, msg] } };
+      };
+      if (chatView) setChatView(appendMessage);
+      else setSelected(appendMessage);
       setChatDraft('');
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to send message'));
@@ -354,6 +410,69 @@ export default function AdminDeals() {
       setContactMessage('');
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to send notification'));
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const actAsBrand = async () => {
+    const businessId = getBrandId(selected);
+    if (!businessId) {
+      toast.error('This deal has no brand account attached');
+      return;
+    }
+    setWorking(true);
+    try {
+      const { data } = await axios.post(`${API}/admin/business/${businessId}/operate`);
+      startBrandSession(data.access_token, data.user);
+      toast.success(`Operating ${getBrand(selected)} as Operations Team`);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Could not open the brand workspace'));
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const approveAsBrand = (deal) => {
+    setConfirmBox({
+      title: 'Approve as brand',
+      message: `Approve the latest content from ${getCreator(deal)} on behalf of ${getBrand(deal)}? This may release the creator payout and is recorded in the audit log.`,
+      confirmLabel: 'Approve content',
+      tone: 'primary',
+      icon: 'wallet',
+      run: async () => {
+        setWorking(true);
+        try {
+          await axios.post(`${API}/admin/deals/${getId(deal)}/approve-content`);
+          toast.success('Content approved on behalf of the brand');
+          await fetchDeals();
+          await openDeal(deal);
+        } catch (e) {
+          toast.error(apiErrorMessage(e, 'Could not approve content for the brand'));
+        } finally {
+          setWorking(false);
+        }
+      },
+    });
+  };
+
+  const requestRevisionAsBrand = async () => {
+    if (!revisionFeedback.trim()) {
+      toast.error('Enter the changes the creator needs to make');
+      return;
+    }
+    setWorking(true);
+    try {
+      await axios.post(`${API}/admin/deals/${getId(selected)}/request-revision`, {
+        feedback: revisionFeedback.trim(),
+        requested_changes: [],
+      });
+      toast.success('Revision requested on behalf of the brand');
+      setRevisionFeedback('');
+      await fetchDeals();
+      await openDeal(selected);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Could not request a revision for the brand'));
     } finally {
       setWorking(false);
     }
@@ -408,8 +527,10 @@ export default function AdminDeals() {
     complete: deals.filter((d) => stateKey(getState(d)).includes('paid') || stateKey(getState(d)).includes('complete')).length
   }), [deals]);
 
-  const chat = selected?.chat || selected?.messages || [];
+  const popupChat = chatView?.chat_summary?.messages || chatView?.chat || chatView?.messages || [];
   const submissions = selected?.content_submission?.versions || selected?.content_versions || [];
+  const latestSubmission = submissions[submissions.length - 1] || null;
+  const latestSubmissionApproved = String(latestSubmission?.status || '').toLowerCase() === 'approved';
   const notes = selected?.admin_notes || [];
   const timeline = selected?.transitions || selected?.timeline || selected?.state_history || [];
   const shipment = selected?.shipment || selected?.shipping;
@@ -512,7 +633,7 @@ export default function AdminDeals() {
                       <td>
                         <div className="adl-actions">
                           <button className="adl-qa" title="View deal" onClick={() => openDeal(d)} data-testid={`view-deal-${getId(d)}`}><Eye size={15} /></button>
-                          <button className="adl-qa" title="Intervene in chat" onClick={() => openDeal(d, { focusChat: true })} data-testid={`chat-deal-${getId(d)}`}><MessageSquare size={15} /></button>
+                          <button className="adl-qa" title="View full deal chat" onClick={() => openDealChat(d)} data-testid={`chat-deal-${getId(d)}`}><MessageSquare size={15} /></button>
                           <button className="adl-qa danger" title="Raise dispute on behalf" disabled={working} onClick={() => raiseDispute(d)} data-testid={`dispute-deal-${getId(d)}`}><Scale size={15} /></button>
                           <button className="adl-qa ok" title="Release payment" disabled={working} onClick={() => releasePayment(d)} data-testid={`release-deal-${getId(d)}`}><IndianRupee size={15} /></button>
                         </div>
@@ -525,6 +646,52 @@ export default function AdminDeals() {
           )}
         </div>
       </div>
+
+      {chatView && (
+        <div className="adl-chat-dock-wrap">
+          <section className="adl-chat-modal" role="dialog" aria-label="Full deal chat">
+            <header className="adl-chat-modal-head">
+              <div>
+                <h2><MessageSquare size={18} /> Deal chat</h2>
+                <p>{getBrand(chatView)} ↔ {getCreator(chatView)} · #{String(getId(chatView) || '').slice(0, 8)}</p>
+              </div>
+              <button className="adl-icon" onClick={() => setChatView(null)} disabled={working} aria-label="Close chat"><X size={18} /></button>
+            </header>
+
+            <div className="adl-chat-modal-body">
+              {chatLoading ? (
+                <p className="adl-muted">Loading complete conversation...</p>
+              ) : popupChat.length === 0 ? (
+                <p className="adl-muted">No messages in this deal room.</p>
+              ) : (
+                <div className="adl-chat adl-chat-full">
+                  {popupChat.map((m, i) => (
+                    <div key={m.id || i} className={`adl-msg ${m.admin || m.sender_type === 'admin' ? 'admin' : ''} ${m.sender_type === 'system' ? 'system' : ''}`}>
+                      <div className="adl-msg-head">
+                        <strong>{m.sender_name || m.sender_nickname || m.sender || m.from || (m.sender_type === 'system' ? 'System' : 'User')}</strong>
+                        <span><Clock3 size={11} /> {(m.created_at || m.timestamp || m.sent_at) ? new Date(m.created_at || m.timestamp || m.sent_at).toLocaleString() : ''}</span>
+                      </div>
+                      <p>{m.message || m.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="adl-chat-compose adl-chat-modal-compose">
+                <input
+                  value={chatDraft}
+                  onChange={(e) => setChatDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && chatDraft.trim() && !working) handleIntervene(); }}
+                  placeholder="Type an admin comment..."
+                />
+                <button className="adl-chat-send" disabled={working || !chatDraft.trim()} onClick={handleIntervene} aria-label="Send admin comment">
+                  <Send size={17} />
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       {selected && (
         <>
@@ -578,6 +745,11 @@ export default function AdminDeals() {
                     <div className="adl-party adl-party-static"><span>Creator</span><strong>{getCreator(selected)}</strong></div>
                   )}
                 </div>
+                {brandId && (
+                  <button type="button" className="adl-act-brand" disabled={working} onClick={actAsBrand}>
+                    <ExternalLink size={15} /> Open full brand workspace
+                  </button>
+                )}
               </section>
 
               <section className="adl-block">
@@ -662,37 +834,34 @@ export default function AdminDeals() {
                     ))}
                   </ul>
                 )}
-              </section>
-
-              <section className="adl-block" ref={chatSectionRef}>
-                <h3><MessageSquare size={15} /> Chat transcript</h3>
-                {chat.length === 0 ? (
-                  <p className="adl-muted">No messages in this deal room.</p>
-                ) : (
-                  <div className="adl-chat">
-                    {chat.map((m, i) => (
-                      <div key={i} className={`adl-msg ${m.admin ? 'admin' : ''}`}>
-                        <div className="adl-msg-head">
-                          <strong>{m.sender_nickname || m.sender || m.from || 'User'}</strong>
-                          <span><Clock3 size={11} /> {m.timestamp ? new Date(m.timestamp).toLocaleString() : ''}</span>
-                        </div>
-                        <p>{m.message || m.text}</p>
-                      </div>
-                    ))}
+                <div className="adl-brand-actions">
+                  <div>
+                    <strong>Operations workspace · Act for brand</strong>
+                    <p>
+                      {latestSubmissionApproved
+                        ? `Content is approved for ${getBrand(selected)}. No further review action is required.`
+                        : submissions.length
+                        ? `Review creator work and decide for ${getBrand(selected)}. Every action is audited.`
+                        : 'Creator work has not been submitted yet. Brand-side review actions will unlock when content arrives.'}
+                    </p>
                   </div>
-                )}
-                <div className="adl-chat-compose">
-                  <textarea
-                    ref={chatInputRef}
-                    value={chatDraft}
-                    onChange={(e) => setChatDraft(e.target.value)}
-                    placeholder="Intervene — post an admin message in the deal room…"
-                    rows={2}
-                    data-testid="intervene-draft"
-                  />
-                  <button className="adl-secondary" disabled={working || !chatDraft.trim()} onClick={handleIntervene} data-testid="intervene-send">
-                    <Send size={14} /> Send to deal room
+                  <button className="adl-primary" disabled={working || !submissions.length || latestSubmissionApproved} onClick={() => approveAsBrand(selected)}>
+                    <BadgeCheck size={15} /> {latestSubmissionApproved ? 'Approved' : 'Approve as brand'}
                   </button>
+                  {!latestSubmissionApproved && (
+                    <>
+                      <textarea
+                        value={revisionFeedback}
+                        onChange={(e) => setRevisionFeedback(e.target.value)}
+                        placeholder="Changes required from the creator"
+                        rows={2}
+                        disabled={!submissions.length}
+                      />
+                      <button className="adl-secondary" disabled={working || !submissions.length || !revisionFeedback.trim()} onClick={requestRevisionAsBrand}>
+                        Request revision as brand
+                      </button>
+                    </>
+                  )}
                 </div>
               </section>
 
@@ -879,6 +1048,19 @@ export default function AdminDeals() {
         /* Above the drawer — these dialogs are opened FROM the drawer
            (Release payment / Refund / Raise dispute), so they must sit on top of it. */
         .adl-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .adl-chat-dock-wrap { position: fixed; right: 24px; bottom: 0; z-index: 120; width: 420px; max-width: calc(100vw - 32px); }
+        .adl-chat-modal { width: 100%; height: min(640px, calc(100dvh - 90px)); overflow: hidden; background: #fff; border: 1px solid #e2e6f0; border-bottom: 0; border-radius: 18px 18px 0 0; box-shadow: 0 18px 55px rgba(16,24,40,0.28); display: flex; flex-direction: column; animation: adlPop 140ms ease-out; }
+        .adl-chat-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 18px 20px; border-bottom: 1px solid #e6e8ec; }
+        .adl-chat-modal-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; color: #07074e; font-size: 1.05rem; }
+        .adl-chat-modal-head p { margin: 5px 0 0; color: #667085; font-size: 0.78rem; }
+        .adl-chat-modal-body { flex: 1; min-height: 0; padding: 14px 16px 16px; display: flex; flex-direction: column; }
+        .adl-chat-modal-body > .adl-muted { flex: 1; }
+        .adl-chat-full { flex: 1; min-height: 0; max-height: none; padding-right: 5px; }
+        .adl-chat-compose.adl-chat-modal-compose { flex: none; width: 100%; display: flex; flex-direction: row; align-items: center; gap: 8px; margin-top: 10px; padding-top: 12px; border-top: 1px solid #eef0f4; }
+        .adl-chat-compose.adl-chat-modal-compose input { flex: 1 1 auto; width: auto; min-width: 0; height: 44px; margin: 0; padding: 0 15px; border: 1px solid #e1e5ee; border-radius: 22px; background: #f8f9fc; color: #111827; font: inherit; font-size: 0.86rem; outline: 0; }
+        .adl-chat-modal-compose input:focus { border-color: #737cff; box-shadow: 0 0 0 3px rgba(91,107,255,.12); }
+        .adl-chat-send { flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #07074e; color: #fff; cursor: pointer; }
+        .adl-chat-send:disabled { opacity: .45; cursor: not-allowed; }
         .adl-dispute { width: 460px; max-width: 100%; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(16,24,40,0.28); z-index: 60; padding: 22px; display: flex; flex-direction: column; gap: 14px; animation: adlPop 140ms ease-out; }
         @keyframes adlPop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
         .adl-dispute-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -920,6 +1102,9 @@ export default function AdminDeals() {
         .adl-warn-btn { background: #fffaf0; border-color: #fdd9a8; color: #b54708; }
         .adl-warn-btn:hover:not(:disabled) { background: #fef0d8; }
         .adl-action-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+        .adl-act-brand { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 10px; padding: 9px 12px; border: 1px solid #cfd5ff; background: #f7f8ff; color: #2731a8; font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+        .adl-act-brand:hover { background: #eef0ff; }
+        .adl-act-brand:disabled { opacity: .55; cursor: not-allowed; }
         .adl-steps { list-style: none; margin: 0; padding: 0; }
         .adl-steps li { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 0.83rem; color: #98a1ad; }
         .adl-steps li span { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #d4d8df; flex: 0 0 auto; }
@@ -967,9 +1152,14 @@ export default function AdminDeals() {
         .adl-subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
         .adl-subs li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; color: #5b6573; }
         .adl-subs a { color: #5b6bff; font-weight: 600; text-decoration: none; }
-        .adl-chat { display: flex; flex-direction: column; gap: 10px; max-height: 240px; overflow-y: auto; }
+        .adl-brand-actions { display: grid; gap: 9px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #edf0f7; }
+        .adl-brand-actions strong { display: block; color: #07074e; font-size: 0.88rem; }
+        .adl-brand-actions p { margin: 3px 0 0; color: #7b8495; font-size: 0.76rem; line-height: 1.45; }
+        .adl-brand-actions textarea { width: 100%; resize: vertical; }
+        .adl-chat { display: flex; flex-direction: column; gap: 10px; max-height: 520px; overflow-y: auto; }
         .adl-msg { background: #f9fafb; border: 1px solid #f1f5f9; border-radius: 8px; padding: 9px 11px; }
         .adl-msg.admin { background: #f4f5ff; border-color: #e0e3ff; }
+        .adl-msg.system { background: #f8fafc; border-style: dashed; text-align: center; }
         .adl-msg-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
         .adl-msg-head strong { font-size: 0.78rem; color: #111827; }
         .adl-msg-head span { display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem; color: #98a1ad; }
@@ -980,7 +1170,14 @@ export default function AdminDeals() {
         .adl-notes li { background: #fffaeb; border: 1px solid #fef0c7; border-radius: 8px; padding: 9px 11px; }
         .adl-notes p { margin: 0 0 3px; font-size: 0.82rem; color: #111827; }
         .adl-notes small { font-size: 0.7rem; color: #b54708; }
-        @media (max-width: 720px) { .adl { padding: 18px; } .adl-ship, .adl-parties { grid-template-columns: 1fr; } }
+        @media (max-width: 720px) {
+          .adl { padding: 18px; }
+          .adl-ship, .adl-parties { grid-template-columns: 1fr; }
+          .adl-chat-dock-wrap { right: 0; bottom: 0; width: 100%; max-width: none; }
+          .adl-chat-modal { width: 100%; height: calc(100dvh - 64px); max-height: none; border-left: 0; border-right: 0; border-radius: 16px 16px 0 0; }
+          .adl-chat-modal-body { flex: 1; padding: 14px; }
+          .adl-chat-full { max-height: none; }
+        }
       `}</style>
 
       {profileView && profileView.type === 'brand' && (

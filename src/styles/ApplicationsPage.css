@@ -1655,7 +1655,9 @@
 
 .apps-row-meta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Creator and brand rows both render four profile fields plus SLA. Keep all
+     five in the same desktop row instead of wrapping SLA onto a second line. */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 20px;
   min-width: 0;
 }

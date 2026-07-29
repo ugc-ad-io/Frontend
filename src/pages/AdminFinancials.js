@@ -37,8 +37,8 @@ export default function AdminFinancials() {
   const { user } = useAuth();
   // Capability gating (PRD 11). Finance is view-only; Ops Senior can adjust
   // wallets + release payouts; escrow moves stay founder-only.
-  const canAdjustWallet = can(user, 'adjust_wallet');     // founder + Ops Senior
-  const canReleasePayouts = can(user, 'release_payouts');  // founder + Ops
+  const canAdjustWallet = can(user, 'adjust_wallet', 'edit');     // founder + Ops Senior
+  const canReleasePayouts = can(user, 'release_payouts', 'edit');  // founder + Ops
   const founderOnly = roleIsFounder(user);                 // founder only
   const [tab, setTab] = useState('withdrawals');
   const [analytics, setAnalytics] = useState(null);

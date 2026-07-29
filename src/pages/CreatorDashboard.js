@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
@@ -213,6 +214,11 @@ export default function CreatorDashboard() {
 
   const handleBidSubmit = async (event) => {
     event.preventDefault();
+    const maximum = maxCampaignBid(selectedCampaign);
+    if (maximum && Number(bidAmount) > maximum) {
+      toast.error(bidOverBudgetMessage(maximum));
+      return;
+    }
     try {
       await axios.post(`${API}/campaigns/${selectedCampaign.id}/bid`, {
         campaign_id: selectedCampaign.id,
@@ -313,6 +319,7 @@ export default function CreatorDashboard() {
   if (user?.approval_status === 'pending') {
     return (
       <div className="pcd-status-page">
+        <span className="pcd-status-logo" aria-label="UGCad.io"><b>UGC</b><span>ad.io</span></span>
         <section className="pcd-status-card">
           <CheckCircle size={68} />
           <p className="pcd-eyebrow">Creator verification</p>
@@ -334,6 +341,7 @@ export default function CreatorDashboard() {
     const items = Array.isArray(review.more_info_items) ? review.more_info_items : [];
     return (
       <div className="pcd-status-page">
+        <span className="pcd-status-logo" aria-label="UGCad.io"><b>UGC</b><span>ad.io</span></span>
         <section className="pcd-status-card">
           <MessageSquare size={68} />
           <p className="pcd-eyebrow">Creator verification</p>
@@ -423,7 +431,7 @@ export default function CreatorDashboard() {
             <p>{selectedCampaign.title}</p>
             <label>
               Bid Amount
-              <input type="text" inputMode="numeric" value={bidAmount} onKeyDown={blockNonDigitKey} onChange={(event) => setBidAmount(digitsOnly(event.target.value))} required />
+              <input type="number" inputMode="numeric" min="1" max={maxCampaignBid(selectedCampaign) || undefined} value={bidAmount} onKeyDown={blockNonDigitKey} onChange={(event) => setBidAmount(digitsOnly(event.target.value))} required />
             </label>
             <label>
               Delivery Days

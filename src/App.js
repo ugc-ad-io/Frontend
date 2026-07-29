@@ -164,6 +164,7 @@ axios.interceptors.response.use(
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -186,8 +187,35 @@ function AuthProvider({ children }) {
     setUser(userData);
   };
 
+  const startBrandSession = (token, brandUser) => {
+    const adminToken = localStorage.getItem('token');
+    if (!localStorage.getItem('ops_admin_token')) {
+      localStorage.setItem('ops_admin_token', adminToken || '');
+      localStorage.setItem('ops_admin_user', JSON.stringify(user || {}));
+    }
+    localStorage.setItem('token', token);
+    localStorage.setItem('ops_brand_name', brandUser?.profile?.business_name || brandUser?.business_name || brandUser?.email || 'Brand');
+    setUser(brandUser);
+    navigate('/dashboard/business', { replace: true });
+  };
+
+  const stopBrandSession = () => {
+    const adminToken = localStorage.getItem('ops_admin_token');
+    const adminUser = JSON.parse(localStorage.getItem('ops_admin_user') || 'null');
+    if (!adminToken || !adminUser) return;
+    localStorage.setItem('token', adminToken);
+    localStorage.removeItem('ops_admin_token');
+    localStorage.removeItem('ops_admin_user');
+    localStorage.removeItem('ops_brand_name');
+    setUser(adminUser);
+    navigate('/dashboard/admin/deals', { replace: true });
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('ops_admin_token');
+    localStorage.removeItem('ops_admin_user');
+    localStorage.removeItem('ops_brand_name');
     setUser(null);
   };
 
@@ -196,7 +224,13 @@ function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, startBrandSession, stopBrandSession }}>
+      {localStorage.getItem('ops_admin_token') && (
+        <div className="ops-session-banner" role="status">
+          <span>Operations mode: acting as <strong>{localStorage.getItem('ops_brand_name') || 'brand'}</strong></span>
+          <button type="button" onClick={stopBrandSession}>Return to Admin</button>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );

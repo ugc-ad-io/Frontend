@@ -606,9 +606,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [objectiveInput, setObjectiveInput] = useState('');
 
   useEffect(() => {
-    if (user?.approval_status === 'approved') {
-      fetchCampaigns();
-    }
+    if (user?.id) fetchCampaigns();
   }, [user?.id]);
 
   // Preload the creator directory as soon as the dashboard mounts (not only when the
@@ -616,15 +614,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
   // tab navigation. This keeps the already-loaded list in state so switching to the tab is
   // instant instead of firing a fresh (slow) request and flashing a spinner each time.
   useEffect(() => {
-    if (user?.approval_status === 'approved') {
-      fetchCreatorDirectory();
-    }
+    if (user?.id) fetchCreatorDirectory();
   }, [user?.id, creatorFilters, creatorSort]);
 
   useEffect(() => {
     // Preload the wallet on mount so it's ready before the tab is opened, and refresh
     // it whenever the Wallet tab is entered (silently — no loading flash after first load).
-    if (user?.approval_status === 'approved' && (page === 'wallet' || !walletLoadedRef.current)) {
+    if (user?.id && (page === 'wallet' || !walletLoadedRef.current)) {
       fetchWallet();
     }
   }, [user?.id, page]);
@@ -632,7 +628,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   useEffect(() => {
     // Load sent briefs/offers whenever the Sent Briefs tab is opened so the brand
     // always sees the latest accepted/declined/countered statuses.
-    if (user?.approval_status === 'approved' && page === 'sent-briefs') {
+    if (user?.id && page === 'sent-briefs') {
       fetchBriefs();
     }
   }, [user?.id, page]);
@@ -1225,84 +1221,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
       handleDashboardSearchSelect(dashboardSearchResults[0].target);
     }
   };
-
-  if (user?.approval_status === 'pending') {
-    return (
-      <div className="bd-status-page">
-        <section className="bd-status-card">
-          <CheckCircle size={68} />
-          <p className="bd-eyebrow">Business verification</p>
-          <h1>Profile Under Review</h1>
-          <p>Your business profile is being verified by our team. Most accounts are approved within 24-48 hours, and we'll notify you via email once you're cleared to launch campaigns.</p>
-          <button type="button" onClick={handleLogout} data-testid="home-btn">Back to Home</button>
-        </section>
-
-        <style>{`
-          .bd-status-page {
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            padding: 24px;
-            background: #0a0a0f;
-          }
-
-          .bd-status-card {
-            width: min(680px, 100%);
-            padding: 52px;
-            border-radius: 24px;
-            background: #141420;
-            color: #f4f4f8;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 16px 54px rgba(0, 0, 0, 0.55);
-          }
-
-          .bd-status-card :global(svg) {
-            color: #f4f4f8;
-          }
-
-          .bd-eyebrow {
-            margin: 18px 0 8px;
-            color: #9a9ad6;
-            font-size: 12px;
-            font-weight: 400;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-          }
-
-          .bd-status-card h1 {
-            margin: 0 0 12px;
-            font-size: var(--fs-h1);
-            color: #f4f4f8;
-          }
-
-          .bd-status-card p:not(.bd-eyebrow) {
-            margin: 0 auto 28px;
-            max-width: 460px;
-            color: #9b9bb0;
-            line-height: 1.6;
-          }
-
-          .bd-status-card button {
-            border: 0;
-            border-radius: 12px;
-            padding: 13px 22px;
-            background: #f4f4f8;
-            color: #0a0a0f;
-            font-weight: 600;
-            cursor: pointer;
-          }
-
-          @media (max-width: 600px) {
-            .bd-status-card {
-              padding: 24px;
-              border-radius: 18px;
-            }
-          }
-        `}</style>
-      </div>
-    );
-  }
 
   if (user?.approval_status === 'rejected') {
     return <RejectedGate user={user} onHome={handleLogout} kind="business" />;

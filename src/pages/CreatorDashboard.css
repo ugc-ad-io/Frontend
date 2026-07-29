@@ -2219,26 +2219,53 @@
    STATUS / APPROVAL PAGES
    ============================================================ */
 .pcd-status-page {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 24px;
-  background: radial-gradient(120% 120% at 50% 0%, #14143f 0%, #07071f 70%);
+  background: #080820;
+}
+
+.pcd-status-logo {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.pcd-status-logo b {
+  color: #a8b0ff;
+  font-weight: 800;
+}
+
+.pcd-status-logo span {
+  color: #fff;
 }
 
 .pcd-status-card {
   width: min(640px, 100%);
   padding: 48px;
-  border-radius: var(--r-lg);
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
   color: #f4f4f8;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: var(--sh-lg);
+  border: 1px solid rgba(139, 151, 255, 0.22);
+  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(8px);
 }
 
-.pcd-status-card svg { color: #6d7bff; }
+.pcd-status-card > svg {
+  display: block;
+  margin: 0 auto;
+  color: #6d7bff;
+}
 
 .pcd-eyebrow {
   margin: 16px 0 8px;
@@ -2251,7 +2278,8 @@
 
 .pcd-status-card h1 {
   margin: 0 0 12px;
-  font-size: var(--fs-h1);
+  font-size: 36px;
+  line-height: 1.15;
   color: #f4f4f8;
 }
 
@@ -2266,7 +2294,7 @@
   border: 1px solid rgba(139, 151, 255, 0.55);
   border-radius: 12px;
   padding: 12px 22px;
-  background: linear-gradient(135deg, var(--pcd-brand), var(--pcd-brand-strong));
+  background: #5b6bff;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
@@ -2275,6 +2303,7 @@
 
 .pcd-status-card button:hover {
   transform: translateY(-2px);
+  background: #4452f0;
 }
 
 /* ============================================================
@@ -2409,6 +2438,14 @@
 }
 
 @media (max-width: 620px) {
+  .pcd-status-page { padding: 76px 16px 20px; }
+
+  .pcd-status-logo {
+    top: 20px;
+    left: 18px;
+    font-size: 19px;
+  }
+
   .pcd-nav { grid-template-columns: 1fr; }
 
   .pcd-role-switch { order: 5; width: 100%; }
@@ -2419,11 +2456,13 @@
   .pcd-level-banner,
   .pcd-card,
   .pcd-rate-card,
-  .pcd-status-card { border-radius: var(--r-md); }
+  .pcd-status-card { border-radius: 14px; }
 
   .pcd-level-banner,
   .pcd-rate-card,
   .pcd-status-card { padding: 22px; }
+
+  .pcd-status-card h1 { font-size: 28px; }
 
   .pcd-level-title {
     align-items: flex-start;

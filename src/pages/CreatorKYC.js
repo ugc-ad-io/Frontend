@@ -14,6 +14,18 @@ const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const UPI_RE = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
 
+const lookupPincode = async (pin) => {
+  try {
+    const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+    const data = await response.json();
+    const office = data?.[0]?.PostOffice?.[0];
+    if (!office) return null;
+    return { city: office.District || '', state: office.State || '' };
+  } catch {
+    return null;
+  }
+};
+
 // Whole years from a YYYY-MM-DD date to today (for the 18+ gate).
 const ageFrom = (dob) => {
   if (!dob) return 0;
@@ -87,6 +99,7 @@ export default function CreatorKYC() {
   const [kyc, setKyc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pinLookup, setPinLookup] = useState('');
   const [form, setForm] = useState({
     full_legal_name: '', date_of_birth: '', gender: '',
     pan_number: '', aadhaar_number: '',
@@ -102,6 +115,31 @@ export default function CreatorKYC() {
       .catch(() => setKyc({ status: 'not_submitted' }))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const pin = form.pincode;
+    if (!/^\d{6}$/.test(pin)) {
+      setPinLookup('');
+      return undefined;
+    }
+
+    let active = true;
+    setPinLookup('loading');
+    lookupPincode(pin).then((location) => {
+      if (!active) return;
+      if (!location) {
+        setPinLookup('not-found');
+        return;
+      }
+      setForm((current) => ({
+        ...current,
+        city: location.city,
+        state: location.state,
+      }));
+      setPinLookup('found');
+    });
+    return () => { active = false; };
+  }, [form.pincode]);
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -343,6 +381,9 @@ export default function CreatorKYC() {
                     <label className="kyc-label">Pincode</label>
                     <input className="kyc-input mono" inputMode="numeric" maxLength={6} value={form.pincode}
                       onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 digits" />
+                    {pinLookup === 'loading' && <small className="kyc-hint">Finding city and state…</small>}
+                    {pinLookup === 'found' && <small className="kyc-hint">City and state filled automatically.</small>}
+                    {pinLookup === 'not-found' && <small className="kyc-hint">Pincode not found. Enter city and state manually.</small>}
                   </div>
                 </div>
 

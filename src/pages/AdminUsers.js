@@ -70,11 +70,11 @@ export default function AdminUsers({
   // Capability gating (PRD 11 — role structure). This page is reachable by
   // founder + Ops Senior; ban / commission / pro are founder-only.
   const caps = {
-    ban: can(me, 'ban_users'),
-    warnSuspend: can(me, 'warn_suspend_users'),
-    wallet: can(me, 'adjust_wallet'),
-    financialPolicy: can(me, 'edit_settings'),
-    userMgmt: can(me, 'user_management'),   // gates creator level (promote/demote) + payout schedule
+    ban: can(me, 'ban_users', 'edit'),
+    warnSuspend: can(me, 'warn_suspend_users', 'edit'),
+    wallet: can(me, 'adjust_wallet', 'edit'),
+    financialPolicy: can(me, 'edit_settings', 'edit'),
+    userMgmt: can(me, 'user_management', 'edit'),   // gates creator level (promote/demote) + payout schedule
   };
 
   const [allUsers, setAllUsers] = useState([]);

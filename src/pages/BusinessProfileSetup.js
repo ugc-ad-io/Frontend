@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
-import { ChevronDown, CheckCircle } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -11,7 +11,13 @@ const API = `${BACKEND_URL}/api`;
 
 // Only accept genuine platform links / handles — no random URLs.
 const URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/\S*)?$/i;                       // any valid website
-const IG_URL_RE = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$/i;              // instagram profile link — the ONLY accepted format
+const IG_HANDLE_RE = /^@?[a-z0-9._]{1,30}$/i;
+
+const instagramHandle = (value) => String(value || '')
+  .trim()
+  .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+  .replace(/^@/, '')
+  .replace(/\/+$/, '');
 
 // iso = flagcdn country code (flags are image-based so they render on Windows too).
 const DIAL_CODES = [
@@ -45,7 +51,6 @@ export default function BusinessProfileSetup() {
   const { user, setUser } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
   const [dial, setDial] = useState(DIAL_CODES[0]);   // default India
   const [dialOpen, setDialOpen] = useState(false);
   const [form, setForm] = useState({
@@ -95,7 +100,7 @@ export default function BusinessProfileSetup() {
           ...f,
           businessName: pr.business_name || f.businessName,
           website: pr.website || f.website,
-          instagram: (pr.social_links || {}).instagram || f.instagram,
+          instagram: instagramHandle((pr.social_links || {}).instagram) || f.instagram,
           phone: barePhone || f.phone,
           country: pr.country || f.country,
           industry: industry ? (knownIndustry ? industry : 'Other') : f.industry,
@@ -129,8 +134,8 @@ export default function BusinessProfileSetup() {
 
   const checkInstagramLive = async () => {
     const v = form.instagram.trim();
-    if (!v || !IG_URL_RE.test(v)) { setIgCheck(null); return; }
-    const handle = v.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/+$/, '');
+    if (!v || !IG_HANDLE_RE.test(v)) { setIgCheck(null); return; }
+    const handle = instagramHandle(v);
     setIgCheck({ status: 'checking' });
     try {
       const { data } = await axios.post(`${API}/validate/instagram`, { username: handle });
@@ -153,9 +158,9 @@ export default function BusinessProfileSetup() {
     website: !form.website.trim()
       ? 'Website is required'
       : (!URL_RE.test(form.website.trim()) ? 'Enter a valid website URL.' : ''),
-    instagram: !form.instagram.trim()
-      ? 'Instagram URL is required'
-      : (!IG_URL_RE.test(form.instagram.trim()) ? 'Enter a valid Instagram profile link (instagram.com/yourbrand).' : ''),
+    instagram: form.instagram.trim() && !IG_HANDLE_RE.test(form.instagram.trim())
+      ? 'Enter a valid Instagram username, for example @yourbrand.'
+      : '',
     phone: !form.phone.trim() ? 'Phone number is required' : '',
     country: !form.country ? 'Country is required.' : '',
   };
@@ -187,7 +192,10 @@ export default function BusinessProfileSetup() {
     const payload = {
       business_name: form.businessName,
       website: withScheme(form.website),
-      social_links: { instagram: withScheme(form.instagram), linkedin: '' },
+      social_links: {
+        ...(form.instagram.trim() ? { instagram: `https://instagram.com/${instagramHandle(form.instagram)}` } : {}),
+        linkedin: '',
+      },
       industry_category: form.industry === 'Other' ? (form.customIndustry.trim() || 'Other') : form.industry,
       business_description: '',
       product_type: '',
@@ -198,39 +206,13 @@ export default function BusinessProfileSetup() {
     try {
       await axios.put(`${API}/profile/business`, payload);
       setUser({ ...user, profile_completed: true, approval_status: 'pending' });
-      setDone(true);
+      navigate('/dashboard/business', { replace: true });
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to submit profile'));
     } finally {
       setSubmitting(false);
     }
   };
-
-  if (done) {
-    return (
-      <div className="bp-page">
-        <header className="bp-topbar">
-          <button type="button" className="bp-brand" onClick={() => navigate('/')}>
-            <img src="/newlogo-tight.png" alt="UGCad.io" className="bp-brand__logo" />
-          </button>
-          <span className="bp-topbar__tag">Brand onboarding</span>
-        </header>
-
-        <div className="bp-card bp-card--thanks">
-          <div className="bp-check"><CheckCircle size={56} strokeWidth={1.75} /></div>
-          <h1 className="bp-title">Thank You!</h1>
-          <p className="bp-sub bp-sub--center">
-            Your brand details have been submitted successfully. We'll tailor insights
-            and recommendations for you and your account is now under review.
-          </p>
-          <button type="button" className="bp-next" onClick={() => navigate('/')}>
-            Thank you
-          </button>
-        </div>
-        <ThemeStyles />
-      </div>
-    );
-  }
 
   return (
     <div className="bp-page">
@@ -260,13 +242,13 @@ export default function BusinessProfileSetup() {
           {err('businessName') && <span className="bp-err">{err('businessName')}</span>}
         </div>
 
-        {/* Instagram URL — profile link only */}
+        {/* Optional Instagram username; verified on blur and stored as a profile URL. */}
         <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-ig">Instagram URL</label>
+          <label className="bp-label" htmlFor="bp-ig">Instagram username</label>
           <input
             id="bp-ig"
             className={`bp-input${err('instagram') ? ' bp-input--error' : ''}`}
-            placeholder="Paste the link to your Instagram profile."
+            placeholder="@yourbrand"
             value={form.instagram}
             onChange={(e) => { set('instagram', e.target.value); setIgCheck(null); }}
             onBlur={checkInstagramLive}

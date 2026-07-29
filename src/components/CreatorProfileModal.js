@@ -260,7 +260,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const [pf, setPf] = useState([]);                // editable portfolio list
   const [addOpen, setAddOpen] = useState(false);
   const [editIdx, setEditIdx] = useState(null);    // index being edited, or null when adding new
-  const [addForm, setAddForm] = useState({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' });
+  const [addForm, setAddForm] = useState({ title: '', desc: '', url: '', category: '', price: '', delivery: '' });
   const [busy, setBusy] = useState('');            // 'photo' | 'banner' | 'work'
   const [localPhoto, setLocalPhoto] = useState('');
   const [localBanner, setLocalBanner] = useState('');
@@ -447,7 +447,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     finally { setBusy(''); if (workRef.current) workRef.current.value = ''; }
   };
 
-  const resetAddForm = () => { setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' }); setEditIdx(null); };
+  const resetAddForm = () => { setAddForm({ title: '', desc: '', url: '', category: '', price: '', delivery: '' }); setEditIdx(null); };
 
   const openAddWork = () => {
     if ((pf || []).filter((item) => pfUrl(item)).length >= 5) {
@@ -467,7 +467,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       resetAddForm();
       return;
     }
-    const item = { title: addForm.title || 'Untitled', brand: addForm.brand || '', description: addForm.desc || '', category: addForm.category || '', price: addForm.price || '', delivery: addForm.delivery || '', videoUrl: addForm.url, urls: [addForm.url] };
+    const item = { title: addForm.title || 'Untitled', description: addForm.desc || '', category: addForm.category || '', price: addForm.price || '', delivery: addForm.delivery || '', videoUrl: addForm.url, urls: [addForm.url] };
     const next = editIdx != null
       ? (pf || []).map((x, i) => (i === editIdx ? item : x))
       : [...(pf || []), item];
@@ -483,7 +483,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     const meta = typeof it === 'string' ? {} : (it || {});
     const url = meta.videoUrl || (Array.isArray(meta.urls) ? meta.urls[0] : '') || (typeof it === 'string' ? it : '');
     setAddForm({
-      title: meta.title || '', brand: meta.brand || '', desc: meta.description || meta.desc || '',
+      title: meta.title || '', desc: meta.description || meta.desc || '',
       url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '',
     });
     setEditIdx(idx);
@@ -993,7 +993,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                         )}
                         <input ref={workRef} type="file" accept="video/*" hidden onChange={onPickWork} />
                         <div className="cpm-aw-fields">
-                          <input placeholder="Brand name" value={addForm.brand} onChange={(e) => setAddForm((f) => ({ ...f, brand: e.target.value }))} />
                           <div className="cpm-aw-row">
                             <input placeholder="Category (e.g. Beauty)" value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))} />
                             <input placeholder="Price / video (₹)" inputMode="numeric" value={addForm.price} onChange={(e) => setAddForm((f) => ({ ...f, price: e.target.value }))} />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Briefcase, X } from 'lucide-react';
+import { CheckCircle, XCircle, Briefcase, X, Eye } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -88,20 +88,22 @@ export default function AdminCampaigns() {
                 tabIndex={0}
               >
                 <div className="ac-card-head">
-                  <h3>{campaign.title}</h3>
+                  <div>
+                    <h3>{campaign.title}</h3>
+                    <small>{brandName(campaign)}</small>
+                  </div>
                   <span className="ac-badge">{campaign.status.replace('_', ' ')}</span>
                 </div>
                 <div className="ac-card-body">
-                  <p><strong>Business:</strong> {brandName(campaign)}</p>
-                  <p><strong>Budget:</strong> ₹{campaign.budget_min} - ₹{campaign.budget_max}</p>
-                  <p className="ac-brief"><strong>Brief:</strong> {campaign.brief_text || '—'}</p>
-                  {campaign.objectives?.length > 0 && (
-                    <p><strong>Objectives:</strong> {campaign.objectives.join(', ')}</p>
-                  )}
-                  <p><strong>Requires Shipment:</strong> {campaign.requires_shipment ? 'Yes' : 'No'}</p>
-                  <span className="ac-view">Click to view full details →</span>
+                  <div className="ac-fact"><small>Budget</small><strong>₹{campaign.budget_min} - ₹{campaign.budget_max}</strong></div>
+                  <div className="ac-fact"><small>Category</small><strong>{campaign.product_category || campaign.category || '—'}</strong></div>
+                  <div className="ac-fact"><small>Objective</small><strong>{campaign.objectives?.join(', ') || '—'}</strong></div>
+                  <div className="ac-fact"><small>Shipment</small><strong>{campaign.requires_shipment ? 'Required' : 'Not required'}</strong></div>
                 </div>
                 <div className="ac-card-actions">
+                  <button type="button" className="ac-btn-view" title="View full brief" aria-label="View full brief" onClick={(e) => { e.stopPropagation(); setSelected(campaign); }}>
+                    <Eye size={18} />
+                  </button>
                   <button className="ac-btn ac-btn-approve" onClick={(e) => { e.stopPropagation(); handleApprove(campaign.id); }} data-testid={`approve-campaign-${campaign.id}`}>
                     <CheckCircle size={18} /> Approve
                   </button>
@@ -162,31 +164,38 @@ export default function AdminCampaigns() {
       )}
 
       <style>{`
-        .ac-container { padding: 32px 40px; max-width: 1480px; margin: 0 auto; }
-        .ac-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
-        .ac-header h1 { display: flex; align-items: center; gap: 12px; font-size: 1.75rem; font-weight: 700; color: #07074e; margin: 0 0 6px; }
+        .ac-container { padding: 20px 24px 32px; max-width: 1540px; margin: 0 auto; }
+        .ac-header { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 16px; flex-wrap: wrap; padding: 15px 18px; background: #fff; border: 1px solid #e8ecff; border-radius: 13px; }
+        .ac-header h1 { display: flex; align-items: center; gap: 9px; font-size: 1.2rem; font-weight: 700; color: #07074e; margin: 0 0 3px; }
         .ac-header h1 :global(svg) { color: #07074e; }
-        .ac-header p { color: #718096; margin: 0; font-size: 0.95rem; }
-        .ac-stat { background: white; border: 1.5px solid #e8ecff; padding: 14px 22px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; min-width: 110px; }
-        .ac-stat span { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-        .ac-stat strong { font-size: 1.5rem; color: #07074e; margin-top: 4px; }
+        .ac-header p { color: #718096; margin: 0; font-size: 0.8rem; }
+        .ac-stat { background: #f6f7ff; border: 1px solid #dfe3ff; padding: 7px 10px 7px 12px; border-radius: 9px; display: flex; flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
+        .ac-stat span { font-size: 0.68rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+        .ac-stat strong { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; background: #07074e; font-size: 0.78rem; color: #fff; margin: 0; }
         .ac-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px 24px; background: white; border-radius: 16px; color: #4a5568; text-align: center; }
         .ac-empty p { margin: 0; font-size: 1.1rem; font-weight: 600; color: #1a202c; }
         .ac-empty span { color: #94a3b8; font-size: 0.9rem; }
-        .ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
-        .ac-card { background: white; border: 1.5px solid #e8ecff; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px; transition: all 0.2s ease; cursor: pointer; min-width: 0; overflow: hidden; }
+        .ac-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .ac-card { background: white; border: 1px solid #e8ecff; border-left: 4px solid #f59e0b; border-radius: 12px; padding: 15px 17px; display: grid; grid-template-columns: minmax(190px,.75fr) minmax(0,2fr) 260px; align-items: center; gap: 22px; transition: all 0.2s ease; cursor: pointer; min-width: 0; overflow: hidden; }
         .ac-card:hover { border-color: #c5c5e0; box-shadow: 0 4px 16px rgba(7,7,78,0.08); transform: translateY(-2px); }
-        .ac-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-        .ac-card-head h3 { font-size: 1.05rem; font-weight: 700; color: #07074e; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+        .ac-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        .ac-card-head h3 { font-size: 1rem; font-weight: 700; color: #07074e; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+        .ac-card-head small { display: block; margin-top: 4px; color: #718096; font-size: 0.75rem; }
         .ac-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; flex: none; }
-        .ac-card-body { font-size: 0.85rem; color: #4a5568; line-height: 1.6; min-width: 0; }
+        .ac-card-body { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; row-gap: 5px; font-size: 0.78rem; color: #4a5568; line-height: 1.4; min-width: 0; }
         /* wrap long unbroken strings so text never spills out of the card */
-        .ac-card-body p { margin: 0 0 6px; overflow-wrap: anywhere; word-break: break-word; }
+        .ac-card-body p { margin: 0; overflow-wrap: anywhere; word-break: break-word; }
         .ac-card-body strong { color: #1a202c; font-weight: 600; }
-        .ac-brief { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .ac-view { display: inline-block; margin-top: 6px; font-size: 0.78rem; font-weight: 700; color: #5b6bff; }
+        .ac-fact { min-width: 0; padding: 8px 10px; border-radius: 8px; background: #f8f9ff; }
+        .ac-fact small { display: block; margin-bottom: 2px; color: #9296ba; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+        .ac-fact strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.76rem; }
+        .ac-brief { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .ac-view { grid-column: 1 / -1; width: max-content; display: inline-flex; padding: 0; margin-top: 2px; border: 0; background: transparent; font-family: inherit; font-size: 0.72rem; font-weight: 700; color: #5b6bff; cursor: pointer; }
+        .ac-view:hover { color: #07074e; }
         .ac-list { margin: 4px 0 6px; padding-left: 18px; }
-        .ac-card-actions { display: flex; gap: 10px; margin-top: auto; }
+        .ac-card-actions { display: flex; gap: 8px; margin: 0; }
+        .ac-btn-view { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #dfe3f3; border-radius: 10px; background: #fff; color: #07074e; cursor: pointer; }
+        .ac-btn-view:hover { border-color: #5b6bff; background: #f3f4ff; }
 
         /* full-detail modal */
         .ac-overlay { position: fixed; inset: 0; z-index: 1300; background: rgba(7,7,78,0.5); backdrop-filter: blur(3px); display: flex; align-items: stretch; justify-content: flex-end; }
@@ -216,6 +225,10 @@ export default function AdminCampaigns() {
         @media (max-width: 720px) {
           .ac-container { padding: 20px; }
           .ac-header { flex-direction: column; align-items: stretch; }
+          .ac-card { grid-template-columns: 1fr; gap: 12px; }
+          .ac-card-head { flex-direction: row; justify-content: space-between; align-items: flex-start; }
+          .ac-card-body { grid-template-columns: 1fr; }
+          .ac-brief,.ac-view { grid-column: auto; }
         }
       `}</style>
     </AdminLayout>

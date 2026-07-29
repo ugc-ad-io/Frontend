@@ -7,7 +7,7 @@ export const ADMIN_ROLES = ['founder', 'ops_senior', 'ops_regular', 'finance', '
 export const ROLE_LABELS = {
   founder: 'Founder / Admin',
   ops_senior: 'Ops (Senior)',
-  ops_regular: 'Ops (Regular)',
+  ops_regular: 'Operations Team',
   finance: 'Finance',
   custom: 'Custom Admin',
 };
@@ -23,6 +23,9 @@ export const DISPUTE_CAP = {
 // Human labels for every grantable capability (the custom-admin toggle list).
 export const CAP_LABELS = {
   review_applications: 'Review applications',
+  manage_briefs: 'Manage briefs',
+  manage_kyc: 'Review creator KYC',
+  manage_gst: 'Review brand GST',
   my_users: 'My Users',
   manage_deals: 'Manage deals',
   rule_disputes: 'Rule disputes',
@@ -38,6 +41,7 @@ export const CAP_LABELS = {
   content_moderation: 'Content moderation',
   view_audit: 'View audit log',
   manage_roles: 'Manage team & roles',
+  edit_settings: 'Edit platform settings',
 };
 export const ALL_CAPS = Object.keys(CAP_LABELS);
 
@@ -51,12 +55,12 @@ export const SCOPE_LABELS = {
 const CAPS = {
   founder: ['*'],
   ops_senior: [
-    'review_applications', 'my_users', 'manage_deals', 'rule_disputes', 'manage_shipping',
+    'review_applications', 'manage_briefs', 'manage_kyc', 'manage_gst', 'my_users', 'manage_deals', 'rule_disputes', 'manage_shipping',
     'release_payouts', 'adjust_wallet', 'warn_suspend_users', 'view_financials',
     'generate_reports', 'user_management', 'content_moderation', 'view_audit',
   ],
   ops_regular: [
-    'review_applications', 'my_users', 'manage_deals', 'rule_disputes', 'manage_shipping',
+    'review_applications', 'manage_briefs', 'manage_kyc', 'manage_gst', 'my_users', 'manage_deals', 'rule_disputes', 'manage_shipping',
     'release_payouts', 'generate_reports', 'content_moderation', 'view_audit',
   ],
   finance: ['view_financials', 'generate_reports', 'export_tax', 'view_audit'],
@@ -68,10 +72,14 @@ export const normalizeRole = (role) => (ADMIN_ROLES.includes(role) ? role : 'fou
 
 // `user` may be the auth user object or a raw admin_role string. Custom admins
 // carry their own capability list on the object (user.admin_caps).
-export const can = (user, capability) => {
+export const can = (user, capability, access = 'view') => {
   const isObj = user && typeof user === 'object';
   const role = normalizeRole(isObj ? user.admin_role : user);
-  if (role === 'custom') return isObj ? (user.admin_caps || []).includes(capability) : false;
+  if (role === 'custom') {
+    if (!isObj || !(user.admin_caps || []).includes(capability)) return false;
+    const mode = user.admin_cap_modes?.[capability] || 'both';
+    return mode === 'both' || mode === access;
+  }
   const caps = CAPS[role] || [];
   return caps.includes('*') || caps.includes(capability);
 };
@@ -85,7 +93,7 @@ export const scopeOf = (user) => (user && user.admin_role === 'custom' ? (user.a
 export const ROLE_MATRIX = [
   {
     role: 'ops_regular',
-    canDo: 'Review applications, resolve disputes up to ₹25K, manage shipping, release standard payouts',
+    canDo: 'Operate brand deals, review creator work, request revisions, manage shipping, and resolve disputes up to ₹25K',
     cannotDo: 'Edit commission rates, modify T&Cs, ban users, override dispute rulings',
   },
   {

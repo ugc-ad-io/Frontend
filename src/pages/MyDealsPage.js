@@ -410,8 +410,37 @@ export default function MyDealsPage() {
   const [mobileSection, setMobileSection] = useState('workspace');
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [stepsExpanded, setStepsExpanded] = useState(false);
+  const stepsRef = useRef(null);
   const evidenceInputRef = useRef(null);
   const shipAddressRef = useRef(null);   // "Confirm Delivery Address" scrolls here
+
+  const toggleStepsWithoutJump = () => {
+    const stepper = stepsRef.current;
+    if (!stepper) {
+      setStepsExpanded((expanded) => !expanded);
+      return;
+    }
+
+    const topBefore = stepper.getBoundingClientRect().top;
+    let scrollParent = stepper.parentElement;
+    while (scrollParent && scrollParent !== document.body) {
+      const style = window.getComputedStyle(scrollParent);
+      if (/(auto|scroll)/.test(style.overflowY)) break;
+      scrollParent = scrollParent.parentElement;
+    }
+
+    setStepsExpanded((expanded) => !expanded);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const current = stepsRef.current;
+        if (!current) return;
+        const delta = current.getBoundingClientRect().top - topBefore;
+        if (Math.abs(delta) < 1) return;
+        if (scrollParent && scrollParent !== document.body) scrollParent.scrollTop += delta;
+        else window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+      });
+    });
+  };
 
   useEffect(() => {
     if (!user?.id) return undefined;
@@ -966,16 +995,17 @@ export default function MyDealsPage() {
 
         {/* stepper */}
         <section
+          ref={stepsRef}
           className={`cmk-dr-steps ${stepsExpanded ? 'is-expanded' : 'is-collapsed'}`}
           role="button"
           tabIndex={0}
           aria-expanded={stepsExpanded}
           aria-label={stepsExpanded ? 'Collapse work progress' : 'Show all work progress stages'}
-          onClick={() => setStepsExpanded((expanded) => !expanded)}
+          onClick={toggleStepsWithoutJump}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              setStepsExpanded((expanded) => !expanded);
+              toggleStepsWithoutJump();
             }
           }}
         >

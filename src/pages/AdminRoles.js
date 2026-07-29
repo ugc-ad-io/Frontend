@@ -22,6 +22,7 @@ const ROLE_TONE = {
   finance: 'finance',
   custom: 'custom',
 };
+const ACCESS_MODE_LABELS = { view: 'View', edit: 'Edit', both: 'Both' };
 
 export default function AdminRoles() {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export default function AdminRoles() {
   const [customCat, setCustomCat] = useState('');
   // Custom-admin config (new-admin form)
   const [newCaps, setNewCaps] = useState([]);
+  const [newCapModes, setNewCapModes] = useState({});
   const [newScope, setNewScope] = useState('all');
 
   // Change-password modal: step 1 re-authenticates YOU, step 2 sets their new password.
@@ -55,6 +57,7 @@ export default function AdminRoles() {
   // Custom-access editor for an existing member
   const [accessMember, setAccessMember] = useState(null);
   const [accessCaps, setAccessCaps] = useState([]);
+  const [accessCapModes, setAccessCapModes] = useState({});
   const [accessScope, setAccessScope] = useState('all');
   const [savingAccess, setSavingAccess] = useState(false);
   // Which custom-admin rows have their full feature list expanded inline.
@@ -112,14 +115,24 @@ export default function AdminRoles() {
   const openAccessEditor = (m) => {
     setAccessMember(m);
     setAccessCaps(m.admin_caps || []);
+    setAccessCapModes(Object.fromEntries(
+      (m.admin_caps || []).map((cap) => [cap, m.admin_cap_modes?.[cap] || 'both'])
+    ));
     setAccessScope(m.admin_scope || 'all');
   };
-  const toggleAccessCap = (c) => setAccessCaps((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]);
+  const toggleAccessCap = (c) => {
+    setAccessCaps((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]);
+    setAccessCapModes((cur) => ({ ...cur, [c]: cur[c] || 'both' }));
+  };
   const saveAccess = async () => {
     setSavingAccess(true);
     try {
       await axios.post(`${API}/admin/staff/role`, {
-        user_id: accessMember.id, admin_role: 'custom', admin_caps: accessCaps, admin_scope: accessScope,
+        user_id: accessMember.id,
+        admin_role: 'custom',
+        admin_caps: accessCaps,
+        admin_cap_modes: Object.fromEntries(accessCaps.map((cap) => [cap, accessCapModes[cap] || 'both'])),
+        admin_scope: accessScope,
       });
       toast.success(`Custom access saved for ${accessMember.email}`);
       setAccessMember(null);
@@ -141,7 +154,11 @@ export default function AdminRoles() {
     setAdding(true);
     try {
       const payload = { email, admin_role: newRole, password: pwd };
-      if (newRole === 'custom') { payload.admin_caps = newCaps; payload.admin_scope = newScope; }
+      if (newRole === 'custom') {
+        payload.admin_caps = newCaps;
+        payload.admin_cap_modes = Object.fromEntries(newCaps.map((cap) => [cap, newCapModes[cap] || 'both']));
+        payload.admin_scope = newScope;
+      }
       const res = await axios.post(`${API}/admin/staff/role`, payload);
       if (res.data?.created) {
         toast.success(`${email} created as ${ROLE_LABELS[newRole]}. They can log in with the password you set.`, { duration: 8000 });
@@ -153,6 +170,7 @@ export default function AdminRoles() {
       setNewEmail('');
       setNewPassword('');
       setNewCaps([]);
+      setNewCapModes({});
       setNewScope('all');
       fetchStaff();
     } catch (e) {
@@ -229,7 +247,11 @@ export default function AdminRoles() {
         admin_role: member.admin_role,
         password: p,
         ...(member.admin_role === 'custom'
-          ? { admin_caps: member.admin_caps || [], admin_scope: member.admin_scope || 'all' }
+          ? {
+              admin_caps: member.admin_caps || [],
+              admin_cap_modes: member.admin_cap_modes || {},
+              admin_scope: member.admin_scope || 'all'
+            }
           : {}),
       });
       toast.success(`Password updated for ${member.email}`);
@@ -377,13 +399,23 @@ export default function AdminRoles() {
               <label className="arl-custom-title">Features this admin can use</label>
               <div className="arl-cap-grid">
                 {ALL_CAPS.map((c) => (
-                  <label key={c} className={`arl-cap-opt ${newCaps.includes(c) ? 'on' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={newCaps.includes(c)}
-                      onChange={() => setNewCaps((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c])}
-                    /> {CAP_LABELS[c]}
-                  </label>
+                  <div key={c} className={`arl-cap-opt ${newCaps.includes(c) ? 'on' : ''}`}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={newCaps.includes(c)}
+                        onChange={() => {
+                          setNewCaps((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]);
+                          setNewCapModes((cur) => ({ ...cur, [c]: cur[c] || 'both' }));
+                        }}
+                      /> {CAP_LABELS[c]}
+                    </label>
+                    {newCaps.includes(c) && (
+                      <select value={newCapModes[c] || 'both'} onChange={(e) => setNewCapModes((cur) => ({ ...cur, [c]: e.target.value }))}>
+                        {Object.entries(ACCESS_MODE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                      </select>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -442,7 +474,9 @@ export default function AdminRoles() {
                                     return (
                                       <>
                                         {shown.map((c) => (
-                                          <span key={c} className="arl-feat-chip">{CAP_LABELS[c] || c}</span>
+                                          <span key={c} className="arl-feat-chip">
+                                            {CAP_LABELS[c] || c} · {ACCESS_MODE_LABELS[m.admin_cap_modes?.[c] || 'both']}
+                                          </span>
                                         ))}
                                         {hidden > 0 && (
                                           <button type="button" className="arl-feat-chip arl-feat-more" onClick={() => toggleExpandCaps(m.id)}>+{hidden} more</button>
@@ -611,16 +645,27 @@ export default function AdminRoles() {
                   <button
                     type="button"
                     className="arl-selectall"
-                    onClick={() => setAccessCaps(accessCaps.length === ALL_CAPS.length ? [] : [...ALL_CAPS])}
+                    onClick={() => {
+                      const selecting = accessCaps.length !== ALL_CAPS.length;
+                      setAccessCaps(selecting ? [...ALL_CAPS] : []);
+                      if (selecting) setAccessCapModes(Object.fromEntries(ALL_CAPS.map((cap) => [cap, accessCapModes[cap] || 'both'])));
+                    }}
                   >
                     {accessCaps.length === ALL_CAPS.length ? 'Deselect all' : 'Select all'}
                   </button>
                 </div>
                 <div className="arl-cap-grid">
                   {ALL_CAPS.map((c) => (
-                    <label key={c} className={`arl-cap-opt ${accessCaps.includes(c) ? 'on' : ''}`}>
-                      <input type="checkbox" checked={accessCaps.includes(c)} onChange={() => toggleAccessCap(c)} /> {CAP_LABELS[c]}
-                    </label>
+                    <div key={c} className={`arl-cap-opt ${accessCaps.includes(c) ? 'on' : ''}`}>
+                      <label>
+                        <input type="checkbox" checked={accessCaps.includes(c)} onChange={() => toggleAccessCap(c)} /> {CAP_LABELS[c]}
+                      </label>
+                      {accessCaps.includes(c) && (
+                        <select value={accessCapModes[c] || 'both'} onChange={(e) => setAccessCapModes((cur) => ({ ...cur, [c]: e.target.value }))}>
+                          {Object.entries(ACCESS_MODE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                        </select>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -628,7 +673,7 @@ export default function AdminRoles() {
               <div className="arl-modal-foot">
                 <span className="arl-muted">{accessCaps.length} feature{accessCaps.length === 1 ? '' : 's'} · {SCOPE_LABELS[accessScope]}</span>
                 <div>
-                  <button className="arl-revoke" onClick={() => setAccessCaps([])}>Clear</button>
+                  <button className="arl-revoke" onClick={() => { setAccessCaps([]); setAccessCapModes({}); }}>Clear</button>
                   <button className="arl-add-btn" onClick={saveAccess} disabled={savingAccess}>{savingAccess ? 'Saving…' : 'Save access'}</button>
                 </div>
               </div>
@@ -778,10 +823,12 @@ export default function AdminRoles() {
         .arl-selectall { border: 1px solid #d6dbff; background: #fff; color: #4452f0; font-weight: 600; font-size: 12px; padding: 5px 11px; border-radius: 7px; cursor: pointer; }
         .arl-selectall:hover { background: #eef0ff; }
         .arl-cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-        .arl-cap-opt { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #e6e8f5; border-radius: 10px; font-size: 13.5px; color: #2d3155; cursor: pointer; background: #fff; transition: .15s; }
+        .arl-cap-opt { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 12px; border: 1px solid #e6e8f5; border-radius: 10px; font-size: 13.5px; color: #2d3155; background: #fff; transition: .15s; }
         .arl-cap-opt:hover { border-color: #c9cffb; }
         .arl-cap-opt.on { border-color: #5b6bff; background: #eef0ff; color: #1e2a78; font-weight: 600; }
+        .arl-cap-opt label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; }
         .arl-cap-opt input { accent-color: #5b6bff; }
+        .arl-cap-opt select { flex: none; height: 32px; border: 1px solid #ccd2f5; border-radius: 8px; padding: 0 8px; background: #fff; color: #252b5c; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
         .arl-custom-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         /* Role cell: the dropdown/badge on its own line, then one wrapping row of
            chips underneath. Laying the select and the chips side by side let the

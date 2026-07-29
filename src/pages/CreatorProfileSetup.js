@@ -8,7 +8,7 @@ import { useAuth } from '../App';
 import { ImagePlus, ChevronDown, X, ArrowRight, ArrowLeft, User, Play, Plus, Instagram, Check, Trash2, Pencil,
   PersonStanding, Dumbbell, Circle, Palette, PenLine, Mic, Drama, Video, Clapperboard, Sparkles, Camera,
   Aperture, VolumeX, Lightbulb, Square, Image as ImageIcon, Users, UsersRound, PawPrint, Globe, Info,
-  PartyPopper, Upload, Music2 } from 'lucide-react';
+  PartyPopper, Upload, CloudUpload, Music2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
@@ -224,7 +224,6 @@ const NICHE_CATEGORIES = [
   { value: 'entertainment', label: 'Entertainment' },
   { value: 'other', label: 'Other' },
 ];
-const MAX_CONTENT_PICKS = 5;
 
 // Required fields per step — every one must be filled to proceed, and each filled
 // field nudges the completion ring up. (mapLink stays optional.) Add a step's array
@@ -319,10 +318,9 @@ function DialCodeSelect({ value, onChange }) {
   );
 }
 
-// A collapsed multi-select: shows the picked labels, opens a checklist. The cap
-// (and its toast) live in the parent's onToggle; this stays open so several can be
-// ticked in one go, and closes on outside click.
-function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
+// A collapsed multi-select: shows the picked labels and stays open so several can
+// be ticked in one go. "All" provides a quick select/clear-all action.
+function MultiSelect({ options, selected, onToggle, onToggleAll, selectAllValues, placeholder, hasError }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -332,6 +330,8 @@ function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
   const chosen = options.filter((o) => selected.includes(o.value)).map((o) => o.label);
+  const valuesForAll = selectAllValues || options.map((o) => o.value);
+  const allSelected = valuesForAll.length > 0 && valuesForAll.every((value) => selected.includes(value));
   return (
     <div className={`ps-msel${hasError ? ' ps-msel--error' : ''}`} ref={ref}>
       <button
@@ -354,6 +354,16 @@ function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
       </button>
       {open && (
         <div className="ps-msel__menu" role="listbox">
+          <button
+            type="button"
+            role="option"
+            aria-selected={allSelected}
+            className={`ps-msel__opt ps-msel__opt--all${allSelected ? ' is-on' : ''}`}
+            onClick={() => onToggleAll(valuesForAll, allSelected)}
+          >
+            <span className="ps-msel__box">{allSelected && <Check size={13} />}</span>
+            All
+          </button>
           {options.map((o) => {
             const on = selected.includes(o.value);
             return (
@@ -426,10 +436,9 @@ export default function CreatorProfileSetup() {
   const [submitting, setSubmitting] = useState(false);     // Submit Application in progress
   const [submitted, setSubmitted] = useState(false);       // show the thank-you card
   const [editingId, setEditingId] = useState(null);        // portfolio item being edited
-  const [editDraft, setEditDraft] = useState({ brand: '', price: '', category: '', videoUrl: '', video: '' });
+  const [editDraft, setEditDraft] = useState({ price: '', category: '', delivery: '', videoUrl: '', video: '' });
   const [justAddedId, setJustAddedId] = useState(null);    // shows the "Added" badge
   const pfIdRef = useRef(0);
-  const brandRef = useRef(null);
   const [data, setData] = useState({
     photoPreview: '',
     firstName: '',
@@ -461,7 +470,7 @@ export default function CreatorProfileSetup() {
     runAds: '',
     newAccount: '',
     portfolio: [],
-    pfBrand: '', pfPrice: '', pfCategory: '', pfLink: '', pfVideo: '', pfVideoUrl: '',
+    pfPrice: '', pfCategory: '', pfDelivery: '', pfLink: '', pfVideo: '', pfVideoUrl: '',
     languages: [],
     langFluency: {}, // { language: 'Native' | 'Fluent' | 'Conversational' }
     // Step 5 — Recording Setup & Equipment
@@ -559,13 +568,10 @@ export default function CreatorProfileSetup() {
     const arr = d[field];
     return { ...d, [field]: arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value] };
   });
-  // Same, but capped — used by the two "pick 1–5" content fields.
-  const toggleCapped = (field, value, max = MAX_CONTENT_PICKS) => setData((d) => {
-    const arr = d[field] || [];
-    if (arr.includes(value)) return { ...d, [field]: arr.filter((x) => x !== value) };
-    if (arr.length >= max) { toast.error(`You can pick up to ${max}.`); return d; }
-    return { ...d, [field]: [...arr, value] };
-  });
+  const toggleAll = (field, values, allSelected) => setData((d) => ({
+    ...d,
+    [field]: allSelected ? [] : values,
+  }));
   // "None" topic is exclusive; picking any other clears None.
   const toggleTopic = (t) => setData((d) => {
     if (t === 'None') return { ...d, topics: ['None'] };
@@ -579,19 +585,21 @@ export default function CreatorProfileSetup() {
     // A portfolio item must have a video — that's the whole point of the card.
     if (pfVideoUploading) { toast.error('Please wait — your video is still uploading.'); return; }
     if (!data.pfVideoUrl) { toast.error('Please upload a video before adding it to your profile.'); return; }
+    if (!Number(data.pfDelivery) || Number(data.pfDelivery) < 1) { toast.error('Please enter the delivery time in days.'); return; }
     // Never save a not-yet-uploaded blob: URL — it dies with the session.
     if (String(data.pfVideoUrl).startsWith('blob:')) { toast.error('Your video is still uploading. Please wait a moment and try again.'); return; }
     const id = `p${pfIdRef.current++}`;
-    setData((d) => ({ ...d, portfolio: [...d.portfolio, { id, brand: d.pfBrand, price: d.pfPrice, category: d.pfCategory, link: d.pfLink, video: d.pfVideo, videoUrl: d.pfVideoUrl }], pfBrand: '', pfPrice: '', pfCategory: '', pfLink: '', pfVideo: '', pfVideoUrl: '' }));
+    setData((d) => ({ ...d, portfolio: [...d.portfolio, { id, price: d.pfPrice, category: d.pfCategory, delivery: d.pfDelivery, link: d.pfLink, video: d.pfVideo, videoUrl: d.pfVideoUrl }], pfPrice: '', pfCategory: '', pfDelivery: '', pfLink: '', pfVideo: '', pfVideoUrl: '' }));
     setJustAddedId(id);
     setEditingId(null);
   };
-  const startModify = (item) => { setEditingId(item.id); setEditDraft({ brand: item.brand, price: item.price, category: item.category, videoUrl: item.videoUrl, video: item.video }); setJustAddedId(null); };
+  const startModify = (item) => { setEditingId(item.id); setEditDraft({ price: item.price, category: item.category, delivery: item.delivery || '', videoUrl: item.videoUrl, video: item.video }); setJustAddedId(null); };
   const cancelModify = () => setEditingId(null);
   const saveModify = () => {
     if (editVideoUploading) { toast.error('Please wait — your video is still uploading.'); return; }
     if (String(editDraft.videoUrl || '').startsWith('blob:')) { toast.error('Your video is still uploading. Please wait a moment and try again.'); return; }
-    setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: editDraft.brand, price: editDraft.price, category: editDraft.category, videoUrl: editDraft.videoUrl, video: editDraft.video } : it)) }));
+    if (!Number(editDraft.delivery) || Number(editDraft.delivery) < 1) { toast.error('Please enter the delivery time in days.'); return; }
+    setData((d) => ({ ...d, portfolio: d.portfolio.map((it) => (it.id === editingId ? { ...it, brand: undefined, price: editDraft.price, category: editDraft.category, delivery: editDraft.delivery, videoUrl: editDraft.videoUrl, video: editDraft.video } : it)) }));
     setEditingId(null);
   };
   const deleteItem = (id) => {
@@ -1077,16 +1085,18 @@ export default function CreatorProfileSetup() {
             {reqError('skinTone')}
           </div>
 
-          {/* Content STYLE — how they make content. Pick 1–5 from a dropdown. */}
+          {/* Content STYLE — how they make content. */}
           <div className="ps-field">
             <label className="ps-label">
-              Content style <span className="ps-muted">(Select 1–{MAX_CONTENT_PICKS})</span>
-              <span className="ps-count">{data.contentStyles.length}/{MAX_CONTENT_PICKS}</span>
+              Content style <span className="ps-muted">(Select one or more)</span>
+              <span className="ps-count">{data.contentStyles.length}/{CONTENT_CATEGORIES.length}</span>
             </label>
             <MultiSelect
               options={CONTENT_CATEGORIES}
               selected={data.contentStyles}
-              onToggle={(v) => toggleCapped('contentStyles', v)}
+              onToggle={(v) => toggleIn('contentStyles', v)}
+              onToggleAll={(values, allSelected) => toggleAll('contentStyles', values, allSelected)}
+              selectAllValues={CONTENT_CATEGORIES.filter((option) => option.value !== 'custom').map((option) => option.value)}
               placeholder="Select the content you create"
               hasError={err('contentStyles')}
             />
@@ -1102,16 +1112,17 @@ export default function CreatorProfileSetup() {
             {err('contentStyles') && <span className="ps-error">Pick at least one content style</span>}
           </div>
 
-          {/* Content CATEGORY — the niche they make content about. Pick 1–5. */}
+          {/* Content CATEGORY — the niche they make content about. */}
           <div className="ps-field">
             <label className="ps-label">
-              Content category <span className="ps-muted">(Select 1–{MAX_CONTENT_PICKS})</span>
-              <span className="ps-count">{data.contentCategories.length}/{MAX_CONTENT_PICKS}</span>
+              Content category <span className="ps-muted">(Select one or more)</span>
+              <span className="ps-count">{data.contentCategories.length}/{NICHE_CATEGORIES.length}</span>
             </label>
             <MultiSelect
               options={NICHE_CATEGORIES}
               selected={data.contentCategories}
-              onToggle={(v) => toggleCapped('contentCategories', v)}
+              onToggle={(v) => toggleIn('contentCategories', v)}
+              onToggleAll={(values, allSelected) => toggleAll('contentCategories', values, allSelected)}
               placeholder="Select your niche"
               hasError={err('contentCategories')}
             />
@@ -1362,7 +1373,7 @@ export default function CreatorProfileSetup() {
 
           {/* Portfolio videos */}
           <div className="ps-section">
-            <h3 className="ps-h3">Upload your Portfolio videos</h3>
+            <h3 className="ps-h3">Upload your best video</h3>
             <p className="ps-hinttext">UGC, brand ads, reels, or speaking samples work best.</p>
             <div className="ps-pf">
               <div className="ps-pf__left">
@@ -1380,7 +1391,19 @@ export default function CreatorProfileSetup() {
                 ) : (
                   <>
                     <div className="ps-pf__thumb ps-pf__thumb--empty">
-                      <img src="/uplaod.png" alt="Upload a video" className="ps-pf__thumbimg" />
+                      <button
+                        type="button"
+                        className="ps-pf__empty-art"
+                        onClick={() => pfFileRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          onPickVideo({ target: { files: e.dataTransfer.files } });
+                        }}
+                      >
+                        <CloudUpload size={32} className="ps-pf__cloud" />
+                        <strong>Drag &amp; drop video</strong>
+                      </button>
                     </div>
                     <button type="button" className="ps-pf__upload" disabled={pfVideoUploading} onClick={() => pfFileRef.current?.click()}>
                       <Upload size={15} /> {pfVideoUploading ? 'Uploading…' : <>Upload <span className="ps-muted">(max 50 MB)</span></>}
@@ -1389,19 +1412,20 @@ export default function CreatorProfileSetup() {
                 )}
               </div>
               <div className="ps-pf__right">
-                <input ref={brandRef} className="ps-input" placeholder="Brand name" value={data.pfBrand} onChange={(e) => set('pfBrand', e.target.value)} />
                 <input className="ps-input" placeholder="Price" inputMode="decimal" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value.replace(/[^0-9.]/g, ''))} />
+                <input className="ps-input" type="number" min="1" max="365" placeholder="Delivery time (days)" value={data.pfDelivery} onChange={(e) => set('pfDelivery', e.target.value)} />
                 <select className="ps-input ps-select" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)}>
                   <option value="" disabled>Category</option>
                   {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
                 </select>
                 <button type="button" className="ps-btn-soft" onClick={addPortfolio} disabled={pfVideoUploading}>{pfVideoUploading ? 'Uploading…' : 'Add to Profile'}</button>
+                {err('portfolio') && <span className="ps-error">These fields are required</span>}
               </div>
             </div>
 
             {data.portfolio.length > 0 && (
               <>
-                <button type="button" className="ps-addlink" onClick={() => brandRef.current?.focus()}><Plus size={15} /> Add More Videos</button>
+                <button type="button" className="ps-addlink" onClick={() => pfFileRef.current?.click()}><Plus size={15} /> Add More Videos</button>
                 <div className="ps-vids">
                   {data.portfolio.map((it) => (
                     <div key={it.id} className="ps-vid">
@@ -1421,8 +1445,8 @@ export default function CreatorProfileSetup() {
                       </div>
                       {editingId === it.id ? (
                         <div className="ps-vid__body">
-                          <input className="ps-input" placeholder="Brand name" value={editDraft.brand} onChange={(e) => setEditDraft((d) => ({ ...d, brand: e.target.value }))} />
                           <input className="ps-input" placeholder="Price" inputMode="decimal" value={editDraft.price} onChange={(e) => setEditDraft((d) => ({ ...d, price: e.target.value.replace(/[^0-9.]/g, '') }))} />
+                          <input className="ps-input" type="number" min="1" max="365" placeholder="Delivery time (days)" value={editDraft.delivery} onChange={(e) => setEditDraft((d) => ({ ...d, delivery: e.target.value }))} />
                           <select className="ps-input ps-select" value={editDraft.category} onChange={(e) => setEditDraft((d) => ({ ...d, category: e.target.value }))}>
                             <option value="" disabled>Category</option>
                             {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
@@ -1435,11 +1459,11 @@ export default function CreatorProfileSetup() {
                         </div>
                       ) : (
                         <div className="ps-vid__body">
-                          <div className="ps-vid__name">{it.brand || it.link || it.video || 'Untitled'}</div>
+                          <div className="ps-vid__name">{it.category || 'Portfolio work'}</div>
                           <div className="ps-vid__desc">
-                            {isFilled(it.price) || isFilled(it.category)
-                              ? [isFilled(it.price) ? it.price : null, isFilled(it.category) ? it.category : null].filter(Boolean).join(' · ')
-                              : <span className="ps-muted">No price or category added yet.</span>}
+                            {isFilled(it.price) || isFilled(it.category) || isFilled(it.delivery)
+                              ? [isFilled(it.price) ? it.price : null, isFilled(it.category) ? it.category : null, isFilled(it.delivery) ? `${it.delivery} day${Number(it.delivery) === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ')
+                              : <span className="ps-muted">No price, category, or delivery time added yet.</span>}
                           </div>
                           <div className="ps-vid__actions ps-vid__actions--read">
                             <div className="ps-vid__left">
@@ -1455,7 +1479,6 @@ export default function CreatorProfileSetup() {
                 </div>
               </>
             )}
-            {err('portfolio') && <span className="ps-error">This field is required</span>}
           </div>
 
           {/* Languages */}
@@ -1876,6 +1899,7 @@ export default function CreatorProfileSetup() {
           font-family: inherit; font-size: 0.88rem; color: #6d7bff; background: none; border: none; text-align: left; }
         .ps-msel__opt:hover { background: rgba(7,7,78,0.06); }
         .ps-msel__opt.is-on { background: rgba(7,7,78,0.12); }
+        .ps-msel__opt--all { font-weight: 700; border-bottom: 1px solid rgba(7,7,78,0.1); border-radius: 9px 9px 3px 3px; }
         .ps-msel__box { flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center;
           border: 1.5px solid rgba(7,7,78,0.3); color: #fff; }
         .ps-msel__opt.is-on .ps-msel__box { background: var(--ps-purple); border-color: var(--ps-purple); }
@@ -2028,6 +2052,12 @@ export default function CreatorProfileSetup() {
           display: flex; align-items: center; justify-content: center;
           background: linear-gradient(135deg, #1e2570, #2733a0); color: #6d7bff; }
         .ps-pf__thumbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .ps-pf__empty-art { position: absolute; inset: 0; z-index: 1; width: 100%; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 5px; padding: 10px; text-align: center; cursor: pointer;
+          color: #f5f6ff; background: #18182b; border: 1.5px dashed #6267a5; border-radius: 12px; font-family: inherit; }
+        .ps-pf__empty-art:hover { background: #20203a; border-color: #7f89ff; }
+        .ps-pf__cloud { color: #8791ff; margin-bottom: 1px; }
+        .ps-pf__empty-art strong { font-size: 0.7rem; line-height: 1.2; font-weight: 700; }
         /* Section divider */
         .ps-divider { height: 1px; background: rgba(7,7,78,0.1); margin: 6px 0 4px; }
         .ps-pf__play { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%;

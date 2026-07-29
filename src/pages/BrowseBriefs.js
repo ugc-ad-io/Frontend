@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, X, Send, FileText } from 'lucide-react';
+import { Bookmark, X, Send, FileText, CheckCircle2 } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -12,6 +12,7 @@ import { Skeleton } from '../components/Skeleton';
 import normalizeBrief, { timeAgo } from '../utils/normalizeBrief';
 import { isOpenForBids } from '../utils/campaignCreators';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
+import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -35,6 +36,7 @@ export default function BrowseBriefs() {
   const [deliveryFilter, setDeliveryFilter] = useState('any');
   const [visible, setVisible] = useState(8);
   const [openBrief, setOpenBrief] = useState(null); // brief object shown in the side drawer
+  const [viewBid, setViewBid] = useState(null); // existing bid shown without leaving this page
   const [savedIds, setSavedIds] = useState(() => getSavedIds()); // ids of saved briefs
   // Bid form — opened straight from the drawer so no redirect to the detail page.
   const [bidBrief, setBidBrief] = useState(null);   // brief being bid on
@@ -50,6 +52,11 @@ export default function BrowseBriefs() {
 
   const handleSubmitBid = async (e) => {
     e.preventDefault();
+    const maximum = maxCampaignBid(bidBrief);
+    if (maximum && Number(bidAmount) > maximum) {
+      toast.error(bidOverBudgetMessage(maximum));
+      return;
+    }
     setSubmittingBid(true);
     try {
       await axios.post(`${API}/campaigns/${bidBrief.id}/bid`, {
@@ -301,7 +308,11 @@ export default function BrowseBriefs() {
         brief={openBrief}
         onClose={() => setOpenBrief(null)}
         onBid={(b) => {
-          if (b.hasBid) return navigate(`/campaign/${b.id}`);
+          if (b.hasBid) {
+            setOpenBrief(null);
+            setViewBid(b);
+            return;
+          }
           // KYC gate: unverified creators can't bid — nudge them to verify first.
           if (user?.kyc?.status !== 'verified') {
             toast.error('Verify your KYC before submitting a bid.');
@@ -310,6 +321,58 @@ export default function BrowseBriefs() {
           openBidForm(b);
         }}
       />
+
+      {viewBid && (() => {
+        const campaign = viewBid.campaign || {};
+        const bid = (campaign.bids || []).find((item) => String(item.creator_id) === String(user?.id)) || {};
+        const status = String(bid.status || 'pending').replace(/_/g, ' ');
+        return (
+          <div className="bb-viewbid-overlay" onClick={() => setViewBid(null)}>
+            <div className="bb-viewbid-card" onClick={(e) => e.stopPropagation()}>
+              <div className="bb-viewbid-head">
+                <div>
+                  <small>{viewBid.brand || 'Brand'}</small>
+                  <h2>{viewBid.title || 'Campaign'}</h2>
+                </div>
+                <button type="button" aria-label="Close" onClick={() => setViewBid(null)}><X size={19} /></button>
+              </div>
+              <div className="bb-viewbid-banner">
+                <div className="bb-viewbid-title"><CheckCircle2 size={22} /><strong>Bid Already Submitted</strong></div>
+                <div className="bb-viewbid-stats">
+                  <div><span>Your Bid Amount</span><strong>₹{Number(bid.amount || 0).toLocaleString('en-IN')}</strong></div>
+                  <div><span>Estimated Delivery</span><strong>{bid.estimated_delivery_days || '—'} days</strong></div>
+                  <div><span>Status</span><strong className="bb-viewbid-status">{status}</strong></div>
+                </div>
+                <div className="bb-viewbid-proposal">
+                  <span>Your Proposal</span>
+                  <p>{bid.proposal || 'No proposal added.'}</p>
+                </div>
+              </div>
+              <button type="button" className="bb-viewbid-close" onClick={() => setViewBid(null)}>Close</button>
+            </div>
+            <style>{`
+              .bb-viewbid-overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(18,21,46,.52);backdrop-filter:blur(3px)}
+              .bb-viewbid-card{width:min(680px,100%);max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:22px;padding:24px;box-shadow:0 28px 70px rgba(7,7,78,.26)}
+              .bb-viewbid-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}
+              .bb-viewbid-head small{display:block;color:#8b91b2;font-size:.82rem;margin-bottom:4px}
+              .bb-viewbid-head h2{margin:0;color:#090a48;font-size:1.35rem}
+              .bb-viewbid-head button{width:36px;height:36px;display:grid;place-items:center;border:1px solid #e5e7f2;border-radius:10px;background:#fff;color:#14163d;cursor:pointer}
+              .bb-viewbid-banner{padding:20px;border:1px solid #daddff;border-radius:18px;background:#f1f1ff}
+              .bb-viewbid-title{display:flex;align-items:center;gap:9px;color:#11145c;font-size:1.12rem;margin-bottom:16px}
+              .bb-viewbid-title svg{color:#6072ff}
+              .bb-viewbid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+              .bb-viewbid-stats>div,.bb-viewbid-proposal{padding:14px;border:1px solid #e3e5f1;border-radius:13px;background:#fff}
+              .bb-viewbid-stats span,.bb-viewbid-proposal span{display:block;color:#737a9d;font-size:.76rem;font-weight:600;margin-bottom:6px}
+              .bb-viewbid-stats strong{color:#090a48;font-size:.95rem;text-transform:capitalize}
+              .bb-viewbid-status{display:inline-flex!important;padding:6px 10px;border-radius:8px;background:#080854;color:#fff!important;font-size:.78rem!important}
+              .bb-viewbid-proposal{margin-top:10px}
+              .bb-viewbid-proposal p{margin:0;color:#333858;line-height:1.55;overflow-wrap:anywhere}
+              .bb-viewbid-close{display:block;width:150px;margin:18px 0 0 auto;padding:11px 16px;border:0;border-radius:11px;background:#080854;color:#fff;font-weight:700;cursor:pointer}
+              @media(max-width:620px){.bb-viewbid-card{padding:16px;border-radius:0;max-height:100vh;height:100%;width:100%}.bb-viewbid-overlay{padding:0}.bb-viewbid-stats{grid-template-columns:1fr}.bb-viewbid-close{width:100%}}
+            `}</style>
+          </div>
+        );
+      })()}
 
       {bidBrief && (
         <div className="bb-bid-overlay" onClick={() => !submittingBid && setBidBrief(null)}>
@@ -321,7 +384,7 @@ export default function BrowseBriefs() {
             <p className="bb-bid-sub">{bidBrief.title || 'Campaign'} · {bidBrief.brand || 'Brand'}</p>
             <form onSubmit={handleSubmitBid} className="bb-bid-form">
               <label>Bid Amount (₹)
-                <input type="number" min="1" required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
+                <input type="number" min="1" max={maxCampaignBid(bidBrief) || undefined} required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
               </label>
               <label>Estimated Delivery (days)
                 <input type="number" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />
@@ -338,7 +401,7 @@ export default function BrowseBriefs() {
             </form>
           </div>
           <style>{`
-            .bb-bid-overlay { position: fixed; inset: 0; background: rgba(15,18,40,.5); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 1200; padding: 20px; }
+            .bb-bid-overlay { position: fixed; inset: 0; background: rgba(15,18,40,.5); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
             .bb-bid-modal { width: 100%; max-width: 460px; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(7,7,78,.28); padding: 22px; }
             .bb-bid-head { display: flex; align-items: center; justify-content: space-between; }
             .bb-bid-head h2 { margin: 0; font-size: 1.15rem; color: #0f1132; }

@@ -120,9 +120,9 @@ export default function AdminDashboard() {
 
     if (can(user, 'review_applications')) {
       fetchPendingProfiles();
-      fetchPendingCampaigns();
       fetchCampaignAssignments();
     }
+    if (can(user, 'manage_briefs')) fetchPendingCampaigns();
     if (can(user, 'view_financials')) fetchPendingWithdrawals();
     if (can(user, 'user_management')) fetchAllUsers();
   }, []);
@@ -723,7 +723,7 @@ export default function AdminDashboard() {
             // sees the tiles, queues and actions they're actually allowed to act on.
             const tiles = [
               can(user, 'review_applications') && { key: 'profiles', label: 'Pending profiles', value: pendingProfiles.length, hint: 'Awaiting review' },
-              can(user, 'review_applications') && { key: 'campaigns', label: 'Pending campaigns', value: pendingCampaigns.length, hint: 'Awaiting review' },
+              can(user, 'manage_briefs') && { key: 'campaigns', label: 'Pending campaigns', value: pendingCampaigns.length, hint: 'Awaiting review' },
               can(user, 'release_payouts') && { key: 'withdrawals', label: 'Withdrawals', value: pendingWithdrawals.length, hint: 'Pending payout' },
               can(user, 'manage_deals') && {
                 key: 'active', label: 'Active campaigns',
@@ -739,7 +739,7 @@ export default function AdminDashboard() {
 
             const queue = [
               can(user, 'review_applications') && { icon: <Users size={15} />, label: 'Profile approvals', count: pendingProfiles.length, to: '/dashboard/admin/profiles' },
-              can(user, 'review_applications') && { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
+              can(user, 'manage_briefs') && { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
               can(user, 'release_payouts') && { icon: <IndianRupee size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
             ].filter(Boolean);
 

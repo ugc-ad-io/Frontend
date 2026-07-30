@@ -923,6 +923,7 @@ export default function Landing() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);   // hide nav on scroll-down, reveal on scroll-up
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState(null);
   const [faqOpen, setFaqOpen] = useState(-1);
@@ -931,6 +932,7 @@ export default function Landing() {
   // releases and the page continues. Desktop ignores this (it shows the static grid).
   const proofSectionRef = useRef(null);
   const proofDotsRef = useRef(null);
+  const [proofActive, setProofActive] = useState(0); // which stat the big-number card shows
   const proofIdxRef = useRef(0);
   const { scrollYProgress: proofScroll } = useScroll({
     target: proofSectionRef,
@@ -1431,7 +1433,17 @@ export default function Landing() {
 
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 40);
+    let lastY = window.scrollY;
+    const handleScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 40);
+      // Direction-aware: scrolling DOWN past the hero hides the bar; any upward
+      // scroll brings it back. Near the very top it always stays visible.
+      if (y <= 80) setNavHidden(false);
+      else if (y > lastY + 4) setNavHidden(true);
+      else if (y < lastY - 4) setNavHidden(false);
+      lastY = y;
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -1462,7 +1474,7 @@ export default function Landing() {
 
       {/* ── Navbar — white floating pill ──────────────────────────────────── */}
       <motion.header
-        className={`lp-navbar${scrolled ? ' lp-navbar--scrolled' : ''}`}
+        className={`lp-navbar${scrolled ? ' lp-navbar--scrolled' : ''}${navHidden ? ' lp-navbar--hidden' : ''}`}
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -1653,11 +1665,12 @@ export default function Landing() {
       <motion.div style={{ y: brandRiseYUsed, marginBottom: heroStatic ? brandRise : 0, position: 'relative', zIndex: 3 }}>
       <section className="lp-brandstrip" ref={brandStripRef}>
         <div className="lp-hero__strip">
-          <div className="lp-hero__brands-side lp-hero__brands-side--left">
-            <div className="lp-brands__track lp-brands__track--left">
+          <span className="lp-brandstrip__label">Trusted by leading brands</span>
+          <div className="lp-brands__viewport">
+            <div className="lp-brands__track lp-brands__track--single">
               {(() => {
-                // Real brand logos from /public/brand (filenames as-is; encodeURI handles spaces).
-                const base = [
+                // Full brand set from /public/brand (encodeURI handles the spaces in filenames).
+                const brands = [
                   'Rapido-logo.png',
                   'amazon-icon-logo-png_seeklogo-405254.png',
                   'images (1).png',
@@ -1666,32 +1679,6 @@ export default function Landing() {
                   'images (4).png',
                   'images (5).png',
                   'images (6).png',
-                ];
-                return [...base, ...base, ...base, ...base];
-              })().map((file, i) => (
-                <div key={`L-${i}`} className="lp-brand-item">
-                  <div className="lp-brand-item__icon">
-                    <img
-                      src={encodeURI(`/brand/${file}`)}
-                      alt=""
-                      loading="lazy"
-                      onError={(e) => { const it = e.currentTarget.closest('.lp-brand-item'); if (it) it.style.display = 'none'; }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="lp-hero__brand-center">
-            <img src="/edited-image-preview_-_Edited-removebg-preview.png" alt="UGCad.io" />
-          </div>
-
-          <div className="lp-hero__brands-side lp-hero__brands-side--right">
-            <div className="lp-brands__track lp-brands__track--right">
-              {(() => {
-                // Real brand logos from /public/brand (filenames as-is; encodeURI handles spaces).
-                const base = [
                   'logo-1-scaled.jpg',
                   'images (7).png',
                   'images (8).png',
@@ -1701,9 +1688,10 @@ export default function Landing() {
                   'images (4).jpg',
                   'images.png',
                 ];
-                return [...base, ...base, ...base, ...base];
+                // One duplicate of the whole set → a seamless -50% loop.
+                return [...brands, ...brands];
               })().map((file, i) => (
-                <div key={`R-${i}`} className="lp-brand-item">
+                <div key={`B-${i}`} className="lp-brand-item">
                   <div className="lp-brand-item__icon">
                     <img
                       src={encodeURI(`/brand/${file}`)}
@@ -2261,25 +2249,31 @@ export default function Landing() {
 
           {/* WEB (>900px): original editorial 3-column grid with count-up numbers + dividers.
               Hidden on mobile (the carousel below takes over). */}
-          <div className="lp-proof__row">
-            {stats.map((s, i) => (
-              <motion.div
-                key={s.label}
-                className="lp-proof-num"
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.6, delay: i * 0.14, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <span className="lp-proof-num__value">
-                  <CountUp value={s.value} />
-                </span>
-                <span className="lp-proof-num__details">
-                  <span className="lp-proof-num__index">0{i + 1}</span>
-                  <span className="lp-proof-num__label">{s.label}</span>
-                </span>
-              </motion.div>
-            ))}
+          {/* WEB (>900px): big-number card on the left, 3 metric cards on the right.
+              Click/hover a right card → the left number updates. */}
+          <div className="lp-proof__split">
+            <div className="lp-proof__big">
+              <span className="lp-proof__big-value">
+                <CountUp key={proofActive} value={stats[proofActive].value} />
+              </span>
+              <span className="lp-proof__big-label">{stats[proofActive].label}</span>
+            </div>
+            <div className="lp-proof__cards">
+              {stats.map((s, i) => (
+                <button
+                  type="button"
+                  key={s.label}
+                  className={`lp-proof__card${i === proofActive ? ' is-active' : ''}`}
+                  onMouseEnter={() => setProofActive(i)}
+                  onFocus={() => setProofActive(i)}
+                  onClick={() => setProofActive(i)}
+                >
+                  <span className="lp-proof__card-index">0{i + 1}</span>
+                  <span className="lp-proof__card-value">{s.value}</span>
+                  <span className="lp-proof__card-label">{s.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* MOBILE (≤900px): scroll-pinned carousel — page-scroll progress slides the track so
@@ -2762,6 +2756,8 @@ export default function Landing() {
           padding: 0 8%;
           transition: top 0.3s ease;
         }
+        /* Slides fully off the top when scrolling down; returns on scroll-up. */
+        .lp-navbar--hidden { top: -110px; }
         /* Top mask: a page-bg gradient that sits BEHIND the nav links but ABOVE the
            scrolling page content, so hero copy (and anything else) fades out and
            disappears at the navbar line instead of showing through / overlapping it. */
@@ -3371,12 +3367,47 @@ export default function Landing() {
           align-items: center;
           justify-content: center;
         }
-        /* In the standalone section the strip flows normally (not pinned absolute). */
+        /* In the standalone section the strip flows normally (not pinned absolute).
+           Single-line marquee: a small label above one continuously-scrolling row. */
         .lp-brandstrip .lp-hero__strip {
           position: relative;
           left: auto;
           bottom: auto;
           padding: 0;
+          flex-direction: column;
+          align-items: center;
+          gap: 26px;
+          width: 100%;
+        }
+        .lp-brandstrip__label {
+          font-family: var(--font-body);
+          font-size: 0.8rem;
+          font-weight: 600;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(var(--lp-fg), 0.5);
+        }
+        /* Single full-bleed viewport with a soft fade on BOTH edges. */
+        .lp-brands__viewport {
+          width: 100vw;
+          max-width: 100vw;
+          overflow: hidden;
+          -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+                  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+        }
+        .lp-brands__track--single {
+          display: flex;
+          gap: 40px;
+          width: max-content;
+          align-items: center;
+          padding: 0 20px;
+          will-change: transform;
+          backface-visibility: hidden;
+          animation: scrollBrandsSingle 55s linear infinite;
+        }
+        @keyframes scrollBrandsSingle {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }   /* set is duplicated once → seamless */
         }
         /* Bottom strip — scrolling brand logos */
         .lp-hero__strip {
@@ -3447,40 +3478,37 @@ export default function Landing() {
           flex-shrink: 0;
           font-family: var(--font-body);
         }
+        /* Single-line marquee items: flat, evenly-spaced brand chips. */
+        .lp-brand-item {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          font-family: var(--font-body);
+        }
         .lp-brand-item__icon {
           position: relative;
-          width: 96px;
-          height: 96px;
-          border-radius: 24px;
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
           overflow: hidden;
-          background: #131316;
-          border: 1px solid rgba(var(--lp-fg), 0.09);
-          /* soft highlight from the top-left for a subtly raised tile (like the ref) */
-          box-shadow: inset 1px 1px 0 rgba(var(--lp-fg), 0.10);
+          background: #ffffff;
+          border: 1px solid rgba(20, 16, 10, 0.08);
+          box-shadow: 0 4px 14px -8px rgba(20, 16, 10, 0.28);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.3s ease;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
         .lp-brand-item__icon img {
-          /* Fill the whole white tile; inherit the tile's rounded corners. */
           width: 100%;
           height: 100%;
           object-fit: cover;
           border-radius: inherit;
         }
-        .lp-brand-item__name {
-          font-size: 0.78rem;
-          font-weight: 500;
-          color: rgba(var(--lp-fg), 0.55);
-          white-space: nowrap;
-          transition: color 0.3s ease;
-        }
         .lp-brand-item:hover .lp-brand-item__icon {
-          background: rgba(115, 135, 255, 0.15);
-          border-color: rgba(115, 135, 255, 0.35);
+          transform: translateY(-3px);
+          box-shadow: 0 10px 22px -10px rgba(20, 16, 10, 0.35);
         }
-        .lp-brand-item:hover .lp-brand-item__name { color: #ffffff; }
 
         /* Center main logo — highlighted with glow */
         .lp-hero__brand-center {
@@ -6975,6 +7003,57 @@ export default function Landing() {
 
         /* WEB: editorial stacked rows — big number on the LEFT, index + label on the
            RIGHT (each stat is a full-width row, divided by a horizontal rule). */
+        /* Left big-number card + right 3 metric cards (reference-style). */
+        .lp-proof__split {
+          display: grid;
+          grid-template-columns: 1.05fr 1fr;
+          gap: 28px;
+          margin-bottom: 60px;
+          align-items: stretch;
+        }
+        .lp-proof__big {
+          display: flex; flex-direction: column; justify-content: center;
+          background: var(--lp-section); border: 1px solid var(--lp-border);
+          border-radius: 24px; padding: 48px 44px; min-height: 340px;
+        }
+        .lp-proof__big-value {
+          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;
+          letter-spacing: -2px; font-size: clamp(64px, 9vw, 132px); line-height: 1; color: var(--lp-text);
+        }
+        .lp-proof__big-label {
+          margin-top: 18px; font-family: var(--font-body, 'Inter', sans-serif);
+          font-size: 17px; color: var(--lp-text-muted); font-weight: 600;
+        }
+        .lp-proof__cards { display: flex; flex-direction: column; gap: 16px; }
+        .lp-proof__card {
+          position: relative; text-align: left; cursor: pointer; flex: 1;
+          background: var(--lp-section); border: 1px solid var(--lp-border);
+          border-radius: 20px; padding: 22px 26px; font-family: inherit;
+          display: flex; flex-direction: column; gap: 4px;
+          transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+        }
+        .lp-proof__card:hover, .lp-proof__card.is-active {
+          border-color: #4452f0; transform: translateY(-2px);
+          box-shadow: 0 16px 34px -18px rgba(68,82,240,.4);
+        }
+        .lp-proof__card-index {
+          position: absolute; top: 18px; right: 22px; font-size: 12px; font-weight: 700;
+          letter-spacing: 2px; color: var(--lp-text-muted);
+        }
+        .lp-proof__card-value {
+          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;
+          font-size: 26px; color: var(--lp-text);
+        }
+        .lp-proof__card.is-active .lp-proof__card-value { color: #4452f0; }
+        .lp-proof__card-label {
+          font-family: var(--font-body, 'Inter', sans-serif); font-size: 14.5px;
+          color: var(--lp-text-muted); font-weight: 600;
+        }
+        @media (max-width: 900px) {
+          .lp-proof__split { grid-template-columns: 1fr; gap: 16px; }
+          .lp-proof__big { min-height: 200px; padding: 32px 24px; }
+        }
+
         .lp-proof__row {
           display: flex;
           flex-direction: column;
@@ -7635,7 +7714,7 @@ export default function Landing() {
             background: linear-gradient(90deg, transparent, rgba(28, 27, 75, 0.35), transparent);
           }
           /* Swap the web grid out for the carousel on mobile. */
-          .lp-proof__row { display: none; }
+          .lp-proof__row, .lp-proof__split { display: none; }
           /* Viewport window — one stat wide; the track slides inside it. */
           .lp-proof__marquee {
             display: block;

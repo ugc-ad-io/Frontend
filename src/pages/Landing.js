@@ -1716,69 +1716,81 @@ export default function Landing() {
       <section className="lp-showcase" ref={showcaseRef}>
         <div className="lp-showcase__inner">
           <h2 className="lp-showcase__heading">
-            We created{' '}
-            <span className="lp-showcase__heading--accent">10,000+</span>{' '}
-            UGC ads<br className="lp-showcase__brk" /> that resulted in{' '}
-            <span className="lp-showcase__heading--accent">100cr+</span>{' '}
-            in sales
+            We create the{' '}
+            <span className="lp-showcase__heading--accent">best UGC</span>{' '}
+            on the internet
           </h2>
+          <p className="lp-showcase__subtitle">Choose your industry to see examples!</p>
 
+          {/* Industry filter pills — clicking one narrows the grid to that industry.
+              A second click (or Reset) clears the filter back to all. */}
+          <div className="lp-showcase__filters">
+            {industries.map((ind) => {
+              const Ic = ind.Icon;
+              const active = selectedIndustry === ind.id;
+              return (
+                <button
+                  key={ind.id}
+                  type="button"
+                  className={`lp-filter${active ? ' is-active' : ''}`}
+                  onClick={() => setSelectedIndustry(active ? null : ind.id)}
+                  aria-pressed={active}
+                >
+                  <Ic size={16} /> {ind.label}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className="lp-filter lp-filter--reset"
+              onClick={() => setSelectedIndustry(null)}
+            >
+              Reset
+            </button>
+          </div>
 
-          <div className="lp-showcase__viewport">
-          {(() => {
-            const items = visibleShowcase.length ? visibleShowcase : showcaseVideos;
-            const mid = Math.ceil(items.length / 2);
-            const row1 = items.slice(0, mid);
-            const row2 = items.slice(mid).length ? items.slice(mid) : items.slice(0, mid);
-            // Every card is a real <video> so all clips play as they scroll through. The
-            // concurrency cap (MAX_PLAYING_VIDEOS) + preload="none" keep decodes/requests bounded
-            // — only the handful actually on screen ever fetch/play; the rest sit on their poster.
-            const renderItem = (v, idx, prefix) => (
-              <div key={`${prefix}-${v.id}-${idx}`} className="lp-showcase-item">
-                <div className="lp-showcase-card">
+          {/* Responsive grid of example clips. Each is a native <video> with controls so a
+              visitor can play/mute/fullscreen it right there, exactly like the reference.
+              preload="metadata" + the #t=0.1 hash seek to the first frame as a poster, so
+              nothing downloads the full clip until the visitor actually presses play. */}
+          <div className="lp-showcase__grid">
+            {(visibleShowcase.length ? visibleShowcase : showcaseVideos).map((v) => (
+              <article key={v.id} className="lp-vcard">
+                <div className="lp-vcard__media">
+                  <span className="lp-vcard__tag">{v.label}</span>
                   {v.isVideo ? (
-                    <LazyVideo
-                      src={v.src}
-                      className="lp-showcase-card__media"
+                    <video
+                      className="lp-vcard__video"
+                      src={`${v.src}#t=0.1`}
+                      controls
+                      playsInline
+                      preload="metadata"
                     />
                   ) : (
-                    <img
-                      src={v.src}
-                      alt={v.brand}
-                      className="lp-showcase-card__media"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentNode.style.background = v.logoBg;
-                      }}
-                    />
+                    <img className="lp-vcard__video" src={v.src} alt={v.brand} loading="lazy" />
                   )}
-                  <div className="lp-showcase-card__rating">
-                    <Star size={12} fill="#FBBF24" stroke="#FBBF24" />
-                    {v.rating.toFixed(1)}
+                </div>
+                <div className="lp-vcard__meta">
+                  <div className="lp-vcard__text">
+                    <div className="lp-vcard__brand">{v.brand}</div>
+                    <div className="lp-vcard__by">By {v.creator}</div>
+                    <div className="lp-vcard__stars" aria-label={`${v.rating} out of 5`}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} size={15} fill="#FBBF24" stroke="#FBBF24" />
+                      ))}
+                    </div>
                   </div>
-                  <span className={`lp-showcase-card__tier lp-showcase-card__tier--${v.tier.toLowerCase()}`}>
-                    {v.tier}
+                  <span className="lp-vcard__logo" style={{ background: v.logoBg }} aria-hidden="true">
+                    {v.logoText}
                   </span>
                 </div>
-              </div>
-            );
-            return (
-              <>
-                <div className="lp-showcase__row">
-                  <div className="lp-showcase__track lp-showcase__track--left">
-                    {Array.from({ length: 4 }).flatMap(() => row1).map((v, idx) => renderItem(v, idx, 'R1'))}
-                  </div>
-                </div>
-                <div className="lp-showcase__row">
-                  <div className="lp-showcase__track lp-showcase__track--right">
-                    {Array.from({ length: 4 }).flatMap(() => row2).map((v, idx) => renderItem(v, idx, 'R2'))}
-                  </div>
-                </div>
-              </>
-            );
-          })()}
+              </article>
+            ))}
           </div>
+
+          {visibleShowcase.length === 0 && (
+            <p className="lp-showcase__empty">No examples in this industry yet — try another.</p>
+          )}
         </div>
       </section>
 
@@ -2999,6 +3011,17 @@ export default function Landing() {
           .nlp-note { display: none; }
         }
 
+        /* ── Redesign in progress: make the WHOLE page cream like the hero, and hide
+           the old dark sections until each is rebuilt light. ─────────────────── */
+        .lp-root { background: #f6f1e6 !important; }
+        .lp-bg-animations { display: none !important; }
+        .lp-logo3d,
+        .lp-brandstrip,
+        .lp-showcase,
+        .lp-testimonial,
+        .lp-faq,
+        .lp-footer { display: none !important; }
+
         .lp-hero {
           position: relative;
           height: 150vh;
@@ -4061,8 +4084,8 @@ export default function Landing() {
           color: #ffffff;
           line-height: 1.2;
           letter-spacing: -0.04em;
-          margin: 0 0 14px 0;
-          white-space: nowrap;
+          margin: 0 0 10px 0;
+          white-space: normal;
         }
         /* Forced line break: hidden on desktop (heading stays one nowrap line),
            shown on mobile to split the sentence into exactly two lines. */
@@ -4070,17 +4093,17 @@ export default function Landing() {
         @media (max-width: 768px) {
           .lp-showcase__brk { display: inline; }
         }
-        /* Whole heading white on the dark stage (accent included). */
+        /* "best UGC" reads green on both themes (matches the reference). */
         .lp-showcase__heading--accent {
-          color: #7387FF;
+          color: #22c55e;
           background: none;
-          -webkit-text-fill-color: #7387FF;
+          -webkit-text-fill-color: #22c55e;
         }
         /* Light theme: white would vanish on the lavender bg, so keep it readable. */
         .lp-root[data-theme="light"] .lp-showcase__heading { color: var(--lp-ink); }
         .lp-root[data-theme="light"] .lp-showcase__heading--accent {
-          color: #7387FF;
-          -webkit-text-fill-color: #7387FF;
+          color: #16a34a;
+          -webkit-text-fill-color: #16a34a;
         }
         .lp-showcase__subtitle {
           font-family: var(--font-body);
@@ -4133,13 +4156,116 @@ export default function Landing() {
 
         .lp-filter--reset {
           background: var(--lp-ink);
-          color: var(--lp-text);
+          color: #fff;
           border-color: var(--lp-ink);
+          font-weight: 700;
         }
+        .lp-filter--reset svg { color: #fff; }
         .lp-filter--reset:hover {
           background: var(--lp-purple-700);
-          color: var(--lp-text);
+          color: #fff;
           border-color: var(--lp-purple-700);
+        }
+
+        /* ── Filterable example grid (replaces the old auto-scroll marquee) ── */
+        .lp-showcase__grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 26px;
+          max-width: 1120px;
+          margin: 0 auto;
+          text-align: left;
+        }
+        .lp-showcase__empty {
+          margin: 40px auto 0;
+          color: var(--lp-text-muted);
+          font-family: var(--font-body);
+          font-size: 1rem;
+        }
+
+        .lp-vcard {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .lp-vcard__media {
+          position: relative;
+          aspect-ratio: 9 / 15;
+          border-radius: 18px;
+          overflow: hidden;
+          background: #111;
+          box-shadow: 0 18px 40px rgba(7, 7, 78, 0.10);
+        }
+        .lp-vcard__video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          background: #111;
+        }
+        /* Category tag, top-right of the clip */
+        .lp-vcard__tag {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          z-index: 2;
+          padding: 6px 14px;
+          border-radius: 100px;
+          background: rgba(255, 255, 255, 0.94);
+          color: #15163a;
+          font-family: var(--font-body);
+          font-size: 0.8rem;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.14);
+        }
+        /* Footer under each clip: brand + creator + stars on the left, logo on the right */
+        .lp-vcard__meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 0 2px;
+        }
+        .lp-vcard__brand {
+          font-family: var(--font-head);
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: var(--lp-ink);
+          letter-spacing: -0.02em;
+          line-height: 1.2;
+        }
+        .lp-vcard__by {
+          font-family: var(--font-body);
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--lp-text-muted);
+          margin-top: 2px;
+        }
+        .lp-vcard__stars {
+          display: flex;
+          gap: 2px;
+          margin-top: 8px;
+        }
+        .lp-vcard__logo {
+          flex-shrink: 0;
+          width: 46px;
+          height: 46px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          color: #fff;
+          font-family: var(--font-head);
+          font-size: 0.9rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          box-shadow: 0 6px 16px rgba(0,0,0,0.14);
+        }
+        @media (max-width: 900px) {
+          .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        }
+        @media (max-width: 560px) {
+          .lp-showcase__grid { grid-template-columns: 1fr; max-width: 380px; }
         }
 
         .lp-showcase__viewport {

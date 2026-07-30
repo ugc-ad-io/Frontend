@@ -333,14 +333,14 @@ const TOP_CREATORS = [
 // The 4 stacked "promise" cards (title top-left, number top-right, description
 // bottom-left, video bottom-right). Videos are pulled from the showcase set below.
 const PROMISE_CARDS = [
-  { color: '#e9f4a1', title: 'Your budget, your brief, no agency',
-    desc: 'You set the budget and write the brief. No agency retainer, no middleman markup — the spend goes to the creator and the work.' },
-  { color: '#e5e2fb', title: 'Top UGC creators across every niche',
-    desc: 'Beauty, fitness, tech, food, fashion and more. Every creator is manually vetted before they can ever touch a brief.' },
-  { color: '#ffe1cf', title: 'Fastest content, delivery from 24 hours',
-    desc: 'Briefs move fast. Many creators turn around a first cut within a day, so your campaign never waits on production.' },
-  { color: '#d3f1e2', title: 'Hands-on support from UGC experts',
-    desc: 'Our team helps you shape the brief, pick the right creators, and get to a video that actually performs.' },
+  { color: '#e9f4a1', title: 'Your budget, your brief', sub: 'No agency retainer, no middleman.',
+    desc: 'You set the budget and write the brief. The spend goes to the creator and the work — not a markup.' },
+  { color: '#e5e2fb', title: 'Creators for every niche', sub: 'Vetted talent, any category.',
+    desc: 'Beauty, fitness, tech, food, fashion and more. Every creator is manually vetted before they touch a brief.' },
+  { color: '#ffe1cf', title: 'Delivery from 24 hours', sub: 'Your campaign never waits.',
+    desc: 'Briefs move fast. Many creators turn around a first cut within a day, so production never holds you up.' },
+  { color: '#d3f1e2', title: 'Hands-on expert support', sub: 'A real team in your corner.',
+    desc: 'We help you shape the brief, pick the right creators, and get to a video that actually performs.' },
 ];
 
 // Height of one leaderboard row, in vh (also used to compute the scroll range).
@@ -1668,9 +1668,21 @@ export default function Landing() {
                   key={card.title}
                   style={{ '--i': i, zIndex: 4 - i, background: card.color }}
                 >
-                  <h3 className="lp-promise__title">{card.title}</h3>
                   <span className="lp-promise__num">0{i + 1}</span>
-                  <p className="lp-promise__desc">{card.desc}</p>
+                  <div className="lp-promise__head">
+                    <h3 className="lp-promise__title">{card.title}</h3>
+                    <p className="lp-promise__sub">{card.sub}</p>
+                  </div>
+                  <div className="lp-promise__foot">
+                    <p className="lp-promise__desc">{card.desc}</p>
+                    <button
+                      type="button"
+                      className="lp-promise__btn"
+                      onClick={() => navigate('/auth?mode=signup&role=business')}
+                    >
+                      Discover our approach <ArrowRight size={16} />
+                    </button>
+                  </div>
                   {vid && (
                     <div className="lp-promise__video">
                       <video src={vid.src} poster={cldPoster(vid.src)} muted loop playsInline autoPlay preload="none" />
@@ -3572,38 +3584,50 @@ export default function Landing() {
           height: 400px; border-radius: 26px; padding: 40px 44px; overflow: hidden;
           box-shadow: 0 20px 50px -30px rgba(30,22,8,.45);
         }
-        /* Title — top-left */
+        /* Head (title + subtitle) — top-left */
+        .lp-promise__head { position: absolute; top: 40px; left: 44px; right: 320px; }
         .lp-promise__title {
-          position: absolute; top: 40px; left: 44px; right: 120px; margin: 0;
-          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
-          font-size: clamp(24px, 2.8vw, 38px); font-weight: 800; color: #171334; line-height: 1.12;
+          margin: 0; font-family: Georgia, 'Times New Roman', serif; font-weight: 500;
+          font-size: clamp(28px, 3.4vw, 52px); color: #171334; line-height: 1.02; letter-spacing: -0.5px;
+        }
+        .lp-promise__sub {
+          margin: 10px 0 0; font-family: var(--font-body, 'Inter', sans-serif);
+          font-size: 15.5px; color: rgba(23,19,52,.72);
         }
         /* Number — top-right */
         .lp-promise__num {
-          position: absolute; top: 40px; right: 44px;
+          position: absolute; top: 36px; right: 44px;
           font-family: Georgia, 'Times New Roman', serif; font-style: italic;
-          font-size: clamp(30px, 3.4vw, 46px); color: rgba(28,27,75,.5); line-height: 1;
+          font-size: clamp(34px, 3.6vw, 52px); color: rgba(28,27,75,.4); line-height: 1;
         }
-        /* Description — bottom-left */
+        /* Foot (description + button) — bottom-left */
+        .lp-promise__foot { position: absolute; left: 44px; bottom: 40px; width: min(46%, 420px); }
         .lp-promise__desc {
-          position: absolute; left: 44px; bottom: 40px; width: min(46%, 420px); margin: 0;
-          font-family: var(--font-body, 'Inter', sans-serif);
+          margin: 0 0 18px; font-family: var(--font-body, 'Inter', sans-serif);
           font-size: 15px; line-height: 1.6; color: rgba(23,19,52,.82);
         }
-        /* Video — bottom-right */
+        .lp-promise__btn {
+          display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
+          background: #16121f; color: #fff; border: none; border-radius: 10px;
+          padding: 12px 18px; font-family: var(--font-body, 'Inter', sans-serif);
+          font-size: 14.5px; font-weight: 700; transition: transform .18s ease;
+        }
+        .lp-promise__btn:hover { transform: translateY(-2px); }
+        .lp-promise__btn svg { color: #d3f24f; }
+        /* Video — tall panel on the right */
         .lp-promise__video {
-          position: absolute; right: 44px; bottom: 40px;
-          width: 168px; aspect-ratio: 9 / 13; border-radius: 16px; overflow: hidden;
-          background: rgba(0,0,0,.12);
+          position: absolute; right: 40px; top: 40px; bottom: 40px;
+          width: clamp(210px, 24vw, 260px); border-radius: 14px; overflow: hidden;
+          background: rgba(0,0,0,.12); box-shadow: 0 14px 30px -16px rgba(0,0,0,.4);
         }
         .lp-promise__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
         @media (max-width: 760px) {
-          .lp-promise { gap: 40px; }
-          .lp-promise__card { height: 480px; padding: 28px 26px; top: calc(70px + var(--i) * 16px); }
-          .lp-promise__title { top: 26px; left: 26px; right: 80px; }
-          .lp-promise__num { top: 26px; right: 26px; }
-          .lp-promise__desc { left: 26px; right: 26px; bottom: 210px; width: auto; }
-          .lp-promise__video { left: 26px; right: auto; bottom: 26px; width: 150px; }
+          .lp-promise { gap: 34px; }
+          .lp-promise__card { height: 560px; padding: 24px 22px; top: calc(70px + var(--i) * 16px); }
+          .lp-promise__head { top: 22px; left: 22px; right: 70px; }
+          .lp-promise__num { top: 20px; right: 22px; }
+          .lp-promise__video { top: 132px; right: 22px; bottom: auto; width: 132px; height: 188px; }
+          .lp-promise__foot { left: 22px; right: 22px; bottom: 24px; width: auto; }
         }
         /* Smooth the hard hero(black)→section(navy) seam: a tall gradient at the top
            of this section starts at the hero's #0a0a0a and melts into the navy bg. */
@@ -4918,7 +4942,10 @@ export default function Landing() {
         /* Stretch cells to fill the full row height so the shaded UGCad.io column reads as
            one continuous block instead of separate cards with unshaded gaps between rows. */
         .lpv-rowgroup { border-top: 1px solid rgba(42, 33, 24, 0.12); align-items: stretch; }
-        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #2a2118; padding: 26px 8px 26px 0; display: flex; align-items: center; }
+        /* align-items: flex-start (not center) matches .lpv-cell's top alignment: the label
+           has to clear the sticky header at the same moment as the us/them titles beside it,
+           or whichever one is vertically centered lower lingers behind after the others fade. */
+        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #2a2118; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
         /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
            descriptions wrap to a different number of lines, centering makes their titles land
            at different heights within the row. Since the row scrolls behind the sticky header

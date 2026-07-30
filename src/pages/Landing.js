@@ -4179,7 +4179,7 @@ export default function Landing() {
           flex-wrap: wrap;
           gap: 10px;
           margin-bottom: 50px;
-          max-width: 980px;
+          max-width: 1240px;
           margin-left: auto;
           margin-right: auto;
         }
@@ -7083,12 +7083,14 @@ export default function Landing() {
           font-size: 17px; color: var(--lp-text-muted); font-weight: 600;
         }
         /* Cards hug their content and spread to match the left card's height. */
-        .lp-proof__cards { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+        /* Reference-style cards: big faded value watermark, index badge top-right,
+           name pinned bottom-left. Cards fill the column height. */
+        .lp-proof__cards { display: flex; flex-direction: column; gap: 16px; }
         .lp-proof__card {
-          position: relative; text-align: left; cursor: pointer; flex: none;
+          position: relative; overflow: hidden; text-align: left; cursor: pointer; flex: 1;
           background: var(--lp-section); border: 1px solid var(--lp-border);
-          border-radius: 20px; padding: 20px 26px; font-family: inherit;
-          display: flex; flex-direction: column; gap: 3px;
+          border-radius: 20px; padding: 22px 26px; font-family: inherit;
+          display: flex; flex-direction: column; justify-content: flex-end;
           transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
         }
         .lp-proof__card:hover, .lp-proof__card.is-active {
@@ -7097,20 +7099,25 @@ export default function Landing() {
         }
         .lp-proof__card-index {
           position: absolute; top: 18px; right: 22px; font-size: 12px; font-weight: 700;
-          letter-spacing: 2px; color: var(--lp-text-muted);
+          letter-spacing: 2px; color: var(--lp-text-muted); z-index: 2;
         }
+        /* Big faded number sitting behind, centred like the reference logo watermark. */
         .lp-proof__card-value {
+          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -54%);
           font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;
-          font-size: 26px; color: var(--lp-text);
+          letter-spacing: -1.5px; font-size: clamp(40px, 5.6vw, 74px); line-height: 1;
+          color: rgba(28,27,75,0.10); pointer-events: none; white-space: nowrap; z-index: 0;
         }
-        .lp-proof__card.is-active .lp-proof__card-value { color: #4452f0; }
+        .lp-proof__card.is-active .lp-proof__card-value { color: rgba(68,82,240,0.16); }
         .lp-proof__card-label {
-          font-family: var(--font-body, 'Inter', sans-serif); font-size: 14.5px;
-          color: var(--lp-text-muted); font-weight: 600;
+          position: relative; z-index: 2;
+          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
+          font-size: 18px; color: var(--lp-text); font-weight: 700;
         }
         @media (max-width: 900px) {
           .lp-proof__split { grid-template-columns: 1fr; gap: 16px; }
           .lp-proof__big { min-height: 200px; padding: 32px 24px; }
+          .lp-proof__card { min-height: 130px; }
         }
 
         .lp-proof__row {

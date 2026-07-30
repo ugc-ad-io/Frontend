@@ -4664,7 +4664,7 @@ export default function Landing() {
 
         /* ── Editorial list (replaces the fanned cards) ─────────────────────── */
         .lp-achieve__list {
-          display: flex; flex-direction: column; gap: clamp(14px, 2vw, 26px);
+          display: flex; flex-direction: column; gap: 6px;
           max-width: 1120px; margin: 44px auto 0; padding: 0 24px;
         }
         .lp-achieve__row { display: flex; justify-content: flex-start; }
@@ -4857,9 +4857,11 @@ export default function Landing() {
         .lpv-brand { font-family: Georgia, serif; font-weight: 800; font-size: 30px; letter-spacing: -1px; color: #2a2118; }
         .lpv-brand-ad { color: #6d7bff; }
         .lpv-h--them { text-align: center; color: #8a7f6b; font-weight: 600; font-size: 15px; }
-        .lpv-rowgroup { border-top: 1px solid rgba(42, 33, 24, 0.12); }
-        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #2a2118; padding: 26px 8px 26px 0; }
-        .lpv-cell { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; gap: 6px; }
+        /* Stretch cells to fill the full row height so the shaded UGCad.io column reads as
+           one continuous block instead of separate cards with unshaded gaps between rows. */
+        .lpv-rowgroup { border-top: 1px solid rgba(42, 33, 24, 0.12); align-items: stretch; }
+        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #2a2118; padding: 26px 8px 26px 0; display: flex; align-items: center; }
+        .lpv-cell { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
         .lpv-cell strong { font-weight: 700; font-size: 15.5px; color: #2a2118; }
         .lpv-cell span { font-size: 14px; line-height: 1.5; color: #7c7362; }
         .lpv-cell--them strong { color: #5b5346; }

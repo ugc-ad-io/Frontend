@@ -1750,7 +1750,9 @@ export default function Landing() {
               preload="metadata" + the #t=0.1 hash seek to the first frame as a poster, so
               nothing downloads the full clip until the visitor actually presses play. */}
           <div className="lp-showcase__grid">
-            {(visibleShowcase.length ? visibleShowcase : showcaseVideos).map((v) => (
+            {/* Only ever show 2 rows of 4 (8 clips). "Load more" doesn't paginate —
+                it sends the visitor to the sign-up form to see the rest. */}
+            {(visibleShowcase.length ? visibleShowcase : showcaseVideos).slice(0, 8).map((v) => (
               <article key={v.id} className="lp-vcard">
                 <div className="lp-vcard__media">
                   <span className="lp-vcard__tag">{v.label}</span>
@@ -1787,6 +1789,18 @@ export default function Landing() {
           {visibleShowcase.length === 0 && (
             <p className="lp-showcase__empty">No examples in this industry yet — try another.</p>
           )}
+
+          {/* Load more: not real pagination — it routes to the sign-up form so a visitor
+              creates an account to browse the full library. */}
+          <div className="lp-showcase__more">
+            <button
+              type="button"
+              className="lp-showcase__more-btn"
+              onClick={() => navigate('/auth?mode=signup&role=business')}
+            >
+              Load more
+            </button>
+          </div>
         </div>
       </section>
 
@@ -3491,23 +3505,24 @@ export default function Landing() {
           height: 64px;
           border-radius: 16px;
           overflow: hidden;
-          background: #ffffff;
-          border: 1px solid rgba(20, 16, 10, 0.08);
-          box-shadow: 0 4px 14px -8px rgba(20, 16, 10, 0.28);
+          background: transparent;   /* no chip — logo sits flat on the page bg */
+          border: none;
+          box-shadow: none;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
+          transition: transform 0.25s ease;
         }
         .lp-brand-item__icon img {
           width: 100%;
           height: 100%;
           object-fit: cover;
           border-radius: inherit;
+          /* Baked-in white backgrounds blend into the cream page bg so logos float. */
+          mix-blend-mode: multiply;
         }
         .lp-brand-item:hover .lp-brand-item__icon {
           transform: translateY(-3px);
-          box-shadow: 0 10px 22px -10px rgba(20, 16, 10, 0.35);
         }
 
         /* Center main logo — highlighted with glow */
@@ -4209,9 +4224,9 @@ export default function Landing() {
         /* ── Filterable example grid (replaces the old auto-scroll marquee) ── */
         .lp-showcase__grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 26px;
-          max-width: 1120px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          max-width: 880px;
           margin: 0 auto;
           text-align: left;
         }
@@ -4222,10 +4237,39 @@ export default function Landing() {
           font-size: 1rem;
         }
 
+        /* Load more — routes to sign-up rather than paginating */
+        .lp-showcase__more {
+          display: flex;
+          justify-content: center;
+          margin-top: 44px;
+        }
+        .lp-showcase__more-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 14px 34px;
+          border-radius: 100px;
+          border: 1px solid var(--lp-border);
+          background: var(--lp-ink);
+          color: #fff;
+          font-family: var(--font-body);
+          font-size: 1rem;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          cursor: pointer;
+          transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+          box-shadow: 0 12px 28px -12px rgba(7, 7, 78, 0.5);
+        }
+        .lp-showcase__more-btn:hover {
+          background: var(--lp-purple-700);
+          transform: translateY(-2px);
+          box-shadow: 0 18px 34px -12px rgba(7, 7, 78, 0.55);
+        }
+
         .lp-vcard {
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 12px;
         }
         .lp-vcard__media {
           position: relative;
@@ -4268,7 +4312,7 @@ export default function Landing() {
         }
         .lp-vcard__brand {
           font-family: var(--font-head);
-          font-size: 1.15rem;
+          font-size: 1rem;
           font-weight: 700;
           color: var(--lp-ink);
           letter-spacing: -0.02em;
@@ -4276,35 +4320,38 @@ export default function Landing() {
         }
         .lp-vcard__by {
           font-family: var(--font-body);
-          font-size: 1rem;
+          font-size: 0.9rem;
           font-weight: 600;
           color: var(--lp-text-muted);
           margin-top: 2px;
         }
         .lp-vcard__stars {
           display: flex;
-          gap: 2px;
-          margin-top: 8px;
+          gap: 1px;
+          margin-top: 7px;
         }
         .lp-vcard__logo {
           flex-shrink: 0;
-          width: 46px;
-          height: 46px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           display: grid;
           place-items: center;
           color: #fff;
           font-family: var(--font-head);
-          font-size: 0.9rem;
+          font-size: 0.82rem;
           font-weight: 800;
           letter-spacing: -0.02em;
           box-shadow: 0 6px 16px rgba(0,0,0,0.14);
         }
-        @media (max-width: 900px) {
-          .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 1024px) {
+          .lp-showcase__grid { grid-template-columns: repeat(3, 1fr); }
         }
-        @media (max-width: 560px) {
-          .lp-showcase__grid { grid-template-columns: 1fr; max-width: 380px; }
+        @media (max-width: 760px) {
+          .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        }
+        @media (max-width: 460px) {
+          .lp-showcase__grid { grid-template-columns: 1fr; max-width: 320px; }
         }
 
         .lp-showcase__viewport {
@@ -4454,12 +4501,8 @@ export default function Landing() {
           letter-spacing: -0.02em;
           line-height: 1.2;
         }
-        @media (max-width: 1024px) {
-          .lp-showcase__grid { grid-auto-columns: minmax(240px, 280px); }
-        }
         @media (max-width: 640px) {
           .lp-showcase { padding: 60px 5%; }
-          .lp-showcase__grid { grid-template-columns: 1fr; }
           .lp-filter { padding: 8px 14px; font-size: 0.82rem; }
         }
 
@@ -7003,18 +7046,20 @@ export default function Landing() {
 
         /* WEB: editorial stacked rows — big number on the LEFT, index + label on the
            RIGHT (each stat is a full-width row, divided by a horizontal rule). */
-        /* Left big-number card + right 3 metric cards (reference-style). */
+        /* Left big-number card + right 3 metric cards (reference-style). Full height:
+           the split fills the viewport, left card + right cards stretch to match. */
         .lp-proof__split {
           display: grid;
           grid-template-columns: 1.05fr 1fr;
-          gap: 28px;
+          gap: 24px;
           margin-bottom: 60px;
           align-items: stretch;
+          min-height: min(84vh, 760px);
         }
         .lp-proof__big {
           display: flex; flex-direction: column; justify-content: center;
           background: var(--lp-section); border: 1px solid var(--lp-border);
-          border-radius: 24px; padding: 48px 44px; min-height: 340px;
+          border-radius: 24px; padding: 48px 44px;
         }
         .lp-proof__big-value {
           font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;

@@ -888,7 +888,7 @@ function AchieveFan({ items }) {
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div className="lp-achieve__col" style={{ marginLeft: `${(i / (shown.length - 1)) * 70}%` }}>
+          <div className="lp-achieve__col" style={{ marginLeft: `${(i / (shown.length - 1)) * 82}%` }}>
             <div className="lp-achieve__num">
               <span className="lp-achieve__num-i">{`0${i + 1}`}</span> {item.kicker}
             </div>
@@ -4668,7 +4668,7 @@ export default function Landing() {
           max-width: 1120px; margin: 44px auto 0; padding: 0 24px;
         }
         .lp-achieve__row { display: flex; justify-content: flex-start; }
-        .lp-achieve__col { width: min(330px, 100%); text-align: left; }
+        .lp-achieve__col { width: min(300px, 100%); text-align: left; }
         .lp-achieve__num {
           font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500;
           font-size: clamp(26px, 3.2vw, 42px); line-height: 1; color: #ef6a4c; letter-spacing: -0.5px;
@@ -4861,7 +4861,13 @@ export default function Landing() {
            one continuous block instead of separate cards with unshaded gaps between rows. */
         .lpv-rowgroup { border-top: 1px solid rgba(42, 33, 24, 0.12); align-items: stretch; }
         .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #2a2118; padding: 26px 8px 26px 0; display: flex; align-items: center; }
-        .lpv-cell { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+        /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
+           descriptions wrap to a different number of lines, centering makes their titles land
+           at different heights within the row. Since the row scrolls behind the sticky header
+           above, whichever title sits lower clears the header a beat after the other — a torn
+           "ghost text" leak in just that column. Top-aligning keeps titles at the same Y in
+           every row, so both columns clear the header at the same moment. */
+        .lpv-cell { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; justify-content: flex-start; gap: 6px; }
         .lpv-cell strong { font-weight: 700; font-size: 15.5px; color: #2a2118; }
         .lpv-cell span { font-size: 14px; line-height: 1.5; color: #7c7362; }
         .lpv-cell--them strong { color: #5b5346; }

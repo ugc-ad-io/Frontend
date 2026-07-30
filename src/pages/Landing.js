@@ -1645,18 +1645,22 @@ export default function Landing() {
           )}
 
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
-          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity, y: boardRiseYUsed }}>
-            <div className="lp-logo3d__boardTrack">
-              {TOP_CREATORS.map((c, i) => (
-                <LeaderboardRow
-                  key={c}
-                  progress={logo3dProgress}
-                  index={i}
-                  count={TOP_CREATORS.length}
-                />
-              ))}
-            </div>
-          </motion.div>
+          {/* 4 cards (was a rotating leaderboard of curved lines). */}
+          <div className="lp-promise">
+            {TOP_CREATORS.slice(1, 5).map((c, i) => (
+              <motion.div
+                className="lp-promise__card"
+                key={c}
+                initial={{ opacity: 0, y: 26 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <span className="lp-promise__num">0{i + 1}</span>
+                <h3 className="lp-promise__title">{c}</h3>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
       </div>{/* /lp-journey */}
@@ -3548,12 +3552,43 @@ export default function Landing() {
         .lp-root[data-theme="light"] .lp-hero__divider path { fill: var(--lp-page-bg); }
 
         /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
+        /* The rotating leaderboard became 4 static cards — collapse the tall pinned
+           scroll and un-stick the inner wrapper so the cards sit in normal flow. */
         .lp-logo3d {
           position: relative;
-          height: 175vh;                 /* scroll travel that drives the animation */
-          background: transparent;       /* show the shared animated page background */
+          height: auto;                  /* was 175vh for the scroll-driven leaderboard */
+          background: transparent;
           z-index: 2;
+          padding: 60px 6% 50px;
         }
+        .lp-logo3d__sticky {
+          position: static !important; height: auto !important; min-height: 0 !important;
+          transform: none !important;
+        }
+        .lp-promise {
+          display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+          max-width: 1000px; margin: 0 auto;
+        }
+        .lp-promise__card {
+          position: relative; background: var(--lp-section); border: 1px solid var(--lp-border);
+          border-radius: 22px; padding: 34px 32px; min-height: 200px;
+          display: flex; align-items: flex-end;
+          transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        }
+        .lp-promise__card:hover {
+          transform: translateY(-3px); border-color: #4452f0;
+          box-shadow: 0 20px 40px -20px rgba(68,82,240,.35);
+        }
+        .lp-promise__num {
+          position: absolute; top: 24px; right: 28px;
+          font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+          font-size: 30px; color: var(--lp-text-muted); line-height: 1;
+        }
+        .lp-promise__title {
+          margin: 0; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
+          font-size: clamp(20px, 2.2vw, 27px); font-weight: 800; color: var(--lp-text); line-height: 1.2;
+        }
+        @media (max-width: 700px) { .lp-promise { grid-template-columns: 1fr; } }
         /* Smooth the hard hero(black)→section(navy) seam: a tall gradient at the top
            of this section starts at the hero's #0a0a0a and melts into the navy bg. */
         .lp-logo3d::before {

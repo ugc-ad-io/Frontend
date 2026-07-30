@@ -53,8 +53,6 @@ import { motion, AnimatePresence, useAnimationControls, useInView, animate, useM
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
-// Interactive 3D values cube (replaces the old scrolling tagline leaderboard).
-import ValuesCube from '../components/ValuesCube';
 
 // Inject Cloudinary delivery transforms so the marquee fetches a tiny card-sized clip instead
 // of the raw source. Measured against the actual files, dimension alone barely mattered — the
@@ -779,38 +777,52 @@ function CountUp({ value }) {
   return <motion.span ref={ref}>{display}</motion.span>;
 }
 
-// Desktop: an auto-scrolling horizontal marquee of the feature cards (Pixis-style).
-// The card design is unchanged (.lp-achieve-card); only the layout is a continuously
-// scrolling track. Items are duplicated once so translateX(-50%) loops seamlessly, and
-// hovering the row pauses the scroll while hovering a card lights it purple (CSS :hover).
-function AchieveMarquee({ items }) {
-  // Two back-to-back copies → the -50% keyframe lands the second copy exactly where the
-  // first started, so the loop has no visible seam. The clone is hidden from screen readers.
-  const loop = [...items, ...items];
+// Fanned, side-by-side cards. One card is "active" (raised, straightened, purple);
+// the rest fan out with a slight tilt. Auto-cycles, and hovering a card activates it.
+// Desktop: fanned, side-by-side cards with hover lift.
+function AchieveFan({ items }) {
+  // No card is lifted/highlighted by default — only while actually hovered.
+  const [active, setActive] = useState(-1);
+  const n = items.length;
+
+  const SPACING = 196; // horizontal step between card centres
+  const TILT = 4;      // degrees of fan tilt per step
+
   return (
-    <div className="lp-achieve__marquee">
-      <div className="lp-achieve__track">
-        {loop.map((item, i) => {
-          const Icon = item.icon;
-          const num = (i % items.length) + 1; // 1..6, repeating across the two copies
-          return (
-            <article
-              key={i}
-              className="lp-achieve-card lp-achieve-mcard"
-              aria-hidden={i >= items.length ? true : undefined}
-            >
-              <div className="lp-achieve-card__top">
-                {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
-                <span className="lp-achieve-card__num">0{num}</span>
-              </div>
-              <div className="lp-achieve-card__body">
-                <h3 className="lp-achieve-card__title">{item.title}</h3>
-                <p className="lp-achieve-card__desc">{item.desc}</p>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+    <div className="lp-achieve__fan" onMouseLeave={() => setActive(-1)}>
+      {items.map((item, i) => {
+        const offset = i - (n - 1) / 2;
+        const isActive = i === active;
+        // When a card is hovered, slide the cards on either side AWAY from it so they
+        // don't crowd/overlap the raised card (left ones shift left, right ones right).
+        const PUSH = 70;
+        const push = active >= 0 && !isActive ? (i < active ? -PUSH : PUSH) : 0;
+        // Active card only lifts (no zoom/scale) and sits straight; the rest fan out.
+        const transform = isActive
+          ? `translateX(${offset * SPACING}px) translateY(-26px) rotate(0deg)`
+          : `translateX(${offset * SPACING + push}px) translateY(${Math.abs(offset) * 9}px) rotate(${offset * TILT}deg)`;
+        const Icon = item.icon;
+        return (
+          <article
+            key={item.title}
+            className={`lp-achieve-card${isActive ? ' is-active' : ''}`}
+            // Cascade left→right (each card on top of the previous one) so every card's
+            // top-left number stays uncovered. A center-on-top order hid 05/06, because the
+            // card to their LEFT (higher z) overlapped the corner where the number sits.
+            style={{ transform, zIndex: isActive ? 30 : 10 + i }}
+            onMouseEnter={() => setActive(i)}
+          >
+            <div className="lp-achieve-card__top">
+              {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
+              <span className="lp-achieve-card__num">0{i + 1}</span>
+            </div>
+            <div className="lp-achieve-card__body">
+              <h3 className="lp-achieve-card__title">{item.title}</h3>
+              <p className="lp-achieve-card__desc">{item.desc}</p>
+            </div>
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -1110,10 +1122,8 @@ export default function Landing() {
   // would still animate during the exact scroll window the deck assembles, stealing frames
   // and stuttering Q2/Q3 as they rise.
   const card2Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.04, 0.33], heroStatic ? [0, 0] : [0, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card3Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.36, 0.65], heroStatic ? [0, 0] : [-18, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card1Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.68, 0.99], heroStatic ? [0, 0] : [-36, -800], { ease: easeInOut }), PEEL_SPRING);
-  const auditQ2Scale = useTransform(auditProgress, [0.04, 0.33], [0.96, 1], { ease: easeInOut });
-  const auditQ3Scale = useTransform(auditProgress, [0.36, 0.65], [0.92, 1], { ease: easeInOut });
+  const card3Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.36, 0.65], heroStatic ? [0, 0] : [35, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card1Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.68, 0.99], heroStatic ? [0, 0] : [-35, -800], { ease: easeInOut }), PEEL_SPRING);
   // Mobile assemble — bound DIRECTLY to scroll (NO spring). On a phone the soft PEEL_SPRING
   // made the cards trail the finger and keep drifting/settling after the scroll stopped; that
   // overshoot + trailing is what read as "lag", and the spring also runs an extra rAF loop on
@@ -1126,8 +1136,8 @@ export default function Landing() {
   // Peel spans the FULL runway (last card finishes at ~0.99, right as the section unpins) so a card
   // is always moving — no dead stretch where you scroll but nothing happens before the next section.
   const mAuditQ1Y = useTransform(auditProgress, [0.05, 0.36], [0, -760], { ease: easeInOut });
-  const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [-14, -760], { ease: easeInOut });
-  const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [-28, -760], { ease: easeInOut });
+  const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [0, -760], { ease: easeInOut });
+  const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [0, -760], { ease: easeInOut });
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -1629,13 +1639,19 @@ export default function Landing() {
             </motion.div>
           )}
 
-          {/* Values cube — interactive 3D cube + heading list (replaced the old
-              scroll-scrubbed tagline leaderboard). Stays stable/interactive while
-              the section is pinned; the section's scroll length still drives the
-              hero-logo fly-in + brand-strip rise (both keyed off scroll, not this). */}
-          <div className="lp-logo3d__values">
-            <ValuesCube />
-          </div>
+          {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
+          <motion.div className="lp-logo3d__board" style={{ opacity: logoBoardOpacity, y: boardRiseYUsed }}>
+            <div className="lp-logo3d__boardTrack">
+              {TOP_CREATORS.map((c, i) => (
+                <LeaderboardRow
+                  key={c}
+                  progress={logo3dProgress}
+                  index={i}
+                  count={TOP_CREATORS.length}
+                />
+              ))}
+            </div>
+          </motion.div>
         </div>
       </section>
       </div>{/* /lp-journey */}
@@ -2035,23 +2051,28 @@ export default function Landing() {
 
           <div className="lp-audit__grid">
             {auditQuestions.map((q, i) => {
-              // Centered scroll deck: the front card peels upward to reveal the next.
+              // Peel order: Q1 (front) first, Q2 (right) second, Q3 (back-left) last.
+              // Q3 peels quickly and finishes at the section release so the page scrolls
+              // to the next section the instant the last card goes up.
               const positions = [
-                { x: 0, rotate: 0, z: 3, y: card2Y, scale: 1 },
-                { x: 0, rotate: 0, z: 2, y: card3Y, scale: auditQ2Scale },
-                { x: 0, rotate: 0, z: 1, y: card1Y, scale: auditQ3Scale },
+                { x:   0, rotate:  -4, z: 3, y: card2Y },  // Q1 — front, peels first
+                { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
+                { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
               ];
+              // Mobile: a tighter fan, all three present together from the start, then PEELED UP
+              // by scroll (same as desktop). Q1 is frontmost and peels first, revealing Q2, then
+              // Q3 last — so the deck visibly empties upward as you scroll.
               const mobilePositions = [
-                { x: 0, rotate: 0, z: 3, y: mAuditQ1Y, scale: 1 },
-                { x: 0, rotate: 0, z: 2, y: mAuditQ2Y, scale: auditQ2Scale },
-                { x: 0, rotate: 0, z: 1, y: mAuditQ3Y, scale: auditQ3Scale },
+                { x:   0, rotate:  -4, z: 3, y: mAuditQ1Y },  // Q1 — front & centre, peels first
+                { x:  50, rotate:  11, z: 2, y: mAuditQ2Y },  // Q2 — right, peels second
+                { x: -50, rotate: -18, z: 1, y: mAuditQ3Y },  // Q3 — back-left, peels last
               ];
               const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
               return (
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  style={{ x: p.x, y: p.y, rotate: p.rotate, scale: p.scale, zIndex: p.z }}
+                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -2103,7 +2124,7 @@ export default function Landing() {
           <motion.h2 className="lp-achieve__title">
             <em className="lp-achieve__hl">Find</em> &amp; Hire <em className="lp-achieve__hl lp-achieve__word lp-achieve__word--creators">Creators</em> <em className="lp-achieve__word lp-achieve__word--instantly">Instantly</em>
           </motion.h2>
-          <AchieveMarquee items={achieveItems} />
+          <AchieveFan items={achieveItems} />
           <AchieveStack items={achieveItems} />
         </section>
       </motion.div>
@@ -3514,18 +3535,6 @@ export default function Landing() {
           /* transparent — shows the shared animated page background (.lp-bg-animations) */
           background: transparent;
         }
-        /* Wrapper that centres the interactive values cube in the pinned viewport. */
-        .lp-logo3d__values {
-          position: relative;
-          z-index: 2;
-          width: 100%;
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 clamp(16px, 4vw, 48px);
-          box-sizing: border-box;
-        }
         /* small 3D logo pinned to the upper-left */
         .lp-logo3d__stage {
           position: absolute;
@@ -4358,7 +4367,6 @@ export default function Landing() {
            re-sets display:flex, which would otherwise win over this and show BOTH stacks. */
         @media (max-width: 768px) {
           .lp-achieve__fan { display: none !important; }
-          .lp-achieve__marquee { display: none !important; }
           .lp-achieve__stack { display: flex; --stk-top: 226px; --stk-step: 52px; margin-top: 56px; }
           /* Pull the section up (STATIC margin, NOT a transform) so it follows close behind the
              peeled audit cards. A transform here would break the sticky heading + sticky card
@@ -4403,55 +4411,6 @@ export default function Landing() {
           position: relative;
           height: 430px;
           margin-top: 48px;
-        }
-
-        /* ── Auto-scroll marquee (desktop) ─────────────────────────────────────
-           A continuously scrolling horizontal track of the feature cards. The row
-           pauses on hover; hovering a card lights it purple + lifts it. The track
-           holds TWO copies of the cards and animates to translateX(-50%), so the
-           second copy lands exactly where the first began → a seamless loop. */
-        .lp-achieve__marquee {
-          position: relative;
-          margin-top: 48px;
-          padding: 30px 0 44px;   /* vertical room for the hover-lift + shadow */
-          overflow: hidden;
-          /* Fade both edges so cards enter/exit softly instead of hard-clipping. */
-          -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
-                  mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
-        }
-        .lp-achieve__track {
-          display: flex;
-          width: max-content;
-          animation: lp-achieve-scroll 42s linear infinite;
-          will-change: transform;
-        }
-        .lp-achieve__marquee:hover .lp-achieve__track { animation-play-state: paused; }
-        @media (prefers-reduced-motion: reduce) {
-          .lp-achieve__track { animation: none; }
-        }
-        @keyframes lp-achieve-scroll {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
-        }
-        /* Undo the fan's absolute layout for cards living inside the marquee track. */
-        .lp-achieve__marquee .lp-achieve-mcard {
-          position: relative;
-          top: auto;
-          left: auto;
-          margin-left: 0;
-          margin-right: 26px;     /* inter-card gap — counted in the -50% loop width */
-          flex: 0 0 auto;
-          transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .4s ease, border-color .4s ease;
-        }
-        .lp-achieve__marquee .lp-achieve-mcard:hover {
-          transform: translateY(-14px);
-          box-shadow: 0 32px 70px rgba(0, 0, 0, 0.6);
-        }
-        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__icon,
-        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__num,
-        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__title { color: #7387FF; }
-        .lp-achieve__marquee .lp-achieve-mcard:hover .lp-achieve-card__title {
-          border-bottom-color: rgba(115, 135, 255, 0.4);
         }
         .lp-achieve-card {
           position: absolute;

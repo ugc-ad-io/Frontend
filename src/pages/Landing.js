@@ -347,19 +347,31 @@ const PROMISE_CARDS = [
 // card doesn't move — after this point it rests on screen until the section un-pins.
 const PROMISE_EXIT_END = 0.85;
 
-// One card in the pinned "deck". All cards start stacked on top of each other; on scroll the
-// front card (i=0, highest z) slides UP and off, revealing the next — one by one. Each card
-// owns its own scroll-driven translateY, so it lives in its own component (hooks can't run in
-// a .map()). `progress` is the section's 0→1 scroll value (logo3dProgress).
+// One card in the pinned "deck". The cards are a receding STACK — the front card is full size,
+// the ones behind are progressively smaller and nudged DOWN so they peek out below (big · small ·
+// small). On scroll each front card SLIDES UP and SLANTS away, and the card behind rises + grows
+// into the front slot — one by one. Each card owns its own scroll-driven transforms, so it lives
+// in its own component (hooks can't run in a .map()). `progress` is the section's 0→1 scroll value.
 function PromiseCard({ card, i, total, vid, progress, navigate }) {
   const isLast = i === total - 1;
-  const segLen = PROMISE_EXIT_END / (total - 1);
-  const start = i * segLen;
-  const end = start + segLen;
-  // Front cards travel 0 → -130vh (fully off the top). The last card stays put (0 → 0).
-  const y = useTransform(progress, [start, end], isLast ? ['0vh', '0vh'] : ['0vh', '-130vh'], { clamp: true });
+  const B = PROMISE_EXIT_END / (total - 1); // scroll length of one "card leaves" beat
+  const frontAt = i * B;                     // progress at which this card reaches the front slot
+  const leaveEnd = frontAt + B;              // progress at which it's fully gone (non-last)
+  const depth = Math.min(i, 2);              // capped visual depth behind the front card
+  const offVh = depth * 2.6;                 // starts this far DOWN (peek below), in vh
+  const startScale = 1 - depth * 0.06;       // ...and this much smaller
+
+  // y — waits below+small, RISES to the front (0), then (non-last) slides up & off the top.
+  const yIn = isLast ? [0, frontAt] : (i === 0 ? [0, leaveEnd] : [0, frontAt, leaveEnd]);
+  const yOut = isLast ? [`${offVh}vh`, '0vh'] : (i === 0 ? ['0vh', '-130vh'] : [`${offVh}vh`, '0vh', '-130vh']);
+  const y = useTransform(progress, yIn, yOut, { clamp: true });
+  // scale — grows from its depth size up to full by the time it reaches the front.
+  const scale = useTransform(progress, frontAt > 0 ? [0, frontAt] : [0, 1], frontAt > 0 ? [startScale, 1] : [1, 1], { clamp: true });
+  // rotate — dead straight until it's the front, then SLANTS as it lifts away (non-last only).
+  const rotate = useTransform(progress, isLast ? [0, 1] : [frontAt, leaveEnd], isLast ? [0, 0] : [0, -7], { clamp: true });
+
   return (
-    <motion.div className="lp-promise__card" style={{ y, zIndex: total - i, background: card.color }}>
+    <motion.div className="lp-promise__card" style={{ y, scale, rotate, zIndex: total - i, background: card.color }}>
       <span className="lp-promise__num">0{i + 1}</span>
       <div className="lp-promise__head">
         <h3 className="lp-promise__title">{card.title}</h3>
@@ -1263,6 +1275,20 @@ export default function Landing() {
   const mAuditQ1Y = useTransform(auditProgress, [0.05, 0.36], [0, -760], { ease: easeInOut });
   const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [0, -760], { ease: easeInOut });
   const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [0, -760], { ease: easeInOut });
+  // Rise-in Y + peel-away Y, summed — the two never overlap in time (rise finishes right
+  // as the peel's own auditProgress timeline begins), so this is just "whichever one is
+  // currently non-zero" in practice, but summing avoids needing to switch motion values
+  // mid-scroll (which would jump instead of continuing smoothly).
+  const auditCardY = [
+    useTransform([auditEnterQ1Y, card2Y], ([e, p]) => e + p),
+    useTransform([auditEnterQ2Y, card3Y], ([e, p]) => e + p),
+    useTransform([auditEnterQ3Y, card1Y], ([e, p]) => e + p),
+  ];
+  const mAuditCardY = [
+    useTransform([auditEnterQ1Y, mAuditQ1Y], ([e, p]) => e + p),
+    useTransform([auditEnterQ2Y, mAuditQ2Y], ([e, p]) => e + p),
+    useTransform([auditEnterQ3Y, mAuditQ3Y], ([e, p]) => e + p),
+  ];
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -2165,24 +2191,24 @@ export default function Landing() {
               // Q3 peels quickly and finishes at the section release so the page scrolls
               // to the next section the instant the last card goes up.
               const positions = [
-                { x:   0, rotate:  -4, z: 3, y: card2Y },  // Q1 — front, peels first
-                { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
-                { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
+                { x:   0, rotate:  -4, z: 3, y: auditCardY[0] },  // Q1 — front, peels first
+                { x:  90, rotate:  12, z: 2, y: auditCardY[1] },  // Q2 — right, peels second
+                { x: -90, rotate: -20, z: 1, y: auditCardY[2] },  // Q3 — left, peels last (quick)
               ];
               // Mobile: a tighter fan, all three present together from the start, then PEELED UP
               // by scroll (same as desktop). Q1 is frontmost and peels first, revealing Q2, then
               // Q3 last — so the deck visibly empties upward as you scroll.
               const mobilePositions = [
-                { x:   0, rotate:  -4, z: 3, y: mAuditQ1Y },  // Q1 — front & centre, peels first
-                { x:  50, rotate:  11, z: 2, y: mAuditQ2Y },  // Q2 — right, peels second
-                { x: -50, rotate: -18, z: 1, y: mAuditQ3Y },  // Q3 — back-left, peels last
+                { x:   0, rotate:  -4, z: 3, y: mAuditCardY[0] },  // Q1 — front & centre, peels first
+                { x:  50, rotate:  11, z: 2, y: mAuditCardY[1] },  // Q2 — right, peels second
+                { x: -50, rotate: -18, z: 1, y: mAuditCardY[2] },  // Q3 — back-left, peels last
               ];
               const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
               return (
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  style={{ x: auditEnterX[i], y: p.y, rotate: p.rotate, zIndex: p.z }}
+                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -2405,12 +2431,15 @@ export default function Landing() {
             Real founders. Real numbers. Same shift in how their ads land.
           </p>
 
-          {/* Static trust bar — the faces behind the stories below. */}
+          {/* Trust bar — the active face brightens as its review reaches the centre. */}
           <div className="lp-testimonial__trustbar">
             <span className="lp-testimonial__trustbar-label">Trusted by:</span>
             <div className="lp-testimonial__avatars">
-              {testimonials.map((t) => (
-                <span className="lp-testimonial__avatar" key={t.name}>
+              {testimonials.map((t, i) => (
+                <span
+                  className={`lp-testimonial__avatar${i === (((tIndex % T_LEN) + T_LEN) % T_LEN) ? ' is-active' : ''}`}
+                  key={t.name}
+                >
                   <img
                     src={t.photo}
                     alt=""
@@ -7953,6 +7982,13 @@ export default function Landing() {
           transition: opacity 0.55s ease;
         }
         .lp-tcard--marq.is-active { opacity: 1; }
+        /* No hover interaction on the carousel cards (no lift, no gradient top-bar). */
+        .lp-tcard--marq:hover {
+          transform: none;
+          box-shadow: 0 12px 30px rgba(7, 7, 78, 0.06);
+        }
+        .lp-tcard--marq::before,
+        .lp-tcard--marq:hover::before { opacity: 0; }
         .lp-tcard--marq .lp-tcard__rating { margin-bottom: 18px; }
         .lp-tcard--marq .lp-tcard__quote {
           font-size: 1.02rem;

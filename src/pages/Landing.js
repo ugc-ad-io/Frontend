@@ -331,6 +331,19 @@ const TOP_CREATORS = [
   'Vetted creators, not a open marketplace',
 ];
 
+// The 4 stacked "promise" cards (title top-left, number top-right, description
+// bottom-left, video bottom-right). Videos are pulled from the showcase set below.
+const PROMISE_CARDS = [
+  { color: '#e9f4a1', title: 'Your budget, your brief, no agency',
+    desc: 'You set the budget and write the brief. No agency retainer, no middleman markup — the spend goes to the creator and the work.' },
+  { color: '#e5e2fb', title: 'Top UGC creators across every niche',
+    desc: 'Beauty, fitness, tech, food, fashion and more. Every creator is manually vetted before they can ever touch a brief.' },
+  { color: '#ffe1cf', title: 'Fastest content, delivery from 24 hours',
+    desc: 'Briefs move fast. Many creators turn around a first cut within a day, so your campaign never waits on production.' },
+  { color: '#d3f1e2', title: 'Hands-on support from UGC experts',
+    desc: 'Our team helps you shape the brief, pick the right creators, and get to a video that actually performs.' },
+];
+
 // Height of one leaderboard row, in vh (also used to compute the scroll range).
 const LOGO3D_ITEM_VH = 10;
 // Fraction of the section scroll over which all leaderboard rows pass the centre.
@@ -1023,10 +1036,11 @@ export default function Landing() {
     return () => ro.disconnect();
   }, []);
 
-  // The active card shrinks as a share of the viewport on narrower screens, so its
-  // dimmed neighbours keep peeking in at the edges instead of vanishing entirely.
+  // Cards are narrow enough that several sit side by side (like the original grid),
+  // with the outermost ones clipped by the viewport edges. Only their WIDTH shrinks
+  // on narrower screens — on phones that means a single near-full-width card.
   const tCardW = tViewportW
-    ? tViewportW * (tViewportW <= 640 ? 0.86 : tViewportW <= 900 ? 0.74 : 0.56)
+    ? tViewportW * (tViewportW <= 640 ? 0.82 : tViewportW <= 900 ? 0.42 : 0.22)
     : 0;
   const tPitch = tCardW + T_GAP;
   const tOffset = tViewportW ? (tViewportW - tCardW) / 2 - tActive * tPitch : 0;
@@ -1369,17 +1383,8 @@ export default function Landing() {
   // MODEST — the shorter 175vh section already closes most of the gap, so too large a value
   // over-pulls the showcase up UNDER the strip (it then overlaps / paints on top). -260 sits
   // them flush; raise toward 0 if they still overlap, more negative if a gap reopens.
-  const brandRise = -260;                 // mobile lift; 0 on desktop (no structural shift)
-  const brandRiseRaw = useTransform(
-    logo3dProgress,
-    heroStatic ? [0.45, 0.7] : [0.62, 0.72],
-    heroStatic ? [0, brandRise] : [380, 0],
-    heroStatic ? undefined : { ease: easeInOut }
-  );
-  const brandRiseY = useSpring(
-    brandRiseRaw,
-    heroStatic ? { stiffness: 240, damping: 32, mass: 0.35 } : { stiffness: 120, damping: 22, mass: 0.6 }
-  );
+  // brandRise chain removed — the brand strip no longer rises on scroll (it was overlapping
+  // the showcase). It now sits statically in normal flow.
   // On MOBILE drive the board + brand strip DIRECTLY off scroll (the *Raw values), not the
   // spring outputs. A spring trails the finger and keeps drifting/settling after the scroll
   // stops — that's the "lag" on a phone — and each spring also runs its own rAF loop every
@@ -1387,7 +1392,6 @@ export default function Landing() {
   // scroll 1:1 (still eased) → these big containers move exactly with the scroll, buttery and
   // lag-free. Desktop keeps the springs (it has the GPU headroom and the glide is intentional).
   const boardRiseYUsed = heroStatic ? boardRiseRaw : boardRiseY;
-  const brandRiseYUsed = heroStatic ? brandRiseRaw : brandRiseY;
   // Glide left through the middle as the hero clears — quick enough that there's no
   // long empty-black scroll, landing at the low-left spot (clear of the upper text)
   // just as the leaderboard's first rows rise into focus (see LB_PRE).
@@ -1646,18 +1650,26 @@ export default function Landing() {
 
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
           {/* 4 colored cards, stacked one behind another (hover to bring forward). */}
-          <div className="lp-promise" style={{ '--n': 4 }}>
-            {TOP_CREATORS.slice(1, 5).map((c, i) => (
-              <div
-                className="lp-promise__card"
-                key={c}
-                data-color={i}
-                style={{ '--i': i, zIndex: 4 - i }}
-              >
-                <span className="lp-promise__num">0{i + 1}</span>
-                <h3 className="lp-promise__title">{c}</h3>
-              </div>
-            ))}
+          <div className="lp-promise">
+            {PROMISE_CARDS.map((card, i) => {
+              const vid = showcaseVideos[i];
+              return (
+                <div
+                  className="lp-promise__card"
+                  key={card.title}
+                  style={{ '--i': i, zIndex: 4 - i, background: card.color }}
+                >
+                  <h3 className="lp-promise__title">{card.title}</h3>
+                  <span className="lp-promise__num">0{i + 1}</span>
+                  <p className="lp-promise__desc">{card.desc}</p>
+                  {vid && (
+                    <div className="lp-promise__video">
+                      <video src={vid.src} poster={cldPoster(vid.src)} muted loop playsInline autoPlay preload="none" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -2390,14 +2402,6 @@ export default function Landing() {
                       className={`lp-tcard lp-tcard--spot${isActive ? ' is-active' : ''}`}
                       onClick={() => !isActive && goToTestimonial(i)}
                     >
-                      {isActive && (
-                        <>
-                          <span className="lp-tcard__corner lp-tcard__corner--tl" aria-hidden="true" />
-                          <span className="lp-tcard__corner lp-tcard__corner--tr" aria-hidden="true" />
-                          <span className="lp-tcard__corner lp-tcard__corner--bl" aria-hidden="true" />
-                          <span className="lp-tcard__corner lp-tcard__corner--br" aria-hidden="true" />
-                        </>
-                      )}
                       <div className="lp-tcard__rating">
                         {[1, 2, 3, 4, 5].map((s) => (
                           <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
@@ -3346,10 +3350,10 @@ export default function Landing() {
         .lp-brandstrip {
           position: relative;
           z-index: 3;
-          /* Pulled up far enough that the strip is already on-screen (just below the
-             centred leaderboard text) while the last rows fade — so the scroll-linked
-             brandRiseY lift is actually visible as the text rises out. */
-          margin-top: -55vh;
+          /* The old -55vh pull-up was for the scroll-driven pinned leaderboard, which is now
+             normal flow (.lp-logo3d is height:auto). At 0 the strip sits cleanly BELOW the
+             stacked cards deck above it, so the order is: cards → brand strip → video grid. */
+          margin-top: 0;
           padding: 60px 0;
           /* Match the "Most Ads Fail…" (.lp-hook) section — transparent, so it shows the
              shared animated page background instead of its own radial glow. */
@@ -3566,43 +3570,51 @@ export default function Landing() {
           position: static !important; height: auto !important; min-height: 0 !important;
           transform: none !important;
         }
-        /* Stacked deck: cards absolutely layered, each nudged down-right + tilted
-           behind the previous. Hover a card to lift it clear of the stack. */
+        /* Straight stacked deck: cards layered, each nudged straight DOWN behind the
+           previous (peeking). No tilt, no shadow. Hover to bring a card forward. */
         .lp-promise {
-          position: relative; width: min(560px, 92%); margin: 20px auto 0;
-          height: 360px;
+          position: relative; width: min(940px, 94%); margin: 24px auto 0; height: 440px;
         }
         .lp-promise__card {
-          position: absolute; left: 0; right: 0; top: 0; height: 300px;
-          border-radius: 24px; padding: 34px 34px;
-          display: flex; align-items: flex-end;
-          box-shadow: 0 24px 50px -24px rgba(30,22,8,.4);
-          transform: translate(calc(var(--i) * 26px), calc(var(--i) * 26px)) rotate(calc((var(--i) - 1.5) * -2deg));
-          transition: transform .28s cubic-bezier(.2,.7,.2,1), box-shadow .28s ease;
+          position: absolute; left: 0; right: 0; top: 0; height: 400px;
+          border-radius: 26px; padding: 40px 44px; overflow: hidden;
+          transform: translateY(calc(var(--i) * 20px));
+          transition: transform .28s cubic-bezier(.2,.7,.2,1);
           cursor: pointer;
         }
-        .lp-promise__card:hover {
-          transform: translate(calc(var(--i) * 26px), calc(var(--i) * 26px - 18px)) rotate(0deg) scale(1.02);
-          z-index: 20 !important;
-          box-shadow: 0 34px 60px -22px rgba(30,22,8,.5);
-        }
-        /* Card colors */
-        .lp-promise__card[data-color="0"] { background: #e9f4a1; }
-        .lp-promise__card[data-color="1"] { background: #e5e2fb; }
-        .lp-promise__card[data-color="2"] { background: #ffe1cf; }
-        .lp-promise__card[data-color="3"] { background: #d3f1e2; }
-        .lp-promise__num {
-          position: absolute; top: 24px; right: 30px;
-          font-family: Georgia, 'Times New Roman', serif; font-style: italic;
-          font-size: 34px; color: rgba(28,27,75,.55); line-height: 1;
-        }
+        .lp-promise__card:hover { transform: translateY(-6px); z-index: 20 !important; }
+        /* Title — top-left */
         .lp-promise__title {
-          margin: 0; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
-          font-size: clamp(22px, 2.4vw, 30px); font-weight: 800; color: #171334; line-height: 1.18;
+          position: absolute; top: 40px; left: 44px; right: 120px; margin: 0;
+          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
+          font-size: clamp(24px, 2.8vw, 38px); font-weight: 800; color: #171334; line-height: 1.12;
         }
-        @media (max-width: 700px) {
-          .lp-promise { height: 300px; }
-          .lp-promise__card { height: 250px; padding: 26px 26px; transform: translate(calc(var(--i) * 18px), calc(var(--i) * 18px)) rotate(calc((var(--i) - 1.5) * -1.6deg)); }
+        /* Number — top-right */
+        .lp-promise__num {
+          position: absolute; top: 40px; right: 44px;
+          font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+          font-size: clamp(30px, 3.4vw, 46px); color: rgba(28,27,75,.5); line-height: 1;
+        }
+        /* Description — bottom-left */
+        .lp-promise__desc {
+          position: absolute; left: 44px; bottom: 40px; width: min(46%, 420px); margin: 0;
+          font-family: var(--font-body, 'Inter', sans-serif);
+          font-size: 15px; line-height: 1.6; color: rgba(23,19,52,.82);
+        }
+        /* Video — bottom-right */
+        .lp-promise__video {
+          position: absolute; right: 44px; bottom: 40px;
+          width: 168px; aspect-ratio: 9 / 13; border-radius: 16px; overflow: hidden;
+          background: rgba(0,0,0,.12);
+        }
+        .lp-promise__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        @media (max-width: 760px) {
+          .lp-promise { height: 520px; }
+          .lp-promise__card { height: 480px; padding: 28px 26px; transform: translateY(calc(var(--i) * 14px)); }
+          .lp-promise__title { top: 26px; left: 26px; right: 80px; }
+          .lp-promise__num { top: 26px; right: 26px; }
+          .lp-promise__desc { left: 26px; right: 26px; bottom: 210px; width: auto; }
+          .lp-promise__video { left: 26px; right: auto; bottom: 26px; width: 150px; }
         }
         /* Smooth the hard hero(black)→section(navy) seam: a tall gradient at the top
            of this section starts at the hero's #0a0a0a and melts into the navy bg. */
@@ -4889,13 +4901,20 @@ export default function Landing() {
            it's still in normal flow (not yet stuck) — which bled into row 1's title even
            before any scrolling happened. Growing the box itself only ever pushes content
            below it, so it's correct both stuck and unstuck. */
+        /* A solid-color header can never fully hide every row: rows vary in height (one vs.
+           two-line descriptions), so at some scroll position a row's title WILL straddle the
+           header's bottom edge no matter how tall the header is — that's inherent to sticky
+           positioning over continuously-scrolling variable-height content, not fixable by
+           sizing alone. A hard edge there reads as torn/corrupted text. Fading the header's
+           own bottom into transparent turns that same crossing into a soft dissolve instead —
+           content emerges from behind the bar rather than getting sliced by it. */
         .lpv-header {
           align-items: stretch;
           position: sticky;
           top: 88px;
           z-index: 5;
-          background: #f3ecdd;
-          min-height: 150px;
+          background: linear-gradient(to bottom, #f3ecdd 0%, #f3ecdd 60%, rgba(243, 236, 221, 0) 100%);
+          min-height: 165px;
         }
         .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
@@ -7727,29 +7746,35 @@ export default function Landing() {
         }
         .lp-tcard--featured::before { opacity: 1; }
 
-        /* Spotlight carousel — the active card is full-size and opaque; its neighbours
-           sit dimmed and shrunk so they read as background, peeking in from the edges
-           of the clipped viewport. Corner brackets call out the active card only. */
+        /* Spotlight carousel — cards keep the same size/background whether active or
+           not (so the row reads as one continuous panel, like the reference); only the
+           active card's content is full-strength, plus a border + corner brackets. */
         .lp-tcard--spot {
           cursor: pointer;
-          opacity: 0.4;
-          transform: scale(0.92);
-          filter: saturate(0.7);
-          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease,
-            opacity 0.4s ease, filter 0.4s ease;
+          transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
+        .lp-tcard--spot:not(.is-active) { border-color: transparent; }
         .lp-tcard--spot:not(.is-active)::before { display: none; }
-        .lp-tcard--spot:hover:not(.is-active) {
-          opacity: 0.65;
-          transform: scale(0.94);
+        .lp-tcard--spot:not(.is-active) .lp-tcard__rating,
+        .lp-tcard--spot:not(.is-active) .lp-tcard__mark,
+        .lp-tcard--spot:not(.is-active) .lp-tcard__quote,
+        .lp-tcard--spot:not(.is-active) .lp-tcard__author,
+        .lp-tcard--spot:not(.is-active) .lp-tcard__metric {
+          opacity: 0.45;
+          transition: opacity 0.3s ease;
+        }
+        .lp-tcard--spot:hover:not(.is-active) .lp-tcard__rating,
+        .lp-tcard--spot:hover:not(.is-active) .lp-tcard__mark,
+        .lp-tcard--spot:hover:not(.is-active) .lp-tcard__quote,
+        .lp-tcard--spot:hover:not(.is-active) .lp-tcard__author,
+        .lp-tcard--spot:hover:not(.is-active) .lp-tcard__metric {
+          opacity: 0.7;
         }
         .lp-tcard--spot.is-active {
           cursor: default;
-          opacity: 1;
-          transform: scale(1);
-          filter: none;
           z-index: 2;
-          box-shadow: 0 24px 56px rgba(7, 7, 78, 0.16);
+          border-color: #7387FF;
+          box-shadow: 0 20px 44px rgba(7, 7, 78, 0.12);
         }
         .lp-tcard__corner {
           position: absolute;

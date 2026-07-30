@@ -4664,23 +4664,23 @@ export default function Landing() {
 
         /* ── Editorial list (replaces the fanned cards) ─────────────────────── */
         .lp-achieve__list {
-          display: flex; flex-direction: column; gap: clamp(56px, 8vw, 108px);
-          max-width: 1120px; margin: 60px auto 0; padding: 0 24px;
+          display: flex; flex-direction: column; gap: clamp(14px, 2vw, 26px);
+          max-width: 1120px; margin: 44px auto 0; padding: 0 24px;
         }
         .lp-achieve__row { display: flex; justify-content: flex-start; }
-        .lp-achieve__col { width: min(440px, 100%); text-align: left; }
+        .lp-achieve__col { width: min(380px, 100%); text-align: left; }
         .lp-achieve__num {
           font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500;
-          font-size: clamp(38px, 5vw, 62px); line-height: 1; color: #ef6a4c; letter-spacing: -0.5px;
+          font-size: clamp(26px, 3.2vw, 42px); line-height: 1; color: #ef6a4c; letter-spacing: -0.5px;
         }
-        .lp-achieve__rule { height: 1px; background: var(--lp-border); margin: 22px 0 20px; }
+        .lp-achieve__rule { height: 1px; background: var(--lp-border); margin: 12px 0 12px; }
         .lp-achieve__h {
-          margin: 0 0 12px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
-          font-size: clamp(20px, 2.4vw, 26px); font-weight: 800; color: var(--lp-text); line-height: 1.22;
+          margin: 0 0 8px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
+          font-size: clamp(16px, 1.9vw, 20px); font-weight: 800; color: var(--lp-text); line-height: 1.22;
         }
         .lp-achieve__p {
           margin: 0; font-family: var(--font-body, 'Inter', sans-serif);
-          font-size: 16px; line-height: 1.65; color: var(--lp-text-muted);
+          font-size: 14.5px; line-height: 1.55; color: var(--lp-text-muted);
         }
         .lp-achieve__tag {
           margin-top: 20px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
@@ -4831,21 +4831,27 @@ export default function Landing() {
         /* Sticky header: the UGCad.io / Traditional column titles stay pinned just below
            the floating navbar while the comparison rows scroll underneath. The opaque
            section background keeps rows from showing through the transparent columns.
-           The header's own box (~97px) is shorter than a two-line row (~120px), so as a
-           row scrolls past, its title poked out above/below the header for a few px each
-           frame — a torn "ghost text" glitch. The box-shadow spread paints extra opaque
-           background 40px above/below WITHOUT growing the element's actual layout box, so
-           it fully swallows any row passing behind before its text can peek out either edge. */
+           min-height keeps the header's real box taller than the tallest two-line row
+           (~120px) — otherwise, as a row scrolled past, its title poked out above/below
+           the header's own shorter box for a few px each frame (a torn "ghost text"
+           glitch). This has to be a real layout height (not a box-shadow paint trick):
+           a shadow spread stays fixed to the header's box at ALL times, including while
+           it's still in normal flow (not yet stuck) — which bled into row 1's title even
+           before any scrolling happened. Growing the box itself only ever pushes content
+           below it, so it's correct both stuck and unstuck. */
         .lpv-header {
-          align-items: end;
+          align-items: center;
           position: sticky;
           top: 88px;
           z-index: 5;
           background: #f3ecdd;
-          box-shadow: 0 -40px 0 0 #f3ecdd, 0 40px 0 0 #f3ecdd;
+          min-height: 150px;
         }
         .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
+        /* Keep the header's UGCad.io cell shaded like the rows below (continuous column),
+           but flatten its corners so it doesn't read as a rounded "card" when pinned. */
+        .lpv-header .lpv-h--us { border-radius: 0; }
         .lpv-header .lpv-h { padding: 26px 20px; }
         .lpv-h--us { display: flex; align-items: center; justify-content: center; }
         .lpv-brand { font-family: Georgia, serif; font-weight: 800; font-size: 30px; letter-spacing: -1px; color: #2a2118; }

@@ -603,12 +603,43 @@ const compareRows = [
 ];
 
 // "US vs Others" — two-column comparison (us vs marketplaces).
+// Each side is a bold title + a supporting line (comparison-table style).
 const vsRows = [
-  { label: 'Creator vetting',     us: 'Every creator is manually reviewed before briefs', them: 'Open sign-up, anyone can apply' },
-  { label: 'Payment safety',      us: 'The platform holds funds until you approve',       them: 'Pay upfront or chase refunds' },
-  { label: 'Contact protection',  us: 'Names & contacts stay on-platform',                them: 'Creators poached after first deal' },
-  { label: 'Delivery speed',      us: 'Under 10 days, tracked',                           them: 'Agencies: 4–6 weeks' },
-  { label: 'Cost',                us: 'Commission only, no hidden cost',                  them: '3–5× agency markup + retainer' },
+  {
+    label: 'Creator Vetting',
+    us:   { title: 'Manually reviewed', desc: 'Every creator is vetted before they touch a brief' },
+    them: { title: 'Open sign-up', desc: 'Anyone can apply — no real vetting' },
+  },
+  {
+    label: 'Payment Safety',
+    us:   { title: 'Held in escrow', desc: 'Funds are held by the platform until you approve the work' },
+    them: { title: 'Pay upfront', desc: 'Pay in advance or chase refunds if it goes wrong' },
+  },
+  {
+    label: 'Contact Protection',
+    us:   { title: 'On-platform only', desc: 'Names and contacts stay protected inside UGCad.io' },
+    them: { title: 'Easily poached', desc: 'Creators taken off-platform after the first deal' },
+  },
+  {
+    label: 'Delivery Speed',
+    us:   { title: 'Under 10 days', desc: 'Tracked delivery, milestone by milestone' },
+    them: { title: '4–6 weeks', desc: 'Long agency timelines and endless back-and-forth' },
+  },
+  {
+    label: 'Cost',
+    us:   { title: 'Commission only', desc: 'No retainers, no hidden markups' },
+    them: { title: '3–5× markup', desc: 'Agency markup plus a monthly retainer' },
+  },
+  {
+    label: 'Content Rights',
+    us:   { title: 'Full usage rights', desc: 'You own the content you pay for' },
+    them: { title: 'Limited / unclear', desc: 'Rights often restricted or cost extra' },
+  },
+  {
+    label: 'Support',
+    us:   { title: 'Managed disputes', desc: 'The platform mediates if anything goes wrong' },
+    them: { title: 'On your own', desc: 'No mediation when a deal falls apart' },
+  },
 ];
 
 // "What you can achieve" — cards scroll over a big sticky headline (alternating sides).
@@ -1509,116 +1540,69 @@ export default function Landing() {
         </motion.div>
       )}
 
-      {/* ── Hero — pinned marketing copy (logo lives in the fly overlay) ─────── */}
-      <section
-        className={`lp-hero${heroStatic ? ' lp-hero--static' : ''}${!heroStatic && heroCollapsed ? ' lp-hero--collapsed' : ''}`}
-        ref={heroRef}
-      >
-        <motion.div className="lp-hero__sticky">
-          {/* Mobile only: one showcase marquee row fills the space at the top of the hero,
-              above the title (row 2 stays in the showcase section below). */}
-          {heroStatic && (
-            <div className="lp-showcase__viewport lp-hero__videorow" aria-hidden="true">
-              <div className="lp-showcase__row">
-                <div className="lp-showcase__track lp-showcase__track--left">
-                  {Array.from({ length: 4 }).flatMap(() => showcaseRow1).map((v, idx) => renderShowcaseCard(v, idx, 'HERO'))}
-                </div>
-              </div>
-            </div>
-          )}
-          {/* Left: marketing copy — hides once the logo grows (2nd scroll) */}
-          <div className="lp-hero__inner">
-          {heroStatic ? (
-            <motion.h1
-              className="lp-hero__title lp-hero__title--mobile"
-              custom={1}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              The <span className="lp-hero__title-accent">Performance</span>
-              <br />
-              <span className="lp-hero__title-accent">System</span> Behind The
-              <br />
-              Top <span className="lp-hero__title-accent">1% D2C Brands</span>
-            </motion.h1>
-          ) : (
-            <motion.h1
-              className="lp-hero__title"
-              custom={1}
-              variants={heroItemVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              The{' '}
-              <span className="lp-hero__title-accent">Performance System</span>{' '}
-              Behind The Top{' '}
-              <span className="lp-hero__title-accent">1% D2C Brands</span>
-            </motion.h1>
-          )}
-
-          <motion.p
-            className="lp-hero__subtitle"
-            custom={2}
-            variants={heroItemVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            Top-notch UGC video ads in just
-            <br className="lp-hero__sub-mbr" />
-            {' '}a few clicks.
-            {/* Second line hidden on mobile (lp-hero__sub-line2), kept on desktop. */}
-            <span className="lp-hero__sub-line2">
-              <br />
-              Unlock serious growth with{' '}
-              <br className="lp-hero__sub-mbr" />
-              <span style={{ color: '#7387FF', fontWeight: 600 }}>
-                <span style={{ whiteSpace: 'nowrap', color: '#7387FF' }}>high-performing UGC ads</span>
-              </span>.
-            </span>
-          </motion.p>
-
-          <motion.div
-            className="lp-hero__ctas"
-            custom={3}
-            variants={heroItemVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <button
-              className="lp-btn-primary"
-              onClick={() => navigate('/creator')}
-              data-testid="get-started-btn"
-            >
-              Join as Creator <span className="lp-btn-arrow"><ArrowRight size={15} /></span>
-            </button>
-            <button
-              className="lp-btn-ghost"
-              onClick={() => navigate('/auth?role=business&mode=signup')}
-              data-testid="learn-more-btn"
-            >
-              Sign up as Brand
-            </button>
-          </motion.div>
-
-          </div>
-
-          {/* The logo mark now lives in the fixed .lp-logo-fly overlay above —
-              it flies in from here and continues into the 3D section below. */}
-
-          {/* Brand strip moved out — it's now its own persistent section AFTER the
-              leaderboard (see .lp-brandstrip below). */}
-        </motion.div>
-
-        {/* curved divider into the next section */}
-        <svg
-          className="lp-hero__divider"
-          viewBox="0 0 1440 80"
-          preserveAspectRatio="none"
-          aria-hidden="true"
+      {/* ── Hero — light "stunning videos" redesign ────────────────────────── */}
+      <section className="nlp-hero" ref={heroRef}>
+        <motion.span
+          className="nlp-badge"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          <path d="M0,0 C480,80 960,80 1440,0 L1440,80 L0,80 Z" fill="#0a0a0a" />
-        </svg>
+          Join over 100,000 happy creators
+        </motion.span>
+
+        <motion.h1
+          className="nlp-title"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.05 }}
+        >
+          Engage Audiences
+          <br />
+          with <span className="nlp-title-accent">Stunning Videos</span>
+        </motion.h1>
+
+        <motion.p
+          className="nlp-sub"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.12 }}
+        >
+          Boost your brand with high-impact short videos from our expert content
+          creators. Our team is ready to propel your business forward.
+        </motion.p>
+
+        {/* handwritten annotations (desktop only) */}
+        <span className="nlp-note nlp-note--elevate" aria-hidden="true">
+          Elevate<br />your brand
+          <svg viewBox="0 0 80 60" className="nlp-note-arrow"><path d="M6,6 C50,0 74,20 66,52" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round"/><path d="M56,44 L66,54 L74,42" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </span>
+
+        <div className="nlp-gallery">
+          {showcaseVideos.slice(0, 7).map((v, i) => (
+            <figure
+              className="nlp-card"
+              key={v.id}
+              style={{ transform: `translateY(${Math.abs(i - 3) * 22}px) rotate(${(i - 3) * 1.4}deg)` }}
+            >
+              <img src={cldPoster(v.src)} alt="" loading="lazy" />
+            </figure>
+          ))}
+        </div>
+
+        <div className="nlp-cta-wrap">
+          <span className="nlp-note nlp-note--free" aria-hidden="true">
+            It's free
+            <svg viewBox="0 0 70 40" className="nlp-note-arrow2"><path d="M4,10 C24,34 44,34 60,18" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round"/><path d="M50,22 L61,17 L58,29" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </span>
+          <button
+            className="nlp-cta"
+            onClick={() => navigate('/auth?mode=signup&role=business')}
+            data-testid="get-started-btn"
+          >
+            Get Started
+          </button>
+        </div>
       </section>
 
       {/* ── 3D glass logo (left) + center copy — scroll-driven ──────────────── */}
@@ -2985,6 +2969,69 @@ export default function Landing() {
         /* ── Hero (dark constellation) ─────────────────────────────────────── */
         /* Tall scroll track that drives the pinned hero sequence */
         .lp-journey { position: relative; }
+
+        /* ── NEW light hero ("Stunning Videos") ───────────────────────────── */
+        /* Hide the old dark 3D-logo fly overlay so it doesn't float over the cream hero. */
+        .lp-logo-fly { display: none !important; }
+        .nlp-hero {
+          position: relative; z-index: 3; isolation: isolate;
+          background: #f6f1e6;
+          padding: 132px 24px 96px;
+          text-align: center; overflow: hidden;
+        }
+        .nlp-badge {
+          display: inline-block; background: #f7d49b; color: #7a4711;
+          font-weight: 700; font-size: 13.5px; letter-spacing: .1px;
+          padding: 8px 22px; border-radius: 999px; margin: 0 auto 26px;
+          font-family: var(--font-body, 'Inter', sans-serif);
+        }
+        .nlp-title {
+          margin: 0 auto; max-width: 980px;
+          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
+          font-weight: 800; letter-spacing: -2px; line-height: 1.02; color: #171717;
+          font-size: clamp(40px, 7.2vw, 84px);
+        }
+        .nlp-title-accent { color: #171717; }
+        .nlp-sub {
+          max-width: 560px; margin: 22px auto 0; color: #5a5a5a;
+          font-size: 17px; line-height: 1.6;
+          font-family: var(--font-body, 'Inter', sans-serif);
+        }
+        .nlp-gallery {
+          display: flex; justify-content: center; align-items: flex-start;
+          gap: 16px; margin: 46px auto 0; max-width: 1180px;
+        }
+        .nlp-card {
+          flex: 0 0 148px; margin: 0; border-radius: 22px; overflow: hidden;
+          aspect-ratio: 9 / 14; background: #e7e0d2;
+          box-shadow: 0 26px 50px -22px rgba(30, 22, 8, .45);
+        }
+        .nlp-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .nlp-cta-wrap { position: relative; display: inline-flex; margin-top: 40px; }
+        .nlp-cta {
+          background: #ef6a4c; color: #fff; border: none; border-radius: 999px;
+          padding: 15px 42px; font-weight: 700; font-size: 16px; cursor: pointer;
+          font-family: var(--font-body, 'Inter', sans-serif);
+          box-shadow: 0 18px 34px -14px rgba(239, 106, 76, .75);
+          transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .nlp-cta:hover { transform: translateY(-2px); box-shadow: 0 22px 40px -14px rgba(239, 106, 76, .8); }
+        /* Handwritten annotations */
+        .nlp-note {
+          position: absolute; font-family: 'Bradley Hand', 'Segoe Script', 'Comic Sans MS', cursive;
+          color: #3a3a3a; font-size: 21px; line-height: 1.15; font-weight: 600; pointer-events: none;
+        }
+        .nlp-note--elevate { top: 210px; right: max(40px, calc(50vw - 560px)); text-align: left; transform: rotate(6deg); }
+        .nlp-note--elevate .nlp-note-arrow { position: absolute; left: -6px; top: 46px; width: 66px; height: 52px; }
+        .nlp-note--free { position: absolute; right: calc(100% + 6px); bottom: 2px; white-space: nowrap; transform: rotate(-8deg); }
+        .nlp-note--free .nlp-note-arrow2 { position: absolute; right: -58px; top: 6px; width: 56px; height: 34px; }
+        @media (max-width: 900px) {
+          .nlp-hero { padding: 108px 16px 72px; }
+          .nlp-gallery { overflow-x: auto; justify-content: flex-start; gap: 12px; padding: 6px 4px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+          .nlp-gallery::-webkit-scrollbar { display: none; }
+          .nlp-card { flex: 0 0 118px; transform: none !important; }
+          .nlp-note { display: none; }
+        }
 
         .lp-hero {
           position: relative;

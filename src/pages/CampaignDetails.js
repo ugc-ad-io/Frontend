@@ -4,9 +4,11 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { firstName } from '../utils/displayName';
 import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -138,17 +140,25 @@ export default function CampaignDetails({ embedId, onClose }) {
     }
   };
 
+  // Selecting a creator SPENDS the brand's credits — the bid amount plus the
+  // platform fee is debited and held in escrow until the content is approved.
   const handleSelectCreator = async (creatorId) => {
     try {
       const response = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${creatorId}`);
-      toast.success(`🎉 ${response.data.creator_nickname} selected! Payment of ₹${response.data.amount} held in escrow. Opening chat...`);
-      
+      const held = Number(response.data?.amount) || 0;
+      toast.success(`🎉 ${firstName({ nickname: response.data.creator_nickname }, 'Creator')} selected! Payment of ₹${held.toLocaleString('en-IN')} held in escrow. Opening chat...`);
+
       // Wait a moment for the toast to be visible
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Redirect to chat with the creator
       navigate(`/chat/${creatorId}`);
     } catch (error) {
+      // Short balance is a fixable problem, not a generic failure — say by how much.
+      if (error?.response?.status === 402) {
+        toast.error(error.response.data?.detail || 'Not enough credits to select this creator.');
+        return;
+      }
       toast.error(apiErrorMessage(error, 'Failed to select creator'));
     }
   };
@@ -201,6 +211,11 @@ export default function CampaignDetails({ embedId, onClose }) {
 
   const handleSubmitBid = async (e) => {
     e.preventDefault();
+    const maximum = maxCampaignBid(campaign);
+    if (maximum && Number(bidAmount) > maximum) {
+      toast.error(bidOverBudgetMessage(maximum));
+      return;
+    }
     try {
       await axios.post(`${API}/campaigns/${id}/bid`, {
         campaign_id: id,
@@ -223,6 +238,15 @@ export default function CampaignDetails({ embedId, onClose }) {
 
   const hasUserBid = campaign?.bids?.some(bid => bid.creator_id === user?.id);
   const userBid = campaign?.bids?.find(bid => bid.creator_id === user?.id);
+  // Reflect the real bid outcome instead of always saying "Pending Review".
+  const bidSelected = userBid?.status === 'selected'
+    || String(campaign?.selected_creator) === String(user?.id)
+    || (Array.isArray(campaign?.selected_creators) && campaign.selected_creators.map(String).includes(String(user?.id)));
+  const bidStatus = userBid?.status === 'declined'
+    ? { label: 'Not Selected', cls: 'declined' }
+    : bidSelected
+      ? { label: 'Accepted', cls: 'accepted' }
+      : { label: 'Pending Review', cls: 'pending' };
 
   if (loading) {
     return <div className="loading-page">Loading campaign...</div>;
@@ -258,9 +282,11 @@ export default function CampaignDetails({ embedId, onClose }) {
           font-size:32px;font-weight:800;letter-spacing:-.5px;color:#15163a;margin:0}
         .cmk-app .badge{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;padding:6px 14px;
           border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
+        .cmk-app .badge-active,.cmk-app .badge-live,.cmk-app .badge-in_progress{background:#e7f7ef;color:#16a34a}
         .cmk-app .bid-submitted-banner,.cmk-app .creator-bid-banner{background:linear-gradient(135deg,#eef0ff,#f4f0ff);
           border:1px solid #e0e3ff;border-radius:18px;padding:22px;margin:20px 0}
         .cmk-app .bid-submitted-header h3,.cmk-app .creator-bid-banner h3{color:#4452f0}
+        .cmk-app .bid-mobile-campaign-status{display:none}
         .cmk-app .creator-bid-banner .banner-content p{color:#585c7e;opacity:1}
         .cmk-app .detail-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
         .cmk-app .detail-label{color:#585c7e;font-weight:600}
@@ -285,6 +311,45 @@ export default function CampaignDetails({ embedId, onClose }) {
         .cmk-app .objectives-grid{display:flex;flex-wrap:wrap;gap:10px}
         .cmk-app .objective-item{background:#eef0ff;color:#5b6bff;font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:20px}
         .cmk-app .shipment-notice{background:#fff7ed;border:1px solid #ffe0bd;border-radius:14px;padding:16px;color:#9a5b14}
+        @media (max-width:640px){
+          .cmk-app .campaign-details-page{
+            position:relative;width:auto;min-height:calc(100dvh - var(--cmk-nav-height,72px));overflow-x:hidden;
+            margin:-18px -16px -96px;padding:10px 0 96px;background:#fff
+          }
+          .cmk-app .page-header{position:absolute;top:28px;left:16px;z-index:2;width:28px;margin:0;padding:0}
+          .cmk-app .back-btn{width:28px;height:28px;display:grid;place-items:center;gap:0;padding:0;border:0;border-radius:0;background:transparent;font-size:0}
+          .cmk-app .back-btn:hover{border:0;transform:none;box-shadow:none}
+          .cmk-app .back-btn svg{width:18px;height:18px}
+          .cmk-app .campaign-container{width:100%;max-width:none;margin:0;gap:0}
+          .cmk-app .campaign-main{gap:0;min-width:0}
+          .cmk-app .campaign-info-card{
+            width:100%;min-width:0;padding:16px;border:0;border-radius:0;box-shadow:none
+          }
+          .cmk-app .campaign-title-section{margin-bottom:14px;padding-left:34px;align-items:flex-start}
+          .cmk-app .campaign-title-section h1{font-size:24px;line-height:1.2}
+          .cmk-app .campaign-title-section > .badge{display:none}
+          .cmk-app .bid-submitted-banner,.cmk-app .creator-bid-banner{
+            width:100%;margin:14px 0;padding:14px;border-radius:14px
+          }
+          .cmk-app .bid-submitted-content{gap:12px}
+          .cmk-app .bid-submitted-header{gap:9px}
+          .cmk-app .bid-submitted-header svg{width:20px;height:20px}
+          .cmk-app .bid-submitted-header h3{flex:1;min-width:0;font-size:18px;line-height:1.25}
+          .cmk-app .bid-mobile-campaign-status{display:inline-flex;flex:none;padding:5px 10px;font-size:11px}
+          .cmk-app .bid-submitted-details{padding:12px;border-radius:11px}
+          .cmk-app .detail-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:7px 0}
+          .cmk-app .detail-label{font-size:13px}
+          .cmk-app .detail-value,.cmk-app .status-badge{max-width:150px;text-align:right;font-size:13px}
+          .cmk-app .status-badge{padding:6px 10px}
+          .cmk-app .bid-submitted-proposal{padding:12px;border-radius:11px;margin-top:0}
+          .cmk-app .proposal-text{font-size:13px;overflow-wrap:anywhere}
+          .cmk-app .campaign-meta{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0;padding:14px 0}
+          .cmk-app .meta-item{min-width:0;font-size:13px}
+          .cmk-app .meta-item span{min-width:0;overflow-wrap:anywhere}
+          .cmk-app .campaign-section{margin:18px 0}
+          .cmk-app .campaign-section h3{font-size:18px}
+          .cmk-app .brief-text,.cmk-app .brief-line{font-size:13.5px}
+        }
 
         .shortlist-section { border: 1px solid #ececf1; border-radius: 16px; padding: 20px 22px; margin: 18px 0; background: #fff; }
         .shortlist-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
@@ -350,6 +415,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   <div className="bid-submitted-header">
                     <CheckCircle size={24} />
                     <h3>Bid Already Submitted</h3>
+                    <span className={`badge bid-mobile-campaign-status badge-${campaign.status}`}>{campaign.status.replace('_', ' ')}</span>
                   </div>
                   <div className="bid-submitted-details">
                     <div className="detail-row">
@@ -362,7 +428,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Status:</span>
-                      <span className="status-badge">Pending Review</span>
+                      <span className={`status-badge status-${bidStatus.cls}`}>{bidStatus.label}</span>
                     </div>
                   </div>
                   {userBid?.proposal && (
@@ -378,7 +444,7 @@ export default function CampaignDetails({ embedId, onClose }) {
             <div className="campaign-meta">
               <div className="meta-item">
                 <User size={20} />
-                <span>Posted by {campaign.business_nickname}</span>
+                <span>Posted by {String(campaign.brand_name || campaign.business_name || campaign.company_name || campaign.business_nickname || campaign.brand_handle || 'Brand').replace(/^@+/, '').trim() || 'Brand'}</span>
               </div>
               <div className="meta-item">
                 <IndianRupee size={20} />
@@ -514,7 +580,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                       <div className="bid-row-left">
                         <div className="bid-number">#{idx + 1}</div>
                         <div className="bid-info">
-                          <div className="bid-creator-name">{bid.creator_nickname}</div>
+                          <div className="bid-creator-name">{String(bid.creator_name || bid.creator_nickname || 'Creator').replace(/^@+/, '').trim().split(/\s+/)[0]}</div>
                           <div className="bid-meta-inline">
                             <span className="bid-amount-inline">₹{bid.amount}</span>
                             <span className="bid-separator">•</span>
@@ -645,6 +711,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   onChange={(e) => setBidAmount(e.target.value)}
                   placeholder="Enter your bid amount"
                   min="1"
+                  max={maxCampaignBid(campaign) || undefined}
                   required
                   data-testid="bid-amount-input"
                 />
@@ -672,7 +739,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   value={proposal}
                   onChange={(e) => setProposal(e.target.value)}
                   placeholder="Describe your approach, experience, and why you're the right fit for this campaign..."
-                  rows="6"
+                  rows="4"
                   required
                   data-testid="proposal-textarea"
                 />
@@ -706,7 +773,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                 {/* Profile Header */}
                 <div className="creator-header">
                   <div className="creator-info">
-                    <h3>{creatorDetails.profile.nickname}</h3>
+                    <h3>{displayName(creatorDetails.profile, 'Creator')}</h3>
                     <p className="creator-bio">{creatorDetails.profile.bio}</p>
                     {creatorDetails.profile.tags && creatorDetails.profile.tags.length > 0 && (
                       <div className="creator-tags">
@@ -1428,6 +1495,8 @@ export default function CampaignDetails({ embedId, onClose }) {
           display: inline-block !important;
           box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
+        .status-badge.status-declined { background: #fee2e2 !important; color: #b42318 !important; box-shadow: none; }
+        .status-badge.status-accepted { background: #dcfce7 !important; color: #15803d !important; box-shadow: none; }
 
         .bid-submitted-proposal {
           background: white;
@@ -1480,15 +1549,16 @@ export default function CampaignDetails({ embedId, onClose }) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 24px 32px;
-          border-bottom: 2px solid #e2e8f0;
+          padding: 18px 28px;
+          border-bottom: 1px solid #eceef5;
         }
 
         .modal-header h2 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a202c;
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #07074e;
           margin: 0;
+          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
         }
 
         .modal-close {
@@ -1793,55 +1863,66 @@ export default function CampaignDetails({ embedId, onClose }) {
         }
 
         .bid-form {
-          padding: 32px;
+          padding: 20px 28px 24px;
         }
 
         .form-group {
-          margin-bottom: 24px;
+          margin-bottom: 15px;
         }
 
         .form-group label {
           display: block;
-          font-weight: 600;
-          color: #1a202c;
-          margin-bottom: 8px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          color: #15163a;
+          margin-bottom: 6px;
         }
 
         .form-group input,
         .form-group textarea {
           width: 100%;
-          padding: 12px 16px;
-          border: 2px solid #e2e8f0;
+          padding: 11px 15px;
+          border: 1.5px solid #e2e4f0;
           border-radius: 12px;
-          font-size: 1rem;
-          transition: border-color 0.3s ease;
+          font-size: 0.95rem;
+          color: #1f2330;
+          font-family: inherit;
+          background: #fbfbfe;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
           box-sizing: border-box;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+          color: #9aa0b4;
         }
 
         .form-group input:focus,
         .form-group textarea:focus {
           outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          border-color: #5b6bff;
+          background: #fff;
+          box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.12);
         }
 
         .form-group small {
           display: block;
-          color: #718096;
-          font-size: 0.875rem;
-          margin-top: 4px;
+          color: #5b6bff;
+          font-weight: 600;
+          font-size: 0.83rem;
+          margin-top: 5px;
         }
 
         .form-group textarea {
           resize: vertical;
-          min-height: 120px;
+          min-height: 82px;
         }
 
         .modal-actions {
           display: flex;
           gap: 12px;
           justify-content: flex-end;
-          margin-top: 32px;
+          margin-top: 18px;
         }
 
         .btn-primary,

@@ -574,6 +574,24 @@
   color: #5b6bff;
 }
 
+/* "Send a Brief" is a labelled pill, not a 38px icon button — override the icon sizing
+   and give it the navy primary look so it reads as the main action in the header. */
+.msg-chat-actions button.msg-send-brief {
+  width: auto;
+  height: 38px;
+  padding: 0 16px;
+  gap: 7px;
+  background: #12124f;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.msg-chat-actions button.msg-send-brief:hover {
+  background: #07074e;
+  color: #fff;
+}
+
 /* More-actions dropdown */
 .msg-more-wrap { position: relative; display: flex; }
 .msg-more-backdrop { position: fixed; inset: 0; z-index: 40; }
@@ -1078,6 +1096,24 @@
   font-weight: 400;
 }
 
+/* Field label row that carries a live character counter (Escalate summary). */
+.msg-action-composer-grid span.msg-field-lbl {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.msg-charhint {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.msg-charhint.ok { color: #16a34a; }
+.msg-charhint.bad { color: #dc2626; }
+
 .msg-action-composer-grid input,
 .msg-action-composer-grid select,
 .msg-action-composer-grid textarea {
@@ -1155,44 +1191,80 @@
   font-weight: 400;
   font-family: var(--font-body);
 }
+.msg-system-mobile { display: none; }
 
-.msg-quick-chips {
-  display: flex;
-  gap: 10px;
-  padding: 14px 28px;
-  flex-wrap: nowrap;
+/* Action-card dropdown (replaces the overflowing chip row). */
+.msg-quick-actions {
+  padding: 10px 28px 12px;
   background: #ffffff;
   border-top: 1px solid #eef0f6;
   flex-shrink: 0;
+}
+
+.msg-quick-actions-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #9aa0b4;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.msg-quick-actions-lbl:hover,
+.msg-quick-actions-lbl.is-open {
+  color: #07074e;
+  background: #f5f4ff;
+}
+
+/* Rotate the "+" into an "×" cue when the chip row is open. */
+.msg-quick-actions-lbl svg { transition: transform 0.15s ease; }
+.msg-quick-actions-lbl.is-open svg { transform: rotate(45deg); }
+
+/* Single horizontal row; scrolls sideways when the chips overflow. */
+.msg-actions-row {
+  display: flex;
+  gap: 8px;
   overflow-x: auto;
-  scrollbar-width: none;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 }
 
-.msg-quick-chips::-webkit-scrollbar {
-  display: none;
-}
+.msg-actions-row::-webkit-scrollbar { height: 6px; }
+.msg-actions-row::-webkit-scrollbar-thumb { background: #d7dae8; border-radius: 999px; }
+.msg-actions-row::-webkit-scrollbar-track { background: transparent; }
 
-.msg-quick-chips button {
-  padding: 10px 16px;
+.msg-action-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 9px 16px;
   border: 1.5px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 999px;
   background: #faf9fc;
   color: #4a5568;
-  font-size: 0.85rem;
-  font-weight: 400;
+  font-size: 0.84rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
   font-family: var(--font-body);
-  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.msg-quick-chips button:hover {
+.msg-action-chip:hover:not(:disabled) {
   background: #f5f4ff;
   border-color: #07074e;
   color: #07074e;
-  transform: translateY(-2px);
 }
+
+.msg-action-chip:disabled { opacity: 0.6; cursor: default; }
 
 .msg-input-row {
   position: relative;
@@ -1374,4 +1446,166 @@
 .msg-conv-list::-webkit-scrollbar-thumb:hover,
 .msg-messages::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
+}
+
+/* Mobile back arrow in the chat header — hidden on desktop (two-pane view),
+   shown on phones where the list and chat share one screen. */
+.msg-back-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-right: -4px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #07074e;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.msg-back-btn:hover { background: #f2f3fb; }
+
+/* ============================================================
+   RESPONSIVE / MOBILE
+   Desktop keeps the two-pane (list + chat) layout. On tablets and
+   phones the two panes stack and only one shows at a time: the
+   conversation list until a chat is opened, then the chat with a
+   back button (.msg-back-btn) to return to the list.
+   ============================================================ */
+@media (max-width: 900px) {
+  .msg-list-panel { width: 320px; }
+}
+
+@media (max-width: 768px) {
+  .cmk-page--flush.cmk-wrap {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .msg-layout {
+    flex-direction: column;
+    /* Fill the viewport under the top nav; inner panes scroll, so the
+       message input always stays pinned and visible. */
+    width: 100%;
+    height: calc(100dvh - var(--cmk-nav-height, 72px));
+    min-height: 460px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .msg-layout,
+  .msg-layout * { box-sizing: border-box; }
+
+  /* One pane at a time. */
+  .msg-list-panel { width: 100%; height: 100%; }
+  .msg-layout.has-active-chat .msg-list-panel { display: none; }
+  .msg-layout:not(.has-active-chat) .msg-chat-panel { display: none; }
+
+  .msg-chat-panel {
+    width: 100%;
+    border-left: none;
+  }
+
+  .msg-back-btn { display: flex; width: 28px; height: 34px; margin-right: -2px; }
+
+  /* Tighter chrome so more of the screen is content. */
+  .msg-search { margin: 12px 12px 4px; }
+  .msg-filters { padding: 10px 12px 12px; overflow-x: auto; }
+  .msg-chat-header { padding: 10px 6px; gap: 6px; }
+  .msg-chat-actions { gap: 4px; }
+  .msg-chat-actions button { width: 34px; height: 34px; }
+  /* Keep the labelled pill labelled on mobile (the blanket 34px rule above would
+     squash it into an unreadable sliver). */
+  .msg-chat-actions button.msg-send-brief { width: auto; height: 34px; padding: 0 12px; }
+
+  .msg-messages { width: 100%; padding: 16px 14px 14px; overflow-x: hidden; }
+  .msg-messages > *,
+  .msg-bubble-row { min-width: 0; max-width: 100%; }
+  .msg-bubble {
+    min-width: 0;
+    max-width: 82%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .msg-bubble p,
+  .msg-system-pill,
+  .msg-action-card,
+  .msg-action-card-fields strong,
+  .msg-action-card-note {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .msg-system-pill { width: auto; max-width: calc(100% - 20px); padding: 12px 14px; }
+  .msg-system-wrap { width: 100%; max-width: 100%; min-width: 0; }
+  .msg-system-desktop { display: none; }
+  .msg-system-mobile {
+    display: block;
+    width: calc(100% - 16px);
+    margin: 6px auto;
+    border: 1px solid #dfe2f2;
+    border-left: 3px solid #6366f1;
+    border-radius: 12px;
+    background: #fff;
+    color: #15163a;
+    overflow: hidden;
+  }
+  .msg-system-mobile summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 12px;
+    cursor: pointer;
+    list-style: none;
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .msg-system-mobile summary::-webkit-details-marker { display: none; }
+  .msg-system-mobile summary em {
+    flex: none;
+    color: #5b6bff;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+  }
+  .msg-system-mobile[open] summary { border-bottom: 1px solid #eef0f6; }
+  .msg-system-mobile p {
+    margin: 0;
+    padding: 12px;
+    color: #585c7e;
+    font-size: 12.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Cards and composer go full width instead of a fixed pixel width. */
+  .msg-action-card { width: 100%; min-width: 0; }
+  .msg-action-card-fields p { grid-template-columns: 110px 1fr; }
+  .msg-action-composer { margin: 0 14px 12px; }
+  .msg-action-composer-grid { grid-template-columns: 1fr; }
+  .msg-policy-banner { padding: 10px 14px; }
+  .msg-quick-actions { padding: 10px 14px 12px; }
+
+  .msg-input-row { width: 100%; min-width: 0; padding: 12px 14px 16px; gap: 8px; }
+  .msg-input { flex: 1 1 auto; min-width: 0; width: 0; padding: 11px 16px; }
+  .msg-input-icon,.msg-send,.msg-emoji-wrap { flex: 0 0 auto; }
+}
+
+/* Extra-small phones. */
+@media (max-width: 480px) {
+  .msg-layout { height: calc(100dvh - var(--cmk-nav-height, 62px)); border-radius: 0; }
+  .msg-bubble { max-width: 88%; }
+  .msg-avatar, .msg-avatar-wrap { width: 40px; height: 40px; min-width: 40px; }
+  /* Icon-only header actions can crowd; keep the essentials, drop the
+     redundant flag/profile buttons in favour of the More (…) menu. */
+  .msg-chat-actions button[title="View profile"],
+  .msg-chat-actions button[title="Report user"] { display: none; }
+  .msg-action-card-fields p { grid-template-columns: 1fr; gap: 2px; }
+  .msg-emoji-picker { grid-template-columns: repeat(5, 32px); }
 }

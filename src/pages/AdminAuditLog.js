@@ -77,6 +77,7 @@ export default function AdminAuditLog() {
   const [search, setSearch] = useState('');
   const [action, setAction] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
+  const [sensitiveOnly, setSensitiveOnly] = useState(false); // show only sensitive actions
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
@@ -100,13 +101,17 @@ export default function AdminAuditLog() {
   useEffect(() => { load(); }, [load]);
 
   const visible = useMemo(() => {
-    if (!search.trim()) return logs;
+    // Sensitive-only narrows the set first, then the free-text search runs on top.
+    let rows = sensitiveOnly ? logs.filter(isSensitive) : logs;
     const q = search.trim().toLowerCase();
-    return logs.filter((l) =>
-      [l.action, l.module, l.admin_nickname, l.reason, l.target_type, l.target_id, l.ip]
-        .filter(Boolean)
-        .some((f) => String(f).toLowerCase().includes(q)));
-  }, [logs, search]);
+    if (q) {
+      rows = rows.filter((l) =>
+        [l.action, l.module, l.admin_nickname, l.reason, l.target_type, l.target_id, l.ip]
+          .filter(Boolean)
+          .some((f) => String(f).toLowerCase().includes(q)));
+    }
+    return rows;
+  }, [logs, search, sensitiveOnly]);
 
   const stats = useMemo(() => {
     const today = new Date().toDateString();
@@ -160,7 +165,15 @@ export default function AdminAuditLog() {
 
       <div className="aud-stats">
         <div className="aud-stat"><span className="aud-stat-num">{stats.total}</span><span className="aud-stat-label">Events loaded</span></div>
-        <div className="aud-stat aud-stat-warn"><span className="aud-stat-num">{stats.sensitive}</span><span className="aud-stat-label">Sensitive actions</span></div>
+        <button
+          type="button"
+          className={`aud-stat aud-stat-warn aud-stat-btn ${sensitiveOnly ? 'on' : ''}`}
+          onClick={() => setSensitiveOnly((v) => !v)}
+          title="Click to filter to sensitive actions only"
+          aria-pressed={sensitiveOnly}
+        >
+          <span className="aud-stat-num">{stats.sensitive}</span><span className="aud-stat-label">Sensitive actions</span>
+        </button>
         <div className="aud-stat"><span className="aud-stat-num">{stats.today}</span><span className="aud-stat-label">Today</span></div>
       </div>
 
@@ -180,6 +193,15 @@ export default function AdminAuditLog() {
           <select value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
             {MODULE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
+          <button
+            type="button"
+            className={`aud-btn-ghost aud-sens-toggle ${sensitiveOnly ? 'on' : ''}`}
+            onClick={() => setSensitiveOnly((v) => !v)}
+            title="Show only sensitive actions"
+            aria-pressed={sensitiveOnly}
+          >
+            <Mail size={14} /> Sensitive only
+          </button>
           <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} title="From date" />
           <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} title="To date" />
           <button className="aud-btn-ghost" onClick={load} title="Refresh"><RefreshCw size={15} /></button>
@@ -212,7 +234,7 @@ export default function AdminAuditLog() {
                     <span className="aud-caret">{open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</span>
                     <span className="aud-when">{fmtTime(l.created_at)}</span>
                     <span className="aud-admin">
-                      {l.admin_nickname}
+                      {String(l.admin_name || l.admin_nickname || 'Admin').replace(/^@+/, '')}
                       {l.admin_role && <em className="aud-role">{l.admin_role}</em>}
                     </span>
                     <span className="aud-action">
@@ -265,10 +287,20 @@ export default function AdminAuditLog() {
         .aud-srch svg { color:#9a9ab0; }
         .aud-srch input { border:none; outline:none; background:transparent; padding:9px 0; flex:1; font-size:13px; }
         .aud-toolbar select, .aud-toolbar input[type="date"] { padding:8px 10px; border:1px solid #e2e4f0; border-radius:9px; font-size:13px; color:#4b4b66; background:#fff; }
-        .aud-toolbar select:focus, .aud-toolbar input:focus, .aud-srch:focus-within { outline:none; border-color:#5b6bff; box-shadow:0 0 0 3px rgba(91,107,255,0.16); }
+        /* Focus ring on the search WRAPPER only — not the inner input as well,
+           otherwise both glow and you get a double outline. */
+        .aud-toolbar select:focus, .aud-toolbar input[type="date"]:focus, .aud-srch:focus-within { outline:none; border-color:#5b6bff; box-shadow:0 0 0 3px rgba(91,107,255,0.16); }
+        .aud-srch input:focus { outline:none; box-shadow:none; border:none; }
         .aud-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border:1px solid transparent; border-radius:9px; background:linear-gradient(100deg,#12124f,#07074e); color:#fff; font-weight:600; cursor:pointer; font-size:13px; box-shadow:0 12px 26px -12px rgba(7,7,78,.7); }
         .aud-btn:hover { transform:translateY(-1px); }
         .aud-btn-ghost { display:inline-flex; align-items:center; justify-content:center; padding:9px 11px; border:1px solid #e2e4f0; border-radius:9px; background:#fff; color:#5b6bff; cursor:pointer; }
+        /* Sensitive-only filter: toolbar toggle + the clickable "Sensitive actions" stat */
+        .aud-sens-toggle { gap:6px; font:inherit; font-size:13px; font-weight:600; color:#b45309; }
+        .aud-sens-toggle:hover { background:#fffaf4; border-color:#fde0c4; }
+        .aud-sens-toggle.on { background:#fff7ed; border-color:#f59e0b; color:#b45309; box-shadow:0 0 0 3px rgba(245,158,11,0.16); }
+        .aud-stat-btn { font:inherit; text-align:left; cursor:pointer; transition:box-shadow .15s, border-color .15s; }
+        .aud-stat-btn:hover { border-color:#f59e0b; }
+        .aud-stat-btn.on { border-color:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,0.18); }
         .aud-btn-ghost:hover { background:#f5f6ff; }
 
         .aud-head-row h3 { margin:0 0 8px; font-size:15px; color:#07074e; display:flex; align-items:center; gap:8px; }

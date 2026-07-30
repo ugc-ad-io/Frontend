@@ -1,17 +1,37 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Info, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
 import { useAuth } from '../App';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+// A reference that we hosted ourselves (came from /upload/file) rather than a
+// pasted third-party link — used to label the button "Replace" and to render it
+// as playable media instead of a bare link.
+const isUploadedUrl = (v) => typeof v === 'string' && /\/uploads?\//i.test(v);
+
 const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
 const DRAFT_ID_KEY = 'ugcad-brand-brief-draft-id-v2';
 const COMMISSION_RATE = 0.20;
-const LISTING_FEE = 500;
+
+// Listing fee is tiered by the size of the brief. `deliverables` is the number of
+// deliverable rows (the wizard caps this at 5); `creators` is creators_wanted.
+//   1 creator,  1 deliverable      -> Rs. 500
+//   1 creator,  2–5 deliverables   -> Rs. 1,500
+//   2–10 creators                  -> Rs. 1,500
+//   11+ creators                   -> Rs. 3,000
+function listingFeeFor(creators, deliverables) {
+  const c = Math.max(1, Number(creators) || 1);
+  const d = Math.max(1, Number(deliverables) || 1);
+  if (c >= 11) return 3000;
+  if (c >= 2) return 1500;
+  return d <= 1 ? 500 : 1500;
+}
 
 const STEPS = [
   'Campaign Basics',
@@ -29,22 +49,62 @@ const STEPS = [
 const SUBSECTIONS = {
   1: ['Basics', 'Product Description', 'Objective & Audience'],
   3: ['Product Visibility', 'Phrases, CTA & Tags'],
+  4: ['Checklist', 'Competitors & Avoid'],
   5: ['Tone & Pacing', 'References'],
   6: ['Platforms', 'Rights & Licensing'],
   7: ['Creator Targeting', 'Timeline', 'Budget'],
 };
 const subsFor = (s) => SUBSECTIONS[s] || [STEPS[s - 1]];
 
+// What the brand is promoting. Only a PHYSICAL product needs shipping — everything
+// else skips the address/shipping/receipt steps of the deal entirely.
+const PRODUCT_TYPES = [
+  { value: 'physical', label: 'Physical product', hint: 'You ship an item to the creator', ships: true },
+  { value: 'digital',  label: 'Digital / App',    hint: 'App, software or download — nothing to ship' },
+  { value: 'service',  label: 'Service',          hint: 'A service, subscription or experience' },
+  { value: 'other',    label: 'Other',            hint: 'Describe it yourself' },
+];
+const typeNeedsShipping = (t) => t === 'physical';
+
 const CATEGORIES = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Food', 'Gaming', 'Lifestyle', 'Home Decor', 'Wellness'];
+// Map a stored category (any case / phrasing) to one of CATEGORIES so the <select>
+// pre-selects it. e.g. "beauty" / "Beauty & Skincare" -> "Beauty".
+const matchCategory = (...raws) => {
+  for (const raw of raws) {
+    const s = String(raw || '').trim().toLowerCase();
+    if (!s) continue;
+    const hit = CATEGORIES.find((c) => c.toLowerCase() === s)
+      || CATEGORIES.find((c) => s.includes(c.toLowerCase()) || c.toLowerCase().includes(s));
+    if (hit) return hit;
+  }
+  return '';
+};
 const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial', 'Tutorial', 'Unboxing', 'Comparison', 'Sale promotion', 'Customer education', 'Other'];
 const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)'];
 const ASPECTS = ['9:16', '1:1', '16:9', '4:5'];
 const CTAS = ['Visit website', 'Use code', 'Swipe up', 'Follow brand', 'None'];
+// CTAs that need a link/handle value (Use code has its own promoCode field; None needs nothing).
+const CTA_INPUT = {
+  'Visit website': { label: 'Website link', ph: 'https://yourbrand.com', type: 'url' },
+  'Swipe up': { label: 'Swipe-up link', ph: 'https://yourbrand.com/offer', type: 'url' },
+  'Follow brand': { label: 'Brand handle to follow', ph: '@yourbrand', type: 'handle' },
+};
+// Only proper links / handles allowed — no random text.
+const CTA_URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s]*)?$/i;
+const CTA_HANDLE_RE = /^@?[a-z0-9._]{2,30}$/i;
+const ctaLinkValid = (cta, v) => {
+  const s = String(v || '').trim();
+  if (!s) return false;
+  const t = CTA_INPUT[cta]?.type;
+  if (t === 'url') return CTA_URL_RE.test(s);
+  if (t === 'handle') return CTA_HANDLE_RE.test(s) || CTA_URL_RE.test(s);
+  return true;
+};
 const TONES = ['Casual', 'Energetic', 'Informative', 'Humorous', 'Aspirational', 'Authentic', 'Educational', 'Trustworthy'];
 const CREATOR_LEVELS = ['New', 'Verified', 'L1', 'L2', 'Elite'];
 const QUALITY_TIERS = ['A', 'A+', 'A++'];
 const GENDER_OPTIONS = ['No Preference', 'Female', 'Male', 'Non-binary'];
-const CITIES = ['Any City', 'Mumbai', 'Delhi NCR', 'Bengaluru', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur'];
+const CITIES = ['Any City', 'Mumbai', 'Delhi NCR', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot', 'Varanasi', 'Srinagar', 'Aurangabad', 'Amritsar', 'Navi Mumbai', 'Prayagraj', 'Ranchi', 'Coimbatore', 'Jabalpur', 'Gwalior', 'Vijayawada', 'Jodhpur', 'Madurai', 'Raipur', 'Kota', 'Guwahati', 'Chandigarh', 'Noida', 'Gurugram', 'Thiruvananthapuram', 'Kochi', 'Mysuru', 'Bhubaneswar', 'Dehradun', 'Mangaluru', 'Tiruchirappalli', 'Jamshedpur', 'Panaji (Goa)', 'Puducherry', 'Udaipur', 'Salem', 'Warangal', 'Guntur', 'Bhilai', 'Jalandhar', 'Bikaner', 'Siliguri', 'Nellore', 'Ajmer', 'Shimla', 'Other'];
 const NICHE_TAGS = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food', 'Lifestyle', 'Tech', 'Travel', 'Home Decor', 'Wellness', 'Parenting', 'Gaming'];
 const VIDEO_DELIVERABLES = ['Reel', 'Short-form', 'YouTube Short', 'Long-form video'];
 const PLATFORMS = [
@@ -72,8 +132,11 @@ const createDeliverable = () => ({
 
 const initialForm = {
   campaignName: '',
+  image: '',
   brandName: '',
   category: '',
+  productType: 'physical',     // physical | digital | service | promo | other
+  customProductType: '',       // free text when productType === 'other'
   productName: '',
   productDescription: '',
   campaignHook: '',
@@ -90,6 +153,7 @@ const initialForm = {
   requiredShots: [''],
   callToAction: 'Visit website',
   promoCode: '',
+  ctaLink: '',
   hashtags: '',
   brandHandleTag: true,
   noCompetitors: true,
@@ -113,6 +177,9 @@ const initialForm = {
   productShippingBy: '',
   draftDeliveryBy: '',
   revisions: 2,
+  // How many creators this brief wants to hire. The brief stays open for
+  // selection until this many are picked; each pick is charged at that moment.
+  creatorsWanted: 1,
   finalDeliveryBy: '',
   budgetMode: 'fixed',
   fixedBudget: '',
@@ -156,6 +223,8 @@ function mapCampaignToForm(c) {
   put('campaignName', c.title);
   put('brandName', c.brand_name);
   put('category', c.product_category || c.category);
+  if (PRODUCT_TYPES.some(p => p.value === c.product_type)) put('productType', c.product_type);
+  if (c.product_type_detail) put('customProductType', c.product_type_detail);
   put('productName', c.product_name);
   put('productDescription', c.product_description);
   put('campaignHook', c.campaign_hook);
@@ -175,6 +244,7 @@ function mapCampaignToForm(c) {
   putArr('requiredPhrases', c.required_phrases);
   putArr('requiredShots', c.required_shots);
   put('callToAction', c.call_to_action);
+  put('ctaLink', c.cta_link);
   put('promoCode', c.promo_code);
   put('hashtags', c.hashtags);
   putBool('brandHandleTag', c.brand_handle_tag);
@@ -197,9 +267,13 @@ function mapCampaignToForm(c) {
   put('exclusivity', c.exclusivity);
   putBool('whitelisting', c.whitelisting);
   put('modificationRights', c.modification_rights);
-  // Timeline
-  put('productShippingBy', c.product_shipping_by);
-  put('draftDeliveryBy', c.draft_delivery_by);
+  // Timeline — never carry an elapsed date into a copy/resume. Past dates are
+  // dropped; shipping defaults to tomorrow (the earliest allowed) so the field
+  // shows a valid date instead of a stale past one from the source brief.
+  const tomorrow = addDays(new Date().toISOString().slice(0, 10), 1);
+  const futureOnly = (d) => (d && String(d) >= tomorrow ? d : '');
+  put('productShippingBy', futureOnly(c.product_shipping_by) || tomorrow);
+  put('draftDeliveryBy', futureOnly(c.draft_delivery_by));
   putBool('budgetVisible', c.budget_visible);
 
   // Deliverables — prefer the structured list; fall back to the primary
@@ -229,7 +303,7 @@ function mapCampaignToForm(c) {
       out.deliverables = [primary, ...extra];
     }
   }
-  put('finalDeliveryBy', c.final_delivery_by || c.due_date || c.deadline);
+  put('finalDeliveryBy', futureOnly(c.final_delivery_by || c.due_date || c.deadline));
   put('creatorLevel', c.creator_level);
   put('qualityTier', c.content_quality_tier);
   put('genderPreference', c.gender_preference);
@@ -238,6 +312,9 @@ function mapCampaignToForm(c) {
   if (Array.isArray(c.tone_tags) && c.tone_tags.length) out.tones = c.tone_tags;
   const revisions = c.free_revisions ?? c.revision_limit;
   if (revisions !== undefined && revisions !== null) out.revisions = Number(revisions) || 0;
+  if (c.creators_wanted !== undefined && c.creators_wanted !== null) {
+    out.creatorsWanted = Math.max(1, Number(c.creators_wanted) || 1);
+  }
   const bMin = Number(c.budget_min || 0);
   const bMax = Number(c.per_video_budget || c.budget_max || 0);
   if (bMax > 0) {
@@ -253,15 +330,59 @@ function mapCampaignToForm(c) {
   return out;
 }
 
-export default function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, duplicateId = null } = {}) {
+/**
+ * Live length hint under a text field. Every field with an enforced limit shows
+ * one, so "Next" can never block on a rule the brand couldn't see.
+ * Counts trimmed length — the same thing the step validation checks.
+ */
+function FieldCount({ value, min = 0, max = null }) {
+  const len = String(value || '').trim().length;
+  const need = min - len;
+  if (need > 0) {
+    return <small className="brief-need">{need} more character{need === 1 ? '' : 's'} needed</small>;
+  }
+  return <small>{max ? `${len}/${max} characters` : `${len} characters`}</small>;
+}
+
+const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, onClose = null, onPublished = null, onDraftSaved = null, duplicateId = null, resumeDraftId = null } = {}, ref) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [subStep, setSubStep] = useState(0);
+  const [reviewTab, setReviewTab] = useState(0);   // active section on Review & Publish
   const [form, setForm] = useState(initialForm);
   const subs = subsFor(step);
   useEffect(() => { setSubStep(0); }, [step]);
+  const [moodUploading, setMoodUploading] = useState(false);
+  // Mood board: uploads to the server and APPENDS to the existing list (max 5),
+  // so picking files a second time adds instead of replacing.
+  const uploadMoodImages = async (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = '';                       // allow re-picking the same file later
+    if (!picked.length) return;
+    const room = 5 - form.moodImages.length;
+    if (room <= 0) { toast.error('You can add up to 5 mood board images.'); return; }
+    const files = picked.slice(0, room);
+    if (picked.length > room) toast.error(`Only ${room} more image${room > 1 ? 's' : ''} can be added.`);
+    setMoodUploading(true);
+    try {
+      for (const file of files) {
+        if (file.size > 5 * 1024 * 1024) { toast.error(`${file.name} is too large. Max 5MB.`); continue; }
+        const fd = new FormData();
+        fd.append('file', file);
+        const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const url = data.file_url || data.url || '';
+        if (url) setForm((f) => ({ ...f, moodImages: [...f.moodImages, url].slice(0, 5) }));
+      }
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not upload mood board image'));
+    } finally {
+      setMoodUploading(false);
+    }
+  };
+  const removeMoodImage = (index) => setForm((f) => ({ ...f, moodImages: f.moodImages.filter((_, i) => i !== index) }));
+
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [publishMode, setPublishMode] = useState('matches');
@@ -282,20 +403,28 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     axios.get(`${API}/business/settings/profile`)
       .then(res => {
         const profile = res.data || {};
+        const up = user?.profile || {};
         setForm(current => ({
           ...current,
           brandName: current.brandName || profile.brand_name || user?.nickname || user?.full_name || '',
-          category: current.category || profile.primary_category || profile.business_category || ''
+          // Pre-select the brand's category by default (still changeable).
+          category: current.category || matchCategory(
+            profile.primary_category, profile.business_category, profile.industry_category,
+            profile.category, profile.product_type,
+            up.industry_category, up.business_category, up.category
+          )
         }));
       })
       .catch(() => {
-        setForm(current => ({ ...current, brandName: current.brandName || user?.nickname || user?.full_name || '' }));
+        setForm(current => ({ ...current, brandName: current.brandName || user?.business_name || user?.full_name || String(user?.nickname || '').replace(/^@+/, '') || '' }));
       });
   }, [user?.id]);
 
-  // Resume a server-saved draft when arriving from the dashboard (?draft=<id>).
+  // Resume a server-saved draft — either from the URL (?draft=<id>) or from the
+  // Campaigns page opening this wizard in a modal (resumeDraftId prop). draftId
+  // is set, so saving/publishing PATCHes that same draft instead of forking a copy.
   useEffect(() => {
-    const resumeId = searchParams.get('draft');
+    const resumeId = resumeDraftId || searchParams.get('draft');
     if (!resumeId) return;
     setDraftId(resumeId);
     localStorage.setItem(DRAFT_ID_KEY, resumeId);
@@ -309,7 +438,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       })
       .catch(() => toast.error('Could not load that draft'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, resumeDraftId]);
 
   // Duplicate an existing campaign into a fresh, editable brief (?duplicate=<id>).
   // We do NOT set draftId, so publishing creates a brand-new copy — the source
@@ -322,8 +451,13 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     axios.get(`${API}/campaigns/${dupId}`)
       .then(res => {
         const mapped = mapCampaignToForm(res.data);
+        const n = Object.keys(mapped).length;
+        // Diagnostic: how many fields actually carried over. If this is ~1–3, the
+        // source campaign was saved WITHOUT the structured brief (backend wasn't
+        // running the strict:false Campaign model when it was created).
+        console.log('[Duplicate] fields copied:', n, mapped, '\nraw campaign:', res.data);
         setForm(current => ({ ...current, ...mapped }));
-        toast.success('Copied brief loaded — edit the details and publish.');
+        toast.success(`Copied brief loaded — ${n} field${n === 1 ? '' : 's'} carried over. Edit and publish.`);
       })
       .catch(() => toast.error('Could not load that brief to duplicate'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,8 +478,14 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
   const budget = Number(form.budgetMode === 'fixed' ? form.fixedBudget : form.budgetMax) || 0;
   const commission = Math.round(budget * COMMISSION_RATE);
-  const totalDebit = budget + commission + LISTING_FEE;
+  const listingFee = listingFeeFor(form.creatorsWanted, form.deliverables.length);
+  const totalDebit = budget + commission + listingFee;
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
+  // Only a physical product ships. Everything else skips shipping date + address + receipt.
+  const needsShipping = typeNeedsShipping(form.productType);
+  // Earliest allowed timeline date. ISO yyyy-mm-dd strings compare chronologically,
+  // so date validation below is plain string comparison against this.
+  const tomorrowStr = addDays(new Date().toISOString().slice(0, 10), 1);
   const draftDeliverySuggestion = useMemo(() => addDays(form.productShippingBy, 7), [form.productShippingBy]);
   const pricingLifts = [
     form.rightsDuration === 'Perpetual' ? 'Perpetual rights: +40% suggested' : '',
@@ -398,14 +538,50 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     set(field, form[field].map((item, idx) => idx === index ? value : item));
   };
 
+  const removeTextItem = (field, index) => {
+    const next = form[field].filter((_, idx) => idx !== index);
+    set(field, next.length ? next : ['']);   // keep at least one empty input
+  };
+
+  // ── Reference video upload ─────────────────────────────────────────────────
+  // A reference video row accepts EITHER a pasted link or a real upload, so the
+  // creator gets a playable clip instead of only a third-party URL. Mirrors the
+  // mood-board uploader above and shares the /upload/file endpoint.
+  const [uploadingKey, setUploadingKey] = useState('');
+
+  const uploadRefVideo = async (index, file) => {
+    if (!file) return;
+    if (file.size > 200 * 1024 * 1024) { toast.error(`${file.name} is too large. Max 200MB.`); return; }
+    setUploadingKey(`ref-${index}`);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = data.file_url || data.url || '';
+      if (!url) throw new Error('No URL returned');
+      updateTextItem('referenceVideos', index, url);
+      toast.success('Reference video uploaded');
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Could not upload that video'));
+    } finally {
+      setUploadingKey('');
+    }
+  };
+
   const isStepValid = (target = step) => {
-    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && form.productName.trim().length >= 2 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
+    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && (form.productType !== 'other' || form.customProductType.trim().length > 0) && form.productName.trim().length > 0 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
     if (target === 2) return form.deliverables.length > 0 && form.deliverables.every(item => item.type && item.quantity >= 1 && item.quantity <= 5 && item.aspectRatios.length > 0 && (!isVideoDeliverable(item.type) || item.duration));
-    if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode);
+    if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode) && (!CTA_INPUT[form.callToAction] || ctaLinkValid(form.callToAction, form.ctaLink));
     if (target === 4) return form.avoidText.length <= 200;
     if (target === 5) return form.tones.length > 0 && form.pacing;
     if (target === 6) return form.platforms.length > 0 && form.rightsDuration && form.exclusivity && form.modificationRights;
-    if (target === 7) return form.productShippingBy && form.draftDeliveryBy && form.finalDeliveryBy && budget > 0 && form.creatorLevel && form.qualityTier;
+    if (target === 7) {
+      const shipOk = !needsShipping || (form.productShippingBy && form.productShippingBy >= tomorrowStr);
+      const draftMin = needsShipping && form.productShippingBy ? form.productShippingBy : tomorrowStr;
+      const draftOk = form.draftDeliveryBy && form.draftDeliveryBy >= draftMin;
+      const finalOk = form.finalDeliveryBy && form.finalDeliveryBy >= form.draftDeliveryBy;
+      return shipOk && draftOk && finalOk && budget > 0 && form.creatorLevel && form.qualityTier;
+    }
     return true;
   };
 
@@ -414,14 +590,14 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   const stepFillPct = () => {
     const f = form;
     const all = [
-      f.campaignName.trim().length >= 3, !!f.category, f.productName.trim().length >= 2, f.campaignHook.trim().length >= 10,
+      f.campaignName.trim().length >= 3, !!f.category, f.productName.trim().length > 0, f.campaignHook.trim().length >= 10,
       f.productDescription.trim().length >= 20, f.keyMessage.trim().length >= 10,
       f.objectives.length > 0, f.targetAudience.trim().length >= 50,
       f.deliverables.length > 0 && f.deliverables.every(d => d.type), f.deliverables.every(d => d.aspectRatios.length > 0),
       !f.productVisible || !!f.visibilitySeconds, !f.verbalMention || !!f.productNames, !!f.callToAction,
       f.tones.length > 0, !!f.pacing,
       f.platforms.length > 0, !!f.rightsDuration, !!f.exclusivity, !!f.modificationRights,
-      !!f.creatorLevel, !!f.qualityTier, !!f.productShippingBy, !!f.draftDeliveryBy, !!f.finalDeliveryBy, budget > 0,
+      !!f.creatorLevel, !!f.qualityTier, (!typeNeedsShipping(f.productType) || !!f.productShippingBy), !!f.draftDeliveryBy, !!f.finalDeliveryBy, budget > 0,
     ];
     return Math.round((all.filter(Boolean).length / all.length) * 100);
   };
@@ -431,7 +607,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     const m = [];
     if (target === 1) {
       if (form.campaignName.trim().length < 3) m.push('Campaign name (min 3 chars)');
-      if (form.productName.trim().length < 2) m.push('Product name');
+      if (form.productType === 'other' && !form.customProductType.trim()) m.push('Describe your product type');
+      if (!form.productName.trim()) m.push(needsShipping ? 'Product name' : 'What you’re promoting (name)');
       if (form.productDescription.trim().length < 20) m.push('Product description (min 20 chars)');
       if (form.campaignHook.trim().length < 10) m.push('Campaign hook (min 10 chars)');
       if (form.keyMessage.trim().length < 10) m.push('Key message (min 10 chars)');
@@ -446,6 +623,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       if (form.verbalMention && !form.productNames) m.push('Product names to mention');
       if (!form.callToAction) m.push('Call to action');
       if (form.callToAction === 'Use code' && !form.promoCode) m.push('Promo code');
+      if (CTA_INPUT[form.callToAction] && !ctaLinkValid(form.callToAction, form.ctaLink)) m.push(`${CTA_INPUT[form.callToAction].label} (valid ${CTA_INPUT[form.callToAction].type === 'handle' ? 'handle or link' : 'link'})`);
     } else if (target === 5) {
       if (form.tones.length === 0) m.push('Tone tags');
       if (!form.pacing) m.push('Pacing reference');
@@ -455,9 +633,10 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       if (!form.exclusivity) m.push('Exclusivity');
       if (!form.modificationRights) m.push('Modification rights');
     } else if (target === 7) {
-      if (!form.productShippingBy) m.push('Product shipping date');
-      if (!form.draftDeliveryBy) m.push('Draft delivery date');
-      if (!form.finalDeliveryBy) m.push('Final delivery date');
+      if (needsShipping && (!form.productShippingBy || form.productShippingBy < tomorrowStr)) m.push('Product shipping date (tomorrow or later)');
+      const draftMin = needsShipping && form.productShippingBy ? form.productShippingBy : tomorrowStr;
+      if (!form.draftDeliveryBy || form.draftDeliveryBy < draftMin) m.push(needsShipping ? 'Draft delivery date (on or after shipping)' : 'Draft delivery date (tomorrow or later)');
+      if (!form.finalDeliveryBy || form.finalDeliveryBy < form.draftDeliveryBy) m.push('Final delivery date (on or after draft delivery)');
       if (!(budget > 0)) m.push('Budget');
       if (!form.creatorLevel) m.push('Creator level');
       if (!form.qualityTier) m.push('Quality tier');
@@ -474,6 +653,23 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     setStep(Math.min(8, step + 1));
   };
 
+  // Jump straight to a step from the sidebar. Going back is always allowed; jumping
+  // forward requires every step in between to be complete (same rule as Next), so
+  // the wizard can't be skipped past a half-filled step.
+  const goToStep = (target) => {
+    if (target === step) return;
+    if (target < step) { setStep(target); return; }
+    for (let s = step; s < target; s += 1) {
+      const issues = stepIssues(s);
+      if (issues.length) {
+        toast.error(`Complete step ${s} first: ${issues.join(', ')}`);
+        setStep(s);
+        return;
+      }
+    }
+    setStep(target);
+  };
+
   const saveDraft = async () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
     if (savingDraft) return;
@@ -484,24 +680,126 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         await axios.patch(`${API}/campaigns/${draftId}`, payload);
       } else {
         const res = await axios.post(`${API}/campaigns/draft`, payload);
-        const newId = res.data?.campaign_id;
+        const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
         if (newId) {
           setDraftId(newId);
           localStorage.setItem(DRAFT_ID_KEY, newId);
         }
       }
       toast.success('Draft saved to your account');
+      if (onDraftSaved) onDraftSaved();
     } catch (error) {
-      // Server save failed, but the local copy is safe — let the user keep working.
-      toast.success('Draft saved on this device');
+      // The local copy is safe, so the brand can keep working — but do NOT call this
+      // a success. A 403 ("profile must be approved first") used to raise a green
+      // "Draft saved" toast, so the brand thought it was on their account when the
+      // server had rejected it outright. That's half of "I saved it and it's gone".
+      toast.warning('Saved on this device only', {
+        description: apiErrorMessage(error, "We couldn't save it to your account — it won't show in Drafts until it saves."),
+      });
     } finally {
       setSavingDraft(false);
     }
   };
 
+  // ── Auto-draft ─────────────────────────────────────────────────────────────
+  // The form is already mirrored to localStorage on every change (below). On top
+  // of that, silently save it as an ACCOUNT draft a few seconds after the user
+  // stops editing — so nothing is lost if they hit Cancel, switch tabs, or close
+  // the tab. Reuses draftId, so it keeps updating one draft (no duplicates).
+  const briefHasContent = (f) =>
+    (f.campaignName || '').trim().length >= 2 ||
+    (f.productName || '').trim().length >= 2 ||
+    (f.productDescription || '').trim().length >= 10;
+
+  const lastAutoSaveRef = useRef('');
+  const publishedRef = useRef(false);   // set once the brief is published/cleared — stop auto-saving
+  const autoSaveDraftSilent = async () => {
+    if (publishedRef.current || savingDraft || submitting) return;
+    if (!briefHasContent(form)) return;
+    const snapshot = JSON.stringify(form);
+    if (snapshot === lastAutoSaveRef.current) return;   // nothing changed
+    lastAutoSaveRef.current = snapshot;
+    try {
+      const payload = buildPayload();
+      if (draftId) {
+        await axios.patch(`${API}/campaigns/${draftId}`, payload);
+      } else {
+        const res = await axios.post(`${API}/campaigns/draft`, payload);
+        const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
+        if (newId) { setDraftId(newId); localStorage.setItem(DRAFT_ID_KEY, newId); }
+      }
+      setDraftSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } catch {
+      // Server save failed — the localStorage copy still has everything.
+      lastAutoSaveRef.current = '';   // retry on next change
+    }
+  };
+
+  // Keep a ref to the latest auto-save closure so the unmount handler saves the
+  // CURRENT form (not a stale one from first render).
+  const autoSaveRef = useRef(autoSaveDraftSilent);
+  autoSaveRef.current = autoSaveDraftSilent;
+
+  // Debounce: auto-save ~1.5s after the last edit (only once there's real content).
+  useEffect(() => {
+    if (!briefHasContent(form)) return undefined;
+    const t = setTimeout(() => autoSaveRef.current(), 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
+
+  // Save on leave — fires when the form unmounts (Cancel, tab switch, navigate),
+  // so work isn't lost even if you leave before the debounce runs.
+  useEffect(() => () => { autoSaveRef.current(); }, []);
+
+  // Closing by clicking outside the modal is the easiest way to lose work by
+  // accident. The unmount auto-save above does fire, but only AFTER the form is
+  // gone and entirely silently — so a failed save was invisible. The parent calls
+  // this first instead: it saves, waits, and says what happened.
+  useImperativeHandle(ref, () => ({
+    async saveDraftNow() {
+      if (publishedRef.current || !briefHasContent(form)) return false;  // nothing worth keeping
+      try {
+        const payload = buildPayload();
+        if (draftId) {
+          await axios.patch(`${API}/campaigns/${draftId}`, payload);
+        } else {
+          const res = await axios.post(`${API}/campaigns/draft`, payload);
+          const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
+          if (newId) { setDraftId(newId); localStorage.setItem(DRAFT_ID_KEY, newId); }
+        }
+        // Stop the unmount handler re-sending the identical payload a tick later.
+        lastAutoSaveRef.current = JSON.stringify(form);
+        toast.success('Draft saved — pick it up from the Drafts tab.');
+        if (onDraftSaved) onDraftSaved();
+        return true;
+      } catch (error) {
+        toast.warning('Saved on this device only', {
+          description: apiErrorMessage(error, "We couldn't save it to your account — it won't show in Drafts."),
+        });
+        return false;
+      }
+    },
+  }));
+
+  // Warn before closing/refreshing the tab if there are unsaved edits in flight.
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (briefHasContent(form) && JSON.stringify(form) !== lastAutoSaveRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
+
   const handleHashtagsChange = (value) => {
-    const tags = value.split(/\s+/).filter(Boolean).slice(0, 10);
-    set('hashtags', tags.join(' '));
+    // Keep the raw typed value (including trailing spaces) so the spacebar
+    // works while typing; only normalise when the 10-hashtag cap is exceeded.
+    const tags = value.split(/\s+/).filter(Boolean);
+    set('hashtags', tags.length > 10 ? tags.slice(0, 10).join(' ') : value);
   };
 
   const briefText = () => {
@@ -527,7 +825,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       `Style guidance: tones ${form.tones.join(', ')}; pacing ${form.pacing}; music ${form.musicPreference}; references ${form.referenceVideos.filter(Boolean).join(', ') || 'none'}`,
       `Usage rights: platforms ${form.platforms.join(', ')}; duration ${form.rightsDuration}; exclusivity ${form.exclusivity}; whitelisting ${form.whitelisting ? 'yes' : 'no'}; modification ${form.modificationRights}`,
       `Creator targeting: level ${form.creatorLevel}; quality ${form.qualityTier}; gender ${form.genderPreference}; city ${form.cityFilter}; niches ${form.nicheTags.join(', ') || 'none'}`,
-      `Timeline: ship by ${form.productShippingBy}; draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
+      `Timeline: ${needsShipping ? `ship by ${form.productShippingBy}; ` : ''}draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
       `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
       `Commission: platform 20%, total wallet debit Rs. ${totalDebit}, creator receives Rs. ${budget} pre-tax`
     ].join('\n');
@@ -537,17 +835,23 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
     const primaryDeliverable = form.deliverables[0] || {};
     return {
       title: form.campaignName,
+      image_url: form.image || '',
       brief_text: briefText(),
       budget_min: form.budgetMode === 'fixed' ? budget : Number(form.budgetMin || 0),
       budget_max: budget,
       objectives: form.objectives,
-      requires_shipment: true,
-      shipment_required: true,
-      shipment_option: 'yes',
+      // Only a physical product ships — everything else skips address/shipping/receipt.
+      requires_shipment: needsShipping,
+      shipment_required: needsShipping,
+      shipment_option: needsShipping ? 'yes' : 'no',
+      product_type: form.productType,
+      product_type_detail: form.productType === 'other' ? form.customProductType.trim() : '',
       due_date: form.finalDeliveryBy,
       deadline: form.finalDeliveryBy,
       revision_limit: Number(form.revisions || 0),
+      creators_wanted: Math.max(1, Number(form.creatorsWanted) || 1),
       product_name: form.productName,
+      category: form.category,
       product_category: form.category,
       product_description: form.productDescription,
       brief_type: primaryDeliverable.type,
@@ -589,6 +893,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       required_phrases: form.requiredPhrases,
       required_shots: form.requiredShots,
       call_to_action: form.callToAction,
+      cta_link: form.ctaLink,
       promo_code: form.promoCode,
       hashtags: form.hashtags,
       brand_handle_tag: form.brandHandleTag,
@@ -609,13 +914,14 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
       exclusivity: form.exclusivity,
       whitelisting: form.whitelisting,
       modification_rights: form.modificationRights,
-      product_shipping_by: form.productShippingBy,
+      product_shipping_by: needsShipping ? form.productShippingBy : '',
       draft_delivery_by: form.draftDeliveryBy,
       final_delivery_by: form.finalDeliveryBy,
     };
   };
 
   const clearDraftStorage = () => {
+    publishedRef.current = true;   // brief published — don't auto-save on unmount
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(DRAFT_ID_KEY);
     setDraftId(null);
@@ -667,9 +973,46 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
   const renderTextList = (field, max, placeholder) => (
     <div className="brief-list-inputs">
       {form[field].map((item, index) => (
-        <input key={index} value={item} onChange={(event) => updateTextItem(field, index, event.target.value)} placeholder={placeholder} />
+        <div key={index} className="brief-list-row">
+          <input value={item} onChange={(event) => updateTextItem(field, index, event.target.value)} placeholder={placeholder} />
+          {(form[field].length > 1 || item) && (
+            <button type="button" className="brief-list-del" aria-label="Remove" onClick={() => removeTextItem(field, index)}><Trash2 size={15} /></button>
+          )}
+        </div>
       ))}
-      {form[field].length < max && <button type="button" onClick={() => addTextItem(field, max)}><Plus size={15} /> Add item</button>}
+      {form[field].length < max && <button type="button" className="brief-list-add" onClick={() => addTextItem(field, max)}><Plus size={15} /> Add item</button>}
+    </div>
+  );
+
+  // Reference videos: each row accepts EITHER a pasted link OR a direct upload.
+  const renderRefVideos = (max = 3) => (
+    <div className="brief-list-inputs">
+      {form.referenceVideos.map((item, index) => {
+        const busy = uploadingKey === `ref-${index}`;
+        const uploaded = isUploadedUrl(item);
+        return (
+          <div key={index} className="brief-list-row">
+            <input
+              value={item}
+              onChange={(event) => updateTextItem('referenceVideos', index, event.target.value)}
+              placeholder="Paste reference video link"
+            />
+            <label className={`brief-list-up${busy ? ' is-busy' : ''}`} title="Upload a video file instead">
+              <Upload size={15} /> {busy ? 'Uploading…' : (uploaded ? 'Replace' : 'Upload')}
+              <input
+                type="file"
+                accept="video/*"
+                disabled={busy}
+                onChange={(event) => { uploadRefVideo(index, event.target.files?.[0]); event.target.value = ''; }}
+              />
+            </label>
+            {(form.referenceVideos.length > 1 || item) && (
+              <button type="button" className="brief-list-del" aria-label="Remove" onClick={() => removeTextItem('referenceVideos', index)}><Trash2 size={15} /></button>
+            )}
+          </div>
+        );
+      })}
+      {form.referenceVideos.length < max && <button type="button" className="brief-list-add" onClick={() => addTextItem('referenceVideos', max)}><Plus size={15} /> Add item</button>}
     </div>
   );
 
@@ -687,7 +1030,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
   return (
     <div className="pab-page brief-builder-page">
-      <div style={{ display: 'flex', marginBottom: 14, gridColumn: '1 / -1' }}>
+      <div className="pab-back-row">
         <button
           type="button"
           className="btn-secondary"
@@ -704,7 +1047,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             const active = step === number;
             const done = step > number;
             return (
-              <button key={label} type="button" className={`brief-step ${active ? 'active' : ''} ${done ? 'done' : ''}`} onClick={() => done && setStep(number)}>
+              <button key={label} type="button" className={`brief-step ${active ? 'active' : ''} ${done ? 'done' : ''}`} onClick={() => goToStep(number)}>
                 <span>{done ? <Check size={15} /> : number}</span>
                 <small>{label}</small>
               </button>
@@ -715,6 +1058,17 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
       <div className="pab-body brief-body">
         <div className="pab-form-panel brief-panel">
+          <div className="pab-mobile-step-row">
+            <button
+              type="button"
+              className="pab-mobile-back"
+              aria-label="Back"
+              onClick={() => (onClose ? onClose() : navigate(-1))}
+            >
+              <ChevronLeft size={21} />
+            </button>
+            <span className="pab-mobile-step-count">{step}/{STEPS.length}</span>
+          </div>
           <div className="pab-tabs">
             <div className="pab-tabs-row">
               {subs.map((label, i) => (
@@ -733,38 +1087,63 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           <div className="step-content">
             <div className="step-header">
               <h2>{subs[subStep] || STEPS[step - 1]}</h2>
-              <p>{draftSavedAt ? `Autosaved on this device at ${draftSavedAt}${draftId ? ' · synced to your account' : ''}` : 'Partial briefs are saved as drafts automatically.'}</p>
-            </div>
-
-            <div className="pab-fill">
-              <div className="pab-fill-track"><i style={{ width: `${stepFillPct()}%` }} /></div>
-              <span>{stepFillPct()}% complete</span>
             </div>
 
             <div className="step-fields">
             {step === 1 && subStep === 0 && (
               <>
-                <div className="form-group"><label>Campaign name *</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><small>{form.campaignName.length}/80 characters</small></div>
+                <div className="form-group"><label>Campaign name * (3-80 characters)</label><input className="input-field" value={form.campaignName} onChange={e => set('campaignName', e.target.value.slice(0, 80))} placeholder="Summer Launch - Unboxing 2" /><FieldCount value={form.campaignName} min={3} max={80} /></div>
+
+                <div className="form-group">
+                  <label>What are you promoting? *</label>
+                  <div className="pab-type-grid">
+                    {PRODUCT_TYPES.map(pt => {
+                      const on = form.productType === pt.value;
+                      return (
+                        <button type="button" key={pt.value} onClick={() => set('productType', pt.value)}
+                          className={`pab-type-card${on ? ' on' : ''}`}>
+                          <strong>{pt.label}</strong>
+                          <small>{pt.hint}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.productType === 'other' && (
+                    <input className="input-field" style={{ marginTop: 10 }}
+                      placeholder="Describe what you're promoting (e.g. Podcast, Event, NGO cause)"
+                      value={form.customProductType} onChange={e => set('customProductType', e.target.value)} />
+                  )}
+                  {!needsShipping && (
+                    <small style={{ display: 'block', marginTop: 8, color: '#0891b2', fontWeight: 600, fontSize: 12 }}>
+                      ℹ No physical product — shipping &amp; delivery-address steps are skipped.
+                    </small>
+                  )}
+                </div>
+
                 <div className="form-row">
                   <div className="form-group"><label>Brand name</label><input className="input-field" value={form.brandName} disabled /></div>
                   <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
                 <div className="form-row">
-                  <div className="form-group"><label>Product name *</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Glow Serum 30ml" /></div>
-                  <div className="form-group"><label>Campaign hook *</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /></div>
+                  <div className="form-group"><label>{needsShipping ? 'Product name *' : 'What are you promoting? (name) *'}</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder={needsShipping ? 'Glow Serum 30ml' : 'e.g. FitTrack App, City Cafe, Summer Sale'} /></div>
+                  <div className="form-group"><label>Campaign hook * (10+ characters)</label><input className="input-field" value={form.campaignHook} onChange={e => set('campaignHook', e.target.value)} placeholder="Start with a morning routine problem-solution moment" /><FieldCount value={form.campaignHook} min={10} /></div>
                 </div>
               </>
             )}
             {step === 1 && subStep === 1 && (
               <>
-                <div className="form-group"><label>Product description * (20+ characters)</label><textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={4} /></div>
-                <div className="form-group"><label>Key message *</label><input className="input-field" value={form.keyMessage} onChange={e => set('keyMessage', e.target.value)} placeholder="The one message every video should communicate" /></div>
+                <div className="form-group">
+                  <label>Product description * (20+ characters)</label>
+                  <textarea className="textarea-field" value={form.productDescription} onChange={e => set('productDescription', e.target.value)} placeholder="Describe the product, who it helps, and what creators should understand before filming." rows={4} />
+                  <FieldCount value={form.productDescription} min={20} />
+                </div>
+                <div className="form-group"><label>Key message * (10+ characters)</label><input className="input-field" value={form.keyMessage} onChange={e => set('keyMessage', e.target.value)} placeholder="The one message every video should communicate" /><FieldCount value={form.keyMessage} min={10} /></div>
               </>
             )}
             {step === 1 && subStep === 2 && (
               <>
                 <div className="form-group"><label>Campaign objective *</label><div className="brief-chip-grid">{OBJECTIVES.map(item => <ToggleChip key={item} active={form.objectives.includes(item)} onClick={() => set('objectives', [item])}>{item}</ToggleChip>)}</div></div>
-                <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><small>{form.targetAudience.length}/200 characters</small></div>
+                <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><FieldCount value={form.targetAudience} min={50} max={200} /></div>
                 <div className="brief-switch-row"><div><strong>Budget visibility</strong><p>Show or hide budget from creators. Hidden budgets are flagged to admin.</p></div><button type="button" className={form.budgetVisible ? 'is-on' : ''} onClick={() => set('budgetVisible', !form.budgetVisible)}>{form.budgetVisible ? 'Show' : 'Hide'}</button></div>
               </>
             )}
@@ -800,12 +1179,12 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             {step === 3 && subStep === 1 && (
               <>
                 <div className="form-row"><div className="form-group"><label>Required phrases (up to 5)</label>{renderTextList('requiredPhrases', 5, 'Perfect for oily skin')}</div><div className="form-group"><label>Required visual shots (up to 5)</label>{renderTextList('requiredShots', 5, 'Close-up of label')}</div></div>
-                <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}</div>
+                <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}{CTA_INPUT[form.callToAction] && <div className="form-group"><label>{CTA_INPUT[form.callToAction].label} *</label><input className="input-field" placeholder={CTA_INPUT[form.callToAction].ph} value={form.ctaLink} onChange={e => set('ctaLink', e.target.value)} />{form.ctaLink && !ctaLinkValid(form.callToAction, form.ctaLink) && <small style={{ color: '#ef4444', fontSize: 12, marginTop: 4, display: 'block' }}>{CTA_INPUT[form.callToAction].type === 'handle' ? 'Enter a valid @handle or profile link — no random text.' : 'Enter a valid link (e.g. https://yourbrand.com) — no random text.'}</small>}</div>}</div>
                 <div className="form-row"><div className="form-group"><label>Required hashtags</label><input className="input-field" value={form.hashtags} onChange={e => handleHashtagsChange(e.target.value)} placeholder="#brand #launch" /><small>Up to 10 hashtags.</small></div><div className="form-group"><label>Brand handle tag *</label><div className="brief-segment"><button className={form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', true)}>Yes</button><button className={!form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', false)}>No</button></div></div></div>
               </>
             )}
 
-            {step === 4 && (
+            {step === 4 && subStep === 0 && (
               <>
                 {[
                   ['noCompetitors', 'No competitor brands visible'],
@@ -814,9 +1193,14 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
                   ['noPolitical', 'No political or religious content'],
                   ['avoidFilters', 'Avoid filters / effects']
                 ].map(([field, label]) => <label key={field} className="brief-check"><input type="checkbox" checked={form[field]} onChange={e => set(field, e.target.checked)} /> {label}</label>)}
-                {form.noCompetitors && <div className="form-group"><label>Competitor list</label><input className="input-field" value={form.competitors} onChange={e => set('competitors', e.target.value)} /></div>}
                 {form.avoidFilters && <div className="form-group"><label>Which filters/effects?</label><input className="input-field" value={form.filterTypes} onChange={e => set('filterTypes', e.target.value)} /></div>}
-                <div className="form-group"><label>Specific things to avoid (200 max)</label><textarea className="textarea-field" rows={3} value={form.avoidText} onChange={e => set('avoidText', e.target.value.slice(0, 200))} /><small>{form.avoidText.length}/200</small></div>
+              </>
+            )}
+
+            {step === 4 && subStep === 1 && (
+              <>
+                {form.noCompetitors && <div className="form-group"><label>Competitor list</label><input className="input-field" value={form.competitors} onChange={e => set('competitors', e.target.value)} /></div>}
+                <div className="form-group"><label>Specific things to avoid (200 max)</label><textarea className="textarea-field" rows={3} value={form.avoidText} onChange={e => set('avoidText', e.target.value.slice(0, 200))} /><FieldCount value={form.avoidText} max={200} /></div>
               </>
             )}
 
@@ -829,8 +1213,35 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             )}
             {step === 5 && subStep === 1 && (
               <>
-                <div className="form-group"><label>Mood board images (up to 5)</label><label className="mini-upload"><Upload size={18} /> Upload references<input type="file" multiple accept="image/*" onChange={e => set('moodImages', Array.from(e.target.files || []).slice(0, 5).map(file => file.name))} /></label>{form.moodImages.length > 0 && <small>{form.moodImages.join(', ')}</small>}</div>
-                <div className="form-group"><label>Reference videos (up to 3)</label>{renderTextList('referenceVideos', 3, 'Paste reference video link')}</div>
+                <div className="form-group">
+                  <label>Mood board images (up to 5)</label>
+                  <label className="mini-upload">
+                    <Upload size={18} /> {moodUploading ? 'Uploading…' : 'Upload references'}
+                    <input type="file" multiple accept="image/*" disabled={moodUploading || form.moodImages.length >= 5} onChange={uploadMoodImages} />
+                  </label>
+                  {form.moodImages.length > 0 && (
+                    <div className="mood-grid">
+                      {form.moodImages.map((item, index) => {
+                        const src = item.startsWith('http') ? item : `${BACKEND_URL}${item}`;
+                        const viewable = item.startsWith('http') || item.startsWith('/');
+                        return (
+                          <div className="mood-thumb" key={`${item}-${index}`}>
+                            {viewable
+                              ? <a href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Mood board ${index + 1}`} /></a>
+                              : <span className="mood-thumb-name">{item}</span>}
+                            <button type="button" onClick={() => removeMoodImage(index)} aria-label="Remove image"><Trash2 size={13} /></button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <small>{form.moodImages.length}/5 added · click an image to view it full size</small>
+                </div>
+                <div className="form-group">
+                  <label>Reference videos (up to 3)</label>
+                  {renderRefVideos(3)}
+                  <small>Paste a link, or upload a video file (max 200MB) — creators see uploaded clips inline.</small>
+                </div>
               </>
             )}
 
@@ -839,7 +1250,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             )}
             {step === 6 && subStep === 1 && (
               <>
-                <div className="form-row"><div className="form-group"><label>Duration of rights *</label><select className="input-field" value={form.rightsDuration} onChange={e => set('rightsDuration', e.target.value)}><option value="">Select duration</option>{['3 months', '6 months', '1 year', '2 years', 'Perpetual'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Exclusivity period *</label><select className="input-field" value={form.exclusivity} onChange={e => set('exclusivity', e.target.value)}>{['None', '15 days', '30 days', '60 days', '90 days'].map(item => <option key={item}>{item}</option>)}</select></div></div>
+                <div className="form-row"><div className="form-group"><label>Duration of rights *</label><select className="input-field" value={form.rightsDuration} onChange={e => set('rightsDuration', e.target.value)}><option value="">Select duration</option>{['1 month', '3 months', '6 months', '1 year', '2 years', 'Perpetual'].map(item => <option key={item}>{item}</option>)}</select></div><div className="form-group"><label>Exclusivity period *</label><select className="input-field" value={form.exclusivity} onChange={e => set('exclusivity', e.target.value)}>{['None', '15 days', '30 days', '60 days', '90 days'].map(item => <option key={item}>{item}</option>)}</select></div></div>
                 <div className="form-row"><div className="form-group"><label>Whitelisting / allowlisting *</label><div className="brief-segment"><button className={form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', true)}>Yes (+30%)</button><button className={!form.whitelisting ? 'active' : ''} type="button" onClick={() => set('whitelisting', false)}>No</button></div></div><div className="form-group"><label>Modification rights *</label><select className="input-field" value={form.modificationRights} onChange={e => set('modificationRights', e.target.value)}><option value="">Select rights</option>{['Yes (full rights)', 'Limited (minor edits only)', 'No (use as-is)'].map(item => <option key={item}>{item}</option>)}</select></div></div>
                 {pricingLifts.length > 0 && <div className="brief-note warning"><AlertTriangle size={18} /> Suggested pricing lifts: {pricingLifts.join('; ')}</div>}
               </>
@@ -860,31 +1271,63 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             )}
             {step === 7 && subStep === 1 && (
               <>
-                <div className="form-row"><div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /></div><div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.'}</small></div></div>
-                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 creator, Rs. 200 platform)</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
+                <div className="form-row">
+                  {needsShipping && (
+                    <div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today — earliest is tomorrow.</small></div>
+                  )}
+                  <div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship — the creator starts as soon as they accept.'}</small></div>
+                </div>
+                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
               </>
             )}
             {step === 7 && subStep === 2 && (
               <>
+                <div className="form-group">
+                  <label>How many creators do you want? *</label>
+                  <input
+                    className="input-field"
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={form.creatorsWanted}
+                    onChange={e => set('creatorsWanted', Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+                  />
+                  <small>
+                    You’re charged per creator, only when you select them — nothing is held
+                    when you post this brief. The brief stays open until all {Math.max(1, Number(form.creatorsWanted) || 1)} are picked.
+                  </small>
+                </div>
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
-                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="number" value={form.fixedBudget} onChange={e => set('fixedBudget', e.target.value)} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMin} onChange={e => set('budgetMin', e.target.value)} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="number" value={form.budgetMax} onChange={e => set('budgetMax', e.target.value)} /></div></div>}
+                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>
-                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p><p>Creator receives on approval <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><small>Creator amount is pre-tax. TDS may apply.</small></div>
+                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Listing fee <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p></div>
               </>
             )}
 
-            {step === 8 && (
-              <div className="review-summary">
-                <Summary title="Campaign Basics" rows={[['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']]} />
-                <Summary title="Deliverables" rows={form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`])} />
-                <Summary title="Must-Include Checklist" rows={[['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']]} />
-                <Summary title="Must-Avoid Checklist" rows={[['Restrictions', avoidRules]]} />
-                <Summary title="Style Guidance" rows={[['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']]} />
-                <Summary title="Usage Rights" rows={[['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]]} />
-                <Summary title="Creator Targeting" rows={[['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']]} />
-                <Summary title="Timeline & Budget" rows={[['Ship by', form.productShippingBy], ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${LISTING_FEE.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]]} />
-              </div>
-            )}
+            {step === 8 && (() => {
+              const reviewSections = [
+                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
+                { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`]) },
+                { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ...(CTA_INPUT[form.callToAction] ? [[CTA_INPUT[form.callToAction].label, form.ctaLink || 'None']] : []), ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
+                { title: 'Must-Avoid Checklist', rows: [['Restrictions', avoidRules]] },
+                { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
+                { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
+                { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
+                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+              ];
+              const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
+              const active = reviewSections[activeIdx];
+              return (
+                <div className="review-summary">
+                  <div className="review-tabs" role="tablist">
+                    {reviewSections.map((s, i) => (
+                      <button key={s.title} type="button" role="tab" aria-selected={i === activeIdx} className={i === activeIdx ? 'on' : ''} onClick={() => setReviewTab(i)}>{s.title}</button>
+                    ))}
+                  </div>
+                  <Summary title={active.title} rows={active.rows} />
+                </div>
+              );
+            })()}
             </div>
           </div>
 
@@ -901,10 +1344,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               ) : (embeddedCreatorId || searchParams.get('creator')) ? (
                 <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}><Send size={16} /> Publish & Start Deal</button>
               ) : (
-                <>
-                  <button type="button" className="btn-secondary" onClick={() => { setPublishMode('invite'); setShowConfirm(true); }} disabled={submitting}><Send size={16} /> Publish & Invite Creator</button>
-                  <button type="button" className="btn-primary" onClick={() => { setPublishMode('matches'); setShowConfirm(true); }} disabled={submitting}>Publish & Request Matches</button>
-                </>
+                <button type="button" className="btn-primary" onClick={() => { setPublishMode('matches'); setShowConfirm(true); }} disabled={submitting}><Send size={16} /> Publish Campaign</button>
               )}
             </div>
           </div>
@@ -912,7 +1352,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
       </div>
 
-      {showConfirm && (
+      {showConfirm && createPortal(
         <div className="brief-modal-backdrop">
           <div className="brief-modal">
             <h3>Confirm publishing</h3>
@@ -924,10 +1364,13 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
               <button type="button" className="btn-primary" onClick={publish} disabled={submitting}>{submitting ? 'Publishing...' : 'Continue'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`
+        /* "N more characters needed" — amber until the minimum length is met */
+        .brief-need{color:#b45309;font-weight:600}
         /* top step-tabs (General / Address … style) */
         .pab-tabs{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #eef0f6;padding:0 4px 0 0;margin-bottom:18px}
         .pab-tabs-row{display:flex;gap:26px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
@@ -1035,7 +1478,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
 
         @media (max-width: 980px) {
-          .brief-builder-page { grid-template-columns: 1fr; }
+          .brief-builder-page { grid-template-columns: minmax(0, 1fr); }
           .brief-stepper .stepper-track { flex-direction: row; overflow-x: auto; padding: 14px; border-radius: 18px; justify-content: flex-start; }
           .brief-stepper .stepper-track::after { display: none; }
           .brief-step { display: flex; flex-direction: column; gap: 8px; min-width: 104px; text-align: center; padding: 8px; }
@@ -1075,8 +1518,91 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           color: #4338ca;
         }
 
+        .pab-type-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 10px;
+          margin-top: 4px;
+        }
+
+        .pab-type-card {
+          text-align: left;
+          padding: 11px 13px;
+          border-radius: 12px;
+          cursor: pointer;
+          border: 1.5px solid #e5e8fb;
+          background: #fff;
+          color: #15163a;
+          font-family: inherit;
+        }
+
+        .pab-type-card.on { border-color: #07074e; background: #f2f3ff; }
+        .pab-type-card strong { display: block; font-size: 13.5px; }
+        .pab-type-card small { color: #8a90a6; font-size: 11.5px; }
+
         @media (max-width: 1280px) {
           .brief-body { grid-template-columns: 1fr; }
+        }
+
+        /* ---- Mobile (must stay after the desktop rules above so it wins) ---- */
+        @media (max-width: 640px) {
+          /* minmax(0,..) not 1fr — plain 1fr lets the wide tab row/stepper
+             stretch the column past the viewport instead of scrolling. */
+          .brief-builder-page { grid-template-columns: minmax(0, 1fr); }
+          .brief-panel, .step-content, .pab-tabs { min-width: 0; max-width: 100%; }
+
+          /* Purple stepper becomes a compact horizontal scroller */
+          .brief-stepper .stepper-track {
+            padding: 12px 10px;
+            gap: 4px;
+            border-radius: 16px;
+          }
+          .brief-step {
+            min-width: 76px;
+            padding: 6px 4px;
+            gap: 6px;
+          }
+          .brief-step small { font-size: 11.5px; text-align: center; }
+          .brief-step span { width: 30px; height: 30px; font-size: 13px; }
+
+          .brief-panel { padding: 18px 14px; }
+
+          /* Tab row: let it scroll instead of pushing the page wide */
+          .pab-tabs {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            margin-bottom: 14px;
+          }
+          .pab-tabs-row {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            justify-content: center;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .pab-tab {
+            width: 100%;
+            padding-left: 2px;
+            padding-right: 2px;
+            text-align: center;
+            white-space: nowrap;
+            font-size: 11px;
+          }
+          .pab-tab { font-size: 13px; padding: 11px 2px; }
+
+          .step-header h2 { font-size: 22px; }
+
+          /* Two-column field rows stack */
+          .form-row { grid-template-columns: 1fr; }
+
+          /* One promoting-type card per row so text never clips */
+          .pab-type-grid { grid-template-columns: 1fr; }
+
+          .pab-img-preview { height: 120px; }
+          .pab-img-empty { padding: 18px 12px; }
         }
 
         .brief-body {
@@ -1105,18 +1631,19 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           display: flex;
           flex-direction: column;
           gap: 18px;
+          padding-bottom: 20px;
+          position: relative;   /* anchor for the top-right logo float */
         }
-        /* fixed-height field area → the card stays the same size on every step/sub-section */
+        /* Fields flow naturally; the CARD itself scrolls (see .cmk-brief-modal),
+           so there's a single scrollbar inside the card, not on the page. */
         .step-fields {
-          height: 388px;
-          overflow-y: auto;
+          min-height: 280px;
+          overflow: visible;
           display: flex;
           flex-direction: column;
           gap: 18px;
           padding-right: 8px;
         }
-        .step-fields::-webkit-scrollbar { width: 6px; }
-        .step-fields::-webkit-scrollbar-thumb { background: #d8d8ec; border-radius: 6px; }
 
         .step-badge {
           width: fit-content;
@@ -1152,6 +1679,15 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           flex-direction: column;
           gap: 8px;
         }
+        .pab-img-drop { display: block; position: relative; cursor: pointer; border-radius: 14px; overflow: hidden;
+          border: 1.5px dashed #cdd2f3; background: linear-gradient(140deg, #f7f8ff, #f2f3ff); transition: border-color .15s, background .15s; }
+        .pab-img-drop:hover { border-color: #5b6bff; background: #eef0ff; }
+        .pab-img-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 24px 18px; color: #5b6bff; }
+        .pab-img-empty strong { color: #07074e; font-size: 14.5px; }
+        .pab-img-empty small { color: #8a8fc0; font-weight: 500; font-size: 12.5px; }
+        .pab-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
+        .pab-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
+          font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
 
         .form-group label {
           color: #07074E;
@@ -1182,6 +1718,16 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
         .textarea-field {
           resize: vertical;
+        }
+        /* selects: custom chevron sitting a bit left of the edge (not flush) */
+        select.input-field {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2307074E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6l4 4 4-4'/></svg>");
+          background-repeat: no-repeat;
+          background-position: right 18px center;
+          padding-right: 44px;
         }
 
         .brief-chip-grid {
@@ -1308,11 +1854,101 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           display: none;
         }
 
+        .mood-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 9px;
+          margin-top: 9px;
+        }
+
+        .mood-thumb {
+          position: relative;
+          width: 84px;
+          height: 84px;
+          border-radius: 11px;
+          overflow: hidden;
+          background: #EEF0FF;
+        }
+
+        .mood-thumb img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .mood-thumb-name {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          padding: 6px;
+          font-size: 10px;
+          color: #07074e;
+          text-align: center;
+          word-break: break-all;
+        }
+
+        .mood-thumb button {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          width: 21px;
+          height: 21px;
+          padding: 0;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 7px;
+          background: rgba(7, 7, 78, 0.72);
+          color: #fff;
+          cursor: pointer;
+        }
+
         .brief-list-inputs {
           display: flex;
           flex-direction: column;
           gap: 9px;
         }
+
+        .brief-list-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .brief-list-row input { flex: 1; min-width: 0; }
+        /* Per-row "upload a video instead of a link" control */
+        .brief-list-up {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 42px;
+          padding: 0 13px;
+          border-radius: 11px;
+          background: #EEF0FF;
+          color: #07074e;
+          font-size: 13px;
+          font-weight: 500;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .brief-list-up:hover { background: #e2e6ff; }
+        .brief-list-up.is-busy { opacity: 0.6; cursor: progress; }
+        .brief-list-up input { display: none; }
+        .brief-list-inputs button.brief-list-del {
+          flex: none;
+          width: 42px;
+          height: 42px;
+          padding: 0;
+          display: grid;
+          place-items: center;
+          background: #fdeeee;
+          color: #d64545;
+          border-radius: 11px;
+        }
+        .brief-list-inputs button.brief-list-del:hover { background: #fbdcdc; }
 
         .brief-check {
           display: flex;
@@ -1362,8 +1998,39 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         }
 
         .review-summary {
-          display: grid;
+          display: flex;
+          flex-direction: column;
           gap: 16px;
+        }
+
+        .review-tabs {
+          display: flex;
+          gap: 4px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          border-bottom: 1px solid #E9EBFF;
+          scrollbar-width: thin;
+        }
+        .review-tabs::-webkit-scrollbar { height: 4px; }
+        .review-tabs::-webkit-scrollbar-thumb { background: #D8DBFF; border-radius: 4px; }
+        .review-tabs button {
+          flex: 0 0 auto;
+          border: 0;
+          background: transparent;
+          padding: 10px 14px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #9F9FD1;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -1px;
+          white-space: nowrap;
+          transition: color 0.15s ease, border-color 0.15s ease;
+        }
+        .review-tabs button:hover { color: #5B6BFF; }
+        .review-tabs button.on {
+          color: #07074E;
+          border-bottom-color: #4F46E5;
         }
 
         .summary-box {
@@ -1381,7 +2048,7 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
 
         .summary-box div {
           display: grid;
-          grid-template-columns: 190px 1fr;
+          grid-template-columns: 150px minmax(0, 1fr);
           gap: 16px;
           padding: 12px 16px;
           border-top: 1px solid #EEF0FF;
@@ -1390,6 +2057,12 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         .summary-box span {
           color: #9F9FD1;
           font-weight: 400;
+        }
+
+        .summary-box strong {
+          min-width: 0;
+          word-break: break-word;
+          overflow-wrap: anywhere;
         }
 
         .summary-box strong {
@@ -1538,11 +2211,13 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
         .brief-modal-backdrop {
           position: fixed;
           inset: 0;
-          z-index: 1000;
+          z-index: 5000;
           display: grid;
           place-items: center;
           padding: 20px;
-          background: rgba(7, 7, 78, 0.45);
+          background: rgba(15, 18, 40, 0.45);
+          backdrop-filter: blur(3px);
+          -webkit-backdrop-filter: blur(3px);
         }
 
         .brief-modal {
@@ -1551,7 +2226,8 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
           padding: 28px;
           border-radius: 22px;
           background: white;
-          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.18);
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+          transform: translateY(48px);
         }
 
         .brief-modal h3 {
@@ -1588,10 +2264,107 @@ export default function PostABrief({ embeddedCreatorId = null, onClose = null, o
             grid-template-columns: 1fr;
           }
         }
+
+        .pab-back-row {
+          display: flex;
+          margin-bottom: 14px;
+          grid-column: 1 / -1;
+        }
+
+        .pab-mobile-step-row,
+        .pab-mobile-back,
+        .pab-mobile-step-count { display: none; }
+
+        @media (max-width: 640px) {
+          /* On phones the builder is an edge-to-edge page, not a card within a page. */
+          .brief-builder-page {
+            display: block;
+            width: calc(100% + 28px);
+            max-width: none;
+            margin: 0 -14px -40px;
+            overflow-x: hidden;
+            background: #fff;
+          }
+
+          .pab-back-row {
+            display: none;
+          }
+
+          /* The compact counter replaces the large purple step strip on mobile. */
+          .brief-stepper { display: none; }
+
+          .brief-body { display: block; }
+
+          .brief-panel {
+            min-height: calc(100dvh - 70px);
+            padding: 12px 26px 28px;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+          }
+
+          .pab-mobile-step-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            min-height: 44px;
+            margin-bottom: 12px;
+          }
+
+          .pab-mobile-back {
+            display: grid;
+            flex: none;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border: 1px solid #e2e4f5;
+            border-radius: 50%;
+            background: #fff;
+            color: #07074e;
+            box-shadow: 0 3px 10px rgba(7, 7, 78, 0.08);
+            cursor: pointer;
+          }
+
+          .pab-mobile-step-count {
+            display: grid;
+            flex: none;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border: 2px solid #786fff;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 800;
+            box-shadow: 0 0 0 4px #eeecff;
+          }
+
+          .pab-progress { display: none; }
+          .pab-footer { justify-content: flex-end; }
+
+          .brief-panel .pab-tabs-row {
+            grid-template-columns: .65fr 1.2fr 1.35fr;
+            column-gap: 3px;
+          }
+
+          .brief-panel .pab-tabs-row .pab-tab {
+            min-width: 0;
+            padding: 11px 0;
+            font-size: 10.5px;
+            letter-spacing: -0.15px;
+            white-space: nowrap;
+          }
+        }
       `}</style>
     </div>
   );
-}
+});
+
+export default PostABrief;
 
 function Summary({ title, rows }) {
   return (

@@ -1,5 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Readex+Pro:wght@200;300;400;500;600;700&display=swap');
 
+/* Toast notifications must sit above every modal/overlay (some modals use very
+   high z-indexes), so error/success toasts are never hidden behind them. */
+[data-sonner-toaster] { z-index: 2147483647 !important; }
+
+/* Form controls render in LIGHT mode regardless of the site theme attribute.
+   The app defaults to a dark `data-theme`/color-scheme during the light-theme
+   rollout, which made unstyled native <select> triggers (and their option
+   popups) render black-on-white — e.g. the Category dropdown. Forcing a light
+   color-scheme on form controls keeps them readable on the light forms. */
+input, select, textarea { color-scheme: light; }
+
 /* ── Brand typography (single source of truth) ───────────────────────────────
    Display / headlines  → Readex Pro (500 medium, 600 bold) — loaded from Google Fonts.
    Body / UI / labels   → Just Sans, with Inter as the loaded web fallback.
@@ -607,4 +618,29 @@ a[href*="emergent.sh"] {
     gap: 16px;
     align-items: flex-start;
   }
+}
+.ops-session-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10050;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 7px 16px;
+  background: #fff4d6;
+  border-bottom: 1px solid #f3cc73;
+  color: #713f12;
+  font-size: 13px;
+}
+
+.ops-session-banner button {
+  border: 1px solid #9a6700;
+  background: #fff;
+  color: #713f12;
+  padding: 5px 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }

@@ -1,14 +1,15 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { ArrowUpRight, Star, Check, Sparkles } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 
-// Top-creator showcase reels (high-res clips from /public). These auto-play in
-// rotation on the right, and the floating cards show THAT creator's headline
-// stats (top earnings + a few details) — a mini leaderboard, not the user's data.
-const REELS = [
+// Default showcase reels — used until (and unless) an admin curates the list via
+// Admin → Home Showcase. Admin entries replace these at runtime.
+const DEFAULT_REELS = [
   { src: '/17811912-uhd_2160_3840_24fps.mp4', name: '@priya.moves',   category: 'Fashion',   earned: 420000, deals: 128, rating: 4.9, level: 'Elite' },
   { src: '/7690504-hd_1080_1920_30fps.mp4',    name: '@rohan.creator', category: 'Fitness',   earned: 360000, deals: 112, rating: 4.8, level: 'L2' },
   { src: '/6944288-uhd_2160_3840_24fps-sm.mp4', name: '@arjun.fit',    category: 'Lifestyle', earned: 310000, deals: 98,  rating: 5.0, level: 'L2' },
@@ -39,25 +40,71 @@ export default function CreatorHero({
   activeDeals = 0, newBriefs = 0, activeDeal = null,
 }) {
   const navigate = useNavigate();
-  const reelRef = useRef(null);
+  // Admin-curated showcase (falls back to DEFAULT_REELS). Maps the stored shape
+  // (video_url) onto the reel shape (src) the player expects.
+  // Start EMPTY (a neutral placeholder), not with the hardcoded defaults — that's
+  // what made the dummy reel flash for ~1s before the admin data loaded. Fill it
+  // once the fetch resolves: admin's cards if any, else the defaults.
+  const [reels, setReels] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    axios.get(`${API}/home/top-earners`)
+      .then((r) => {
+        const items = Array.isArray(r.data?.items) ? r.data.items : [];
+        // Resolve a relative backend path (e.g. "/uploads/x.mp4") to an absolute
+        // URL so the reel actually loads instead of showing the orange fallback.
+        const resolveSrc = (u) => {
+          const s = String(u || '').trim();
+          if (!s) return '';
+          return /^https?:\/\//i.test(s) ? s : `${BACKEND_URL}${s.startsWith('/') ? '' : '/'}${s}`;
+        };
+        const mapped = items
+          .filter((it) => it && it.name)
+          .map((it) => ({
+            src: resolveSrc(it.video_url || it.src),
+            // First name only on the showcase card (e.g. "Deshna Shrimal" → "Deshna").
+            name: String(it.name).replace(/^@+/, '').trim().split(/\s+/)[0] || it.name,
+            category: it.category || '',
+            earned: Number(it.earned) || 0,
+            deals: Number(it.deals) || 0,
+            rating: Number(it.rating) || 0,
+            level: it.level || '',
+          }));
+        if (alive) setReels(mapped.length ? mapped : DEFAULT_REELS);
+      })
+      .catch(() => { if (alive) setReels(DEFAULT_REELS); });
+    return () => { alive = false; };
+  }, []);
   const advancingRef = useRef(false);         // guard so one clip advances only once
-  const [idx, setIdx] = useState(0);          // current showcase reel
+  // Two stacked video layers so the next reel can load HIDDEN and crossfade in —
+  // this avoids the orange background flashing during a reel change.
+  const [layerReel, setLayerReel] = useState([0, null]); // reel index held by each layer
+  const [front, setFront] = useState(0);      // which layer is currently visible
+  const [leaving, setLeaving] = useState(null); // layer fading OUT on top (reveals new beneath)
   const [progress, setProgress] = useState(0); // 0→1 fill of the active reel dot
+  const idx = layerReel[front];               // the reel currently shown
 
-  const nextReel = () => {
-    if (advancingRef.current) return;
+  const startTransition = (nextI) => {
+    if (advancingRef.current || nextI === idx) return;
     advancingRef.current = true;
-    setProgress(0);
-    setIdx((i) => (i + 1) % REELS.length);
+    const back = front ^ 1;
+    if (layerReel[back] === nextI) { promote(back); return; }   // already loaded → just crossfade
+    setLayerReel((lr) => { const n = [...lr]; n[back] = nextI; return n; }); // loads hidden
   };
+  const nextReel = () => startTransition((idx + 1) % reels.length);
+  const goToReel = (i) => startTransition(i);
 
-  const goToReel = (i) => {
+  // Back layer finished loading the next reel → reveal it. The NEW reel sits fully
+  // opaque underneath; the OLD one fades out on top, so the orange bg never shows.
+  const promote = (layer) => {
+    if (layer === front) return;
+    setLeaving(front);
+    setFront(layer);
+    setProgress(0);
     advancingRef.current = false;
-    setProgress(0);
-    setIdx(i);
   };
 
-  const tc = REELS[idx]; // the top creator whose reel is currently playing
+  const tc = reels[idx] || reels[0] || null; // the top creator whose reel is currently playing (null until loaded)
   const photoSrc = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : null;
   const dealLogo = activeDeal?.logo
     ? (activeDeal.logo.startsWith('http') ? activeDeal.logo : `${BACKEND_URL}${activeDeal.logo}`)
@@ -75,7 +122,7 @@ export default function CreatorHero({
           </div>
         </div>
 
-        <h1 className="chero-title chero-fade"><span className="chero-hi">Hi!</span> {name}</h1>
+        <h1 className="chero-title chero-fade"><span className="chero-hi">Hi!</span> {String(name || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0]}</h1>
 
         <div className="chero-meta chero-fade" style={{ animationDelay: '.08s' }}>
           {level && <span className="chero-rank">{level}</span>}
@@ -111,24 +158,34 @@ export default function CreatorHero({
       <div className="chero-stage">
         <div className="chero-photo">
           <div className="chero-photo-bg" />
-          <video
-            key={idx}
-            ref={reelRef}
-            src={`${REELS[idx].src}#t=0.1`}
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            onLoadedData={() => { advancingRef.current = false; setProgress(0); }}
-            onTimeUpdate={(e) => {
-              const t = e.currentTarget.currentTime;
-              if (t >= CLIP_SECONDS) { nextReel(); return; }
-              setProgress(t / CLIP_SECONDS);
-            }}
-            onEnded={nextReel}
-          />
+          {reels.length > 0 && [0, 1].map((layer) => {
+            const reel = layerReel[layer] == null ? null : reels[layerReel[layer]];
+            if (!reel || !reel.src) return null;
+            return (
+              <video
+                // Key on the src so the element REMOUNTS (and reloads) when the reel
+                // changes — a bare src swap doesn't reload an already-playing <video>.
+                key={`${layer}-${reel.src}`}
+                className={`chero-reel ${layer === leaving ? 'is-leaving' : layer === front ? 'is-front' : 'is-back'}`}
+                src={reel.src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                onTransitionEnd={layer === leaving ? () => setLeaving(null) : undefined}
+                onLoadedData={() => { if (layer !== front) promote(layer); }}
+                onTimeUpdate={layer === front ? (e) => {
+                  const t = e.currentTarget.currentTime;
+                  if (t >= CLIP_SECONDS) { nextReel(); return; }
+                  setProgress(t / CLIP_SECONDS);
+                } : undefined}
+                onEnded={layer === front ? nextReel : undefined}
+              />
+            );
+          })}
           <span className="chero-reel-dots">
-            {REELS.map((_, i) => (
+            {reels.map((_, i) => (
               <i
                 key={i}
                 className={i === idx ? 'on' : (i < idx ? 'done' : '')}
@@ -142,31 +199,35 @@ export default function CreatorHero({
           </span>
         </div>
 
-        <div className="chero-bubble chero-b1">
-          <span className="chero-stars" style={{ display: 'inline-flex', gap: 1 }}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Star key={n} size={12} fill={n <= Math.round(tc.rating) ? '#f5b301' : 'none'} color="#f5b301" />
-            ))}
-          </span>
-          {tc.rating.toFixed(1)} rating
-        </div>
-        <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {tc.deals} deals done</div>
+        {tc && (
+          <>
+            <div className="chero-bubble chero-b1">
+              <span className="chero-stars" style={{ display: 'inline-flex', gap: 1 }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star key={n} size={12} fill={n <= Math.round(tc.rating) ? '#f5b301' : 'none'} color="#f5b301" />
+                ))}
+              </span>
+              {Number(tc.rating || 0).toFixed(1)} rating
+            </div>
+            <div className="chero-bubble chero-b2"><i className="chero-chk blue"><Check size={11} /></i> {tc.deals} deals done</div>
 
-        <div className="chero-stat chero-fade" style={{ animationDelay: '.1s' }}>
-          <small>TOP EARNER</small>
-          <strong>{fmtMoney(tc.earned)}</strong>
-          <span>on UGCad</span>
-        </div>
+            <div className="chero-stat chero-fade" style={{ animationDelay: '.1s' }}>
+              <small>TOP EARNER</small>
+              <strong>{fmtMoney(tc.earned)}</strong>
+              <span>on UGCad</span>
+            </div>
 
-        <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
-          <span className="chero-deal-logo">{getInitial(tc.name.replace('@', ''))}</span>
-          <div className="chero-deal-info">
-            <strong>{tc.name}</strong>
-            <small>{tc.category} creator</small>
-            <b className="chero-deal-amt">{tc.level} level</b>
-            <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {tc.rating.toFixed(1)} · {tc.deals} deals</span>
-          </div>
-        </div>
+            <div className="chero-deal chero-fade" style={{ animationDelay: '.12s' }}>
+              <span className="chero-deal-logo">{getInitial(String(tc.name || '').replace('@', ''))}</span>
+              <div className="chero-deal-info">
+                <strong>{tc.name}</strong>
+                <small>{tc.category} creator</small>
+                <b className="chero-deal-amt">{tc.level} level</b>
+                <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {Number(tc.rating || 0).toFixed(1)} · {tc.deals} deals</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <style>{`
@@ -212,8 +273,11 @@ export default function CreatorHero({
         /* ── right stage ── */
         .chero-stage{position:relative;z-index:1;min-height:430px}
         .chero-photo{position:relative;width:74%;margin:0 auto;aspect-ratio:3/4;border-radius:26px;overflow:hidden;box-shadow:0 36px 70px -28px rgba(20,20,50,.5)}
-        .chero-photo-bg{position:absolute;inset:0;background:linear-gradient(160deg,#ff8a47,#ff6a3d 55%,#e85d35);z-index:0}
-        .chero-photo video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+        .chero-photo-bg{position:absolute;inset:0;background:linear-gradient(160deg,#20223f,#14152b 55%,#0d0e1f);z-index:0}
+        .chero-reel{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1}
+        .chero-reel.is-front{z-index:2}
+        .chero-reel.is-back{z-index:1}
+        .chero-reel.is-leaving{z-index:3;opacity:0;transition:opacity .55s ease}
         .chero-reel-dots{position:absolute;top:14px;left:0;right:0;z-index:3;display:flex;justify-content:center;gap:6px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
         .chero-reel-dots i{position:relative;overflow:hidden;width:18px;height:4px;border-radius:3px;background:rgba(255,255,255,.55);cursor:pointer;transition:width .35s ease}
         .chero-reel-dots i.done{background:#fff}
@@ -252,17 +316,35 @@ export default function CreatorHero({
         @keyframes cheroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 
         @media (max-width:980px){
-          .chero{grid-template-columns:1fr;gap:10px;padding:32px 26px}
-          .chero-title{font-size:36px}
-          .chero-stage{min-height:380px;margin-top:8px}
+          /* Reset the desktop offset transform — it pushed the card off-screen and
+             caused horizontal scroll on phones. */
+          .chero{grid-template-columns:1fr;gap:14px;padding:28px 22px;transform:none}
+          .chero-title{font-size:34px}
+          .chero-stage{min-height:360px;margin-top:8px}
           .chero-b2{left:0}
         }
         @media (max-width:560px){
-          .chero-title{font-size:30px}
-          .chero-photo{width:88%}
-          .chero-stat{right:0;min-width:140px}
-          .chero-deal{right:0;width:210px}
+          .chero{padding:22px 16px;border-radius:20px}
+          .chero-title{font-size:26px;letter-spacing:-1px}
+          .chero-badge{margin-bottom:14px}
+          .chero-rule{margin:16px 0 14px}
+          .chero-photo{width:100%}
+          .chero-stage{min-height:300px}
+          /* Keep the floating cards inside the viewport, smaller. */
+          .chero-stat{right:2%;min-width:120px;padding:12px 14px}
+          .chero-stat strong{font-size:24px}
+          .chero-deal{right:2%;left:auto;width:190px;padding:11px}
+          .chero-deal-logo{width:44px;height:44px;font-size:16px}
+          .chero-bubble{padding:8px 12px;font-size:12.5px}
+          .chero-b1{left:2%}
+          .chero-facts{flex-wrap:wrap;gap:8px 0}
           .chero-fact{padding:0 14px}
+          .chero-fact:first-child{padding-left:0}
+        }
+        @media (max-width:380px){
+          .chero-title{font-size:22px}
+          .chero-stat{min-width:104px}
+          .chero-deal{width:168px}
         }
         @media (prefers-reduced-motion:reduce){.chero-bubble,.chero-stat,.chero-deal,.chero-fade{animation:none}}
       `}</style>

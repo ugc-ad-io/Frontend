@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { X, Check, Info, Pencil, Plus, Minus, UploadCloud, Mic, FileText, Link2, ChevronDown, Trash2, Tag } from 'lucide-react';
+import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
+import { X, Check, Info, Pencil, Plus, Minus, UploadCloud, Mic, FileText, Link2, ChevronDown, Trash2, Tag, Wallet } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -15,7 +17,36 @@ const PRODUCTS = ['Yes', 'No'];
 const LOGO_POSITIONS = ['No Preference', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right', 'Center'];
 const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
 
-const GST_RATE = 0.18;
+// Derive the campaign fields the review flow needs from the plan's video specs, so the
+// brand doesn't re-enter them. Mirrors PostABrief's proven payload shape.
+const ASPECT_BY_ORIENTATION = { Portrait: '9:16', Landscape: '16:9', Square: '1:1' };
+const durationToSeconds = (d) => parseInt(String(d).replace(/\D/g, ''), 10) || 30;
+const CTA_OPTIONS = ['None', 'Visit website', 'Use code', 'Follow brand', 'Swipe up'];
+// CTAs that need a value the brand types (website link, promo code, handle, swipe-up link).
+const CTA_INPUT = {
+  'Visit website': { label: 'Website link', ph: 'https://yourbrand.com' },
+  'Use code': { label: 'Promo code', ph: 'SUMMER20' },
+  'Follow brand': { label: 'Brand handle to follow', ph: '@yourbrand' },
+  'Swipe up': { label: 'Swipe-up link', ph: 'https://yourbrand.com/offer' },
+};
+const RIGHTS_OPTIONS = ['Organic social', '30 days paid', '90 days paid', '6 months', '1 year', 'Perpetual'];
+const REVISION_OPTIONS = ['0', '1', '2', '3', '4', '5'];
+
+// Delivery date: Today, Tomorrow, or a custom date the brand picks. Dates are
+// computed live (never hardcoded).
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayAfter = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+const prettyDay = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const buildDateOptions = () => ([
+  { key: isoDay(dayAfter(0)), label: 'Today', sub: prettyDay(dayAfter(0)) },
+  { key: isoDay(dayAfter(1)), label: 'Tomorrow', sub: prettyDay(dayAfter(1)) },
+  { key: 'custom', label: 'Custom', sub: 'Pick a date' },
+]);
+
+// Private briefs have no GST. The brand pays the creator's price + the platform
+// fee (the commission the backend adds on top when funding). This is the
+// fallback if the live rate can't be fetched — the real one comes from the API.
+const DEFAULT_PLATFORM_FEE_PERCENT = 20;
 
 const newVideo = () => ({
   name: '',
@@ -32,10 +63,13 @@ const newVideo = () => ({
   notes: '',
 });
 
-function Field({ label, children }) {
+function Field({ label, children, hint }) {
   return (
     <label className="pb-field">
-      <span>{label}</span>
+      <span className="pb-field-lbl">
+        {label}
+        {hint && <em className="pb-field-hint">{hint}</em>}
+      </span>
       {children}
     </label>
   );
@@ -54,17 +88,70 @@ function Select({ value, onChange, options, placeholder }) {
 }
 
 export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose, onPublished }) {
+  const navigate = useNavigate();
   const [stage, setStage] = useState('setup'); // 'setup' | 'payment'
   const [plan, setPlan] = useState(null); // the creator's single plan, fetched from their profile
   const [planLoading, setPlanLoading] = useState(true);
-  const [dateChoice, setDateChoice] = useState('today');
+  const [dateChoice, setDateChoice] = useState(isoDay(dayAfter(0)));   // Today by default
+  const [customDate, setCustomDate] = useState(isoDay(dayAfter(2)));   // used when "Custom" is picked
   const [slot, setSlot] = useState(SLOTS[1]);
   const [videoCount, setVideoCount] = useState(1);
   const [videos, setVideos] = useState([newVideo()]);
   const [activeVideo, setActiveVideo] = useState(0);
-  const [copyToRest, setCopyToRest] = useState(false);
+  // Brief basics — REQUIRED so the brief can go through the same admin-review flow as
+  // Post a Campaign (the campaign validator needs product/description/hook/message).
+  const [brief, setBrief] = useState({
+    // Basics
+    productName: '', productDescription: '', hook: '', keyMessage: '', targetAudience: '',
+    // Must-include
+    productVisibleSecs: '', cta: 'None', ctaValue: '', hashtags: '', brandTag: true,
+    // Must-avoid
+    noCompetitors: false, competitors: '', noOtherProducts: false, noProfanity: true, avoidText: '',
+    // Usage rights + timeline
+    platforms: '', rightsDuration: 'Organic social', exclusivity: false, revisions: '1',
+  });
+  const setBriefField = (k) => (e) => setBrief((b) => ({ ...b, [k]: e.target.value }));
+  const setBriefVal = (k, val) => setBrief((b) => ({ ...b, [k]: val }));
+  const toggleBrief = (k) => setBrief((b) => ({ ...b, [k]: !b[k] }));
+  const briefComplete = brief.productName.trim().length > 0
+    && brief.productDescription.trim().length >= 10
+    && brief.hook.trim().length > 0
+    && brief.keyMessage.trim().length > 0;
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resolvedName, setResolvedName] = useState('');   // brand-facing handle from the profile
+  // Live platform-fee % (Admin → Settings → Commission rate). Fetched so the
+  // quote always matches what the backend actually charges.
+  const [feePercent, setFeePercent] = useState(DEFAULT_PLATFORM_FEE_PERCENT);
+  // Prepaid credits the brand can spend. Checkout debits this, so it has to be the
+  // real balance — it used to be hardcoded to 0 on screen.
+  const [wallet, setWallet] = useState(null);
+  const [shortfall, setShortfall] = useState(0);
+
+  // Inline top-up — a short balance shouldn't force the brand out of the booking
+  // flow (navigating to the Wallet page unmounts this modal and loses the brief).
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [topupAmount, setTopupAmount] = useState('');
+  const [recharging, setRecharging] = useState(false);
+  const [minTopup, setMinTopup] = useState(0); // server's minimum recharge, if it sends one
+
+  useEffect(() => {
+    let active = true;
+    axios.get(`${API}/business/settings/billing`)
+      .then((res) => {
+        const rate = Number(res.data?.commission_rate);
+        if (active && Number.isFinite(rate) && rate > 0) setFeePercent(rate);
+      })
+      .catch(() => { /* keep the default */ });
+    axios.get(`${API}/business/wallet`)
+      .then((res) => {
+        if (!active) return;
+        setWallet(Number(res.data?.available_balance) || 0);
+        setMinTopup(Number(res.data?.minimum_chat_balance) || 0);
+      })
+      .catch(() => { if (active) setWallet(0); });
+    return () => { active = false; };
+  }, []);
 
   // Fetch the creator's plan (price set during their signup → profile.rate_card).
   useEffect(() => {
@@ -73,6 +160,10 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     axios.get(`${API}/profile/${creatorId}`)
       .then((res) => {
         if (!active) return;
+        // Brands see the creator's name (no @username handle).
+        const d = res.data || {};
+        const handle = String(d.nickname || d.full_name || d.public_creator_id || '').trim().replace(/^@/, '');
+        if (handle) setResolvedName(handle);
         const p = res.data?.profile || {};
         const rc = p.rate_card || {};
         const price = parseInt(String(rc.expected_payout || rc.last_salary || '').replace(/[^0-9]/g, ''), 10) || 0;
@@ -92,18 +183,76 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     return () => { active = false; };
   }, [creatorId]);
 
+  const dateOptions = useMemo(() => buildDateOptions(), []);
+  const selectedDate = dateOptions.find((o) => o.key === dateChoice) || dateOptions[0];
+  // The actual date sent to the backend — the custom pick when "Custom" is selected.
+  const deliveryDate = dateChoice === 'custom' ? customDate : dateChoice;
+  const dateLabel = dateChoice === 'custom'
+    ? (customDate ? prettyDay(new Date(`${customDate}T00:00:00`)) : 'Pick a date')
+    : `${selectedDate.label}, ${selectedDate.sub}`;
+  // Brands see the creator's handle, never their real name.
+  const displayName = (creatorName && creatorName !== 'Creator') ? creatorName : (resolvedName || 'Creator');
+  const avatarInitial = (String(displayName).replace(/^@/, '') || 'C').charAt(0).toUpperCase();
+
+  // A private brief carries no GST — the brand pays the creator's price plus the
+  // platform fee. This is the same commission the backend adds on top when the
+  // deal is funded, so this quote matches what's actually debited from the wallet.
   const subtotal = (plan?.price || 0) * videoCount;
-  const gst = Math.round(subtotal * GST_RATE * 100) / 100;
-  const total = Math.round((subtotal + gst) * 100) / 100;
+  const platformFee = Math.round(subtotal * (feePercent / 100) * 100) / 100;
+  const total = Math.round((subtotal + platformFee) * 100) / 100;
+  // The creator never published a rate (profile shows "On Request"). Booking at
+  // ₹0 would create a worthless deal, so block it and point the brand to chat.
+  const priceMissing = !planLoading && !((plan?.price || 0) > 0);
   const inr = (n) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const videoName = (v, i) => (v.name && v.name.trim()) || `Video ${i + 1}`;
+  // Only judge the balance once we've actually loaded it — `null` means "unknown",
+  // and warning "you're short" while the fetch is in flight would be a lie.
+  const insufficient = wallet !== null && total > 0 && wallet < total;
+  // How much they're actually short. Trust the server's figure when it gave us one.
+  const gap = Math.max(shortfall, total - (wallet || 0), 0);
+
+  // Suggested top-up: cover the gap, rounded up to a clean ₹500, but never below
+  // the server's minimum recharge (else the request would just bounce).
+  const suggestedTopup = Math.max(Math.ceil(gap / 500) * 500, minTopup, 500);
+
+  const openTopup = () => {
+    setTopupAmount(String(suggestedTopup));
+    setTopupOpen(true);
+  };
+
+  // Creates the payment order and re-reads the balance. When the balance clears the
+  // total, the footer flips back to "Pay …" on its own — the brief is never lost.
+  const doTopup = async () => {
+    const amount = Number(topupAmount);
+    if (!amount || amount <= 0) return toast.error('Enter an amount to add');
+    if (minTopup && amount < minTopup) return toast.error(`Minimum recharge is ${inr(minTopup)}`);
+    setRecharging(true);
+    try {
+      const { data: order } = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
+      const result = await payWithRazorpay(order, { description: `Wallet recharge — ${inr(order?.amount || amount)}` });
+      toast.success(result?.message || 'Payment successful — wallet credited.');
+      const w = await axios.get(`${API}/business/wallet`);
+      const bal = Number(w.data?.available_balance) || 0;
+      setWallet(bal);
+      setShortfall(Math.max(total - bal, 0));
+      if (bal >= total) {
+        setTopupOpen(false);
+        toast.success('Credits added — you can complete the booking now.');
+      }
+    } catch (e) {
+      if (isPaymentCancelled(e)) toast.message('Payment cancelled.');
+      else toast.error(apiErrorMessage(e, 'Wallet recharge failed'));
+    } finally {
+      setRecharging(false);
+    }
+  };
 
   const setCount = (next) => {
     const n = Math.max(1, Math.min(10, next));
     setVideoCount(n);
     setVideos((cur) => {
       const arr = [...cur];
-      while (arr.length < n) arr.push(copyToRest ? { ...arr[0], files: [...(arr[0].files || [])] } : newVideo());
+      while (arr.length < n) arr.push(newVideo());
       arr.length = n;
       return arr;
     });
@@ -113,7 +262,6 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const updateVideo = (patch) => {
     setVideos((cur) => {
       const arr = cur.map((v, i) => (i === activeVideo ? { ...v, ...patch } : v));
-      if (copyToRest) return arr.map((v) => ({ ...arr[activeVideo] }));
       return arr;
     });
   };
@@ -158,7 +306,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     const lines = [];
     lines.push(`Plan: ${plan?.name} (₹${plan?.price}/video) — ${plan?.tags}`);
     lines.push(`Videos: ${videoCount}`);
-    lines.push(`Delivery: ${dateChoice === 'today' ? 'Today' : 'Tomorrow'}, ${slot}`);
+    lines.push(`Delivery: ${dateLabel}, ${slot}`);
     videos.forEach((v, i) => {
       lines.push('');
       lines.push(`— Video ${i + 1} —`);
@@ -173,26 +321,85 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     return lines.join('\n');
   };
 
+  // Booking the creator SPENDS the brand's wallet credits — the money leaves the
+  // wallet and is held in the deal's escrow until they approve the content. The
+  // server re-prices the brief from the creator's rate card and its own commission
+  // setting, so no amount is sent from here; the figures on screen are a quote.
   const proceed = async () => {
+    if (!briefComplete) {
+      toast.error('Add the brief basics (product, description, hook, key message) first.');
+      setStage('setup');
+      return;
+    }
     setSubmitting(true);
     try {
+      // SAME AS POST A CAMPAIGN: create the brief as a campaign that goes to ADMIN REVIEW
+      // (status pending_approval). The backend holds the budget on the wallet and releases
+      // it to the creator when the deal completes — no charge/pay step here. selected_creator
+      // ties it to this specific creator. Enum fields mirror PostABrief's proven payload.
+      const v0 = videos[0] || newVideo();
+      const aspect = ASPECT_BY_ORIENTATION[v0.orientation] || '9:16';
+      const hasProduct = videos.some((vd) => vd.product === 'Yes');
       await axios.post(`${API}/campaigns`, {
-        title: `${plan?.name || 'Creator Plan'} — ${videoCount} video${videoCount > 1 ? 's' : ''}`,
-        brief_text: composeBrief(),
-        deliverables: `${videoCount} x ${plan?.name || 'Creator Plan'} (${videos[0].duration}, ${videos[0].orientation})`,
-        budget_min: subtotal,
-        budget_max: subtotal,
-        requires_shipment: videos.some((v) => v.product === 'Yes'),
-        delivery_date: dateChoice,
-        delivery_slot: slot,
-        plan: plan?.id,
-        video_count: videoCount,
+        title: `${brief.productName.trim()} — ${plan?.name || 'Creator Plan'}`,
+        status: 'pending_approval',
         selected_creator: creatorId,
+        product_name: brief.productName.trim(),
+        category: 'Other',
+        product_category: 'Other',
+        product_description: brief.productDescription.trim(),
+        campaign_hook: brief.hook.trim(),
+        key_message: brief.keyMessage.trim(),
+        brief_text: composeBrief(),
+        video_format: 'Reel',
+        aspect_ratio: aspect,
+        duration_seconds: durationToSeconds(v0.duration),
+        creator_level: 'New',
+        deliverable_items: [{ type: 'Reel', quantity: videoCount, duration: v0.duration, aspect_ratios: [aspect], raw_required: false }],
+        budget_min: plan?.price || 0,
+        budget_max: plan?.price || 0,
+        per_video_budget: plan?.price || 0,
+        // Basics
+        target_audience: brief.targetAudience.trim(),
+        // Must-include
+        product_visible: !!Number(brief.productVisibleSecs),
+        product_visible_seconds: Number(brief.productVisibleSecs) || 0,
+        call_to_action: brief.cta,
+        cta_link: (CTA_INPUT[brief.cta] ? brief.ctaValue.trim() : ''),
+        hashtags: brief.hashtags.trim(),
+        brand_handle_tag: brief.brandTag,
+        // Must-avoid
+        no_competitors: brief.noCompetitors,
+        competitors_text: brief.competitors.trim(),
+        no_other_products: brief.noOtherProducts,
+        no_profanity: brief.noProfanity,
+        avoid_text: brief.avoidText.trim(),
+        // Usage rights + timeline
+        usage_platforms: brief.platforms.split(',').map((p) => p.trim()).filter(Boolean),
+        rights_duration: brief.rightsDuration,
+        exclusivity: brief.exclusivity,
+        revision_limit: Number(brief.revisions) || 0,
+        free_revisions: Number(brief.revisions) || 0,
+        requires_shipment: hasProduct,
+        shipment_option: hasProduct ? 'yes' : 'no',
+        due_date: deliveryDate,
+        deadline: deliveryDate,
+        delivery_slot: slot,
       });
-      toast.success('Brief sent — the deal has started with the creator');
+      toast.success('Brief sent for review — our team approves it shortly. Funds are held on your wallet and released to the creator when the deal completes.');
       if (onPublished) onPublished();
     } catch (e) {
-      toast.error(apiErrorMessage(e, 'Failed to send brief'));
+      // Wallet too short to hold the budget → open the inline top-up sheet (no pay screen
+      // to fall back to). The campaign publish holds the budget the moment it's submitted.
+      if (e?.response?.status === 402) {
+        const d = e.response.data || {};
+        setWallet(Number(d.available) || 0);
+        setShortfall(Number(d.shortfall) || 0);
+        toast.error(d.detail || 'Not enough credits to hold this brief.');
+        setTopupOpen(true);
+      } else {
+        toast.error(apiErrorMessage(e, 'Could not send the brief for review'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -200,13 +407,47 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
   const v = videos[activeVideo] || newVideo();
 
-  // Dynamic steps: a "Brand Guidelines" step only appears once guidelines are
-  // added to any video — otherwise step 2 is Payment directly.
-  const hasGuidelines = videos.some((vid) => vid.guidelinesOpen);
-  const steps = hasGuidelines
-    ? ['Plan & Videos', 'Brand Guidelines', 'Payment']
-    : ['Plan & Videos', 'Payment'];
-  const currentStep = stage === 'setup' ? 0 : stage === 'guidelines' ? 1 : steps.length - 1;
+  // Condensed 5-tab wizard covering the Post-a-Campaign sections (Basics, Deliverables,
+  // Must-Include/Avoid, Usage Rights, Guidelines) — each SHORT — then submit for admin
+  // review. No Payment step: the brief books straight from wallet credits like a campaign.
+  const STEP_LIST = [
+    { key: 'setup', label: 'Plan & Videos' },
+    { key: 'basics', label: 'Basics' },
+    { key: 'rules', label: 'Content Rules' },
+    { key: 'usage', label: 'Usage & Timeline' },
+    { key: 'guidelines', label: 'Brand Guidelines' },
+  ];
+  const stepIdx = Math.max(0, STEP_LIST.findIndex((s) => s.key === stage));
+  const isLastStep = stepIdx === STEP_LIST.length - 1;
+  const goNext = () => setStage(STEP_LIST[Math.min(stepIdx + 1, STEP_LIST.length - 1)].key);
+  const goBack = () => setStage(STEP_LIST[Math.max(stepIdx - 1, 0)].key);
+  // Basics carries the review flow's required fields — can't move past it until filled.
+  const nextBlocked = stage === 'basics' && !briefComplete;
+  // Clicking a step in the stepper jumps to it. Going back is always fine; jumping PAST
+  // Basics (index 1) needs the required fields, so it bounces to Basics with a nudge.
+  const goToStep = (i) => {
+    if (i > 1 && !briefComplete) { setStage('basics'); toast.error('Fill the brief basics first.'); return; }
+    setStage(STEP_LIST[i].key);
+  };
+
+  // The money-holding action, shared by both possible last steps (setup when there are
+  // no guidelines, otherwise the guidelines step). A short balance opens the inline
+  // top-up sheet instead of a dead-end; otherwise it books + holds the funds.
+  const holdMoneyBtn = insufficient ? (
+    <button type="button" className="pb-proceed pb-addfunds" onClick={openTopup} disabled={submitting} title={`You're ${inr(gap)} short`}>
+      <Wallet size={15} /> Add Funds
+    </button>
+  ) : (
+    <button
+      type="button"
+      className="pb-proceed"
+      onClick={proceed}
+      disabled={submitting || priceMissing || !(total > 0) || !briefComplete}
+      title={priceMissing ? "This creator hasn't set a price yet" : (!briefComplete ? 'Fill the brief basics first' : undefined)}
+    >
+      {submitting ? 'Sending…' : 'Send Brief for Review'}
+    </button>
+  );
 
   return (
     <div className="pb-overlay" onClick={onClose}>
@@ -233,15 +474,33 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
             <div className="pb-rail-section">
               <p className="pb-rail-label">Selected Creator</p>
-              <div className="pb-creator"><span className="pb-creator-avatar">{(creatorName || 'C').charAt(0).toUpperCase()}</span><strong>{creatorName}</strong></div>
+              <div className="pb-creator"><span className="pb-creator-avatar">{avatarInitial}</span><strong>{displayName}</strong></div>
             </div>
 
             <div className="pb-rail-section">
               <p className="pb-rail-label">Date</p>
               <div className="pb-date-row">
-                <button type="button" className={dateChoice === 'today' ? 'active' : ''} onClick={() => setDateChoice('today')}>Today, 25th Jun</button>
-                <button type="button" className={dateChoice === 'tomorrow' ? 'active' : ''} onClick={() => setDateChoice('tomorrow')}>Tomorrow, 26th Jun</button>
+                {dateOptions.map((o) => (
+                  <button
+                    type="button"
+                    key={o.key}
+                    className={dateChoice === o.key ? 'active' : ''}
+                    onClick={() => setDateChoice(o.key)}
+                  >
+                    <span>{o.label}</span>
+                    <small>{o.sub}</small>
+                  </button>
+                ))}
               </div>
+              {dateChoice === 'custom' && (
+                <input
+                  type="date"
+                  className="pb-date-input"
+                  value={customDate}
+                  min={isoDay(dayAfter(0))}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                />
+              )}
             </div>
 
             <div className="pb-rail-section">
@@ -254,6 +513,13 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
             <span>Estimated total</span>
             <strong>₹{total.toLocaleString('en-IN')}</strong>
           </div>
+
+          {/* The creator hasn't published a rate — don't let a ₹0 brief go out. */}
+          {priceMissing && (
+            <p className="pb-noprice">
+              <Info size={13} /> This creator hasn't set a price yet. Send them a message to agree on a rate before booking.
+            </p>
+          )}
         </aside>
 
         {/* Right content */}
@@ -262,11 +528,17 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
           {/* Progress stepper — reflects whether a Brand Guidelines step exists */}
           <div className="pb-stepper">
-            {steps.map((label, i) => (
-              <div key={label} className={`pb-stepper-item ${i === currentStep ? 'active' : ''}`}>
+            {STEP_LIST.map((s, i) => (
+              <button
+                type="button"
+                key={s.key}
+                className={`pb-stepper-item ${i === stepIdx ? 'active' : ''} ${i > 1 && !briefComplete ? 'is-locked' : ''}`}
+                onClick={() => goToStep(i)}
+                title={i > 1 && !briefComplete ? 'Fill the brief basics first' : `Go to ${s.label}`}
+              >
                 <span className="pb-stepper-num">{i + 1}</span>
-                <span className="pb-stepper-label">{label}</span>
-              </div>
+                <span className="pb-stepper-label">{s.label}</span>
+              </button>
             ))}
           </div>
 
@@ -307,26 +579,70 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <Field label="Does it feature a product"><Select value={v.product} onChange={(val) => updateVideo({ product: val })} options={PRODUCTS} placeholder="Select" /></Field>
             </div>
 
-            {v.guidelinesOpen ? (
-              <button type="button" className="pb-guidelines-toggle is-added" onClick={() => setStage('guidelines')}>
-                <Check size={15} /> Brand Guidelines added — Edit
-              </button>
-            ) : (
-              <button type="button" className="pb-guidelines-toggle" onClick={() => { updateVideo({ guidelinesOpen: true }); setStage('guidelines'); }}>
-                <Plus size={15} /> Add Brand Guidelines
-              </button>
-            )}
-          </div>
-
-          <div className="pb-footer">
-            <label className="pb-copy">
-              <input type="checkbox" checked={copyToRest} onChange={(e) => { setCopyToRest(e.target.checked); if (e.target.checked) setVideos((cur) => cur.map(() => ({ ...cur[activeVideo] }))); }} />
-              <span>Copy these responses to the rest videos</span>
-            </label>
-            <button type="button" className="pb-proceed" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'payment')} disabled={submitting}>Proceed</button>
           </div>
           </>
-          ) : stage === 'guidelines' ? (
+          ) : stage === 'basics' ? (
+          <>
+          <div className="pb-head">
+            <h2>Tell us about your brief</h2>
+            <p>The essentials our team reviews before it goes live.</p>
+          </div>
+          <div className="pb-scroll">
+            <div className="pb-brief-fields">
+              <Field label="Product / brand name *"><input type="text" value={brief.productName} onChange={setBriefField('productName')} placeholder="e.g. Nova Running Shoes" /></Field>
+              <Field label="What are you promoting? *" hint="min 10 characters"><textarea rows={2} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two" /></Field>
+              <Field label="Hook / main idea *"><input type="text" value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
+              <Field label="Key message *"><input type="text" value={brief.keyMessage} onChange={setBriefField('keyMessage')} placeholder="The one thing the viewer must take away" /></Field>
+              <Field label="Target audience"><textarea rows={2} value={brief.targetAudience} onChange={setBriefField('targetAudience')} placeholder="Who is this for? (age, interests, region)" /></Field>
+            </div>
+          </div>
+          </>
+          ) : stage === 'rules' ? (
+          <>
+          <div className="pb-head">
+            <h2>Content rules</h2>
+            <p>What the video must include — and must avoid.</p>
+          </div>
+          <div className="pb-scroll">
+            <div className="pb-video-title">Must include</div>
+            <div className="pb-brief-fields">
+              <Field label="Product on screen (seconds)"><input type="number" min="0" value={brief.productVisibleSecs} onChange={setBriefField('productVisibleSecs')} placeholder="e.g. 5" /></Field>
+              <Field label="Call to action"><Select value={brief.cta} onChange={(val) => setBriefVal('cta', val)} options={CTA_OPTIONS} /></Field>
+              {CTA_INPUT[brief.cta] && (
+                <Field label={CTA_INPUT[brief.cta].label}>
+                  <input type="text" value={brief.ctaValue} onChange={setBriefField('ctaValue')} placeholder={CTA_INPUT[brief.cta].ph} />
+                </Field>
+              )}
+              <Field label="Hashtags"><input type="text" value={brief.hashtags} onChange={setBriefField('hashtags')} placeholder="#brand #launch" /></Field>
+              <label className="pb-check"><input type="checkbox" checked={brief.brandTag} onChange={() => toggleBrief('brandTag')} /> Tag the brand handle</label>
+            </div>
+            <div className="pb-video-title">Must avoid</div>
+            <div className="pb-brief-fields">
+              <label className="pb-check"><input type="checkbox" checked={brief.noCompetitors} onChange={() => toggleBrief('noCompetitors')} /> No competitor brands</label>
+              {brief.noCompetitors && <Field label="Competitors to avoid"><input type="text" value={brief.competitors} onChange={setBriefField('competitors')} placeholder="Brand A, Brand B" /></Field>}
+              <label className="pb-check"><input type="checkbox" checked={brief.noOtherProducts} onChange={() => toggleBrief('noOtherProducts')} /> No other products on screen</label>
+              <label className="pb-check"><input type="checkbox" checked={brief.noProfanity} onChange={() => toggleBrief('noProfanity')} /> No profanity</label>
+              <Field label="Anything else to avoid"><textarea rows={2} value={brief.avoidText} onChange={setBriefField('avoidText')} placeholder="Optional" /></Field>
+            </div>
+          </div>
+          </>
+          ) : stage === 'usage' ? (
+          <>
+          <div className="pb-head">
+            <h2>Usage &amp; timeline</h2>
+            <p>Where you can use the content, and delivery terms.</p>
+          </div>
+          <div className="pb-scroll">
+            <div className="pb-brief-fields">
+              <Field label="Platforms"><input type="text" value={brief.platforms} onChange={setBriefField('platforms')} placeholder="Instagram, TikTok, YouTube…" /></Field>
+              <Field label="Rights duration"><Select value={brief.rightsDuration} onChange={(val) => setBriefVal('rightsDuration', val)} options={RIGHTS_OPTIONS} /></Field>
+              <label className="pb-check"><input type="checkbox" checked={brief.exclusivity} onChange={() => toggleBrief('exclusivity')} /> Exclusive (creator can’t post similar for competitors)</label>
+              <Field label="Revisions included"><Select value={String(brief.revisions)} onChange={(val) => setBriefVal('revisions', val)} options={REVISION_OPTIONS} /></Field>
+            </div>
+            <p className="pb-usage-note"><Info size={13} /> Delivery date &amp; slot are set on the left. Budget is the plan rate ({inr(plan?.price || 0)}/video).</p>
+          </div>
+          </>
+          ) : (
           <>
           <div className="pb-head">
             <h2>Brand Guidelines</h2>
@@ -369,61 +685,73 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
             </div>
           </div>
 
-          <div className="pb-footer">
-            <button type="button" className="pb-goback" onClick={() => { updateVideo({ guidelinesOpen: false }); setStage('setup'); }} disabled={submitting}>Remove &amp; Go Back</button>
-            <button type="button" className="pb-proceed" onClick={() => setStage('payment')} disabled={submitting}>Proceed</button>
-          </div>
-          </>
-          ) : (
-          <>
-          <div className="pb-head">
-            <h2>Payment</h2>
-            <p>You&apos;re one step away from getting your video in motion 🎬</p>
-          </div>
-
-          <div className="pb-scroll pb-pay-body">
-            <div className="pb-pay-videos">
-              {videos.map((vid, i) => (
-                <div key={i} className="pb-pay-card">
-                  <div className="pb-pay-card-head">
-                    <strong>{videoName(vid, i)} Details</strong>
-                    <button type="button" className="pb-rename" onClick={() => renameVideo(i)}><Tag size={13} /> Rename</button>
-                  </div>
-                  <p className="pb-pay-specs">{vid.duration} / {vid.language} / Standard / {vid.orientation} / {vid.background} / {vid.product === 'Yes' ? 'Product added' : 'No product added'}</p>
-                  <p className="pb-pay-actor">{creatorName} - - -</p>
-                  <div className="pb-pay-actions">
-                    <button type="button" className="pb-pay-del" onClick={() => deleteVideo(i)}><Trash2 size={14} /> Delete</button>
-                    <button type="button" className="pb-pay-mod" onClick={() => modifyVideo(i)}><Pencil size={14} /> Modify</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <aside className="pb-summary">
-              <div className="pb-summary-rows">
-                {videos.map((vid, i) => (
-                  <div key={i} className="pb-summary-row">
-                    <span>{videoName(vid, i)}</span>
-                    <div><strong>{inr(plan?.price || 0)}</strong><small>Breakdown</small></div>
-                  </div>
-                ))}
-              </div>
-              <div className="pb-summary-foot">
-                <p className="pb-credits"><Info size={13} /> Available credits: 0</p>
-                <div className="pb-summary-line"><span>Subtotal</span><strong>{inr(subtotal)}</strong></div>
-                <div className="pb-summary-line"><span>GST <em>18%</em></span><strong>{inr(gst)}</strong></div>
-                <div className="pb-summary-line pb-summary-total"><span>Total</span><strong>{inr(total)}</strong></div>
-              </div>
-            </aside>
-          </div>
-
-          <div className="pb-footer">
-            <button type="button" className="pb-goback" onClick={() => setStage(hasGuidelines ? 'guidelines' : 'setup')} disabled={submitting}>Go Back</button>
-            <button type="button" className="pb-proceed" onClick={proceed} disabled={submitting}>{submitting ? 'Processing…' : 'Proceed to payment'}</button>
-          </div>
           </>
           )}
+
+          {/* Shared footer — Back through the tabs, Next until the last step, then submit. */}
+          <div className="pb-footer">
+            {stepIdx > 0 && (
+              <button type="button" className="pb-goback" onClick={goBack} disabled={submitting}>Back</button>
+            )}
+            {isLastStep ? holdMoneyBtn : (
+              <button
+                type="button"
+                className="pb-proceed"
+                onClick={goNext}
+                disabled={submitting || priceMissing || nextBlocked}
+                title={priceMissing ? "This creator hasn't set a price yet" : (nextBlocked ? 'Fill the brief basics first' : undefined)}
+              >
+                Next
+              </button>
+            )}
+          </div>
         </section>
+
+        {/* Inline top-up sheet — keeps the brief alive while they add credits. */}
+        {topupOpen && (
+          <div className="pb-topup-back" onClick={() => !recharging && setTopupOpen(false)}>
+            <div className="pb-topup" onClick={(e) => e.stopPropagation()}>
+              <div className="pb-topup-head">
+                <h3><Wallet size={16} /> Add credits</h3>
+                <button type="button" className="pb-topup-x" onClick={() => setTopupOpen(false)} disabled={recharging}><X size={16} /></button>
+              </div>
+
+              <div className="pb-topup-gap">
+                <div><span>Order total</span><strong>{inr(total)}</strong></div>
+                <div><span>Available credits</span><strong>{inr(wallet || 0)}</strong></div>
+                <div className="short"><span>You&apos;re short</span><strong>{inr(gap)}</strong></div>
+              </div>
+
+              <label className="pb-topup-field">
+                Amount to add
+                <input
+                  type="number"
+                  min={minTopup || 1}
+                  value={topupAmount}
+                  autoFocus
+                  onChange={(e) => setTopupAmount(e.target.value)}
+                />
+              </label>
+
+              <div className="pb-topup-chips">
+                {[suggestedTopup, suggestedTopup + 2000, suggestedTopup + 5000].map((amt) => (
+                  <button key={amt} type="button" className={Number(topupAmount) === amt ? 'on' : ''} onClick={() => setTopupAmount(String(amt))}>
+                    {inr(amt).replace('.00', '')}
+                  </button>
+                ))}
+              </div>
+
+              {minTopup > 0 && <p className="pb-topup-min">Minimum recharge is {inr(minTopup)}.</p>}
+
+              <button type="button" className="pb-topup-go" onClick={doTopup} disabled={recharging}>
+                {recharging ? 'Creating payment order…' : `Add ${inr(Number(topupAmount) || 0)}`}
+              </button>
+              <button type="button" className="pb-topup-alt" onClick={() => navigate('/dashboard/business/wallet')} disabled={recharging}>
+                Open full wallet instead
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -438,22 +766,30 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-plan { position: relative; text-align: left; border: 1px solid #eef0f6; background: #fff; border-radius: 14px; padding: 12px; cursor: pointer; }
         .pb-plan.is-selected { background: #f1f3ff; border-color: #c3cbff; }
         .pb-plan-loading { color: #94a3b8; font-weight: 600; text-align: center; }
-        .pb-plan-top { display: flex; align-items: center; gap: 8px; }
-        .pb-plan-top strong { color: #0f172a; font-size: 0.98rem; }
+        /* Leave room for the absolutely-positioned check so long plan names wrap
+           instead of running underneath it. */
+        .pb-plan-top { display: flex; align-items: flex-start; gap: 8px; padding-right: 30px; }
+        .pb-plan-top strong { color: #0f172a; font-size: 0.98rem; line-height: 1.3; overflow-wrap: anywhere; }
         .pb-sample { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #07074e; border: 1px solid #c3cbff; border-radius: 999px; padding: 1px 7px; font-weight: 700; }
         .pb-price { font-size: 1.5rem; font-weight: 800; color: #07074e; margin-top: 4px; }
         .pb-price small { font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
         .pb-plan-tags { color: #94a3b8; font-size: 0.78rem; font-weight: 600; margin-top: 2px; }
-        .pb-plan-check { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: #07074e; color: #fff; opacity: 0; }
+        .pb-plan-check { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; flex: none; border-radius: 7px; display: grid; place-items: center; background: #07074e; color: #fff; opacity: 0; }
         .pb-plan.is-selected .pb-plan-check { opacity: 1; }
         .pb-rail-section { display: grid; gap: 8px; }
         .pb-rail-label { color: #94a3b8; font-size: 0.78rem; font-weight: 800; margin: 0; }
         .pb-creator { display: flex; align-items: center; gap: 8px; }
         .pb-creator-avatar { width: 34px; height: 34px; border-radius: 999px; background: #e0e7ff; color: #4f46e5; display: grid; place-items: center; font-weight: 800; }
         .pb-creator strong { color: #0f172a; }
-        .pb-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .pb-date-row button { border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 10px; font-weight: 700; color: #475569; cursor: pointer; font-size: 0.82rem; }
+        .pb-date-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .pb-date-row button { display: flex; flex-direction: column; align-items: center; gap: 2px;
+          border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 9px 6px; font-weight: 700; color: #475569; cursor: pointer; font-size: 0.8rem; }
+        .pb-date-row button small { font-weight: 600; font-size: 0.68rem; color: #94a3b8; }
         .pb-date-row button.active { border-color: #07074e; color: #07074e; background: #f1f3ff; }
+        .pb-date-row button.active small { color: #4452f0; }
+        .pb-date-input { width: 100%; margin-top: 8px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 12px;
+          font-family: inherit; font-weight: 700; color: #0f172a; background: #fff; }
+        .pb-date-input:focus { outline: none; border-color: #07074e; }
         .pb-addon { display: flex; align-items: center; gap: 8px; border: 1px solid #eef0f6; background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left; }
         .pb-addon.is-selected { border-color: #c3cbff; background: #f1f3ff; }
         .pb-addon-check { width: 18px; height: 18px; border-radius: 6px; border: 1px solid #cbd5e1; display: grid; place-items: center; background: #fff; }
@@ -469,7 +805,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-head { padding: 22px 28px 14px; border-bottom: 1px solid #f1f5f9; }
         /* progress stepper */
         .pb-stepper { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 20px 28px 0; }
-        .pb-stepper-item { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px; background: #f1f2fb; color: #8a8fc0; font-weight: 700; font-size: 0.8rem; }
+        .pb-stepper-item { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px; background: #f1f2fb; color: #8a8fc0; font-weight: 700; font-size: 0.8rem; border: none; font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
+        .pb-stepper-item:hover:not(.active):not(.is-locked) { background: #e6e8ff; color: #5b6bff; }
+        .pb-stepper-item.is-locked { cursor: not-allowed; opacity: 0.55; }
         .pb-stepper-item + .pb-stepper-item { position: relative; margin-left: 10px; }
         .pb-stepper-item + .pb-stepper-item::before { content: "›"; position: absolute; left: -14px; color: #c3cbff; font-weight: 800; }
         .pb-stepper-num { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #d7d9f2; color: #fff; font-size: 0.72rem; font-weight: 800; }
@@ -491,12 +829,21 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-video-title { display: flex; align-items: center; gap: 6px; font-weight: 800; color: #0f172a; padding-bottom: 10px; border-bottom: 2px solid #07074e; width: fit-content; margin-bottom: 18px; }
         .pb-video-title-check { color: #16a34a; }
         .pb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+        .pb-brief-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; margin-bottom: 8px; }
+        .pb-brief-fields textarea { resize: vertical; min-height: 46px; }
+        .pb-check { display: flex; align-items: center; gap: 9px; font-size: 0.9rem; color: #334155; cursor: pointer; }
+        .pb-check input { width: 16px; height: 16px; accent-color: #12124f; cursor: pointer; }
+        .pb-usage-note { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 0.8rem; color: #64748b; }
         .pb-field { display: grid; gap: 7px; font-size: 0.85rem; font-weight: 700; color: #334155; }
         .pb-field > span { color: #334155; }
-        .pb-field input[type=text], .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; color: #0f172a; background: #fff; resize: vertical; }
+        .pb-field-lbl { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+        .pb-field-hint { font-style: normal; font-weight: 500; font-size: 11px; color: #9296ba; white-space: nowrap; }
+        /* font: inherit pulls in the label's 700 weight — force the typed value back
+           to a normal weight so entered text isn't bold. */
+        .pb-field input, .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; font-weight: 400; color: #0f172a; background: #fff; resize: vertical; box-sizing: border-box; }
         .pb-field input:focus, .pb-field textarea:focus { outline: none; border-color: #07074e; }
         .pb-select { position: relative; }
-        .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 600; }
+        .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 400; }
         .pb-select svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
         .pb-guidelines-toggle { margin-top: 18px; background: none; border: 0; color: #07074e; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 0; }
         .pb-guidelines-toggle.is-added { color: #15a35b; }
@@ -518,9 +865,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-notes-tabs { display: flex; gap: 8px; }
         .pb-notes-tabs span { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; color: #94a3b8; padding: 5px 10px; border-radius: 8px; }
         .pb-notes-tabs span.active { background: #f1f3ff; color: #07074e; }
-        .pb-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 28px; border-top: 1px solid #f1f5f9; }
-        .pb-copy { display: flex; align-items: center; gap: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
-        .pb-copy input { width: 16px; height: 16px; }
+        .pb-footer { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 14px 28px; border-top: 1px solid #f1f5f9; }
         .pb-proceed { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; border: 0; border-radius: 11px; padding: 13px 34px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .pb-proceed:disabled { opacity: 0.6; cursor: not-allowed; }
         .pb-goback { background: #f1f5f9; color: #475569; border: 0; border-radius: 11px; padding: 13px 28px; font-weight: 800; cursor: pointer; }
@@ -547,6 +892,34 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-summary-row small { color: #07074e; font-size: 0.72rem; font-weight: 700; }
         .pb-summary-foot { display: grid; gap: 8px; padding-top: 12px; }
         .pb-credits { display: flex; align-items: center; gap: 6px; color: #07074e; font-size: 0.78rem; font-weight: 700; margin: 0 0 4px; }
+        .pb-shortfall { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: #fef2f2; color: #b91c1c; font-size: 0.78rem; font-weight: 700; line-height: 1.35; }
+        .pb-addfunds { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(100deg,#f0a13a,#e0851b); box-shadow: 0 12px 26px -12px rgba(224,133,27,.75); }
+        .pb-addfunds:hover { background: linear-gradient(100deg,#e0851b,#c9740f); }
+
+        /* inline top-up sheet (lives inside the modal so the brief isn't lost) */
+        .pb-modal { position: relative; }
+        .pb-topup-back { position: absolute; inset: 0; background: rgba(15,23,42,.45); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 5; padding: 18px; }
+        .pb-topup { width: min(360px, 100%); background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 24px 50px rgba(15,23,42,.3); display: flex; flex-direction: column; gap: 12px; max-height: 100%; overflow: auto; }
+        .pb-topup-head { display: flex; align-items: center; justify-content: space-between; }
+        .pb-topup-head h3 { margin: 0; display: flex; align-items: center; gap: 7px; font-size: 1rem; color: #07074e; }
+        .pb-topup-x { background: none; border: 0; cursor: pointer; color: #64748b; padding: 2px; }
+        .pb-topup-gap { border: 1px solid #eef0f6; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+        .pb-topup-gap div { display: flex; justify-content: space-between; font-size: 0.82rem; color: #64748b; }
+        .pb-topup-gap strong { color: #07074e; }
+        .pb-topup-gap .short { border-top: 1px dashed #e2e8f0; padding-top: 6px; color: #b91c1c; font-weight: 700; }
+        .pb-topup-gap .short strong { color: #b91c1c; }
+        .pb-topup-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; font-weight: 700; color: #2d3748; }
+        .pb-topup-field input { padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 0.95rem; font-family: inherit; font-weight: 700; color: #07074e; }
+        .pb-topup-field input:focus { outline: none; border-color: #e0851b; }
+        .pb-topup-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .pb-topup-chips button { flex: 1; min-width: 84px; background: #f7f8fc; border: 1.5px solid #eef0f6; border-radius: 999px; padding: 6px 8px; font-size: 0.76rem; font-weight: 700; color: #4a5568; cursor: pointer; }
+        .pb-topup-chips button.on, .pb-topup-chips button:hover { border-color: #e0851b; color: #07074e; background: #fff7ed; }
+        .pb-topup-min { margin: 0; font-size: 0.72rem; color: #94a3b8; }
+        .pb-topup-go { background: linear-gradient(100deg,#f0a13a,#e0851b); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-weight: 800; cursor: pointer; }
+        .pb-topup-go:disabled { opacity: .6; cursor: not-allowed; }
+        .pb-topup-alt { background: none; border: 0; color: #64748b; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-decoration: underline; }
+        .pb-proceed:disabled { opacity: 0.55; cursor: not-allowed; }
+        .pb-noprice { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0 0; padding: 10px 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; color: #9a3412; font-size: 12.5px; line-height: 1.5; }
         .pb-summary-line { display: flex; align-items: center; justify-content: space-between; color: #475569; font-weight: 600; font-size: 0.9rem; }
         .pb-summary-line em { background: #f1f5f9; border-radius: 6px; padding: 1px 6px; font-style: normal; font-size: 0.72rem; }
         .pb-summary-total { border-top: 1px solid #f1f5f9; padding-top: 8px; color: #0f172a; font-size: 1.05rem; }

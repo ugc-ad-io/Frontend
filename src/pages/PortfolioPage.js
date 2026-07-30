@@ -27,6 +27,7 @@ import {
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import './CreatorDashboard.css';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -405,7 +406,7 @@ export default function PortfolioPage() {
               )}
             </>
           ) : (
-            <div className="cmk-empty">No {tab === 'all' ? 'portfolio items' : tab} yet. Click “Add New Work”.</div>
+            <EmptyState title="No work yet" message={`Add your best ${tab === 'all' ? 'videos and photos' : tab} to showcase your talent to brands.`} />
           )}
         </>
       )}

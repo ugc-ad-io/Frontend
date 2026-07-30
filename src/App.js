@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import './styles/admin-theme.css';
@@ -24,6 +24,7 @@ const BrandOverview = lazy(() => import('./pages/BrandOverview'));
 const BrandCreators = lazy(() => import('./pages/BrandCreators'));
 const BrandWorkReview = lazy(() => import('./pages/BrandWorkReview'));
 const BrandCampaigns = lazy(() => import('./pages/BrandCampaigns'));
+const SavedCreators = lazy(() => import('./pages/SavedCreators'));
 const BrandCampaignDetail = lazy(() => import('./pages/BrandCampaignDetail'));
 const CreatorProfilePage = lazy(() => import('./pages/CreatorProfilePage'));
 const CreatorMyProfilePage = lazy(() => import('./pages/CreatorMyProfilePage'));
@@ -31,22 +32,32 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const CampaignDetails = lazy(() => import('./pages/CampaignDetails'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const WorkSubmission = lazy(() => import('./pages/WorkSubmission'));
 const WorkReview = lazy(() => import('./pages/WorkReview'));
 const PayoutWithLayout = lazy(() => import('./pages/PayoutWithLayout'));
+const CreatorKYC = lazy(() => import('./pages/CreatorKYC'));
+const TeamAccept = lazy(() => import('./pages/TeamAccept'));
 const ShipmentTracking = lazy(() => import('./pages/ShipmentTracking'));
 const BrowseBriefs = lazy(() => import('./pages/BrowseBriefs'));
+const SavedBriefs = lazy(() => import('./pages/SavedBriefs'));
 const MyDealsPage = lazy(() => import('./pages/MyDealsPage'));
+const MyDealsHubPage = lazy(() => import('./pages/MyDealsHubPage'));
+const DisputeDetailPage = lazy(() => import('./pages/DisputeDetailPage'));
 const MyBidsPage = lazy(() => import('./pages/MyBidsPage'));
 const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
+const BrandReviewsPage = lazy(() => import('./pages/BrandReviewsPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns'));
 const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
 const AdminDisputes = lazy(() => import('./pages/AdminDisputes'));
 const AdminAllCampaigns = lazy(() => import('./pages/AdminAllCampaigns'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminKYC = lazy(() => import('./pages/AdminKYC'));
+const AdminHomeShowcase = lazy(() => import('./pages/AdminHomeShowcase'));
+const AdminGST = lazy(() => import('./pages/AdminGST'));
 const AdminMyCreators = lazy(() => import('./pages/AdminMyCreators'));
 const AdminAssignments = lazy(() => import('./pages/AdminAssignments'));
 const AdminFlaggedMessages = lazy(() => import('./pages/AdminFlaggedMessages'));
@@ -58,6 +69,7 @@ const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminRoles = lazy(() => import('./pages/AdminRoles'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog'));
+const AdminProfiles = lazy(() => import('./pages/AdminProfiles'));
 const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -152,6 +164,7 @@ axios.interceptors.response.use(
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -174,8 +187,35 @@ function AuthProvider({ children }) {
     setUser(userData);
   };
 
+  const startBrandSession = (token, brandUser) => {
+    const adminToken = localStorage.getItem('token');
+    if (!localStorage.getItem('ops_admin_token')) {
+      localStorage.setItem('ops_admin_token', adminToken || '');
+      localStorage.setItem('ops_admin_user', JSON.stringify(user || {}));
+    }
+    localStorage.setItem('token', token);
+    localStorage.setItem('ops_brand_name', brandUser?.profile?.business_name || brandUser?.business_name || brandUser?.email || 'Brand');
+    setUser(brandUser);
+    navigate('/dashboard/business', { replace: true });
+  };
+
+  const stopBrandSession = () => {
+    const adminToken = localStorage.getItem('ops_admin_token');
+    const adminUser = JSON.parse(localStorage.getItem('ops_admin_user') || 'null');
+    if (!adminToken || !adminUser) return;
+    localStorage.setItem('token', adminToken);
+    localStorage.removeItem('ops_admin_token');
+    localStorage.removeItem('ops_admin_user');
+    localStorage.removeItem('ops_brand_name');
+    setUser(adminUser);
+    navigate('/dashboard/admin/deals', { replace: true });
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('ops_admin_token');
+    localStorage.removeItem('ops_admin_user');
+    localStorage.removeItem('ops_brand_name');
     setUser(null);
   };
 
@@ -184,7 +224,13 @@ function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, startBrandSession, stopBrandSession }}>
+      {localStorage.getItem('ops_admin_token') && (
+        <div className="ops-session-banner" role="status">
+          <span>Operations mode: acting as <strong>{localStorage.getItem('ops_brand_name') || 'brand'}</strong></span>
+          <button type="button" onClick={stopBrandSession}>Return to Admin</button>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );
@@ -202,6 +248,15 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
 
   return children;
+}
+
+// `/my-deals` serves two things: the "My Deals" hub (all deals + invites + bids)
+// and, when opened with ?campaign= / ?deal=, the single-deal Deal Room. Keeping
+// one path means every existing Deal Room deep link and notification keeps working.
+function CreatorDealsRoute() {
+  const [searchParams] = useSearchParams();
+  const isDetail = searchParams.get('campaign') || searchParams.get('deal');
+  return isDetail ? <MyDealsPage /> : <MyDealsHubPage />;
 }
 
 // Resets scroll to the top on every route change so a new page never opens
@@ -231,18 +286,52 @@ function App() {
     return () => obs.disconnect();
   }, []);
 
+  // Site-wide guard: number inputs (type=number or inputMode=numeric) accept only
+  // digits (+ a decimal point) — letters/symbols are blocked at the keystroke, so
+  // price / days / age / amount fields everywhere can never contain alphabets.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const el = e.target;
+      if (!el || el.tagName !== 'INPUT') return;
+      const numeric = el.type === 'number' || el.inputMode === 'numeric' || el.getAttribute('inputmode') === 'numeric';
+      if (!numeric) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // e.key can be undefined during IME composition / some synthetic events.
+      if (typeof e.key !== 'string') return;
+      const nav = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+      if (nav.includes(e.key)) return;
+      if (e.key.length === 1 && !/[0-9.]/.test(e.key)) e.preventDefault();
+    };
+    // block pasting non-numeric text into number inputs too
+    const onPaste = (e) => {
+      const el = e.target;
+      if (!el || el.tagName !== 'INPUT') return;
+      const numeric = el.type === 'number' || el.inputMode === 'numeric' || el.getAttribute('inputmode') === 'numeric';
+      if (!numeric) return;
+      const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      if (/[^0-9.]/.test(text)) e.preventDefault();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('paste', onPaste, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('paste', onPaste, true);
+    };
+  }, []);
+
   return (
     <div className="App">
       <BrowserRouter>
         <ThemeProvider>
         <AuthProvider>
           <ScrollToTop />
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-right" richColors closeButton />
           <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/creator" element={<CreatorLanding />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/team/accept" element={<TeamAccept />} />
             <Route path="/creator/signup" element={<CreatorSignup />} />
             <Route
               path="/profile-setup/creator"
@@ -277,10 +366,26 @@ function App() {
               }
             />
             <Route
+              path="/saved"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <SavedBriefs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/my-deals"
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
-                  <MyDealsPage />
+                  <CreatorDealsRoute />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/disputes/:id"
+              element={
+                <ProtectedRoute allowedRoles={['creator', 'business']}>
+                  <DisputeDetailPage />
                 </ProtectedRoute>
               }
             />
@@ -349,6 +454,14 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/saved-creators"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <SavedCreators />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/business/campaign/:id"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
@@ -413,6 +526,22 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/sent-briefs"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BusinessDashboard page="sent-briefs" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/reviews"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandReviewsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/admin"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
@@ -435,6 +564,15 @@ function App() {
                   <AdminLayout isApplicationsPage={true}>
                     <ApplicationsPage />
                   </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Profile approvals — AdminProfiles renders its own AdminLayout. */}
+            <Route
+              path="/dashboard/admin/profiles"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminProfiles />
                 </ProtectedRoute>
               }
             />
@@ -473,8 +611,32 @@ function App() {
             <Route
               path="/dashboard/admin/users"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/kyc"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminKYC />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/gst"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminGST />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/home-showcase"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminHomeShowcase />
                 </ProtectedRoute>
               }
             />
@@ -591,6 +753,14 @@ function App() {
               }
             />
             <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute allowedRoles={['creator', 'business']}>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/chat/:userId"
               element={
                 <ProtectedRoute>
@@ -619,6 +789,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['creator']}>
                   <PayoutWithLayout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kyc"
+              element={
+                <ProtectedRoute allowedRoles={['creator']}>
+                  <CreatorKYC />
                 </ProtectedRoute>
               }
             />

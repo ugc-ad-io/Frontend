@@ -1,31 +1,32 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy } from 'lucide-react';
+import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
+import { firstName } from '../utils/displayName';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X, ChevronDown } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import { Skeleton } from '../components/Skeleton';
+import RejectedGate from '../components/RejectedGate';
+import MoreInfoGate from '../components/MoreInfoGate';
 import ChatPopup from '../components/ChatPopup';
 import PageModal from '../components/PageModal';
 import CampaignDetails from './CampaignDetails';
 import WorkReview from './WorkReview';
 import ShipmentTracking from './ShipmentTracking';
 import CreatorProfileModal from '../components/CreatorProfileModal';
-import { DEMO_CAMPAIGNS, DEMO_WORK_SUBMISSIONS, DEMO_CREATOR_DIRECTORY, DEMO_WALLET, DEMO_DASHBOARD } from '../data/brandDemo';
+import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const budgetColors = ['#5b6bff', '#9296ba', '#07074E', '#27AE60', '#F59E0B'];
-const campaignPerformanceSample = [
-  { month: 'Jan', deals_closed: 15, approved_deliveries: 12, applications_received: 40, spend_k: 30 },
-  { month: 'Feb', deals_closed: 25, approved_deliveries: 20, applications_received: 60, spend_k: 45 },
-  { month: 'Mar', deals_closed: 40, approved_deliveries: 35, applications_received: 85, spend_k: 65 },
-  { month: 'Apr', deals_closed: 35, approved_deliveries: 30, applications_received: 75, spend_k: 55 },
-  { month: 'May', deals_closed: 50, approved_deliveries: 45, applications_received: 110, spend_k: 80 }
-];
+// No fabricated demo months — an empty performance series renders the real
+// "no data yet" state instead of fake Jan–May numbers for new brands.
+const campaignPerformanceSample = [];
 const performancePeriods = ['Weekly', 'Monthly', 'Quarterly'];
 
 const normalizePerformancePoint = (item = {}) => ({
@@ -129,9 +130,23 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
   const bids = campaign.bids || [];
   const [tab, setTab] = useState('all');
   const [shortlist, setShortlist] = useState(() => new Set());
-  const [declined, setDeclined] = useState(() => new Set());
+  // Seed from the persisted bid status so a decline survives a page refresh —
+  // it used to be UI-only state that reset on reload, making declines "come back".
+  const [declined, setDeclined] = useState(
+    () => new Set(bids.filter((b) => b.status === 'declined').map((b) => b.id ?? b.creator_id))
+  );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sort, setSort] = useState('match'); // match | price-low | price-high | delivery-fast
+  // Mobile: a bid row collapses to name + star + arrow; the arrow expands it to
+  // reveal the pitch, price/delivery, and actions.
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const toggleExpanded = (id) => setExpandedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  // Show at most 3 bids by default; "View all" reveals the rest.
+  const [showAllBids, setShowAllBids] = useState(false);
 
   const idOf = (b) => b.id ?? b.creator_id;
   const hasResponded = (b) => !!(b.proposal && b.proposal.trim());
@@ -186,7 +201,18 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
     { id: 'delivery-fast', label: 'Fastest delivery' },
   ];
 
-  const declineBid = (id) => setDeclined(prev => new Set(prev).add(id));
+  const declineBid = async (id) => {
+    // Optimistic: hide it immediately, then persist. Revert if the call fails so
+    // the row doesn't silently reappear on the next refresh.
+    setDeclined(prev => new Set(prev).add(id));
+    try {
+      await axios.post(`${API}/campaigns/${campaign.id}/bids/${encodeURIComponent(id)}/decline`);
+      toast.success('Bid declined — the creator has been notified.');
+    } catch (e) {
+      setDeclined(prev => { const next = new Set(prev); next.delete(id); return next; });
+      toast.error(apiErrorMessage(e, 'Could not decline this bid'));
+    }
+  };
   const toggleShortlist = (id) => setShortlist(prev => {
     const next = new Set(prev);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -196,11 +222,13 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
   // A raw 24-char hex string is a Mongo ObjectId, not a real handle — never show it.
   const isObjectId = (s) => /^[0-9a-f]{24}$/i.test(String(s || ''));
   const realName = (b) => {
-    const n = b.creator_nickname || b.creator_name || b.public_creator_id || '';
+    // Prefer the creator's REAL name over the auto-generated @handle, and strip "@".
+    const n = String(b.creator_name || b.creator_nickname || b.public_creator_id || '').replace(/^@+/, '').trim();
     return isObjectId(n) ? '' : n;
   };
   const nameOf = (b) => realName(b) || 'Creator';
-  const handleOf = (b) => { const n = String(realName(b)); return n ? (n.startsWith('@') ? n : `@${n}`) : 'Creator'; };
+  // First name only — no surname (e.g. "Meet Jain" → "Meet").
+  const handleOf = (b) => String(realName(b) || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator';
   const initialOf = (b) => (String(nameOf(b)).replace(/[^A-Za-z0-9]/g, '').charAt(0) || 'C').toUpperCase();
 
   return (
@@ -217,7 +245,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
       <div className="cb-tabs-row">
         <div className="cb-tabs">
           {TABS.map(t => (
-            <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+            <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => { setTab(t.id); setShowAllBids(false); }}>
               {t.label} ({counts[t.id]})
             </button>
           ))}
@@ -251,45 +279,66 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
       <div className="cb-bid-list">
         {visible.length === 0 ? (
           <div className="cb-empty">No bids in this view.</div>
-        ) : visible.map((bid, idx) => {
+        ) : (showAllBids ? visible : visible.slice(0, 3)).map((bid, idx) => {
           const id = idOf(bid);
           const isTop = idx === 0 && tab === 'all' && sort === 'match';
           const isShort = shortlist.has(id);
+          const isOpen = expandedIds.has(id);
           return (
-            <div key={id} className="cb-bid">
+            <div key={id} className={`cb-bid${isOpen ? ' is-open' : ''}`}>
               <div className="cb-bid-avatar">{initialOf(bid)}</div>
               <div className="cb-bid-main">
                 <div className="cb-bid-name">
                   <strong>{handleOf(bid)}</strong>
                   {isTop && <span className="cb-top-match">TOP MATCH</span>}
+                  <button
+                    type="button"
+                    className={`cb-star ${isShort ? 'on' : ''}`}
+                    aria-label={isShort ? 'Remove from shortlist' : 'Shortlist'}
+                    title={isShort ? 'Shortlisted' : 'Add to shortlist'}
+                    onClick={() => toggleShortlist(id)}
+                  >★</button>
+                  {/* Mobile only: collapses everything below to just name + star by default. */}
+                  <button
+                    type="button"
+                    className="cb-expand"
+                    aria-label={isOpen ? 'Collapse bid' : 'Expand bid'}
+                    aria-expanded={isOpen}
+                    onClick={() => toggleExpanded(id)}
+                  ><ChevronDown size={18} /></button>
                 </div>
-                {(bid.category || campaign.category) && <span className="cb-bid-cat">{bid.category || campaign.category}</span>}
-                <p className="cb-bid-pitch">{bid.proposal || 'No proposal message provided.'}</p>
+                <div className="cb-bid-collapsible">
+                  {(bid.category || campaign.category) && <span className="cb-bid-cat">{bid.category || campaign.category}</span>}
+                  <p className="cb-bid-pitch">{bid.proposal || 'No proposal message provided.'}</p>
+                </div>
               </div>
-              <div className="cb-bid-stat">
+              <div className="cb-bid-collapsible cb-bid-stat">
                 <strong>{formatMoney(bid.amount)}</strong>
                 <span>Price / video</span>
               </div>
-              <div className="cb-bid-stat">
+              <div className="cb-bid-collapsible cb-bid-stat">
                 <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} Days` : '—'}</strong>
                 <span>Delivery</span>
               </div>
-              <div className="cb-bid-actions">
-                <button
-                  type="button"
-                  className={`cb-star ${isShort ? 'on' : ''}`}
-                  aria-label={isShort ? 'Remove from shortlist' : 'Shortlist'}
-                  title={isShort ? 'Shortlisted' : 'Add to shortlist'}
-                  onClick={() => toggleShortlist(id)}
-                >★</button>
+              <div className="cb-bid-collapsible cb-bid-actions">
                 <button type="button" className="cb-view-profile" onClick={() => onViewProfile(campaign.id, bid)}>View Profile</button>
-                <button type="button" className="cb-accept" onClick={() => onAccept(campaign.id, bid.creator_id)}>Accept</button>
-                <button type="button" className="cb-decline" onClick={() => declineBid(id)}>Decline</button>
+                {/* A declined bid can't be accepted/declined again — show its state. */}
+                {declined.has(id) ? (
+                  <span className="cb-declined-tag">Declined</span>
+                ) : (<>
+                  <button type="button" className="cb-accept" onClick={() => onAccept(campaign.id, bid.creator_id)}>Accept</button>
+                  <button type="button" className="cb-decline" onClick={() => declineBid(id)}>Decline</button>
+                </>)}
               </div>
             </div>
           );
         })}
       </div>
+      {!showAllBids && visible.length > 3 && (
+        <button type="button" className="cb-view-all" onClick={() => setShowAllBids(true)}>
+          View all {visible.length} bids <ChevronDown size={15} />
+        </button>
+      )}
     </article>
   );
 }
@@ -392,7 +441,8 @@ function normalizeCreatorDirectoryItem(item = {}) {
   const languages = item.languages || profile.languages || item.content_languages || [];
   const cityTier = item.city_tier || profile.city_tier || item.location_region || 'Curated';
   const publicCreatorId = item.public_creator_id || item.creator_public_id || '';
-  const handle = item.handle || (item.nickname ? `@${String(item.nickname).replace(/^@/, '')}` : '@creator');
+  // Show the creator's real name (backend sends `name`), never the @handle.
+  const handle = String(item.name || item.handle || item.nickname || 'Creator').replace(/^@/, '');
 
   return {
     id: item.id || item.creator_id,
@@ -462,6 +512,25 @@ function normalizeWalletData(data = {}) {
 export default function BusinessDashboard({ page = 'overview' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Deep-link from Settings → Billing: ?view=history|recharge scrolls the wallet
+  // page to the matching section (the "Billing History" / "Payment Methods" buttons).
+  useEffect(() => {
+    if (page !== 'wallet') return;
+    const view = new URLSearchParams(window.location.search).get('view');
+    const target = view === 'history' ? 'wallet-history' : (view === 'recharge' ? 'wallet-recharge' : '');
+    if (!target) return;
+    // Wait for the wallet panels to render, then scroll + highlight briefly.
+    const t = setTimeout(() => {
+      const el = document.getElementById(target);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('wallet-flash');
+        setTimeout(() => el.classList.remove('wallet-flash'), 1600);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [page]);
   const [campaigns, setCampaigns] = useState([]);
   const [drafts, setDrafts] = useState([]);
   const [activeCampaigns, setActiveCampaigns] = useState([]);
@@ -479,17 +548,28 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [selectedCreatorProfile, setSelectedCreatorProfile] = useState(null);
   const [chatWith, setChatWith] = useState(null); // opens the in-page chat popup
   const [modalView, setModalView] = useState(null); // { type: 'campaign'|'review'|'shipment', id } -> opens a page in a modal
+  const [bidCampaignId, setBidCampaignId] = useState(null); // Creator Bids: which campaign's bids are shown
   const [profileView, setProfileView] = useState(null); // { id, name, photo } -> opens a creator profile modal
   const [shipmentsMap, setShipmentsMap] = useState({}); // campaignId -> shipment record (for the shipments table)
   const [shipTab, setShipTab] = useState('all'); // all | transit | delivered
+  const [briefs, setBriefs] = useState([]); // sent briefs/offers (private/custom/counter) + their status
+  const [briefsLoading, setBriefsLoading] = useState(false);
+  const [briefFilter, setBriefFilter] = useState('all'); // all | sent | accepted | declined | countered | expired
+  const [briefFilterOpen, setBriefFilterOpen] = useState(false); // mobile filter menu
+  const [briefFilterExpanded, setBriefFilterExpanded] = useState(false); // desktop: click PINS options open
+  const [briefFilterHover, setBriefFilterHover] = useState(false);       // desktop: hover opens transiently
+  const briefFilterRef = useRef(null);
+  const cfBriefRef = useRef(null);
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
   const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
   const [walletData, setWalletData] = useState(normalizeWalletData());
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletError, setWalletError] = useState('');
+  const walletLoadedRef = useRef(false); // true once the wallet has loaded at least once
   const [walletAmount, setWalletAmount] = useState('');
   const [walletFilter, setWalletFilter] = useState('all');
+  const [txnDetail, setTxnDetail] = useState(null);   // wallet transaction shown in the detail modal
   const [rechargingWallet, setRechargingWallet] = useState(false);
   const [performancePeriod, setPerformancePeriod] = useState('Monthly');
   const [performanceCampaignId, setPerformanceCampaignId] = useState('all');
@@ -502,27 +582,102 @@ export default function BusinessDashboard({ page = 'overview' }) {
     budget_max: '',
     brief_text: '',
     requires_shipment: false,
-    shipment_option: 'no'
+    shipment_option: 'no',
+    image_url: ''
   });
+  const [campaignImgUploading, setCampaignImgUploading] = useState(false);
+
+  const handleCampaignImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image too large. Max 5MB.'); return; }
+    setCampaignImgUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      handleInputChange('image_url', data.file_url || data.url || '');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not upload image'));
+    } finally {
+      setCampaignImgUploading(false);
+    }
+  };
   const [objectiveInput, setObjectiveInput] = useState('');
 
   useEffect(() => {
-    if (user?.approval_status === 'approved') {
-      fetchCampaigns();
-    }
+    if (user?.id) fetchCampaigns();
   }, [user?.id]);
 
+  // Preload the creator directory as soon as the dashboard mounts (not only when the
+  // Browse Creators tab is open) and refetch only when filters/sort change — NOT on every
+  // tab navigation. This keeps the already-loaded list in state so switching to the tab is
+  // instant instead of firing a fresh (slow) request and flashing a spinner each time.
   useEffect(() => {
-    if (user?.approval_status === 'approved' && page === 'browse-creator') {
-      fetchCreatorDirectory();
-    }
-  }, [user?.id, page, creatorFilters, creatorSort]);
+    if (user?.id) fetchCreatorDirectory();
+  }, [user?.id, creatorFilters, creatorSort]);
 
   useEffect(() => {
-    if (user?.approval_status === 'approved' && page === 'wallet') {
+    // Preload the wallet on mount so it's ready before the tab is opened, and refresh
+    // it whenever the Wallet tab is entered (silently — no loading flash after first load).
+    if (user?.id && (page === 'wallet' || !walletLoadedRef.current)) {
       fetchWallet();
     }
   }, [user?.id, page]);
+
+  useEffect(() => {
+    // Load sent briefs/offers whenever the Sent Briefs tab is opened so the brand
+    // always sees the latest accepted/declined/countered statuses.
+    if (user?.id && page === 'sent-briefs') {
+      fetchBriefs();
+    }
+  }, [user?.id, page]);
+
+  // Close the mobile Sent-Briefs filter menu on any outside click.
+  useEffect(() => {
+    if (!briefFilterOpen) return undefined;
+    const onDoc = (e) => { if (briefFilterRef.current && !briefFilterRef.current.contains(e.target)) setBriefFilterOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [briefFilterOpen]);
+
+  // Desktop: a click PINS the Sent-Briefs filter open — close on an outside click.
+  useEffect(() => {
+    if (!briefFilterExpanded) return undefined;
+    const onDoc = (e) => { if (cfBriefRef.current && !cfBriefRef.current.contains(e.target)) setBriefFilterExpanded(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [briefFilterExpanded]);
+
+  const fetchBriefs = async () => {
+    setBriefsLoading(true);
+    try {
+      const res = await axios.get(`${API}/business/briefs?t=${Date.now()}`);
+      let list = Array.isArray(res.data) ? res.data : [];
+      // Some briefs return without a creator_photo (the photo can be stored under a
+      // few different keys). Backfill from the creator directory — which already
+      // resolves the photo robustly — so the avatar renders instead of an initial.
+      if (list.some((b) => !b.creator_photo && b.creator_id)) {
+        try {
+          const dir = await axios.get(`${API}/business/creator-directory`);
+          const items = Array.isArray(dir.data) ? dir.data : (dir.data?.creators || []);
+          const photoById = {};
+          items.forEach((it) => {
+            const id = it.id || it.creator_id;
+            const profile = it.profile || {};
+            const photo = it.profile_photo || it.profile_picture || profile.profile_photo || profile.profile_picture;
+            if (id && photo) photoById[id] = photo;
+          });
+          list = list.map((b) => (b.creator_photo || !photoById[b.creator_id]) ? b : { ...b, creator_photo: photoById[b.creator_id] });
+        } catch { /* directory is a best-effort fallback */ }
+      }
+      setBriefs(list);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to load sent briefs'));
+    } finally {
+      setBriefsLoading(false);
+    }
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -535,21 +690,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
       // Filter to only show this business's campaigns
       const realCampaigns = allCampaigns.filter(c => c.business_id === user.id);
-      // Demo fallback: only when this brand has no real campaigns yet.
-      const myCampaigns = realCampaigns.length ? realCampaigns : DEMO_CAMPAIGNS;
-      const usingDemo = realCampaigns.length === 0;
+      const myCampaigns = realCampaigns;
       setCampaigns(myCampaigns);
 
-      setDashboardData(dashboardRes.data?.metrics ? dashboardRes.data : (usingDemo ? DEMO_DASHBOARD : (dashboardRes.data || null)));
+      setDashboardData(dashboardRes.data?.metrics ? dashboardRes.data : (dashboardRes.data || null));
       setDrafts((draftsRes.data || []).filter(c => c.business_id === user.id));
 
       // Get work submissions for campaigns with work_submitted status
       const workSubmittedCampaigns = myCampaigns.filter(c => c.status === 'work_submitted');
-      if (!usingDemo && workSubmittedCampaigns.length > 0) {
+      if (workSubmittedCampaigns.length > 0) {
         const workRes = await axios.get(`${API}/work/pending-review`);
-        setWorkSubmissions((workRes.data || []).length ? workRes.data : (usingDemo ? DEMO_WORK_SUBMISSIONS : []));
+        setWorkSubmissions(workRes.data || []);
       } else {
-        setWorkSubmissions(usingDemo ? DEMO_WORK_SUBMISSIONS : []);
+        setWorkSubmissions([]);
       }
 
       // Categorize campaigns
@@ -558,12 +711,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setCompletedCampaigns(myCampaigns.filter(c => c.status === 'completed'));
     } catch (error) {
       console.error('Failed to load campaigns:', error);
-      // Backend unavailable → populate brand sections with demo data instead of a blank error state.
-      setCampaigns(DEMO_CAMPAIGNS);
-      setDashboardData(DEMO_DASHBOARD);
-      setWorkSubmissions(DEMO_WORK_SUBMISSIONS);
-      setActiveCampaigns(DEMO_CAMPAIGNS.filter(c => c.status === 'active' || c.status === 'in_progress'));
-      setCompletedCampaigns(DEMO_CAMPAIGNS.filter(c => c.status === 'completed'));
+      setCampaigns([]);
+      setDashboardData(null);
+      setWorkSubmissions([]);
+      setActiveCampaigns([]);
+      setCompletedCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -614,7 +766,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         budget_max: '',
         brief_text: '',
         requires_shipment: false,
-        shipment_option: 'no'
+        shipment_option: 'no',
+        image_url: ''
       });
       fetchCampaigns();
     } catch (error) {
@@ -627,6 +780,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const duplicateCampaign = (campaign) => {
     setFormData({
       title: `${campaign.title || 'Campaign'} (Copy)`,
+      category: campaign.category || campaign.product_category || '',
       objectives: Array.isArray(campaign.objectives) ? [...campaign.objectives] : [],
       budget_min: campaign.budget_min != null ? String(campaign.budget_min) : '',
       budget_max: campaign.budget_max != null ? String(campaign.budget_max) : '',
@@ -650,11 +804,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
       };
       const response = await axios.get(`${API}/business/creator-directory`, { params });
       const items = Array.isArray(response.data) ? response.data : response.data?.creators || [];
-      // Demo fallback: only when the curated pool comes back empty.
-      setCreatorDirectory(items.length ? items.map(normalizeCreatorDirectoryItem) : DEMO_CREATOR_DIRECTORY);
+      setCreatorDirectory(items.map(normalizeCreatorDirectoryItem));
     } catch (error) {
-      // Backend unavailable → still show demo creators so the section isn't blank.
-      setCreatorDirectory(DEMO_CREATOR_DIRECTORY);
+      setCreatorDirectory([]);
       setCreatorDirectoryError('');
     } finally {
       setCreatorDirectoryLoading(false);
@@ -671,7 +823,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       ...emptyInviteForm,
       campaign_name: campaigns[0]?.title || '',
       budget: campaigns[0] ? formatMoney(campaigns[0].budget_max || campaigns[0].budget_min || 0) : creator.budgetRange || '',
-      message: `Hi ${creator.displayId || creator.handle}, we think your content style could be a strong fit for our brand.`,
+      message: `Hi ${creator.handle}, we think your content style could be a strong fit for our brand.`,
     });
   };
 
@@ -727,16 +879,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
   };
 
   const fetchWallet = async () => {
-    setWalletLoading(true);
+    // Only show the "Loading…" state on the very first load — later refreshes are
+    // silent so switching to the Wallet tab is instant (shows the cached balance).
+    if (!walletLoadedRef.current) setWalletLoading(true);
     setWalletError('');
     try {
       const response = await axios.get(`${API}/business/wallet`);
-      // Demo fallback: only when there's no balance and no transactions yet.
-      const hasRealWallet = response.data && (Number(response.data.available_balance) > 0 || (response.data.transactions || []).length > 0);
-      setWalletData(normalizeWalletData(hasRealWallet ? response.data : DEMO_WALLET));
+      setWalletData(normalizeWalletData(response.data || {}));
+      walletLoadedRef.current = true;
     } catch (error) {
-      // Backend unavailable → show demo wallet instead of an error.
-      setWalletData(normalizeWalletData(DEMO_WALLET));
+      if (!walletLoadedRef.current) setWalletData(normalizeWalletData({}));
       setWalletError('');
     } finally {
       setWalletLoading(false);
@@ -745,18 +897,28 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   const handleWalletRecharge = async (amountOverride) => {
     const amount = Number(amountOverride || walletAmount);
-    if (!amount || amount < 5000) {
-      toast.error('Minimum recharge amount is Rs. 5,000');
+    const minRecharge = Number(walletData?.minimum_chat_balance) || 2500;
+    if (!amount || amount < minRecharge) {
+      toast.error(`Minimum recharge amount is ${formatMoney(minRecharge)}`);
       return;
     }
     setRechargingWallet(true);
     try {
-      const response = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
-      toast.success(`Payment order created for ${formatMoney(response.data.amount)}. Complete payment to credit your wallet.`);
-      setWalletAmount(String(amount));
+      // 1) Backend creates the Razorpay order. 2) Open Razorpay checkout.
+      // 3) On success the helper verifies server-side, which credits the wallet.
+      const { data: order } = await axios.post(`${API}/business/wallet/recharge`, { amount, gateway: 'razorpay' });
+      const result = await payWithRazorpay(order, {
+        name: user?.nickname || user?.full_name,
+        email: user?.email,
+        contact: user?.phone,
+        description: `Wallet recharge — ${formatMoney(order.amount)}`,
+      });
+      toast.success(result?.message || 'Payment successful — wallet credited.');
+      setWalletAmount('');
       await fetchWallet();
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Failed to start wallet recharge'));
+      if (isPaymentCancelled(error)) toast.message('Payment cancelled.');
+      else toast.error(apiErrorMessage(error, 'Wallet recharge failed'));
     } finally {
       setRechargingWallet(false);
     }
@@ -771,14 +933,27 @@ export default function BusinessDashboard({ page = 'overview' }) {
     navigate(`/campaign/${campaignId}`);
   };
 
-  // Accept a bid = select that creator for the campaign (payment held in escrow).
+  // Accept a bid = select that creator for the campaign. This SPENDS the brand's
+  // credits: the bid amount plus the platform fee leaves the wallet and is held in
+  // the deal's escrow until the content is approved.
   const handleAcceptBid = async (campaignId, creatorId) => {
     if (!creatorId) { toast.error('Could not identify the creator for this bid.'); return; }
     try {
       const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${creatorId}`);
-      toast.success(`🎉 ${res.data?.creator_nickname || 'Creator'} selected! Payment held in escrow.`);
+      const charged = Number(res.data?.amount_charged) || 0;
+      toast.success(
+        `🎉 ${firstName({ full_name: res.data?.creator_name, nickname: res.data?.creator_nickname }, 'Creator')} selected! ${charged ? `${formatMoney(charged)} held in escrow.` : 'Payment held in escrow.'}`
+      );
       fetchCampaigns();
+      fetchWallet();
     } catch (error) {
+      // Short balance is a fixable problem, not a generic failure — say by how much.
+      if (error?.response?.status === 402) {
+        const d = error.response.data || {};
+        toast.error(d.detail || 'Not enough credits to select this creator.');
+        fetchWallet();
+        return;
+      }
       toast.error(apiErrorMessage(error, 'Failed to accept bid'));
     }
   };
@@ -789,9 +964,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Campaign', icon: SquarePen, path: '/dashboard/business/post-brief' },
-    { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 3, badgeTone: 'orange' },
+    { id: 'pending-bids', label: 'Creator Bids', icon: UserRoundSearch, path: '/dashboard/business/pending-bids', badge: totalBidsReceived || 0, badgeTone: 'orange' },
     { id: 'browse-creator', label: 'Browse Creator', icon: Search, path: '/dashboard/business/browse-creator' },
     { id: 'all-campaigns', label: `All Campaigns (${campaigns.length})`, icon: ClipboardList, path: '/dashboard/business/all-campaigns' },
+    { id: 'sent-briefs', label: 'Sent Briefs', icon: Send, path: '/dashboard/business/sent-briefs' },
     { id: 'work-review', label: 'Work Review', icon: FileCheck, path: '/dashboard/business/work-review' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
     { id: 'shipments', label: 'Manage Shipment', icon: Package, path: '/dashboard/business/shipments' },
@@ -800,11 +976,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
   ];
   const activeTab = businessTabs.some(tab => tab.id === page) ? page : 'overview';
 
-  // Load each shipment record (courier / tracking / status / ETA) when the
-  // Shipments tab opens, so the table can show real data per campaign.
+  // Preload each shipment record (courier / tracking / status / ETA) as soon as the
+  // campaigns are known — NOT on every tab switch — so opening the Shipments tab is instant.
   useEffect(() => {
-    if (activeTab !== 'shipments') return undefined;
     const shipCampaigns = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
+    if (shipCampaigns.length === 0) return undefined;
     let cancelled = false;
     (async () => {
       const entries = await Promise.all(shipCampaigns.map(async (c) => {
@@ -814,19 +990,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
       if (!cancelled) setShipmentsMap(Object.fromEntries(entries));
     })();
     return () => { cancelled = true; };
-  }, [activeTab, campaigns]);
+  }, [campaigns]);
   const pageTitle = businessTabs.find(tab => tab.id === activeTab)?.label.replace(/\s\(\d+\)$/, '') || 'Business Dashboard';
   const pageDescription = {
-    overview: `Welcome back, ${user?.nickname}!`,
+    overview: `Welcome back, ${firstName(user, 'there')}!`,
     'post-brief': 'Create a new campaign and attract top creators',
     'pending-bids': 'Review creator proposals and select the best fit for each campaign',
     'browse-creator': 'Discover vetted creators and send private invitations',
     'all-campaigns': 'Track every brief from draft to delivery',
+    'sent-briefs': 'Every private invitation, custom and counter offer you sent — and whether creators accepted, declined or countered',
     'work-review': 'Review submitted creator work and approve deliverables',
     shipments: 'Manage product shipments and creator selection for delivery campaigns',
     wallet: 'Track balance, add funds, and review wallet activity',
     settings: 'Manage brand preferences, profile, billing, and notifications'
-  }[activeTab] || `Welcome back, ${user?.nickname}!`;
+  }[activeTab] || `Welcome back, ${firstName(user, 'there')}!`;
   const dashboardMetrics = dashboardData?.metrics || {};
   const dashboardPerformanceRaw = (dashboardData?.campaign_performance || []).length
     ? dashboardData.campaign_performance
@@ -899,7 +1076,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     const creatorEntries = new Map();
     campaigns.forEach(campaign => {
       (campaign.bids || []).forEach(bid => {
-        const creatorName = bid.creator_nickname || bid.creator_name || bid.creator_id;
+        const creatorName = String(bid.creator_name || bid.creator_nickname || bid.creator_id || '').replace(/^@+/, '').trim().split(/\s+/)[0];
         if (creatorName) {
           creatorEntries.set(bid.creator_id || creatorName, {
             id: bid.creator_id,
@@ -911,7 +1088,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       });
     });
     dashboardActiveDeals.forEach(deal => {
-      const creatorName = deal.creator_nickname || deal.creator_name || deal.creator_id;
+      const creatorName = String(deal.creator_name || deal.creator_nickname || deal.creator_id || '').replace(/^@+/, '');
       if (creatorName) {
         creatorEntries.set(deal.creator_id || creatorName, {
           id: deal.creator_id,
@@ -922,7 +1099,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       }
     });
     workSubmissions.forEach(work => {
-      const creatorName = work.creator_nickname || work.creator_name || work.creator_id;
+      const creatorName = String(work.creator_name || work.creator_nickname || work.creator_id || '').replace(/^@+/, '');
       if (creatorName) {
         creatorEntries.set(work.creator_id || creatorName, {
           id: work.creator_id,
@@ -950,7 +1127,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           key: `deal-${deal.campaign_id || deal.campaign_title}`,
           type: 'Deal',
           title: deal.campaign_title || 'Untitled deal',
-          meta: `${deal.creator_nickname ? `@${String(deal.creator_nickname).replace(/^@/, '')}` : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
+          meta: `${(deal.creator_name || deal.creator_nickname) ? (String(deal.creator_name || deal.creator_nickname).replace(/^@/, '').trim().split(/\s+/)[0]) : 'Creator pending'} • ${deal.stage_label || deal.stage || 'Active'}`,
           target: deal.campaign_id ? `/campaign/${deal.campaign_id}` : '/dashboard/business'
         });
       }
@@ -1007,35 +1184,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const filteredCampaigns = campaigns.filter(campaign => {
     return dashboardItemMatches(campaign.title, campaign.brief_text, campaign.category, campaign.status, campaign.deliverables);
   });
-  // Demo fallback so the panel isn't empty before any real wallet activity.
-  const DUMMY_WALLET_TXNS = [
-    { id: 'dw1', date: '2026-06-28T10:12:00Z', type: 'Wallet Recharge', reference: 'RCG-10241', amount: 10000, direction: 'credit', status: 'success' },
-    { id: 'dw2', date: '2026-06-28T10:12:05Z', type: 'Recharge Bonus', reference: 'BON-10241', amount: 500, direction: 'credit', status: 'success' },
-    { id: 'dw3', date: '2026-06-26T15:40:00Z', type: 'Escrow Hold', reference: 'jumbo sandwich', amount: 998, direction: 'debit', status: 'success' },
-    { id: 'dw4', date: '2026-06-25T09:05:00Z', type: 'Campaign Payout', reference: 'Creator Canvas · 1 video', amount: 3899, direction: 'debit', status: 'success' },
-    { id: 'dw5', date: '2026-06-24T18:22:00Z', type: 'Platform Fee', reference: 'FEE-9932', amount: 975, direction: 'debit', status: 'success' },
-    { id: 'dw6', date: '2026-06-22T12:00:00Z', type: 'Escrow Release', reference: 'launch', amount: 1000, direction: 'credit', status: 'success' },
-  ];
-  const walletTxnSource = walletData.transactions.length ? walletData.transactions : DUMMY_WALLET_TXNS;
-  const walletTransactions = walletTxnSource.filter((transaction) => {
+  const walletTransactions = walletData.transactions.filter((transaction) => {
     if (walletFilter === 'credits') return transaction.direction === 'credit';
     if (walletFilter === 'debits') return transaction.direction === 'debit';
     return true;
   });
-  // Demo fallback so the bonus panel shows tiers before any real config loads.
-  const DUMMY_BONUS_TIERS = [
-    { amount: 5000, label: 'Rs. 5,000', bonus_percent: 3 },
-    { amount: 10000, label: 'Rs. 10,000', bonus_percent: 5 },
-    { amount: 25000, label: 'Rs. 25,000', bonus_percent: 8 },
-    { amount: 50000, label: 'Rs. 50,000', bonus_percent: 12 },
-  ];
-  const DUMMY_BONUS = {
-    current_tier_percent: 5, next_tier_percent: 8,
-    current_tier_amount: 10000, next_tier_amount: 25000,
-    amount_to_next_tier: 15000, progress_percent: 40,
-  };
-  const walletBonusTiers = walletData.bonus_tiers.length ? walletData.bonus_tiers : DUMMY_BONUS_TIERS;
-  const walletBonus = Object.keys(walletData.recharge_bonus || {}).length ? walletData.recharge_bonus : DUMMY_BONUS;
+  const walletBonusTiers = walletData.bonus_tiers || [];
   const performanceLeftMax = 120;
   const performanceRightMax = 80;
   const chartTop = 28;
@@ -1068,94 +1222,15 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   };
 
-  if (user?.approval_status === 'pending') {
-    return (
-      <div className="bd-status-page">
-        <section className="bd-status-card">
-          <CheckCircle size={68} />
-          <p className="bd-eyebrow">Business verification</p>
-          <h1>Profile Under Review</h1>
-          <p>Your business profile is being verified by our team. Most accounts are approved within 24-48 hours, and we'll notify you via email once you're cleared to launch campaigns.</p>
-          <button type="button" onClick={handleLogout} data-testid="home-btn">Back to Home</button>
-        </section>
-
-        <style>{`
-          .bd-status-page {
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            padding: 24px;
-            background: #0a0a0f;
-          }
-
-          .bd-status-card {
-            width: min(680px, 100%);
-            padding: 52px;
-            border-radius: 24px;
-            background: #141420;
-            color: #f4f4f8;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 16px 54px rgba(0, 0, 0, 0.55);
-          }
-
-          .bd-status-card :global(svg) {
-            color: #f4f4f8;
-          }
-
-          .bd-eyebrow {
-            margin: 18px 0 8px;
-            color: #9a9ad6;
-            font-size: 12px;
-            font-weight: 400;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-          }
-
-          .bd-status-card h1 {
-            margin: 0 0 12px;
-            font-size: var(--fs-h1);
-            color: #f4f4f8;
-          }
-
-          .bd-status-card p:not(.bd-eyebrow) {
-            margin: 0 auto 28px;
-            max-width: 460px;
-            color: #9b9bb0;
-            line-height: 1.6;
-          }
-
-          .bd-status-card button {
-            border: 0;
-            border-radius: 12px;
-            padding: 13px 22px;
-            background: #f4f4f8;
-            color: #0a0a0f;
-            font-weight: 600;
-            cursor: pointer;
-          }
-
-          @media (max-width: 600px) {
-            .bd-status-card {
-              padding: 24px;
-              border-radius: 18px;
-            }
-          }
-        `}</style>
-      </div>
-    );
+  if (user?.approval_status === 'rejected') {
+    return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
   }
 
-  if (user?.approval_status === 'rejected') {
-    return (
-      <div className="dashboard-container">
-        <div className="approval-pending">
-          <h2>Profile Not Approved</h2>
-          <p>Unfortunately, your profile was not approved. Please contact support.</p>
-          <button className="btn-primary" onClick={handleLogout}>Back to Home</button>
-        </div>
-      </div>
-    );
+  // An admin asking for more info used to fall through every gate here and render
+  // the normal dashboard — with all its data fetches skipped (they require
+  // 'approved'), so the brand saw an empty dashboard and no explanation.
+  if (user?.approval_status === 'more_info') {
+    return <MoreInfoGate user={user} kind="business" onLogout={handleLogout} />;
   }
 
   return (
@@ -1168,7 +1243,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           </div>
         )}
 
-        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
+        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet', 'sent-briefs'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
         {activeTab === 'overview' && (
           <>
             <div className="brand-metrics-grid">
@@ -1276,7 +1351,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     return (
                     <div className="deals-row" key={deal.campaign_id}>
                       <strong className="deal-title" data-label="Campaign">{deal.campaign_title || 'Untitled Campaign'}</strong>
-                      <span className="creator-handle" data-label="Creator">{deal.public_creator_id || (deal.creator_nickname ? `@${deal.creator_nickname.replace(/^@/, '')}` : '-')}</span>
+                      <span className="creator-handle" data-label="Creator">{(deal.creator_name || deal.creator_nickname) ? String(deal.creator_name || deal.creator_nickname).replace(/^@/, '').trim().split(/\s+/)[0] : (deal.public_creator_id || '-')}</span>
                       <span className={`deal-stage ${tone}`} data-label="Stage">{deal.stage_label || deal.stage || '-'}</span>
                       <span className="deal-date" data-label="Due Date">{formatDate(deal.due_date)}</span>
                       <strong className="deal-funds" data-label="Funds Hold">{formatMoney(deal.escrow_amount)}</strong>
@@ -1544,19 +1619,248 @@ export default function BusinessDashboard({ page = 'overview' }) {
             </div>
           )}
 
-          {activeTab === 'pending-bids' && (
+          {activeTab === 'sent-briefs' && (() => {
+            // Compact row action (View Deal / Open Chat) — the global .btn-primary is a
+            // full-size CTA, far too chunky sitting inside a list row.
+            const COMPACT_ACTION_BTN = {
+              // Keep the icon + label on ONE row — the global .btn-primary lets its
+              // flex items wrap, so in a narrow column they stacked vertically.
+              display: 'inline-flex', flexDirection: 'row', flexWrap: 'nowrap',
+              alignItems: 'center', justifyContent: 'center',
+              whiteSpace: 'nowrap', padding: '8px 14px', fontSize: 13,
+              borderRadius: 10, gap: 6, boxShadow: 'none', minWidth: 0, width: 'auto',
+              // Parent is a column flex (align-items: stretch), which squeezed the
+              // button to the column width — size it to its own content instead.
+              alignSelf: 'flex-start',
+            };
+            // Color + label for each lifecycle status the backend buckets briefs into.
+            const STATUS_META = {
+              sent:      { label: 'Sent',      color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+              accepted:  { label: 'Accepted',  color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+              declined:  { label: 'Declined',  color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
+              countered: { label: 'Countered', color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe' },
+              expired:   { label: 'Expired',   color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
+              revoked:   { label: 'Withdrawn', color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
+            };
+            const DECLINE_LABELS = {
+              not_my_niche: 'Not my niche', budget: 'Budget too low',
+              timeline: 'Timeline too tight', unavailable: 'Unavailable', other: 'Other',
+            };
+            const FILTERS = [
+              { key: 'all', label: 'All' },
+              { key: 'sent', label: 'Sent' },
+              { key: 'accepted', label: 'Accepted' },
+              { key: 'declined', label: 'Declined' },
+              { key: 'countered', label: 'Countered' },
+              { key: 'expired', label: 'Expired' },
+            ];
+            const countFor = (key) => key === 'all'
+              ? briefs.length
+              : briefs.filter(b => (key === 'expired' ? ['expired', 'revoked'] : [key]).includes(b.status_bucket)).length;
+            const visible = briefFilter === 'all'
+              ? briefs
+              : briefs.filter(b => (briefFilter === 'expired' ? ['expired', 'revoked'] : [briefFilter]).includes(b.status_bucket));
+            const briefAmount = (b) => {
+              if (b.amount == null || b.amount === '') return '—';
+              const s = String(b.amount);
+              return /^[₹\s]*[\d,.\s]+$/.test(s) ? formatMoney(s.replace(/[₹,\s]/g, '')) : s;
+            };
+            const briefDate = (v) => {
+              if (!v) return '';
+              const d = new Date(v);
+              return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            };
+            return (
+            <div className="all-campaigns-section">
+              {/* Title/description live in the page header above — this row only
+                  carries the actions so the heading isn't duplicated. */}
+              <div className="sent-briefs-actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <div className="sent-briefs-hero-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                  {/* Mobile only: replaces the tab strip below with a dropdown. */}
+                  <div className="wr-filter-wrap" ref={briefFilterRef}>
+                    <button type="button" className="wr-filter-btn" onClick={() => setBriefFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={briefFilterOpen}>
+                      <Filter size={16} /> Filter
+                    </button>
+                    {briefFilterOpen && (
+                      <div className="wr-filter-menu" role="menu">
+                        {FILTERS.map(f => (
+                          <button
+                            key={f.key}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={briefFilter === f.key}
+                            className={briefFilter === f.key ? 'is-active' : ''}
+                            onClick={() => { setBriefFilter(f.key); setBriefFilterOpen(false); }}
+                          >
+                            {f.label} <em>({countFor(f.key)})</em>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop: "Filter" expands its status options left→right on hover/click.
+                  Hidden on mobile (the actions-row Filter is used there). */}
+              <div
+                ref={cfBriefRef}
+                className={`cf-filter-row sent-briefs-tabs${(briefFilterExpanded || briefFilterHover) ? ' is-open' : ''}`}
+                onMouseEnter={() => setBriefFilterHover(true)}
+                onMouseLeave={() => setBriefFilterHover(false)}
+              >
+                <button type="button" className="cf-filter-btn" onClick={() => setBriefFilterExpanded((v) => !v)} aria-expanded={briefFilterExpanded || briefFilterHover}>
+                  <Filter size={16} /> Filter
+                </button>
+                <div className="cf-options">
+                  <div className="cf-options-inner">
+                    {FILTERS.map(f => (
+                      <button key={f.key} type="button" className={briefFilter === f.key ? 'is-active' : ''} onClick={() => setBriefFilter(f.key)}>
+                        {f.label} <em>({countFor(f.key)})</em>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {briefsLoading ? (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} aria-hidden="true" style={{
+                      display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
+                      background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
+                    }}>
+                      {/* 44px avatar — matches the creator photo/initial */}
+                      <Skeleton width={44} height={44} radius="50%" style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* name + type chip + status pill (pill pushed right) */}
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                          <Skeleton width={120} height={14} />
+                          <Skeleton width={60} height={16} radius={6} />
+                          <Skeleton width={80} height={18} radius={999} style={{ marginLeft: 'auto' }} />
+                        </div>
+                        {/* campaign name */}
+                        <Skeleton width="55%" height={14} style={{ marginBottom: 10 }} />
+                        {/* meta row: amount / timeline / sent date */}
+                        <div style={{ display: 'flex', gap: 14 }}>
+                          <Skeleton width={70} height={12} />
+                          <Skeleton width={70} height={12} />
+                          <Skeleton width={90} height={12} />
+                        </div>
+                      </div>
+                      {/* action button (View Deal / Open Chat) */}
+                      <Skeleton width={110} height={36} radius={8} style={{ flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </div>
+              ) : briefs.length === 0 ? (
+                <div className="all-campaigns-empty">
+                  <span><Send size={48} /></span>
+                  <h3>No briefs sent yet</h3>
+                  <p>When you invite a creator or send a custom/counter offer, it will show up here with its status.</p>
+                  <button className="btn-primary" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse Creators</button>
+                </div>
+              ) : visible.length === 0 ? (
+                <div className="all-campaigns-empty">
+                  <span><Filter size={48} /></span>
+                  <h3>No {briefFilter} briefs</h3>
+                  <p>Try a different status filter.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {visible.map(b => {
+                    const meta = STATUS_META[b.status_bucket] || STATUS_META.sent;
+                    const initial = (b.creator_name || 'C').trim().charAt(0).toUpperCase();
+                    return (
+                      <div key={b.id} data-testid={`brief-${b.id}`} style={{
+                        display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
+                        background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
+                      }}>
+                        <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0 }}>
+                          {/* Initial sits underneath as the fallback; the photo overlays it
+                              and, if it fails to load, hides to reveal the initial again. */}
+                          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#07074E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{initial}</div>
+                          {b.creator_photo && (
+                            <img
+                              src={b.creator_photo.startsWith('http') ? b.creator_photo : `${BACKEND_URL}${b.creator_photo.startsWith('/') ? '' : '/'}${b.creator_photo}`}
+                              alt=""
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              style={{ position: 'absolute', inset: 0, width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                            <strong style={{ fontSize: 15, color: '#07074E' }}>{String(b.creator_name || 'Creator').trim().split(/\s+/)[0]}</strong>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#5b6bff', background: '#eef0ff', padding: '2px 8px', borderRadius: 6 }}>{b.type_label}</span>
+                          </div>
+                          <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginBottom: 6 }}>
+                            {b.campaign_name || b.deliverable_summary || 'Untitled brief'}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 13, color: '#6b7280' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IndianRupee size={13} /> {briefAmount(b)}</span>
+                            {b.timeline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock3 size={13} /> {b.timeline}</span>}
+                            {b.created_at && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><FileText size={13} /> Sent {briefDate(b.created_at)}</span>}
+                          </div>
+                          {b.status_bucket === 'declined' && b.decline_reason && (
+                            <div style={{ marginTop: 8, fontSize: 12.5, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              <AlertCircle size={13} /> Declined: {DECLINE_LABELS[b.decline_reason] || b.decline_reason}{b.response_note ? ` — "${b.response_note}"` : ''}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, alignItems: 'flex-end' }}>
+                          {/* Status pill lives here (not in the name row) so it doesn't
+                              wrap to its own line and push "Video" + the meta down. */}
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, color: meta.color, background: meta.bg,
+                            border: `1px solid ${meta.border}`, padding: '2px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+                          }}>{meta.label}</span>
+                          {b.status_bucket === 'accepted' && b.deal_campaign_id ? (
+                            <button type="button" className="btn-primary" style={COMPACT_ACTION_BTN} onClick={() => setModalView({ type: 'campaign', id: b.deal_campaign_id })}>
+                              <Eye size={14} /> View Deal
+                            </button>
+                          ) : (
+                            <button type="button" className="btn-secondary" style={COMPACT_ACTION_BTN} onClick={() => navigate(`/messages?conv=${b.creator_id}`)}>
+                              <MessageSquare size={14} /> Open Chat
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            );
+          })()}
+
+          {activeTab === 'pending-bids' && (() => {
+            const bidCampaigns = campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator);
+            const current = bidCampaigns.find(c => c.id === bidCampaignId) || bidCampaigns[0];
+            return (
             <div className="cb-section">
-              {campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).length === 0 ? (
+              {bidCampaigns.length === 0 ? (
                 <div className="empty-state">
                   <Users size={64} />
                   <p>No pending bids at the moment</p>
                 </div>
               ) : (
+                <>
+                {bidCampaigns.length > 1 && (
+                  <div className="cb-campaign-filter">
+                    <span>Campaign</span>
+                    <select value={current.id} onChange={(e) => setBidCampaignId(e.target.value)}>
+                      {bidCampaigns.map(c => (
+                        <option key={c.id} value={c.id}>{c.title} · {(c.bids || []).length} bid{(c.bids || []).length === 1 ? '' : 's'}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="cb-list">
-                  {campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator).map(campaign => (
+                  {current && (
                     <BidsCampaignCard
-                      key={campaign.id}
-                      campaign={campaign}
+                      key={current.id}
+                      campaign={current}
                       onAccept={handleAcceptBid}
                       onViewCampaign={(id) => setModalView({ type: 'campaign', id })}
                       onViewProfile={(id, bid) => {
@@ -1565,11 +1869,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         setProfileView({ id: creatorId, name: bid?.creator_nickname || bid?.public_creator_id, photo: bid?.creator_photo || bid?.profile_photo });
                       }}
                     />
-                  ))}
+                  )}
                 </div>
+                </>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'browse-creator' && (
             <div className="creator-directory-section">
@@ -1791,13 +2097,25 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 <section className="wallet-hero-card">
                   <div>
                     <span className="wallet-kicker"><Wallet size={18} /> Brand Wallet • UGCad</span>
-                    <p>Available Balance</p>
-                    <h2>{walletLoading ? 'Loading...' : formatMoney(walletData.available_balance)}</h2>
-                    <small>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
+                    {/* Chat-status sits on the SAME line as the "Available Balance"
+                        label (right-aligned), rather than below the amount. */}
+                    <div className="wallet-bal-line">
+                      <p>Available Balance</p>
+                      {/* Don't show the locked/unlocked status until the balance has
+                          actually loaded — otherwise the default 0 makes it read
+                          "minimum required" for a moment. */}
+                      {!walletLoading && (
+                        <small className={`wallet-chat-status ${walletData.chat_unlocked ? 'is-unlocked' : ''}`}>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
+                      )}
+                    </div>
+                    <h2>{walletLoading ? <span className="wallet-bal-loading">Loading…</span> : formatMoney(walletData.available_balance)}</h2>
                   </div>
+                  {/* The side panel's only remaining row (Platform chat · Unlocked) now
+                      duplicates the inline status next to Available Balance, so it's
+                      removed — leaving the hero as a single clean balance block. */}
                 </section>
 
-                {!walletData.chat_unlocked && (
+                {!walletLoading && !walletData.chat_unlocked && (
                   <section className="wallet-warning">
                     <AlertCircle size={18} />
                     <div>
@@ -1810,10 +2128,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
                 <section className="wallet-panel wallet-bonus-tiers">
                   <div>
-                    <h2>Recharge Bonus Tiers</h2>
-                    <p>Get more with bigger recharges. Bonus credited instantly after payment confirmation.</p>
+                    <h2>Recharge Bonus</h2>
+                    <p>Bigger recharges earn a bigger instant bonus.</p>
                   </div>
-                  <span>Active: +{walletBonus.current_tier_percent || 0}%</span>
                   <div className="wallet-tier-grid">
                     {walletBonusTiers.map((tier) => (
                       <button key={tier.amount} type="button" onClick={() => setWalletAmount(String(tier.amount))}>
@@ -1824,59 +2141,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   </div>
                 </section>
 
-                <section className="wallet-panel wallet-history">
-                  <div className="wallet-history-head">
-                    <div>
-                      <h2>Transaction History</h2>
-                      <p>All wallet activity across recharges, escrow, and fees.</p>
-                    </div>
-                    <div className="wallet-filter-tabs">
-                      {['all', 'credits', 'debits'].map((filter) => (
-                        <button
-                          key={filter}
-                          type="button"
-                          className={walletFilter === filter ? 'active' : ''}
-                          onClick={() => setWalletFilter(filter)}
-                        >
-                          {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {walletError ? (
-                    <div className="wallet-empty">{walletError}</div>
-                  ) : walletLoading ? (
-                    <div className="wallet-empty">Loading wallet activity...</div>
-                  ) : walletTransactions.length === 0 ? (
-                    <div className="wallet-empty">No wallet transactions yet.</div>
-                  ) : (
-                    <div className="wallet-table">
-                      <div className="wallet-row wallet-head">
-                        <span>Date</span>
-                        <span>Type</span>
-                        <span>Reference</span>
-                        <span>Amount</span>
-                        <span>Status</span>
-                      </div>
-                      {walletTransactions.slice(0, 8).map((transaction) => (
-                        <div className="wallet-row" key={transaction.id}>
-                          <span>{formatWalletDate(transaction.date)}</span>
-                          <strong>{transaction.type}</strong>
-                          <span>{transaction.reference || '-'}</span>
-                          <strong className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
-                            {transaction.direction === 'debit' ? '-' : '+'}{formatMoney(transaction.amount)}
-                          </strong>
-                          <span className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
               </div>
 
               <aside className="wallet-side-column">
-                <section className="wallet-panel wallet-recharge-card">
+                <section className="wallet-panel wallet-recharge-card" id="wallet-recharge">
                   <div className="wallet-side-title">
                     <h2>Quick Recharge</h2>
                   </div>
@@ -1886,7 +2154,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <input
                       id="wallet-amount"
                       type="number"
-                      min="5000"
+                      min={walletData.minimum_chat_balance || 2500}
                       value={walletAmount}
                       onChange={(event) => setWalletAmount(event.target.value)}
                       placeholder="Enter amount"
@@ -1897,12 +2165,113 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <button key={amount} type="button" onClick={() => setWalletAmount(String(amount))}>{formatMoney(amount).replace(',000', 'K')}</button>
                     ))}
                   </div>
-                  <button type="button" className="wallet-add-funds" onClick={() => handleWalletRecharge()} disabled={rechargingWallet}>
+                  <button
+                    type="button"
+                    className="wallet-add-funds"
+                    onClick={() => handleWalletRecharge()}
+                    disabled={rechargingWallet}
+                  >
                     <Zap size={18} /> {rechargingWallet ? 'Creating Order...' : 'Add Funds'}
                   </button>
-                  <small>Minimum {formatMoney(5000)} • Instant credit after payment verification</small>
+                  <small>Minimum {formatMoney(walletData.minimum_chat_balance || 2500)} • Instant credit after payment verification</small>
                 </section>
               </aside>
+
+              <section className="wallet-panel wallet-history wallet-history-full" id="wallet-history">
+                <div className="wallet-history-head">
+                  <div>
+                    <h2>Transaction History</h2>
+                    <p>All wallet activity across recharges, escrow, and fees.</p>
+                  </div>
+                  <div className="wallet-filter-tabs">
+                    {['all', 'credits', 'debits'].map((filter) => (
+                      <button
+                        key={filter}
+                        type="button"
+                        className={walletFilter === filter ? 'active' : ''}
+                        onClick={() => setWalletFilter(filter)}
+                      >
+                        {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {walletError ? (
+                  <div className="wallet-empty">{walletError}</div>
+                ) : walletLoading ? (
+                  <div className="wallet-table" aria-hidden="true">
+                    <div className="wallet-row wallet-head">
+                      <span>Date</span><span>Type</span><span>Reference</span><span>Amount</span><span>Status</span>
+                    </div>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div className="wallet-row" key={i}>
+                        <Skeleton width="70%" height={12} />
+                        <Skeleton width="55%" height={12} />
+                        <Skeleton width="60%" height={12} />
+                        <Skeleton width="45%" height={12} />
+                        <Skeleton width={64} height={18} radius={999} />
+                      </div>
+                    ))}
+                  </div>
+                ) : walletTransactions.length === 0 ? (
+                  <div className="wallet-empty">No wallet transactions yet.</div>
+                ) : (
+                  <div className="wallet-table">
+                    <div className="wallet-row wallet-head">
+                      <span>Date</span>
+                      <span>Type</span>
+                      <span>Reference</span>
+                      <span>Amount</span>
+                      <span>Status</span>
+                    </div>
+                    {walletTransactions.slice(0, 8).map((transaction) => (
+                      <div className={`wallet-row wallet-row--clickable wallet-row--${transaction.direction === 'debit' ? 'out' : 'in'}`} key={transaction.id}
+                        role="button" tabIndex={0}
+                        onClick={() => setTxnDetail(transaction)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTxnDetail(transaction); } }}
+                        title="View details">
+                        {/* Icon column — desktop hides it (the table has no icon column);
+                            mobile shows the reference-style circular in/out badge. */}
+                        <span className="wallet-row-ic" aria-hidden="true">
+                          {transaction.direction === 'debit' ? <ArrowUpRight size={17} /> : <ArrowDownLeft size={17} />}
+                        </span>
+                        <span data-label="Date">{formatWalletDate(transaction.date)}</span>
+                        <strong data-label="Type">{transaction.type}</strong>
+                        <span data-label="Reference">{transaction.reference || '-'}</span>
+                        <strong data-label="Amount" className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
+                          {transaction.direction === 'debit' ? '-' : '+'}{formatMoney(transaction.amount)}
+                        </strong>
+                        <span data-label="Status" className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {txnDetail && (
+                <div className="txn-overlay" onClick={() => setTxnDetail(null)}>
+                  <div className="txn-modal" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" className="txn-close" aria-label="Close" onClick={() => setTxnDetail(null)}><X size={18} /></button>
+                    <span className={`txn-amt ${txnDetail.direction === 'debit' ? 'out' : 'in'}`}>
+                      {txnDetail.direction === 'debit' ? '-' : '+'}{formatMoney(txnDetail.amount)}
+                    </span>
+                    <strong className="txn-type">{txnDetail.type}</strong>
+                    <span className={`wallet-status ${txnDetail.status}`}>{txnDetail.status || 'success'}</span>
+                    <div className="txn-rows">
+                      <div className="txn-r"><span>Direction</span><strong>{txnDetail.direction === 'debit' ? 'Debit (out)' : 'Credit (in)'}</strong></div>
+                      <div className="txn-r"><span>Date</span><strong>{formatWalletDate(txnDetail.date)}</strong></div>
+                      {txnDetail.reference && <div className="txn-r"><span>Campaign / Ref</span><strong>{txnDetail.reference}</strong></div>}
+                      <div className="txn-r"><span>Transaction ID</span><strong className="txn-mono">{txnDetail.id}</strong></div>
+                    </div>
+                    {txnDetail.reference && /^[0-9a-f-]{8,}$/i.test(String(txnDetail.reference)) && (
+                      <button type="button" className="txn-open" onClick={() => { setTxnDetail(null); setModalView({ type: 'campaign', id: txnDetail.reference }); }}>
+                        View campaign
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1924,7 +2293,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 const TABS = [['all', 'All Shipments'], ['transit', 'In Transit'], ['delivered', 'Delivered']];
                 const rows = ship.filter((c) => (shipTab === 'all' ? true : statusOf(c) === shipTab));
                 const cr = (id) => creatorDirectory.find((x) => x.id === id) || {};
-                const cname = (c) => { const u = cr(c.selected_creator); return u.username ? `@${u.username}` : (u.nickname || u.full_name || (c.selected_creator ? 'Creator' : 'Not selected')); };
+                const cname = (c) => { const u = cr(c.selected_creator); const nm = String(u.full_name || u.name || u.nickname || u.username || (c.selected_creator ? 'Creator' : 'Not selected')).replace(/^@+/, '').trim(); return c.selected_creator ? (nm.split(/\s+/)[0] || nm) : nm; };
                 const cinit = (c) => (cname(c).replace('@', '')[0] || 'C').toUpperCase();
                 const cphoto = (c) => cr(c.selected_creator).profile_photo;
 
@@ -1974,7 +2343,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                                 <td className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '—'}</td>
                                 <td className="ship-action">
                                   {c.selected_creator
-                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id })}>{st === 'delivered' ? 'View' : 'Track'}</button>
+                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id, ship: st !== 'delivered' && st !== 'transit' })}>{st === 'delivered' ? 'View' : st === 'transit' ? 'Track' : 'Ship'}</button>
                                     : <button type="button" onClick={() => setModalView({ type: 'campaign', id: c.id })}>Select</button>}
                                 </td>
                               </tr>
@@ -2012,6 +2381,25 @@ export default function BusinessDashboard({ page = 'overview' }) {
               </div>
 
               <div className="form-group">
+                <label>Campaign Banner / Image</label>
+                <label className="campaign-img-drop">
+                  {formData.image_url ? (
+                    <>
+                      <img src={formData.image_url.startsWith('http') ? formData.image_url : `${BACKEND_URL}${formData.image_url}`} alt="" className="campaign-img-preview" />
+                      <span className="campaign-img-change">{campaignImgUploading ? 'Uploading…' : 'Change image'}</span>
+                    </>
+                  ) : (
+                    <span className="campaign-img-empty">
+                      <ImageIcon size={22} />
+                      <strong>{campaignImgUploading ? 'Uploading…' : 'Add a banner or image for your campaign'}</strong>
+                      <small>Make it look more exciting for creators · JPG/PNG, up to 5MB (optional)</small>
+                    </span>
+                  )}
+                  <input type="file" accept="image/*" hidden onChange={handleCampaignImage} />
+                </label>
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="objectives">Campaign Objectives</label>
                 <div className="objective-input-wrapper">
                   <input
@@ -2043,9 +2431,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <label htmlFor="budget_min">Min Budget (₹)</label>
                   <input
                     id="budget_min"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.budget_min}
-                    onChange={(e) => handleInputChange('budget_min', e.target.value)}
+                    onKeyDown={blockNonDigitKey}
+                    onChange={(e) => handleInputChange('budget_min', digitsOnly(e.target.value))}
                     className="input-field"
                     placeholder="100"
                     required
@@ -2056,9 +2446,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <label htmlFor="budget_max">Max Budget (₹)</label>
                   <input
                     id="budget_max"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.budget_max}
-                    onChange={(e) => handleInputChange('budget_max', e.target.value)}
+                    onKeyDown={blockNonDigitKey}
+                    onChange={(e) => handleInputChange('budget_max', digitsOnly(e.target.value))}
                     className="input-field"
                     placeholder="500"
                     required
@@ -2275,9 +2667,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           /* Compact, SaaS-grade type scale — overrides the oversized global clamp()
              sizes just inside this dashboard (matches the creator dashboard). */
-          --fs-h1: 24px;   /* page title (reduced ~11%) */
-          --fs-h2: 17px;   /* section / card titles (reduced ~11%) */
-          --fs-h3: 14px;   /* component titles (reduced ~11%) */
+          --fs-h1: 22px;   /* page title */
+          --fs-h2: 16px;   /* section / card titles */
+          --fs-h3: 13.5px; /* component titles */
           --fw-head: 600;  /* real semibold weight for hierarchy */
         }
 
@@ -2550,6 +2942,29 @@ export default function BusinessDashboard({ page = 'overview' }) {
           padding: 20px 40px 40px;
           max-width: 1480px;
           margin: 0 auto;
+        }
+
+        /* Phones: the 40px side padding wasted most of a narrow screen, making
+           tab content (Sent Briefs, Wallet, etc.) look cramped and pushing the
+           filter dropdown/cards against the edge. Reclaim the width and stop any
+           child from forcing a sideways scroll (overflow-y:auto also clips X). */
+        @media (max-width: 600px) {
+          .dashboard-content { padding: 16px 14px 40px; }
+          .transparent-tab-shell,
+          .all-campaigns-section { min-width: 0; max-width: 100%; }
+          .all-campaigns-section .wr-filter-menu { max-width: calc(100vw - 28px); }
+
+          /* Sent Briefs: lift the Filter up onto the title line (top-right),
+             instead of it sitting on its own row below the description. Anchored
+             to .bd-topnav-main; nothing between it and the row is positioned. */
+          .bd-topnav-main { position: relative; }
+          .sent-briefs-actions-row {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0 !important;
+            z-index: 6;
+          }
         }
 
         .post-brief-shell {
@@ -4729,6 +5144,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
           gap: 22px;
         }
 
+        /* Creator Bids — campaign picker (one campaign's bids at a time) */
+        .cb-campaign-filter { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .cb-campaign-filter span { color: #8a8fc0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+        .cb-campaign-filter select {
+          flex: 1; max-width: 460px; border: 1px solid #e6e8f3; border-radius: 12px;
+          padding: 11px 14px; font-family: inherit; font-size: 14px; font-weight: 600;
+          color: #15163a; background: #fff; cursor: pointer; outline: none;
+        }
+        .cb-campaign-filter select:focus { border-color: #5b6bff; }
+
         /* ---- Creator Bids (redesigned) ---- */
         .cb-section { display: flex; flex-direction: column; gap: 20px; }
         .cb-head h2 { margin: 0; font-size: 26px; font-weight: 800; color: #15163a; letter-spacing: -0.4px; }
@@ -4865,6 +5290,17 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
         .cb-star:hover { border-color: #ffd24a; color: #ffb800; }
         .cb-star.on { border-color: #ffd24a; background: #fff8e6; color: #ffb800; }
+        /* Star now lives on the name row: no button box/background, just the
+           icon, nudged further right (away from the name) via extra margin. */
+        .cb-bid-name { width: 100%; }
+        .cb-bid-name .cb-star {
+          /* margin-right pushes the star AWAY from the edge (left) — keep it small/zero
+             so the auto left-margin can carry the star as far right as possible. */
+          margin-left: auto; margin-right: 0; width: 40px; height: 40px; font-size: 26px;
+          border: none; background: none;
+        }
+        .cb-bid-name .cb-star:hover { background: none; }
+        .cb-bid-name .cb-star.on { background: none; }
         .cb-view-profile {
           min-height: 40px; padding: 0 18px;
           border: 1px solid #e0e2f0; border-radius: 11px;
@@ -4885,7 +5321,21 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #b0496a; font-weight: 600; font-size: 13px; font-family: inherit; padding: 4px;
         }
         .cb-decline:hover { text-decoration: underline; }
+        .cb-declined-tag { display:inline-flex; align-items:center; padding:7px 14px; border-radius:999px; background:#fee2e2; color:#b42318; font-weight:700; font-size:13px; }
         .cb-empty { padding: 40px; text-align: center; color: #9296ba; font-size: 14px; }
+
+        /* "View all N bids" — only 3 show by default, this reveals the rest. */
+        .cb-view-all {
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          width: 100%; padding: 14px; margin-top: -1px;
+          border: none; border-top: 1px solid #f0f1f9; border-radius: 0 0 20px 20px;
+          background: #fafbff; color: #5b6bff; font-family: inherit; font-weight: 700; font-size: 13.5px;
+          cursor: pointer; transition: background .15s;
+        }
+        .cb-view-all:hover { background: #f2f3ff; }
+
+        /* Mobile expand/collapse arrow — hidden on desktop where everything already shows. */
+        .cb-expand { display: none; }
 
         @media (max-width: 860px) {
           .cb-bid {
@@ -4896,8 +5346,41 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .cb-bid-avatar { width: 56px; height: 56px; }
           .cb-bid-main { flex: 1 1 200px; }
           .cb-bid-stat { flex: 0 0 auto; margin-right: 22px; }
-          .cb-bid-actions { flex: 1 1 100%; justify-content: flex-start; flex-wrap: wrap; }
-          .cb-tabs-row { flex-wrap: wrap; }
+          /* View Profile · Accept · Decline stay on ONE line */
+          .cb-bid-actions { flex: 1 1 100%; justify-content: flex-start; flex-wrap: nowrap; gap: 8px; }
+          .cb-view-profile { flex: 1 1 auto; padding: 0 12px; min-width: 0; }
+          .cb-accept { flex: 1 1 auto; padding: 0 14px; min-width: 0; }
+          .cb-decline { flex: 0 0 auto; padding: 4px 2px; }
+
+          /* Collapsed by default: just avatar + name + star + arrow. Everything
+             else (pitch, price, delivery, actions) is hidden until expanded. */
+          .cb-expand {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; margin-left: auto; flex-shrink: 0;
+            border: none; background: none; color: #868ab0; cursor: pointer;
+            transition: transform .2s ease;
+          }
+          .cb-bid.is-open .cb-expand { transform: rotate(180deg); color: #5b6bff; }
+          .cb-bid-collapsible { display: none; }
+          .cb-bid.is-open .cb-bid-collapsible { display: block; }
+          .cb-bid.is-open .cb-bid-actions.cb-bid-collapsible { display: flex; }
+          .cb-bid-avatar { align-self: flex-start; }
+
+          /* Campaign header: View Campaign drops to its own full-width row so the
+             "Budget: … • N Application" line has room to sit on ONE line. */
+          .cb-campaign { flex-wrap: wrap; }
+          .cb-view-campaign { flex: 1 1 100%; }
+          .cb-campaign-info p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+          /* Tabs on ONE horizontally-scrollable line, Filters pinned to the right.
+             overflow-y:hidden stops the strip from also scrolling up/down (which
+             the active-tab underline, sitting 15px below the button, triggered). */
+          .cb-tabs-row { flex-wrap: nowrap; gap: 10px; }
+          .cb-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; flex: 1; min-width: 0; gap: 16px; scrollbar-width: none; }
+          .cb-tabs::-webkit-scrollbar { display: none; }
+          .cb-tabs button { white-space: nowrap; }
+          .cb-tabs button.active::after { display: none; } /* underline caused the vertical overflow; active tab stays colour-coded */
+          .cb-filters-wrap { flex: none; }
         }
 
         .shipments-section {
@@ -5315,6 +5798,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: 20px;
         }
+        /* Two creator cards side by side are too cramped on a phone — one column. */
+        @media (max-width: 560px) {
+          .creator-directory-grid { grid-template-columns: 1fr; gap: 14px; }
+        }
 
         .creator-directory-card {
           display: flex;
@@ -5623,6 +6110,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex-direction: column;
           gap: 24px;
         }
+        /* Transaction History spans the full width below the two columns */
+        .wallet-history-full { grid-column: 1 / -1; }
 
         .wallet-hero-card {
           display: flex;
@@ -5666,28 +6155,95 @@ export default function BusinessDashboard({ page = 'overview' }) {
           font-weight: 400;
         }
 
-        .wallet-hero-badges {
+        /* "Available Balance" label and the platform-chat status share one row
+           (label left, status right). Defined after the p/small rules above so it
+           wins the equal-specificity tie and can reset their standalone margins. */
+        .wallet-bal-line {
           display: flex;
-          flex-direction: column;
-          align-items: flex-end;
+          align-items: baseline;
+          justify-content: space-between;
           gap: 12px;
+          flex-wrap: wrap;
+          margin: 18px 0 6px;
         }
-
-        .wallet-hero-badges span,
-        .wallet-hero-badges strong {
+        .wallet-bal-line p { margin: 0; }
+        .wallet-bal-line small { margin: 0; text-align: right; }
+        /* Platform-chat status pill. When unlocked it reads as a green success badge. */
+        .wallet-chat-status {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 11px 18px;
+          gap: 6px;
+          padding: 5px 12px;
           border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: rgba(255, 255, 255, 0.09);
-          color: #B7B7E6;
-          font-weight: 400;
+          font-weight: 700;
+          font-size: 12.5px;
+          background: rgba(255, 255, 255, 0.14);
+          color: rgba(255, 255, 255, 0.9);
+        }
+        .wallet-chat-status.is-unlocked {
+          background: rgba(52, 211, 153, 0.18);
+          color: #6ee7b7;
+          border: 1px solid rgba(52, 211, 153, 0.4);
+        }
+        .wallet-bal-loading { font-size: 20px; font-weight: 700; color: rgba(255, 255, 255, 0.72); }
+
+        .wallet-hero-side {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          min-width: 234px;
+          align-self: center;
         }
 
-        .wallet-hero-badges strong {
-          color: #27AE60;
+        .whs-panel {
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          overflow: hidden;
+        }
+
+        .whs-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 10px 15px;
+        }
+        .whs-row + .whs-row {
+          border-top: 1px solid rgba(255, 255, 255, 0.09);
+        }
+        .whs-row span {
+          color: rgba(255, 255, 255, 0.58);
+          font-size: 12.5px;
+        }
+        .whs-row strong {
+          color: #fff;
+          font-size: 13.5px;
+          font-weight: 600;
+        }
+        .whs-row b {
+          font-size: 13px;
+          font-weight: 700;
+        }
+        .whs-row b.ok { color: #4ade80; }
+        .whs-row b.warn { color: #fbbf24; }
+
+        .wallet-hero-cta {
+          width: 100%;
+          padding: 12px 22px;
+          border-radius: 13px;
+          border: 0;
+          background: #fff;
+          color: #171184;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: transform 160ms ease, box-shadow 160ms ease;
+        }
+        .wallet-hero-cta:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.55);
         }
 
         .wallet-warning {
@@ -5725,6 +6281,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
           border-radius: 24px;
           background: white;
           box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06);
+          scroll-margin-top: 90px;
+        }
+        /* Brief highlight when deep-linked from Settings → Billing. */
+        .wallet-panel.wallet-flash { animation: walletFlash 1.6s ease; }
+        @keyframes walletFlash {
+          0% { box-shadow: 0 0 0 3px rgba(68, 82, 240, 0.5); }
+          100% { box-shadow: 0 16px 34px rgba(7, 7, 78, 0.06); }
         }
 
         .wallet-panel h2 {
@@ -5826,6 +6389,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
           padding: 0 32px 24px;
         }
 
+        /* Desktop keeps the 5-column table — the in/out icon is mobile-only. */
+        .wallet-row-ic { display: none; }
         .wallet-row {
           display: grid;
           grid-template-columns: 1fr 1.2fr 1.5fr 1fr 0.9fr;
@@ -5836,6 +6401,28 @@ export default function BusinessDashboard({ page = 'overview' }) {
           color: #6B6B9E;
           font-weight: 400;
         }
+        .wallet-row--clickable { cursor: pointer; transition: background .14s; }
+        .wallet-row--clickable:hover { background: #f7f8ff; }
+
+        /* Transaction detail modal */
+        .txn-overlay { position: fixed; inset: 0; z-index: 1400; background: rgba(15,22,58,.5); backdrop-filter: blur(3px);
+          display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .txn-modal { position: relative; width: min(400px, 100%); background: #fff; border-radius: 20px; padding: 26px 24px;
+          box-shadow: 0 30px 70px -20px rgba(15,22,58,.5); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        .txn-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: none; background: #f1f3fa;
+          color: #15163a; border-radius: 9px; cursor: pointer; display: grid; place-items: center; }
+        .txn-close:hover { background: #e7eaf5; }
+        .txn-amt { font-family: var(--font-head,'Plus Jakarta Sans',sans-serif); font-size: 30px; font-weight: 800; line-height: 1; }
+        .txn-amt.out { color: #e5484d; }
+        .txn-amt.in { color: #16a34a; }
+        .txn-type { font-size: 16px; color: #15163a; }
+        .txn-rows { width: 100%; margin-top: 10px; border-top: 1px solid #eef0f6; padding-top: 12px; display: grid; gap: 10px; }
+        .txn-r { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+        .txn-r span { color: #8a8fb0; }
+        .txn-r strong { color: #15163a; text-align: right; overflow-wrap: anywhere; }
+        .txn-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+        .txn-open { margin-top: 16px; width: 100%; padding: 12px; border: none; border-radius: 12px; cursor: pointer;
+          background: linear-gradient(100deg,#12124f,#07074e); color: #fff; font-weight: 700; font-size: 14px; }
 
         .wallet-head {
           color: #9296ba;
@@ -6442,6 +7029,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
           flex-direction: column;
           gap: 20px;
         }
+        /* campaign banner / image upload */
+        .campaign-img-drop {
+          display: block; position: relative; cursor: pointer; border-radius: 14px; overflow: hidden;
+          border: 1.5px dashed #cdd2f3; background: linear-gradient(140deg, #f7f8ff, #f2f3ff); transition: border-color .15s, background .15s;
+        }
+        .campaign-img-drop:hover { border-color: #5b6bff; background: #eef0ff; }
+        .campaign-img-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 26px 18px; color: #5b6bff; }
+        .campaign-img-empty strong { color: #07074e; font-size: 14.5px; }
+        .campaign-img-empty small { color: #8a8fc0; font-weight: 500; font-size: 12.5px; }
+        .campaign-img-preview { display: block; width: 100%; height: 150px; object-fit: cover; }
+        .campaign-img-change { position: absolute; bottom: 10px; right: 12px; background: rgba(7,7,78,.72); color: #fff;
+          font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
 
         .objective-input-wrapper {
           display: flex;
@@ -6796,6 +7395,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
             align-items: stretch;
           }
 
+          .wallet-hero-side {
+            min-width: 0;
+            align-self: stretch;
+          }
+
           .wallet-hero-card h2 {
             font-size: 42px;
           }
@@ -6805,15 +7409,101 @@ export default function BusinessDashboard({ page = 'overview' }) {
           }
 
           .wallet-side-column,
-          .wallet-tier-grid,
-          .wallet-presets,
           .wallet-progress-body {
             grid-template-columns: 1fr;
           }
 
+          /* Mobile: the three amount chips (bonus tiers + Quick Recharge presets)
+             sit in ONE ROW, three across, instead of stacking full-width. */
+          .wallet-tier-grid,
+          .wallet-presets {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+          }
+          .wallet-tier-grid button,
+          .wallet-presets button {
+            padding: 10px 6px;
+            text-align: center;
+          }
+          .wallet-tier-grid strong { font-size: 13px; }
+          .wallet-tier-grid small { font-size: 11px; margin-top: 2px; }
+
+          /* Compact the Recharge Bonus panel itself. */
+          .wallet-bonus-tiers { gap: 12px; }
+          .wallet-bonus-tiers h2 { font-size: 18px; }
+          .wallet-bonus-tiers p { font-size: 13px; }
+          .wallet-bonus-tiers > span { padding: 6px 11px; font-size: 12px; }
+
+          /* Force the single-column stack. The @media(max-width:980px) rule that
+             does this is defined BEFORE the base two-column rule, so source order
+             let the base win and the 400px sidebar overflowed the screen. This
+             block sits after the base rule, so it actually takes effect. */
+          .wallet-section { grid-template-columns: 1fr; }
+          .wallet-history-full { grid-column: auto; }
+
+          /* Tighter chrome so cards aren't squeezed by desktop-sized padding. */
+          .wallet-hero-card { padding: 20px; }
+          .wallet-hero-card h2 { font-size: 34px; word-break: break-word; }
+          .wallet-history-head { padding: 18px 16px; }
+          .wallet-filter-tabs { flex-wrap: wrap; }
+          .wallet-panel { padding: 18px 16px; }
+          .wallet-recharge-card { padding: 18px 16px; }
+          .wallet-table { padding: 0 12px 16px; }
+
+          /* Mobile transaction list — reference-style rows: a circular in/out icon,
+             the type + date stacked on the left, and the signed amount + status on
+             the right. Replaces the old "labeled cell stack". */
+          .wallet-row.wallet-head { display: none; }   /* two classes to beat the base */
           .wallet-row {
-            grid-template-columns: 1fr;
-            gap: 6px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-areas:
+              "icon type   amount"
+              "icon date   status";
+            align-items: center;
+            column-gap: 12px;
+            row-gap: 2px;
+            border: 1px solid #EEF0FF;
+            border-radius: 16px;
+            padding: 13px 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 6px 16px -12px rgba(15, 22, 58, 0.3);
+          }
+          /* Reset the desktop grid-cell behaviour and remove the data-label prefixes. */
+          .wallet-row > * { display: block; text-align: left; border: 0; padding: 0; }
+          .wallet-row > *::before { content: none; }
+
+          .wallet-row-ic {
+            grid-area: icon;
+            display: grid;
+            place-items: center;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: #f2f3fb;
+            color: #5b6bff;
+          }
+          .wallet-row--in  .wallet-row-ic { background: #E8F8EE; color: #27AE60; }
+          .wallet-row--out .wallet-row-ic { background: #FEECEF; color: #E11D48; }
+
+          .wallet-row [data-label="Type"] {
+            grid-area: type;
+            font-size: 14.5px; font-weight: 700; color: #15163a;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          }
+          .wallet-row [data-label="Date"] {
+            grid-area: date;
+            font-size: 12px; color: #9296ba; font-weight: 500;
+          }
+          .wallet-row [data-label="Reference"] { display: none; }  /* not shown in this layout */
+          .wallet-row [data-label="Amount"] {
+            grid-area: amount;
+            text-align: right; font-size: 15px; font-weight: 800; white-space: nowrap;
+          }
+          .wallet-row [data-label="Status"] {
+            grid-area: status;
+            text-align: right; justify-self: end;
+            background: none; padding: 0;
+            font-size: 11.5px; font-weight: 600; text-transform: capitalize;
           }
 
           .actions-grid {
@@ -7048,7 +7738,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         <PageModal onClose={() => setModalView(null)} bare={modalView.type === 'campaign'} drawer={modalView.type === 'shipment'} maxWidth={modalView.type === 'campaign' ? 900 : modalView.type === 'shipment' ? 560 : 1100}>
           {modalView.type === 'campaign' && <CampaignDetails embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'review' && <WorkReview embedId={modalView.id} onClose={() => setModalView(null)} />}
-          {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} onClose={() => setModalView(null)} />}
+          {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} autoShip={modalView.ship} onClose={() => setModalView(null)} />}
         </PageModal>
       )}
 

@@ -1,11 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ChevronDown, Plus, Wallet, Package, Settings, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare } from 'lucide-react';
+import { toast } from 'sonner';
+import { ChevronDown, Plus, Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send, Star, Settings, Bell, LifeBuoy } from 'lucide-react';
 import NotificationBell from './NotificationBell';
-import HoverSideRail from './HoverSideRail';
+import HoverSideRail, { openHelpDialog } from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
+import RejectedGate from './RejectedGate';
+import MoreInfoGate from './MoreInfoGate';
+import { brandName } from '../utils/displayName';
 import PostABrief from '../pages/PostABrief';
+import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -19,11 +24,23 @@ const PRIMARY_LINKS = [
 ];
 
 const MENU_LINKS = [
+  { name: 'Saved Creators', to: '/dashboard/business/saved-creators', icon: Bookmark },
   { name: 'Creator Bids', to: '/dashboard/business/pending-bids', icon: UserRoundSearch },
+  // Outgoing counterpart to "Creator Bids" (which is incoming). The page and its route
+  // already existed but nothing linked to it, so the tab was unreachable in the UI.
+  { name: 'Sent Briefs', to: '/dashboard/business/sent-briefs', icon: Send },
   { name: 'Manage Shipment', to: '/dashboard/business/shipments', icon: Package },
   { name: 'Wallet', to: '/dashboard/business/wallet', icon: Wallet },
-  { sep: true },
+];
+
+// Account-menu only — these were taken off the side rail, so they live in the
+// avatar dropdown (and the mobile menu) instead. "Need help?" opens the support
+// dialog rather than navigating.
+const ACCOUNT_LINKS = [
+  { name: 'Reviews', to: '/dashboard/business/reviews', icon: Star },
+  { name: 'Notifications', to: '/notifications', icon: Bell },
   { name: 'Settings', to: '/settings', icon: Settings },
+  { name: 'Need help?', icon: LifeBuoy, action: 'help' },
 ];
 
 /**
@@ -34,11 +51,22 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const isMessages = pathname === '/messages' || pathname.startsWith('/messages/');
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
   const [msgOpen, setMsgOpen] = useState(false);
   const menuRef = useRef(null);
+  const headerRef = useRef(null);
+  useNavHeightVar(headerRef);
+
+  // Closing the brief modal (backdrop click or X) saves what's been typed as a
+  // draft first, so an accidental click doesn't throw the work away.
+  const briefRef = useRef(null);
+  const closeBrief = async () => {
+    await briefRef.current?.saveDraftNow();
+    setBriefOpen(false);
+  };
 
   useEffect(() => {
     const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
@@ -52,6 +80,11 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   // `body` alone leaves that second scrollbar visible.
   useEffect(() => {
     if (!briefOpen) return undefined;
+    // The floating message popup / per-creator chat would otherwise sit on top of the
+    // full-screen brief modal — close them when Post a Campaign opens. ChatPopup lives
+    // in other components, so reach it via a broadcast event.
+    setMsgOpen(false);
+    window.dispatchEvent(new Event('ugcad:brief-opened'));
     const html = document.documentElement;
     const prevHtml = html.style.overflow;
     const prevBody = document.body.style.overflow;
@@ -60,11 +93,26 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
     return () => { html.style.overflow = prevHtml; document.body.style.overflow = prevBody; };
   }, [briefOpen]);
 
-  const displayName = user?.profile?.business_name || user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : user?.email) || 'Brand';
-  const photo = user?.profile_photo || user?.brand_logo;
+  const displayName = user?.profile?.business_name || brandName(user);
+  const googlePhotoSuppressed = Boolean(user?.brand_logo_removed)
+    || (user?.id && localStorage.getItem(`ugc_brand_logo_removed:${user.id}`) === '1');
+  const photo = user?.brand_logo || (!googlePhotoSuppressed ? user?.profile_photo : '');
   const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
   const handleLogout = () => { logout(); navigate('/'); };
 
+  const approval = user?.approval_status;
+  const isBrand = ['business', 'brand'].includes(String(user?.role || '').toLowerCase());
+  const isPending = isBrand && approval === 'pending';
+  const showApprovalNotice = () => toast.info('Your brand profile is under review. Actions unlock after approval.');
+  if (isBrand && approval === 'rejected') {
+    return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
+  }
+  // 'more_info' was missing from this gate entirely, so an admin could ask a brand
+  // for more details and the brand would just land on the dashboard as normal —
+  // never told what was wanted, with no way to resubmit.
+  if (isBrand && approval === 'more_info') {
+    return <MoreInfoGate user={user} kind="business" onLogout={handleLogout} />;
+  }
   return (
     <div className="cmk-app has-rail">
       <HoverSideRail
@@ -77,8 +125,19 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         onLogout={handleLogout}
         account={{ name: displayName, role: 'Brand Account', photo }}
       />
-      <header className="cmk-nav">
+      <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
+          <button
+            type="button"
+            className="cmk-hamburger"
+            aria-label="Menu"
+            onClick={() => {
+              setMenuOpen(false);
+              setMobileOpen((v) => !v);
+            }}
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
           </button>
@@ -108,13 +167,36 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
-            <button type="button" className="cmk-btn-primary-sm cmk-nav-post" onClick={() => setBriefOpen(true)} title="Post a Campaign">
+            <button
+              type="button"
+              className="cmk-btn-primary-sm cmk-nav-post-full"
+              onClick={() => {
+                setMobileOpen(false);
+                setMenuOpen(false);
+                if (isPending) {
+                  showApprovalNotice();
+                  return;
+                }
+                setBriefOpen(true);
+              }}
+              title="Post a Campaign"
+              aria-label="Post a Campaign"
+            >
               <Plus size={18} /><span className="cmk-btn-label">Post a Campaign</span>
             </button>
 
             <NotificationBell />
 
-            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
+            <button
+              type="button"
+              className="cmk-avatar-btn"
+              onClick={() => {
+                setMobileOpen(false);
+                setMenuOpen((v) => !v);
+              }}
+              aria-label="Account menu"
+              aria-expanded={menuOpen}
+            >
               <span className="cmk-avatar">
                 {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
               </span>
@@ -122,79 +204,118 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                 <strong>{displayName}</strong>
                 <small>Brand Account</small>
               </span>
-              <ChevronDown size={16} color="#9296ba" />
+              <ChevronDown size={16} className={`cmk-avatar-chevron${menuOpen ? ' is-open' : ''}`} aria-hidden="true" />
             </button>
 
             {menuOpen && (
               <div className="cmk-menu">
-                {MENU_LINKS.map((item, i) => (
-                  item.sep
-                    ? <div key={`sep-${i}`} className="cmk-sep" />
-                    : (
-                      <button key={item.name} type="button" onClick={() => { setMenuOpen(false); navigate(item.to); }}>
-                        <item.icon size={18} /> {item.name}
-                      </button>
-                    )
+                {/* Only account-level entries here — the rail already lists Saved
+                    Creators / Creator Bids / Sent Briefs / Shipments / Wallet. */}
+                {ACCOUNT_LINKS.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (item.action === 'help') openHelpDialog();
+                      else navigate(item.to);
+                    }}
+                  >
+                    <item.icon size={18} /> {item.name}
+                  </button>
                 ))}
                 <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
               </div>
             )}
-            <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
           </div>
         </div>
         {mobileOpen && (
+          <div className="cmk-mobile-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+        )}
+        {mobileOpen && (
           <div className="cmk-mobile-menu">
+            {/* These carry an `icon` just like the other two groups, but the mobile
+                menu was rendering the bare name — so the top four entries sat
+                icon-less and misaligned against everything below them. */}
             {PRIMARY_LINKS.map((link) => (
               <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
-                {link.name}
+                <link.icon size={18} /> {link.name}
               </button>
             ))}
             <div className="cmk-sep" />
             {MENU_LINKS.filter((i) => !i.sep).map((item) => (
-              <button key={item.name} type="button" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
+              <button key={item.name} type="button" className={isActive(item.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(item.to); }}>
                 <item.icon size={18} /> {item.name}
               </button>
             ))}
-            <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+            {/* Reviews / Notifications / Settings / Need help? live in the profile
+                (avatar) menu, so they're intentionally omitted here to avoid dupes. */}
+            <div className="cmk-mobile-foot">
+              <div className="cmk-sep" />
+              <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+            </div>
           </div>
         )}
       </header>
 
-      <main className="cmk-wrap cmk-page">
+      {isPending && (
+        <div className="cmk-wrap" role="status">
+          <div className="brl-review-banner">
+            <strong>Profile under review</strong>
+            <span>You can browse creator profiles and message creators. Publishing campaigns and payments unlock after approval.</span>
+          </div>
+        </div>
+      )}
+
+      <main className={`cmk-wrap cmk-page${isMessages ? ' cmk-page--flush' : ''}`}>
         {children}
       </main>
 
-      <button
-        type="button"
-        className="cmk-btn-primary-sm cmk-post-fab"
-        onClick={() => setMsgOpen((v) => !v)}
-        title="Messages"
-      >
-        <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
-      </button>
+      {/* Floating Message button — hidden on the Messages page itself (redundant there). */}
+      {!(pathname === '/messages' || pathname.startsWith('/messages/')) && (
+        <>
+          {/* Hidden while the popup is open so the FAB doesn't peek out behind it. */}
+          {!msgOpen && (
+            <button
+              type="button"
+              className="cmk-btn-primary-sm cmk-post-fab"
+              onClick={() => setMsgOpen((v) => !v)}
+              title="Messages"
+            >
+              <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
+            </button>
+          )}
 
-      {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
+          {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
+        </>
+      )}
 
       {briefOpen && (
-        <div className="cmk-brief-overlay" onClick={() => setBriefOpen(false)}>
+        // Save the half-written brief as a draft on the way out — clicking the
+        // backdrop by accident shouldn't bin it.
+        <div className="cmk-brief-overlay" onClick={closeBrief}>
           <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="cmk-brief-close"
               aria-label="Close"
-              onClick={() => setBriefOpen(false)}
+              onClick={closeBrief}
             >
               <X size={20} />
             </button>
             <PostABrief
-              onClose={() => setBriefOpen(false)}
+              ref={briefRef}
+              onClose={closeBrief}
               onPublished={() => setBriefOpen(false)}
             />
           </div>
         </div>
       )}
+      <style>{`
+        .brl-review-banner{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;border:1px solid #f6d7a7;background:#fff8ed;color:#92400e;font-size:13px}
+        .brl-review-banner strong{white-space:nowrap;color:#78350f}
+        @media(max-width:640px){.brl-review-banner{align-items:flex-start;flex-direction:column;gap:3px}}
+      `}</style>
     </div>
   );
 }

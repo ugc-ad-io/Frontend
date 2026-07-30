@@ -1,16 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, Bookmark, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ChevronLeft, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
+import { displayName, creatorFirstName } from '../utils/displayName';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PlanBrief from './PlanBrief';
+import { findContactInfo } from '../components/RevisionRequestModal';
 import CreatorProfileModal from '../components/CreatorProfileModal';
+import BrandProfileCard from '../components/BrandProfileCard';
+import { SkeletonList } from '../components/Skeleton';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
 
@@ -18,6 +22,10 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 const ATTACHMENT_MESSAGE_PREFIX = '__UGCAD_ATTACHMENT__:';
 const MAX_ATTACHMENTS = 5;
+
+// Always show the person's real NAME (never the "@handle"). Reuses the app-wide
+// resolver, which prefers full_name and strips any leading "@" off the nickname.
+const nameOf = (conv) => displayName(conv, 'User');
 const CHAT_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Active Deals', value: 'active_deal' },
@@ -36,18 +44,43 @@ const ACTION_CARD_LABELS = {
 };
 const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
 
+// Friendly labels for the accept/reject/counter buttons the backend attaches to
+// received offer cards (available_actions), instead of showing raw lowercase verbs.
+const OFFER_RESPONSE_LABELS = { accept: 'Accept', reject: 'Decline', counter: 'Counter' };
+
+// Offer cards whose rejection the backend requires a structured decline_reason for.
+// Must stay in sync with OFFER_CARD_TYPES / DECLINE_REASONS in Backend/server.py.
+const OFFER_CARD_TYPES = ['custom_offer', 'private_invitation', 'counter_offer'];
+const DECLINE_REASONS = [
+  { value: 'not_my_niche', label: 'Not my niche' },
+  { value: 'budget', label: "Budget doesn't fit" },
+  { value: 'timeline', label: 'Timeline too short' },
+  { value: 'unavailable', label: 'Currently unavailable' },
+  { value: 'other', label: 'Other' }
+];
+
 // Define which action cards are available for each role
 const ACTION_CARDS_BY_ROLE = {
-  creator: ['custom_offer', 'counter_offer', 'revision_request', 'milestone_update', 'damage_report', 'escalate_to_admin', 'raise_dispute'],
-  business: ['private_invitation', 'custom_offer', 'counter_offer', 'revision_request', 'milestone_update', 'escalate_to_admin', 'raise_dispute']
+  // Creators respond to revision requests in the deal room — they don't send them,
+  // so revision_request is not in their list.
+  // Creators can't raise a dispute directly — they resolve with the brand first and
+  // use "Escalate to Admin" only if that fails. So raise_dispute is not in their list.
+  creator: ['custom_offer', 'counter_offer', 'milestone_update', 'damage_report', 'escalate_to_admin'],
+  business: ['private_invitation', 'counter_offer', 'revision_request', 'escalate_to_admin', 'raise_dispute']
 };
 
-const getAvailableActionCards = (userRole, selectedConversation) => {
-  const cards = ACTION_CARDS_BY_ROLE[userRole] || ACTION_CARD_TYPES;
+// A revision can only be asked for while the brand is reviewing submitted work.
+// The backend enforces this too — this just hides a button that would 409.
+const REVISION_STATES = ['Content Submitted - Awaiting Review', 'Revision Requested'];
 
-  // For creators, only show Milestone Update if there's an active deal
-  if (userRole === 'creator' && selectedConversation?.status !== 'active_deal') {
-    return cards.filter(card => card !== 'milestone_update');
+const getAvailableActionCards = (userRole, selectedConversation) => {
+  let cards = ACTION_CARDS_BY_ROLE[userRole] || ACTION_CARD_TYPES;
+  const dealState = selectedConversation?.associated_deal_status || '';
+
+  // Revision Request (brand only) makes sense only while content is under review;
+  // on a finished/in-progress deal it's meaningless, so hide it there.
+  if (!REVISION_STATES.includes(dealState)) {
+    cards = cards.filter((card) => card !== 'revision_request');
   }
 
   return cards;
@@ -68,14 +101,17 @@ const ACTION_CARD_FORM_FIELDS = {
     ['budget', 'Budget', 'number', '5000'],
     ['timeline', 'Timeline', 'text', '7 days'],
     ['usage_rights', 'Usage rights', 'text', 'Organic social'],
-    ['full_brief_link', 'Full brief link', 'url', 'https://ugcads.io']
+    // The brand writes the brief inline ("Send a brief") instead of pasting a link.
+    // Required by the backend (require_fields → private_invitation) — without it the
+    // send fails with "private_invitation requires: brief_details".
+    ['brief_details', 'Brief', 'textarea', "What should the creator make? Add the hook, key points to cover, do's & don'ts, and any references."]
   ],
   counter_offer: [
     ['modified_price', 'Modified price', 'number', '5000'],
     ['revisions', 'Revisions', 'text', '1'],
     ['timeline', 'Timeline', 'text', '7 days'],
     ['usage_rights', 'Usage rights', 'text', 'Organic social'],
-    ['diff_vs_original', 'Diff vs original', 'textarea', 'Updated terms']
+    ['diff_vs_original', 'Reason', 'textarea', 'Why are you countering? e.g. budget is too low for 3 videos']
   ],
   revision_request: [
     ['revision_text', 'Revision item', 'textarea', 'Please revise the submitted content.']
@@ -90,13 +126,34 @@ const ACTION_CARD_FORM_FIELDS = {
     ['severity', 'Severity', 'select', 'medium', ['low', 'medium', 'high']]
   ],
   escalate_to_admin: [
-    ['summary', 'Summary', 'textarea', 'Please review this chat thread and help resolve the communication issue between both parties.'],
+    ['summary', 'Summary', 'textarea', 'Please review this chat thread and help resolve the ongoing communication issue between both parties. Kindly go through the messages above and advise on the best way forward.'],
     ['category', 'Category', 'select', 'communication', ['communication', 'timeline', 'clarity', 'other']]
   ],
   raise_dispute: [
     ['summary', 'Dispute summary', 'textarea', 'I want to raise a dispute for this chat/deal.'],
     ['category', 'Category', 'select', 'communication', ['communication', 'timeline', 'clarity', 'other']]
   ]
+};
+
+// Mirrors the backend's require_fields() per card type (server.py
+// validate_action_card_payload). Kept in sync so a blank field is caught here with
+// a useful message instead of coming back as a bare 400.
+const ACTION_CARD_REQUIRED = {
+  custom_offer: ['deliverable_type', 'quantity', 'duration', 'price', 'timeline', 'usage_rights'],
+  private_invitation: ['campaign_name', 'deliverable_summary', 'budget', 'timeline', 'usage_rights', 'brief_details'],
+  counter_offer: ['modified_price', 'revisions', 'timeline', 'usage_rights', 'diff_vs_original'],
+  revision_request: ['revision_text'],
+  milestone_update: ['status'],           // notes are optional
+  damage_report: ['reason', 'description', 'severity'],
+  escalate_to_admin: ['summary', 'category'],
+  raise_dispute: ['summary', 'category'],
+};
+
+// Character limits the backend enforces (server.py validate_action_card_payload).
+// Surfaced in the form — with a live counter — so the user sees the requirement
+// up front instead of hitting Send and getting a 400 back.
+const ACTION_CARD_FIELD_LIMITS = {
+  escalate_to_admin: { summary: { min: 100, max: 500 } },
 };
 
 const avatarColors = ['#07074e', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
@@ -134,7 +191,12 @@ export default function MessagesPage() {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [creatingCard, setCreatingCard] = useState(false);
   const [actionComposerType, setActionComposerType] = useState(null);
+  const [actionChipsOpen, setActionChipsOpen] = useState(false); // "+ Send action card" toggles the chip row
   const [actionForm, setActionForm] = useState({});
+  const [counteringCardId, setCounteringCardId] = useState(null); // original offer card this counter replies to
+  const [declineCardId, setDeclineCardId] = useState(null); // offer card the decline picker is open for
+  const [declineReason, setDeclineReason] = useState('');
+  const [declineNote, setDeclineNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
@@ -146,9 +208,13 @@ export default function MessagesPage() {
   });
   const [report, setReport] = useState(null); // { reason, details } when the report modal is open
   const [reportSubmitting, setReportSubmitting] = useState(false);
+
   const typingSentAtRef = useRef(0);
   const messageContainerRef = useRef(null);
   const userScrolledUpRef = useRef(false);
+  // Set when a conversation is opened, so the first message render jumps straight
+  // to the latest message instead of leaving the view at the top of the thread.
+  const justOpenedRef = useRef(false);
 
   const navItems = user?.role === 'business'
     ? [
@@ -166,7 +232,6 @@ export default function MessagesPage() {
     : [
       { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
       { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-      { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
       { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
       { name: 'Browse Campaigns', icon: Briefcase, action: () => navigate('/browse-briefs') },
@@ -208,6 +273,10 @@ export default function MessagesPage() {
   // Fetch messages when conversation selected
   useEffect(() => {
     if (!selectedId) return;
+    // Opening a (different) conversation: the next messages render should land at
+    // the bottom, and any "user scrolled up" state from the previous chat resets.
+    justOpenedRef.current = true;
+    userScrolledUpRef.current = false;
     fetchMessages(selectedId);
     fetchTyping(selectedId);
     const interval = setInterval(() => fetchMessages(selectedId), 3000);
@@ -219,9 +288,26 @@ export default function MessagesPage() {
   }, [selectedId]);
 
   // Smart auto-scroll: only scroll if user is at bottom
-  useEffect(() => {
+  // useLayoutEffect (not useEffect): the open-jump must happen BEFORE the browser
+  // paints, so the first frame the user sees is already at the newest message.
+  // With useEffect it painted the top first, then jumped — a visible flash.
+  useLayoutEffect(() => {
     if (!messageContainerRef.current) return;
     const container = messageContainerRef.current;
+
+    // First render after opening a conversation: land straight at the newest
+    // message. An instant scrollTop set on the container — it starts at scrollTop
+    // 0 (the top), so the "already at bottom" rule below never fires on open,
+    // which is why mobile opened chats at the top.
+    if (justOpenedRef.current && messages.length) {
+      justOpenedRef.current = false;
+      container.scrollTop = container.scrollHeight;
+      // Re-pin next frame so late-laid-out content (attachments, cards) can't
+      // leave us a screen short of the bottom.
+      requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
+      return;
+    }
+
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
     if (isAtBottom && !userScrolledUpRef.current) {
@@ -320,6 +406,27 @@ export default function MessagesPage() {
     }
   };
 
+  // After accepting a private invitation the creator can nudge the brand for the
+  // full brief instead of just waiting.
+  const [requestingBrief, setRequestingBrief] = useState(false);
+  const requestBrief = async () => {
+    if (!selectedId || requestingBrief) return;
+    setRequestingBrief(true);
+    try {
+      await axios.post(`${API}/chat/send`, {
+        recipient_id: selectedId,
+        message: "I've accepted the invitation — please share the full brief so I can get started.",
+        attachment_urls: [],
+      });
+      toast.success('Brief requested — the brand has been notified.');
+      await fetchMessages(selectedId);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not send the request'));
+    } finally {
+      setRequestingBrief(false);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const attachmentUrls = selectedFiles.map((file) => file.url).filter(Boolean);
@@ -327,6 +434,16 @@ export default function MessagesPage() {
 
     if (selectedFiles.length && !attachmentUrls.length) {
       toast.error('File upload did not complete. Please attach the file again.');
+      return;
+    }
+
+    // Block phone/email client-side too — don't wait for the server to reject, and don't
+    // let a message that slips past the backend get sent silently. Shared detector.
+    const contact = findContactInfo(newMessage);
+    if (contact) {
+      toast.error(contact === 'email'
+        ? 'Email addresses aren’t allowed — keep all communication on-platform.'
+        : 'Phone numbers aren’t allowed — keep all communication on-platform.');
       return;
     }
 
@@ -464,14 +581,31 @@ export default function MessagesPage() {
     return 'Delivered';
   };
 
-  const respondToActionCard = async (cardId, action) => {
+  const respondToActionCard = async (cardId, action, extra = {}) => {
     try {
-      await axios.post(`${API}/chat/action-cards/${cardId}/respond`, { action });
+      await axios.post(`${API}/chat/action-cards/${cardId}/respond`, { action, ...extra });
       toast.success('Action card updated');
       fetchMessages(selectedId);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Action failed'));
     }
+  };
+
+  // Declining an offer card requires a structured reason (backend rejects a bare
+  // reject). Open an inline picker instead of firing the reject immediately.
+  const startDecline = (cardId) => {
+    setDeclineCardId(cardId);
+    setDeclineReason('');
+    setDeclineNote('');
+  };
+
+  const submitDecline = async () => {
+    if (!declineReason) {
+      toast.error('Please select a reason for declining');
+      return;
+    }
+    await respondToActionCard(declineCardId, 'reject', { decline_reason: declineReason, note: declineNote });
+    setDeclineCardId(null);
   };
 
   // Open the full multi-step brief wizard in a modal for the selected creator.
@@ -497,9 +631,42 @@ export default function MessagesPage() {
         </div>
         {!isOwn && item.status === 'open' && item.available_actions?.length ? (
           <div className="msg-action-card-actions">
-            {item.available_actions.map((action) => (
-              <button key={action} type="button" onClick={() => respondToActionCard(item.id, action)}>{action}</button>
-            ))}
+            {item.available_actions.map((action) => {
+              const isOfferDecline = action === 'reject' && OFFER_CARD_TYPES.includes(item.type);
+              const onClick = action === 'counter'
+                ? () => openCounterFromCard(item)
+                : isOfferDecline
+                  ? () => startDecline(item.id)
+                  : () => respondToActionCard(item.id, action);
+              return (
+                <button key={action} type="button" onClick={onClick}>
+                  {OFFER_RESPONSE_LABELS[action] || action}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {declineCardId === item.id ? (
+          <div className="msg-action-card-decline" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <select
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #d0d5dd' }}
+            >
+              <option value="">Select a reason…</option>
+              {DECLINE_REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+            <input
+              type="text"
+              placeholder="Optional comment (no contact info)"
+              value={declineNote}
+              onChange={(e) => setDeclineNote(e.target.value)}
+              style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #d0d5dd' }}
+            />
+            <div className="msg-action-card-actions">
+              <button type="button" onClick={submitDecline}>Send decline</button>
+              <button type="button" onClick={() => setDeclineCardId(null)}>Cancel</button>
+            </div>
           </div>
         ) : null}
         {isOwn && item.type === 'private_invitation' && item.status === 'accepted' ? (
@@ -508,7 +675,14 @@ export default function MessagesPage() {
           </div>
         ) : null}
         {!isOwn && item.type === 'private_invitation' && item.status === 'accepted' ? (
-          <p className="msg-action-card-note">Accepted — waiting for the brand to post the brief.</p>
+          <>
+            <p className="msg-action-card-note">Accepted — waiting for the brand to post the brief.</p>
+            <div className="msg-action-card-actions">
+              <button type="button" onClick={requestBrief} disabled={requestingBrief}>
+                {requestingBrief ? 'Sending…' : 'Need brief'}
+              </button>
+            </div>
+          </>
         ) : null}
         <small className="msg-action-card-time">{new Date(getItemTime(item)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
       </div>
@@ -520,13 +694,32 @@ export default function MessagesPage() {
   );
 
   const openActionComposer = (type) => {
+    setCounteringCardId(null); // a fresh card from the chips isn't tied to any offer
     setActionComposerType(type);
     setActionForm(getDefaultActionForm(type));
+  };
+
+  // Countering a received offer: open the counter composer pre-filled with that
+  // offer's terms (so the brand tweaks a number instead of retyping everything),
+  // and remember which offer we're replying to so submit can close it out.
+  const openCounterFromCard = (item) => {
+    const f = item.fields || {};
+    const price = f.modified_price ?? f.price ?? f.budget;
+    setCounteringCardId(item.id);
+    setActionComposerType('counter_offer');
+    setActionForm({
+      modified_price: price != null && String(price).trim() !== '' ? String(price) : '5000',
+      revisions: f.revisions != null ? String(f.revisions) : '1',
+      timeline: f.timeline || '7 days',
+      usage_rights: f.usage_rights || 'Organic social',
+      diff_vs_original: '',
+    });
   };
 
   const closeActionComposer = () => {
     setActionComposerType(null);
     setActionForm({});
+    setCounteringCardId(null);
   };
 
   const getActionCardPayloadFields = () => {
@@ -534,8 +727,13 @@ export default function MessagesPage() {
     if (actionComposerType === 'revision_request') {
       return { revision_items: [{ description: fields.revision_text, severity: 'medium' }] };
     }
+    // Only coerce numbers when there's actually a value — Number('') is 0, which
+    // would silently send a ₹0 budget/price and pass the backend's "is it set?" check.
     ['quantity', 'price', 'budget', 'modified_price'].forEach((key) => {
-      if (fields[key] !== undefined) fields[key] = Number(fields[key]);
+      const v = fields[key];
+      if (v === undefined || v === null || String(v).trim() === '') return;
+      const n = Number(v);
+      if (Number.isFinite(n)) fields[key] = n;
     });
     return fields;
   };
@@ -543,6 +741,37 @@ export default function MessagesPage() {
   const submitActionCard = async (event) => {
     event?.preventDefault();
     if (!selectedId || creatingCard || !actionComposerType) return;
+
+    // Validate up front so a blank field doesn't come back as a bare 400 with no
+    // indication of which field was missing.
+    const required = ACTION_CARD_REQUIRED[actionComposerType] || [];
+    const labelOf = (key) =>
+      (ACTION_CARD_FORM_FIELDS[actionComposerType] || []).find(([k]) => k === key)?.[1] || key;
+    const missing = required.filter((key) => {
+      const v = actionForm[key];
+      return v === undefined || v === null || String(v).trim() === '';
+    });
+    if (missing.length) {
+      toast.error(`Please fill in: ${missing.map(labelOf).join(', ')}`);
+      return;
+    }
+    // A zero/negative budget or price is never valid.
+    for (const key of ['budget', 'price', 'modified_price']) {
+      if (required.includes(key) && Number(actionForm[key]) <= 0) {
+        toast.error(`${labelOf(key)} must be greater than zero`);
+        return;
+      }
+    }
+    // Enforce the same length rules the backend does, with a clear message.
+    const limits = ACTION_CARD_FIELD_LIMITS[actionComposerType] || {};
+    for (const [key, { min, max }] of Object.entries(limits)) {
+      const len = String(actionForm[key] ?? '').trim().length;
+      if (len < min || len > max) {
+        toast.error(`${labelOf(key)} must be ${min} to ${max} characters (currently ${len}).`);
+        return;
+      }
+    }
+
     setCreatingCard(true);
     try {
       await axios.post(`${API}/chat/action-cards`, {
@@ -550,6 +779,16 @@ export default function MessagesPage() {
         type: actionComposerType,
         fields: getActionCardPayloadFields()
       });
+      // If this counter replies to a specific offer, mark that offer as countered
+      // so it leaves the "open" state. Best-effort: it may already be closed/expired,
+      // in which case the counter card we just sent still stands on its own.
+      if (counteringCardId) {
+        try {
+          await axios.post(`${API}/chat/action-cards/${counteringCardId}/respond`, { action: 'counter' });
+        } catch (err) {
+          // original offer no longer respondable — ignore, the counter was still sent
+        }
+      }
       toast.success(`${ACTION_CARD_LABELS[actionComposerType]} sent`);
       closeActionComposer();
       fetchMessages(selectedId);
@@ -564,10 +803,27 @@ export default function MessagesPage() {
   const renderActionComposerField = ([key, label, type, , options]) => {
     const value = actionForm[key] ?? '';
     if (type === 'textarea') {
+      // If this field has a length rule, show it next to the label and count live,
+      // so the requirement is visible before Send — not a surprise 400 after.
+      const limit = (ACTION_CARD_FIELD_LIMITS[actionComposerType] || {})[key];
+      const len = String(value).length;
+      const outOfRange = limit && (len < limit.min || len > limit.max);
       return (
         <label key={key}>
-          <span>{label}</span>
-          <textarea value={value} onChange={(event) => setActionForm((current) => ({ ...current, [key]: event.target.value }))} />
+          <span className="msg-field-lbl">
+            {label}
+            {limit && (
+              <em className={`msg-charhint${outOfRange ? ' bad' : ' ok'}`}>
+                {len}/{limit.max}{len < limit.min ? ` · min ${limit.min}` : ''}
+              </em>
+            )}
+          </span>
+          <textarea
+            value={value}
+            maxLength={limit ? limit.max : undefined}
+            placeholder={limit ? `Write ${limit.min}–${limit.max} characters` : undefined}
+            onChange={(event) => setActionForm((current) => ({ ...current, [key]: event.target.value }))}
+          />
         </label>
       );
     }
@@ -596,7 +852,7 @@ export default function MessagesPage() {
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) => {
-    const matchesSearch = conv.nickname.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = nameOf(conv).toLowerCase().includes(search.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
       conv.thread_classification === filter;
@@ -610,13 +866,16 @@ export default function MessagesPage() {
   // so opening Messages keeps you in the top-nav UI instead of redirecting to the
   // old sidebar dashboard. Business keeps its sidebar dashboard layout.
   const isBusiness = user?.role === 'business';
+  // A brand sees a creator by FIRST NAME only (never full name or @username). A
+  // creator keeps the brand's full business name.
+  const peerLabel = (conv) => (isBusiness ? creatorFirstName(conv) : displayName(conv, 'User'));
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const Shell = isBusiness ? BrandTopNavLayout : CreatorTopNavLayout;
   const shellProps = { notifications: totalUnread };
 
   return (
     <Shell {...shellProps}>
-      <div className="msg-layout">
+      <div className={`msg-layout ${selectedId ? 'has-active-chat' : ''}`}>
         {/* Left Panel: Conversations List */}
         <div className="msg-list-panel">
           <div className="msg-list-header">
@@ -648,7 +907,7 @@ export default function MessagesPage() {
 
           <div className="msg-conv-list">
             {loading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>Loading...</div>
+              <SkeletonList rows={7} />
             ) : filteredConversations.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No conversations</div>
             ) : (
@@ -659,14 +918,14 @@ export default function MessagesPage() {
                   onClick={() => setSelectedId(conv.user_id)}
                 >
                   <div className="msg-avatar-wrap">
-                    <div className="msg-avatar" style={{ background: avatarColor(conv.nickname) }}>
-                      {getInitial(conv.nickname)}
+                    <div className="msg-avatar" style={{ background: avatarColor(peerLabel(conv)) }}>
+                      {getInitial(peerLabel(conv))}
                     </div>
                     <span className="msg-online-dot" />
                   </div>
                   <div className="msg-conv-body">
                     <div className="msg-conv-top">
-                      <strong>{conv.nickname}</strong>
+                      <strong>{peerLabel(conv)}</strong>
                       <span className="msg-time-ago">{timeAgo(conv.timestamp || conv.last_message?.timestamp)}</span>
                     </div>
                     <p className="msg-preview">
@@ -690,15 +949,23 @@ export default function MessagesPage() {
           <div className="msg-chat-panel">
             {/* Header */}
             <div className="msg-chat-header">
+              <button
+                type="button"
+                className="msg-back-btn"
+                title="Back to conversations"
+                onClick={() => setSelectedId(null)}
+              >
+                <ChevronLeft size={22} />
+              </button>
               <div className="msg-avatar-wrap" style={{ width: '48px', height: '48px' }}>
-                <div className="msg-avatar" style={{ background: avatarColor(selectedConv?.nickname) }}>
-                  {getInitial(selectedConv?.nickname)}
+                <div className="msg-avatar" style={{ background: avatarColor(peerLabel(selectedConv)) }}>
+                  {getInitial(peerLabel(selectedConv))}
                 </div>
                 <span className="msg-online-dot"></span>
               </div>
               <div className="msg-header-info">
                 <div>
-                  <strong>{selectedConv?.nickname}</strong>
+                  <strong>{peerLabel(selectedConv)}</strong>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', background: '#48bb78', borderRadius: '50%', display: 'inline-block' }}></span>
@@ -706,14 +973,14 @@ export default function MessagesPage() {
                 </div>
               </div>
               <div className="msg-chat-actions">
-                <button type="button" title="View profile" onClick={() => setProfileOpen(true)}><User size={18} /></button>
-                <button type="button" title="Report user" onClick={() => setReport({ reason: '', details: '' })}><Flag size={18} /></button>
-                <button
-                  type="button"
-                  title={isMuted ? 'Unmute notifications' : 'Mute notifications'}
-                  className={isMuted ? 'is-on' : ''}
-                  onClick={toggleMute}
-                ><BellOff size={18} /></button>
+                {/* Brand → creator: quick "Send a Brief" that opens the brief wizard for
+                    this creator (same action as the "Send a Brief" chip in the chat popup).
+                    Only a brand sends briefs, so it's hidden on the creator's side. */}
+                {isBusiness && (
+                  <button type="button" className="msg-send-brief" title="Send a brief to this creator" onClick={openBriefFromCard}>
+                    <FileText size={15} /> Send a Brief
+                  </button>
+                )}
                 <div className="msg-more-wrap">
                   <button type="button" title="More actions" className={headerMenuOpen ? 'is-on' : ''} onClick={() => setHeaderMenuOpen((o) => !o)}><MoreHorizontal size={18} /></button>
                   {headerMenuOpen && (
@@ -722,7 +989,6 @@ export default function MessagesPage() {
                       <div className="msg-more-menu" role="menu">
                         <button type="button" onClick={() => { setHeaderMenuOpen(false); setProfileOpen(true); }}><User size={15} /> View profile</button>
                         <button type="button" onClick={toggleMute}><BellOff size={15} /> {isMuted ? 'Unmute chat' : 'Mute chat'}</button>
-                        <button type="button" onClick={() => { setHeaderMenuOpen(false); navigate('/messages'); }}><MessageSquare size={15} /> Back to all chats</button>
                         <button type="button" className="danger" onClick={() => { setHeaderMenuOpen(false); setReport({ reason: '', details: '' }); }}><Flag size={15} /> Report user</button>
                       </div>
                     </>
@@ -743,8 +1009,12 @@ export default function MessagesPage() {
 
                   if (isSystem) {
                     return (
-                      <div key={msg.id || idx} className="msg-system-pill">
-                        {msg.message}
+                      <div key={msg.id || idx} className="msg-system-wrap">
+                        <div className="msg-system-pill msg-system-desktop">{msg.message}</div>
+                        <details className="msg-system-mobile">
+                          <summary><span>Campaign update</span><em>View details</em></summary>
+                          <p>{msg.message}</p>
+                        </details>
                       </div>
                     );
                   }
@@ -752,8 +1022,8 @@ export default function MessagesPage() {
                   return (
                     <div key={msg.id || idx} className={`msg-bubble-row ${isOwn ? 'is-own' : ''}`}>
                       {!isOwn && (
-                        <div className="msg-avatar sm" style={{ background: avatarColor(selectedConv?.nickname) }}>
-                          {getInitial(selectedConv?.nickname)}
+                        <div className="msg-avatar sm" style={{ background: avatarColor(peerLabel(selectedConv)) }}>
+                          {getInitial(peerLabel(selectedConv))}
                         </div>
                       )}
                       <div className="msg-bubble">
@@ -768,21 +1038,36 @@ export default function MessagesPage() {
                   );
                 })
               )}
-              {isOtherTyping ? <div className="msg-typing">{selectedConv?.nickname || 'User'} is typing...</div> : null}
+              {isOtherTyping ? <div className="msg-typing">{peerLabel(selectedConv)} is typing...</div> : null}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Actions */}
-            <div className="msg-quick-chips">
-              {getAvailableActionCards(user?.role, selectedConv).map((action) => (
-                <button
-                  key={action}
-                  disabled={creatingCard}
-                  onClick={() => openActionComposer(action)}
-                >
-                  {ACTION_CARD_LABELS[action]}
-                </button>
-              ))}
+            {/* Quick Actions — a single horizontal row. It scrolls sideways when the
+                options don't fit, rather than opening a vertical dropdown. */}
+            <div className="msg-quick-actions">
+              <button
+                type="button"
+                className={`msg-quick-actions-lbl${actionChipsOpen ? ' is-open' : ''}`}
+                aria-expanded={actionChipsOpen}
+                onClick={() => setActionChipsOpen((o) => !o)}
+              >
+                <Plus size={14} /> Send action card
+              </button>
+              {actionChipsOpen && (
+                <div className="msg-actions-row">
+                  {getAvailableActionCards(user?.role, selectedConv).map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      className="msg-action-chip"
+                      disabled={creatingCard}
+                      onClick={() => { openActionComposer(action); setActionChipsOpen(false); }}
+                    >
+                      {ACTION_CARD_LABELS[action]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {actionCardsOnly ? (
@@ -897,26 +1182,43 @@ export default function MessagesPage() {
       {briefTarget && (
         <PlanBrief
           creatorId={briefTarget}
-          creatorName={selectedConv?.nickname || 'Creator'}
+          creatorName={creatorFirstName(selectedConv)}
           onClose={() => setBriefTarget(null)}
           onPublished={() => { setBriefTarget(null); fetchMessages(selectedId); }}
         />
       )}
 
+      {/* The person on the other side of a creator↔brand thread is whichever role
+          the viewer is NOT. When a creator opens "View profile" on a brand, show the
+          brand card (rating, brand name, category) — not the creator layout. */}
       {profileOpen && selectedId && (
-        <CreatorProfileModal
-          id={selectedId}
-          fallbackName={selectedConv?.nickname}
-          onClose={() => setProfileOpen(false)}
-          onMessage={() => setProfileOpen(false)}
-        />
+        selectedConv?.role === 'business' ? (
+          <BrandProfileCard
+            id={selectedId}
+            fallbackName={nameOf(selectedConv)}
+            onClose={() => setProfileOpen(false)}
+            onMessage={() => setProfileOpen(false)}
+            // A creator may review the brand only once the deal on this thread is
+            // completed. The backend re-checks this; the flag just gates the button.
+            canReview={user?.role === 'creator' && String(selectedConv?.associated_deal_status || '').toLowerCase() === 'completed'}
+            reviewCampaignId={selectedConv?.associated_campaign_id}
+            currentUserId={user?.id}
+          />
+        ) : (
+          <CreatorProfileModal
+            id={selectedId}
+            fallbackName={nameOf(selectedConv)}
+            onClose={() => setProfileOpen(false)}
+            onMessage={() => setProfileOpen(false)}
+          />
+        )
       )}
 
       {report && (
         <div className="msg-report-overlay" onClick={() => !reportSubmitting && setReport(null)}>
           <form className="msg-report-modal" onClick={(e) => e.stopPropagation()} onSubmit={submitReport}>
             <div className="msg-report-head">
-              <strong>Report {selectedConv?.nickname || 'user'}</strong>
+              <strong>Report {peerLabel(selectedConv)}</strong>
               <button type="button" aria-label="Close" onClick={() => setReport(null)}><X size={16} /></button>
             </div>
             <p className="msg-report-sub">Our team reviews every report within 5 business days. Don't include phone numbers or emails.</p>

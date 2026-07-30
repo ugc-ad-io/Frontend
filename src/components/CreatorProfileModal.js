@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star } from 'lucide-react';
+import { useAuth } from '../App';
+import { creatorName, brandName, creatorFirstName } from '../utils/displayName';
+import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star, BadgeCheck } from 'lucide-react';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { apiErrorMessage } from '../utils/apiError';
+import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
+import { Skeleton } from './Skeleton';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
 // uses the exact same choices instead of free text.
@@ -113,47 +118,88 @@ const relTime = (ts) => {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
+// The backend gates deliverable videos under /uploads and accepts the JWT either
+// as an Authorization header OR a ?token= query param. A native <video>/<img> tag
+// can't send headers, so sign backend URLs with the token — otherwise a brand
+// viewing a creator's portfolio gets a 403 and the clip won't play.
+const mediaUrl = (u) => {
+  const base = assetUrl(u);
+  if (!base || !base.startsWith(BACKEND_URL)) return base; // external / empty — leave alone
+  const token = localStorage.getItem('token');
+  if (!token) return base;
+  return `${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+};
 const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
 const pfUrl = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.link || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || ''));
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
-const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
-const LEVEL_META = {
-  new: { title: 'New Creator', badge: 'New' },
-  verified: { title: 'Verified Creator', badge: 'Verified' },
-  l1: { title: 'L1 Rising Star', badge: 'L1 (Rising)' },
-  l2: { title: 'L2 Pro Creator', badge: 'L2 (Pro)' },
-  elite: { title: 'Elite Creator', badge: 'Elite' },
+// A portfolio item's own price, shown to the creator AND the brand — the whole
+// point of asking the creator for a per-video rate is that buyers can see it.
+// `fallback` is only used when that item has no price of its own.
+// "Delivered in" is a free-text box, so a creator who types just "3" would
+// otherwise render as a bare "3" on the card. Number-only values get a unit.
+const vidDelivery = (delivery, fallback) => {
+  const raw = String(delivery ?? '').trim();
+  if (!raw) return fallback;
+  return /^\d+$/.test(raw) ? `${raw} day${Number(raw) > 1 ? 's' : ''}` : raw;
 };
-const FALLBACK_VIDEOS = [
-  '/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4',
-  '/creator/video_29.mp4', '/creator/video_30.mp4', '/creator/video_32.mp4', '/creator/video_33.mp4',
-];
-
-function VideoTile({ url, onRemove }) {
+const vidPrice = (price, fallback) => {
+  const raw = String(price ?? '').trim();
+  if (!raw) return fallback;
+  const digits = raw.replace(/[₹,\s]/g, '');
+  return /^\d+$/.test(digits) ? inr(digits) : raw;
+};
+function VideoTile({ url, onRemove, onEdit }) {
   const ref = useRef(null);
   const [playing, setPlaying] = useState(false);
-  const src = assetUrl(url);
-  const toggle = () => {
-    if (!ref.current) return;
-    if (ref.current.paused) { ref.current.play().then(() => setPlaying(true)).catch(() => {}); }
-    else { ref.current.pause(); setPlaying(false); }
-  };
-  // Hover to preview: play the clip (hides the play icon) + zoom, pause on leave.
-  const hoverPlay = () => { const v = ref.current; if (v && isVideo(src)) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
-  const hoverStop = () => { const v = ref.current; if (v) { v.pause(); setPlaying(false); } };
+  const [open, setOpen] = useState(false);   // big lightbox with real playback + sound
+  const [failed, setFailed] = useState(false); // broken / removed media URL
+  const src = mediaUrl(url);   // signed with ?token= so gated deliverable videos play
+  const video = isVideo(url);  // classify on the raw url (the token contains dots)
+  // Hover to preview — DESKTOP ONLY. On touch a tap fires mouseenter, which made the
+  // clip auto-play while scrolling/tapping; there it plays only via the big lightbox.
+  const canHover = typeof window !== 'undefined' && window.matchMedia
+    && window.matchMedia('(hover: hover)').matches;
+  const hoverPlay = () => { if (!canHover) return; const v = ref.current; if (v && video) { v.muted = true; v.play().then(() => setPlaying(true)).catch(() => {}); } };
+  const hoverStop = () => { if (!canHover) return; const v = ref.current; if (v) { v.pause(); try { v.currentTime = 0.5; } catch {} setPlaying(false); } };
   return (
-    <div className="cpm-vid" onClick={toggle} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
-      {isVideo(src) ? <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop /> : <img src={src} alt="" />}
-      {!playing && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
-      {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
-    </div>
+    <>
+      <div className="cpm-vid" onClick={() => !failed && setOpen(true)} onMouseEnter={hoverPlay} onMouseLeave={hoverStop}>
+        {failed ? (
+          <span className="cpm-vid-broken"><Camera size={20} /> Media unavailable</span>
+        ) : video ? (
+          <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop onError={() => setFailed(true)} />
+        ) : (
+          <img src={src} alt="" onError={() => setFailed(true)} />
+        )}
+        {!playing && !failed && <span className="cpm-play"><Play size={18} fill="currentColor" /></span>}
+        {onEdit && <button type="button" className="cpm-vid-edit" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit"><Pencil size={14} /></button>}
+        {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
+      </div>
+      {open && (
+        <div className="cpm-clip-ov" onClick={() => setOpen(false)}>
+          <div className="cpm-clip-box" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="cpm-clip-x" onClick={() => setOpen(false)} aria-label="Close"><X size={18} /></button>
+            <div className="cpm-clip-frame">
+              {video
+                ? <video src={src} controls autoPlay playsInline className="cpm-clip-vid" />
+                : <img src={src} alt="" className="cpm-clip-vid" />}
+              <div className="cpm-clip-wm" aria-hidden="true">
+                <img src="/watermark.jpeg" alt="" />
+                <span>UGC.io</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
 // Small playable clip shown inside a review's fact row (watermarked, like the
 // brand work-review preview). Click toggles play; only one clip plays at a time.
-function RevClip({ src }) {
+function RevClip({ src: rawSrc }) {
   const [open, setOpen] = useState(false);
+  const src = mediaUrl(rawSrc); // delivered clips are gated — sign them too
   return (
     <>
       <button type="button" className="cpm-rev-clip" onClick={(e) => { e.stopPropagation(); setOpen(true); }} aria-label="Play delivered clip">
@@ -184,10 +230,28 @@ function RevClip({ src }) {
  * Fetches /profile/:id. `asPage` renders it inline (no overlay) for the route page.
  */
 export default function CreatorProfileModal({ id, fallbackName, photo, onClose, onMessage, onBegin, onEdit, asPage = false, editable = false }) {
+  const { user: viewer } = useAuth();
+  const navigate = useNavigate();
+  const handleClose = () => {
+    if (editable) {
+      navigate('/settings', { replace: true });
+      return;
+    }
+    onClose?.();
+  };
+  // Contact + payment details belong to the creator alone. A brand viewing this
+  // profile must never see their real name, phone, address or pincode — that's
+  // both a privacy leak and a way to take the deal off-platform. The backend
+  // redacts these too (User.toRedacted); this keeps the UI honest regardless.
+  // `editable` is only ever passed on the creator's own profile routes, so it's
+  // an independent owner signal — trust it even if the id comparison can't run.
+  const canSeePrivate = editable
+    || (!!viewer && (String(viewer.id) === String(id) || viewer.role === 'admin'));
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('videos');
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(() => isCreatorSaved(id));
 
   // ── Own-profile editing (only when `editable`) ──────────────────────────────
   const [editing, setEditing] = useState(false);
@@ -195,7 +259,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const [form, setForm] = useState({});            // editable detail fields
   const [pf, setPf] = useState([]);                // editable portfolio list
   const [addOpen, setAddOpen] = useState(false);
-  const [addForm, setAddForm] = useState({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' });
+  const [editIdx, setEditIdx] = useState(null);    // index being edited, or null when adding new
+  const [addForm, setAddForm] = useState({ title: '', desc: '', url: '', category: '', price: '', delivery: '' });
   const [busy, setBusy] = useState('');            // 'photo' | 'banner' | 'work'
   const [localPhoto, setLocalPhoto] = useState('');
   const [localBanner, setLocalBanner] = useState('');
@@ -203,11 +268,26 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const bannerRef = useRef(null);
   const workRef = useRef(null);
 
+  // Compact sticky header: the tab bar reveals a name/rating/Send-a-Brief row once
+  // the main header scrolls out. Reuses the (reliable) sticky tab bar — no fixed el.
+  const tabwrapRef = useRef(null);
+  const [stuck, setStuck] = useState(false);
+  // On phones the modal is full-screen (page-like), so show a back arrow like the
+  // real profile page instead of the X close.
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const on = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+
   // Scroll-spy: tabs double as anchors — clicking scrolls to the section, and
   // scrolling between stacked sections updates the active tab.
   const videosRef = useRef(null);
   const detailsRef = useRef(null);
   const reviewsRef = useRef(null);
+  const vidTrackRef = useRef(null); // the horizontal video row (mobile auto-scroll)
   const scrollLock = useRef(false);
   const goTab = (t) => {
     const map = { videos: videosRef, details: detailsRef, reviews: reviewsRef };
@@ -229,6 +309,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     return () => { a = false; };
   }, [id]);
 
+  // While the profile is open, mark the body so the app's floating message FAB can
+  // be hidden on mobile (it would otherwise overlap the bottom Send Message bar).
+  useEffect(() => {
+    document.body.classList.add('cpm-open');
+    return () => document.body.classList.remove('cpm-open');
+  }, []);
+
   const [reviewers, setReviewers] = useState({});
   const reviewCount = reviews.length;
   const avgRating = reviewCount ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviewCount) : 0;
@@ -245,7 +332,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         pairs.forEach(([rid, d]) => {
           if (!d) return;
           m[rid] = {
-            name: d.nickname || d.business_name || (d.profile && d.profile.business_name) || (d.username ? `@${d.username}` : '') || 'Brand',
+            name: (d.profile && d.profile.business_name) || d.business_name || brandName(d),
             photo: assetUrl(d.profile_photo || d.logo || (d.profile && d.profile.logo)),
           };
         });
@@ -291,6 +378,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       expectedPayout: (pr.rate_card && pr.rate_card.expected_payout) || pr.expectedPayout || '',
       payoutPeriod: (pr.rate_card && pr.rate_card.payout_period) || pr.payoutPeriod || '',
       budgetRange: data.budget_range || pr.budget_range || '',
+      deliveryDays: String(pr.delivery_days || (pr.rate_card && pr.rate_card.delivery_days) || ''),
     });
     setPf(Array.isArray(data.portfolio) ? data.portfolio : []);
   }, [data]);
@@ -344,6 +432,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const onPickWork = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
+    // Portfolio work must be a video only — reject images/other files.
+    if (!(file.type || '').startsWith('video/')) {
+      toast.error('Please upload a video file only.');
+      if (workRef.current) workRef.current.value = '';
+      return;
+    }
     setBusy('work');
     try {
       const up = await uploadFile(file, '/upload/file');
@@ -353,18 +447,58 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     finally { setBusy(''); if (workRef.current) workRef.current.value = ''; }
   };
 
+  const resetAddForm = () => { setAddForm({ title: '', desc: '', url: '', category: '', price: '', delivery: '' }); setEditIdx(null); };
+
+  const openAddWork = () => {
+    if ((pf || []).filter((item) => pfUrl(item)).length >= 5) {
+      toast.error('You can add a maximum of 5 work videos.');
+      return;
+    }
+    resetAddForm();
+    setAddOpen(true);
+    goTab('videos');
+  };
+
   const saveWork = async () => {
     if (!addForm.url) { toast.error('Upload a video first'); return; }
-    const item = { title: addForm.title || 'Untitled', brand: addForm.brand || '', description: addForm.desc || '', category: addForm.category || '', price: addForm.price || '', delivery: addForm.delivery || '', videoUrl: addForm.url, urls: [addForm.url] };
-    await persistPortfolio([...(pf || []), item]);
-    setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' });
+    if (editIdx == null && (pf || []).filter((existing) => pfUrl(existing)).length >= 5) {
+      toast.error('You can add a maximum of 5 work videos.');
+      setAddOpen(false);
+      resetAddForm();
+      return;
+    }
+    const item = { title: addForm.title || 'Untitled', description: addForm.desc || '', category: addForm.category || '', price: addForm.price || '', delivery: addForm.delivery || '', videoUrl: addForm.url, urls: [addForm.url] };
+    const next = editIdx != null
+      ? (pf || []).map((x, i) => (i === editIdx ? item : x))
+      : [...(pf || []), item];
+    await persistPortfolio(next);
+    resetAddForm();
     setAddOpen(false);
-    toast.success('Work added');
+    toast.success(editIdx != null ? 'Work updated' : 'Work added');
+  };
+
+  // Open the Add-Work form pre-filled with an existing item so it can be edited.
+  const editWork = (idx) => {
+    const it = (pf || [])[idx];
+    const meta = typeof it === 'string' ? {} : (it || {});
+    const url = meta.videoUrl || (Array.isArray(meta.urls) ? meta.urls[0] : '') || (typeof it === 'string' ? it : '');
+    setAddForm({
+      title: meta.title || '', desc: meta.description || meta.desc || '',
+      url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '',
+    });
+    setEditIdx(idx);
+    setAddOpen(true);
   };
 
   const removeWork = (idx) => { persistPortfolio((pf || []).filter((_, i) => i !== idx)); };
 
   const saveDetails = async () => {
+    // Delivery time is required — a profile with no turnaround leaves brands
+    // guessing, and the header used to invent "1 Day" to fill the gap.
+    if (!(Number(form.deliveryDays) > 0)) {
+      toast.error('Enter your typical delivery time (days) under Pricing & Delivery');
+      return;
+    }
     setSaving(true);
     try {
       const pr = data.profile || {};
@@ -383,9 +517,17 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         weekly: form.weekly, flexible: !!form.flexible, topics: Array.isArray(form.topics) ? form.topics : [],
         availability_calendar: { ...(pr.availability_calendar || {}), weekly: form.weekly, flexible: !!form.flexible },
         expectedPayout: form.expectedPayout, payoutPeriod: form.payoutPeriod,
-        rate_card: { ...(pr.rate_card || {}), expected_payout: form.expectedPayout, payout_period: form.payoutPeriod },
+        delivery_days: form.deliveryDays ? Number(form.deliveryDays) : '',
+        rate_card: {
+          ...(pr.rate_card || {}),
+          expected_payout: form.expectedPayout,
+          payout_period: form.payoutPeriod,
+          delivery_days: form.deliveryDays ? Number(form.deliveryDays) : '',
+        },
         budget_range: form.budgetRange,
-        portfolio: (pf || []).map((it) => (typeof it === 'string' ? it : (it.videoUrl || it.link || it.url || (Array.isArray(it.urls) && it.urls[0]) || ''))).filter(Boolean),
+        // Keep the full item objects — flattening these to bare URL strings (as
+        // this did) wiped every clip's price / category / delivery on save.
+        portfolio: (pf || []).filter((it) => pfUrl(it)),
         portfolio_items: pf || [],
       };
       const r = await axios.put(`${API}/profile/creator`, payload);
@@ -396,13 +538,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     finally { setSaving(false); }
   };
 
-  const p = data?.profile || {};
-  // Show the website username/handle the admin assigns — never the creator's real name.
-  const name = (data?.nickname || '').trim()
-    || (data?.username ? `@${data.username}` : '')
-    || (data?.public_creator_id || '').trim()
-    || (fallbackName || '').trim()
-    || 'Creator';
+  // Prefer the nested profile, but fall back to any same-named field stored at the
+  // user root so details still render for records that aren't fully nested.
+  const p = { ...(data || {}), ...(data?.profile || {}) };
+  // Show the creator's first name (no surname, no @username handle).
+  const name = creatorFirstName(data) !== 'Creator'
+    ? creatorFirstName(data)
+    : ((fallbackName || '').trim().replace(/^@/, '').split(/\s+/)[0] || 'Creator');
   const publicId = data?.public_creator_id || String(id || '').slice(0, 12);
   const age = p.age;
   const gender = p.gender ? String(p.gender).charAt(0).toUpperCase() : '';
@@ -411,22 +553,62 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const country = p.country || 'India';
   const languages = Array.isArray(p.languages) ? p.languages : (p.languages ? [p.languages] : []);
   const priceNum = String(p.rate_card?.expected_payout || p.expectedPayout || '').replace(/[^0-9]/g, '');
-  const avatar = assetUrl(localPhoto || data?.profile_photo || photo);
+  const avatar = assetUrl(localPhoto || data?.profile_photo || data?.profile_picture || p.profile_photo || p.profile_picture || photo);
   const banner = assetUrl(localBanner || data?.banner || p.banner || '');
-  const levelKey = LEVEL_LABEL[String(data?.level || '').toLowerCase()] ? String(data.level).toLowerCase() : 'new';
-  const levelLabel = data?.level_label || LEVEL_LABEL[levelKey];
-  const levelMeta = LEVEL_META[levelKey] || LEVEL_META.new;
   const deliverables = Number(data?.deliverables_completed ?? p.deliverables_completed ?? 0);
   // Keep each portfolio item's own metadata (category / price / delivery) so the
   // video cards can show per-video values, falling back to the profile defaults.
+  // Resolve the URL with pfUrl() — the SAME key priority the creator's own
+  // (editable) view uses. Picking a different key order here meant a clip that
+  // played fine for the creator could resolve to a dead `urls[0]`/`original_url`
+  // on the brand view and render "Media unavailable".
   const realVids = (data?.portfolio || [])
     .map((it) => {
-      const url = typeof it === 'string' ? it : ((Array.isArray(it.urls) && it.urls[0]) || it.original_url || it.url || it.video || it.videoUrl || '');
+      const url = pfUrl(it);
       const meta = typeof it === 'string' ? {} : it;
-      return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '' };
+      return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '', brand: meta.brand || '' };
     })
     .filter((v) => v.url && !String(v.url).startsWith('blob:'));
-  const vids = realVids.length ? realVids : FALLBACK_VIDEOS.slice(0, 6).map((u) => ({ url: u }));
+  // Only the creator's own uploaded videos — no stock/sample fallback.
+  const vids = realVids;
+
+  const visibleWorkCount = editable
+    ? (pf || []).filter((item) => pfUrl(item)).slice(0, 5).length
+    : vids.slice(0, 5).length;
+
+  // Mobile only: when the creator has more than two clips, gently auto-scroll the
+  // video row so the extra ones are discoverable. Two (or fewer) sit in one row
+  // with nothing to scroll. Pauses for a bit whenever the user touches/scrolls it.
+  useEffect(() => {
+    const el = vidTrackRef.current;
+    if (!el) return;
+    if (!window.matchMedia('(max-width: 560px)').matches || visibleWorkCount <= 2) return;
+    let raf, dir = 1, paused = false, pos = el.scrollLeft;
+    const step = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      if (!paused && max > 0) {
+        pos += dir * 0.4; // ~24px/sec — "a bit slow"
+        pos -= dir * 0.22;
+        if (pos >= max) { pos = max; dir = -1; }
+        else if (pos <= 0) { pos = 0; dir = 1; }
+        el.scrollLeft = pos;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    const pause = () => {
+      paused = true;
+    };
+    raf = requestAnimationFrame(step);
+    el.addEventListener('pointerdown', pause);
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('wheel', pause, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener('pointerdown', pause);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('wheel', pause);
+    };
+  }, [visibleWorkCount]);
 
   // All the signup-form details (stored under user.profile via extra="allow").
   const phone = [p.dialCode, p.phone].filter(Boolean).join(' ');
@@ -435,10 +617,31 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const social = p.social_links || {};
   const rc = p.rate_card || {};
   // Quick-look highlights shown on the profile (price / category / delivery).
-  const hlCategory = (categoryTxt || 'UGC').replace(/_/g, ' ');
-  const hlPrice = priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On request');
-  // Single concrete day count (defaults to 1), not a "3–5 days" range.
-  const hlDays = Number(p.delivery_days || p.avg_delivery_days || rc.delivery_days || 1) || 1;
+  // Category shows the creator's actual niche (not the generic "UGC"); fall back
+  // to their first skill, then a neutral label — never the literal "UGC".
+  const nicheTxt = p.niche || categoryTxt || p.primary_category
+    || (Array.isArray(p.niches) ? p.niches[0] : '')
+    || (Array.isArray(p.categories) ? p.categories[0] : '')
+    || (skills[0] || '');
+  const hlCategory = (nicheTxt || 'General').replace(/_/g, ' ');
+  // The creator's configured rate, shown to the brand as well as the creator —
+  // a brand shouldn't have to message someone just to learn their price.
+  // Fallback used by the video cards when an item carries no price of its own.
+  const basePrice = priceNum ? inr(priceNum) : (data?.budget_range || p.budget_range || 'On Request');
+  // PRICE / VIDEO must be the creator's OWN configured rate (rate_card.expected_payout)
+  // — the same number the brief/checkout charges. It must NOT be inferred from a
+  // portfolio video's price: that quoted "From ₹11,000" while the brief priced the
+  // deal at ₹0, because the brief reads the rate card. If no rate is set we say
+  // "On Request" rather than invent one.
+  const hlPrice = basePrice;
+  // Delivery: the creator's own "Typical delivery (days)" field. If they never
+  // set one, fall back to the slowest of their per-video delivery times rather
+  // than the old hardcoded 1 — that default made EVERY profile claim "1 Day".
+  const vidDayNums = realVids
+    .map((v) => Number(String(v.delivery ?? '').replace(/[^0-9]/g, '')))
+    .filter((n) => n > 0);
+  const setDays = Number(p.delivery_days || p.avg_delivery_days || rc.delivery_days || 0) || 0;
+  const hlDays = setDays || (vidDayNums.length ? Math.max(...vidDayNums) : 1);
   const hlDelivery = `${hlDays} day${hlDays > 1 ? 's' : ''}`;
   const Row = (label, value) => {
     const text = Array.isArray(value) ? value.filter(Boolean).join(', ') : value;
@@ -451,6 +654,19 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     return <div className="cpm-f wide" key={label}><label>{label}</label><div className="cpm-chips">{items.map((x, i) => <span key={i}>{typeof x === 'string' ? x : (x?.label || x?.name || '')}</span>)}</div></div>;
   };
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  // Social links must be openable — the plain-text Row rendered them as dead text.
+  // Prefix a bare handle/domain with https:// so the anchor actually navigates.
+  const LinkRow = (label, value) => {
+    const url = String(value || '').trim();
+    if (!url) return null;
+    const href = /^https?:\/\//i.test(url) ? url : `https://${url.replace(/^\/+/, '')}`;
+    return (
+      <div className="cpm-f wide" key={label}>
+        <label>{label}</label>
+        <a className="cpm-link" href={href} target="_blank" rel="noreferrer noopener">{url}</a>
+      </div>
+    );
+  };
 
   // Build each section's rows, then drop any section that ended up empty so the
   // Details tab never shows a wall of blank cards.
@@ -458,22 +674,25 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     {
       title: 'Basic Information', Icon: User, bio: p.bio,
       rows: [
-        Row('Full Name', p.fullName), Row('Age', p.age), Row('Gender', p.gender),
+        canSeePrivate ? Row('Full Name', p.fullName) : null,
+        Row('Age', p.age), Row('Gender', p.gender),
         Row('Body Type', p.bodyType), Row('Skin Tone', p.skinTone), Row('Primary Category', categoryTxt),
       ].filter(Boolean),
     },
     {
-      title: 'Location & Contact', Icon: MapPin,
+      title: canSeePrivate ? 'Location & Contact' : 'Location', Icon: MapPin,
       rows: [
         Row('Country', p.country), Row('State', p.state), Row('City', p.city),
-        Row('Pincode', p.pincode), Row('Phone', phone), Row('Address', p.address),
+        canSeePrivate ? Row('Pincode', p.pincode) : null,
+        canSeePrivate ? Row('Phone', phone) : null,
+        canSeePrivate ? Row('Address', p.address) : null,
       ].filter(Boolean),
     },
     {
       title: 'Skills & Languages', Icon: Sparkles,
       rows: [
         Chips('Skills', skills), Chips('Languages', languages),
-        ...Object.entries(social).map(([k, v]) => (v ? Row(cap(k), v) : null)),
+        ...Object.entries(social).map(([k, v]) => (v ? LinkRow(cap(k), v) : null)),
       ].filter(Boolean),
     },
     {
@@ -500,6 +719,13 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     const order = [['videos', videosRef], ['details', detailsRef], ['reviews', reviewsRef]].filter(([, r]) => r.current);
     if (!order.length) return undefined;
     const onScroll = () => {
+      // Reveal the compact header once the tab bar has stuck to the top. Runs even
+      // while scrollLock is set (during smooth-scroll) so the header can't get stuck off.
+      if (tabwrapRef.current) {
+        // Reveal once the name itself has scrolled up to the top edge.
+        const bottom = tabwrapRef.current.getBoundingClientRect().bottom;
+        setStuck((prev) => { const next = bottom <= 70; return prev === next ? prev : next; });
+      }
       if (scrollLock.current) return;
       const line = 150; // reference line just below the sticky tab bar
       let active = order[0][0];
@@ -521,9 +747,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const content = (
       <div className="cpm" onClick={(e) => e.stopPropagation()}>
-        <div className={`cpm-banner ${editable ? 'is-editable' : ''}`} style={banner ? { backgroundImage: `url(${banner})` } : undefined} onClick={editable ? () => bannerRef.current?.click() : undefined}>
-          {asPage
-            ? <button type="button" className="cpm-banner-back" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Back"><ChevronLeft size={20} /></button>
+        <div
+          className={`cpm-banner ${editable ? 'is-editable' : ''}`}
+          // Layer the banner image OVER the gradient (not instead of it): a broken or
+          // missing banner URL falls through to the gradient rather than showing white.
+          style={banner ? { backgroundImage: `url(${banner}), linear-gradient(120deg,#5b6bff,#23236a 55%,#4452f0)` } : undefined}
+          onClick={editable ? () => bannerRef.current?.click() : undefined}
+        >
+          {(asPage || isMobile)
+            ? <button type="button" className="cpm-banner-back" onClick={(e) => { e.stopPropagation(); handleClose(); }} aria-label="Back to settings"><ChevronLeft size={20} /></button>
             : <button type="button" className="cpm-x" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close"><X size={18} /></button>}
           {editable && (
             <>
@@ -540,10 +772,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           )}
         </div>
 
-        <div className="cpm-phead">
+        <div className={`cpm-phead ${editable ? 'is-editable' : ''}`}>
           <div className="cpm-avatar-wrap">
             <span className={`cpm-avatar-lg ${editable ? 'is-editable' : ''}`} onClick={editable ? () => photoRef.current?.click() : undefined}>
-              {avatar ? <img src={avatar} alt="" /> : name.replace('@', '').charAt(0).toUpperCase()}
+              {avatar ? <img src={avatar} alt="" /> : (loading ? null : name.replace('@', '').charAt(0).toUpperCase())}
             </span>
             {editable && <button type="button" className="cpm-avatar-cam" onClick={() => photoRef.current?.click()} aria-label="Change photo"><Camera size={16} /></button>}
             {editable && <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />}
@@ -557,49 +789,124 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                   <button type="button" className="cpm-ghost" onClick={() => setEditing(false)}>Cancel</button>
                 </>
               ) : (
-                <>
-                  <button type="button" className="cpm-ghost" onClick={() => { setTab('videos'); setAddOpen(true); }}><Plus size={16} /> Add Work</button>
-                  <button type="button" className="cpm-msg" onClick={() => { setTab('details'); setEditing(true); }}><Pencil size={15} /> Edit Profile</button>
-                </>
+                <button type="button" className="cpm-msg" onClick={() => { setTab('details'); setEditing(true); }}><Pencil size={15} /> Edit Profile</button>
               )
             ) : onEdit ? (
               <button type="button" className="cpm-msg" onClick={onEdit}><Pencil size={15} /> Edit Profile</button>
             ) : (
               <>
                 {onBegin && <button type="button" className="cpm-brief-btn" onClick={onBegin}>Send a Brief</button>}
-                {onMessage && <button type="button" className="cpm-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
-                <button type="button" className={`cpm-save ${saved ? 'is-saved' : ''}`} onClick={() => setSaved((v) => !v)} aria-label={saved ? 'Saved' : 'Save'} title={saved ? 'Saved' : 'Save'}>
-                  <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
-                </button>
+                {onMessage && <button type="button" className="cpm-msg cpm-msg-top" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
               </>
             )}
           </div>
 
-          <h2 className="cpm-name">{name.replace('@', '')}</h2>
-          <div className="cpm-id">ID: {publicId}{(city || country) ? ` · ${[city, country].filter(Boolean).join(', ')}` : ''}</div>
+          {/* Bookmark outside .cpm-actions so it can be pinned top-right on mobile
+              while Send a Brief drops down beside the name. Brand-only. */}
+          {!editable && !onEdit && viewer?.role === 'business' && (
+            <button
+              type="button"
+              className={`cpm-save ${saved ? 'is-saved' : ''}`}
+              onClick={() => {
+                const now = toggleSavedCreator({
+                  id: id || data?.id, name, public_creator_id: publicId, photo: avatar, banner,
+                  category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
+                  deliverables, delivery: hlDelivery,
+                });
+                setSaved(now);
+                toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+              }}
+              aria-label={saved ? 'Saved' : 'Save creator'}
+              title={saved ? 'Saved' : 'Save creator'}
+            >
+              <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+            </button>
+          )}
+
+          <h2 className="cpm-name" ref={tabwrapRef}>
+            {loading ? <Skeleton width={170} height={26} /> : (
+              <>
+                {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
+                {/* Identity verified — admin-approved KYC. Tells brands this is a real,
+                    verified person. Only the boolean reaches the client. */}
+                {data?.kyc_verified && (
+                  <span className="cpm-verified" title="Identity verified (KYC)">
+                    <BadgeCheck size={17} /> Verified
+                  </span>
+                )}
+              </>
+            )}
+          </h2>
+          <div className="cpm-id">{loading ? <Skeleton width={210} height={13} /> : <>ID: {publicId}{(city || country) ? ` · ${[city, country].filter(Boolean).join(', ')}` : ''}</>}</div>
 
           <div className="cpm-stats">
-            <span><strong>{deliverables}</strong> deliverables</span>
-            <span><strong>{languages.length}</strong> languages</span>
-            <span><strong className={`cpm-lvl ${levelKey}`}>{levelLabel}</strong> level</span>
+            {loading ? <Skeleton width={170} height={15} /> : (
+              <>
+                <span><strong>{deliverables}</strong> deliverables</span>
+                <span><strong>{languages.length}</strong> languages</span>
+              </>
+            )}
           </div>
 
           <div className="cpm-highlights">
-            <div className="cpm-hl"><label>Category</label><strong>{hlCategory}</strong></div>
-            <div className="cpm-hl"><label>Price / video</label><strong>{hlPrice}</strong></div>
-            <div className="cpm-hl"><label>Delivery</label><strong>{hlDelivery}</strong></div>
+            <div className="cpm-hl"><label>Category</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlCategory}</strong>}</div>
+            <div className="cpm-hl"><label>Price / video</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlPrice}</strong>}</div>
+            <div className="cpm-hl"><label>Delivery</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlDelivery}</strong>}</div>
           </div>
 
         </div>
 
-        <div className="cpm-tabs">
+        {/* Fixed compact header — persists across the whole scroll once the main
+            name is out of view. Name + Verified + rating + Send a Brief only. */}
+        {!editable && (
+          <div className={`cpm-fixedhead ${stuck ? 'is-shown' : ''}`} aria-hidden={!stuck}>
+            <span className="cpm-sh-ava">
+              {avatar ? <img src={avatar} alt="" /> : name.replace('@', '').charAt(0).toUpperCase()}
+            </span>
+            <div className="cpm-sh-id">
+              <strong>
+                {(creatorFirstName(data) !== 'Creator' ? creatorFirstName(data) : name).replace('@', '').split(/\s+/)[0]}
+                {data?.kyc_verified && <span className="cpm-sh-verified"><BadgeCheck size={13} /> Verified</span>}
+              </strong>
+              {reviewCount > 0 && (
+                <span className="cpm-sh-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {avgRating.toFixed(1)} ({reviewCount})</span>
+              )}
+            </div>
+            {onBegin && <button type="button" className="cpm-sh-cta" onClick={onBegin}>Send a Brief</button>}
+          </div>
+        )}
+
+        <div className="cpm-tabs" ref={tabwrapRef}>
           <button type="button" className={tab === 'videos' ? 'on' : ''} onClick={() => goTab('videos')}>Videos</button>
           <button type="button" className={tab === 'details' ? 'on' : ''} onClick={() => goTab('details')}>Details</button>
-          {!editable && reviewCount > 0 && <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews ({reviewCount})</button>}
+          <button type="button" className={tab === 'reviews' ? 'on' : ''} onClick={() => goTab('reviews')}>Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</button>
+          {editable && !editing && (
+            <button type="button" className="cpm-tab-add" onClick={openAddWork} disabled={(pf || []).filter((item) => pfUrl(item)).length >= 5} title={(pf || []).filter((item) => pfUrl(item)).length >= 5 ? 'Maximum 5 work videos' : 'Add work'}>
+              <Plus size={14} /> Add Work
+            </button>
+          )}
         </div>
 
         <div className="cpm-tab-body">
-          {loading ? <div className="cpm-empty">Loading…</div> : editing ? (
+          {loading ? (
+            <div className="cpm-empty" aria-hidden="true" style={{ display: 'block' }}>
+              {/* avatar + name/handle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                <Skeleton width={72} height={72} radius="50%" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                  <Skeleton width="45%" height={18} />
+                  <Skeleton width="30%" height={12} />
+                </div>
+              </div>
+              {/* field rows */}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                  <Skeleton width="35%" height={12} />
+                  <Skeleton width="100%" height={40} radius={10} />
+                </div>
+              ))}
+            </div>
+          ) : editing ? (
             <div className="cpm-editform">
               {(() => {
                 const fld = (k) => ({ value: form[k] || '', onChange: (e) => setForm((f) => ({ ...f, [k]: e.target.value })) });
@@ -644,21 +951,28 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     <ChipsPick label="Who Appears" values={form.appearIn} options={APPEAR_IN_OPTS} onToggle={toggle('appearIn')} />
                     <ChipsPick label="Topics Avoided" values={form.topics} options={TOPICS_OPTS} onToggle={toggle('topics')} />
                     <div className="cpm-ef-grid">
-                      <label>Can Bring<input {...fld('bring')} /></label>
                       <Sel label="Weekly Availability" value={form.weekly} onChange={set('weekly')} options={WEEKLY_OPTS} />
                     </div>
                     <label className="cpm-ef-check"><input type="checkbox" checked={!!form.flexible} onChange={(e) => setForm((f) => ({ ...f, flexible: e.target.checked }))} /> Flexible working hours</label>
 
-                    <h5 className="cpm-ef-sec">Pricing</h5>
+                    <h5 className="cpm-ef-sec">Pricing &amp; Delivery</h5>
                     <div className="cpm-ef-grid">
                       <label>Expected Payout<input {...fld('expectedPayout')} /></label>
-                      <Sel label="Payout Period" value={form.payoutPeriod} onChange={set('payoutPeriod')} options={PAYOUT_PERIODS} />
-                      <label>Budget Range<input {...fld('budgetRange')} /></label>
+                      <label>Payout Period<input value="Per Video" readOnly /></label>
+                      <label>
+                        Typical Delivery (days) *
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="e.g. 3"
+                          value={form.deliveryDays}
+                          onChange={(e) => setForm((f) => ({ ...f, deliveryDays: e.target.value.replace(/[^0-9]/g, '') }))}
+                        />
+                      </label>
                     </div>
                   </>
                 );
               })()}
-              <p className="cpm-ef-note">Saving updates your profile and re-submits it for admin review.</p>
             </div>
           ) : (
             <>
@@ -677,39 +991,36 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                             <span>{busy === 'work' ? 'Uploading…' : <><Plus size={22} /> Upload video</>}</span>
                           </button>
                         )}
-                        <input ref={workRef} type="file" accept="video/*,image/*" hidden onChange={onPickWork} />
+                        <input ref={workRef} type="file" accept="video/*" hidden onChange={onPickWork} />
                         <div className="cpm-aw-fields">
-                          <input placeholder="Title" value={addForm.title} onChange={(e) => setAddForm((f) => ({ ...f, title: e.target.value }))} />
-                          <input placeholder="Brand (optional)" value={addForm.brand} onChange={(e) => setAddForm((f) => ({ ...f, brand: e.target.value }))} />
                           <div className="cpm-aw-row">
                             <input placeholder="Category (e.g. Beauty)" value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))} />
                             <input placeholder="Price / video (₹)" inputMode="numeric" value={addForm.price} onChange={(e) => setAddForm((f) => ({ ...f, price: e.target.value }))} />
                           </div>
                           <input placeholder="Delivered in (e.g. 2 days)" value={addForm.delivery} onChange={(e) => setAddForm((f) => ({ ...f, delivery: e.target.value }))} />
-                          <textarea placeholder="Description (optional)" rows={2} value={addForm.desc} onChange={(e) => setAddForm((f) => ({ ...f, desc: e.target.value }))} />
                           <div className="cpm-aw-actions">
-                            <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> Save work</button>
-                            <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); setAddForm({ title: '', brand: '', desc: '', url: '', category: '', price: '', delivery: '' }); }}>Cancel</button>
+                            <button type="button" className="cpm-msg" onClick={saveWork}><Check size={15} /> {editIdx != null ? 'Update work' : 'Save work'}</button>
+                            <button type="button" className="cpm-ghost" onClick={() => { setAddOpen(false); resetAddForm(); }}>Cancel</button>
                           </div>
                         </div>
                       </div>
                     )}
-                    <div className="cpm-vids">
-                      {!addOpen && <button type="button" className="cpm-vid cpm-add-tile" onClick={() => setAddOpen(true)}><Plus size={26} /><span>Add Work</span></button>}
-                      {(pf || []).map((it, i) => {
+                    <div className="cpm-vids cpm-vids--scroll" ref={vidTrackRef}>
+                      {(pf || []).slice(0, 5).map((it, i) => {
                         const u = pfUrl(it);
                         if (!u) return null;
                         const meta = typeof it === 'string' ? {} : it;
                         return (
                           <div className="cpm-vid-item" key={i}>
-                            <VideoTile url={u} onRemove={() => removeWork(i)} />
+                            <VideoTile url={u} onRemove={() => removeWork(i)} onEdit={() => editWork(i)} />
                             <div className="cpm-vid-cap">
-                              <div className="cpm-vid-catrow">
+                              <div className="cpm-vid-headrow">
+                                {meta.brand && <strong className="cpm-vid-brand">{meta.brand}</strong>}
                                 <span className="cpm-vid-cat">{meta.category || hlCategory}</span>
                               </div>
                               <div className="cpm-vid-pricerow">
-                                <div className="cpm-vid-price"><label>Price</label><strong>{meta.price ? (String(meta.price).match(/^\d+$/) ? inr(meta.price) : meta.price) : hlPrice}</strong></div>
-                                <span className="cpm-vid-del"><label>Delivered in</label><strong>{meta.delivery || hlDelivery}</strong></span>
+                                <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(meta.price, basePrice)}</strong></div>
+                                <span className="cpm-vid-del"><label>Delivered in</label><strong>{vidDelivery(meta.delivery, hlDelivery)}</strong></span>
                               </div>
                             </div>
                           </div>
@@ -718,17 +1029,23 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     </div>
                   </>
                 ) : (
-                  <div className="cpm-vids">
-                    {vids.slice(0, 12).map((v, i) => (
+                  <div className="cpm-vids cpm-vids--scroll" ref={vidTrackRef}>
+                    {vids.length === 0 && (
+                      <div className="cpm-vids-empty" style={{ gridColumn: '1 / -1', padding: '28px', textAlign: 'center', color: 'var(--text-muted, #8a90a6)', fontSize: 14 }}>
+                        No videos uploaded yet.
+                      </div>
+                    )}
+                    {vids.slice(0, 5).map((v, i) => (
                       <div className="cpm-vid-item" key={i}>
                         <VideoTile url={v.url} />
                         <div className="cpm-vid-cap">
-                          <div className="cpm-vid-catrow">
+                          <div className="cpm-vid-headrow">
+                            {v.brand && <strong className="cpm-vid-brand">{v.brand}</strong>}
                             <span className="cpm-vid-cat">{v.category || hlCategory}</span>
                           </div>
                           <div className="cpm-vid-pricerow">
-                            <div className="cpm-vid-price"><label>Price</label><strong>{v.price ? (String(v.price).match(/^\d+$/) ? inr(v.price) : v.price) : hlPrice}</strong></div>
-                            <span className="cpm-vid-del"><label>Delivered in</label><strong>{v.delivery || hlDelivery}</strong></span>
+                            <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(v.price, basePrice)}</strong></div>
+                            <span className="cpm-vid-del"><label>Delivered in</label><strong>{vidDelivery(v.delivery, hlDelivery)}</strong></span>
                           </div>
                         </div>
                       </div>
@@ -739,14 +1056,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
               <section className="cpm-sec-block" data-sec="details" ref={detailsRef}>
                 <h4 className="cpm-sec-title">Details</h4>
-                <div className="cpm-level-card">
-                  <div className="cpm-level-info">
-                    <label>Creator Level</label>
-                    <strong>{levelMeta.title}</strong>
-                    <small>{deliverables} completed works</small>
-                  </div>
-                  <span className={`cpm-level-badge ${levelKey}`}>{levelMeta.badge}</span>
-                </div>
                 {detailSections.length === 0 ? (
                   <div className="cpm-empty">This creator hasn't shared more details yet.</div>
                 ) : (
@@ -762,10 +1071,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                 )}
               </section>
 
-              {!editable && reviewCount > 0 && (
-                <section className="cpm-sec-block" data-sec="reviews" ref={reviewsRef}>
-                  <h4 className="cpm-sec-title">Reviews ({reviewCount})</h4>
-                  {(
+              <section className="cpm-sec-block" data-sec="reviews" ref={reviewsRef}>
+                  <h4 className="cpm-sec-title">Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}</h4>
+                  {reviewCount === 0 ? (
+                    <div className="cpm-rev-empty">
+                      <Star size={26} color="#cfd2e6" />
+                      <strong>No reviews yet</strong>
+                      <span>Reviews from brands appear here once a deal is completed.</span>
+                    </div>
+                  ) : (
                     <div className="cpm-reviews">
                       <div className="cpm-rev-head">
                         <h3>{reviewCount} Review{reviewCount > 1 ? 's' : ''}</h3>
@@ -794,11 +1108,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                           const selBid = (camp.bids || []).find((b) => b.creator_id === camp.selected_creator) || {};
                           const cat = (camp.category || camp.industry_type || 'UGC').replace(/_/g, ' ');
                           const price = (camp.budget_max || camp.budget_min)
-                            ? `Up to ${inr(camp.budget_max || camp.budget_min)}` : 'On request';
+                            ? inr(camp.budget_max || camp.budget_min) : 'On request';
                           const days = selBid.estimated_delivery_days || camp.estimated_delivery_days;
                           const duration = days ? `${days} day${Number(days) > 1 ? 's' : ''}` : '—';
+                          // Prefer the actually-delivered work video; if the campaign
+                          // has none stored, fall back to one of the creator's portfolio
+                          // videos so every review still shows a (watermarked) clip.
                           const vid = (ws.work_files || []).find((f) => isVideo(f)) || (ws.work_files || [])[0] || '';
-                          const vidUrl = vid ? assetUrl(vid) : '';
+                          const fallbackVid = (vids[i % (vids.length || 1)] || {}).url || '';
+                          const vidUrl = vid ? assetUrl(vid) : (fallbackVid ? assetUrl(fallbackVid) : '');
                           return (
                             <div className="cpm-rev-card" key={rv.id || i}>
                               <div className="cpm-rev-main">
@@ -821,12 +1139,21 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       </div>
                     </div>
                   )}
-                </section>
-              )}
+              </section>
             </>
           )}
         </div>
 
+        {/* Mobile-only persistent bottom CTA — Send Message is always reachable while
+            the profile is open. Rendered separately from the header actions so it
+            can't disturb their layout. */}
+        {!editable && !onEdit && onMessage && (
+          <div className="cpm-mobilebar">
+            <button type="button" className="cpm-msg" onClick={onMessage} style={{ width: '100%' }}>
+              <MessageSquare size={16} /> Send Message
+            </button>
+          </div>
+        )}
 
       <style>{`
         .cpm-ov{position:fixed;inset:0;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);z-index:1400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto}
@@ -841,52 +1168,68 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-avatar-lg{box-sizing:border-box;display:grid;place-items:center;width:108px;height:108px;border-radius:50%;border:4px solid #fff;overflow:hidden;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:38px;box-shadow:0 8px 22px -8px rgba(15,22,58,.4)}
         .cpm-avatar-lg img{width:100%;height:100%;object-fit:cover}
         .cpm-actions{position:absolute;right:28px;top:122px;display:flex;align-items:center;gap:10px}
-        .cpm-msg{display:inline-flex;align-items:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
+        .cpm-phead.is-editable .cpm-actions{top:66px}
+        .cpm-msg{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-msg:hover{filter:brightness(1.12)}
+        .cpm-profile-add{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:8px 14px;border:1px solid #dfe2f0;border-radius:999px;background:#fff;color:#15163a;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+        .cpm-profile-add:hover{border-color:#bfc6f5;background:#f8f9ff}
         .cpm-brief-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-brief-btn:hover{transform:translateY(-1px)}
         .cpm-save{width:44px;height:44px;border-radius:50%;border:1px solid #e6e8f3;background:#fff;color:#585c7e;cursor:pointer;display:grid;place-items:center}
         .cpm-save:hover{border-color:#cdd4ff;color:#4452f0}
         .cpm-save.is-saved{background:#eef0ff;border-color:#cdd4ff;color:#4452f0}
-        .cpm-name{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:25px;font-weight:800;color:#15163a;margin:12px 0 2px}
+        .cpm-name{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:25px;font-weight:800;color:#15163a;margin:12px 0 2px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .cpm-verified{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body,inherit);font-size:12.5px;font-weight:700;
+          color:#15803d;background:#e7f7ef;border:1px solid #b7e4cd;padding:4px 10px;border-radius:999px}
         .cpm-id{color:#9296ba;font-size:13px;font-weight:600}
         .cpm-stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px}
         .cpm-stats span{color:#9296ba;font-size:12.5px;font-weight:600}
         .cpm-stats strong{color:#15163a;font-size:17px;font-weight:800;margin-right:4px}
-        .cpm-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;
-          padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
+        .cpm-highlights{display:grid;grid-template-columns:auto auto auto;justify-content:space-between;gap:12px;margin-top:18px;
+          padding:16px 18px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
+        .cpm-highlights .cpm-hl:last-child{text-align:right}
         .cpm-hl{min-width:0}
         .cpm-hl label{display:block;color:#9296ba;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
         .cpm-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        @media (max-width:520px){.cpm-highlights{grid-template-columns:1fr 1fr}}
-        .cpm-lvl{padding:2px 10px;border-radius:20px;color:#fff!important;font-size:13px!important}
-        .cpm-lvl.elite{background:linear-gradient(135deg,#23236a,#5b6bff)}
-        .cpm-lvl.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
-        .cpm-lvl.l1{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
-        .cpm-lvl.verified{background:linear-gradient(135deg,#2bd47e,#15a35b)}
-        .cpm-lvl.new{background:#6b7090}
+        /* Keep Category / Price / Delivery on ONE line (3 cols) even on phones —
+           just shrink the text so ₹50,000 etc. still fit. */
+        @media (max-width:520px){.cpm-highlights{grid-template-columns:auto auto auto;justify-content:space-between;gap:10px}
+          .cpm-hl label{font-size:10px}.cpm-hl strong{font-size:14px}}
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
+        .cpm-tabs .cpm-tab-add{display:inline-flex;align-items:center;gap:4px;margin-left:auto;margin-bottom:7px;padding:7px 10px;border:1px solid #dfe2f0;border-radius:999px;color:#15163a;font-size:11.5px;white-space:nowrap}
+        .cpm-tabs .cpm-tab-add:hover{border-color:#bfc6f5;background:#f8f9ff}
+        .cpm-tabs .cpm-tab-add:disabled{opacity:.45;cursor:not-allowed;background:#f5f6fa;border-color:#e6e8f1}
         .cpm-tab-body{padding:22px 28px 4px}
         /* scroll-spy: each tab maps to a stacked section; the tab bar sticks while scrolling */
         .cpm-sec-block{scroll-margin-top:130px;padding-top:4px}
         .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
         .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
-        .cpm-level-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border:1px solid #eef0f6;border-radius:16px;background:#fafbff;margin-bottom:20px}
-        .cpm-level-info label{display:block;color:#9296ba;font-size:12px;font-weight:600}
-        .cpm-level-info strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:20px;font-weight:800;color:#15163a;margin:4px 0 2px}
-        .cpm-level-info small{color:#9296ba;font-size:13px}
-        .cpm-level-badge{flex:none;padding:9px 18px;border-radius:999px;color:#fff;font-weight:700;font-size:14px;background:linear-gradient(135deg,#2bd47e,#15a35b)}
-        .cpm-level-badge.elite{background:linear-gradient(135deg,#8b5cf6,#5b6bff)}
-        .cpm-level-badge.l2{background:linear-gradient(135deg,#5b6bff,#4452f0)}
-        .cpm-level-badge.l1{background:linear-gradient(135deg,#2bd47e,#15a35b)}
-        .cpm-level-badge.verified{background:linear-gradient(135deg,#2f8de0,#56b8ff)}
-        .cpm-level-badge.new{background:#6b7090}
         .cpm-page .cpm{overflow:visible}
-        .cpm-page .cpm-tabs{position:sticky;top:72px;z-index:6;margin-top:0}
-        @media (max-width:760px){.cpm-page .cpm-tabs{top:0}}
+        /* Tabs scroll normally now — the fixed compact header is the only pinned bar. */
+        /* Fixed compact header — stays at the top the whole time once shown. */
+        .cpm-fixedhead{position:fixed;top:0;left:0;right:0;z-index:1450;display:flex;align-items:center;gap:12px;
+          padding:10px 20px;background:#fff;border-bottom:1px solid #eef0f6;box-shadow:0 4px 16px rgba(15,22,58,.08);
+          transform:translateY(-120%);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .2s ease}
+        .cpm-fixedhead.is-shown{transform:translateY(0);opacity:1;pointer-events:auto}
+        .cpm-page .cpm-fixedhead{top:72px}
+        /* On mobile the app nav is hidden while the profile is open, so the compact
+           header sits at the very top. */
+        @media (max-width:760px){
+          .cpm-page .cpm-fixedhead{top:0}
+          body.cpm-open .cmk-nav{display:none}
+        }
+        .cpm-sh-ava{width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;background:#4452f0;color:#fff;
+          display:grid;place-items:center;font-weight:800;font-size:15px}
+        .cpm-sh-ava img{width:100%;height:100%;object-fit:cover}
+        .cpm-sh-id{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px;line-height:1.2}
+        .cpm-sh-id strong{display:flex;align-items:center;gap:7px;font-size:15px;color:#15163a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .cpm-sh-verified{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#15a35b;background:#e3f7ec;padding:1px 7px;border-radius:20px}
+        .cpm-sh-rate{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#7a7fa6;font-weight:600}
+        .cpm-sh-cta{flex:none;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:22px;
+          padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
         .cpm-stars{display:inline-flex;gap:2px;vertical-align:middle}
         .cpm-reviews{display:flex;flex-direction:column;gap:18px}
         .cpm-rev-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -899,7 +1242,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-rev-track i{display:block;height:100%;background:#15163a;border-radius:6px}
         .cpm-rev-bar em{font-style:normal;color:#9296ba;text-align:right}
         .cpm-rev-list{display:flex;flex-direction:column;gap:14px;border-top:1px solid #eef0f6;padding-top:18px}
-        .cpm-rev-card{border:1px solid #eef0f6;border-radius:14px;padding:16px 18px;background:#fff;display:flex;gap:20px;align-items:center}
+        .cpm-rev-card{position:relative;border:1px solid #eef0f6;border-radius:14px;padding:16px 18px;background:#fff;display:flex;gap:20px;align-items:center}
         .cpm-rev-main{flex:1;min-width:0}
         .cpm-rev-media{flex:none}
         .cpm-rev-who{display:flex;align-items:center;gap:10px}
@@ -924,7 +1267,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-rev-clip{position:relative;flex:none;width:230px;aspect-ratio:16/10;border-radius:12px;overflow:hidden;
           border:1px solid #e7e8f3;background:#0b1020;cursor:pointer;padding:0}
         .cpm-rev-clip video{width:100%;height:100%;object-fit:cover;display:block}
-        .cpm-rev-wm{position:absolute;inset:0;pointer-events:none;background-repeat:no-repeat;background-position:top 8px right 10px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='58'%3E%3Crect width='56' height='58' rx='12' fill='%23000000' fill-opacity='0.4'/%3E%3Crect x='17' y='9' width='22' height='22' rx='7' fill='%23ffffff'/%3E%3Ctext x='28' y='25' text-anchor='middle' font-family='Arial' font-size='14' font-weight='800' fill='%235b6bff'%3EU%3C/text%3E%3Ctext x='28' y='50' text-anchor='middle' font-family='Arial' font-size='13' font-weight='800' fill='%23ffffff'%3EUGC%3C/text%3E%3C/svg%3E")}
+        .cpm-rev-wm{position:absolute;inset:0;pointer-events:none;background-repeat:no-repeat;background-position:top 8px right 10px;background-size:44px auto;background-image:url("/ugcad-logo_-_Edited-removebg-preview.png")}
         /* small clip thumbnail keeps the subtle tiled text watermark (badge is too big here) */
         .cpm-rev-clip .cpm-rev-wm{opacity:.5;background-repeat:repeat;background-position:0 0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80'%3E%3Ctext x='0' y='50' transform='rotate(-28 60 40)' fill='%23ffffff' fill-opacity='0.55' font-family='Arial' font-size='12' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E")}
         .cpm-clip-ov{position:fixed;inset:0;z-index:1600;background:rgba(8,10,30,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -937,12 +1280,25 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-clip-wm span{color:#fff;font-size:12px;font-weight:800;letter-spacing:.3px;text-shadow:0 1px 4px rgba(0,0,0,.7)}
         .cpm-rev-clip-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;
           border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--indigo,#5b6bff);box-shadow:0 3px 10px rgba(0,0,0,.3)}
-        @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:12px}.cpm-rev-fact{padding:2px 14px}.cpm-rev-fact + .cpm-rev-fact{border-left:none}}
+        @media (max-width:560px){.cpm-rev-card{flex-direction:column;align-items:stretch}.cpm-rev-media{position:absolute;top:16px;right:18px;width:118px}.cpm-rev-who,.cpm-rev-meta{padding-right:130px}.cpm-rev-clip{width:100%;aspect-ratio:16/9}.cpm-rev-facts{gap:8px;flex-wrap:nowrap;justify-content:space-between}.cpm-rev-fact{padding:0;flex:1;min-width:0}.cpm-rev-fact+.cpm-rev-fact{border-left:none}.cpm-rev-fact strong{font-size:14px}.cpm-rev-cat{font-size:13px}}
         .cpm-vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+        /* Mobile: two clips per row; more than two turns the row into a
+           swipeable, gently auto-scrolling strip (see vidTrackRef effect). */
+        @media (max-width:560px){
+          .cpm-vids--scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+          .cpm-vids--scroll::-webkit-scrollbar{display:none}
+          .cpm-vids--scroll .cpm-vid-item{flex:0 0 calc((100% - 14px) / 2);scroll-snap-align:start}
+        }
         .cpm-vid{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#0b1020;cursor:pointer;box-shadow:0 8px 22px -12px rgba(15,22,58,.4)}
         /* per-video caption: category chip + price / duration */
         .cpm-vid-item{display:flex;flex-direction:column;gap:8px}
         .cpm-vid-cap{padding:0 2px}
+        /* Brand on the left, category chip pushed to the right — same line. */
+        .cpm-vid-headrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
+        .cpm-vid-headrow .cpm-vid-brand{margin-top:0;min-width:0;flex:1}
+        .cpm-vid-headrow .cpm-vid-cat{flex:none}
+        .cpm-vid-brand{display:block;margin-top:9px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:14.5px;font-weight:800;color:#15163a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .cpm-vid-brand + .cpm-vid-catrow{margin-top:5px}
         .cpm-vid-cat{display:inline-block;padding:2px 10px;border-radius:20px;background:#eef0ff;color:#5b6bff;
           font-size:11.5px;font-weight:700;text-transform:capitalize}
         .cpm-vid-pd{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
@@ -960,10 +1316,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-vid-del label,.cpm-vid-price label{color:#9296ba;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
         .cpm-vid-del strong,.cpm-vid-price strong{color:#07074e;font-size:13.5px;font-weight:800;white-space:nowrap}
         .cpm-vid video,.cpm-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+        .cpm-vid-broken{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#f1f2f9;color:#98a1ad;font-size:11.5px;font-weight:600;text-align:center;cursor:default}
         .cpm-vid:hover video,.cpm-vid:hover img{transform:scale(1.07)}
         .cpm-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#5b6bff;pointer-events:none;transition:opacity .2s ease}
         .cpm-vid:hover .cpm-play{opacity:0}
         .cpm-empty{text-align:center;color:#9296ba;padding:30px 0;font-size:14px}
+        .cpm-rev-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:34px 20px;border:1px dashed #e6e8f3;border-radius:16px;background:#fafbff}
+        .cpm-rev-empty strong{color:#15163a;font-size:15px;font-weight:800}
+        .cpm-rev-empty span{color:#9296ba;font-size:13px;max-width:320px}
         /* editable */
         .cpm-ghost{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8f3;color:#15163a;border-radius:30px;padding:10px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .cpm-ghost:hover{border-color:#cdd4ff;color:#4452f0;background:#f6f7ff}
@@ -975,6 +1335,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-avatar-cam{position:absolute;right:2px;bottom:2px;width:30px;height:30px;border:2px solid #fff;border-radius:50%;background:#15163a;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 6px rgba(15,22,58,.3);z-index:2}
         .cpm-vid-remove{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(15,22,58,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:3}
         .cpm-vid-remove:hover{background:#e5484d}
+        .cpm-vid-edit{position:absolute;top:8px;right:44px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(15,22,58,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:3}
+        .cpm-vid-edit:hover{background:#6d7bff}
         .cpm-add-tile{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#f6f7ff!important;border:2px dashed #cdd4ff;color:#5b6bff;font-weight:700;font-size:13px;cursor:pointer}
         .cpm-add-tile span{font-size:13px}
         .cpm-addwork{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding:16px;border:1px solid #eef0f6;border-radius:14px;background:#fbfbfe}
@@ -1007,17 +1369,27 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-editform .cpm-ef-sec:first-child{border-top:none;padding-top:0}
         .cpm-ef-check{flex-direction:row!important;align-items:center;gap:8px!important;text-transform:none!important;letter-spacing:0!important;font-size:13.5px!important;color:#15163a!important;font-weight:600!important}
         .cpm-ef-check input{width:16px;height:16px;accent-color:#5b6bff}
-        .cpm-sections{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
-        @media (max-width:760px){.cpm-sections{grid-template-columns:1fr}}
-        .cpm-sections section{border:1px solid #eef0f6;border-radius:16px;padding:18px 20px;background:#fff;box-shadow:0 1px 2px rgba(15,22,58,.04)}
+        /* Masonry-style columns instead of a grid. In a 2-col grid every row is as tall
+           as its tallest card, so short cards (Location, Pricing) left big dead gaps
+           underneath. Columns let each card sit right under the previous one. */
+        .cpm-sections{column-count:2;column-gap:14px}
+        @media (max-width:760px){.cpm-sections{column-count:1}}
+        .cpm-sections section{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
+          display:inline-block;width:100%;margin:0 0 14px;
+          border:1px solid #eef0f6;border-radius:16px;padding:18px 20px;background:#fff;box-shadow:0 1px 2px rgba(15,22,58,.04)}
         .cpm-sec-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
         .cpm-sec-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
         .cpm-sections h4{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:13px;font-weight:800;color:#15163a;text-transform:uppercase;letter-spacing:.5px;margin:0}
         .cpm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+        /* On phones the auto-fit min was too wide → 1 column with blank space on the
+           right. Force two columns so fields (Age|Gender, Body|Skin…) sit side by side. */
+        @media (max-width:640px){.cpm-grid{grid-template-columns:1fr 1fr;gap:12px 14px}}
         .cpm-f{display:flex;flex-direction:column;gap:3px;min-width:0}
         .cpm-f.wide{grid-column:1/-1}
         .cpm-f label{font-size:11px;font-weight:700;color:#9296ba;text-transform:uppercase;letter-spacing:.3px}
         .cpm-f span{font-size:14px;color:#15163a;font-weight:600;overflow-wrap:anywhere}
+        .cpm-link{font-size:14px;color:#4452f0;font-weight:600;overflow-wrap:anywhere;text-decoration:none}
+        .cpm-link:hover{text-decoration:underline}
         .cpm-chips{display:flex;flex-wrap:wrap;gap:6px}
         .cpm-chips span{background:#eef0ff;color:#5b6bff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:14px}
         .cpm-bio{margin:12px 0 0;color:#585c7e;font-size:13.5px;line-height:1.55}
@@ -1028,14 +1400,46 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-foot-text p{margin:2px 0 0;color:#585c7e;font-size:12.5px}
         .cpm-begin{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-begin:hover{filter:brightness(1.06)}
+        .cpm-mobilebar{display:none}
+        /* Hide the app's floating message FAB on mobile while a profile is open —
+           it would sit right on top of the bottom Send Message bar. */
+        @media(max-width:640px){body.cpm-open .cmk-post-fab{display:none}}
+        /* When a chat popup is open on top, hide this profile's fixed bottom bar so
+           it doesn't overlap the chat's composer. */
+        body.cpop-open .cpm-mobilebar{display:none}
         @media(max-width:640px){
-          .cpm-actions{position:static;margin-top:12px}
-          .cpm-msg{flex:1}
+          /* On phones the modal fills the screen like a real page (no floating card). */
+          .cpm-ov{padding:0;align-items:stretch;background:#fff;backdrop-filter:none}
+          .cpm-ov > .cpm{width:100%;min-height:100vh;border-radius:0;box-shadow:none}
+          /* Send Message lives in the fixed bottom bar on mobile — drop the top one. */
+          .cpm-msg-top{display:none}
+          /* Send a Brief drops down to sit on the name's line, right side. */
+          .cpm-actions{position:absolute;top:112px;right:24px;left:auto;margin:0}
+          .cpm-brief-btn{padding:8px 18px;font-size:13px}
+          /* Bookmark pinned up in the top-right (above Send a Brief). */
+          .cpm-save{position:absolute;top:58px;right:24px;left:auto;width:40px;height:40px;margin:0;z-index:5}
+          /* Reserve room so a longer name doesn't run under Send a Brief. */
+          .cpm-name{padding-right:130px}
+          /* Self (editable) view has TWO wide buttons (Add Work / Edit Profile), not
+             the brand view's one narrow "Send a Brief" — pinning them absolute here
+             overlapped the Verified badge and name. Let them flow in-line below the
+             avatar instead, like a normal row, same as everything else on this page. */
+          .cpm-phead.is-editable .cpm-actions{position:absolute;top:62px;right:24px;margin:0}
+          .cpm-phead.is-editable .cpm-actions .cpm-msg{min-height:34px;padding:7px 15px;font-size:12.5px}
+          .cpm-phead.is-editable .cpm-actions .cpm-msg svg{width:14px;height:14px}
+          .cpm-phead.is-editable .cpm-name{padding-right:132px}
+          .cpm-tabs{gap:16px;padding:0 20px}
+          /* Persistent bottom Send Message bar. */
+          .cpm-mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:1500;
+            padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+            background:#fff;border-top:1px solid #eef0f6;box-shadow:0 -6px 20px rgba(15,22,58,.12)}
+          /* Room so the bar never covers the last content. */
+          .cpm-tab-body{padding-bottom:84px}
         }
       `}</style>
       </div>
   );
 
   if (asPage) return <div className="cpm-page">{content}</div>;
-  return <div className="cpm-ov" onClick={onClose}>{content}</div>;
+  return <div className="cpm-ov" onClick={handleClose}>{content}</div>;
 }

@@ -2,11 +2,21 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, Search } from 'lucide-react';
 import { getInitial } from './CreatorComponents';
+import { displayName, creatorFirstName } from '../utils/displayName';
+import { useAuth } from '../App';
 import ChatPopup from './ChatPopup';
+import { Skeleton } from './Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const ATTACHMENT_MESSAGE_PREFIX = '__UGCAD_ATTACHMENT__:';
+
+// Build a full URL for a stored photo path (absolute URLs pass through).
+const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
+// The conversations API returns the avatar as `profile_picture` (brands may only
+// have a profile.logo). Cover every shape so the photo actually resolves.
+const photoOf = (c) => c?.profile_picture || c?.profile_photo || c?.photo
+  || (c?.profile && (c.profile.logo || c.profile.profile_photo)) || '';
 
 const avatarColor = (name) => {
   const s = String(name || 'U');
@@ -41,9 +51,20 @@ const previewText = (conv) => {
  * the same card (via ChatPopup); its close button returns to the list.
  */
 export default function MessagesPopup({ onClose }) {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(null); // { id, name, photo }
+  // A brand sees a creator by FIRST NAME only; a creator keeps the brand's full name.
+  const nameOf = (c) => (user?.role === 'business' ? creatorFirstName(c) : displayName(c, 'User'));
+
+  // Close on Escape — pairs with the tap-outside backdrop below.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   useEffect(() => {
     let alive = true;
@@ -52,6 +73,7 @@ export default function MessagesPopup({ onClose }) {
         const r = await axios.get(`${API}/chat/conversations`);
         if (alive) setConversations(Array.isArray(r.data) ? r.data : []);
       } catch { /* thread list may be empty / offline */ }
+      finally { if (alive) setLoading(false); }
     };
     load();
     const t = setInterval(load, 5000);
@@ -64,11 +86,16 @@ export default function MessagesPopup({ onClose }) {
     return <ChatPopup user={active} onClose={() => setActive(null)} />;
   }
 
+
   const filtered = conversations.filter((c) =>
-    (c.nickname || '').toLowerCase().includes(q.trim().toLowerCase()));
+    nameOf(c).toLowerCase().includes(q.trim().toLowerCase()));
 
   return (
-    <div className="mpop">
+    <>
+      {/* Tap anywhere outside the card to dismiss. Transparent on desktop (just a
+          click-catcher); dimmed on phones so it reads as a modal layer. */}
+      <div className="mpop-backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="mpop">
       <div className="mpop-head">
         <strong>Messages</strong>
         <button type="button" className="mpop-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
@@ -85,7 +112,19 @@ export default function MessagesPopup({ onClose }) {
       </div>
 
       <div className="mpop-list">
-        {filtered.length === 0 ? (
+        {loading && conversations.length === 0 ? (
+          // Skeleton rows while the first load is in flight — avoids a brief
+          // "No conversations yet" flash before the threads arrive.
+          Array.from({ length: 4 }).map((_, i) => (
+            <div className="mpop-item" key={`sk-${i}`} aria-hidden="true" style={{ cursor: 'default' }}>
+              <Skeleton width={40} height={40} radius="50%" />
+              <span className="mpop-body">
+                <Skeleton width="55%" height={13} />
+                <Skeleton width="80%" height={11} style={{ marginTop: 7 }} />
+              </span>
+            </div>
+          ))
+        ) : filtered.length === 0 ? (
           <div className="mpop-empty">{conversations.length ? 'No matches' : 'No conversations yet'}</div>
         ) : (
           filtered.map((c) => (
@@ -93,12 +132,17 @@ export default function MessagesPopup({ onClose }) {
               key={c.user_id}
               type="button"
               className="mpop-item"
-              onClick={() => setActive({ id: c.user_id, name: c.nickname, photo: c.profile_photo || c.photo })}
+              onClick={() => setActive({ id: c.user_id, name: nameOf(c), photo: photoOf(c) })}
             >
-              <span className="mpop-ava" style={{ background: avatarColor(c.nickname) }}>{getInitial(c.nickname)}</span>
+              <span className="mpop-ava" style={{ background: avatarColor(nameOf(c)) }}>
+                {getInitial(nameOf(c))}
+                {assetUrl(photoOf(c)) && (
+                  <img src={assetUrl(photoOf(c))} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </span>
               <span className="mpop-body">
                 <span className="mpop-top">
-                  <strong>{c.nickname || 'User'}</strong>
+                  <strong>{nameOf(c)}</strong>
                   <small>{timeAgo(c.timestamp || c.last_message?.timestamp)}</small>
                 </span>
                 <span className="mpop-prev">{previewText(c)}</span>
@@ -110,6 +154,8 @@ export default function MessagesPopup({ onClose }) {
       </div>
 
       <style>{`
+        .mpop-backdrop{position:fixed;inset:0;z-index:1199;background:transparent}
+        @media (max-width:640px){ .mpop-backdrop{background:rgba(15,22,58,.35)} }
         .mpop{position:fixed;right:24px;bottom:24px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 48px);
           background:#fff;border:1px solid #e9ebf4;border-radius:18px;box-shadow:0 28px 64px rgba(15,22,58,.32);
           display:flex;flex-direction:column;overflow:hidden;z-index:1200;animation:mpop-in .22s cubic-bezier(.2,.7,.2,1)}
@@ -126,7 +172,8 @@ export default function MessagesPopup({ onClose }) {
         .mpop-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px;border:none;background:none;cursor:pointer;
           border-radius:12px;text-align:left;font-family:inherit;transition:background .15s}
         .mpop-item:hover{background:#f5f6fc}
-        .mpop-ava{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+        .mpop-ava{position:relative;width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;overflow:hidden}
+        .mpop-ava img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
         .mpop-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
         .mpop-top{display:flex;align-items:baseline;gap:8px}
         .mpop-top strong{flex:1;min-width:0;font-size:14px;color:#15163a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -135,6 +182,7 @@ export default function MessagesPopup({ onClose }) {
         .mpop-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#5b6bff;color:#fff;
           font-size:11.5px;font-weight:700;display:grid;place-items:center}
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }

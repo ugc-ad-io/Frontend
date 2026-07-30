@@ -1,10 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+
+// Several notifications were stored (and are still emitted) with links to routes that
+// don't exist, so clicking them called navigate() on a dead path and nothing happened.
+// This rewrites the known-bad/legacy paths to the real ones — and because it runs on
+// read, it fixes notifications ALREADY sitting in the DB, not just new ones.
+const LEGACY_LINK_MAP = {
+  '/deals': '/my-deals',
+  '/payouts': '/withdrawal',
+  '/creator-dashboard': '/dashboard/creator',
+  '/dashboard/creator/inbox': '/messages',
+  '/dashboard/business/deals': '/dashboard/business/all-campaigns',
+  '/admin/match-queue': '/dashboard/admin/campaigns',
+  '/admin/campaigns': '/dashboard/admin/campaigns',
+  '/dashboard/admin/flagged-messages': '/dashboard/admin/flagged',
+};
+const resolveNotifLink = (link) => {
+  if (!link) return null;
+  const [path, rest] = String(link).split(/(?=[?#])/);
+  return (LEGACY_LINK_MAP[path] || path) + (rest || '');
+};
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
@@ -12,16 +33,20 @@ const NotificationBell = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  // Notification ids we've already popped a toast for. Seeded on first load so we
+  // don't spam toasts for notifications that arrived before this page opened.
+  const seenIdsRef = useRef(null);
 
   useEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
-    
-    // Poll for new notifications every 30 seconds
+
+    // Poll the LIST (not just the count) so a new message can be popped as a toast.
     const interval = setInterval(() => {
+      fetchNotifications();
       fetchUnreadCount();
-    }, 30000);
-    
+    }, 15000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -39,7 +64,28 @@ const NotificationBell = () => {
   const fetchNotifications = async () => {
     try {
       const response = await axios.get(`${API}/notifications/my-notifications`);
-      setNotifications(response.data);
+      const list = Array.isArray(response.data) ? response.data : [];
+      setNotifications(list);
+
+      // First load: remember what's already there, don't toast any of it.
+      if (seenIdsRef.current === null) {
+        seenIdsRef.current = new Set(list.map((n) => n.id));
+        return;
+      }
+
+      // Anything new + still unread since the last poll → pop a toast.
+      const fresh = list.filter((n) => n.id && !seenIdsRef.current.has(n.id) && !n.read);
+      fresh.forEach((n) => {
+        seenIdsRef.current.add(n.id);
+        toast(n.title || 'New notification', {
+          description: n.message,
+          action: n.link
+            ? { label: 'Open', onClick: () => navigate(n.link) }
+            : undefined,
+        });
+      });
+      // Keep the seen-set in sync with everything we've now rendered.
+      list.forEach((n) => n.id && seenIdsRef.current.add(n.id));
     } catch (error) {
       console.error('Failed to fetch notifications');
     }
@@ -76,11 +122,17 @@ const NotificationBell = () => {
 
   const handleNotificationClick = (notification) => {
     handleMarkAsRead(notification.id);
-    if (notification.link) {
-      navigate(notification.link);
+    const target = resolveNotifLink(notification.link);
+    if (target) {
+      navigate(target);
       setShowDropdown(false);
     }
   };
+
+  // Only these four tones have styling. Anything else (e.g. the backend's
+  // "message" type) fell through to an unstyled, background-less icon — map it
+  // onto `info` so every notification renders with a proper coloured badge.
+  const TONE = (type) => (['success', 'warning', 'error'].includes(type) ? type : 'info');
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -131,14 +183,21 @@ const NotificationBell = () => {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`notification-item ${!notification.read ? 'unread' : ''} ${notification.type}`}
+                  className={`notification-item ${!notification.read ? 'unread' : ''} ${TONE(notification.type)}`}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="notification-icon">
                     {getNotificationIcon(notification.type)}
                   </div>
                   <div className="notification-content">
-                    <h4>{notification.title}</h4>
+                    <h4>
+                      {notification.title}
+                      {notification.source === 'admin' && (
+                        <span className="notification-admin-chip">
+                          {notification.sender_label || 'Admin'}
+                        </span>
+                      )}
+                    </h4>
                     <p>{notification.message}</p>
                     <span className="notification-time">
                       {new Date(notification.created_at).toLocaleString()}
@@ -324,6 +383,23 @@ const NotificationBell = () => {
           font-size: 0.95rem;
           font-weight: 600;
           color: #1f2937;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .notification-admin-chip {
+          font-size: 0.65rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #4338ca;
+          background: #eef2ff;
+          border: 1px solid #dfe4ff;
+          border-radius: 999px;
+          padding: 2px 8px;
+          line-height: 1.4;
         }
 
         .notification-content p {
@@ -352,9 +428,25 @@ const NotificationBell = () => {
         }
 
         @media (max-width: 768px) {
+          /* Anchor to the viewport instead of the ~42px bell wrapper, so the
+             panel can never hang off the left edge of the screen. */
           .notification-dropdown {
-            width: 90vw;
-            right: -50%;
+            position: fixed;
+            top: 64px;
+            right: 10px;
+            left: 10px;
+            width: auto;
+            margin-top: 0;
+            max-height: calc(100vh - 84px);
+          }
+
+          .notification-list {
+            max-height: calc(100vh - 148px);
+          }
+
+          .notification-item {
+            padding: 14px 12px;
+            gap: 10px;
           }
         }
       `}</style>

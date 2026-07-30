@@ -1,7 +1,24 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2 } from 'lucide-react';
+
+// Map a social-handle key/platform to its real brand logo (simpleicons slug + brand
+// colour). Falls back to a globe for unknown / custom links.
+const SOCIAL_LOGOS = [
+  [/instagram|insta|ig\b/i, 'instagram', 'E4405F'],
+  [/youtube|yt\b/i, 'youtube', 'FF0000'],
+  [/tiktok|tik\s?tok/i, 'tiktok', '000000'],
+  [/twitter|x\.com|^x$|\bx\b/i, 'x', '000000'],
+  [/facebook|fb\b/i, 'facebook', '1877F2'],
+  [/linkedin/i, 'linkedin', '0A66C2'],
+];
+const SocialLogo = ({ platform }) => {
+  const hit = SOCIAL_LOGOS.find(([re]) => re.test(String(platform || '')));
+  if (!hit) return <Globe size={14} className="apps-social-ic" />;
+  return <img src={`https://cdn.simpleicons.org/${hit[1]}/${hit[2]}`} alt="" width={14} height={14} className="apps-social-ic" />;
+};
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useAuth } from '../App';
 import '../styles/ApplicationsPage.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -23,6 +40,18 @@ const resolveUrl = (u) => {
   return /^https?:\/\//i.test(s) ? s : `${BACKEND_URL}${s.startsWith('/') ? '' : '/'}${s}`;
 };
 
+// The backend gates deliverable videos under /uploads and reads the JWT from an
+// Authorization header OR a ?token= query param. <video>/<img> tags can't send
+// headers, so sign backend URLs with the token — without this a gated clip 403s
+// and renders as an empty 0:00 player.
+const signedUrl = (u) => {
+  const base = resolveUrl(u);
+  if (!base || !base.startsWith(BACKEND_URL)) return base;
+  const token = localStorage.getItem('token');
+  if (!token) return base;
+  return `${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+};
+
 const VIDEO_EXT = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|#|$)/i;
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg|avif)(\?|#|$)/i;
 const KEY_IS_VIDEO = /video|reel|intro/i;
@@ -34,17 +63,54 @@ const KEY_IS_MEDIA = /photo|picture|avatar|image|logo|banner|thumb|video|reel|in
 const collectUrls = (v) => {
   const out = [];
   const push = (x) => { if (typeof x === 'string' && x.trim()) out.push(x.trim()); };
+  // A portfolio item can be a rich object ({ videoUrl, urls:[...], original_url }).
+  // The old extractor only checked url/file_url/src/video/video_url, so a creator's
+  // clips (stored as { videoUrl, urls }) yielded nothing and never played.
+  const fromObj = (o) => {
+    if (Array.isArray(o.urls)) o.urls.forEach(push);
+    push(o.url || o.file_url || o.src || o.video || o.video_url || o.videoUrl
+      || o.original_url || o.image || o.image_url || o.link);
+  };
   if (typeof v === 'string') push(v);
   else if (Array.isArray(v)) v.forEach((item) => {
     if (typeof item === 'string') push(item);
-    else if (item && typeof item === 'object') push(item.url || item.file_url || item.src || item.video || item.video_url || item.image || item.image_url);
+    else if (item && typeof item === 'object') fromObj(item);
   });
-  else if (v && typeof v === 'object') push(v.url || v.file_url || v.src);
+  else if (v && typeof v === 'object') fromObj(v);
   return out;
 };
 
-const prettifyKey = (k) => String(k).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
-const isEmptyVal = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0) || (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+// A few keys read better with an explicit label than the auto-prettified key.
+const KEY_LABELS = { updated_at: 'Submitted At' };
+const prettifyKey = (k) => KEY_LABELS[k] || String(k).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Preferred display order for "All Submitted Details". First match (by label
+// substring) wins; anything unmatched sorts to the end but keeps its original
+// relative order. Ordered: identity → contact → persona → commercials.
+const FIELD_ORDER = [
+  'full name', 'first name', 'last name', 'nickname', 'name',
+  'gender', 'date of birth', 'dob', 'age',
+  'bio', 'about', 'headline',
+  'country', 'city', 'state', 'address', 'pincode', 'pin code', 'dial code', 'phone', 'contact',
+  'content style', 'content categor', 'primary categor', 'categor', 'tags', 'niche', 'language',
+  'rate card', 'expected payout', 'payout period', 'delivery days',
+  'availability', 'flexible', 'receive brief',
+];
+const fieldRank = (k) => {
+  const lbl = prettifyKey(k).toLowerCase();
+  const i = FIELD_ORDER.findIndex((kw) => lbl.includes(kw));
+  return i === -1 ? FIELD_ORDER.length : i;
+};
+// Empty = null/undefined/blank, an empty (or all-empty) array, or an object whose
+// every value is itself empty — so e.g. Followers: {instagram:'', youtube:''}
+// counts as empty and doesn't render a blank full-width box.
+const isEmptyVal = (v) => {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.every(isEmptyVal);
+  if (typeof v === 'object') return Object.values(v).every(isEmptyVal);
+  return false;
+};
 const isUrl = (v) => typeof v === 'string' && /^https?:\/\//i.test(v.trim());
 
 function DetailValue({ value }) {
@@ -83,7 +149,10 @@ const formatDateSafe = (value) => {
 
 // SLA — target turnaround for review (48h). Oldest applications go urgent/overdue.
 const SLA_TARGET_HOURS = 48;
-const slaInfo = (submitted, nowMs) => {
+const slaInfo = (submitted, nowMs, status) => {
+  // Once a decision is made the SLA clock is done — an approved/rejected application
+  // must never read "Overdue" (the review already happened).
+  if (['approved', 'rejected'].includes(status)) return { label: 'Reviewed', urgent: false };
   if (!submitted) return { label: '—', urgent: false };
   const t = new Date(submitted).getTime();
   if (Number.isNaN(t)) return { label: '—', urgent: false };
@@ -135,7 +204,7 @@ const REJECT_REASONS = {
   brands: ['Incomplete profile', 'Invalid / missing GST', 'Restricted category', 'Low-trust (free-email) domain', 'Suspected agency misrepresentation', 'Policy violation', 'Other'],
 };
 const MORE_INFO_ITEMS = {
-  creators: ['Add 3–5 clear portfolio samples', 'Upload valid KYC (PAN / Aadhaar / selfie)', 'Verify social handles', 'Re-record a higher-quality intro video', 'Confirm category / niche', 'Confirm location'],
+  creators: ['Add 3–5 clear portfolio samples', 'Verify social handles', 'Re-record a higher-quality intro video', 'Confirm category / niche', 'Confirm location'],
   brands: ['Provide valid GST details', 'Verify business website', 'Use a work-domain business email', 'Clarify product category', 'Verify social media links'],
 };
 
@@ -145,13 +214,19 @@ const MORE_INFO_ITEMS = {
 function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   const p = profile.profile || {};
   const brand = isBrandRole(profile.role);
-  const displayName = profile.username ? `@${profile.username}` : (profile.nickname || p.fullName || p.business_name || p.full_name || '—');
+  // Show the applicant's REAL name for review (not their @username/id) — the
+  // reviewer verifies a real person/business; the public id comes after approval.
+  const realName = brand ? (p.business_name || p.businessName) : (p.fullName || p.full_name);
+  const displayName = (realName && String(realName).trim()) || String(profile.nickname || profile.username || '—').replace(/^@+/, '');
   const email = profile.email || p.business_email || '—';
   const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '—';
   const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
-  const sla = slaInfo(submitted, nowMs);
+  const sla = slaInfo(submitted, nowMs, profile.approval_status);
   const state = STATE_META[profile.approval_status] || STATE_META.pending;
-  const flagName = !brand && looksLikeRealName(displayName);
+  // Already-decided applications (approved / rejected) are read-only — only
+  // "View" remains; Approve/Reject are hidden so a decision can't be re-made here.
+  const decided = ['approved', 'rejected'].includes(profile.approval_status);
+  const flagName = !brand && looksLikeRealName(profile.username || '');
   const stop = (e, fn) => { e.stopPropagation(); fn(); };
 
   // Role-specific middle columns
@@ -201,8 +276,12 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
       </div>
 
       <div className="apps-action-group">
-        <button className="btn-decision btn-approve" onClick={(e) => stop(e, () => onApprove(profile.id))}>✓ Approve</button>
-        <button className="btn-decision btn-reject" onClick={(e) => stop(e, () => onReject(profile.id))}>✕ Reject</button>
+        {!decided && (
+          <>
+            <button className="btn-decision btn-approve" onClick={(e) => stop(e, () => onApprove(profile.id))}>✓ Approve</button>
+            <button className="btn-decision btn-reject" onClick={(e) => stop(e, () => onReject(profile.id))}>✕ Reject</button>
+          </>
+        )}
         <button className="apps-row-action" onClick={(e) => stop(e, () => onOpen(profile))}><Eye size={14} /> View</button>
       </div>
     </div>
@@ -216,10 +295,17 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   const [full, setFull] = useState(profile);
   const [loadingFull, setLoadingFull] = useState(true);
   const [mode, setMode] = useState(null);             // null | 'more_info' | 'reject'
+  // Auto-scroll the reveal panel into view when Request More Info / Reject is clicked.
+  const scrollToBuilder = useCallback((el) => {
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
   const [reasonCode, setReasonCode] = useState('');
   const [reasonDetails, setReasonDetails] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
   const [infoItems, setInfoItems] = useState([]);
+  // Media URLs that failed to load — their tiles are hidden instead of showing an
+  // empty player. Keyed on the resolved url.
+  const [badMedia, setBadMedia] = useState(() => new Set());
 
   useEffect(() => {
     let alive = true;
@@ -255,18 +341,35 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 
   // ---- media: photo, videos, kyc, social, generic fields ----
   const photos = [], videos = [], kyc = [];
+  // Cloudinary delivers videos under /video/upload/ and may drop the .mp4 suffix,
+  // so an extension check alone misclassifies them as images.
+  const looksVideo = (u) => VIDEO_EXT.test(u) || /\/video\/upload\//i.test(u);
   Object.entries(flat).forEach(([k, v]) => {
     collectUrls(v).forEach((u) => {
       if (KEY_IS_KYC.test(k)) kyc.push({ k, u });
-      else if (KEY_IS_VIDEO.test(k) || VIDEO_EXT.test(u)) videos.push(u);
-      else if (KEY_IS_IMAGE.test(k) || IMAGE_EXT.test(u) || /portfolio/i.test(k)) (VIDEO_EXT.test(u) ? videos : photos).push(u);
+      else if (KEY_IS_VIDEO.test(k) || looksVideo(u)) videos.push(u);
+      else if (KEY_IS_IMAGE.test(k) || IMAGE_EXT.test(u) || /portfolio/i.test(k)) (looksVideo(u) ? videos : photos).push(u);
     });
   });
-  const uniq = (a) => [...new Set(a)];
+  // Dedupe on the RESOLVED url (ignoring query/hash), not the raw string — the same
+  // file is often stored under several keys in different forms ("/uploads/x.mp4" vs
+  // "http://host/uploads/x.mp4"), which otherwise renders the same video twice.
+  const mediaKey = (u) => resolveUrl(u).split(/[?#]/)[0].toLowerCase();
+  const uniq = (a) => {
+    const seen = new Set();
+    return a.filter((u) => {
+      const k = mediaKey(u);
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  };
   const photoList = uniq(photos);
   const videoList = uniq(videos);
   const mainPhoto = photoList[0];
   const portfolioPhotos = photoList.slice(1);
+  // A stale/broken URL still renders an empty <video> player; drop those tiles.
+  const playableVideos = videoList.filter((u) => !badMedia.has(mediaKey(u)));
 
   // social links
   const socialObj = p.social_links || p.social_media || p.links || {};
@@ -277,22 +380,47 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   (p.extraLinks || []).forEach((l) => { if (l && l.url) socials.push([l.platform || 'link', l.url]); });
 
   const uname = full.username || profile.username;
-  const displayName = uname ? `@${uname}` : (full.nickname || p.fullName || p.business_name || profile.nickname || '—');
+  // Real name is the review identity; the @username/id is secondary (shown after approval).
+  const realName = brand ? (p.business_name || p.businessName || full.business_name) : (p.fullName || p.full_name || full.full_name);
+  const displayName = (realName && String(realName).trim()) || String(full.nickname || profile.nickname || uname || '—').replace(/^@+/, '');
   const headerEmail = full.email || p.business_email || profile.email;
-  const flagName = !brand && looksLikeRealName(displayName);
+  const flagName = !brand && looksLikeRealName(uname || '');
   const gst = gstStatus(p);
   const flags = brand ? brandFlags(p, headerEmail) : [];
   const website = brand ? (p.website || p.website_url) : null;
   const review = full.review || {};
 
-  // text fields excluding media/kyc/social
-  const entries = Object.entries(flat).filter(([k, v]) => !MEDIA_OR_META(k) && !isEmptyVal(v));
+  // text fields excluding media/kyc/social. De-dupe by display label so a field
+  // stored under two spellings (deliveryDays + delivery_days → "Delivery Days")
+  // only shows once.
+  const seenLabels = new Set();
+  // The profile stores BOTH `content_styles` (the picked array) and a legacy
+  // `content_style` (just the first item). They prettify to different labels
+  // ("Content Styles" vs "Content Style"), so the label de-dupe below doesn't
+  // catch them — drop the singular when the array is present so the same styles
+  // aren't shown twice.
+  const hasStyleArray = !isEmptyVal(flat.content_styles) || !isEmptyVal(flat.contentStyles);
+  const entries = Object.entries(flat)
+    .filter(([k, v]) => !MEDIA_OR_META(k) && !isEmptyVal(v))
+    .filter(([k]) => !(hasStyleArray && (k === 'content_style' || k === 'contentStyle')))
+    .filter(([k]) => {
+      const lbl = prettifyKey(k).toLowerCase();
+      if (seenLabels.has(lbl)) return false;
+      seenLabels.add(lbl);
+      return true;
+    })
+    // Show fields in a human order (identity → persona → commercials → rest)
+    // instead of whatever arbitrary order the API returns them in.
+    .sort((a, b) => fieldRank(a[0]) - fieldRank(b[0]));
   function MEDIA_OR_META(k) {
-    return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers'].includes(k)
+    return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers',
+      // Internal / not useful when reviewing a profile.
+      'availability_calendar', 'curated_brand_visible', 'creator_directory_visible', 'topics', 'balance', 'deliverables_completed'].includes(k)
       || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);
   }
 
   const decide = (action, payload) => { onDecide(profile.id, action, payload); onBack(); };
+  const decided = ['approved', 'rejected'].includes(full?.approval_status);
   const toggleItem = (it) => setInfoItems((cur) => cur.includes(it) ? cur.filter((x) => x !== it) : [...cur, it]);
 
   return (
@@ -329,15 +457,22 @@ function ProfileDetail({ profile, onBack, onDecide }) {
           )}
 
           {/* Portfolio + video (creator) */}
-          {(videoList.length > 0 || portfolioPhotos.length > 0) && (
+          {(playableVideos.length > 0 || portfolioPhotos.length > 0) && (
             <section className="detail-section full-width">
               <h3><PlayCircle size={16} className="apps-h3-ic" />{brand ? 'Media' : 'Portfolio & Video'} <span className="apps-h3-note">full resolution · no watermark</span></h3>
               <div className="apps-modal-media">
-                {videoList.map((u, i) => (
-                  <video key={`v${i}`} src={resolveUrl(u)} controls preload="metadata" style={{ width: '100%', borderRadius: 10, background: '#000', aspectRatio: '16 / 9' }} />
+                {playableVideos.map((u, i) => (
+                  <video
+                    key={`v${i}`}
+                    src={signedUrl(u)}
+                    controls
+                    preload="metadata"
+                    onError={() => setBadMedia((s) => new Set(s).add(mediaKey(u)))}
+                    style={{ width: '100%', borderRadius: 10, background: '#000', aspectRatio: '16 / 9' }}
+                  />
                 ))}
                 {portfolioPhotos.map((u, i) => (
-                  <a key={`p${i}`} href={resolveUrl(u)} target="_blank" rel="noopener noreferrer"><img src={resolveUrl(u)} alt="" style={{ width: '100%', borderRadius: 10, objectFit: 'cover', aspectRatio: '1 / 1' }} /></a>
+                  <a key={`p${i}`} href={signedUrl(u)} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}><img src={signedUrl(u)} alt="" style={{ width: '100%', height: 'auto', borderRadius: 10, objectFit: 'contain', background: '#f2f4f7', display: 'block' }} /></a>
                 ))}
               </div>
             </section>
@@ -389,7 +524,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
               <h3><Link2 size={16} className="apps-h3-ic" />{brand ? 'Social Media' : 'Social Handles'} <span className="apps-h3-note">for cross-verification</span></h3>
               <div className="apps-social-row">
                 {socials.map(([k, u], i) => (
-                  <a key={i} href={isUrl(u) ? u : `https://${u}`} target="_blank" rel="noopener noreferrer" className="apps-social-chip">{prettifyKey(k)}</a>
+                  <a key={i} href={isUrl(u) ? u : `https://${u}`} target="_blank" rel="noopener noreferrer" className="apps-social-chip"><SocialLogo platform={k} />{prettifyKey(k)}</a>
                 ))}
               </div>
             </section>
@@ -409,7 +544,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
             {entries.length > 0 ? (
               <div className="info-grid all-details-grid">
                 {entries.map(([k, v]) => (
-                  <div key={k} className="info-item full-width"><label>{prettifyKey(k)}</label><div className="all-details-value"><DetailValue value={v} /></div></div>
+                  <div key={k} className={`info-item ${(v && typeof v === 'object') ? 'full-width' : ''}`}><label>{prettifyKey(k)}</label><div className="all-details-value"><DetailValue value={v} /></div></div>
                 ))}
               </div>
             ) : (
@@ -419,7 +554,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 
           {/* Decision builder panels */}
           {mode === 'more_info' && (
-            <section className="detail-section full-width apps-builder">
+            <section ref={scrollToBuilder} className="detail-section full-width apps-builder">
               <h3><MessageSquarePlus size={16} className="apps-h3-ic" />Request More Information</h3>
               <div className="apps-builder-items">
                 {MORE_INFO_ITEMS[roleKey].map((it) => (
@@ -430,7 +565,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
             </section>
           )}
           {mode === 'reject' && (
-            <section className="detail-section full-width apps-builder">
+            <section ref={scrollToBuilder} className="detail-section full-width apps-builder">
               <h3><XCircle size={16} className="apps-h3-ic" />Reject — reason</h3>
               <select className="apps-select" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
                 <option value="">Select a reason code…</option>
@@ -443,11 +578,17 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 
         <div className="apps-modal-foot">
           {mode === null && (
-            <>
-              <button className="btn-decision btn-moreinfo" onClick={() => setMode('more_info')}><MessageSquarePlus size={15} /> Request More Info</button>
-              <button className="btn-decision btn-reject" onClick={() => setMode('reject')}>✕ Reject</button>
-              <button className="btn-decision btn-approve" onClick={() => decide('approve')}>✓ Approve</button>
-            </>
+            decided ? (
+              <span className="apps-decided-note" style={{ color: '#585c7e', fontSize: 13.5, fontWeight: 600, padding: '4px 2px' }}>
+                This profile is already {(STATE_META[full.approval_status] || {}).label || full.approval_status} — no further action needed.
+              </span>
+            ) : (
+              <>
+                <button className="btn-decision btn-moreinfo" onClick={() => setMode('more_info')}><MessageSquarePlus size={15} /> Request More Info</button>
+                <button className="btn-decision btn-reject" onClick={() => setMode('reject')}>✕ Reject</button>
+                <button className="btn-decision btn-approve" onClick={() => decide('approve')}>✓ Approve</button>
+              </>
+            )
           )}
           {mode === 'more_info' && (
             <>
@@ -473,9 +614,22 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 // Page
 // ===========================================================================
 function ApplicationsPage() {
+  const { user } = useAuth();
+  // Custom-admin data scope: 'all' | 'creator' | 'business'. Limits which
+  // application tabs this admin may see (creators-only / brands-only).
+  const scope = user?.admin_scope || 'all';
+  const canSeeCreators = scope !== 'business';
+  const canSeeBrands = scope !== 'creator';
+
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [applicationType, setApplicationType] = useState('creators');
+  const [applicationType, setApplicationType] = useState(scope === 'business' ? 'brands' : 'creators');
+  // If the admin's scope forbids the active tab (e.g. scope loaded after mount),
+  // snap to the one they're allowed to see.
+  useEffect(() => {
+    if (!canSeeBrands && applicationType === 'brands') setApplicationType('creators');
+    else if (!canSeeCreators && applicationType === 'creators') setApplicationType('brands');
+  }, [canSeeBrands, canSeeCreators, applicationType]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfile, setSelectedProfile] = useState(null);
   // filters
@@ -493,7 +647,9 @@ function ApplicationsPage() {
   const fetchApplications = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/admin/pending-profiles`);
+      // `status=all` returns every state (incl. rejected) so the State filter and
+      // rejection details stay available after a decision is made.
+      const res = await axios.get(`${API}/admin/pending-profiles?status=all`);
       setApplications(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch {
       toast.error('Failed to load applications');
@@ -563,8 +719,10 @@ function ApplicationsPage() {
     return rows;
   }, [roleList, stateFilter, categoryFilter, dateFrom, dateTo, gstFilter, flaggedOnly, searchQuery, sortOrder, applicationType]);
 
-  const creatorCount = useMemo(() => applications.filter((a) => isCreatorRole(a.role)).length, [applications]);
-  const brandCount = useMemo(() => applications.filter((a) => isBrandRole(a.role)).length, [applications]);
+  // Tab counts reflect the selected STATE filter (e.g. Approved → only approved profiles); hidden when 0.
+  const matchesState = (a) => stateFilter === 'all' || a.approval_status === stateFilter;
+  const creatorCount = useMemo(() => applications.filter((a) => isCreatorRole(a.role) && matchesState(a)).length, [applications, stateFilter]);
+  const brandCount = useMemo(() => applications.filter((a) => isBrandRole(a.role) && matchesState(a)).length, [applications, stateFilter]);
   const isBrands = applicationType === 'brands';
 
   return (
@@ -582,12 +740,16 @@ function ApplicationsPage() {
 
       <div className="apps-toolbar">
         <div className="apps-tabs">
-          <button className={`apps-tab ${!isBrands ? 'active' : ''}`} onClick={() => setApplicationType('creators')}>
-            <Users size={16} /> Creators {creatorCount > 0 && <span className="apps-tab-count">{creatorCount}</span>}
-          </button>
-          <button className={`apps-tab ${isBrands ? 'active' : ''}`} onClick={() => setApplicationType('brands')}>
-            <Briefcase size={16} /> Brands {brandCount > 0 && <span className="apps-tab-count">{brandCount}</span>}
-          </button>
+          {canSeeCreators && (
+            <button className={`apps-tab ${!isBrands ? 'active' : ''}`} onClick={() => setApplicationType('creators')}>
+              <Users size={16} /> Creators {creatorCount > 0 && <span className="apps-tab-count">{creatorCount}</span>}
+            </button>
+          )}
+          {canSeeBrands && (
+            <button className={`apps-tab ${isBrands ? 'active' : ''}`} onClick={() => setApplicationType('brands')}>
+              <Briefcase size={16} /> Brands {brandCount > 0 && <span className="apps-tab-count">{brandCount}</span>}
+            </button>
+          )}
         </div>
         <div className="apps-controls">
           <div className="apps-search">

@@ -1,11 +1,19 @@
-import { useState } from 'react';
-import { LogOut, Bell, X, LifeBuoy, Mail, Phone, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LogOut, X, LifeBuoy, Mail, Phone, MessageCircle } from 'lucide-react';
 
 const LOGO_SRC = '/ugcad-logo_-_Edited-removebg-preview.png';
 
 // Persist the open/closed state across route changes — navigating remounts the
 // layout, and without this the rail would snap back to collapsed every click.
 let RAIL_OPEN = false;
+
+// Let any page open the "Need help?" dialog. The dialog's state lives inside this
+// rail, so rather than lift it into a context we broadcast on window — the same
+// module-level coordination idiom as RAIL_OPEN above. The rail is mounted by the
+// creator/brand layouts, so it's listening on every signed-in page; if it somehow
+// isn't mounted the event is simply ignored rather than throwing.
+export const HELP_EVENT = 'ugcad:open-help';
+export const openHelpDialog = () => window.dispatchEvent(new Event(HELP_EVENT));
 
 /**
  * Collapsed icon rail on the left that expands on CLICK (toggle) to reveal
@@ -23,6 +31,15 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
     RAIL_OPEN = next;
     setOpenState(next);
   };
+
+  // Open the help dialog when a page asks for it (see openHelpDialog). Works whether
+  // the rail is expanded or collapsed — unlike the rail's own help button, which is
+  // deliberately inert until the rail is open.
+  useEffect(() => {
+    const onOpenHelp = () => setHelp(true);
+    window.addEventListener(HELP_EVENT, onOpenHelp);
+    return () => window.removeEventListener(HELP_EVENT, onOpenHelp);
+  }, []);
 
   const Item = (l) => (
     <button key={l.name} type="button" className={`hsr-item ${isActive(l.to) ? 'is-active' : ''}`} onClick={() => { if (open) onNavigate(l.to); }}>
@@ -61,16 +78,6 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         {secondary.length > 0 && <div className="hsr-sep" />}
         {secondary.map(Item)}
       </nav>
-
-      <button type="button" className="hsr-item hsr-notif" onClick={() => { if (open) onNavigate('/messages'); }}>
-        <span className="hsr-ic"><Bell size={20} /></span>
-        <span className="hsr-label">Notifications</span>
-      </button>
-
-      <button type="button" className="hsr-item hsr-help" onClick={() => { if (open) setHelp(true); }}>
-        <span className="hsr-ic"><LifeBuoy size={20} /></span>
-        <span className="hsr-label">Need help?</span>
-      </button>
 
       <button type="button" className="hsr-item hsr-logout" onClick={() => { if (open) onLogout(); }}>
         <span className="hsr-ic"><LogOut size={20} /></span>
@@ -155,6 +162,13 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           .cmk-app.has-rail:has(.hsr.is-open){padding-left:0}
           .cmk-app.has-rail .cmk-brand{display:flex}
           .cmk-app.has-rail .cmk-hamburger{display:inline-flex}
+          /* The rail is gone on mobile, so the tap-hamburger + its dropdown menu
+             must work again (both were hidden while the rail was the nav). */
+          .cmk-app.has-rail .cmk-mobile-menu{display:flex}
+          /* No desktop rail offset on mobile, but give the PAGE CONTENT a small side
+             inset so headings/chips don't hug the edge — the top nav is unaffected
+             (it only uses .cmk-wrap, not .cmk-page). */
+          .cmk-app.has-rail .cmk-page{padding-left:12px;padding-right:12px}
           .cmk-app.has-rail .cmk-wrap{margin-left:auto}
         }
       `}</style>
@@ -182,7 +196,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
             <div><label>WhatsApp</label><span>Chat with support</span></div>
           </a>
 
-          <p className="hsr-help-note">Support hours: Mon–Sat, 10:00 AM – 7:00 PM IST</p>
+          <p className="hsr-help-note">Support hours: Mon–Fri, 10:00 AM – 7:00 PM IST</p>
         </div>
 
         <style>{`
@@ -196,7 +210,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           .hsr-help-x:hover{background:#e7eaf5}
           .hsr-help-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
           .hsr-help-badge{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;color:#fff;
-            background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+            background:linear-gradient(135deg,#5b6bff,#6d7bff)}
           .hsr-help-head strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
           .hsr-help-head small{color:#9296ba;font-size:13px}
           .hsr-help-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #eef0f6;border-radius:14px;

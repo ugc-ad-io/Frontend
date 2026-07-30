@@ -71,7 +71,7 @@
   z-index: 5;
 }
 .admin-dashboard .dashboard-header h1 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--ad-text);
   margin: 0 0 2px;
@@ -387,11 +387,11 @@
 .admin-dashboard .btn-approve {
   background: var(--ad-ok-bg); color: var(--ad-ok-fg); border-color: #abefc6;
 }
-.admin-dashboard .btn-approve:hover { background: #d3f8df; transform: none; box-shadow: none; }
+.admin-dashboard .btn-approve:hover { background: #16a34a; color: #fff; border-color: #16a34a; transform: none; box-shadow: none; }
 .admin-dashboard .btn-reject {
   background: var(--ad-danger-bg); color: var(--ad-danger-fg); border-color: #fecdca;
 }
-.admin-dashboard .btn-reject:hover { background: #fee4e2; transform: none; box-shadow: none; }
+.admin-dashboard .btn-reject:hover { background: #dc2626; color: #fff; border-color: #dc2626; transform: none; box-shadow: none; }
 
 /* small table buttons */
 .admin-dashboard .btn-edit-small,

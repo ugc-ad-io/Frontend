@@ -7,6 +7,10 @@ import AdminLayout from '../components/AdminLayout';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+// Show the business's real company name — never their @username handle
+// (business_nickname / brand_handle are the handle sources, so they're excluded).
+const brandName = (c) => String(c?.brand_name || c?.business_name || c?.company_name || '').replace(/^@+/, '').trim() || '—';
+
 export default function AdminAllCampaigns() {
   const [allCampaigns, setAllCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +35,7 @@ export default function AdminAllCampaigns() {
   const filtered = filter
     ? allCampaigns.filter(c =>
         c.title?.toLowerCase().includes(filter.toLowerCase()) ||
-        c.business_nickname?.toLowerCase().includes(filter.toLowerCase()) ||
+        brandName(c).toLowerCase().includes(filter.toLowerCase()) ||
         c.status?.toLowerCase().includes(filter.toLowerCase())
       )
     : allCampaigns;
@@ -82,7 +86,7 @@ export default function AdminAllCampaigns() {
                   <span className={`aac-badge aac-badge-${c.status}`}>{c.status?.replace('_', ' ')}</span>
                 </div>
                 <div className="aac-card-body">
-                  <p><strong>Business:</strong> {c.business_nickname || '—'}</p>
+                  <p><strong>Business:</strong> {brandName(c)}</p>
                   <p><strong>Budget:</strong> ₹{c.budget_min} - ₹{c.budget_max}</p>
                   <p><strong>Brief:</strong> {c.brief_text?.substring(0, 150)}{c.brief_text?.length > 150 ? '...' : ''}</p>
                   <p><strong>Created:</strong> {new Date(c.created_at).toLocaleDateString()}</p>

@@ -5,13 +5,16 @@ import { toast } from 'sonner';
 import {
   SlidersHorizontal, MessageSquare, FileText, Download, Play, Clock, Calendar,
   FileVideo, CheckCircle2, Hourglass, RefreshCw, ListChecks, MoreHorizontal,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, MessageSquarePlus,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import RevisionRequestModal from '../components/RevisionRequestModal';
-import { DEMO_WORK_REVIEW } from '../data/brandDemo';
+import VideoReviewModal, { fmtTs } from '../components/VideoReviewModal';
+import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -58,6 +61,11 @@ export default function BrandWorkReview() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
+  const [filterExpanded, setFilterExpanded] = useState(false); // desktop: click PINS the options open
+  const [filterHover, setFilterHover] = useState(false);       // desktop: hover opens transiently
+  const cfRef = useRef(null);
+  const filterRef = useRef(null);
   const [chatWith, setChatWith] = useState(null);
   const [durations, setDurations] = useState({});
   const [menuId, setMenuId] = useState(null);
@@ -65,15 +73,27 @@ export default function BrandWorkReview() {
   const [perPage, setPerPage] = useState(10);
   const [videoModal, setVideoModal] = useState(null);
   const [revisionFor, setRevisionFor] = useState(null);
+  const [videoReviewFor, setVideoReviewFor] = useState(null);   // { src, title, watermark }
+  const [reviewFor, setReviewFor] = useState(null);   // row awaiting a post-approval rating
+  const [trackers, setTrackers] = useState({});   // campaignId -> revision_tracker
   const [revSubmitting, setRevSubmitting] = useState(false);
   const busy = useRef(false);
 
   const load = async () => {
     try {
-      const [camps, dir] = await Promise.all([
+      const [camps, dir, dealList] = await Promise.all([
         axios.get(`${API}/campaigns?t=${Date.now()}`),
         axios.get(`${API}/business/creator-directory`).catch(() => ({ data: [] })),
+        // Carries revision_tracker (free left / next fee) — the campaigns list doesn't,
+        // so without this the modal can't warn the brand before a ₹500 debit.
+        axios.get(`${API}/deals/business`).catch(() => ({ data: [] })),
       ]);
+      const trackerMap = {};
+      (Array.isArray(dealList.data) ? dealList.data : []).forEach((d) => {
+        const cid = d?.campaign?.id || d?.campaign_id;
+        if (cid) trackerMap[String(cid)] = d.revision_tracker || {};
+      });
+      setTrackers(trackerMap);
       const nameMap = {};
       const photoMap = {};
       (Array.isArray(dir.data) ? dir.data : []).forEach((c) => { nameMap[String(c.id)] = c.name; photoMap[String(c.id)] = c.profile_photo; });
@@ -92,15 +112,30 @@ export default function BrandWorkReview() {
           status,
         };
       });
-      // Demo fallback: only when this brand has no real submissions yet.
-      setItems(list.length ? list : DEMO_WORK_REVIEW);
+      setItems(list);
     } catch (e) {
-      setItems(DEMO_WORK_REVIEW);
+      setItems([]);
     } finally { setLoading(false); }
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { setPage(1); }, [tab, perPage]);
+
+  // Close the mobile filter menu on any outside click.
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+    const onDoc = (e) => { if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [filterOpen]);
+
+  // Desktop: a click PINS the filter open — close it again on an outside click.
+  useEffect(() => {
+    if (!filterExpanded) return undefined;
+    const onDoc = (e) => { if (cfRef.current && !cfRef.current.contains(e.target)) setFilterExpanded(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [filterExpanded]);
 
   const counts = useMemo(() => {
     const o = { all: items.length };
@@ -116,20 +151,78 @@ export default function BrandWorkReview() {
   const start = (safePage - 1) * perPage;
   const pageRows = rows.slice(start, start + perPage);
 
+  // `id` here is the campaign/deal id (see load(): item.id = c.id). The deal
+  // endpoints resolve the latest work submission internally, so we use those
+  // instead of /work/{workId}/... (which expects a work_submission id and 404s).
   const approve = async (id) => {
     if (busy.current) return; busy.current = true;
-    try { await axios.post(`${API}/work/${id}/approve`); toast.success('Approved — payment released to the creator'); await load(); }
+    // Capture the row BEFORE load() replaces the list — we need creatorId/name for the
+    // rating prompt, and after the reload this row's status has flipped to 'approved'.
+    const it = items.find((i) => i.id === id);
+    try {
+      await axios.post(`${API}/deals/${id}/approve`);
+      toast.success('Approved — payment released to the creator');
+      await load();
+      // Ask for a rating right after approval. This tab used to approve silently — only
+      // the standalone /work-review/:id page prompted — so brands approving from here
+      // were never asked to review the creator.
+      if (it?.creatorId) setReviewFor(it);
+    }
     catch { toast.error('Failed to approve'); }
     finally { busy.current = false; }
   };
+
+  const submitReview = async ({ rating, review }) => {
+    try {
+      await axios.post(`${API}/reviews`, {
+        campaign_id: reviewFor.id, creator_id: reviewFor.creatorId, rating, review,
+      });
+      toast.success('Review submitted — thanks for the feedback!');
+      setReviewFor(null);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Could not submit your review');
+    }
+  };
   const requestRevision = (id) => setRevisionFor(id);
+  // Timestamped video review. Sets `revisionFor` too so submitRevision() (shared
+  // with the text form) posts against the same work item.
+  const openVideoReview = (it) => {
+    const f = it.files.find((x) => isVideo(assetUrl(x)));
+    if (!f) { toast.error('No video on this submission to review'); return; }
+    setRevisionFor(it.id);
+    setVideoReviewFor({ src: assetUrl(f), title: it.title, watermark: it.status !== 'approved' });
+  };
   const submitRevision = async (payload) => {
     if (!revisionFor) return;
     setRevSubmitting(true);
     try {
-      await axios.post(`${API}/work/${revisionFor}/request-revision`, payload);
-      toast.success('Revision requested');
+      // The modal produces structured { items, notes, deadline_at }; the deal
+      // endpoint takes { feedback, requested_changes }. Flatten the items into a
+      // readable feedback string so nothing is lost.
+      // This deal endpoint only accepts a flat `feedback` string (it never receives
+      // the structured items), so a video comment's timestamp must be baked INTO
+      // the line or it's lost. Format matches _fmt_video_ts() on the server:
+      //   "[must-fix @ 0:04] Re-shoot the intro"
+      const items = payload.items || [];
+      const feedback = [
+        ...items.map((it) => {
+          const ts = Number.isFinite(it.timestamp_seconds) ? ` @ ${fmtTs(it.timestamp_seconds)}` : '';
+          return `[${it.severity || 'must-fix'}${ts}] ${it.description}${it.brief_reference ? ` (ref: ${it.brief_reference})` : ''}`;
+        }),
+        payload.notes ? `\nNotes: ${payload.notes}` : '',
+      ].filter(Boolean).join('\n');
+      // Send ONLY `feedback`. `requested_changes` used to carry the same items again
+      // (raw, without severity) and the backend appends both into one string — so the
+      // creator saw every change twice: "[must-fix] new look" AND "new look".
+      const { data } = await axios.post(`${API}/deals/${revisionFor}/request-revision`, {
+        feedback,
+      });
+      // Say so when money actually moved — a bare "Revision requested" hid the debit.
+      toast.success(data?.paid
+        ? `Revision requested — ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
+        : 'Revision requested');
       setRevisionFor(null);
+      setVideoReviewFor(null);
       await load();
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Failed to request revision');
@@ -141,7 +234,18 @@ export default function BrandWorkReview() {
       const u = window.URL.createObjectURL(res.data);
       const a = document.createElement('a'); a.href = u; a.download = `${title || 'deliverable'}.mp4`;
       document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(u);
-    } catch { toast.error('Download unlocks after approval'); }
+    } catch (err) {
+      // The server sends the reason (not approved / no file / not authorized). With a
+      // blob responseType, the error body is a Blob — read it so we stop showing the
+      // misleading "unlocks after approval" for every failure.
+      let msg = 'Download failed';
+      try {
+        const body = err?.response?.data;
+        const text = body instanceof Blob ? await body.text() : JSON.stringify(body);
+        msg = JSON.parse(text)?.detail || msg;
+      } catch { /* keep fallback */ }
+      toast.error(msg);
+    }
   };
   const openFile = (it) => {
     const f = it.files.find((x) => isVideo(x)) || it.files[0];
@@ -155,25 +259,88 @@ export default function BrandWorkReview() {
 
   return (
     <BrandTopNavLayout>
-      <div className="cmk-page-head" style={{ marginBottom: 6 }}>
-        <h1>Work Review</h1>
-        <p>Review submitted content and provide feedback.</p>
+      <div className="cmk-page-head cmk-page-head--filter" style={{ marginBottom: 6 }}>
+        <div>
+          <h1>Work Review</h1>
+          <p>Review submitted content and provide feedback.</p>
+        </div>
+        {/* Mobile only: sits on the title row and replaces the chip strip. */}
+        <div className="wr-filter-wrap" ref={filterRef}>
+          <button type="button" className="wr-filter-btn" onClick={() => setFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={filterOpen}>
+            <SlidersHorizontal size={16} /> Filter
+          </button>
+          {filterOpen && (
+            <div className="wr-filter-menu" role="menu">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={tab === t.key}
+                  className={tab === t.key ? 'is-active' : ''}
+                  onClick={() => { setTab(t.key); setFilterOpen(false); }}
+                >
+                  {t.label} <em>({counts[t.key] || 0})</em>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="bwr-tabs-row">
-        <div className="bwr-tabs">
-          {TABS.map((t) => (
-            <button key={t.key} type="button" className={`bwr-chip ${tab === t.key ? 'is-active' : ''}`} onClick={() => setTab(t.key)}>
-              <t.icon size={16} /> {t.label} ({counts[t.key] || 0})
-            </button>
-          ))}
+      {/* Desktop: "Filter" expands its status options left→right on hover/click.
+          Hidden on mobile (the page-head Filter is used there). */}
+      <div
+        ref={cfRef}
+        className={`cf-filter-row${(filterExpanded || filterHover) ? ' is-open' : ''}`}
+        onMouseEnter={() => setFilterHover(true)}
+        onMouseLeave={() => setFilterHover(false)}
+      >
+        <button type="button" className="cf-filter-btn" onClick={() => setFilterExpanded((v) => !v)} aria-expanded={filterExpanded || filterHover}>
+          <SlidersHorizontal size={16} /> Filter
+        </button>
+        <div className="cf-options">
+          <div className="cf-options-inner">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
+                <t.icon size={15} /> {t.label} <em>({counts[t.key] || 0})</em>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="cmk-empty">Loading…</div>
+        <div className="bwr-list">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <article className="bwr-card" key={i} aria-hidden="true">
+              {/* left: 16/9 thumb — matches <Thumb>. NOTE: don't reuse the .bwr-thumb class
+                  here — its dark #0b1020 video background overrides the skeleton shimmer and
+                  paints the placeholder solid black. Size it inline instead so it keeps the
+                  light shimmer like the other bars. */}
+              <Skeleton width={220} height="auto" radius={14} style={{ aspectRatio: '16 / 9', flexShrink: 0 }} />
+              {/* middle: title, by-line, campaign box, meta row */}
+              <div className="bwr-body" style={{ flex: 1, minWidth: 0 }}>
+                <Skeleton width="45%" height={18} />
+                <Skeleton width="30%" height={12} style={{ marginTop: 10 }} />
+                <Skeleton width="100%" height={54} radius={12} style={{ marginTop: 14 }} />
+                <div style={{ display: 'flex', gap: 24, marginTop: 14 }}>
+                  <Skeleton width={70} height={30} />
+                  <Skeleton width={70} height={30} />
+                  <Skeleton width={90} height={30} />
+                </div>
+              </div>
+              {/* right: status pill + action buttons */}
+              <div className="bwr-side" style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 200 }}>
+                <Skeleton width={110} height={30} radius={16} style={{ alignSelf: 'flex-end' }} />
+                <Skeleton width="100%" height={44} radius={12} style={{ marginTop: 'auto' }} />
+                <Skeleton width="100%" height={44} radius={12} />
+              </div>
+            </article>
+          ))}
+        </div>
       ) : total === 0 ? (
-        <div className="cmk-empty">Nothing in “{TABS.find((t) => t.key === tab).label}”.</div>
+        <EmptyState title={`Nothing in “${TABS.find((t) => t.key === tab).label}”`} message="Submitted creator content will show up here for you to review and approve." />
       ) : (
         <>
           <div className="bwr-list">
@@ -224,7 +391,7 @@ export default function BrandWorkReview() {
                             <div className="bwr-menu-backdrop" onClick={() => setMenuId(null)} />
                             <div className="bwr-menu">
                               <button type="button" onClick={() => { setMenuId(null); openFile(it); }}><Play size={15} /> Open file</button>
-                              {it.status !== 'approved' && <button type="button" onClick={() => { setMenuId(null); requestRevision(it.id); }}><RefreshCw size={15} /> Request revision</button>}
+                              {it.status !== 'approved' && <button type="button" onClick={() => { setMenuId(null); it.files.some((f) => isVideo(assetUrl(f))) ? openVideoReview(it) : requestRevision(it.id); }}><RefreshCw size={15} /> Request revision</button>}
                               {it.status === 'pending_review' && <button type="button" onClick={() => { setMenuId(null); approve(it.id); }}><CheckCircle2 size={15} /> Approve</button>}
                               <button type="button" onClick={() => { setMenuId(null); message(it); }}><MessageSquare size={15} /> Message creator</button>
                             </div>
@@ -239,7 +406,11 @@ export default function BrandWorkReview() {
                     {it.status === 'pending_review' && (
                       <>
                         <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> Approve</button>
-                        <button type="button" className="bwr-btn" onClick={() => requestRevision(it.id)}><RefreshCw size={16} /> Request Revision</button>
+                        {/* Single revision path: the timestamped video-review flow, labelled
+                            "Request Revision". Only shown when there's a video to scrub. */}
+                        {it.files.some((f) => isVideo(assetUrl(f))) && (
+                          <button type="button" className="bwr-btn" onClick={() => openVideoReview(it)}><MessageSquarePlus size={16} /> Request Revision</button>
+                        )}
                       </>
                     )}
                     {it.status === 'revision_requested' && (
@@ -272,14 +443,57 @@ export default function BrandWorkReview() {
       )}
 
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
-      {revisionFor && <RevisionRequestModal onClose={() => setRevisionFor(null)} onSubmit={submitRevision} submitting={revSubmitting} />}
+      {reviewFor && (
+        <ReviewModal
+          title={`Rate ${reviewFor.creator ? handleLabelSafe(reviewFor.creator) : 'this creator'}`}
+          subtitle={reviewFor.campaign}
+          onClose={() => setReviewFor(null)}
+          onSubmit={submitReview}
+        />
+      )}
+      {/* Both flows post via submitRevision and share `revisionFor`, so the text
+          form must stand down while the video review is open. */}
+      {revisionFor && !videoReviewFor && (
+        <RevisionRequestModal
+          onClose={() => setRevisionFor(null)}
+          onSubmit={submitRevision}
+          submitting={revSubmitting}
+          freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
+          nextFee={trackers[String(revisionFor)]?.next_revision_fee}
+        />
+      )}
+
+      {videoReviewFor && (
+        <VideoReviewModal
+          src={videoReviewFor.src}
+          title={videoReviewFor.title}
+          watermark={videoReviewFor.watermark}
+          onClose={() => { setVideoReviewFor(null); setRevisionFor(null); }}
+          onSubmit={submitRevision}
+          submitting={revSubmitting}
+          freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
+          nextFee={trackers[String(revisionFor)]?.next_revision_fee}
+        />
+      )}
 
       {videoModal && (
         <div className="bwr-vid-overlay" onClick={() => setVideoModal(null)}>
           <div className="bwr-vid-card" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="bwr-vid-close" aria-label="Close" onClick={() => setVideoModal(null)}>✕</button>
             <div className="bwr-vid-frame">
-              <video src={videoModal.src} controls autoPlay playsInline className="bwr-vid-el" />
+              <video
+                src={videoModal.src}
+                controls
+                autoPlay
+                playsInline
+                className="bwr-vid-el"
+                // Until the deliverable is approved, strip the browser's native
+                // Download menu item and block right-click "Save video as…" so the
+                // brand can only preview (watermarked), not grab the raw file.
+                controlsList={videoModal.watermark ? 'nodownload noremoteplayback' : undefined}
+                disablePictureInPicture={videoModal.watermark}
+                onContextMenu={videoModal.watermark ? (e) => e.preventDefault() : undefined}
+              />
               {videoModal.watermark && <span className="bwr-wm" aria-hidden="true" />}
             </div>
             {videoModal.title && <div className="bwr-vid-name">{videoModal.title}</div>}
@@ -291,6 +505,6 @@ export default function BrandWorkReview() {
 }
 
 function handleLabelSafe(c) {
-  const s = String(c || 'Creator');
-  return s.startsWith('@') ? s : `@${s}`;
+  // First name only — strip a leading "@" and drop any surname.
+  return String(c || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator';
 }

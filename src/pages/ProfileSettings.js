@@ -5,17 +5,16 @@ import CreatorProfileModal from '../components/CreatorProfileModal';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import QRCode from 'qrcode';
-import { generateSecret, verifyToken, otpauthURL, get2FA, save2FA, clear2FA } from '../utils/twoFactor';
 import {
   User,
+  UserX,
   Lock,
   Shield,
+  AlertTriangle,
   Camera,
   Save,
   LayoutDashboard,
   Zap,
-  Bookmark,
   Star,
   Briefcase,
   FileCheck,
@@ -29,9 +28,9 @@ import {
   Users,
   CreditCard,
   Wallet,
-  Globe,
   CheckCircle,
   ChevronRight,
+  ChevronLeft,
   MoreVertical,
   UserPlus,
   ClipboardList,
@@ -51,7 +50,11 @@ import {
   ExternalLink,
   ScrollText,
   BookOpen,
-  Cookie
+  Cookie,
+  X,
+  Mail,
+  Eye,
+  Pencil
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -64,7 +67,81 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
+// First real letter for a team avatar — skips a leading "@" so a handle like
+// "@HappyPhoenix304" shows "H", not "@".
+const teamInitial = (name) => (String(name || 'U').replace(/[^a-zA-Z0-9]/g, '').charAt(0) || 'U').toUpperCase();
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+
+// The three team roles a brand can grant, shown as selectable cards so the
+// person inviting sees exactly what each one can do (replaces the raw browser
+// prompt that used to ask only for an email).
+const TEAM_ROLES = [
+  { key: 'admin', label: 'Admin', Icon: Shield, desc: 'Full access, and can invite or remove other team members.' },
+  { key: 'member', label: 'Member', Icon: Pencil, desc: 'Can create and manage campaigns, deals and work — but not the team.' },
+  { key: 'viewer', label: 'Viewer', Icon: Eye, desc: 'Read-only. Can see everything but cannot make changes.' },
+];
+
+function InviteModal({ email, setEmail, role, setRole, inviting, onSubmit, onClose }) {
+  const submit = (e) => { e.preventDefault(); onSubmit(); };
+  return (
+    <div className="im-overlay" onClick={onClose}>
+      <div className="im-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="im-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
+        <div className="im-head">
+          <span className="im-ic"><UserPlus size={20} /></span>
+          <div>
+            <h3>Invite a team member</h3>
+            <p>They’ll get an email link to set a password and join your workspace.</p>
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="im-body">
+          <label className="im-field">
+            <span>Email address</span>
+            <div className="im-input">
+              <Mail size={16} />
+              <input
+                type="email"
+                autoFocus
+                placeholder="teammate@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </label>
+
+          <div className="im-field">
+            <span>Role &amp; access</span>
+            <div className="im-roles">
+              {TEAM_ROLES.map((r) => (
+                <button
+                  type="button"
+                  key={r.key}
+                  className={`im-role ${role === r.key ? 'on' : ''}`}
+                  onClick={() => setRole(r.key)}
+                >
+                  <span className="im-role-ic"><r.Icon size={16} /></span>
+                  <span className="im-role-txt">
+                    <strong>{r.label}</strong>
+                    <small>{r.desc}</small>
+                  </span>
+                  <span className="im-radio" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="im-foot">
+            <button type="button" className="im-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="im-send" disabled={inviting || !email.trim()}>
+              {inviting ? 'Sending…' : 'Send invitation'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const getLevelInfo = (completedWorks) => {
   if (completedWorks >= 20) {
@@ -109,21 +186,20 @@ const BRAND_TABS = [
   { id: 'team', label: 'Team Members', icon: Users },
   { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'security', label: 'Security', icon: Lock }
+  { id: 'privacy', label: 'Privacy & Security', icon: Shield },
+  { id: 'follow', label: 'Follow Us', icon: Heart }
 ];
 
 const CREATOR_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'security', label: 'Password & 2FA', icon: Lock },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'language', label: 'Language', icon: Globe },
   { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   { id: 'follow', label: 'Follow Us', icon: Heart }
 ];
 
 // ugcad.io official social profiles (real brand logos as inline SVG).
 const SOCIAL_LINKS = [
-  { name: 'Instagram', handle: '@ugcad.app', url: 'https://www.instagram.com/ugcad.app?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==', color: 'linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888)', path: 'M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153a4.908 4.908 0 0 1 1.153 1.772c.247.637.415 1.363.465 2.428.048 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 0 1-1.153 1.772 4.915 4.915 0 0 1-1.772 1.153c-.637.247-1.363.415-2.428.465-1.066.048-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 0 1-1.772-1.153 4.904 4.904 0 0 1-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 0 1 1.153-1.772A4.897 4.897 0 0 1 5.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm6.5-.25a1.25 1.25 0 0 0-2.5 0 1.25 1.25 0 0 0 2.5 0zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z' },
+  { name: 'Instagram', handle: '@ugcad.app', icon: Instagram, url: 'https://www.instagram.com/ugcad.app?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==', color: 'linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888)', path: 'M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153a4.908 4.908 0 0 1 1.153 1.772c.247.637.415 1.363.465 2.428.048 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 0 1-1.153 1.772 4.915 4.915 0 0 1-1.772 1.153c-.637.247-1.363.415-2.428.465-1.066.048-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 0 1-1.772-1.153 4.904 4.904 0 0 1-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 0 1 1.153-1.772A4.897 4.897 0 0 1 5.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm6.5-.25a1.25 1.25 0 0 0-2.5 0 1.25 1.25 0 0 0 2.5 0zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z' },
   { name: 'Twitter / X', handle: '@ugcad_io', comingSoon: true, color: '#000000', path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
   { name: 'LinkedIn', handle: 'UGCad.io', comingSoon: true, color: '#0a66c2', path: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z' },
   { name: 'YouTube', handle: 'UGCad.io', comingSoon: true, color: '#ff0000', path: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' }
@@ -143,7 +219,6 @@ const CREATOR_PRIVACY_ROWS = [
   ['allow_messages', 'Allow direct messages', 'Let brands message you without a deal', MessageSquare]
 ];
 
-const APP_LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi'];
 
 // Legal / policy documents - shown in-app in a modal card when opened.
 const LEGAL_DOCS = [
@@ -208,6 +283,19 @@ const defaultBrandProfile = {
   logo_url: ''
 };
 
+// Dropdown options for the brand Company Details form.
+const BUSINESS_TYPES = [
+  'Sole Proprietorship', 'Partnership', 'LLP (Limited Liability Partnership)',
+  'Private Limited (Pvt Ltd)', 'One Person Company (OPC)', 'Public Limited',
+  'Individual / Freelancer', 'NGO / Non-profit', 'Other',
+];
+const BUSINESS_CATEGORIES = [
+  'Fashion & Apparel', 'Beauty & Cosmetics', 'Health & Wellness', 'Food & Beverage',
+  'Electronics & Tech', 'Home & Living', 'Fitness & Sports', 'Jewellery & Accessories',
+  'Travel & Hospitality', 'Baby & Kids', 'Automotive', 'Finance & Fintech',
+  'Education', 'Gaming', 'Pets', 'Other',
+];
+
 const defaultCompany = {
   business_type: '',
   gst_number: '',
@@ -218,6 +306,15 @@ const defaultCompany = {
   state: '',
   kyb_status: 'pending'
 };
+
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
+  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan',
+  'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi',
+  'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
 
 const defaultTeam = { members: [], seat_limit: 10, seats_used: 0 };
 const defaultBilling = {
@@ -243,11 +340,24 @@ export default function ProfileSettings() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [brandTab, setBrandTab] = useState('profile');
+  // Mobile settings drill-down: show the tab list first, open a panel on tap.
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches);
+  const [brandDetailOpen, setBrandDetailOpen] = useState(false);
+  const [creatorDetailOpen, setCreatorDetailOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
   const [brandProfile, setBrandProfile] = useState(defaultBrandProfile);
+
+  const closeCreatorSettingsDetail = () => {
+    setCreatorDetailOpen(false);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
   const [company, setCompany] = useState(defaultCompany);
   const [team, setTeam] = useState(defaultTeam);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
+  const [inviting, setInviting] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [billing, setBilling] = useState(defaultBilling);
   const [notificationPrefs, setNotificationPrefs] = useState(defaultNotifications);
   const [summary, setSummary] = useState(defaultSummary);
@@ -282,22 +392,31 @@ export default function ProfileSettings() {
   // Creator level states
   const [completedWorks, setCompletedWorks] = useState(0);
 
+  // Policy strikes / account standing (applies to creators and brands alike).
+  const [warnings, setWarnings] = useState(null);
+
   // Creator preferences (persisted locally until a backend endpoint exists)
   const [creatorNotif, setCreatorNotif] = useState(() => readLS('ugc_creator_notif', {
     brief_matches: true, bid_updates: true, messages: true, payout_alerts: true, weekly_digest: false,
   }));
-  const [appLang, setAppLang] = useState(() => localStorage.getItem('ugc_app_lang') || 'English');
   const [privacy, setPrivacy] = useState(() => readLS('ugc_creator_privacy', {
     public_profile: true, show_earnings: false, allow_messages: true,
   }));
 
   const [legalDoc, setLegalDoc] = useState(null);
-  const saveCreatorNotif = () => { localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif)); toast.success('Notification preferences saved'); };
-  const saveAppLang = () => { localStorage.setItem('ugc_app_lang', appLang); toast.success('Language preference saved'); };
-  const savePrivacy = () => { localStorage.setItem('ugc_creator_privacy', JSON.stringify(privacy)); toast.success('Privacy settings saved'); };
+  const [accountAction, setAccountAction] = useState(null);
+  const saveCreatorNotif = async () => {
+    localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif));
+    try { await axios.put(`${API}/profile/preferences`, { notification_prefs: creatorNotif }); } catch { /* cached locally */ }
+    toast.success('Notification preferences saved');
+  };
+  const savePrivacy = async () => {
+    localStorage.setItem('ugc_creator_privacy', JSON.stringify(privacy));
+    try { await axios.put(`${API}/profile/preferences`, { privacy }); } catch { /* cached locally */ }
+    toast.success('Privacy settings saved');
+  };
 
-  const handleDeactivate = async () => {
-    if (!window.confirm('Deactivate your account? Your profile will be hidden until you log back in.')) return;
+  const confirmDeactivate = async () => {
     try {
       await axios.post(`${API}/profile/deactivate`);
       toast.success('Account deactivated');
@@ -308,9 +427,7 @@ export default function ProfileSettings() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('Permanently delete your account? This cannot be undone.')) return;
-    if (!window.confirm('Are you absolutely sure? All your data will be removed forever.')) return;
+  const confirmDeleteAccount = async () => {
     try {
       await axios.delete(`${API}/profile`);
       toast.success('Account deleted');
@@ -321,13 +438,149 @@ export default function ProfileSettings() {
     }
   };
 
+  const handleDeactivate = () => setAccountAction('deactivate');
+  const handleDeleteAccount = () => setAccountAction('delete');
+
+  const runAccountAction = async () => {
+    const action = accountAction;
+    if (!action) return;
+    setLoading(true);
+    if (action === 'deactivate') await confirmDeactivate();
+    else await confirmDeleteAccount();
+    setLoading(false);
+  };
+
+  const renderAccountActionCard = () => {
+    if (!accountAction) return null;
+    const deleting = accountAction === 'delete';
+    return (
+      <div className="account-confirm-overlay" role="presentation" onMouseDown={() => !loading && setAccountAction(null)}>
+        <section
+          className="account-confirm-card"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="account-confirm-title"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <span className={`account-confirm-icon${deleting ? ' is-delete' : ''}`}>
+            {deleting ? <Trash2 size={25} /> : <UserX size={25} />}
+          </span>
+          <h2 id="account-confirm-title">{deleting ? 'Delete account permanently?' : 'Deactivate your account?'}</h2>
+          <p>
+            {deleting
+              ? 'All your profile information, activity, and account data will be permanently removed. This action cannot be undone.'
+              : 'Your profile will be hidden until you log back in. You can reactivate your account at any time.'}
+          </p>
+          <div className="account-confirm-actions">
+            <button type="button" className="account-confirm-cancel" onClick={() => setAccountAction(null)} disabled={loading}>Cancel</button>
+            <button type="button" className={`account-confirm-submit${deleting ? ' is-delete' : ''}`} onClick={runAccountAction} disabled={loading}>
+              {loading ? 'Please wait…' : deleting ? 'Delete permanently' : 'Deactivate account'}
+            </button>
+          </div>
+        </section>
+        <style>{`
+          .account-confirm-overlay{position:fixed;inset:0;z-index:1600;display:grid;place-items:center;padding:20px;background:rgba(15,22,58,.55);backdrop-filter:blur(5px)}
+          .account-confirm-card{width:min(460px,100%);padding:30px;background:#fff;border:1px solid #eef0f6;border-radius:22px;box-shadow:0 30px 80px rgba(15,22,58,.3);text-align:center;animation:accountConfirmIn .18s ease}
+          @keyframes accountConfirmIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+          .account-confirm-icon{width:56px;height:56px;margin:0 auto 17px;display:grid;place-items:center;border-radius:16px;background:#fff4e5;color:#c56a08}
+          .account-confirm-icon.is-delete{background:#fff0f3;color:#e11d48}
+          .account-confirm-card h2{margin:0 0 9px;color:#15163a;font-size:21px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
+          .account-confirm-card p{margin:0 auto;color:#6f7494;font-size:14px;line-height:1.6;max-width:390px}
+          .account-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:25px}
+          .account-confirm-actions button{min-height:42px;padding:10px 17px;border-radius:11px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+          .account-confirm-actions button:disabled{opacity:.6;cursor:not-allowed}
+          .account-confirm-cancel{border:1px solid #dfe2ee;background:#fff;color:#4b506d}
+          .account-confirm-submit{border:1px solid #e5a544;background:#fff7e8;color:#a85705}
+          .account-confirm-submit.is-delete{border-color:#e11d48;background:#e11d48;color:#fff}
+          @media(max-width:520px){.account-confirm-card{padding:24px 18px}.account-confirm-actions{flex-direction:column-reverse}.account-confirm-actions button{width:100%}}
+        `}</style>
+      </div>
+    );
+  };
+
   useEffect(() => {
     fetchUserData();
     check2FAStatus();
+    fetchWarnings();
     if (user?.role === 'creator') {
       fetchCreatorStats();
     }
   }, [user?.role]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const on = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+
+  const fetchWarnings = async () => {
+    try {
+      const res = await axios.get(`${API}/chat/warnings`);
+      setWarnings(res.data);
+    } catch {
+      /* non-critical — the standing card just won't render */
+    }
+  };
+
+  // Policy-strike / account-standing card, shown in both the creator and brand
+  // Privacy & Security tabs so users can always see how many strikes they carry.
+  const renderAccountStanding = () => {
+    if (!warnings) return null;
+    const strikes = warnings.warning_count || 0;
+    const cardsOnly = warnings.action_cards_only_until && new Date(warnings.action_cards_only_until) > new Date();
+    const banned = warnings.banned;
+    // Escalation ladder (mirrors Backend/server.py strike severities):
+    // 0 = clear, 1 = warning, 2 = temporary pause, 3 = action-cards-only, 4+ = suspended.
+    const tone = banned || strikes >= 3 || cardsOnly
+      ? { bg: '#fef2f2', bd: '#fecaca', fg: '#b91c1c', ic: '#dc2626' }
+      : strikes >= 1
+        ? { bg: '#fff7ed', bd: '#fed7aa', fg: '#9a3412', ic: '#ea580c' }
+        : { bg: '#f0fdf4', bd: '#bbf7d0', fg: '#166534', ic: '#16a34a' };
+    const Icon = strikes >= 1 || banned || cardsOnly ? AlertTriangle : Shield;
+    const status = banned
+      ? 'Account suspended'
+      : cardsOnly
+        ? 'Restricted — action cards only'
+        : strikes === 0
+          ? 'Good standing'
+          : `${strikes} active ${strikes === 1 ? 'strike' : 'strikes'}`;
+    const consequence = banned
+      ? 'Your account has been suspended for repeated policy violations. Contact support@ugcad.io to appeal.'
+      : cardsOnly
+        ? 'Free-text chat is temporarily disabled — you can only send structured offer/action cards until the restriction lifts.'
+        : strikes === 0
+          ? 'No policy strikes on your account. Keep chats on-platform and free of contact info to stay clear.'
+          : strikes === 1
+            ? 'You have 1 strike. A 2nd strike temporarily pauses your chat, a 3rd limits you to action cards only, and a 4th can suspend your account.'
+            : strikes === 2
+              ? 'You have 2 strikes and your chat may be paused. A 3rd strike limits you to action cards only, and a 4th can suspend your account.'
+              : 'You are limited to action cards only. Any further violation can suspend your account.';
+    return (
+      <div style={{ border: `1px solid ${tone.bd}`, background: tone.bg, borderRadius: 14, padding: '16px 18px', margin: '4px 0 20px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+        <span style={{ color: tone.ic, flexShrink: 0, marginTop: 2 }}><Icon size={22} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <strong style={{ color: tone.fg, fontSize: 15 }}>Account standing: {status}</strong>
+            <span style={{ color: tone.fg, fontSize: 13, fontWeight: 700, background: '#fff', border: `1px solid ${tone.bd}`, borderRadius: 999, padding: '2px 10px' }}>
+              {strikes} / 3 strikes
+            </span>
+          </div>
+          <p style={{ margin: '8px 0 0', color: tone.fg, fontSize: 13, lineHeight: 1.55, opacity: 0.95 }}>{consequence}</p>
+          {warnings.last_warning_at && strikes > 0 && (
+            <p style={{ margin: '8px 0 0', color: tone.fg, fontSize: 12, opacity: 0.75 }}>
+              Last strike: {new Date(warnings.last_warning_at).toLocaleString()}
+            </p>
+          )}
+          {cardsOnly && (
+            <p style={{ margin: '4px 0 0', color: tone.fg, fontSize: 12, opacity: 0.75 }}>
+              Restriction lifts: {new Date(warnings.action_cards_only_until).toLocaleString()}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     if (user?.role === 'business') {
@@ -373,7 +626,22 @@ export default function ProfileSettings() {
     setLoading(true);
     try {
       const res = await axios.put(`${API}/business/settings/profile`, brandProfile);
-      setBrandProfile({ ...brandProfile, ...(res.data || {}) });
+      const savedProfile = { ...brandProfile, ...(res.data || {}) };
+      setBrandProfile(savedProfile);
+      setUser(current => current ? ({
+        ...current,
+        brand_name: savedProfile.brand_name || current.brand_name,
+        business_name: savedProfile.brand_name || current.business_name,
+        profile: {
+          ...(current.profile || {}),
+          business_name: savedProfile.brand_name || current.profile?.business_name,
+          brand_name: savedProfile.brand_name || current.profile?.brand_name,
+          contact_person: savedProfile.contact_person,
+          work_email: savedProfile.work_email,
+          phone_number: savedProfile.phone_number,
+          website_url: savedProfile.website_url
+        }
+      }) : current);
       toast.success('Profile settings saved');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to save profile settings'));
@@ -418,7 +686,20 @@ export default function ProfileSettings() {
       const res = await axios.post(`${API}/business/settings/logo`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setBrandProfile(current => ({ ...current, logo_url: res.data.logo_url || res.data.photo_url || res.data.url || current.logo_url }));
+      const nextLogo = res.data.logo_url
+        || res.data.brand_logo
+        || res.data.photo_url
+        || res.data.url
+        || res.data.profile?.logo_url;
+      if (!nextLogo) throw new Error('The server did not return the uploaded logo URL.');
+      setBrandProfile(current => ({ ...current, logo_url: nextLogo }));
+      if (user?.id) localStorage.removeItem(`ugc_brand_logo_removed:${user.id}`);
+      setUser(current => current ? ({
+        ...current,
+        brand_logo: nextLogo,
+        brand_logo_removed: false,
+        profile: { ...(current.profile || {}), logo_url: nextLogo, brand_logo: nextLogo }
+      }) : current);
       toast.success('Logo updated');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to upload logo'));
@@ -430,8 +711,17 @@ export default function ProfileSettings() {
 
   const removeLogo = async () => {
     try {
-      await axios.delete(`${API}/business/settings/logo`);
+      if (brandProfile.logo_url) {
+        await axios.delete(`${API}/business/settings/logo`);
+      }
       setBrandProfile(current => ({ ...current, logo_url: '' }));
+      if (user?.id) localStorage.setItem(`ugc_brand_logo_removed:${user.id}`, '1');
+      setUser(current => current ? ({
+        ...current,
+        brand_logo: '',
+        brand_logo_removed: true,
+        profile: { ...(current.profile || {}), logo_url: '', brand_logo: '' }
+      }) : current);
       toast.success('Logo removed');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to remove logo'));
@@ -439,15 +729,32 @@ export default function ProfileSettings() {
   };
 
   const inviteMember = async () => {
-    const email = window.prompt('Enter team member email');
-    if (!email) return;
+    const email = inviteEmail.trim();
+    if (!email) { toast.error('Enter an email to invite'); return; }
+    setInviting(true);
     try {
-      await axios.post(`${API}/business/settings/team/invite`, { email, role: 'viewer' });
+      const res = await axios.post(`${API}/business/settings/team/invite`, { email, role: inviteRole });
       toast.success('Invitation sent');
-      const res = await axios.get(`${API}/business/settings/team`);
+      setInviteEmail('');
+      setInviteRole('member');
+      setInviteOpen(false);
+      // The invite endpoint returns the fresh team payload, so no extra round-trip.
       setTeam({ ...defaultTeam, ...(res.data || {}) });
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to invite member'));
+    } finally { setInviting(false); }
+  };
+
+  const removeMember = async (member) => {
+    if (!member.id) { toast.error('Cannot remove this member'); return; }
+    const what = member.status === 'invited' ? 'Cancel the invite for' : 'Remove';
+    if (!window.confirm(`${what} ${member.name || member.email}?`)) return;
+    try {
+      const res = await axios.delete(`${API}/business/settings/team/${member.id}`);
+      toast.success(member.status === 'invited' ? 'Invite cancelled' : 'Team member removed');
+      setTeam({ ...defaultTeam, ...(res.data || {}) });
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to remove member'));
     }
   };
 
@@ -474,10 +781,12 @@ export default function ProfileSettings() {
     }
   };
 
-  // 2FA is fully client-side (no backend) — read the persisted state locally.
-  const check2FAStatus = () => {
-    const { enabled } = get2FA(user?.id);
-    setTwoFAEnabled(enabled);
+  // Read the real 2FA state from the backend (Python is the source of truth).
+  const check2FAStatus = async () => {
+    try {
+      const { data } = await axios.get(`${API}/profile/2fa/status`);
+      setTwoFAEnabled(!!data.enabled);
+    } catch { /* leave default */ }
   };
 
   const handlePhotoUpload = async (e) => {
@@ -601,45 +910,37 @@ export default function ProfileSettings() {
     }
   };
 
-  // Generate a fresh secret + scannable QR entirely in the browser (no backend).
+  // Ask the backend to generate a secret + QR (stored server-side, not yet enabled).
   const handleSetup2FA = async () => {
     setLoading(true);
     try {
-      const newSecret = generateSecret();
-      const account = user?.email || user?.nickname || 'account';
-      const dataUrl = await QRCode.toDataURL(otpauthURL(newSecret, account), { width: 220, margin: 1 });
-      setSecret(newSecret);
-      setQrCode(dataUrl);
+      const { data } = await axios.post(`${API}/profile/2fa/setup`);
+      setSecret(data.secret || '');
+      setQrCode(data.qr_code || '');   // already a data: URI from the backend
       setShowQR(true);
-      toast.success('Scan the QR code with Google Authenticator');
+      toast.success('Scan the QR code with your authenticator app');
     } catch (error) {
-      toast.error('Failed to setup 2FA');
+      toast.error(apiErrorMessage(error, 'Failed to setup 2FA'));
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify the 6-digit code against the generated secret locally, then persist.
+  // Verify the 6-digit code with the backend, which enables 2FA on success.
   const handleVerify2FA = async () => {
     if (!verificationCode || verificationCode.length !== 6) {
       toast.error('Please enter a valid 6-digit code');
       return;
     }
-
     setLoading(true);
     try {
-      const ok = await verifyToken(secret, verificationCode);
-      if (!ok) {
-        toast.error('Invalid verification code');
-        return;
-      }
-      save2FA(user?.id, { enabled: true, secret });
+      await axios.post(`${API}/profile/2fa/verify?token=${encodeURIComponent(verificationCode)}`);
       toast.success('2FA enabled successfully!');
       setTwoFAEnabled(true);
       setShowQR(false);
       setVerificationCode('');
     } catch (error) {
-      toast.error('Invalid verification code');
+      toast.error(apiErrorMessage(error, 'Invalid verification code'));
     } finally {
       setLoading(false);
     }
@@ -650,12 +951,10 @@ export default function ProfileSettings() {
       toast.error('Please enter your password');
       return;
     }
-
     setLoading(true);
     try {
-      // No backend to check the password against — treat any non-empty entry as
-      // confirmation and clear the locally-stored 2FA state.
-      clear2FA(user?.id);
+      // Backend re-checks the account password before disabling.
+      await axios.post(`${API}/profile/2fa/disable?password=${encodeURIComponent(disablePassword)}`);
       toast.success('2FA disabled successfully');
       setTwoFAEnabled(false);
       setDisablePassword('');
@@ -663,7 +962,7 @@ export default function ProfileSettings() {
       setSecret('');
       setQrCode('');
     } catch (error) {
-      toast.error('Failed to disable 2FA');
+      toast.error(apiErrorMessage(error, 'Failed to disable 2FA'));
     } finally {
       setLoading(false);
     }
@@ -687,7 +986,6 @@ export default function ProfileSettings() {
     : [
       { name: 'Dashboard', icon: LayoutDashboard, action: () => navigate('/dashboard/creator') },
       { name: 'My Active Work', icon: Zap, action: () => navigate('/my-active-work') },
-      { name: 'My Bids', icon: Bookmark, action: () => navigate('/my-bids') },
       { name: 'Reviews', icon: Star, action: () => navigate('/reviews') },
       { name: 'Portfolio', icon: User, action: () => navigate('/portfolio') },
       { name: 'Browse Campaigns', icon: Briefcase, action: () => navigate('/browse-briefs') },
@@ -702,19 +1000,33 @@ export default function ProfileSettings() {
     : brandProfile.logo_url
       ? `${BACKEND_URL}${brandProfile.logo_url}`
       : '';
+  const googlePhotoSuppressed = Boolean(user?.brand_logo_removed)
+    || (user?.id && localStorage.getItem(`ugc_brand_logo_removed:${user.id}`) === '1');
+  const existingBrandPhoto = user?.profile_photo || user?.brand_logo || user?.profile_picture || '';
+  const brandHeaderImage = logoSrc || (!googlePhotoSuppressed && existingBrandPhoto
+    ? (existingBrandPhoto.startsWith('http') ? existingBrandPhoto : `${BACKEND_URL}${existingBrandPhoto}`)
+    : '');
 
   const renderBrandField = (label, value, onChange, props = {}) => (
     <label className={props.full ? 'bs-field bs-full' : 'bs-field'}>
       <span>{label}</span>
-      {props.textarea ? (
+      {props.options ? (
+        <select value={value || ''} onChange={(event) => onChange(event.target.value)} disabled={props.disabled}>
+          <option value="">{props.placeholder || 'Select…'}</option>
+          {/* Keep a legacy/custom value visible even if it isn't in the list. */}
+          {value && !props.options.includes(value) && <option value={value}>{value}</option>}
+          {props.options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+      ) : props.textarea ? (
         <textarea value={value || ''} onChange={(event) => onChange(event.target.value)} rows={props.rows || 3} />
       ) : (
         <input
           type={props.type || 'text'}
           value={value || ''}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => onChange(props.numeric ? event.target.value.replace(/[^0-9]/g, '') : event.target.value)}
           disabled={props.disabled}
           placeholder={props.placeholder}
+          inputMode={props.numeric ? 'numeric' : undefined}
         />
       )}
     </label>
@@ -729,10 +1041,21 @@ export default function ProfileSettings() {
       return (
         <section className="bs-card">
           <div className="bs-card-head">
-            <span><User size={20} /></span>
+            <span className="bs-profile-head-icon"><User size={20} /></span>
             <div>
               <h2>Profile Settings</h2>
               <p>Update your basic brand information and workspace presence</p>
+            </div>
+            <div className="bs-profile-head-media">
+              <label className="bs-profile-head-logo">
+                {brandHeaderImage ? <img src={brandHeaderImage} alt="Brand logo" /> : <strong>{getInitial(brandProfile.brand_name || displayName)}</strong>}
+                <input type="file" accept="image/*" onChange={handleLogoUpload} />
+              </label>
+              {brandHeaderImage && (
+                <button type="button" onClick={removeLogo} disabled={logoUploading}>
+                  {logoUploading ? 'Uploading...' : 'Remove Logo'}
+                </button>
+              )}
             </div>
           </div>
           <div className="bs-card-body bs-profile-grid">
@@ -741,15 +1064,17 @@ export default function ProfileSettings() {
                 {logoSrc ? <img src={logoSrc} alt="Brand logo" /> : <strong>{getInitial(brandProfile.brand_name || displayName)}</strong>}
                 <input type="file" accept="image/*" onChange={handleLogoUpload} />
               </label>
-              <button type="button" onClick={removeLogo} disabled={!brandProfile.logo_url || logoUploading}>
-                {logoUploading ? 'Uploading...' : 'Remove Logo'}
-              </button>
+              {logoSrc && (
+                <button type="button" onClick={removeLogo} disabled={logoUploading}>
+                  {logoUploading ? 'Uploading...' : 'Remove Logo'}
+                </button>
+              )}
             </div>
             <div className="bs-form-grid">
               {renderBrandField('Brand Name', brandProfile.brand_name, value => setBrandProfile(current => ({ ...current, brand_name: value })))}
               {renderBrandField('Contact Person', brandProfile.contact_person, value => setBrandProfile(current => ({ ...current, contact_person: value })))}
               {renderBrandField('Work Email', brandProfile.work_email, value => setBrandProfile(current => ({ ...current, work_email: value })), { type: 'email' })}
-              {renderBrandField('Phone Number', brandProfile.phone_number, value => setBrandProfile(current => ({ ...current, phone_number: value })))}
+              {renderBrandField('Phone Number', brandProfile.phone_number, value => setBrandProfile(current => ({ ...current, phone_number: value })), { numeric: true, placeholder: '9876543210' })}
               {renderBrandField('Website URL', brandProfile.website_url, value => setBrandProfile(current => ({ ...current, website_url: value })), { full: true, placeholder: 'https://yourbrand.com' })}
             </div>
           </div>
@@ -770,16 +1095,15 @@ export default function ProfileSettings() {
               <h2>Company Details</h2>
               <p>Official information for billing, verification, and legal compliance</p>
             </div>
-            <em className={`bs-kyb ${company.kyb_status}`}>KYB {company.kyb_status || 'pending'}</em>
           </div>
           <div className="bs-card-body bs-form-grid">
-            {renderBrandField('Business Type', company.business_type, value => setCompany(current => ({ ...current, business_type: value })))}
+            {renderBrandField('Business Type', company.business_type, value => setCompany(current => ({ ...current, business_type: value })), { options: BUSINESS_TYPES, placeholder: 'Select business type' })}
             {renderBrandField('GST Number', company.gst_number, value => setCompany(current => ({ ...current, gst_number: value })))}
-            {renderBrandField('Business Category', company.business_category, value => setCompany(current => ({ ...current, business_category: value })))}
+            {renderBrandField('Business Category', company.business_category, value => setCompany(current => ({ ...current, business_category: value })), { options: BUSINESS_CATEGORIES, placeholder: 'Select category' })}
             {renderBrandField('Country', company.country, value => setCompany(current => ({ ...current, country: value })))}
             {renderBrandField('Billing Address', company.billing_address, value => setCompany(current => ({ ...current, billing_address: value })), { full: true, textarea: true })}
             {renderBrandField('City', company.city, value => setCompany(current => ({ ...current, city: value })))}
-            {renderBrandField('State', company.state, value => setCompany(current => ({ ...current, state: value })))}
+            {renderBrandField('State', company.state, value => setCompany(current => ({ ...current, state: value })), { options: INDIAN_STATES, placeholder: 'Select state' })}
           </div>
           <div className="bs-card-actions">
             <button type="button" className="bs-primary dark" onClick={saveCompany} disabled={loading}>{loading ? 'Saving...' : 'Save Company Details'}</button>
@@ -789,31 +1113,59 @@ export default function ProfileSettings() {
     }
 
     if (brandTab === 'team') {
+      // Only the workspace owner or a team admin can invite / remove.
+      const canManage = ['owner', 'admin'].includes(user?.team_role || 'owner');
       return (
         <section className="bs-card">
           <div className="bs-card-head">
             <span><Users size={20} /></span>
             <div>
               <h2>Team Members</h2>
-              <p>Invite and manage workspace collaborators and their permissions</p>
+              <p>Invite coworkers to your brand workspace. They log in with their own password and share your campaigns, deals and wallet — their access depends on the role you give them.</p>
             </div>
-            <button type="button" className="bs-primary small" onClick={inviteMember}><UserPlus size={16} /> Invite Member</button>
+            {canManage && (
+              <button type="button" className="bs-primary small" onClick={() => setInviteOpen(true)}>
+                <UserPlus size={16} /> Invite Member
+              </button>
+            )}
           </div>
+
+          {inviteOpen && (
+            <InviteModal
+              email={inviteEmail}
+              setEmail={setInviteEmail}
+              role={inviteRole}
+              setRole={setInviteRole}
+              inviting={inviting}
+              onSubmit={inviteMember}
+              onClose={() => setInviteOpen(false)}
+            />
+          )}
+
           <div className="bs-team-table">
             <div className="bs-team-row bs-team-head"><span>Member</span><span>Role</span><span>Status</span><span>Actions</span></div>
-            {(team.members || []).map(member => (
+            {(team.members || []).map(member => {
+              const isYou = String(member.id) === String(user?.id);
+              return (
               <div className="bs-team-row" key={member.id || member.email}>
                 <div className="bs-member">
-                  {member.avatar_url ? <img src={member.avatar_url.startsWith('http') ? member.avatar_url : `${BACKEND_URL}${member.avatar_url}`} alt={member.name} /> : <i>{getInitial(member.name || member.email)}</i>}
-                  <div><strong>{member.name || member.email}</strong><small>{member.email}</small></div>
+                  {member.avatar_url
+                    ? <img src={member.avatar_url.startsWith('http') ? member.avatar_url : `${BACKEND_URL}${member.avatar_url}`} alt={member.name} />
+                    : <i>{teamInitial(member.name || member.email)}</i>}
+                  <div>
+                    <strong>{(member.name || member.email).replace(/^@/, '')}{isYou && <span className="bs-you">You</span>}</strong>
+                    <small>{member.email}</small>
+                  </div>
                 </div>
-                <span className="bs-role">{member.role}</span>
-                <span className={`bs-status ${member.status}`}><b /> {member.status}</span>
-                <button type="button" className="bs-icon-only"><MoreVertical size={18} /></button>
+                <span><span className={`bs-role role-${member.role}`}>{member.role}</span></span>
+                <span className={`bs-status status-${member.status}`}><b /> {member.status === 'invited' ? 'Invited' : member.status === 'inactive' ? 'Inactive' : 'Active'}</span>
+                {canManage && !member.is_owner
+                  ? <button type="button" className="bs-icon-only" title={member.status === 'invited' ? 'Cancel invite' : 'Remove member'} onClick={() => removeMember(member)}><Trash2 size={18} /></button>
+                  : <span className="bs-lock-note">{member.is_owner ? 'Owner' : ''}</span>}
               </div>
-            ))}
+            );})}
           </div>
-          <p className="bs-seat-note">Workspace limit: <strong>{team.seats_used || team.members?.length || 0} / {team.seat_limit || 10} seats used.</strong> Pro plan allows up to {team.seat_limit || 10} members.</p>
+          <p className="bs-seat-note">Workspace: <strong>{team.seats_used || team.members?.length || 0} / {team.seat_limit || 10} seats used.</strong></p>
         </section>
       );
     }
@@ -832,18 +1184,23 @@ export default function ProfileSettings() {
             </div>
           </div>
           <div className="bs-card-body">
-            <div className="bs-plan-card">
-              <div><small>Current Plan</small><h3>{billing.plan_name || 'Brand Pro'}</h3><p>Next billing: <strong>{billing.next_billing_date ? new Date(billing.next_billing_date).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Not scheduled'}</strong></p></div>
-              <div><small>Commission Rate</small><h4>{billing.commission_rate || 0}%</h4><button type="button">Upgrade to Enterprise</button></div>
+            <div className="bs-ws-row">
+              <div className="bs-ws-item"><small>Active Plan</small><strong>{summary.active_plan || billing.plan_name || 'Pro'}</strong></div>
+              <div className="bs-ws-item"><small>Wallet</small><strong>{money(summary.wallet_balance)}</strong></div>
+              <div className="bs-ws-item"><small>Team Count</small><strong>{summary.team_count || team.members?.length || 0} Members</strong></div>
             </div>
-            <div className="bs-budget-card">
-              <div><strong>Monthly Campaign Budget Progress</strong><b>{money(used)} / {money(limit)}</b></div>
-              <span><i style={{ width: `${percent}%` }} /></span>
-              <p>{percent}% of budget used this month <em><CheckCircle size={14} /> Normal usage</em></p>
+            <div className="bs-billing-grid bs-billing-grid--single">
+              <div className="bs-budget-card">
+                <div><strong>Monthly Campaign Budget Progress</strong><b>{money(used)} / {money(limit)}</b></div>
+                <span><i style={{ width: `${percent}%` }} /></span>
+                <p>{percent}% of budget used this month <em><CheckCircle size={14} /> Normal usage</em></p>
+              </div>
             </div>
             <div className="bs-billing-tabs">
-              <button type="button"><RefreshCw size={16} /> Billing History</button>
-              <button type="button"><CreditCard size={16} /> Payment Methods</button>
+              {/* Both were dead buttons. The Wallet page is the billing hub — it holds
+                  the full transaction history and the recharge / payment-gateway section. */}
+              <button type="button" onClick={() => navigate('/dashboard/business/wallet?view=history')}><RefreshCw size={16} /> Billing History</button>
+              <button type="button" onClick={() => navigate('/dashboard/business/wallet?view=recharge')}><CreditCard size={16} /> Payment Methods</button>
             </div>
           </div>
         </section>
@@ -883,6 +1240,90 @@ export default function ProfileSettings() {
           </div>
           <div className="bs-card-actions">
             <button type="button" className="bs-primary" onClick={saveNotifications} disabled={loading}>{loading ? 'Saving...' : 'Save Preferences'}</button>
+          </div>
+        </section>
+      );
+    }
+
+    if (brandTab === 'privacy') {
+      return (
+        <section className="bs-card">
+          <div className="bs-card-head">
+            <span><Shield size={20} /></span>
+            <div>
+              <h2>Privacy &amp; Security</h2>
+              <p>Control who can see and reach your workspace</p>
+            </div>
+          </div>
+          {renderAccountStanding()}
+          <div className="bs-toggle-list">
+            {CREATOR_PRIVACY_ROWS.map(([key, title, desc, Icon]) => (
+              <div className="bs-toggle-row" key={key}>
+                <span><Icon size={20} /></span>
+                <div><strong>{title}</strong><p>{desc}</p></div>
+                <button
+                  type="button"
+                  className={privacy[key] ? 'is-on' : ''}
+                  onClick={() => setPrivacy((c) => ({ ...c, [key]: !c[key] }))}
+                  aria-label={`Toggle ${title}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="bs-card-actions">
+            <button type="button" className="bs-primary" onClick={savePrivacy}>Save Privacy Settings</button>
+          </div>
+          <div className="bs-legal">
+            <h3>Legal &amp; Policies</h3>
+            {LEGAL_DOCS.map((d) => (
+              <button type="button" key={d.name} className="bs-legal-row" onClick={() => setLegalDoc(d)}>
+                <span className="bs-legal-ic"><d.icon size={18} /></span>
+                <div><strong>{d.name}</strong><p>{d.desc}</p></div>
+                <ChevronRight size={17} />
+              </button>
+            ))}
+          </div>
+          <div className="bs-danger">
+            <h3>Account Closure</h3>
+            <div className="bs-danger-row">
+              <div><strong>Deactivate account</strong><p>Temporarily hide your workspace. Reactivate anytime by logging back in.</p></div>
+              <button type="button" className="bs-danger-outline" onClick={handleDeactivate}>Deactivate</button>
+            </div>
+            <div className="bs-danger-row">
+              <div><strong>Close account permanently</strong><p>Permanently remove your account and all workspace data. This can’t be undone.</p></div>
+              <button type="button" className="bs-danger-solid" onClick={handleDeleteAccount}><Trash2 size={16} /> Close Account</button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (brandTab === 'follow') {
+      return (
+        <section className="bs-card">
+          <div className="bs-card-head">
+            <span><Heart size={20} /></span>
+            <div>
+              <h2>Follow us</h2>
+              <p>Stay updated with UGCad.io on social media</p>
+            </div>
+          </div>
+          <div className="bs-social-grid">
+            {SOCIAL_LINKS.map((s) => {
+              const inner = (
+                <>
+                  <span className="bs-social-ic" style={{ background: s.color }}>
+                    {s.icon
+                      ? <s.icon size={22} />
+                      : <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" clipRule="evenodd" d={s.path} /></svg>}
+                  </span>
+                  <div><strong>{s.name}{s.comingSoon ? ' (Coming soon)' : ''}</strong><small>{s.handle}</small></div>
+                </>
+              );
+              return s.comingSoon
+                ? <div key={s.name} className="bs-social-card is-soon">{inner}</div>
+                : <a key={s.name} className="bs-social-card" href={s.url} target="_blank" rel="noreferrer">{inner}</a>;
+            })}
           </div>
         </section>
       );
@@ -932,72 +1373,130 @@ export default function ProfileSettings() {
         </div>
         <div className="bs-page bs-dashboard-page">
           <section className="bs-left">
-            <div className="bs-tabs">
-              {BRAND_TABS.map(tab => (
-                <button key={tab.id} type="button" className={brandTab === tab.id ? 'active' : ''} onClick={() => setBrandTab(tab.id)}>
-                  <tab.icon size={18} /> {tab.label}
-                </button>
-              ))}
-            </div>
-            {renderBrandPanel()}
+            {isMobile ? (
+              brandDetailOpen ? (
+                <>
+                  <button type="button" className="bs-back" onClick={() => setBrandDetailOpen(false)}>
+                    <ChevronLeft size={18} /> <span>All settings</span>
+                  </button>
+                  {renderBrandPanel()}
+                </>
+              ) : (
+                <div className="bs-menu">
+                  {BRAND_TABS.map(tab => (
+                    <button key={tab.id} type="button" className="bs-menu-item" onClick={() => { setBrandTab(tab.id); setBrandDetailOpen(true); }}>
+                      <span className="bs-menu-ic"><tab.icon size={18} /></span>
+                      <span className="bs-menu-txt">{tab.label}</span>
+                      <ChevronRight size={18} className="bs-menu-chev" />
+                    </button>
+                  ))}
+                </div>
+              )
+            ) : (
+              <>
+                <div className="bs-tabs">
+                  {BRAND_TABS.map(tab => (
+                    <button key={tab.id} type="button" className={brandTab === tab.id ? 'active' : ''} onClick={() => setBrandTab(tab.id)}>
+                      <tab.icon size={18} /> {tab.label}
+                    </button>
+                  ))}
+                </div>
+                {renderBrandPanel()}
+              </>
+            )}
           </section>
-          <aside className="bs-rail">
-            <section className="bs-status-card">
-              <Shield size={16} />
-              <h3>Workspace Status</h3>
-              <dl>
-                <div><dt>Active Plan</dt><dd>{summary.active_plan || 'Pro'}</dd></div>
-                <div><dt>Wallet</dt><dd>{money(summary.wallet_balance)}</dd></div>
-                <div><dt>Team Count</dt><dd>{summary.team_count || team.members?.length || 0} Members</dd></div>
-              </dl>
-              <button type="button"><BarChart3 size={16} /> View Workspace Analytics</button>
-            </section>
-            <section className="bs-quick-card">
-              <h3>Quick Actions</h3>
-              <button type="button" onClick={inviteMember}><span><UserPlus size={18} /></span>Invite Team<ChevronRight size={17} /></button>
-              <button type="button"><span className="warm"><Bolt size={18} /></span>Upgrade Plan<ChevronRight size={17} /></button>
-              <button type="button"><span className="green"><LifeBuoy size={18} /></span>Contact Support<ChevronRight size={17} /></button>
-            </section>
-            <section className="bs-help-card">
-              <span><HelpCircle size={20} /></span>
-              <h3>Need Help?</h3>
-              <p>Our support team is here to help you optimize your workspace.</p>
-              <button type="button">Visit Help Center</button>
-            </section>
-          </aside>
         </div>
+        {legalDoc && (
+          <div className="ps-legal-overlay" onClick={() => setLegalDoc(null)}>
+            <div className="ps-legal-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ps-legal-modal-head">
+                <span className="ps-legal-modal-ic"><legalDoc.icon size={20} /></span>
+                <div className="ps-legal-modal-title"><h3>{legalDoc.name}</h3><small>Last updated: {legalDoc.updated}</small></div>
+                <button type="button" className="ps-legal-modal-x" onClick={() => setLegalDoc(null)} aria-label="Close">✕</button>
+              </div>
+              <div className="ps-legal-modal-body">
+                {legalDoc.sections.map((sec, i) => (
+                  <div className="ps-legal-modal-sec" key={i}>
+                    <h4>{sec.h}</h4>
+                    <p>{sec.p}</p>
+                  </div>
+                ))}
+                <p className="ps-legal-modal-foot">This summary is provided for your convenience and may be updated from time to time.</p>
+              </div>
+            </div>
+            <style>{`
+              .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
+              .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
+              .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
+              .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
+              .ps-legal-modal-title{flex:1;min-width:0}
+              .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
+              .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}
+              .ps-legal-modal-x{flex:none;width:34px;height:34px;border:none;background:#f1f3fa;color:#15163a;border-radius:10px;cursor:pointer;font-size:15px}
+              .ps-legal-modal-x:hover{background:#e7eaf5}
+              .ps-legal-modal-body{padding:20px;overflow-y:auto}
+              .ps-legal-modal-sec{margin-bottom:16px}
+              .ps-legal-modal-sec h4{margin:0 0 5px;font-size:14.5px;font-weight:800;color:#15163a}
+              .ps-legal-modal-sec p{margin:0;color:#585c7e;font-size:14px;line-height:1.65}
+              .ps-legal-modal-foot{margin:8px 0 0;color:#9296ba;font-size:12.5px;font-style:italic}
+            `}</style>
+          </div>
+        )}
+        {renderAccountActionCard()}
       </BrandTopNavLayout>
     );
   }
 
   return (
     <CreatorTopNavLayout>
-      <div className="cmk-page-head cmk-rise" style={{ marginBottom: 18 }}>
+      <div className="cmk-page-head cmk-rise ps-page-head" style={{ marginBottom: 18 }}>
         <h1>Settings</h1>
         <p>Manage your account information and security.</p>
       </div>
-      <div className="ps-content">
+      <div className={`ps-content ${isMobile && creatorDetailOpen && activeTab === 'profile' ? 'ps-content-profile-full' : ''}`}>
           <div className="ps-container">
-            <div className="ps-tab-sidebar">
-              {CREATOR_TABS.map((t) => (
-                <button
-                  key={t.id}
-                  className={`ps-tab-btn ${activeTab === t.id ? 'is-active' : ''}`}
-                  onClick={() => setActiveTab(t.id)}
-                >
-                  <t.icon size={20} /> {t.label}
-                </button>
-              ))}
-            </div>
+            {isMobile && !creatorDetailOpen ? (
+              <div className="bs-menu ps-settings-menu">
+                {CREATOR_TABS.map((tab) => (
+                  <button key={tab.id} type="button" className="bs-menu-item" onClick={() => {
+                    if (tab.id === 'profile') navigate('/profile');
+                    else { setActiveTab(tab.id); setCreatorDetailOpen(true); }
+                  }}>
+                    <span className="bs-menu-ic"><tab.icon size={18} /></span>
+                    <span className="bs-menu-txt">{tab.label}</span>
+                    <ChevronRight size={18} className="bs-menu-chev" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <>
+                {!isMobile && (
+                  <div className="ps-tab-sidebar">
+                    {CREATOR_TABS.map((t) => (
+                      <button
+                        key={t.id}
+                        className={`ps-tab-btn ${activeTab === t.id ? 'is-active' : ''}`}
+                        onClick={() => setActiveTab(t.id)}
+                      >
+                        <t.icon size={20} /> {t.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-            <div className="ps-panel">
+                <div className={`ps-panel ${isMobile && activeTab === 'profile' ? 'ps-panel-profile-full' : ''}`}>
+              {isMobile && activeTab !== 'profile' && (
+                  <button type="button" className="bs-back ps-settings-back" onClick={closeCreatorSettingsDetail}>
+                    <ChevronLeft size={18} /> <span>Back</span>
+                  </button>
+              )}
               {activeTab === 'profile' && user?.id && (
                 <CreatorProfileModal
                   id={user.id}
                   asPage
                   editable
                   photo={user?.profile_photo || user?.profile_picture}
-                  onClose={() => navigate('/dashboard/creator')}
+                  onClose={() => navigate('/settings', { replace: true })}
                 />
               )}
               {false && (
@@ -1206,10 +1705,12 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'security' && (
+              {activeTab === 'privacy' && (
                 <>
-                  <h2>Change Password</h2>
-                  <form onSubmit={handleChangePassword}>
+                  <h2>Privacy &amp; Security</h2>
+                  <p className="ps-panel-desc">Manage your password, account protection, and privacy preferences.</p>
+                  <h3>Change Password</h3>
+                  <form onSubmit={handleChangePassword} className="ps-password-compact">
                     <div className="ps-form-group">
                       <label>Current Password</label>
                       <input
@@ -1250,18 +1751,18 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'security' && (
+              {activeTab === 'privacy' && (
                 <>
-                  <h2 style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Two-Factor Authentication</h2>
-                  <p className="ps-panel-desc">
+                  <h2 className="ps-2fa-compact-title" style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Two-Factor Authentication</h2>
+                  <p className="ps-panel-desc ps-2fa-compact-desc">
                     Add an extra layer of security to your account with 2FA using Google Authenticator.
                   </p>
 
                   {!twoFAEnabled ? (
                     <>
                       {!showQR ? (
-                        <div className="ps-2fa-setup">
-                          <div className="ps-info-box">
+                        <div className="ps-2fa-setup ps-2fa-setup--compact">
+                          <div className="ps-info-box ps-info-box--compact">
                             <Shield size={48} />
                             <h3>Enable Two-Factor Authentication</h3>
                             <p>Protect your account with an additional security layer</p>
@@ -1355,25 +1856,13 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'language' && (
-                <>
-                  <h2>Language</h2>
-                  <p className="ps-panel-desc">Choose the language for your dashboard.</p>
-                  <div className="ps-form-group">
-                    <label>App language</label>
-                    <select value={appLang} onChange={(e) => setAppLang(e.target.value)}>
-                      {APP_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                    <span className="ps-hint">This controls the interface language across UGCad.io.</span>
-                  </div>
-                  <button className="ps-btn-primary" onClick={saveAppLang}><Save size={20} /> Save Language</button>
-                </>
-              )}
-
               {activeTab === 'privacy' && (
                 <>
-                  <h2>Privacy &amp; Security</h2>
+                  <h2 style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Privacy Preferences</h2>
                   <p className="ps-panel-desc">Control who can see and reach you.</p>
+
+                  {renderAccountStanding()}
+
                   <div className="ps-toggle-list">
                     {CREATOR_PRIVACY_ROWS.map(([key, title, desc, Icon]) => (
                       <div className="ps-toggle-row" key={key}>
@@ -1426,7 +1915,9 @@ export default function ProfileSettings() {
                       const inner = (
                         <>
                           <span className="ps-social-ic" style={{ background: s.color }}>
-                            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d={s.path} /></svg>
+                            {s.icon
+                              ? <s.icon size={22} />
+                              : <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" clipRule="evenodd" d={s.path} /></svg>}
                           </span>
                           <div><strong>{s.name}{s.comingSoon ? ' (Coming soon)' : ''}</strong><small>{s.handle}</small></div>
                         </>
@@ -1438,7 +1929,9 @@ export default function ProfileSettings() {
                   </div>
                 </>
               )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
       </div>
 
@@ -1472,18 +1965,71 @@ export default function ProfileSettings() {
         .ps-btn-outline-danger{flex:none;border:1px solid #f2b8c6;background:#fff;color:#e11d48;border-radius:11px;padding:9px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
         .ps-btn-outline-danger:hover{background:#fff0f4}
         .ps-danger-row .ps-btn-danger{display:inline-flex;align-items:center;gap:7px;flex:none;width:auto;margin:0;padding:9px 18px}
+        /* Phone: stack the label above a full-width button. The row never wrapped, so
+           the non-shrinking Delete/Deactivate button crushed the explanatory copy into
+           a ~150px column. */
+        @media (max-width:620px){
+          .ps-danger-row{flex-wrap:wrap;align-items:flex-start}
+          .ps-danger-row p{max-width:none}
+          .ps-danger-row .ps-btn-outline-danger,
+          .ps-danger-row .ps-btn-danger{width:100%;justify-content:center}
+        }
 
         .ps-social-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         .ps-social-card{display:flex;align-items:center;gap:13px;padding:16px;border:1px solid #eef0f6;border-radius:14px;text-decoration:none;transition:.16s;background:#fff}
         .ps-social-card:hover{border-color:#cdd4ff;background:#f7f8ff;transform:translateY(-2px)}
-        .ps-social-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+        .ps-social-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
         .ps-social-ic svg{display:block}
         .ps-social-card.is-soon{cursor:default}
         .ps-social-card.is-soon:hover{transform:none;border-color:#eef0f6;background:#fff}
         .ps-social-card.is-soon strong{color:#585c7e}
         .ps-social-card strong{display:block;font-size:14.5px;color:#15163a}
         .ps-social-card small{color:#9296ba;font-size:12.5px}
-        @media (max-width:640px){.ps-social-grid{grid-template-columns:1fr}}
+        @media (max-width:640px){
+          .ps-page-head{display:none}
+          .cmk-page:has(> .ps-content){max-width:none;padding:0 0 88px}
+          .cmk-page:has(> .ps-content).cmk-wrap{padding-left:0;padding-right:0}
+          .ps-social-grid{grid-template-columns:1fr}
+          .cmk-page-head h1{font-size:24px;line-height:1.2}
+          .cmk-page-head p{font-size:13.5px;line-height:1.45}
+          .ps-content{padding:0;overflow:visible}
+          .ps-container{gap:0;max-width:none}
+          .ps-settings-back{margin:0 0 14px}
+          .ps-panel{min-height:calc(100dvh - var(--cmk-nav-height,72px) - 58px);padding:16px 14px;border-radius:0;box-shadow:none}
+          .ps-settings-menu{border-radius:0;border-left:0;border-right:0;box-shadow:none}
+          .ps-panel h2{font-size:22px;line-height:1.2;margin:0 0 6px}
+          .ps-panel-desc{font-size:13px;line-height:1.45;margin-bottom:20px}
+          .ps-form-group{margin-bottom:17px}
+          .ps-form-group label{font-size:13px;margin-bottom:6px}
+          .ps-form-group input[type="text"],
+          .ps-form-group input[type="password"],
+          .ps-form-group input[type="file"],
+          .ps-form-group textarea,
+          .ps-form-group select{padding:10px 12px;border-width:1.5px;border-radius:10px;font-size:14px;letter-spacing:normal}
+          .ps-form-group input::placeholder,
+          .ps-form-group textarea::placeholder{font-size:13px;letter-spacing:normal}
+          .ps-btn-primary,.ps-btn-danger{padding:10px 18px;border-radius:10px;font-size:13.5px}
+          .ps-btn-primary svg,.ps-btn-danger svg{width:17px;height:17px}
+          .ps-info-box,.ps-success-box{padding:20px 14px;margin-bottom:17px}
+          .ps-info-box svg,.ps-success-box svg{width:38px;height:38px;margin-bottom:10px}
+          .ps-info-box h3,.ps-success-box h3{font-size:18px;line-height:1.3;margin:0 0 5px}
+          .ps-info-box p,.ps-success-box p{font-size:12.5px;line-height:1.45;margin:0}
+          .ps-toggle-list{gap:8px;margin-bottom:17px}
+          .ps-toggle-row{gap:10px;padding:11px 12px;border-radius:12px}
+          .ps-toggle-ic{width:34px;height:34px;border-radius:9px}
+          .ps-toggle-ic svg{width:16px;height:16px}
+          .ps-toggle-txt strong{font-size:13px;line-height:1.3}
+          .ps-toggle-txt p{font-size:11px;line-height:1.35}
+          .ps-switch{width:40px;height:23px}
+          .ps-switch i{width:17px;height:17px}
+          .ps-switch.is-on i{left:20px}
+          .ps-social-grid{gap:8px}
+          .ps-social-card{gap:10px;padding:11px 12px;border-radius:12px}
+          .ps-social-ic{width:38px;height:38px;border-radius:10px}
+          .ps-social-ic svg{width:18px;height:18px}
+          .ps-social-card strong{font-size:13px;line-height:1.3}
+          .ps-social-card small{font-size:11px}
+        }
       `}</style>
       {legalDoc && (
         <div className="ps-legal-overlay" onClick={() => setLegalDoc(null)}>
@@ -1508,7 +2054,7 @@ export default function ProfileSettings() {
             .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
             @keyframes psLegalIn{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
             .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
-            .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#8b5cf6)}
+            .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
             .ps-legal-modal-title{flex:1;min-width:0}
             .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
             .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}
@@ -1522,6 +2068,7 @@ export default function ProfileSettings() {
           `}</style>
         </div>
       )}
+      {renderAccountActionCard()}
     </CreatorTopNavLayout>
   );
 }

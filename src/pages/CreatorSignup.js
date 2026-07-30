@@ -29,7 +29,7 @@ export default function CreatorSignup() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Email + password → create the real creator account, then go to profile setup.
+  // Email + password → create the account, then collect the name in profile setup.
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password.length < 8) {
@@ -56,12 +56,6 @@ export default function CreatorSignup() {
 
   return (
     <div className="cs-root">
-      {/* Background blobs — match the creator landing's navy glow */}
-      <div className="cs-bg" aria-hidden="true">
-        <div className="cs-blob cs-blob--1" />
-        <div className="cs-blob cs-blob--2" />
-      </div>
-
       {/* Back button */}
       <button
         className="cs-back"
@@ -242,7 +236,7 @@ export default function CreatorSignup() {
           letter-spacing: -0.01em;
         }
         .cs-title-accent {
-          background: linear-gradient(120deg, #07074e, #aeb9ff);
+          background: linear-gradient(120deg, #07074e, #6d7bff);
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -359,7 +353,7 @@ export default function CreatorSignup() {
           text-decoration: underline;
           text-underline-offset: 3px;
         }
-        .cs-login-link:hover { color: #aeb9ff; }
+        .cs-login-link:hover { color: #6d7bff; }
 
         /* ── Email verification step ─────────────────────────────── */
         .cs-card--verify { text-align: center; }
@@ -384,7 +378,7 @@ export default function CreatorSignup() {
           text-decoration: underline;
           text-underline-offset: 2px;
         }
-        .cs-verify-change:hover { color: #aeb9ff; }
+        .cs-verify-change:hover { color: #6d7bff; }
         .cs-otp {
           display: flex;
           justify-content: center;

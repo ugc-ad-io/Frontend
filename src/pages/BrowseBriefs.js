@@ -3,80 +3,23 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, Clock, SlidersHorizontal, Star, ChevronDown, X, Send, Wallet, Target } from 'lucide-react';
+import { Bookmark, X, Send, FileText, CheckCircle2 } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
+import BriefDetailDrawer from '../components/BriefDetailDrawer';
+import { Skeleton } from '../components/Skeleton';
+import normalizeBrief, { timeAgo } from '../utils/normalizeBrief';
+import { isOpenForBids } from '../utils/campaignCreators';
+import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
+import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
-const formatMoney = (value) => `Rs. ${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
-
-// Map a niche/tag to a consistent colour class so each category reads distinctly.
-const CAT_MAP = [
-  [/beauty|skin|makeup|cosmet/i, 'c-beauty'],
-  [/tech|gadget|electronic|app|software/i, 'c-tech'],
-  [/fashion|apparel|cloth|style|jewel/i, 'c-fashion'],
-  [/life ?style|home|decor|interior/i, 'c-lifestyle'],
-  [/food|snack|beverage|drink|recipe|cook/i, 'c-food'],
-  [/fit|gym|health|wellness|yoga|sport/i, 'c-fitness'],
-  [/travel|trip|tour|hotel|destination/i, 'c-travel'],
-  [/game|gaming|esport/i, 'c-gaming'],
-  [/finance|fintech|bank|invest|money/i, 'c-finance'],
-];
-const catClass = (tag) => (CAT_MAP.find(([re]) => re.test(String(tag || '')))?.[1]) || 'c-default';
-
-// Render the newline-separated brief into a readable definition list.
-const renderBrief = (text) => {
-  const lines = String(text || '').split('\n');
-  const out = [];
-  lines.forEach((line, i) => {
-    const t = line.trim();
-    if (!t) return;
-    const idx = t.indexOf(':');
-    if (idx > 0 && idx <= 28) {
-      out.push(<p key={i} className="bb-bl"><span className="bb-blab">{t.slice(0, idx)}:</span> {t.slice(idx + 1).trim()}</p>);
-    } else {
-      out.push(<p key={i} className="bb-bl">{t}</p>);
-    }
-  });
-  return out.length ? out : <p className="bb-bl">No brief details provided.</p>;
-};
-
-const getCampaignBudget = (c) => {
-  if (!c) return 'Rs. 0';
-  const min = c.budget_min ?? c.budget ?? 0;
-  const max = c.budget_max ?? min;
-  return min === max ? formatMoney(min) : `${formatMoney(min)} - ${formatMoney(max)}`;
-};
 
 const CATEGORIES = ['All Categories', 'Beauty', 'Fashion', 'Tech', 'Fitness', 'Food', 'Lifestyle', 'Travel', 'Home', 'Gaming', 'Kids'];
-
-function normalizeBrief(c, index, myBids) {
-  const objectives = Array.isArray(c.objectives) ? c.objectives.filter(Boolean) : [];
-  const hasBid = myBids.some((b) => b.id === c.id);
-  const budgetMax = Number(c.budget_max ?? c.budget ?? 0);
-  const matchScore = Math.min(98, 76 + objectives.length * 4 + (c.requires_shipment ? 3 : 0) + (index % 3) * 2);
-  const d = c.estimated_delivery_days || c.delivery_days;
-  return {
-    campaign: c,
-    id: c.id || c._id,
-    title: c.title,
-    description: c.brief_text || 'Create engaging UGC content for this brand.',
-    brand: c.business_nickname || c.brand_handle || 'Brand',
-    logo: c.brand_logo,
-    tags: objectives.length ? objectives.slice(0, 2) : [(c.industry_type || 'UGC'), 'UGC Video'],
-    budget: getCampaignBudget(c),
-    budgetMax,
-    deliveryLabel: d ? `${d} Days` : '3 - 5 Days',
-    deliveryDays: Number(d) || 5,
-    matchScore,
-    hasBid,
-    createdAt: c.created_at ? new Date(c.created_at).getTime() : 0,
-    industryType: (c.industry_type || '').toLowerCase(),
-  };
-}
 
 export default function BrowseBriefs() {
   const { user } = useAuth();
@@ -93,12 +36,59 @@ export default function BrowseBriefs() {
   const [deliveryFilter, setDeliveryFilter] = useState('any');
   const [visible, setVisible] = useState(8);
   const [openBrief, setOpenBrief] = useState(null); // brief object shown in the side drawer
+  const [viewBid, setViewBid] = useState(null); // existing bid shown without leaving this page
+  const [savedIds, setSavedIds] = useState(() => getSavedIds()); // ids of saved briefs
+  // Bid form — opened straight from the drawer so no redirect to the detail page.
+  const [bidBrief, setBidBrief] = useState(null);   // brief being bid on
+  const [bidAmount, setBidAmount] = useState('');
+  const [deliveryDays, setDeliveryDays] = useState('');
+  const [proposal, setProposal] = useState('');
+  const [submittingBid, setSubmittingBid] = useState(false);
+
+  const openBidForm = (b) => {
+    setBidAmount(''); setDeliveryDays(''); setProposal('');
+    setBidBrief(b);
+  };
+
+  const handleSubmitBid = async (e) => {
+    e.preventDefault();
+    const maximum = maxCampaignBid(bidBrief);
+    if (maximum && Number(bidAmount) > maximum) {
+      toast.error(bidOverBudgetMessage(maximum));
+      return;
+    }
+    setSubmittingBid(true);
+    try {
+      await axios.post(`${API}/campaigns/${bidBrief.id}/bid`, {
+        campaign_id: bidBrief.id,
+        amount: parseFloat(bidAmount),
+        proposal,
+        estimated_delivery_days: parseInt(deliveryDays, 10),
+      });
+      toast.success('Bid submitted successfully!');
+      setBidBrief(null);
+      setOpenBrief(null);
+      fetchData();
+    } catch (error) {
+      const msg = error?.response?.data?.detail || 'Failed to submit bid';
+      toast.error(typeof msg === 'string' ? msg : 'Failed to submit bid');
+    } finally {
+      setSubmittingBid(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the bookmark state in sync if saves change here or on the Saved page.
+  useEffect(() => {
+    const sync = () => setSavedIds(getSavedIds());
+    window.addEventListener('ugc-saved-changed', sync);
+    return () => window.removeEventListener('ugc-saved-changed', sync);
+  }, []);
 
   // Keep the search box in sync when arriving from the top-nav search (?q=...)
   useEffect(() => {
@@ -110,7 +100,9 @@ export default function BrowseBriefs() {
     try {
       const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
       const all = res.data;
-      setAvailableCampaigns(all.filter((c) => c.status === 'active' && !c.selected_creator));
+      // Stay listed while the brief still has creator slots open — hiding it on the
+      // first hire meant a 5-creator brief could only ever fill one slot.
+      setAvailableCampaigns(all.filter(isOpenForBids));
       setMyBids(all.filter((c) => c.bids?.some((b) => b.creator_id === user?.id)));
     } catch {
       toast.error('Failed to load campaigns');
@@ -123,6 +115,15 @@ export default function BrowseBriefs() {
     () => availableCampaigns.map((c, i) => normalizeBrief(c, i, myBids)),
     [availableCampaigns, myBids]
   );
+
+  // Deep-link: open a specific brief's drawer from a shared URL (?open=<id>).
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (openId && briefs.length) {
+      const b = briefs.find((x) => String(x.id) === String(openId));
+      if (b) setOpenBrief(b);
+    }
+  }, [briefs, searchParams]);
 
   const filtered = useMemo(() => {
     const cat = category.toLowerCase();
@@ -168,7 +169,7 @@ export default function BrowseBriefs() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head">
+      <div className="cmk-page-head browse-campaigns-head">
         <h1>Browse Campaigns</h1>
         <p>Find exciting brands to collaborate with and create content.</p>
       </div>
@@ -227,29 +228,74 @@ export default function BrowseBriefs() {
           {shown.map((b) => (
             <article key={b.id} className="cmk-bb-card cmk-rise" onClick={() => b.id ? setOpenBrief(b) : toast.error('This brief is unavailable')}>
               <div className="cmk-bb-top">
+                {/* Brand logo pulled from the brand's profile (brand_logo) */}
                 <span className="cmk-bb-logo">
                   {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
                 </span>
-                <strong className="cmk-bb-brand">{b.brand}</strong>
-                <button type="button" className="cmk-bb-save" onClick={(e) => { e.stopPropagation(); toast.success('Saved'); }} aria-label="Save brief">
-                  <Bookmark size={16} />
+                <button
+                  type="button"
+                  className={`cmk-bb-save${savedIds.has(String(b.id)) ? ' is-saved' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); const s = toggleSavedBrief(b); toast.success(s ? 'Saved to your list' : 'Removed from saved'); }}
+                  aria-label={savedIds.has(String(b.id)) ? 'Remove from saved' : 'Save brief'}
+                >
+                  <Bookmark size={16} fill={savedIds.has(String(b.id)) ? 'currentColor' : 'none'} />
                 </button>
               </div>
-              <h3 className="cmk-bb-title">{b.title}</h3>
+              <div className="cmk-bb-head">
+                <div className="cmk-bb-brandrow">
+                  <strong className="cmk-bb-brand">{b.brand}</strong>
+                  {b.createdAt ? <span className="cmk-bb-time">{timeAgo(b.createdAt)}</span> : null}
+                </div>
+                <h3 className="cmk-bb-title">{b.title}</h3>
+              </div>
               <div className="cmk-bb-tags">
-                {b.tags.map((t) => <span key={t} className={catClass(t)}>{t}</span>)}
+                {[...(b.tags || []).slice(0, 2), b.deliveryLabel].filter(Boolean).map((t, i) => (
+                  <span className="cmk-bb-pill" key={i}>{t}</span>
+                ))}
               </div>
-              <p className="cmk-bb-desc">{b.description}</p>
-              <div className="cmk-bb-meta">
-                <strong>{b.budget}</strong>
-                <span><Clock size={14} /> {b.deliveryLabel}</span>
+              {b.deliverables && (
+                <div className="cmk-bb-deliv"><FileText size={13} /> <span>{b.deliverables}</span></div>
+              )}
+              <div className="cmk-bb-divider" />
+              <div className="cmk-bb-foot">
+                <div className="cmk-bb-price">{b.budget}<small>{b.matchScore}% match</small></div>
+                <button
+                  type="button"
+                  className="cmk-bb-apply"
+                  onClick={(e) => { e.stopPropagation(); b.id ? setOpenBrief(b) : toast.error('This brief is unavailable'); }}
+                >
+                  View details
+                </button>
               </div>
-              <div className="cmk-bb-match"><Star size={13} /> {b.matchScore}% Match</div>
+            </article>
+          ))}
+        </div>
+      ) : loading ? (
+        <div className="cmk-bb-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <article className="cmk-bb-card" key={i} aria-hidden="true">
+              <div className="cmk-bb-top">
+                <Skeleton width={46} height={46} radius={13} />
+                <Skeleton width={34} height={34} radius={10} />
+              </div>
+              <div className="cmk-bb-head">
+                <Skeleton width="45%" height={12} />
+                <Skeleton width="80%" height={16} style={{ marginTop: 6 }} />
+              </div>
+              <div className="cmk-bb-tags">
+                <Skeleton width={64} height={24} radius={8} />
+                <Skeleton width={74} height={24} radius={8} />
+              </div>
+              <div className="cmk-bb-divider" />
+              <div className="cmk-bb-foot">
+                <Skeleton width={84} height={22} />
+                <Skeleton width={92} height={38} radius={11} />
+              </div>
             </article>
           ))}
         </div>
       ) : (
-        <div className="cmk-empty">{loading ? 'Loading briefs…' : 'No briefs found in this category.'}</div>
+        <EmptyState title="No campaigns found" message="No campaigns match your search or filters right now. Try a different category or check back soon." />
       )}
 
       {visible < filtered.length && (
@@ -258,92 +304,119 @@ export default function BrowseBriefs() {
         </div>
       )}
 
-      {openBrief && (() => {
-        const b = openBrief;
-        const objectives = Array.isArray(b.campaign?.objectives) ? b.campaign.objectives.filter(Boolean) : [];
+      <BriefDetailDrawer
+        brief={openBrief}
+        onClose={() => setOpenBrief(null)}
+        onBid={(b) => {
+          if (b.hasBid) {
+            setOpenBrief(null);
+            setViewBid(b);
+            return;
+          }
+          // KYC gate: unverified creators can't bid — nudge them to verify first.
+          if (user?.kyc?.status !== 'verified') {
+            toast.error('Verify your KYC before submitting a bid.');
+            return navigate('/kyc');
+          }
+          openBidForm(b);
+        }}
+      />
+
+      {viewBid && (() => {
+        const campaign = viewBid.campaign || {};
+        const bid = (campaign.bids || []).find((item) => String(item.creator_id) === String(user?.id)) || {};
+        const status = String(bid.status || 'pending').replace(/_/g, ' ');
         return (
-          <div className="bb-drawer-overlay" onClick={() => setOpenBrief(null)}>
-            <aside className="bb-drawer" onClick={(e) => e.stopPropagation()}>
-              <div className="bb-d-head">
-                <span className="bb-d-logo">
-                  {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
-                </span>
-                <div className="bb-d-id">
-                  <strong>{b.title}</strong>
-                  <small>{b.brand}</small>
+          <div className="bb-viewbid-overlay" onClick={() => setViewBid(null)}>
+            <div className="bb-viewbid-card" onClick={(e) => e.stopPropagation()}>
+              <div className="bb-viewbid-head">
+                <div>
+                  <small>{viewBid.brand || 'Brand'}</small>
+                  <h2>{viewBid.title || 'Campaign'}</h2>
                 </div>
-                <button type="button" className="bb-drawer-close" aria-label="Close" onClick={() => setOpenBrief(null)}><X size={18} /></button>
+                <button type="button" aria-label="Close" onClick={() => setViewBid(null)}><X size={19} /></button>
               </div>
-
-              <div className="bb-d-body">
-                <div className="bb-d-stats">
-                  <div><span className="bb-d-ic"><Wallet size={16} /></span><div><label>Budget</label><strong>{b.budget}</strong></div></div>
-                  <div><span className="bb-d-ic"><Clock size={16} /></span><div><label>Delivery</label><strong>{b.deliveryLabel}</strong></div></div>
-                  <div><span className="bb-d-ic"><Star size={16} /></span><div><label>Match</label><strong>{b.matchScore}%</strong></div></div>
+              <div className="bb-viewbid-banner">
+                <div className="bb-viewbid-title"><CheckCircle2 size={22} /><strong>Bid Already Submitted</strong></div>
+                <div className="bb-viewbid-stats">
+                  <div><span>Your Bid Amount</span><strong>₹{Number(bid.amount || 0).toLocaleString('en-IN')}</strong></div>
+                  <div><span>Estimated Delivery</span><strong>{bid.estimated_delivery_days || '—'} days</strong></div>
+                  <div><span>Status</span><strong className="bb-viewbid-status">{status}</strong></div>
                 </div>
-
-                {b.tags?.length > 0 && (
-                  <div className="bb-d-tags">{b.tags.map((t) => <span key={t} className={catClass(t)}>{t}</span>)}</div>
-                )}
-
-                <div className="bb-d-sec">
-                  <h4>Campaign Brief</h4>
-                  <div className="bb-d-brief">{renderBrief(b.description)}</div>
+                <div className="bb-viewbid-proposal">
+                  <span>Your Proposal</span>
+                  <p>{bid.proposal || 'No proposal added.'}</p>
                 </div>
-
-                {objectives.length > 0 && (
-                  <div className="bb-d-sec">
-                    <h4><Target size={15} /> Objectives</h4>
-                    <div className="bb-d-chips">{objectives.map((o, i) => <span key={i}>{o}</span>)}</div>
-                  </div>
-                )}
               </div>
-
-              <div className="bb-d-foot">
-                <button type="button" className="bb-d-ghost" onClick={() => setOpenBrief(null)}>Close</button>
-                <button type="button" className="bb-d-primary" onClick={() => navigate(`/campaign/${b.id}`)}>
-                  <Send size={16} /> {b.hasBid ? 'View Your Bid' : 'Submit Your Bid'}
-                </button>
-              </div>
-            </aside>
-
+              <button type="button" className="bb-viewbid-close" onClick={() => setViewBid(null)}>Close</button>
+            </div>
             <style>{`
-              .bb-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
-              .bb-drawer{position:relative;width:min(460px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:bb-slide .28s cubic-bezier(.2,.7,.2,1)}
-              @keyframes bb-slide{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}}
-              .bb-d-head{display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid #e9ebf4}
-              .bb-d-logo{width:44px;height:44px;flex:none;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:17px}
-              .bb-d-logo img{width:100%;height:100%;object-fit:cover}
-              .bb-d-id{flex:1;min-width:0}
-              .bb-d-id strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;color:#15163a;line-height:1.25}
-              .bb-d-id small{color:#9296ba;font-size:13px}
-              .bb-drawer-close{flex:none;width:34px;height:34px;border-radius:10px;border:none;background:#f1f3fa;color:#15163a;cursor:pointer;display:grid;place-items:center}
-              .bb-drawer-close:hover{background:#e7eaf5}
-              .bb-d-body{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
-              .bb-d-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-              .bb-d-stats>div{display:flex;align-items:center;gap:9px;background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:11px 12px}
-              .bb-d-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
-              .bb-d-stats label{display:block;color:#9296ba;font-size:11px;font-weight:600}
-              .bb-d-stats strong{color:#15163a;font-size:14px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
-              .bb-d-tags{display:flex;flex-wrap:wrap;gap:7px}
-              .bb-d-tags span{font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
-              .bb-d-sec h4{margin:0 0 9px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
-              .bb-d-brief{display:flex;flex-direction:column;gap:7px}
-              .bb-bl{margin:0;color:#585c7e;font-size:14px;line-height:1.6}
-              .bb-blab{color:#15163a;font-weight:700}
-              .bb-d-chips{display:flex;flex-wrap:wrap;gap:7px}
-              .bb-d-chips span{background:#f1f3fa;color:#585c7e;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:20px}
-              .bb-d-foot{display:flex;gap:10px;padding:16px 22px;border-top:1px solid #e9ebf4}
-              .bb-d-ghost,.bb-d-primary{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent}
-              .bb-d-ghost{background:#fff;border-color:#e9ebf4;color:#15163a}
-              .bb-d-ghost:hover{border-color:#d3d7f0}
-              .bb-d-primary{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
-              .bb-d-primary:hover{transform:translateY(-1px)}
-              @media (max-width:520px){.bb-d-stats{grid-template-columns:1fr}}
+              .bb-viewbid-overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(18,21,46,.52);backdrop-filter:blur(3px)}
+              .bb-viewbid-card{width:min(680px,100%);max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:22px;padding:24px;box-shadow:0 28px 70px rgba(7,7,78,.26)}
+              .bb-viewbid-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}
+              .bb-viewbid-head small{display:block;color:#8b91b2;font-size:.82rem;margin-bottom:4px}
+              .bb-viewbid-head h2{margin:0;color:#090a48;font-size:1.35rem}
+              .bb-viewbid-head button{width:36px;height:36px;display:grid;place-items:center;border:1px solid #e5e7f2;border-radius:10px;background:#fff;color:#14163d;cursor:pointer}
+              .bb-viewbid-banner{padding:20px;border:1px solid #daddff;border-radius:18px;background:#f1f1ff}
+              .bb-viewbid-title{display:flex;align-items:center;gap:9px;color:#11145c;font-size:1.12rem;margin-bottom:16px}
+              .bb-viewbid-title svg{color:#6072ff}
+              .bb-viewbid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+              .bb-viewbid-stats>div,.bb-viewbid-proposal{padding:14px;border:1px solid #e3e5f1;border-radius:13px;background:#fff}
+              .bb-viewbid-stats span,.bb-viewbid-proposal span{display:block;color:#737a9d;font-size:.76rem;font-weight:600;margin-bottom:6px}
+              .bb-viewbid-stats strong{color:#090a48;font-size:.95rem;text-transform:capitalize}
+              .bb-viewbid-status{display:inline-flex!important;padding:6px 10px;border-radius:8px;background:#080854;color:#fff!important;font-size:.78rem!important}
+              .bb-viewbid-proposal{margin-top:10px}
+              .bb-viewbid-proposal p{margin:0;color:#333858;line-height:1.55;overflow-wrap:anywhere}
+              .bb-viewbid-close{display:block;width:150px;margin:18px 0 0 auto;padding:11px 16px;border:0;border-radius:11px;background:#080854;color:#fff;font-weight:700;cursor:pointer}
+              @media(max-width:620px){.bb-viewbid-card{padding:16px;border-radius:0;max-height:100vh;height:100%;width:100%}.bb-viewbid-overlay{padding:0}.bb-viewbid-stats{grid-template-columns:1fr}.bb-viewbid-close{width:100%}}
             `}</style>
           </div>
         );
       })()}
+
+      {bidBrief && (
+        <div className="bb-bid-overlay" onClick={() => !submittingBid && setBidBrief(null)}>
+          <div className="bb-bid-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="bb-bid-head">
+              <h2>Submit Your Bid</h2>
+              <button type="button" className="bb-bid-x" aria-label="Close" onClick={() => setBidBrief(null)}><X size={18} /></button>
+            </div>
+            <p className="bb-bid-sub">{bidBrief.title || 'Campaign'} · {bidBrief.brand || 'Brand'}</p>
+            <form onSubmit={handleSubmitBid} className="bb-bid-form">
+              <label>Bid Amount (₹)
+                <input type="number" min="1" max={maxCampaignBid(bidBrief) || undefined} required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
+              </label>
+              <label>Estimated Delivery (days)
+                <input type="number" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />
+              </label>
+              <label>Your Proposal
+                <textarea rows={4} required value={proposal} onChange={(e) => setProposal(e.target.value)} placeholder="Describe your approach, experience, and why you're the right fit..." />
+              </label>
+              <div className="bb-bid-actions">
+                <button type="button" className="bb-d-ghost" onClick={() => setBidBrief(null)} disabled={submittingBid}>Cancel</button>
+                <button type="submit" className="bb-d-primary" disabled={submittingBid}>
+                  <Send size={16} /> {submittingBid ? 'Submitting…' : 'Submit Bid'}
+                </button>
+              </div>
+            </form>
+          </div>
+          <style>{`
+            .bb-bid-overlay { position: fixed; inset: 0; background: rgba(15,18,40,.5); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
+            .bb-bid-modal { width: 100%; max-width: 460px; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(7,7,78,.28); padding: 22px; }
+            .bb-bid-head { display: flex; align-items: center; justify-content: space-between; }
+            .bb-bid-head h2 { margin: 0; font-size: 1.15rem; color: #0f1132; }
+            .bb-bid-x { border: 0; background: #f3f4f8; color: #5b6573; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; }
+            .bb-bid-x:hover { background: #e8eaf1; }
+            .bb-bid-sub { margin: 4px 0 16px; font-size: .86rem; color: #8a8fb5; }
+            .bb-bid-form { display: flex; flex-direction: column; gap: 14px; }
+            .bb-bid-form label { display: flex; flex-direction: column; gap: 6px; font-size: .84rem; font-weight: 600; color: #3a3f63; }
+            .bb-bid-form input, .bb-bid-form textarea { border: 1px solid #e6e8f2; border-radius: 11px; padding: 11px 13px; font-size: .92rem; font-family: inherit; color: #15163a; outline: 0; font-weight: 400; }
+            .bb-bid-form input:focus, .bb-bid-form textarea:focus { border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,.14); }
+            .bb-bid-form textarea { resize: vertical; }
+            .bb-bid-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+          `}</style>
+        </div>
+      )}
     </CreatorTopNavLayout>
   );
 }

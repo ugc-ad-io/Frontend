@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { ArrowLeft, Upload, FileVideo, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, FileVideo, Image as ImageIcon, RefreshCw } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -92,6 +92,14 @@ export default function WorkSubmission() {
   if (loading) return <div className="loading-page">Loading...</div>;
   if (!campaign) return <div className="error-page">Campaign not found</div>;
 
+  // What the brand asked for. The creator had no way to see this — the feedback
+  // was written to the campaign's work_submission and never rendered anywhere on
+  // their side, so "revision requested" told them to redo the work without ever
+  // saying what was wrong.
+  const ws = campaign.work_submission || {};
+  const revisionRequested = ws.status === 'revision_requested';
+  const requestedChanges = Array.isArray(ws.requested_changes) ? ws.requested_changes.filter(Boolean) : [];
+
   return (
     <div className="work-submission-page">
       <div className="page-header">
@@ -102,9 +110,39 @@ export default function WorkSubmission() {
 
       <div className="submission-container fade-in">
         <div className="submission-header">
-          <h1>Submit Your Work</h1>
+          <h1>{revisionRequested ? 'Submit Your Revision' : 'Submit Your Work'}</h1>
           <p>Campaign: {campaign.title}</p>
         </div>
+
+        {revisionRequested && (
+          <section className="revision-callout" data-testid="revision-request">
+            <div className="revision-callout-head">
+              <RefreshCw size={18} />
+              <h3>The brand asked for changes</h3>
+            </div>
+
+            {requestedChanges.length > 0 && (
+              <ul className="revision-callout-list">
+                {requestedChanges.map((change, i) => <li key={i}>{change}</li>)}
+              </ul>
+            )}
+
+            {ws.feedback ? (
+              <div className="revision-callout-note">
+                <label>Their feedback</label>
+                <p>{ws.feedback}</p>
+              </div>
+            ) : (
+              !requestedChanges.length && (
+                <p className="revision-callout-empty">
+                  The brand didn’t leave any notes. Message them if you’re unsure what to change.
+                </p>
+              )
+            )}
+
+            <p className="revision-callout-foot">Upload the updated files below and submit again.</p>
+          </section>
+        )}
 
         <form onSubmit={handleSubmit} className="submission-form">
           <div className="upload-section">
@@ -167,12 +205,31 @@ export default function WorkSubmission() {
           </div>
 
           <button type="submit" className="btn-primary" data-testid="submit-work-btn">
-            Submit Work for Review
+            {revisionRequested ? 'Submit Revision for Review' : 'Submit Work for Review'}
           </button>
         </form>
       </div>
 
       <style>{`
+        .revision-callout {
+          max-width: 900px;
+          margin: 0 auto 24px;
+          padding: 22px 24px;
+          border-radius: 16px;
+          background: #fff8ed;
+          border: 1.5px solid #fcd9a4;
+        }
+        .revision-callout-head { display: flex; align-items: center; gap: 9px; color: #b45309; margin-bottom: 12px; }
+        .revision-callout-head h3 { margin: 0; font-size: 1.02rem; color: #92400e; }
+        .revision-callout-list { margin: 0 0 14px; padding-left: 20px; color: #7c4a09; line-height: 1.75; font-size: 0.95rem; }
+        .revision-callout-note label {
+          display: block; margin-bottom: 5px; font-size: 0.74rem; font-weight: 700;
+          letter-spacing: 0.05em; text-transform: uppercase; color: #b45309;
+        }
+        .revision-callout-note p { margin: 0; color: #713f12; line-height: 1.6; white-space: pre-wrap; }
+        .revision-callout-empty { margin: 0; color: #92400e; font-size: 0.92rem; }
+        .revision-callout-foot { margin: 14px 0 0; color: #a16207; font-size: 0.86rem; }
+
         .work-submission-page {
           min-height: 100vh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);

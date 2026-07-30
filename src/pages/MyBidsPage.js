@@ -5,6 +5,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
+import EmptyState from '../components/EmptyState';
+import { SkeletonTable } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -33,17 +35,34 @@ const renderBrief = (text) => {
   });
 };
 
-const STATUS_TONE = { shortlisted: 'info', accepted: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
+// "Won" bids (brand picked this creator) — green pill + a Deal Room shortcut.
+const WON_STATUSES = ['selected', 'accepted', 'approved'];
+const STATUS_TONE = { shortlisted: 'info', accepted: 'ok', approved: 'ok', selected: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
 const STATUS_LABEL = { bid_submitted: 'Pending', submitted: 'Pending' };
 
 const TABS = [
   { key: 'all', label: 'All', match: () => true },
   { key: 'shortlisted', label: 'Shortlisted', match: (s) => s === 'shortlisted' },
-  { key: 'accepted', label: 'Accepted', match: (s) => s === 'accepted' },
+  { key: 'accepted', label: 'Accepted', match: (s) => WON_STATUSES.includes(s) },
   { key: 'rejected', label: 'Rejected', match: (s) => s === 'rejected' },
 ];
 
 export default function MyBidsPage() {
+  return (
+    <CreatorTopNavLayout notifications={0}>
+      <div className="cmk-page-head">
+        <h1>My Bids</h1>
+        <p>Track all your submitted proposals.</p>
+      </div>
+      <MyBidsContent />
+    </CreatorTopNavLayout>
+  );
+}
+
+// The tabs + table + detail drawer, without the page shell — so the "My Deals"
+// hub can render it as its "My Bids" tab and the standalone /my-bids route can
+// wrap it with the top-nav layout and its own heading.
+export function MyBidsContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bids, setBids] = useState([]);
@@ -96,12 +115,7 @@ export default function MyBidsPage() {
   }, [bids, tab]);
 
   return (
-    <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head">
-        <h1>My Bids</h1>
-        <p>Track all your submitted proposals.</p>
-      </div>
-
+    <>
       <div className="cmk-tabs-row">
         <div className="cmk-tabs">
           {TABS.map((t) => (
@@ -113,7 +127,7 @@ export default function MyBidsPage() {
       </div>
 
       {loading ? (
-        <div className="cmk-empty">Loading…</div>
+        <div className="cmk-table-card"><SkeletonTable rows={6} cols={6} /></div>
       ) : rows.length ? (
         <div className="cmk-table-card">
           <table className="cmk-table">
@@ -125,7 +139,7 @@ export default function MyBidsPage() {
                 const c = item.campaign || {};
                 const bid = item.my_bid || item.bid || {};
                 const status = getBidStatus(item);
-                const brand = c.business_nickname || c.brand_handle || 'Brand';
+                const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
                 return (
                   <tr key={bid.id || c.id} className="cmk-row-clickable" onClick={() => openView(item)} title="View bid details">
                     <td className="cmk-td-strong">{c.title || 'Campaign'}</td>
@@ -140,8 +154,8 @@ export default function MyBidsPage() {
                     <td>{formatMoney(bid.amount || c.budget_max || c.budget)}</td>
                     <td><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{STATUS_LABEL[status] || (status.charAt(0).toUpperCase() + status.slice(1))}</span></td>
                     <td className="cmk-td-muted">{fmtDate(item.submitted_at || bid.submitted_at)}</td>
-                    <td className="cmk-td-right" style={['selected', 'accepted'].includes(status) ? undefined : { textAlign: 'center' }}>
-                      {['selected', 'accepted'].includes(status) && (
+                    <td className="cmk-td-right" style={WON_STATUSES.includes(status) ? undefined : { textAlign: 'center' }}>
+                      {WON_STATUSES.includes(status) && (
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
@@ -159,14 +173,14 @@ export default function MyBidsPage() {
           </table>
         </div>
       ) : (
-        <div className="cmk-empty">No bids in “{TABS.find((t) => t.key === tab).label}”.</div>
+        <EmptyState title={`No bids in “${TABS.find((t) => t.key === tab).label}”`} message="Browse open campaigns and submit a proposal to start winning brand deals." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
       )}
 
       {selected && (() => {
         const c = detail || selected.campaign || {};
         const bid = selected.my_bid || selected.bid || {};
         const status = getBidStatus(selected);
-        const brand = c.business_nickname || c.brand_handle || 'Brand';
+        const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
         const budget = (c.budget_min || c.budget_max)
           ? `${formatMoney(c.budget_min || c.budget_max)}${c.budget_max && c.budget_max !== c.budget_min ? ` – ${formatMoney(c.budget_max)}` : ''}`
           : formatMoney(bid.amount);
@@ -234,19 +248,19 @@ export default function MyBidsPage() {
               .mb-drawer-brand strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a;line-height:1.25}
               .mb-drawer-brand small{color:#9296ba;font-size:13px}
               .mb-close{border:0;background:#f1f3fa;color:#15163a;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px;flex:none}
-              .mb-drawer-body{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+              .mb-drawer-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
               .mb-meta-row{display:flex;gap:8px;flex-wrap:wrap}
               .mb-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
               .mb-stat{background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:12px 14px}
               .mb-stat small{color:#9296ba;font-size:12px;font-weight:600;display:block}
               .mb-stat strong{color:#15163a;font-size:15px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
               .mb-sec h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px}
-              .mb-text{margin:0;color:#585c7e;font-size:14px;line-height:1.6;white-space:pre-wrap}
-              .mb-brief{display:flex;flex-direction:column}
-              .mb-brief-line{display:block;line-height:1.55}
+              .mb-text{margin:0;color:#585c7e;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+              .mb-brief{display:flex;flex-direction:column;min-width:0}
+              .mb-brief-line{display:block;line-height:1.55;overflow-wrap:anywhere;word-break:break-word}
               .mb-brief-gap{display:block;height:10px}
               .mb-brief-label{color:#15163a;font-weight:700;margin-right:4px}
-              .mb-brief-val{color:#585c7e}
+              .mb-brief-val{color:#585c7e;overflow-wrap:anywhere;word-break:break-word}
               .mb-muted{margin:0;color:#9296ba;font-size:14px}
               .mb-chips{display:flex;flex-wrap:wrap;gap:7px}
               .mb-chips span{background:#eef0ff;color:#5b6bff;font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}
@@ -256,6 +270,6 @@ export default function MyBidsPage() {
           </div>
         );
       })()}
-    </CreatorTopNavLayout>
+    </>
   );
 }

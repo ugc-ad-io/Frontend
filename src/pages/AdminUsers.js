@@ -1,15 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import {
   Users, Search, X, Eye, Download, Send, Ban, ShieldAlert, AlertTriangle,
-  ArrowUpCircle, ArrowDownCircle, Wallet, Percent, Crown, MessageSquare,
-  FileText, CreditCard, CalendarClock, Flag,
+  ArrowUpCircle, ArrowDownCircle, Wallet, Percent, MessageSquare,
+  FileText, CreditCard, CalendarClock, Flag, Trash2, ShieldCheck,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import { Skeleton } from '../components/Skeleton';
 import { useAuth } from '../App';
-import { can } from '../utils/adminRoles';
+import { can, ROLE_LABELS, normalizeRole } from '../utils/adminRoles';
+import { levelLabelOf } from '../utils/creatorLevel';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -22,33 +25,56 @@ const p = (u, ...keys) => {
 };
 const isBrand = (u) => u.role === 'business';
 const isCreator = (u) => u.role === 'creator';
+// Staff accounts (role === 'admin', carrying an admin_role sub-tier). They are
+// neither a brand nor a creator, so they must NOT get the creator profile layout
+// (deals/earnings/level/KYC). Anything that isn't a brand/creator is treated as staff.
+const isAdmin = (u) => u.role === 'admin' || (!isBrand(u) && !isCreator(u));
 // backend stores `active` (false => suspended/deactivated) and a separate `banned` flag (10.9)
 const userState = (u) => (u.banned ? 'banned' : (u.active === false ? 'suspended' : (u.chat?.suspended ? 'suspended' : 'active')));
 const isInactive = (u) => u.banned === true || u.active === false;
 const strikes = (u) => (u.chat?.strikes || []);
 const isFlagged = (u) => strikes(u).length > 0;
 const category = (u) => p(u, 'category', 'industry', 'niche', 'primary_category') || '—';
-const realName = (u) => u.full_name || p(u, 'full_name', 'legal_name', 'real_name') || '—';
+// Real human name. Prefers what the person/KYC actually provided over the
+// auto-generated @handle. Also reads the verified KYC legal name (creators who
+// never set a display name still have their legal name on file — e.g. "Arushi Khare").
+const realName = (u) =>
+  u.full_name ||
+  p(u, 'full_name', 'legal_name', 'real_name') ||
+  (u.kyc && u.kyc.full_legal_name) ||
+  '';
 const businessName = (u) => p(u, 'business_name', 'company_name', 'brand_name') || u.nickname || '—';
 const legalName = (u) => p(u, 'legal_name', 'registered_name') || '—';
 const gstin = (u) => p(u, 'gstin', 'gst', 'gst_number') || '—';
 const phone = (u) => p(u, 'phone', 'phone_number', 'mobile', 'contact_number') || '—';
 const handleOf = (u) => (u.username ? `@${u.username}` : (u.public_creator_id ? `#${u.public_creator_id}` : (u.nickname || '—')));
+// Primary NAME to show anywhere in admin. Show the real/legal name if we have one;
+// only fall back to the handle when there's genuinely no real name — never surface a
+// bare auto-generated @nickname as though it were the person's name.
+const displayName = (u) => String(realName(u) || '').replace(/^@+/, '').trim() || handleOf(u);
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const dateShort = (v) => (v ? String(v).slice(0, 10) : '—');
 
 const STATE_LABELS = { active: 'Active', suspended: 'Suspended', banned: 'Banned' };
 const PAYOUT_SCHEDULES = ['weekly', 'biweekly', 'monthly', 'on_request'];
 
-export default function AdminUsers() {
+// Reused by the custom-admin "My Users" page (AdminMyCreators) so both admin views
+// share ONE table/detail UI. Only the data source + heading differ.
+export default function AdminUsers({
+  endpoint = '/admin/users',
+  heading = 'Users',
+  subheading = 'Creator & brand directories — search, filter, inspect profiles, and moderate',
+} = {}) {
   const { user: me } = useAuth();
+  const navigate = useNavigate();
   // Capability gating (PRD 11 — role structure). This page is reachable by
   // founder + Ops Senior; ban / commission / pro are founder-only.
   const caps = {
-    ban: can(me, 'ban_users'),
-    warnSuspend: can(me, 'warn_suspend_users'),
-    wallet: can(me, 'adjust_wallet'),
-    financialPolicy: can(me, 'edit_settings'),
+    ban: can(me, 'ban_users', 'edit'),
+    warnSuspend: can(me, 'warn_suspend_users', 'edit'),
+    wallet: can(me, 'adjust_wallet', 'edit'),
+    financialPolicy: can(me, 'edit_settings', 'edit'),
+    userMgmt: can(me, 'user_management', 'edit'),   // gates creator level (promote/demote) + payout schedule
   };
 
   const [allUsers, setAllUsers] = useState([]);
@@ -70,7 +96,7 @@ export default function AdminUsers() {
   // edit modal (kept from before)
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editData, setEditData] = useState({ nickname: '', full_name: '', email: '', role: '' });
+  const [editData, setEditData] = useState({ nickname: '', full_name: '', email: '', role: '', username: '', public_creator_id: '' });
 
   // profile detail drawer (admin view) + per-user activity
   const [detailUser, setDetailUser] = useState(null);
@@ -78,17 +104,34 @@ export default function AdminUsers() {
   const [revealBank, setRevealBank] = useState(false);
   const [deals, setDeals] = useState(null);
   const [disputes, setDisputes] = useState(null);
+  // A brand's campaigns come from their own campaigns list (live + completed),
+  // NOT from the deals list — /admin/deals only returns campaigns that already
+  // have a selected creator, so live/unmatched campaigns would never show.
+  const [brandCampaigns, setBrandCampaigns] = useState(null); // null = not loaded/loading
 
   // generic action modal (warn / suspend / message / wallet / commission / payout / announcement)
   const [action, setAction] = useState(null); // { type, user|users, ... }
 
+  // ban / unban confirmation modal
+  const [banTarget, setBanTarget] = useState(null); // { user, banned }
+
   useEffect(() => { fetchAllUsers(); }, []);
+
+  // /admin/users returns a plain array; /admin/my-assigned returns
+  // { scoped, assigned_categories, users }. Accept both.
+  const [assignedCats, setAssignedCats] = useState(null);
 
   const fetchAllUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/admin/users`);
-      setAllUsers(response.data);
+      const { data } = await axios.get(`${API}${endpoint}`);
+      if (Array.isArray(data)) {
+        setAllUsers(data);
+        setAssignedCats(null);
+      } else {
+        setAllUsers(data?.users || []);
+        setAssignedCats(data?.assigned_categories || []);
+      }
     } catch {
       toast.error('Failed to load users');
     } finally {
@@ -113,11 +156,18 @@ export default function AdminUsers() {
     setDetailTab('profile');
     setRevealBank(false);
     ensureActivity();
+    // Brands: pull their real campaign list (live + completed) for the Campaigns tab.
+    setBrandCampaigns(null);
+    if (isBrand(u)) {
+      axios.get(`${API}/admin/business/${u.id}/campaigns`)
+        .then((r) => setBrandCampaigns(r.data || []))
+        .catch(() => setBrandCampaigns([]));
+    }
   };
 
   const handleEdit = (u) => {
     setSelectedUser(u);
-    setEditData({ nickname: u.nickname || '', full_name: u.full_name || '', email: u.email, role: u.role });
+    setEditData({ nickname: u.nickname || '', full_name: u.full_name || '', email: u.email, role: u.role, username: u.username || '', public_creator_id: u.public_creator_id || u.id || '' });
     setShowEditModal(true);
   };
 
@@ -127,7 +177,7 @@ export default function AdminUsers() {
       toast.success('User updated successfully');
       // Reflect the change immediately, then reconcile with the server.
       setAllUsers((prev) => prev.map((x) => x.id === selectedUser.id
-        ? { ...x, nickname: editData.nickname, full_name: editData.full_name, email: editData.email, role: editData.role }
+        ? { ...x, nickname: editData.nickname, full_name: editData.full_name, email: editData.email, role: editData.role, username: editData.username, public_creator_id: editData.public_creator_id }
         : x));
       setShowEditModal(false);
       fetchAllUsers();
@@ -136,26 +186,25 @@ export default function AdminUsers() {
     }
   };
 
-  const handleBan = async (userId, currentlyBanned) => {
+  // Ban / unban runs through an in-app modal (BanModal) instead of window.confirm,
+  // so the ban reason is captured in a real form and the copy matches the admin UI.
+  const openBan = (u) => setBanTarget({ user: u, banned: isInactive(u) });
+
+  const confirmBan = async (reason) => {
+    const { user: u, banned: currentlyBanned } = banTarget;
     const action_ = currentlyBanned ? 'unban' : 'ban';
-    const confirmMessage = currentlyBanned
-      ? 'Are you sure you want to unban this user?'
-      : 'Are you sure you want to ban this user? They will not be able to log in.';
-    if (!window.confirm(confirmMessage)) return;
-
-    let banReason = null;
-    if (!currentlyBanned) {
-      banReason = prompt('Enter ban reason:');
-      if (!banReason) return;
-    }
-
     try {
-      await axios.post(`${API}/admin/user/ban`, { user_id: userId, banned: !currentlyBanned, ban_reason: banReason });
+      await axios.post(`${API}/admin/user/ban`, {
+        user_id: u.id,
+        banned: !currentlyBanned,
+        ban_reason: currentlyBanned ? null : reason,
+      });
       toast.success(`User ${action_}ned successfully`);
       // Reflect immediately (banned ⇒ active:false), then reconcile.
-      setAllUsers((prev) => prev.map((x) => x.id === userId
+      setAllUsers((prev) => prev.map((x) => x.id === u.id
         ? { ...x, banned: !currentlyBanned, active: currentlyBanned }
         : x));
+      setBanTarget(null);
       fetchAllUsers();
     } catch (e) {
       toast.error(apiErrorMessage(e, `Failed to ${action_} user`));
@@ -171,11 +220,8 @@ export default function AdminUsers() {
       toast.success(successMsg);
       return true;
     } catch (e) {
-      const status = e?.response?.status;
-      if (!e?.response || status === 404 || status === 405 || status === 501) {
-        toast.success(successMsg);
-        return true;
-      }
+      // Surface real failures — a missing route (404/405) should NOT fake success,
+      // otherwise a broken action looks like it worked (e.g. the old announce bug).
       toast.error(apiErrorMessage(e, 'Action failed'));
       return false;
     }
@@ -194,6 +240,7 @@ export default function AdminUsers() {
   const filtered = useMemo(() => allUsers.filter((u) => {
     if (tab === 'creators' && !isCreator(u)) return false;
     if (tab === 'brands' && !isBrand(u)) return false;
+    if (tab === 'admins' && !isAdmin(u)) return false;
     if (stateFilter && userState(u) !== stateFilter) return false;
     if (categoryFilter && category(u) !== categoryFilter) return false;
     if (flaggedOnly && !isFlagged(u)) return false;
@@ -267,8 +314,16 @@ export default function AdminUsers() {
       <div className="au-container">
         <div className="au-header">
           <div>
-            <h1><Users size={26} /> Users</h1>
-            <p>Creator &amp; brand directories — search, filter, inspect profiles, and moderate</p>
+            <h1><Users size={26} /> {heading}</h1>
+            <p>{subheading}</p>
+            {/* Only shown on the scoped "My Users" view. */}
+            {assignedCats !== null && (
+              <p className="au-assigned">
+                {assignedCats.length
+                  ? <>Your categories: {assignedCats.map((c) => <span key={c} className="au-badge">{c}</span>)}</>
+                  : 'No categories assigned to you yet — ask the founder to assign some on the Team & Roles page.'}
+              </p>
+            )}
           </div>
           <div className="au-stats">
             <div className="au-stat"><span>Total</span><strong>{counts.total}</strong></div>
@@ -281,7 +336,7 @@ export default function AdminUsers() {
 
         {/* directory tabs */}
         <div className="au-tabs">
-          {[['all', 'All'], ['creators', 'Creator Directory'], ['brands', 'Brand Directory']].map(([k, label]) => (
+          {[['all', 'All'], ['creators', 'Creator Directory'], ['brands', 'Brand Directory'], ['admins', 'Admin Directory']].map(([k, label]) => (
             <button key={k} type="button" className={tab === k ? 'active' : ''} onClick={() => { setTab(k); setStateFilter(''); setCategoryFilter(''); setVerifyFilter(''); }}>
               {label}
             </button>
@@ -327,9 +382,6 @@ export default function AdminUsers() {
               <option value="">Category: All</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            {tab !== 'brands' && (
-              <span className="au-level-pill" title="Level (V0.5 — every creator is 'New')">Level: New</span>
-            )}
             {tab === 'brands' && (
               <span className="au-wallet-range">
                 <Wallet size={13} />
@@ -355,7 +407,16 @@ export default function AdminUsers() {
             >
               <Send size={14} /> Announce to selected
             </button>
-            {selectedIds.size > 0 && <button type="button" className="au-bulk-clear" onClick={() => setSelectedIds(new Set())}>Clear</button>}
+            {selectedIds.size > 0 && (
+              <button
+                type="button"
+                className="au-bulk-delete"
+                disabled={!selectedUsers.length}
+                onClick={() => setAction({ type: 'delete', users: selectedUsers })}
+              >
+                <Trash2 size={14} /> Delete selected
+              </button>
+            )}
           </div>
         </div>
 
@@ -364,22 +425,26 @@ export default function AdminUsers() {
             <thead>
               <tr>
                 <th className="au-check-col"><input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} aria-label="Select all" /></th>
+                {/* Real name / GST, State, Category and Flags moved into the eye (details)
+                    panel — the table was too dense to scan. */}
                 <th>{tab === 'brands' ? 'Business' : 'Handle / Creator ID'}</th>
-                <th>{tab === 'brands' ? 'GST' : 'Real Name'}</th>
                 <th>Email</th>
                 <th>Role</th>
-                <th>State</th>
-                <th>Category</th>
                 <th>Balance</th>
-                <th>Flags</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="au-empty-row">Loading…</td></tr>
+                Array.from({ length: 6 }).map((_, r) => (
+                  <tr key={`sk-${r}`}>
+                    {Array.from({ length: 6 }).map((_, c) => (
+                      <td key={c}><Skeleton height={13} width={c === 0 ? '75%' : '55%'} /></td>
+                    ))}
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="au-empty-row">{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</td></tr>
+                <tr><td colSpan={6} className="au-empty-row">{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</td></tr>
               ) : (
                 filtered.map((u) => {
                   const st = userState(u);
@@ -388,23 +453,31 @@ export default function AdminUsers() {
                       <td className="au-check-col"><input type="checkbox" checked={selectedIds.has(u.id)} onChange={() => toggleSelect(u.id)} aria-label="Select user" /></td>
                       <td>
                         <button type="button" className="au-primary au-link" onClick={() => openDetail(u)}>
-                          {isBrand(u) ? businessName(u) : handleOf(u)}
+                          {isBrand(u) ? businessName(u) : displayName(u)}
                         </button>
                         {st === 'banned' && <span className="au-ban-badge">BANNED</span>}
                       </td>
-                      <td className="au-mono">{isBrand(u) ? gstin(u) : realName(u)}</td>
                       <td>{u.email}</td>
-                      <td><span className="au-badge">{isBrand(u) ? 'brand' : u.role}</span></td>
-                      <td><span className={`au-badge au-state-${st}`}>{STATE_LABELS[st]}</span></td>
-                      <td>{category(u)}</td>
+                      <td>
+                        <span className="au-badge">{isBrand(u) ? 'brand' : (isAdmin(u) ? 'admin' : u.role)}</span>
+                        {isCreator(u) && (
+                          <span className="au-badge au-badge-level" title="Creator level">
+                            {levelLabelOf(u.level_key ?? u.level)}
+                          </span>
+                        )}
+                        {isAdmin(u) && u.admin_role && (
+                          <span className="au-badge au-badge-admin" title="Admin role">
+                            {ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin'}
+                          </span>
+                        )}
+                      </td>
                       <td>{money(u.balance)}</td>
-                      <td>{strikes(u).length ? <span className="au-strike-pill">{strikes(u).length}</span> : <span className="au-muted">0</span>}</td>
                       <td>
                         <div className="au-actions">
                           <button className="au-btn au-btn-view" onClick={() => openDetail(u)} title="View profile"><Eye size={14} /></button>
                           <button className="au-btn au-btn-edit" onClick={() => handleEdit(u)}>Edit</button>
                           {caps.ban && (
-                            <button className={`au-btn ${isInactive(u) ? 'au-btn-unban' : 'au-btn-ban'}`} onClick={() => handleBan(u.id, isInactive(u))}>
+                            <button className={`au-btn ${isInactive(u) ? 'au-btn-unban' : 'au-btn-ban'}`} onClick={() => openBan(u)}>
                               {isInactive(u) ? 'Unban' : 'Ban'}
                             </button>
                           )}
@@ -429,17 +502,9 @@ export default function AdminUsers() {
             </div>
             <div className="au-modal-body">
               <label>Full Name<input type="text" value={editData.full_name} onChange={(e) => setEditData({ ...editData, full_name: e.target.value })} /></label>
-              <label>Nickname / Handle<input type="text" value={editData.nickname} onChange={(e) => setEditData({ ...editData, nickname: e.target.value })} /></label>
+              <label>Username (@handle)<input type="text" value={editData.username} onChange={(e) => setEditData({ ...editData, username: e.target.value })} placeholder="username" /></label>
+              <label>User ID<input type="text" value={editData.public_creator_id} onChange={(e) => setEditData({ ...editData, public_creator_id: e.target.value })} placeholder="public id" /></label>
               <label>Email<input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} /></label>
-              <label>Role
-                <select value={editData.role} onChange={(e) => setEditData({ ...editData, role: e.target.value })}>
-                  <option value="creator">Creator</option>
-                  <option value="business">Business</option>
-                  <option value="admin">Admin</option>
-                  <option value="campaign_manager">Campaign Manager</option>
-                  <option value="support_staff">Support Staff</option>
-                </select>
-              </label>
             </div>
             <div className="au-modal-actions">
               <button className="au-btn au-btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
@@ -460,9 +525,11 @@ export default function AdminUsers() {
           setRevealBank={setRevealBank}
           deals={userDeals(detailUser)}
           disputes={userDisputes(detailUser)}
+          brandCampaigns={brandCampaigns}
+          onOpenDeal={(campaignId) => { setDetailUser(null); navigate(`/dashboard/admin/deals?deal=${campaignId}`); }}
           activityLoading={deals === null || disputes === null}
           onAction={(type) => setAction({ type, user: detailUser })}
-          onBan={() => handleBan(detailUser.id, isInactive(detailUser))}
+          onBan={() => openBan(detailUser)}
           banned={isInactive(detailUser)}
           caps={caps}
         />
@@ -473,8 +540,17 @@ export default function AdminUsers() {
         <ActionModal
           action={action}
           onClose={() => setAction(null)}
-          onDone={() => { setAction(null); fetchAllUsers(); }}
+          onDone={() => { setAction(null); fetchAllUsers(); setSelectedIds(new Set()); }}
           adminPost={adminPost}
+        />
+      )}
+
+      {/* ---- ban / unban confirmation ---- */}
+      {banTarget && (
+        <BanModal
+          target={banTarget}
+          onClose={() => setBanTarget(null)}
+          onConfirm={confirmBan}
         />
       )}
 
@@ -514,6 +590,8 @@ export default function AdminUsers() {
         .au-bulk-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border: 1.5px solid #e2e8f0; background: white; border-radius: 9px; font-size: 0.8rem; font-weight: 600; color: #4a5568; cursor: pointer; }
         .au-bulk-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
         .au-bulk-clear { color: #b42318 !important; }
+        .au-bulk-delete { color: #b42318 !important; border-color: #f2b8c6 !important; background: #fff5f8 !important; }
+        .au-bulk-delete:hover:not(:disabled) { background: #ffe4ec !important; }
 
         .au-table-wrap { background: white; border: 1.5px solid #e8ecff; border-radius: 14px; overflow-x: auto; }
         .au-table { width: 100%; border-collapse: collapse; }
@@ -529,6 +607,9 @@ export default function AdminUsers() {
         .au-muted { color: #cbd5e0; }
         .au-ban-badge { display: inline-block; margin-left: 8px; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; background: #991b1b; color: white; border-radius: 4px; }
         .au-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #1e1e7e; text-transform: capitalize; }
+        .au-badge-level { margin-left: 6px; background: #f0fdf4; color: #15803d; }
+        .au-badge-admin { margin-left: 6px; background: #fef3c7; color: #92400e; }
+        .aud-actions-note { font-size: 0.78rem; color: #94a3b8; align-self: center; }
         .au-state-active { background: #dcfce7; color: #166534; }
         .au-state-suspended { background: #fef3c7; color: #92400e; }
         .au-state-banned { background: #fee2e2; color: #991b1b; }
@@ -549,7 +630,7 @@ export default function AdminUsers() {
         .au-btn-secondary { background: #e2e8f0; color: #4a5568; padding: 10px 18px; font-size: 0.9rem; }
         .au-btn-secondary:hover { background: #cbd5e0; }
 
-        .au-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .au-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1300; padding: 20px; }
         .au-modal { background: white; border-radius: 16px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; }
         .au-modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1.5px solid #e8ecff; }
         .au-modal-head h2 { margin: 0; font-size: var(--fs-h2); color: #07074e; }
@@ -559,6 +640,34 @@ export default function AdminUsers() {
         .au-modal-body input, .au-modal-body select, .au-modal-body textarea { padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
         .au-modal-body input:focus, .au-modal-body select:focus, .au-modal-body textarea:focus { outline: none; border-color: #5b6bff; }
         .au-modal-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px; border-top: 1.5px solid #e8ecff; }
+
+        /* ban / unban confirmation modal */
+        .au-ban { max-width: 460px; overflow: visible; }
+        .au-ban-body { padding: 26px 26px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+        .au-ban-icon { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; }
+        .au-ban-icon.danger { background: #fdeaea; color: #d64545; }
+        .au-ban-icon.ok { background: #e6f6ec; color: #16a34a; }
+        .au-ban-body h2 { margin: 0; font-size: var(--fs-h2); color: #07074e; }
+        .au-ban-sub { margin: 0; font-size: 0.88rem; color: #64748b; line-height: 1.5; }
+        .au-ban-user { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px; padding: 10px 14px; border: 1.5px solid #e8ecff; border-radius: 10px; background: #f7f8ff; text-align: left; }
+        .au-ban-user .au-ban-av { width: 34px; height: 34px; border-radius: 50%; background: #5b6bff; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 0.85rem; flex: none; }
+        .au-ban-user b { display: block; font-size: 0.9rem; color: #07074e; }
+        .au-ban-user span { display: block; font-size: 0.78rem; color: #718096; }
+        .au-ban-field { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .au-ban-field label { font-size: 0.82rem; font-weight: 600; color: #2d3748; }
+        .au-ban-field textarea { padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; resize: vertical; }
+        .au-ban-field textarea:focus { outline: none; border-color: #d64545; }
+        .au-ban-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .au-ban-chips button { background: #f1f2f9; border: 1.5px solid #e8ecff; color: #4a5568; border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; }
+        .au-ban-chips button:hover { border-color: #5b6bff; color: #07074e; }
+        .au-ban-note { width: 100%; text-align: left; font-size: 0.78rem; color: #b45309; background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 8px; padding: 8px 12px; }
+        .au-ban-actions { display: flex; gap: 10px; padding: 0 26px 24px; }
+        .au-ban-actions .au-btn { flex: 1; justify-content: center; padding: 11px 18px; font-size: 0.9rem; }
+        .au-btn-danger { background: #d64545; color: #fff; }
+        .au-btn-danger:hover { background: #b93b3b; }
+        .au-btn-success { background: #16a34a; color: #fff; }
+        .au-btn-success:hover { background: #128a3e; }
+        .au-btn-danger:disabled, .au-btn-success:disabled { opacity: .6; cursor: not-allowed; }
 
         /* detail drawer */
         .aud-overlay { position: fixed; inset: 0; background: rgba(17,17,40,.5); z-index: 1100; display: flex; justify-content: flex-end; }
@@ -573,7 +682,7 @@ export default function AdminUsers() {
         .aud-tabs button { padding: 7px 13px; border: none; background: none; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #64748b; cursor: pointer; }
         .aud-tabs button.active { background: #eef2ff; color: #5a4ff3; }
         .aud-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
-        .aud-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .aud-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; max-width: 900px; align-items: start; }
         .aud-card { border: 1.5px solid #e8ecff; border-radius: 12px; padding: 14px 16px; }
         .aud-card h4 { margin: 0 0 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: #5a4ff3; display: flex; align-items: center; gap: 6px; }
         .aud-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 0.85rem; border-bottom: 1px solid #f6f7fb; }
@@ -583,8 +692,14 @@ export default function AdminUsers() {
         .aud-reveal { background: none; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.7rem; padding: 2px 7px; cursor: pointer; color: #5a4ff3; margin-left: 6px; }
         .aud-doc { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f6f7ff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.78rem; color: #5a4ff3; margin: 4px 6px 0 0; text-decoration: none; }
         .aud-list { list-style: none; margin: 0; padding: 0; }
-        .aud-list li { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.84rem; display: flex; justify-content: space-between; gap: 10px; }
+        .aud-list li { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.84rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .aud-list li .au-badge { flex: none; align-self: center; white-space: nowrap; }
+        .aud-list li.clickable { cursor: pointer; margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 8px; transition: background 0.15s ease; }
+        .aud-list li.clickable:hover { background: #f4f6ff; }
         .aud-empty { color: #94a3b8; font-style: italic; font-size: 0.85rem; padding: 14px 0; }
+        .aud-docs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .aud-doc-link { text-decoration: none; cursor: pointer; }
+        .aud-doc-link:hover { background: #eef0ff; }
         .aud-violation { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.82rem; }
         .aud-violation .cat { font-weight: 700; color: #b42318; text-transform: capitalize; }
         .aud-violation .snip { color: #4b5563; font-style: italic; }
@@ -607,39 +722,65 @@ export default function AdminUsers() {
 // =============================================================================
 // Profile detail (admin view) — public + private side by side, history, finance
 // =============================================================================
-function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, deals, disputes, activityLoading, onAction, onBan, banned, caps = {} }) {
+function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, deals, disputes, brandCampaigns, onOpenDeal, activityLoading, onAction, onBan, banned, caps = {} }) {
   const brand = isBrand(u);
-  const acct = p(u, 'bank_account', 'account_number', 'bank_account_number');
-  const ifsc = p(u, 'ifsc', 'ifsc_code');
-  const pan = p(u, 'pan', 'pan_number');
-  const aadhaar = p(u, 'aadhaar', 'aadhaar_number');
+  const admin = isAdmin(u);
+  const adminRoleLabel = ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin';
+  // KYC is submitted to user.kyc (not user.profile); the payout account lives at the
+  // top level (u.bank_details / u.upi_id) — that's where withdrawals read it.
+  const kyc = u.kyc || {};
+  const kycAddr = kyc.address || {};
+  const bankDetails = u.bank_details || {};
+  const acct = bankDetails.account_number || p(u, 'bank_account', 'account_number');
+  const ifsc = bankDetails.ifsc_code || p(u, 'ifsc', 'ifsc_code');
+  const bankHolder = bankDetails.account_holder_name;
+  const bankName = bankDetails.bank_name;
+  const upiId = u.upi_id;
+  const pan = kyc.pan_number || p(u, 'pan', 'pan_number');
+  const aadhaar = kyc.aadhaar_number || p(u, 'aadhaar', 'aadhaar_number');
+  const docUrl = (uu) => (!uu ? '' : (String(uu).startsWith('http') ? uu : `${BACKEND_URL}${uu}`));
   const docs = [
-    ['PAN', p(u, 'pan_url', 'pan_document')],
-    ['Aadhaar', p(u, 'aadhaar_url', 'aadhaar_document')],
+    ['PAN card', kyc.pan_doc_url || p(u, 'pan_url', 'pan_document')],
+    ['Aadhaar front', kyc.aadhaar_front_url || p(u, 'aadhaar_url', 'aadhaar_document')],
+    ['Aadhaar back', kyc.aadhaar_back_url],
+    ['Selfie', kyc.selfie_url],
     ['GST Cert', p(u, 'gst_certificate', 'gst_url')],
-    ['Cancelled Cheque', p(u, 'cheque_url', 'bank_proof')],
   ].filter(([, url]) => url);
   const earned = deals.reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const campaigns = Array.from(new Set(deals.map((d) => d.campaign_title).filter(Boolean)));
+  // Brand campaigns come from /admin/business/:id/campaigns (live + completed).
+  // null means the request is still in flight; [] means loaded-but-empty.
+  const campaigns = brandCampaigns || [];
+  const campaignsLoading = brand && brandCampaigns === null;
 
   const mask4 = (v) => (v ? `•••• ${String(v).slice(-4)}` : '—');
-  const avatarUrl = u.profile_photo ? (String(u.profile_photo).startsWith('http') ? u.profile_photo : `${BACKEND_URL}${u.profile_photo}`) : null;
+  // A stored photo can be a dead /uploads path or a localhost URL that 404s in prod —
+  // fall back to the initial instead of showing a broken-image icon.
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const rawPhoto = u.profile_photo;
+  const avatarUrl = (rawPhoto && !/localhost/i.test(rawPhoto))
+    ? (String(rawPhoto).startsWith('http') ? rawPhoto : `${BACKEND_URL}${rawPhoto}`)
+    : null;
 
-  const tabs = brand
-    ? [['profile', 'Profile'], ['campaigns', 'Campaigns'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Wallet']]
-    : [['profile', 'Profile'], ['deals', 'Deals'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Earnings']];
+  // Staff accounts have no marketplace activity (no deals/earnings/chat), so they
+  // only get the Profile tab — the deals/disputes/violations/finance tabs are a
+  // creator/brand concept and don't apply to an admin.
+  const tabs = admin
+    ? [['profile', 'Profile']]
+    : brand
+      ? [['profile', 'Profile'], ['campaigns', 'Campaigns'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Wallet']]
+      : [['profile', 'Profile'], ['deals', 'Deals'], ['disputes', 'Disputes'], ['violations', 'Chat Violations'], ['finance', 'Earnings']];
 
   return (
     <div className="aud-overlay" onClick={onClose}>
       <div className="aud-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="aud-head">
-          <div className="aud-avatar">{avatarUrl ? <img src={avatarUrl} alt="" /> : (brand ? businessName(u) : (u.nickname || u.email || '?')).slice(0, 1).toUpperCase()}</div>
+          <div className="aud-avatar">{avatarUrl && !avatarBroken ? <img src={avatarUrl} alt="" onError={() => setAvatarBroken(true)} /> : (brand ? businessName(u) : (realName(u) || u.nickname || u.email || '?')).slice(0, 1).toUpperCase()}</div>
           <div>
             <h2>
-              {brand ? businessName(u) : (u.nickname || realName(u))}
+              {brand ? businessName(u) : displayName(u)}
               <span className={`au-badge au-state-${userState(u)}`}>{STATE_LABELS[userState(u)]}</span>
             </h2>
-            <div className="aud-sub">{handleOf(u)} · {u.email} · {brand ? 'Brand' : 'Creator'} {!brand && '· Level: New'}</div>
+            <div className="aud-sub">{handleOf(u)} · {u.email} · {brand ? 'Brand' : (admin ? 'Admin' : 'Creator')}{admin ? ` · ${adminRoleLabel}` : (isCreator(u) ? ` · Level: ${levelLabelOf(u.level_key ?? u.level)}` : '')}</div>
           </div>
           <button className="aud-close" onClick={onClose}><X size={22} /></button>
         </div>
@@ -653,59 +794,75 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
         <div className="aud-body">
           {tab === 'profile' && (
             <div className="aud-grid2">
-              {/* Public profile */}
+              {/* Profile card — admins get a staff card (no public profile / strikes). */}
               <div className="aud-card">
-                <h4><Eye size={14} /> Public Profile</h4>
-                {brand ? (
+                <h4><Eye size={14} /> {admin ? 'Admin Account' : 'Public Profile'}</h4>
+                {admin ? (
+                  <>
+                    <Row label="Name" value={displayName(u)} />
+                    <Row label="Admin role" value={adminRoleLabel} />
+                    {Array.isArray(u.assigned_categories) && u.assigned_categories.length > 0 && (
+                      <Row label="Assigned categories" value={u.assigned_categories.join(', ')} />
+                    )}
+                  </>
+                ) : brand ? (
                   <>
                     <Row label="Business name" value={businessName(u)} />
-                    <Row label="Category" value={category(u)} />
                     <Row label="Website" value={p(u, 'website') || '—'} />
-                    <Row label="About" value={p(u, 'bio', 'about', 'description') || '—'} />
                   </>
                 ) : (
-                  <>
-                    <Row label="Handle" value={handleOf(u)} />
-                    <Row label="Category" value={category(u)} />
-                    <Row label="Level" value="New" />
-                    <Row label="Bio" value={p(u, 'bio', 'about') || '—'} />
-                    <Row label="Followers" value={p(u, 'followers', 'follower_count') || '—'} />
-                  </>
+                  <Row label="Handle" value={handleOf(u)} />
                 )}
+                <Row label="Email" value={u.email} />
                 <Row label="Joined" value={dateShort(u.created_at || u.createdAt)} />
+                {/* Flags moved off the table into here — not relevant to staff accounts. */}
+                {!admin && <Row label="Flags / strikes" value={strikes(u).length ? `${strikes(u).length}` : '0'} />}
+                {admin && (
+                  <p className="aud-empty" style={{ marginTop: 6 }}>
+                    Manage this admin’s role &amp; permissions on the Team &amp; Roles page.
+                  </p>
+                )}
               </div>
 
-              {/* Private data */}
-              <div className="aud-card">
-                <h4><FileText size={14} /> Private Data {brand ? '(GST / KYC)' : '(KYC / Bank)'}</h4>
-                <Row label="Real / legal name" value={brand ? legalName(u) : realName(u)} />
-                <Row label="Email" value={u.email} />
-                <Row label="Phone" value={phone(u)} />
-                {brand ? (
-                  <Row label="GSTIN" value={gstin(u)} />
-                ) : (
-                  <>
-                    <Row label="PAN" value={revealBank ? (pan || '—') : mask4(pan)} reveal={pan && (() => setRevealBank((v) => !v))} revealed={revealBank} />
-                    <Row label="Aadhaar" value={revealBank ? (aadhaar || '—') : mask4(aadhaar)} />
-                  </>
-                )}
-                <Row
-                  label="Bank account"
-                  value={revealBank ? (acct || '—') : mask4(acct)}
-                  reveal={acct ? (() => setRevealBank((v) => !v)) : null}
-                  revealed={revealBank}
-                />
-                <Row label="IFSC" value={ifsc || '—'} />
-                {docs.length > 0 && (
-                  <div style={{ marginTop: 10 }}>
-                    {docs.map(([label, url]) => (
-                      <a key={label} className="aud-doc" href={String(url).startsWith('http') ? url : `${BACKEND_URL}${url}`} target="_blank" rel="noreferrer">
-                        <FileText size={13} /> {label}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* KYC & payout — creators submit this to user.kyc via Verify KYC. Brands
+                  and admins never submit KYC, so this card is creator-only. */}
+              {isCreator(u) && (
+                <div className="aud-card">
+                  <h4>
+                    <FileText size={14} /> KYC &amp; Payout
+                    {kyc.status && <span className={`au-badge au-state-${kyc.status === 'verified' ? 'active' : kyc.status === 'rejected' ? 'banned' : 'suspended'}`}>{kyc.status}</span>}
+                  </h4>
+                  {!u.kyc ? (
+                    <p className="aud-empty">No KYC submitted yet.</p>
+                  ) : (
+                    <>
+                      <Row label="Legal name" value={kyc.full_legal_name || realName(u) || '—'} />
+                      <Row label="Date of birth" value={kyc.date_of_birth || '—'} />
+                      <Row label="Gender" value={kyc.gender || '—'} />
+                      <Row label="PAN" value={pan ? (revealBank ? pan : mask4(pan)) : '—'} reveal={pan ? () => setRevealBank((v) => !v) : undefined} revealed={revealBank} />
+                      <Row label="Aadhaar" value={aadhaar ? (revealBank ? aadhaar : mask4(aadhaar)) : '—'} />
+                      <Row label="Address" value={[kycAddr.line, kycAddr.city, kycAddr.state, kycAddr.pincode].filter(Boolean).join(', ') || '—'} />
+                      <Row label="Payout method" value={kyc.payout_method === 'upi' ? 'UPI' : (acct ? 'Bank account' : '—')} />
+                      {upiId && <Row label="UPI ID" value={upiId} />}
+                      {acct && <>
+                        <Row label="Account holder" value={bankHolder || '—'} />
+                        <Row label="Bank" value={bankName || '—'} />
+                        <Row label="Account no." value={revealBank ? acct : mask4(acct)} />
+                        <Row label="IFSC" value={ifsc || '—'} />
+                      </>}
+                      {kyc.rejection_reason && <Row label="Rejection reason" value={kyc.rejection_reason} />}
+                      <Row label="Submitted" value={dateShort(kyc.submitted_at) || '—'} />
+                      {docs.length > 0 && (
+                        <div className="aud-docs">
+                          {docs.map(([label, url]) => (
+                            <a key={label} href={docUrl(url)} target="_blank" rel="noreferrer" className="au-badge aud-doc-link">{label}</a>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -720,8 +877,30 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
           )}
 
           {tab === 'campaigns' && (
-            <ActivityList loading={activityLoading} items={campaigns} empty="No campaigns found for this brand."
-              render={(c, i) => <li key={i}><span>{c}</span></li>} />
+            <ActivityList loading={campaignsLoading} items={campaigns} empty="No campaigns found for this brand."
+              render={(c) => {
+                const st = (c.status || '').replace(/_/g, ' ');
+                const badge = c.status === 'completed' ? 'active' : c.status === 'rejected' ? 'banned' : 'suspended';
+                const budget = (c.budget_min != null || c.budget_max != null)
+                  ? `${money(c.budget_min)} – ${money(c.budget_max)}` : null;
+                return (
+                  <li
+                    key={c.id}
+                    className="clickable"
+                    onClick={() => onOpenDeal && onOpenDeal(c.id)}
+                    title="Open this deal"
+                  >
+                    <span>
+                      <strong>{c.title}</strong><br />
+                      <small style={{ color: '#94a3b8' }}>
+                        {dateShort(c.created_at)}{budget ? ` · ${budget}` : ''}
+                        {c.selected_creator ? ' · matched' : ''}
+                      </small>
+                    </span>
+                    <span className={`au-badge au-state-${badge}`}>{st || 'live'}</span>
+                  </li>
+                );
+              }} />
           )}
 
           {tab === 'disputes' && (
@@ -775,22 +954,33 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
           )}
         </div>
 
-        {/* Actions (spec 11.10) — gated by admin role capabilities (PRD 11) */}
+        {/* Actions (spec 11.10) — gated by admin role capabilities (PRD 11).
+            Admin (staff) targets only get Send Message here; warn/suspend/ban and
+            creator-level / brand-finance actions don't apply to a staff account —
+            their role & access are managed on the Team & Roles page. */}
         <div className="aud-actions-bar">
-          {caps.warnSuspend && <button className="aud-action-btn" onClick={() => onAction('warn')}><AlertTriangle size={14} /> Warn</button>}
-          {caps.warnSuspend && <button className="aud-action-btn danger" onClick={() => onAction('suspend')}><ShieldAlert size={14} /> Suspend</button>}
-          {caps.ban && <button className="aud-action-btn danger" onClick={onBan}><Ban size={14} /> {banned ? 'Unban' : 'Ban'}</button>}
-          {!brand && <>
-            <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote Level</button>
-            <button className="aud-action-btn" onClick={() => onAction('demote')}><ArrowDownCircle size={14} /> Demote Level</button>
-            <button className="aud-action-btn" onClick={() => onAction('payout')}><CalendarClock size={14} /> Payout Schedule</button>
-          </>}
-          {brand && caps.financialPolicy && <>
-            <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
-            <button className="aud-action-btn" onClick={() => onAction('convertpro')}><Crown size={14} /> Convert to Pro</button>
-          </>}
-          {caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust {brand ? 'Wallet' : 'Payout'}</button>}
-          <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
+          {admin ? (
+            <>
+              <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
+              <span className="aud-actions-note">Manage this admin’s role &amp; permissions on the Team &amp; Roles page.</span>
+            </>
+          ) : (
+            <>
+              {caps.warnSuspend && <button className="aud-action-btn" onClick={() => onAction('warn')}><AlertTriangle size={14} /> Warn</button>}
+              {caps.warnSuspend && (u.suspended || u.status === 'suspended') && <button className="aud-action-btn" onClick={() => onAction('unsuspend')}><ShieldCheck size={14} /> Unsuspend</button>}
+              {caps.warnSuspend && <button className="aud-action-btn danger" onClick={() => onAction('suspend')}><ShieldAlert size={14} /> Suspend</button>}
+              {caps.ban && <button className="aud-action-btn danger" onClick={onBan}><Ban size={14} /> {banned ? 'Unban' : 'Ban'}</button>}
+              {brand && caps.financialPolicy && <>
+                <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
+              </>}
+              {brand && caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust Wallet</button>}
+              {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote</button>}
+              {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('demote')}><ArrowDownCircle size={14} /> Demote</button>}
+              {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('payout')}><CalendarClock size={14} /> Payout Schedule</button>}
+              <button className="aud-action-btn" onClick={() => onAction('message')}><MessageSquare size={14} /> Send Message</button>
+              {caps.ban && <button className="aud-action-btn danger" onClick={() => onAction('delete')}><Trash2 size={14} /> Delete</button>}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -798,11 +988,20 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
 }
 
 function Row({ label, value, reveal, revealed }) {
+  // Some profile fields (e.g. socials / per-platform followers) are objects like
+  // { youtube, instagram, ... }. Rendering an object directly crashes React
+  // (error #31), so flatten it to a readable string first.
+  const display = (value !== null && typeof value === 'object' && !Array.isArray(value))
+    ? (Object.entries(value)
+        .filter(([, v]) => v !== null && v !== undefined && v !== '')
+        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+        .join(' · ') || '—')
+    : (Array.isArray(value) ? value.join(', ') : value);
   return (
     <div className="aud-row">
       <span>{label}</span>
       <strong>
-        {value}
+        {display}
         {reveal && <button className="aud-reveal" onClick={reveal}>{revealed ? 'hide' : 'reveal'}</button>}
       </strong>
     </div>
@@ -825,11 +1024,85 @@ const ACTION_META = {
   wallet: { title: 'Adjust Balance', kind: 'wallet', btn: 'Apply Adjustment', icon: Wallet },
   commission: { title: 'Adjust Commission', label: 'Commission rate (%)', kind: 'number', btn: 'Save', icon: Percent },
   payout: { title: 'Adjust Payout Schedule', kind: 'payout', btn: 'Save', icon: CalendarClock },
-  promote: { title: 'Promote Level', kind: 'confirm', btn: 'Promote', icon: ArrowUpCircle, msg: 'Promote this creator one level? (V0.5: levels are cosmetic — recorded for audit.)' },
+  promote: { title: 'Promote Level', kind: 'confirm', btn: 'Promote', icon: ArrowUpCircle, msg: 'Promote this creator one level? (New → Verified → L1 → L2 → Elite. Shown on their public profile.)' },
   demote: { title: 'Demote Level', kind: 'confirm', btn: 'Demote', icon: ArrowDownCircle, msg: 'Demote this creator one level?' },
-  convertpro: { title: 'Convert to Pro', kind: 'confirm', btn: 'Convert', icon: Crown, msg: 'Upgrade this brand to a Pro account? (V2 feature.)' },
   announce: { title: 'Send Announcement', label: 'Announcement', kind: 'text', btn: 'Send to selected', icon: Send },
+  delete: { title: 'Delete User', kind: 'confirm', btn: 'Delete Permanently', icon: Trash2, msg: 'This permanently deletes the user and all their data. This cannot be undone.' },
+  unsuspend: { title: 'Lift Suspension', kind: 'confirm', btn: 'Unsuspend', icon: ShieldCheck, msg: 'Lift this user’s suspension and restore their account access?' },
 };
+
+const BAN_REASONS = ['Spam / scam', 'Fake profile', 'Abusive behaviour', 'Payment fraud', 'Repeat policy violation'];
+
+function BanModal({ target, onClose, onConfirm }) {
+  const { user: u, banned } = target;
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const name = isBrand(u) ? businessName(u) : displayName(u);
+
+  const submit = async () => {
+    if (!banned && !reason.trim()) return toast.error('A ban reason is required');
+    setBusy(true);
+    await onConfirm(reason.trim());
+    setBusy(false);
+  };
+
+  return (
+    <div className="au-modal-overlay" onClick={onClose}>
+      <div className="au-modal au-ban" onClick={(e) => e.stopPropagation()}>
+        <div className="au-ban-body">
+          <div className={`au-ban-icon ${banned ? 'ok' : 'danger'}`}>
+            {banned ? <ShieldCheck size={26} /> : <Ban size={26} />}
+          </div>
+          <h2>{banned ? 'Unban this user?' : 'Ban this user?'}</h2>
+          <p className="au-ban-sub">
+            {banned
+              ? 'They will regain access to their account and can log in again.'
+              : 'They will be signed out immediately and blocked from logging in until you unban them.'}
+          </p>
+
+          <div className="au-ban-user">
+            <div className="au-ban-av">{(name || u.email || '?').trim().charAt(0).toUpperCase()}</div>
+            <div>
+              <b>{name && name !== '—' ? name : u.email}</b>
+              <span>{u.email} · {isBrand(u) ? 'Brand' : (isCreator(u) ? 'Creator' : 'Admin')}</span>
+            </div>
+          </div>
+
+          {!banned && (
+            <>
+              <div className="au-ban-field">
+                <label>Ban reason <span style={{ color: '#d64545' }}>*</span></label>
+                <textarea
+                  rows={3}
+                  autoFocus
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Why is this user being banned? Logged to the audit trail."
+                />
+                <div className="au-ban-chips">
+                  {BAN_REASONS.map((r) => (
+                    <button key={r} type="button" onClick={() => setReason(r)}>{r}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="au-ban-note">This action is recorded in the audit log and can be reversed later.</div>
+            </>
+          )}
+        </div>
+        <div className="au-ban-actions">
+          <button className="au-btn au-btn-secondary" onClick={onClose} disabled={busy}>Cancel</button>
+          <button
+            className={`au-btn ${banned ? 'au-btn-success' : 'au-btn-danger'}`}
+            onClick={submit}
+            disabled={busy || (!banned && !reason.trim())}
+          >
+            {busy ? 'Working…' : (banned ? 'Yes, unban' : 'Yes, ban user')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ActionModal({ action, onClose, onDone, adminPost }) {
   const meta = ACTION_META[action.type];
@@ -840,7 +1113,7 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
   const [schedule, setSchedule] = useState('weekly');
   const [busy, setBusy] = useState(false);
   const Icon = meta.icon;
-  const targetName = action.users ? `${action.users.length} user(s)` : (action.user ? (isBrand(action.user) ? businessName(action.user) : (action.user.nickname || action.user.email)) : '');
+  const targetName = action.users ? `${action.users.length} user(s)` : (action.user ? (isBrand(action.user) ? businessName(action.user) : displayName(action.user)) : '');
 
   const submit = async () => {
     setBusy(true);
@@ -854,6 +1127,9 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
       case 'suspend':
         if (!reason.trim()) { setBusy(false); return toast.error('Reason is required'); }
         ok = await adminPost('/admin/user/suspend', { user_id: u.id, reason, duration_days: Number(duration) || 0 }, `Suspended for ${duration} day(s)`);
+        break;
+      case 'unsuspend':
+        ok = await adminPost('/admin/user/unsuspend', { user_id: u.id }, 'Suspension lifted');
         break;
       case 'message':
         if (!text.trim()) { setBusy(false); return toast.error('Enter a message'); }
@@ -875,12 +1151,26 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
       case 'demote':
         ok = await adminPost('/admin/user/level', { user_id: u.id, direction: action.type }, `Creator ${action.type}d`);
         break;
-      case 'convertpro':
-        ok = await adminPost('/admin/user/convert-pro', { user_id: u.id }, 'Converted to Pro');
+      case 'delete': {
+        // Supports both single (action.user) and bulk (action.users) delete.
+        const targets = action.users ? action.users : (action.user ? [action.user] : []);
+        const results = await Promise.allSettled(
+          targets.map((t) => axios.delete(`${API}/admin/user/${t.id}`))
+        );
+        const rejected = results.filter((r) => r.status === 'rejected');
+        const failed = rejected.length;
+        const done = targets.length - failed;
+        if (done) toast.success(`${done} user${done > 1 ? 's' : ''} deleted`);
+        if (failed) {
+          const why = apiErrorMessage(rejected[0].reason, 'Failed to delete');
+          toast.error(`${failed} user${failed > 1 ? 's' : ''} could not be deleted — ${why}`);
+        }
+        ok = done > 0;
         break;
+      }
       case 'announce':
         if (!text.trim()) { setBusy(false); return toast.error('Enter an announcement'); }
-        ok = await adminPost('/admin/broadcast-notification', { user_ids: action.users.map((x) => x.id), message: text }, `Announcement sent to ${action.users.length} user(s)`);
+        ok = await adminPost('/admin/broadcast-notification', { title: 'Announcement', target_user_ids: action.users.map((x) => x.id), message: text }, `Announcement sent to ${action.users.length} user(s)`);
         break;
       default: break;
     }

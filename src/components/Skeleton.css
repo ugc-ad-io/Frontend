@@ -1,0 +1,47 @@
+/* Shimmer skeleton primitives — reused across list/table/card loading states. */
+
+.sk {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  background: #e9ecf3;
+  background: linear-gradient(100deg, #e9ecf3 30%, #f4f6fb 50%, #e9ecf3 70%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes sk-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk { animation: none; }
+}
+
+.sk-text { display: flex; flex-direction: column; width: 100%; }
+
+/* Table placeholder */
+.sk-table { display: flex; flex-direction: column; width: 100%; border: 1px solid #eef0f6; border-radius: 12px; overflow: hidden; background: #fff; }
+.sk-tr { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+.sk-tr:last-child { border-bottom: 0; }
+.sk-tr--head { background: #f9fafb; }
+.sk-td { flex: 1; min-width: 0; }
+.sk-td:first-child { flex: 1.4; }
+
+/* Row-list placeholder */
+.sk-list { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.sk-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.sk-row-lines { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+
+/* Card-grid placeholder */
+.sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.sk-card { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid #eef0f6; border-radius: 14px; background: #fff; }
+.sk-card-head { display: flex; align-items: center; gap: 12px; }
+.sk-card-lines { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.sk-card-foot { display: flex; gap: 10px; }
+
+/* Dark surfaces (e.g. onboarding / dark themes) can opt in via a wrapper. */
+.sk-dark .sk { background: linear-gradient(100deg, #232746 30%, #2c325a 50%, #232746 70%); background-size: 200% 100%; }
+.sk-dark .sk-table, .sk-dark .sk-card { background: #171a30; border-color: #2a2f52; }
+.sk-dark .sk-tr, .sk-dark .sk-tr--head { border-color: #262b4a; background: transparent; }

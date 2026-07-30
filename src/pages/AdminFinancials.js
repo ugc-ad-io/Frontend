@@ -37,8 +37,8 @@ export default function AdminFinancials() {
   const { user } = useAuth();
   // Capability gating (PRD 11). Finance is view-only; Ops Senior can adjust
   // wallets + release payouts; escrow moves stay founder-only.
-  const canAdjustWallet = can(user, 'adjust_wallet');     // founder + Ops Senior
-  const canReleasePayouts = can(user, 'release_payouts');  // founder + Ops
+  const canAdjustWallet = can(user, 'adjust_wallet', 'edit');     // founder + Ops Senior
+  const canReleasePayouts = can(user, 'release_payouts', 'edit');  // founder + Ops
   const founderOnly = roleIsFounder(user);                 // founder only
   const [tab, setTab] = useState('withdrawals');
   const [analytics, setAnalytics] = useState(null);
@@ -383,7 +383,7 @@ export default function AdminFinancials() {
                   <tbody>
                     {wallets.map((u) => (
                       <tr key={u.id} data-testid={`wallet-${u.id}`}>
-                        <td className="afn-strong">{u.username ? `@${u.username}` : (u.nickname || u.email)}</td>
+                        <td className="afn-strong">{u.full_name || u.business_name || u.name || u.nickname || u.email}</td>
                         <td><span className="afn-badge neutral">{u.role}</span></td>
                         <td className="afn-strong">{inr(u.balance)}</td>
                         <td>{inr(u.pending_commitments ?? u.pending ?? 0)}</td>
@@ -495,7 +495,7 @@ export default function AdminFinancials() {
           <div className="afn-scrim" onClick={() => setWalletDetail(null)} />
           <aside className="afn-drawer" data-testid="wallet-drawer">
             <header className="afn-modal-head">
-              <h2>Wallet — {walletDetail.username ? `@${walletDetail.username}` : (walletDetail.nickname || walletDetail.email)}</h2>
+              <h2>Wallet — {walletDetail.full_name || walletDetail.business_name || walletDetail.name || walletDetail.nickname || walletDetail.email}</h2>
               <button className="afn-icon" onClick={() => setWalletDetail(null)} aria-label="Close"><X size={18} /></button>
             </header>
             <div className="afn-drawer-summary">
@@ -540,7 +540,7 @@ export default function AdminFinancials() {
               <button className="afn-icon" onClick={() => setAdjustUser(null)} aria-label="Close"><X size={18} /></button>
             </header>
             <div className="afn-modal-body">
-              <p className="afn-modal-user">{adjustUser.username ? `@${adjustUser.username}` : (adjustUser.nickname || adjustUser.email)} · current balance <strong>{inr(adjustUser.balance)}</strong></p>
+              <p className="afn-modal-user">{adjustUser.full_name || adjustUser.business_name || adjustUser.name || adjustUser.nickname || adjustUser.email} · current balance <strong>{inr(adjustUser.balance)}</strong></p>
               <label className="afn-field">
                 <span>Reason code</span>
                 <select value={adjustReasonCode} onChange={(e) => setAdjustReasonCode(e.target.value)} data-testid="adjust-reason-code">
@@ -592,8 +592,8 @@ export default function AdminFinancials() {
         .afn-badge.danger { background: #fef3f2; color: #b42318; }
         .afn-row-actions { display: flex; gap: 8px; }
         .afn-approve, .afn-reject { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 8px; font-weight: 600; font-size: 0.8rem; padding: 7px 12px; cursor: pointer; }
-        .afn-approve { background: #ecfdf3; color: #067647; } .afn-approve:hover { background: #d3f8df; }
-        .afn-reject { background: #fef3f2; color: #b42318; } .afn-reject:hover { background: #fee4e2; }
+        .afn-approve { background: #ecfdf3; color: #067647; } .afn-approve:hover { background: #16a34a; color: #fff; }
+        .afn-reject { background: #fef3f2; color: #b42318; } .afn-reject:hover { background: #dc2626; color: #fff; }
         .afn-hold { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 8px; font-weight: 600; font-size: 0.8rem; padding: 7px 12px; cursor: pointer; background: #fffaeb; color: #b54708; } .afn-hold:hover { background: #fef0c7; }
         .afn-tds { color: #b42318; font-weight: 600; }
         .afn-credit { color: #067647; font-weight: 600; }

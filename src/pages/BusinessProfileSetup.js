@@ -1,14 +1,23 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
-import { ChevronDown, CheckCircle } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { apiErrorMessage } from '../utils/apiError';
-import { CONTENT_CATEGORIES, resolveCategory } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+
+// Only accept genuine platform links / handles — no random URLs.
+const URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/\S*)?$/i;                       // any valid website
+const IG_HANDLE_RE = /^@?[a-z0-9._]{1,30}$/i;
+
+const instagramHandle = (value) => String(value || '')
+  .trim()
+  .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+  .replace(/^@/, '')
+  .replace(/\/+$/, '');
 
 // iso = flagcdn country code (flags are image-based so they render on Windows too).
 const DIAL_CODES = [
@@ -42,28 +51,116 @@ export default function BusinessProfileSetup() {
   const { user, setUser } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
   const [dial, setDial] = useState(DIAL_CODES[0]);   // default India
   const [dialOpen, setDialOpen] = useState(false);
   const [form, setForm] = useState({
     businessName: '',
-    facebook: '',
-    website: '',
     instagram: '',
+    website: '',
     phone: '',
     country: '',
     industry: '',
-    category: '',          // primary UGC content category (work-distribution tag)
-    customCategory: '',
+    customIndustry: '',    // free-text industry when "Other" is selected
     gstin: '',
   });
 
   const set = (field, value) => setForm((p) => ({ ...p, [field]: value }));
 
+  const prefilledRef = useRef(false);
+
+  // Prefill with the profile already on file, so a brand asked for "more info"
+  // (or just re-editing) doesn't retype everything — the creator form does this
+  // and the business one never did.
+  //
+  // We read /auth/me rather than the auth-context user: the login response carries
+  // no `profile`, so relying on it would only work after a page refresh.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (prefilledRef.current) return;
+      try {
+        const { data } = await axios.get(`${API}/auth/me`);
+        const pr = data?.profile;
+        if (!alive || !pr || typeof pr !== 'object' || !Object.keys(pr).length) return;
+        prefilledRef.current = true;
+
+        // The stored shape differs from the form's, so map it back explicitly —
+        // spreading would silently drop every field.
+        const industry = pr.industry_category || '';
+        const knownIndustry = INDUSTRIES.includes(industry);
+
+        // Phone is stored with the dial code baked in ("+91 98765 43210").
+        const storedPhone = String(pr.phone || '').trim();
+        const matchedDial = DIAL_CODES.find((d) => storedPhone.startsWith(`${d.code} `))
+          || DIAL_CODES.find((d) => storedPhone.startsWith(d.code));
+        const barePhone = matchedDial ? storedPhone.slice(matchedDial.code.length).trim() : storedPhone;
+        if (matchedDial) setDial(matchedDial);
+
+        setForm((f) => ({
+          ...f,
+          businessName: pr.business_name || f.businessName,
+          website: pr.website || f.website,
+          instagram: instagramHandle((pr.social_links || {}).instagram) || f.instagram,
+          phone: barePhone || f.phone,
+          country: pr.country || f.country,
+          industry: industry ? (knownIndustry ? industry : 'Other') : f.industry,
+          customIndustry: industry && !knownIndustry ? industry : f.customIndustry,
+          gstin: pr.gstin || f.gstin,
+        }));
+      } catch {
+        // Never block a first-time signup on this — an empty form is the correct
+        // fallback.
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // Live "is this real?" checks — the backend actually resolves the website and
+  // looks up the Instagram handle. {status:'checking'|'valid'|'invalid'|'uncertain', msg}
+  const [webCheck, setWebCheck] = useState(null);
+  const [igCheck, setIgCheck] = useState(null);
+
+  const checkWebsiteLive = async () => {
+    const v = form.website.trim();
+    if (!v || !URL_RE.test(v)) { setWebCheck(null); return; }
+    setWebCheck({ status: 'checking' });
+    try {
+      const { data } = await axios.post(`${API}/validate/website`, { url: v });
+      setWebCheck(data.valid
+        ? { status: 'valid', msg: 'Website is live and reachable.' }
+        : { status: 'invalid', msg: "We couldn't reach this website — check the address." });
+    } catch { setWebCheck(null); }
+  };
+
+  const checkInstagramLive = async () => {
+    const v = form.instagram.trim();
+    if (!v || !IG_HANDLE_RE.test(v)) { setIgCheck(null); return; }
+    const handle = instagramHandle(v);
+    setIgCheck({ status: 'checking' });
+    try {
+      const { data } = await axios.post(`${API}/validate/instagram`, { username: handle });
+      if (data.valid) setIgCheck({ status: 'valid', msg: 'Instagram account found.' });
+      else if (data.reason === 'not_found') setIgCheck({ status: 'invalid', msg: "This Instagram username doesn't exist." });
+      else setIgCheck({ status: 'uncertain', msg: "Format looks fine, but Instagram blocks automated checks so we can't confirm it exists." });
+    } catch { setIgCheck(null); }
+  };
+
+  // Small coloured status line rendered under the website / instagram fields.
+  const CheckNote = ({ c }) => {
+    if (!c) return null;
+    const map = { valid: ['#34d399', '✓ '], invalid: ['#f87171', '✕ '], uncertain: ['#fbbf24', '⚠ '], checking: ['#94a3b8', ''] };
+    const [color, icon] = map[c.status] || map.checking;
+    return <span style={{ display: 'block', marginTop: 6, fontSize: 12.5, fontWeight: 600, color }}>{icon}{c.status === 'checking' ? 'Checking…' : c.msg}</span>;
+  };
+
   const errors = {
     businessName: !form.businessName.trim() ? 'Business name is required.' : '',
-    website: !form.website.trim() ? 'Website is required' : '',
-    instagram: !form.instagram.trim() ? 'Instagram is required' : '',
+    website: !form.website.trim()
+      ? 'Website is required'
+      : (!URL_RE.test(form.website.trim()) ? 'Enter a valid website URL.' : ''),
+    instagram: form.instagram.trim() && !IG_HANDLE_RE.test(form.instagram.trim())
+      ? 'Enter a valid Instagram username, for example @yourbrand.'
+      : '',
     phone: !form.phone.trim() ? 'Phone number is required' : '',
     country: !form.country ? 'Country is required.' : '',
   };
@@ -76,8 +173,13 @@ export default function BusinessProfileSetup() {
       toast.error('Please fill in the required fields');
       return;
     }
+    // Block on a website the reachability check already confirmed is dead (runs on blur).
+    if (webCheck?.status === 'invalid') {
+      toast.error("That website doesn't seem to be reachable. Please enter a valid business website.");
+      return;
+    }
     setSubmitting(true);
-    // Backend validates website/facebook as URLs — a bare "www.business.com" (no scheme) fails
+    // Backend validates website/instagram as URLs — a bare "www.business.com" (no scheme) fails
     // with a 422, so prepend https:// when the user omitted it.
     const withScheme = (u) => {
       const v = (u || '').trim();
@@ -90,9 +192,11 @@ export default function BusinessProfileSetup() {
     const payload = {
       business_name: form.businessName,
       website: withScheme(form.website),
-      social_links: { facebook: withScheme(form.facebook), instagram: form.instagram, linkedin: '' },
-      industry_category: form.industry,
-      category: resolveCategory(form.category, form.customCategory),
+      social_links: {
+        ...(form.instagram.trim() ? { instagram: `https://instagram.com/${instagramHandle(form.instagram)}` } : {}),
+        linkedin: '',
+      },
+      industry_category: form.industry === 'Other' ? (form.customIndustry.trim() || 'Other') : form.industry,
       business_description: '',
       product_type: '',
       country: form.country,
@@ -102,7 +206,7 @@ export default function BusinessProfileSetup() {
     try {
       await axios.put(`${API}/profile/business`, payload);
       setUser({ ...user, profile_completed: true, approval_status: 'pending' });
-      setDone(true);
+      navigate('/dashboard/business', { replace: true });
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to submit profile'));
     } finally {
@@ -110,27 +214,15 @@ export default function BusinessProfileSetup() {
     }
   };
 
-  if (done) {
-    return (
-      <div className="bp-page">
-        <div className="bp-card bp-card--thanks">
-          <div className="bp-check"><CheckCircle size={56} strokeWidth={1.75} /></div>
-          <h1 className="bp-title">Thank You!</h1>
-          <p className="bp-sub bp-sub--center">
-            Your brand details have been submitted successfully. We'll tailor insights
-            and recommendations for you and your account is now under review.
-          </p>
-          <button type="button" className="bp-next" onClick={() => navigate('/')}>
-            Thank you
-          </button>
-        </div>
-        <ThemeStyles />
-      </div>
-    );
-  }
-
   return (
     <div className="bp-page">
+      <header className="bp-topbar">
+        <button type="button" className="bp-brand" onClick={() => navigate('/')}>
+          <img src="/newlogo-tight.png" alt="UGCad.io" className="bp-brand__logo" />
+        </button>
+        <span className="bp-topbar__tag">Brand onboarding</span>
+      </header>
+
       <form className="bp-card" onSubmit={handleSubmit} noValidate>
         <h1 className="bp-title">Add your <span className="bp-accent">Brand</span> Details</h1>
         <p className="bp-sub">
@@ -150,16 +242,19 @@ export default function BusinessProfileSetup() {
           {err('businessName') && <span className="bp-err">{err('businessName')}</span>}
         </div>
 
-        {/* Facebook URL */}
+        {/* Optional Instagram username; verified on blur and stored as a profile URL. */}
         <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-fb">Facebook URL</label>
+          <label className="bp-label" htmlFor="bp-ig">Instagram username</label>
           <input
-            id="bp-fb"
-            className="bp-input"
-            placeholder="Paste the link to your Facebook business page."
-            value={form.facebook}
-            onChange={(e) => set('facebook', e.target.value)}
+            id="bp-ig"
+            className={`bp-input${err('instagram') ? ' bp-input--error' : ''}`}
+            placeholder="@yourbrand"
+            value={form.instagram}
+            onChange={(e) => { set('instagram', e.target.value); setIgCheck(null); }}
+            onBlur={checkInstagramLive}
           />
+          {err('instagram') && <span className="bp-err">{err('instagram')}</span>}
+          <CheckNote c={igCheck} />
         </div>
 
         {/* Website URL */}
@@ -170,25 +265,11 @@ export default function BusinessProfileSetup() {
             className={`bp-input${err('website') ? ' bp-input--error' : ''}`}
             placeholder="www.business.com"
             value={form.website}
-            onChange={(e) => set('website', e.target.value)}
+            onChange={(e) => { set('website', e.target.value); setWebCheck(null); }}
+            onBlur={checkWebsiteLive}
           />
           {err('website') && <span className="bp-err">{err('website')}</span>}
-        </div>
-
-        {/* Instagram */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-ig">Instagram Username</label>
-          <div className={`bp-input-group${err('instagram') ? ' bp-input--error' : ''}`}>
-            <span className="bp-prefix">@</span>
-            <input
-              id="bp-ig"
-              className="bp-input bp-input--bare"
-              placeholder="brandname"
-              value={form.instagram}
-              onChange={(e) => set('instagram', e.target.value)}
-            />
-          </div>
-          {err('instagram') && <span className="bp-err">{err('instagram')}</span>}
+          <CheckNote c={webCheck} />
         </div>
 
         {/* Phone */}
@@ -264,27 +345,13 @@ export default function BusinessProfileSetup() {
             <option value="" disabled>Select industry...</option>
             {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
-        </div>
-
-        {/* Content category — the kind of UGC you want (routes the application) */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-category">Content category</label>
-          <select
-            id="bp-category"
-            className={`bp-input bp-select${!form.category ? ' bp-select--placeholder' : ''}`}
-            value={form.category}
-            onChange={(e) => set('category', e.target.value)}
-          >
-            <option value="" disabled>Select content category...</option>
-            {CONTENT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
-          {form.category === 'custom' && (
+          {form.industry === 'Other' && (
             <input
               className="bp-input"
               style={{ marginTop: 10 }}
-              placeholder="Describe the content category"
-              value={form.customCategory}
-              onChange={(e) => set('customCategory', e.target.value)}
+              placeholder="Enter your industry"
+              value={form.customIndustry}
+              onChange={(e) => set('customIndustry', e.target.value)}
             />
           )}
         </div>
@@ -321,12 +388,49 @@ function ThemeStyles() {
           position: relative;
           min-height: 100vh;
           display: flex;
-          justify-content: center;
-          align-items: flex-start;
-          padding: 32px 20px;
+          flex-direction: column;
+          justify-content: flex-start;
+          align-items: center;
+          padding: 24px 20px 32px;
           background: linear-gradient(160deg, #050510 0%, #0b0a26 55%, #07074e 100%);
           font-family: var(--font-body);
           overflow: hidden;
+        }
+
+        /* Top bar — UGCad.io logo, matches the creator onboarding page */
+        .bp-topbar {
+          position: relative;
+          z-index: 1;
+          width: 100vw;
+          max-width: 100vw;
+          margin-left: calc(50% - 50vw);
+          margin-right: calc(50% - 50vw);
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 28px;
+          padding: 0 clamp(20px, 6vw, 90px) 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .bp-brand {
+          display: inline-flex;
+          align-items: center;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+        }
+        .bp-brand__logo { height: 30px; width: auto; display: block; }
+        .bp-topbar__tag {
+          margin-left: auto;
+          font-size: 0.82rem;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+          color: rgba(255, 255, 255, 0.6);
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
         }
         .bp-page::before,
         .bp-page::after {
@@ -345,7 +449,7 @@ function ThemeStyles() {
         .bp-page::after {
           width: 460px; height: 460px;
           bottom: -10%; right: -4%;
-          background: rgba(139, 92, 246, 0.16);
+          background: rgba(109,123,255, 0.16);
         }
 
         .bp-card {
@@ -376,7 +480,7 @@ function ThemeStyles() {
           color: #ffffff;
           letter-spacing: -0.01em;
         }
-        .bp-accent { color: #07074e; }
+        .bp-accent { color: #6d7bff; }
         .bp-sub {
           margin: 0 0 22px;
           color: rgba(255, 255, 255, 0.62);
@@ -564,9 +668,10 @@ function ThemeStyles() {
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-          color: #07074e;
-          background: rgba(7, 7, 78, 0.12);
-          border: 1px solid rgba(7, 7, 78, 0.3);
+          color: #22c55e;
+          background: rgba(34, 197, 94, 0.15);
+          border: 1px solid rgba(34, 197, 94, 0.35);
+          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.10), 0 16px 40px rgba(34, 197, 94, 0.22);
         }
         .bp-sub--center { margin-bottom: 26px; }
         .bp-card--thanks .bp-title { margin-bottom: 10px; }

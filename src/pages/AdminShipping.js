@@ -26,6 +26,11 @@ const hoursSince = (iso) => {
   if (!iso) return null;
   return (Date.now() - new Date(iso).getTime()) / 36e5;
 };
+// Frozen elapsed hours between two timestamps (for a shipment that's already gone out).
+const hoursBetween = (fromIso, toIso) => {
+  if (!fromIso || !toIso) return null;
+  return (new Date(toIso).getTime() - new Date(fromIso).getTime()) / 36e5;
+};
 
 export default function AdminShipping() {
   const [requests, setRequests] = useState([]);
@@ -50,7 +55,19 @@ export default function AdminShipping() {
     }
   };
 
+  const DONE_STATES = ['shipped', 'in_transit', 'delivered', 'done', 'completed'];
   const slaInfo = (r) => {
+    // Once it's shipped/done the SLA clock has STOPPED. Showing a live, ever-growing
+    // "Breached 41h" on a completed shipment is wrong — judge it against when it
+    // actually shipped, and freeze the label.
+    if (DONE_STATES.includes(r.status)) {
+      const shippedAt = r.shipped_at || r.updated_at;
+      const took = shippedAt ? hoursBetween(r.requested_at || r.created_at, shippedAt) : null;
+      if (took != null && took > SLA_TARGET_HOURS) {
+        return { tone: 'muted', label: `Late ${Math.round(took - SLA_TARGET_HOURS)}h` };
+      }
+      return { tone: 'ok', label: 'On time' };
+    }
     const h = hoursSince(r.requested_at || r.created_at);
     if (h == null) return { tone: 'muted', label: '—' };
     const remaining = SLA_TARGET_HOURS - h;
@@ -116,7 +133,7 @@ export default function AdminShipping() {
   }, [requests]);
 
   const counts = useMemo(() => {
-    const pending = requests.filter((r) => (r.status || 'pending') === 'pending');
+    const pending = requests.filter((r) => ['pending', 'requested', 'label_generated', 'awaiting_pickup'].includes(r.status || 'pending'));
     return {
       pending: pending.length,
       breached: pending.filter((r) => { const h = hoursSince(r.requested_at || r.created_at); return h != null && h >= SLA_TARGET_HOURS; }).length,
@@ -307,7 +324,9 @@ export default function AdminShipping() {
         .ash-meta strong { color: #111827; }
         .ash-sla-line { display: flex; align-items: center; gap: 5px; color: #98a1ad !important; }
         .ash-addrbox { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #fffaf2; border: 1px solid #fde6c8; border-radius: 10px; padding: 13px 14px 12px; }
-        .ash-internal { position: absolute; top: 9px; right: 11px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #b54708; background: #fff3e0; border: 1px solid #fde6c8; border-radius: 5px; padding: 2px 6px; }
+        /* Sits on its own full-width row (top-right) instead of floating over the
+           second column's label, which it used to overlap. */
+        .ash-internal { grid-column: 1 / -1; justify-self: end; align-self: start; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #b54708; background: #fff3e0; border: 1px solid #fde6c8; border-radius: 5px; padding: 2px 6px; }
         .ash-addrcol { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .ash-addrlabel { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #98a1ad; }
         .ash-addrlabel svg { color: #d4854a; }

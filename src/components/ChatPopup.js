@@ -6,6 +6,7 @@ import { useAuth } from '../App';
 import { apiErrorMessage } from '../utils/apiError';
 import PlanBrief from '../pages/PlanBrief';
 import CreatorProfileModal from './CreatorProfileModal';
+import { findContactInfo } from './RevisionRequestModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -22,18 +23,83 @@ function pickMedia(arr) {
   return '';
 }
 
+const CARD_LABELS = {
+  private_invitation: 'Private Invitation', custom_offer: 'Custom Offer',
+  counter_offer: 'Counter Offer', revision_request: 'Revision Request', milestone_update: 'Milestone Update',
+};
+const CARD_HIDE = new Set(['response_deadline', 'expires_at', 'round', 'notify_admin', 'diff_vs_original']);
+
+// Compact, read-only summary of a structured offer/invitation card so BOTH parties
+// see the same deal context in the popup. Full accept/decline lives in the deal room.
+function ActionCardMini({ card }) {
+  const f = card.fields || {};
+  const status = card.status || card.card_status;
+  const rows = Object.entries(f).filter(([k, v]) => v != null && v !== '' && !CARD_HIDE.has(k)).slice(0, 6);
+  return (
+    <div className="cpop-card">
+      <div className="cpop-card-h">
+        <span>{CARD_LABELS[card.type] || String(card.type || 'Card').replace(/_/g, ' ')}</span>
+        {status && <span className={`cpop-card-badge ${status}`}>{status}</span>}
+      </div>
+      {rows.map(([k, v]) => (
+        <div key={k} className="cpop-card-row"><label>{k.replace(/_/g, ' ')}</label><span>{String(v)}</span></div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Floating in-page chat popup. Opens a conversation with `user` (the creator)
  * without leaving the current page. `user` = { id, name, photo }.
  */
 export default function ChatPopup({ user, onClose }) {
   const { user: me } = useAuth();
+  // The opener sometimes passes a bare { id } (e.g. from a deal/conversation row)
+  // with no name/photo — fetch the peer's profile to fill both in.
+  const [peer, setPeer] = useState(null);
+  useEffect(() => {
+    const needName = !user.name || user.name === 'Creator';
+    const needPhoto = !user.photo;
+    if (!user.id || !(needName || needPhoto)) return undefined;
+    let alive = true;
+    axios.get(`${API}/profile/${user.id}`).then((r) => {
+      if (!alive) return;
+      const d = r.data || {};
+      const prof = d.profile || {};
+      setPeer({
+        name: d.nickname || d.name || prof.full_name || prof.fullName || '',
+        photo: d.profile_photo || d.profile_picture || prof.profile_photo || prof.profile_picture || '',
+      });
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [user.id, user.name, user.photo]);
+
+  // Mark the body while the chat is open so the creator profile's fixed bottom
+  // "Send Message" bar (if the profile is still mounted behind) can be hidden.
+  useEffect(() => {
+    document.body.classList.add('cpop-open');
+    return () => document.body.classList.remove('cpop-open');
+  }, []);
+
+  const resolvedName = (user.name && user.name !== 'Creator') ? user.name : (peer?.name || 'Creator');
+  // A brand sees the creator by FIRST NAME only (never full name / @username).
+  const peerName = me?.role === 'business'
+    ? (String(resolvedName || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator')
+    : (resolvedName || 'Creator');
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
   const [profOpen, setProfOpen] = useState(false);
   const endRef = useRef(null);
+
+  // Close this floating chat when the full-screen Post-a-Campaign brief opens — it
+  // shouldn't sit on top of the wizard. (Broadcast from BrandTopNavLayout.)
+  useEffect(() => {
+    const close = () => onClose?.();
+    window.addEventListener('ugcad:brief-opened', close);
+    return () => window.removeEventListener('ugcad:brief-opened', close);
+  }, [onClose]);
 
   useEffect(() => {
     let active = true;
@@ -51,30 +117,49 @@ export default function ChatPopup({ user, onClose }) {
   const send = async (e) => {
     e.preventDefault();
     if (!text.trim() || sending) return;
+    // Keep everything on-platform: block phone numbers / email addresses before they
+    // ever reach the server (this popup previously sent them through unchecked). Uses
+    // the app's shared detector so the rule matches revision requests + video reviews.
+    const contact = findContactInfo(text);
+    if (contact) {
+      toast.error(contact === 'email'
+        ? 'Email addresses aren’t allowed — keep all communication on-platform.'
+        : 'Phone numbers aren’t allowed — keep all communication on-platform.');
+      return;
+    }
     setSending(true);
     try {
-      await axios.post(`${API}/chat/send`, { recipient_id: user.id, message: text.trim() });
+      const res = await axios.post(`${API}/chat/send`, { recipient_id: user.id, message: text.trim() });
+      // Backend may still flag/redact; surface it instead of silently "sending".
+      if (res.data?.filtered) {
+        toast.warning(`Message filtered for sharing contact details${res.data.warning_count ? ` — warning ${res.data.warning_count}/3` : ''}.`);
+      }
       setText('');
       const r = await axios.get(`${API}/chat/${user.id}`);
       setMessages(r.data || []);
     } catch (err) {
+      // 400 with a contact-info reason from the server → show its message, not a generic one.
       toast.error(apiErrorMessage(err, 'Failed to send message'));
     } finally { setSending(false); }
   };
 
-  const photo = user.photo ? (user.photo.startsWith('http') ? user.photo : `${BACKEND_URL}${user.photo}`) : '';
+  const photo = assetUrl(user.photo || peer?.photo || '');
 
   return (
     <>
     <div className={`cpop ${briefOpen ? 'is-behind' : ''}`}>
       <div className="cpop-head">
-        <span className="cpop-ava">{photo ? <img src={photo} alt="" /> : initial(user.name)}</span>
-        <div className="cpop-head-id"><strong>{user.name || 'Creator'}</strong><small><i className="cpop-dot" /> Responds in ~30 min</small></div>
+        <span className="cpop-ava">{photo ? <img src={photo} alt="" /> : initial(peerName)}</span>
+        <div className="cpop-head-id"><strong>{peerName}</strong><small><i className="cpop-dot" /> Responds in ~30 min</small></div>
         <button type="button" className="cpop-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
       </div>
 
       <div className="cpop-tools">
-        <button type="button" className="cpop-tool primary" onClick={() => setBriefOpen(true)}><FileText size={15} /> Send a Brief</button>
+        {/* Only brands send briefs to creators — a creator never briefs anyone,
+            so this button is brand-only. */}
+        {me?.role === 'business' && (
+          <button type="button" className="cpop-tool primary" onClick={() => setBriefOpen(true)}><FileText size={15} /> Send a Brief</button>
+        )}
         <button type="button" className="cpop-tool" onClick={() => setProfOpen(true)}><User size={15} /> Profile</button>
       </div>
 
@@ -83,7 +168,11 @@ export default function ChatPopup({ user, onClose }) {
         {messages.length === 0 ? (
           <div className="cpop-empty">Say hello to start the conversation 👋</div>
         ) : (
-          messages.filter((m) => m.item_type !== 'action_card').map((m, i) => {
+          messages.map((m, i) => {
+            // Show offer / invitation / counter cards too — the brand's popup used to
+            // filter these out, so it never saw the booking request, price proposal or
+            // acceptance that the creator's chat showed.
+            if (m.item_type === 'action_card') return <ActionCardMini key={m.id || i} card={m} />;
             const sys = m.system_message || m.sender_type === 'system' || m.sender_id === 'system';
             if (sys) return <div key={m.id || i} className="cpop-sys">{m.message}</div>;
             const own = String(m.sender_id) === String(me?.id);
@@ -106,7 +195,7 @@ export default function ChatPopup({ user, onClose }) {
       {briefOpen && (
         <PlanBrief
           creatorId={user.id}
-          creatorName={user.name}
+          creatorName={peerName}
           onClose={() => setBriefOpen(false)}
           onPublished={() => setBriefOpen(false)}
         />
@@ -119,7 +208,8 @@ export default function ChatPopup({ user, onClose }) {
           photo={user.photo}
           onClose={() => setProfOpen(false)}
           onMessage={() => setProfOpen(false)}
-          onBegin={() => { setProfOpen(false); setBriefOpen(true); }}
+          // Brand-only — a creator shouldn't get a "Send a Brief" action here either.
+          onBegin={me?.role === 'business' ? () => { setProfOpen(false); setBriefOpen(true); } : undefined}
         />
       )}
 
@@ -157,6 +247,15 @@ export default function ChatPopup({ user, onClose }) {
         .cpop-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
         .cpop-empty{margin:auto;color:#9296ba;font-size:13.5px;text-align:center}
         .cpop-sys{align-self:center;background:#eef0f6;color:#585c7e;font-size:11.5px;padding:5px 12px;border-radius:14px}
+        .cpop-card{align-self:stretch;background:#f7f8ff;border:1px solid #e5e8fb;border-radius:12px;padding:12px 14px;margin:2px 0}
+        .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#15163a;font-size:12.5px;margin-bottom:8px}
+        .cpop-card-badge{text-transform:capitalize;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f6;color:#585c7e}
+        .cpop-card-badge.accepted{background:#ecfdf3;color:#067647}
+        .cpop-card-badge.open,.cpop-card-badge.pending{background:#fff8ed;color:#b45309}
+        .cpop-card-badge.rejected,.cpop-card-badge.declined{background:#fef3f2;color:#b42318}
+        .cpop-card-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0}
+        .cpop-card-row label{color:#8a90a6;text-transform:capitalize}
+        .cpop-card-row span{color:#1a202c;font-weight:600;text-align:right;word-break:break-word}
         .cpop-row{display:flex}
         .cpop-row.own{justify-content:flex-end}
         .cpop-bub{max-width:78%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;background:#fff;border:1px solid #eef0f6;color:#15163a}

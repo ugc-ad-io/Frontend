@@ -4,9 +4,14 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
+import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
+import { creatorFirstName } from '../utils/displayName';
+import RejectedGate from '../components/RejectedGate';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
+import { toggleSavedBrief, isBriefSaved } from '../utils/savedBriefs';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -46,6 +51,7 @@ import {
   Zap
 } from 'lucide-react';
 import './CreatorDashboard.css';
+import { isSelectedCreator, isOpenForBids } from '../utils/campaignCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -79,6 +85,10 @@ const getCampaignBudget = (campaign) => {
 };
 
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
+// Company name from the form — never the "@nickname" handle. Strips any leading "@".
+const brandLabel = (c, fallback = 'Brand') =>
+  String(c?.brand_name || c?.business_name || c?.company_name || c?.business_nickname || c?.brand_handle || '')
+    .replace(/^@+/, '').trim() || fallback;
 
 const getLevelInfo = (completedWorks) => {
   if (completedWorks >= 20) {
@@ -167,13 +177,23 @@ export default function CreatorDashboard() {
       ]);
 
       const allCampaigns = campaignsRes.data;
-      const completedCampaigns = worksRes.data || [];
+      // "Deals closed" = only genuinely COMPLETED deals this creator was selected
+      // for. The backend ignores the `status=completed` query param for creators
+      // (it returns every campaign they're on, including cancelled and in-progress
+      // ones), so a cancelled deal was being counted as closed — filter on status
+      // here.
+      const completedCampaigns = (worksRes.data || []).filter(
+        (c) => isSelectedCreator(c, user.id) && String(c.status).toLowerCase() === 'completed'
+      );
 
       setActiveCampaigns(allCampaigns.filter((campaign) =>
-        campaign.selected_creator === user.id &&
+        isSelectedCreator(campaign, user.id) &&
         (campaign.status === 'in_progress' || campaign.status === 'active')
       ));
-      setAvailableCampaigns(allCampaigns.filter((campaign) => campaign.status === 'active' && !campaign.selected_creator));
+      // Still browsable while the brief has slots left, but not if I'm already on it.
+      setAvailableCampaigns(allCampaigns.filter(
+        (campaign) => isOpenForBids(campaign) && !isSelectedCreator(campaign, user.id)
+      ));
       setMyBids(
         allCampaigns
           .filter((campaign) => campaign.bids?.some((bid) => bid.creator_id === user.id))
@@ -194,6 +214,11 @@ export default function CreatorDashboard() {
 
   const handleBidSubmit = async (event) => {
     event.preventDefault();
+    const maximum = maxCampaignBid(selectedCampaign);
+    if (maximum && Number(bidAmount) > maximum) {
+      toast.error(bidOverBudgetMessage(maximum));
+      return;
+    }
     try {
       await axios.post(`${API}/campaigns/${selectedCampaign.id}/bid`, {
         campaign_id: selectedCampaign.id,
@@ -258,7 +283,7 @@ export default function CreatorDashboard() {
     navigate('/');
   };
 
-  const displayName = user?.username ? `@${user.username}` : (user?.nickname || user?.full_name || user?.email || 'Creator');
+  const displayName = creatorFirstName(user);
   const rating = Number(user?.average_rating || 0);
   const totalEarned = useMemo(() => {
     const bidsTotal = myBids.reduce((sum, campaign) => sum + Number(campaign.myBid?.amount || 0), 0);
@@ -294,6 +319,7 @@ export default function CreatorDashboard() {
   if (user?.approval_status === 'pending') {
     return (
       <div className="pcd-status-page">
+        <span className="pcd-status-logo" aria-label="UGCad.io"><b>UGC</b><span>ad.io</span></span>
         <section className="pcd-status-card">
           <CheckCircle size={68} />
           <p className="pcd-eyebrow">Creator verification</p>
@@ -306,14 +332,33 @@ export default function CreatorDashboard() {
   }
 
   if (user?.approval_status === 'rejected') {
+    return <RejectedGate user={user} onHome={handleLogout} kind="creator" />;
+  }
+
+  // Admin requested more info — show the request + let the creator update & resubmit.
+  if (user?.approval_status === 'more_info') {
+    const review = user.review || {};
+    const items = Array.isArray(review.more_info_items) ? review.more_info_items : [];
     return (
       <div className="pcd-status-page">
+        <span className="pcd-status-logo" aria-label="UGCad.io"><b>UGC</b><span>ad.io</span></span>
         <section className="pcd-status-card">
-          <User size={68} />
+          <MessageSquare size={68} />
           <p className="pcd-eyebrow">Creator verification</p>
-          <h1>Profile Not Approved</h1>
-          <p>Please contact support for more information about your creator profile review.</p>
-          <button type="button" onClick={handleLogout}>Back to Home</button>
+          <h1>More information needed</h1>
+          <p>Our team needs a few more details before approving your creator profile. Please update your profile with the info below.</p>
+          {review.more_info_message && (
+            <div style={{ textAlign: 'left', background: 'rgba(139,151,255,0.08)', border: '1px solid rgba(139,151,255,0.25)', borderRadius: '14px', padding: '16px 18px', margin: '8px auto 4px', maxWidth: '460px', width: '100%' }}>
+              <strong style={{ color: '#6d7bff', display: 'block', marginBottom: '6px', fontSize: '13px', letterSpacing: '0.3px' }}>What we need</strong>
+              <span style={{ color: '#d6d7ec', fontSize: '14.5px', lineHeight: 1.55 }}>{review.more_info_message}</span>
+            </div>
+          )}
+          {items.length > 0 && (
+            <ul style={{ textAlign: 'left', margin: '4px auto 6px', paddingLeft: '20px', color: '#b6b6cc', fontSize: '14px', lineHeight: 1.8, maxWidth: '460px' }}>
+              {items.map((it, i) => <li key={i}><strong style={{ color: '#6d7bff' }}>Note:</strong> {typeof it === 'string' ? it : (it.label || it.name || it.field || '')}</li>)}
+            </ul>
+          )}
+          <button type="button" onClick={() => navigate('/profile-setup/creator')}>Update my profile</button>
         </section>
       </div>
     );
@@ -346,7 +391,7 @@ export default function CreatorDashboard() {
   }
 
   const profilePct = Math.round((profileDone / profileChecklist.length) * 100);
-  const heroName = user?.nickname || user?.full_name || (user?.username ? `@${user.username}` : 'Creator');
+  const heroName = creatorFirstName(user);
   // The primary content category the creator picked on the signup form (stored as
   // a value key like "product_demo"); resolve it to its human label for display.
   const rawCategory = user?.category || user?.profile?.category
@@ -355,7 +400,7 @@ export default function CreatorDashboard() {
     || String(rawCategory).replace(/_/g, ' ')).trim();
   const heroDeal = activeCampaigns[0];
   const heroActiveDeal = heroDeal ? {
-    brand: heroDeal.business_nickname ? `@${heroDeal.business_nickname}` : (heroDeal.brand_handle ? `@${heroDeal.brand_handle}` : 'Brand'),
+    brand: String(heroDeal.brand_name || heroDeal.business_name || heroDeal.company_name || heroDeal.business_nickname || heroDeal.brand_handle || 'Brand').replace(/^@+/, ''),
     title: heroDeal.title || 'Active campaign',
     budgetLabel: getCampaignBudget(heroDeal),
     progress: heroDeal.status === 'in_progress' ? 65 : 40,
@@ -379,59 +424,6 @@ export default function CreatorDashboard() {
             activeDeal={heroActiveDeal}
           />
 
-          {isNewCreator && (
-            <section className="pcd-onboarding">
-              <div className="pcd-onboarding-hero">
-                <span className="pcd-live-badge"><CheckCircle2 size={16} /> Your profile is live</span>
-                <h1>Welcome, {displayName} 👋</h1>
-                <p className="pcd-onboarding-empty">
-                  You haven't received any briefs yet. We'll notify you as soon as a brand is matched with you.
-                </p>
-                <div className="pcd-quick-links">
-                  {quickLinks.map((link) => (
-                    <button key={link.label} type="button" onClick={() => navigate(link.to)}>
-                      <span className="pcd-quick-icon"><link.icon size={18} /></span>
-                      <span className="pcd-quick-text">
-                        <strong>{link.label}</strong>
-                        <small>{link.value}</small>
-                      </span>
-                      <ArrowUpRight size={15} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pcd-card pcd-nudges-card">
-                <div className="pcd-section-header align-start">
-                  <div>
-                    <h2>Complete your profile</h2>
-                    <p>Optional, but creators with full profiles get matched faster.</p>
-                  </div>
-                  <span className="pcd-nudge-count">{profileDone} / {profileChecklist.length}</span>
-                </div>
-                <ul className="pcd-nudge-list">
-                  {profileChecklist.map((item) => (
-                    <li key={item.key} className={item.done ? 'done' : ''}>
-                      <span className="pcd-nudge-icon">
-                        {item.done ? <CheckCircle2 size={18} /> : <item.icon size={18} />}
-                      </span>
-                      <span className="pcd-nudge-text">
-                        <strong>{item.label}</strong>
-                        <small>{item.hint}</small>
-                      </span>
-                      {!item.done && (
-                        <button type="button" onClick={() => navigate(item.to)}>
-                          Add <ArrowRight size={14} />
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-          )}
-
-
       {selectedCampaign && (
         <div className="pcd-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bid-modal-title">
           <form className="pcd-modal" onSubmit={handleBidSubmit}>
@@ -439,11 +431,11 @@ export default function CreatorDashboard() {
             <p>{selectedCampaign.title}</p>
             <label>
               Bid Amount
-              <input type="number" value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} required min="1" />
+              <input type="number" inputMode="numeric" min="1" max={maxCampaignBid(selectedCampaign) || undefined} value={bidAmount} onKeyDown={blockNonDigitKey} onChange={(event) => setBidAmount(digitsOnly(event.target.value))} required />
             </label>
             <label>
               Delivery Days
-              <input type="number" value={deliveryDays} onChange={(event) => setDeliveryDays(event.target.value)} required min="1" />
+              <input type="text" inputMode="numeric" value={deliveryDays} onKeyDown={blockNonDigitKey} onChange={(event) => setDeliveryDays(digitsOnly(event.target.value))} required />
             </label>
             <label>
               Proposal
@@ -478,7 +470,7 @@ function CampaignMiniCard({ campaign, actionLabel, onAction }) {
     <article className="pcd-mini-card">
       <div>
         <h3>{campaign.title}</h3>
-        <p>{campaign.business_nickname || 'Brand campaign'} - {getCampaignBudget(campaign)}</p>
+        <p>{brandLabel(campaign, 'Brand campaign')} - {getCampaignBudget(campaign)}</p>
       </div>
       <button type="button" onClick={onAction}>{actionLabel}</button>
     </article>
@@ -499,7 +491,7 @@ function CampaignGrid({ items, empty, renderActions }) {
           <p>{campaign.brief_text ? `${campaign.brief_text.substring(0, 150)}${campaign.brief_text.length > 150 ? '...' : ''}` : 'Creator campaign brief'}</p>
           <dl>
             <div><dt>Budget</dt><dd>{getCampaignBudget(campaign)}</dd></div>
-            <div><dt>Brand</dt><dd>{campaign.business_nickname || campaign.brand_handle || 'Brand'}</dd></div>
+            <div><dt>Brand</dt><dd>{brandLabel(campaign)}</dd></div>
             <div><dt>Objectives</dt><dd>{campaign.objectives?.length || 0}</dd></div>
           </dl>
           <div className="pcd-card-actions">{renderActions(campaign)}</div>
@@ -552,7 +544,11 @@ function normalizeBrief(campaign, index, myBids) {
     id: campaign.id,
     title: campaign.title || 'Creator Campaign Brief',
     description: campaign.brief_text || 'Review the brand brief, pitch your concept, and manage the collaboration from your creator workspace.',
-    brand: campaign.business_nickname || campaign.brand_handle || fallbackBrand,
+    // Show the brand's COMPANY name (from the form), never the "@nickname" handle;
+    // strip any leading "@" so a nickname-only brand still reads as a plain name.
+    brand: String(
+      campaign.brand_name || campaign.business_name || campaign.company_name || campaign.business_nickname || campaign.brand_handle || ''
+    ).replace(/^@+/, '').trim() || fallbackBrand,
     cover: campaign.cover_image || campaign.image_url || campaign.thumbnail_url || browseCovers[index % browseCovers.length],
     logo: campaign.brand_logo || campaign.business_logo || browseLogos[index % browseLogos.length],
     tags: objectives.length ? objectives.slice(0, 3) : ['UGC', campaign.requires_shipment ? 'Product' : 'Remote', 'Creator'],
@@ -717,12 +713,23 @@ function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
 }
 
 function BriefOpportunityCard({ brief, viewMode, onView, onPitch }) {
+  const [saved, setSaved] = useState(() => isBriefSaved(brief.id));
   const handlePitch = () => {
     if (brief.hasBid) {
       onView(brief.campaign);
       return;
     }
     onPitch(brief.campaign);
+  };
+  const handleSave = (e) => {
+    e.stopPropagation();
+    const now = toggleSavedBrief({
+      id: brief.id, title: brief.title, description: brief.description,
+      brand: brief.brand, logo: brief.logo, tags: brief.tags, budget: brief.budget,
+      deliveryLabel: brief.deliveryLabel || brief.deadline || '3 - 5 Days', matchScore: brief.matchScore,
+    });
+    setSaved(now);
+    toast.success(now ? 'Saved to your list' : 'Removed from saved');
   };
 
   return (
@@ -731,7 +738,7 @@ function BriefOpportunityCard({ brief, viewMode, onView, onPitch }) {
       <div className="pcd-brief-media">
         <img src={brief.cover} alt={brief.title} />
         <div className="pcd-brief-media-shade" />
-        <button type="button" aria-label="Save brief"><Bookmark size={15} /></button>
+        <button type="button" aria-label={saved ? 'Remove from saved' : 'Save brief'} onClick={handleSave} style={saved ? { color: '#5b6bff' } : undefined}><Bookmark size={15} fill={saved ? 'currentColor' : 'none'} /></button>
         {brief.featured && (
           <span className="pcd-best-match"><Sparkles size={12} /> Best Match</span>
         )}

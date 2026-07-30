@@ -2134,7 +2134,7 @@ export default function Landing() {
         </svg>
       </div>
 
-      {/* ── US vs Others — two-column comparison table ─────────────────────── */}
+      {/* US vs Others — comparison table */}
       {/* Comparison table — editorial "Evolve"-style: cream bg, serif heading, a
           highlighted centre column for UGCad.io vs a plain "traditional" column. */}
       <section className="lpv">
@@ -4684,6 +4684,41 @@ export default function Landing() {
         }
 
         /* ── US vs Others — two-column comparison ─────────────────────────── */
+        /* ── UGCad.io vs Traditional — editorial comparison table ── */
+        .lpv { padding: 100px 6% 110px; background: #f3ecdd; color: #2a2118; }
+        .lpv-inner { max-width: 1120px; margin: 0 auto; }
+        .lpv-kicker { margin: 0; text-align: center; color: #8a7f6b; font-weight: 600; font-size: 14px; }
+        .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: Georgia, 'Times New Roman', serif;
+          font-weight: 500; font-size: clamp(30px, 5vw, 54px); line-height: 1.08; color: #2a2118; letter-spacing: -0.5px; }
+        .lpv-grid { display: flex; flex-direction: column; }
+        .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.5fr 1fr 1fr; align-items: center; }
+        .lpv-header { align-items: end; }
+        .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
+        .lpv-h--us { border-radius: 16px 16px 0 0; }
+        .lpv-header .lpv-h { padding: 26px 20px; }
+        .lpv-h--us { display: flex; align-items: center; justify-content: center; }
+        .lpv-brand { font-family: Georgia, serif; font-weight: 800; font-size: 30px; letter-spacing: -1px; color: #2a2118; }
+        .lpv-brand-ad { color: #6d7bff; }
+        .lpv-h--them { text-align: center; color: #8a7f6b; font-weight: 600; font-size: 15px; }
+        .lpv-rowgroup { border-top: 1px solid rgba(42, 33, 24, 0.12); }
+        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #2a2118; padding: 26px 8px 26px 0; }
+        .lpv-cell { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; gap: 6px; }
+        .lpv-cell strong { font-weight: 700; font-size: 15.5px; color: #2a2118; }
+        .lpv-cell span { font-size: 14px; line-height: 1.5; color: #7c7362; }
+        .lpv-cell--them strong { color: #5b5346; }
+        .lpv-tag { display: none; }
+        @media (max-width: 760px) {
+          .lpv { padding: 60px 22px 70px; }
+          .lpv-heading { margin-bottom: 34px; }
+          .lpv-header { display: none; }
+          .lpv-rowgroup { grid-template-columns: 1fr 1fr; grid-template-areas: 'label label' 'us them'; gap: 0 12px; padding-top: 18px; }
+          .lpv-label { grid-area: label; padding: 0 0 12px; font-size: 22px; }
+          .lpv-cell { text-align: left; padding: 14px; border-radius: 12px; }
+          .lpv-cell--us { grid-area: us; background: rgba(78, 58, 30, 0.06); }
+          .lpv-cell--them { grid-area: them; background: transparent; }
+          .lpv-tag { display: block; font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: #8a7f6b; margin-bottom: 2px; }
+          .lpv-cell--us .lpv-tag { color: #6d7bff; }
+        }
         .lp-vs {
           padding: 90px 8% 100px;
           color: var(--lp-text);

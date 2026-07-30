@@ -876,18 +876,19 @@ function CountUp({ value }) {
 function AchieveFan({ items }) {
   // Editorial vertical list (no cards): big serif number + kicker, divider, heading,
   // description, footer tag. Rows alternate left/right like the reference.
+  const shown = items.slice(0, 4); // 4 items, staircased into a slant
   return (
     <div className="lp-achieve__list">
-      {items.map((item, i) => (
+      {shown.map((item, i) => (
         <motion.div
           key={item.title}
-          className={`lp-achieve__row ${i % 2 ? 'is-right' : 'is-left'}`}
+          className="lp-achieve__row"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div className="lp-achieve__col">
+          <div className="lp-achieve__col" style={{ marginLeft: `${(i / (shown.length - 1)) * 56}%` }}>
             <div className="lp-achieve__num">
               <span className="lp-achieve__num-i">{`0${i + 1}`}</span> {item.kicker}
             </div>
@@ -2286,7 +2287,6 @@ export default function Landing() {
             &ldquo;We stopped guessing which creators actually convert. UGCad.io made
             it <em>obvious.</em>&rdquo;
           </blockquote>
-          <p className="lpr-cite">Marisol Vega &mdash; Head of Growth, Northwind D2C</p>
 
           {/* The receipts — big numbers with a thin rule above each */}
           <p className="lpr-kicker lpr-kicker--receipts">The receipts</p>
@@ -4667,10 +4667,8 @@ export default function Landing() {
           display: flex; flex-direction: column; gap: clamp(56px, 8vw, 108px);
           max-width: 1120px; margin: 60px auto 0; padding: 0 24px;
         }
-        .lp-achieve__row { display: flex; }
-        .lp-achieve__row.is-left { justify-content: flex-start; }
-        .lp-achieve__row.is-right { justify-content: flex-end; }
-        .lp-achieve__col { width: min(460px, 100%); text-align: left; }
+        .lp-achieve__row { display: flex; justify-content: flex-start; }
+        .lp-achieve__col { width: min(440px, 100%); text-align: left; }
         .lp-achieve__num {
           font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500;
           font-size: clamp(38px, 5vw, 62px); line-height: 1; color: #ef6a4c; letter-spacing: -0.5px;
@@ -4689,7 +4687,7 @@ export default function Landing() {
           font-size: 14px; font-weight: 700; color: var(--lp-text);
         }
         @media (max-width: 700px) {
-          .lp-achieve__row.is-right { justify-content: flex-start; }
+          .lp-achieve__col { margin-left: 0 !important; width: 100%; }
           .lp-achieve__list { gap: 48px; margin-top: 36px; }
         }
 
@@ -4832,13 +4830,19 @@ export default function Landing() {
         .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.5fr 1fr 1fr; align-items: center; }
         /* Sticky header: the UGCad.io / Traditional column titles stay pinned just below
            the floating navbar while the comparison rows scroll underneath. The opaque
-           section background keeps rows from showing through the transparent columns. */
+           section background keeps rows from showing through the transparent columns.
+           The header's own box (~97px) is shorter than a two-line row (~120px), so as a
+           row scrolls past, its title poked out above/below the header for a few px each
+           frame — a torn "ghost text" glitch. The box-shadow spread paints extra opaque
+           background 40px above/below WITHOUT growing the element's actual layout box, so
+           it fully swallows any row passing behind before its text can peek out either edge. */
         .lpv-header {
           align-items: end;
           position: sticky;
           top: 88px;
           z-index: 5;
           background: #f3ecdd;
+          box-shadow: 0 -40px 0 0 #f3ecdd, 0 40px 0 0 #f3ecdd;
         }
         .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }

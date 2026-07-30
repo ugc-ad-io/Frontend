@@ -1645,20 +1645,18 @@ export default function Landing() {
           )}
 
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
-          {/* 4 cards (was a rotating leaderboard of curved lines). */}
-          <div className="lp-promise">
+          {/* 4 colored cards, stacked one behind another (hover to bring forward). */}
+          <div className="lp-promise" style={{ '--n': 4 }}>
             {TOP_CREATORS.slice(1, 5).map((c, i) => (
-              <motion.div
+              <div
                 className="lp-promise__card"
                 key={c}
-                initial={{ opacity: 0, y: 26 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                data-color={i}
+                style={{ '--i': i, zIndex: 4 - i }}
               >
                 <span className="lp-promise__num">0{i + 1}</span>
                 <h3 className="lp-promise__title">{c}</h3>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -1667,7 +1665,10 @@ export default function Landing() {
 
       {/* ── Brand strip — stuck to the leaderboard's last row: rises UP in lockstep
           (brandRiseY) as the final rows fade, instead of waiting below. ── */}
-      <motion.div style={{ y: brandRiseYUsed, marginBottom: heroStatic ? brandRise : 0, position: 'relative', zIndex: 3 }}>
+      {/* Static wrapper: the scroll-linked rise (y) + the negative marginBottom pull were
+          lifting the strip up and dragging the showcase under it (they overlapped). Removed
+          so the strip stays at its own position and the showcase flows cleanly below it. */}
+      <motion.div style={{ position: 'relative', zIndex: 3 }}>
       <section className="lp-brandstrip" ref={brandStripRef}>
         <div className="lp-hero__strip">
           <span className="lp-brandstrip__label">Trusted by leading brands</span>
@@ -3565,30 +3566,44 @@ export default function Landing() {
           position: static !important; height: auto !important; min-height: 0 !important;
           transform: none !important;
         }
+        /* Stacked deck: cards absolutely layered, each nudged down-right + tilted
+           behind the previous. Hover a card to lift it clear of the stack. */
         .lp-promise {
-          display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
-          max-width: 1000px; margin: 0 auto;
+          position: relative; width: min(560px, 92%); margin: 20px auto 0;
+          height: 360px;
         }
         .lp-promise__card {
-          position: relative; background: var(--lp-section); border: 1px solid var(--lp-border);
-          border-radius: 22px; padding: 34px 32px; min-height: 200px;
+          position: absolute; left: 0; right: 0; top: 0; height: 300px;
+          border-radius: 24px; padding: 34px 34px;
           display: flex; align-items: flex-end;
-          transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+          box-shadow: 0 24px 50px -24px rgba(30,22,8,.4);
+          transform: translate(calc(var(--i) * 26px), calc(var(--i) * 26px)) rotate(calc((var(--i) - 1.5) * -2deg));
+          transition: transform .28s cubic-bezier(.2,.7,.2,1), box-shadow .28s ease;
+          cursor: pointer;
         }
         .lp-promise__card:hover {
-          transform: translateY(-3px); border-color: #4452f0;
-          box-shadow: 0 20px 40px -20px rgba(68,82,240,.35);
+          transform: translate(calc(var(--i) * 26px), calc(var(--i) * 26px - 18px)) rotate(0deg) scale(1.02);
+          z-index: 20 !important;
+          box-shadow: 0 34px 60px -22px rgba(30,22,8,.5);
         }
+        /* Card colors */
+        .lp-promise__card[data-color="0"] { background: #e9f4a1; }
+        .lp-promise__card[data-color="1"] { background: #e5e2fb; }
+        .lp-promise__card[data-color="2"] { background: #ffe1cf; }
+        .lp-promise__card[data-color="3"] { background: #d3f1e2; }
         .lp-promise__num {
-          position: absolute; top: 24px; right: 28px;
+          position: absolute; top: 24px; right: 30px;
           font-family: Georgia, 'Times New Roman', serif; font-style: italic;
-          font-size: 30px; color: var(--lp-text-muted); line-height: 1;
+          font-size: 34px; color: rgba(28,27,75,.55); line-height: 1;
         }
         .lp-promise__title {
           margin: 0; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
-          font-size: clamp(20px, 2.2vw, 27px); font-weight: 800; color: var(--lp-text); line-height: 1.2;
+          font-size: clamp(22px, 2.4vw, 30px); font-weight: 800; color: #171334; line-height: 1.18;
         }
-        @media (max-width: 700px) { .lp-promise { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) {
+          .lp-promise { height: 300px; }
+          .lp-promise__card { height: 250px; padding: 26px 26px; transform: translate(calc(var(--i) * 18px), calc(var(--i) * 18px)) rotate(calc((var(--i) - 1.5) * -1.6deg)); }
+        }
         /* Smooth the hard hero(black)→section(navy) seam: a tall gradient at the top
            of this section starts at the hero's #0a0a0a and melts into the navy bg. */
         .lp-logo3d::before {

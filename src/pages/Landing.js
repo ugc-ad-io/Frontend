@@ -1444,7 +1444,7 @@ export default function Landing() {
   // const leftVideo = '/9384669-uhd_2160_3840_24fps.mp4';
 
   return (
-    <div className={`lp-root${IS_LOW_END ? ' lp-perf-lite' : ''}`} data-theme={theme}>
+    <div className={`lp-root${IS_LOW_END ? ' lp-perf-lite' : ''}`} data-theme="light">
 
       {/* ── Animated background blobs ───────────────────────────────────── */}
       <div className="lp-bg-animations" aria-hidden="true">
@@ -1462,28 +1462,30 @@ export default function Landing() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
         <div className="lp-navbar__inner">
-          <img
-            src="/ugcad-logo.png"
-            alt="UGCad.io"
-            className="lp-navbar__logo"
+          <button
+            type="button"
+            className="lp-navbar__brand"
+            aria-label="UGCad.io — back to top"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          />
+          >
+            <span className="lp-navbar__brand-a">UGC</span><span className="lp-navbar__brand-b">ad.io</span>
+          </button>
 
           <nav className="lp-navbar__links">
             <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); navigate('/auth?mode=signup&role=business'); }}>
               Explore Creators
             </a>
+            <a className="lp-navlink" href="/creator" onClick={(e) => { e.preventDefault(); navigate('/creator'); }}>
+              Join as Creator
+            </a>
           </nav>
 
           <div className="lp-navbar__actions">
-            <a className="lp-nav-join" href="/creator" onClick={(e) => { e.preventDefault(); navigate('/creator'); }}>
-              Join as <em>Creator</em>
-            </a>
-            <button className="lp-btn-login" onClick={() => navigate('/auth?role=business')}>
-              <LogIn size={16} /> Log in
-            </button>
             <button className="lp-btn-signup" onClick={() => navigate('/auth?mode=signup&role=business')}>
               Sign Up
+            </button>
+            <button className="lp-btn-login" onClick={() => navigate('/auth?role=business')}>
+              <LogIn size={16} /> Log in
             </button>
           </div>
 
@@ -2693,10 +2695,10 @@ export default function Landing() {
         }
         .lp-root[data-theme="light"] {
           --lp-fg: 28, 27, 75;          /* navy text/borders/surfaces */
-          --lp-page-bg: #ecebf8;        /* light lavender */
+          --lp-page-bg: #f6f1e6;        /* cream (matches the hero) */
           --lp-text: #1c1b4b;
-          --lp-bg: #ecebf8;
-          --lp-bg-soft: #f4f3fc;
+          --lp-bg: #f6f1e6;
+          --lp-bg-soft: #fbf8f0;
           --lp-text-muted: rgba(28,27,75,0.66);
           --lp-text-soft: #5b5a7e;
           --lp-section: #ffffff;        /* light card/section surface */
@@ -2779,30 +2781,37 @@ export default function Landing() {
           max-width: var(--lp-maxw);
           margin: 0 auto;
           background: transparent;       /* no white container */
-          /* FIXED bar height so a bigger logo overflows it instead of growing the bar. */
-          height: 56px;
+          height: 60px;
           padding: 0 4px;
         }
 
-        .lp-navbar__logo {
-          /* Bigger than the bar — overflows top/bottom (bar height is fixed above) so it reads
-             large without pushing the navbar down. */
-          height: 184px;
-          width: auto;
+        /* Text wordmark logo (icon removed) — small, left-aligned, brand colours. */
+        .lp-navbar__brand {
           flex: none;
-          margin-left: -128px;   /* nudged further left on web (mobile keeps its own value below) */
-          /* The logo PNG is a tall stacked lockup — nudge it to line up with the nav links. */
-          transform: translateY(-4px);
+          display: inline-flex;
+          align-items: baseline;
+          padding: 0;
+          border: none;
+          background: transparent;
           cursor: pointer;
-          transition: opacity 0.2s;
+          font-family: var(--font-head), 'Readex Pro', sans-serif;
+          font-weight: 700;
+          font-size: 1.4rem;
+          letter-spacing: -0.02em;
+          line-height: 1;
+          transition: opacity 0.2s ease;
         }
-        .lp-navbar__logo:hover { opacity: 0.8; }
+        .lp-navbar__brand:hover { opacity: 0.8; }
+        .lp-navbar__brand-a { color: #7387FF; }   /* "UGC" — periwinkle */
+        .lp-navbar__brand-b { color: #07074e; }   /* "ad.io" — navy */
+        .lp-root[data-theme="dark"] .lp-navbar__brand-b { color: #EDE7DA; }
 
-        /* Center nav links */
+        /* Nav links — grouped on the RIGHT (shifted over from the left). */
         .lp-navbar__links {
+          margin-left: auto;
           display: flex;
           align-items: center;
-          gap: 26px;
+          gap: 30px;
         }
         .lp-root .lp-navlink {
           display: inline-flex;
@@ -2814,48 +2823,37 @@ export default function Landing() {
           color: rgba(var(--lp-fg), 0.88);
           text-decoration: none;
           cursor: pointer;
-          transition: color 0.2s ease;
+          transition: color 0.2s ease, opacity 0.2s ease;
         }
         .lp-root .lp-navlink:hover { color: #ffffff; }
         .lp-navlink svg { color: rgba(var(--lp-fg), 0.6); }
+        /* On the cream bar, white-on-hover is invisible — dim via opacity instead. */
+        .lp-root .lp-navbar__links .lp-navlink:hover { color: inherit; opacity: 0.55; }
 
         .lp-navbar__actions {
-          margin-left: auto;
+          margin-left: 30px;
           display: flex;
-          gap: 12px;
+          gap: 16px;
           align-items: center;
         }
 
-        /* Join as Creator — purple text link */
-        .lp-root .lp-nav-join {
-          font-family: var(--font-body);
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #7387FF;
-          text-decoration: none;
-          cursor: pointer;
-          transition: opacity 0.2s ease;
-        }
-        .lp-root .lp-nav-join em { font-style: italic; }
-        .lp-root .lp-nav-join:hover { opacity: 0.8; }
-
-        /* Log in — outlined button */
-        .lp-btn-login {
+        /* Log in — the single solid pill CTA in the bar. */
+        .lp-root .lp-btn-login {
           display: inline-flex;
           align-items: center;
           gap: 7px;
-          padding: 8px 18px;
-          border-radius: 10px;
-          border: 1px solid rgba(var(--lp-fg), 0.25);
-          background: transparent;
-          color: var(--lp-text);
+          padding: 10px 22px;
+          border-radius: 999px;
+          border: 1px solid #7387FF;
+          background: #7387FF;
+          color: #fff;
           font-family: var(--font-body);
-          font-weight: 500;
+          font-weight: 600;
           font-size: 0.92rem;
           cursor: pointer;
           transition: all 0.2s ease;
         }
-        .lp-btn-login:hover { border-color: rgba(var(--lp-fg), 0.55); }
+        .lp-root .lp-btn-login:hover { background: #5c6cff; border-color: #5c6cff; }
 
         /* Theme toggle (sun/moon pill switch) */
         .lp-root .lp-theme { position: relative; width: 64px; height: 30px; border-radius: 999px; cursor: pointer;
@@ -2872,20 +2870,20 @@ export default function Landing() {
         .lp-theme__ic--sun { left: 8px; }
         .lp-theme__ic--moon { right: 8px; }
 
-        /* Sign Up — filled purple button */
+        /* Sign Up — plain text link now (button removed; only Log in is a button). */
         .lp-root .lp-btn-signup {
-          padding: 8px 22px;
-          border-radius: 10px;
-          border: 1px solid #7387FF;
-          background: #7387FF;
-          color: #fff;
+          padding: 8px 4px;
+          border: none;
+          background: transparent;
+          color: rgba(var(--lp-fg), 0.88);
           font-family: var(--font-body);
-          font-weight: 600;
-          font-size: 0.92rem;
+          font-weight: 500;
+          font-size: 0.95rem;
           cursor: pointer;
-          transition: all 0.2s ease;
+          border-radius: 999px;
+          transition: opacity 0.2s ease;
         }
-        .lp-root .lp-btn-signup:hover { background: #7387FF; border-color: #7387FF; }
+        .lp-root .lp-btn-signup:hover { opacity: 0.55; background: transparent; }
 
         /* Mobile hamburger + slide-down menu (hidden on desktop) */
         .lp-navbar__burger {
@@ -3011,17 +3009,13 @@ export default function Landing() {
           .nlp-note { display: none; }
         }
 
-        /* ── Redesign in progress: make the WHOLE page cream like the hero, and hide
-           the old dark sections until each is rebuilt light. ─────────────────── */
+        /* Cream page + no animated blobs. Sections are NOT hidden — they render
+           light via the forced [data-theme="light"] theme. 3D logo mark removed. */
         .lp-root { background: #f6f1e6 !important; }
         .lp-bg-animations { display: none !important; }
-        .lp-logo3d,
-        .lp-brandstrip,
-        .lp-showcase,
-        .lp-audit,
-        .lp-testimonial,
-        .lp-faq,
-        .lp-footer { display: none !important; }
+        .lp-logo-fly,
+        .lp-logo3d__stage,
+        .lp-logo3d__placeholder { display: none !important; }
 
         /* Light header to match the cream hero (was a black mask + white text). */
         .lp-navbar::before {

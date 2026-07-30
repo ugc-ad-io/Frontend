@@ -269,9 +269,9 @@ export default function BrandCampaignDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
-  const [deal, setDeal] = useState(null);
-  const [creator, setCreator] = useState(null);   // first pick — drives the existing panel
-  const [creators, setCreators] = useState([]);   // every creator hired on this brief
+  const [deals, setDeals] = useState([]);          // one deal per hired creator on this brief
+  const [creators, setCreators] = useState([]);    // every creator hired on this brief
+  const [activeCreatorId, setActiveCreatorId] = useState(null); // which creator's room is open
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');
   const [chatOpen, setChatOpen] = useState(false);
@@ -292,10 +292,19 @@ export default function BrandCampaignDetail() {
   const [selecting, setSelecting] = useState(null); // creator_id being accepted
   const [finishing, setFinishing] = useState(false); // closing hiring early
   const [myReview, setMyReview] = useState(null);    // this brand's review of the creator (or null)
+  const [activeWork, setActiveWork] = useState(null); // multi-creator: active creator's own work submission
   const [reviewOpen, setReviewOpen] = useState(false);
   // Mobile: the Campaign Progress card collapses to a start/end summary bar with
   // a position marker; tapping it reveals the full step-by-step timeline.
   const [progressExpanded, setProgressExpanded] = useState(false);
+
+  // The brand can switch between hired creators; `creator`/`deal` always reflect the
+  // one currently selected (defaulting to the first pick). Deriving them keeps every
+  // per-creator panel — Creator card, chat, work review, review — pointed at the same
+  // creator without threading a prop through each one.
+  const creator = creators.find((c) => String(c?.id) === String(activeCreatorId)) || creators[0] || null;
+  const deal = deals.find((d) => String(d?.creator?.id) === String(activeCreatorId))
+    || deals.find((d) => String(d?.campaign?.id) === String(id)) || deals[0] || null;
 
   const load = async () => {
     try {
@@ -304,8 +313,10 @@ export default function BrandCampaignDetail() {
       // Brands must read /deals/business — /deals/my is the creator's list and
       // returns 403/[] here, which left `deal` permanently null on this page.
       const dRes = await axios.get(`${API}/deals/business`).catch(() => ({ data: [] }));
-      const d = (dRes.data || []).find((x) => String(x.campaign?.id) === String(id));
-      setDeal(d || null);
+      // /deals/business now returns one deal PER hired creator — keep every deal for
+      // this campaign so the switcher can open each creator's room.
+      const campaignDeals = (dRes.data || []).filter((x) => String(x.campaign?.id) === String(id));
+      setDeals(campaignDeals);
       // A brief can hire several creators — load every one, not just the first.
       const ids = selectedCreators(cRes.data);
       if (ids.length) {
@@ -315,27 +326,46 @@ export default function BrandCampaignDetail() {
             .catch(() => ({ id: cid })))
         );
         setCreators(profiles);
-        setCreator(profiles[0]);   // the existing single-creator panel / chat target
-        // Have I already reviewed this creator for this campaign? Drives the
-        // "Add a review" vs "Review submitted" state on a completed deal.
-        const firstId = profiles[0]?.id;
-        if (firstId) {
-          const revs = await axios.get(`${API}/reviews/creator/${firstId}`).then((r) => r.data).catch(() => []);
-          const mine = (Array.isArray(revs) ? revs : []).find(
-            (rv) => String(rv.campaign_id) === String(id) && String(rv.reviewer_id) === String(user?.id)
-          );
-          setMyReview(mine || null);
-        }
+        // Keep the brand's current selection across reloads; default to the first pick.
+        setActiveCreatorId((prev) => (prev && ids.includes(prev) ? prev : profiles[0]?.id || null));
       } else {
         setCreators([]);
-        setCreator(null);
-        setMyReview(null);
+        setActiveCreatorId(null);
       }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Whose review am I looking at? Re-fetch when the brand switches creators so the
+  // "Add a review" vs "Rated ★" state on a completed deal follows the active creator.
+  useEffect(() => {
+    if (!activeCreatorId) { setMyReview(null); return; }
+    let live = true;
+    axios.get(`${API}/reviews/creator/${activeCreatorId}`)
+      .then((r) => r.data).catch(() => [])
+      .then((revs) => {
+        if (!live) return;
+        const mine = (Array.isArray(revs) ? revs : []).find(
+          (rv) => String(rv.campaign_id) === String(id) && String(rv.reviewer_id) === String(user?.id)
+        );
+        setMyReview(mine || null);
+      });
+    return () => { live = false; };
+  }, [activeCreatorId, id, user?.id]);
+
+  // Multi-creator: pull the ACTIVE creator's own work submission so the Work Review
+  // tab and approve/revise/download follow the switcher. Single-creator keeps using
+  // the campaign-level work_submission untouched.
+  useEffect(() => {
+    if (creators.length <= 1 || !activeCreatorId) { setActiveWork(null); return; }
+    let live = true;
+    axios.get(`${API}/work/campaign/${id}?creator_id=${encodeURIComponent(activeCreatorId)}`)
+      .then((r) => r.data).catch(() => null)
+      .then((w) => { if (live) setActiveWork(w && w.id ? w : null); });
+    return () => { live = false; };
+  }, [activeCreatorId, id, creators.length]);
 
   const steps = useMemo(() => {
     const idx = deal ? dealStateIndex(deal.current_state) : -1;
@@ -412,7 +442,10 @@ export default function BrandCampaignDetail() {
   // has the campaign id in its URL, and it was passing that straight through — which
   // 404'd every approve / request-revision / download. Resolve the real one first.
   const resolveWorkId = async () => {
-    const r = await axios.get(`${API}/work/campaign/${id}`).catch(() => null);
+    // On a multi-creator brief, resolve the ACTIVE creator's work so approve/revise/
+    // download act on the creator the brand is currently viewing.
+    const qs = creators.length > 1 && activeCreatorId ? `?creator_id=${encodeURIComponent(activeCreatorId)}` : '';
+    const r = await axios.get(`${API}/work/campaign/${id}${qs}`).catch(() => null);
     return r?.data?.id || null;
   };
   const approveWork = async () => {
@@ -525,7 +558,8 @@ export default function BrandCampaignDetail() {
   const briefDeliver = extractDeliverables(campaign.brief_text);
   const deliverList = campaignDeliver.length ? campaignDeliver : briefDeliver;
 
-  const ws = campaign.work_submission;
+  // Multi-creator: the active creator's own submission drives the Work Review tab.
+  const ws = creators.length > 1 ? activeWork : campaign.work_submission;
   const wsStatus = ws ? (ws.status || (campaign.status === 'completed' ? 'approved' : 'pending_review')) : null;
   // The deal is done however it got there — brand approval OR a dispute ruling —
   // so the review CTA doesn't depend on the approve button being the last step.
@@ -590,7 +624,7 @@ export default function BrandCampaignDetail() {
         <BookingCard deal={deal || { campaign }} role="brand" onDone={load} />
 
         <div className="bcd-tabs">
-          {[['overview', 'Overview'], ['about', 'About Campaign'], ['work', `Work Review${campaign.work_submission ? ' (1)' : ''}`]].map(([k, l]) => (
+          {[['overview', 'Overview'], ['about', 'About Campaign'], ['work', `Work Review${ws ? ' (1)' : ''}`]].map(([k, l]) => (
             <button key={k} className={`${tab === k ? 'is-active' : ''}${k === 'work' ? ' bcd-tab-right' : ''}`} onClick={() => setTab(k)}>{l}</button>
           ))}
         </div>
@@ -864,7 +898,31 @@ export default function BrandCampaignDetail() {
 
         {/* Creator */}
         <div className="bcd-card bcd-creator-card">
-          <h3>Creator</h3>
+          <h3>{creators.length > 1 ? `Creators (${creators.length})` : 'Creator'}</h3>
+            {/* Multi-creator brief: one tab per hired creator. Switching drives the
+                whole panel — profile, chat, work review, review — for that creator. */}
+            {creators.length > 1 && (
+              <div className="bcd-cre-tabs" role="tablist">
+                {creators.map((c) => {
+                  const nm = creatorFirstName(c) || 'Creator';
+                  const on = String(c.id) === String(activeCreatorId);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      className={`bcd-cre-tab${on ? ' is-active' : ''}`}
+                      onClick={() => setActiveCreatorId(c.id)}
+                      data-testid={`creator-tab-${c.id}`}
+                    >
+                      <span className="bcd-cre-tab-ava">{creatorPhoto(c) ? <img src={creatorPhoto(c)} alt="" /> : nm.replace('@', '').charAt(0).toUpperCase()}</span>
+                      {nm.replace(/^@+/, '')}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {creator ? (
               <>
                 <div className="bcd-creator">
@@ -1124,6 +1182,12 @@ export default function BrandCampaignDetail() {
         .bcd-creator-card{display:flex;flex-direction:column}
         .bcd-creator-card .bcd-creator{margin-bottom:4px}
         .bcd-creator-card .bcd-cre-actions{margin-top:auto}
+        .bcd-cre-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
+        .bcd-cre-tab{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 6px;border:1px solid #e2e6ff;background:#fff;color:#4a4f78;font-size:13px;font-weight:600;border-radius:999px;cursor:pointer}
+        .bcd-cre-tab:hover{border-color:#c3caff;background:#f6f7ff}
+        .bcd-cre-tab.is-active{border-color:#4452f0;background:#eef0ff;color:#2a34b8}
+        .bcd-cre-tab-ava{width:26px;height:26px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:12px}
+        .bcd-cre-tab-ava img{width:100%;height:100%;object-fit:cover}
         /* inline shipment detail panel */
         .bcd-pill-btn.on{background:#eef0ff;border-color:#cdd2f3}
         .bcd-ship-detail{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid #eef0f6}

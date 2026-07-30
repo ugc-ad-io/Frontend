@@ -2415,14 +2415,6 @@ export default function Landing() {
                       key={`${t.name}-${i}`}
                       className="lp-tcard lp-tcard--marq"
                     >
-                      <div className="lp-tcard__rating">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} size={14} fill="#FBBF24" stroke="#FBBF24" />
-                        ))}
-                      </div>
-
-                      <span className="lp-tcard__mark">"</span>
-
                       <blockquote className="lp-tcard__quote">
                         {before}
                         {t.accent && <em>{t.accent}</em>}
@@ -2445,11 +2437,6 @@ export default function Landing() {
                           <div className="lp-tcard__name">{t.name}</div>
                           <div className="lp-tcard__role">{t.role}</div>
                         </div>
-                      </div>
-
-                      <div className="lp-tcard__metric">
-                        <span className="lp-tcard__metric-val">{t.metric}</span>
-                        <span className="lp-tcard__metric-label">{t.metricLabel}</span>
                       </div>
                     </article>
                   );
@@ -4906,9 +4893,12 @@ export default function Landing() {
         /* ── UGCad.io vs Traditional — editorial comparison table ── */
         .lpv { padding: 100px 6% 110px; background: #f3ecdd; color: #2a2118; }
         .lpv-inner { max-width: 1120px; margin: 0 auto; }
-        .lpv-kicker { margin: 0; text-align: center; color: #8a7f6b; font-weight: 600; font-size: 14px; }
+        /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
+           only ever swallows scrolling ROWS, never the section's own title on entrance. */
+        .lpv-kicker { margin: 0; text-align: center; color: #8a7f6b; font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
         .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: Georgia, 'Times New Roman', serif;
-          font-weight: 500; font-size: clamp(30px, 5vw, 54px); line-height: 1.08; color: #2a2118; letter-spacing: -0.5px; }
+          font-weight: 500; font-size: clamp(30px, 5vw, 54px); line-height: 1.08; color: #2a2118; letter-spacing: -0.5px;
+          position: relative; z-index: 6; }
         .lpv-grid { display: flex; flex-direction: column; }
         .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.5fr 1fr 1fr; align-items: center; }
         /* Sticky header: the UGCad.io / Traditional column titles stay pinned just below
@@ -4936,6 +4926,21 @@ export default function Landing() {
           z-index: 5;
           background: linear-gradient(to bottom, #f3ecdd 0%, #f3ecdd 88%, rgba(243, 236, 221, 0) 100%);
           min-height: 120px;
+        }
+        /* Opaque mask ABOVE the pinned header. The navbar hides on scroll-down, leaving an
+           ~88px band above the header (top:88px) uncovered — rows scrolling up used to poke
+           out INTO that band above the UGCad.io/Traditional titles. This band paints the same
+           #f3ecdd as the section, so it seamlessly hides any row text the moment it rises above
+           the header; the text simply disappears off the top edge while still masked. Height is
+           just enough to cover the nav gap (kept < the heading distance so it never reaches the
+           kicker; the heading is protected by z-index anyway). */
+        .lpv-header::before {
+          content: '';
+          position: absolute;
+          left: 0; right: 0; bottom: 100%;
+          height: 130px;
+          background: #f3ecdd;
+          pointer-events: none;
         }
         .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
@@ -7715,8 +7720,9 @@ export default function Landing() {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: clamp(300px, 26vw, 360px);
-          height: calc(100% - 34px);
+          /* A touch wider/taller than a card so the brackets sit just OUTSIDE it. */
+          width: clamp(326px, 27vw, 388px);
+          height: calc(100% - 8px);
           pointer-events: none;
           z-index: 5;
         }
@@ -7886,6 +7892,41 @@ export default function Landing() {
           color: var(--lp-text-muted);
           margin-top: 2px;
           line-height: 1.3;
+        }
+
+        /* Review-box variant (reference): plain panel, review text, author pinned to the
+           bottom, uppercase letter-spaced name/role, uniform dark text, no divider. */
+        .lp-tcard--marq { padding: 34px 30px; justify-content: flex-start; }
+        .lp-tcard--marq .lp-tcard__quote {
+          font-size: 1.02rem;
+          font-weight: 500;
+          color: var(--lp-ink);
+          line-height: 1.55;
+          letter-spacing: -0.005em;
+          margin: 0 0 24px;
+        }
+        .lp-tcard--marq .lp-tcard__quote em {
+          color: inherit;
+          font-style: normal;
+          font-weight: 600;
+        }
+        .lp-tcard--marq .lp-tcard__author {
+          margin-top: auto;
+          padding-top: 0;
+          border-top: none;
+          margin-bottom: 0;
+        }
+        .lp-tcard--marq .lp-tcard__name {
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          font-weight: 700;
+          font-size: 0.82rem;
+        }
+        .lp-tcard--marq .lp-tcard__role {
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          font-size: 0.72rem;
+          margin-top: 4px;
         }
 
         .lp-tcard__metric {

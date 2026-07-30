@@ -1463,7 +1463,7 @@ export default function Landing() {
       >
         <div className="lp-navbar__inner">
           <img
-            src="/newlogo.png"
+            src="/ugcad-logo.png"
             alt="UGCad.io"
             className="lp-navbar__logo"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -3018,9 +3018,20 @@ export default function Landing() {
         .lp-logo3d,
         .lp-brandstrip,
         .lp-showcase,
+        .lp-audit,
         .lp-testimonial,
         .lp-faq,
         .lp-footer { display: none !important; }
+
+        /* Light header to match the cream hero (was a black mask + white text). */
+        .lp-navbar::before {
+          background: linear-gradient(180deg, #f6f1e6 0%, #f6f1e6 70%, transparent 100%) !important;
+        }
+        .lp-root .lp-navlink { color: #2b2b2b !important; }
+        .lp-root .lp-navlink:hover { color: #000 !important; }
+        .lp-root .lp-nav-join { color: #4452f0 !important; }
+        .lp-btn-login { color: #171717 !important; border-color: rgba(0,0,0,0.22) !important; }
+        .lp-btn-login:hover { border-color: rgba(0,0,0,0.45) !important; }
 
         .lp-hero {
           position: relative;

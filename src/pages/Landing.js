@@ -2123,70 +2123,34 @@ export default function Landing() {
       </div>
 
       {/* ── US vs Others — two-column comparison table ─────────────────────── */}
-      <section className="lp-vs">
-        <div className="lp-vs__inner">
-          <h2 className="lp-vs__heading">WHY CHOOSE <span className="lp-vs__heading-vs">US</span></h2>
-          <div className="lp-vs__table">
-            {/* header — labels col, then highlighted UGCad.io (middle), then "Others" (right) */}
-            <div className="lp-vs__row lp-vs__row--head">
-              <div className="lp-vs__cell lp-vs__cell--label" />
-              <div className="lp-vs__cell lp-vs__cell--us">
-                <span className="lp-vs__brand">UGCad.io</span>
-              </div>
-              <div className="lp-vs__cell lp-vs__cell--them">
-                <span className="lp-vs__them-label">Others (Marketplaces / Agencies)</span>
-              </div>
-            </div>
+      {/* Comparison table — editorial "Evolve"-style: cream bg, serif heading, a
+          highlighted centre column for UGCad.io vs a plain "traditional" column. */}
+      <section className="lpv">
+        <div className="lpv-inner">
+          <p className="lpv-kicker">Why UGCad.io?</p>
+          <h2 className="lpv-heading">Vetted creators. Protected payments.</h2>
+
+          <div className="lpv-grid">
+            {/* header row */}
+            <div className="lpv-h lpv-h--label" />
+            <div className="lpv-h lpv-h--us"><span className="lpv-brand">UGC<span className="lpv-brand-ad">ad.io</span></span></div>
+            <div className="lpv-h lpv-h--them">Traditional Agencies &amp; Marketplaces</div>
 
             {vsRows.map((r) => (
-              <div className="lp-vs__row" key={r.label}>
-                <div className="lp-vs__cell lp-vs__cell--label">{r.label}</div>
-
-                <div className="lp-vs__cell lp-vs__cell--us">
-                  <Sparkle size={18} className="lp-vs__star lp-vs__star--us" aria-hidden="true" />
-                  <span className="lp-vs__pill lp-vs__pill--us">{r.us}</span>
+              <div className="lpv-rowgroup" key={r.label}>
+                <div className="lpv-label">{r.label}</div>
+                <div className="lpv-cell lpv-cell--us">
+                  <em className="lpv-tag">UGCad.io</em>
+                  <strong>{r.us.title}</strong>
+                  <span>{r.us.desc}</span>
                 </div>
-
-                <div className="lp-vs__cell lp-vs__cell--them">
-                  <Sparkle size={18} className="lp-vs__star lp-vs__star--them" aria-hidden="true" />
-                  <span className="lp-vs__pill lp-vs__pill--them">{r.them}</span>
+                <div className="lpv-cell lpv-cell--them">
+                  <em className="lpv-tag">Traditional</em>
+                  <strong>{r.them.title}</strong>
+                  <span>{r.them.desc}</span>
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Mobile comparison — replaces the desktop table below 768px (desktop
-              unchanged). Fixed two-column compare table that fits the viewport. */}
-          <div className="lp-vs__mobile">
-            <div className="lp-vs__viewtable">
-                <div className="lp-vs__scrollwrap">
-                  <table className="lp-vs__ctable">
-                    <colgroup>
-                      <col className="lp-vs__col--feature" />
-                      <col className="lp-vs__col--ugc" />
-                      <col className="lp-vs__col--others" />
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th className="lp-vs__th lp-vs__th--feature">Feature</th>
-                        <th className="lp-vs__th lp-vs__th--ugc">
-                          UGCad.io
-                        </th>
-                        <th className="lp-vs__th lp-vs__th--others">Others</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {vsRows.map((r) => (
-                        <tr key={r.label}>
-                          <td className="lp-vs__td lp-vs__td--feature">{r.label}</td>
-                          <td className="lp-vs__td lp-vs__td--ugc">{r.us}</td>
-                          <td className="lp-vs__td lp-vs__td--others">{r.them}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-            </div>
           </div>
         </div>
       </section>

@@ -3,6 +3,10 @@
 # Runs after every turn. Exits quietly when there is nothing to commit.
 set -u
 
+# ⏸ PAUSED by user request (landing redesign was leaking to main). This early
+# exit disables ALL auto-committing/pushing. To re-enable, delete the next line.
+exit 0
+
 REPO="c:/Users/meetr/Frontend"
 cd "$REPO" 2>/dev/null || exit 0
 

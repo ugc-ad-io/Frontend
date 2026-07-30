@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
+﻿import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../App';
 import {
@@ -1719,21 +1719,26 @@ export default function Landing() {
           <p className="lp-showcase__subtitle">Choose your industry to see examples!</p>
 
           {/* Industry filter pills — clicking one narrows the grid to that industry.
-              A second click (or Reset) clears the filter back to all. */}
+              A second click (or Reset) clears the filter back to all.
+              Only the first 9 industries are shown, laid out as two rows: 5 on the
+              first, then 4 + Reset on the second. The full-width spacer forces the
+              wrap after the 5th pill regardless of each pill's text width. */}
           <div className="lp-showcase__filters">
-            {industries.map((ind) => {
+            {industries.slice(0, 9).map((ind, i) => {
               const Ic = ind.Icon;
               const active = selectedIndustry === ind.id;
               return (
-                <button
-                  key={ind.id}
-                  type="button"
-                  className={`lp-filter${active ? ' is-active' : ''}`}
-                  onClick={() => setSelectedIndustry(active ? null : ind.id)}
-                  aria-pressed={active}
-                >
-                  <Ic size={16} /> {ind.label}
-                </button>
+                <Fragment key={ind.id}>
+                  <button
+                    type="button"
+                    className={`lp-filter${active ? ' is-active' : ''}`}
+                    onClick={() => setSelectedIndustry(active ? null : ind.id)}
+                    aria-pressed={active}
+                  >
+                    <Ic size={16} /> {ind.label}
+                  </button>
+                  {i === 4 && <span className="lp-showcase__filters-break" aria-hidden="true" />}
+                </Fragment>
               );
             })}
             <button
@@ -4178,6 +4183,15 @@ export default function Landing() {
           margin-left: auto;
           margin-right: auto;
         }
+        /* Full-width flex item: forces a line break so row 1 = 5 pills, row 2 = the rest. */
+        .lp-showcase__filters-break {
+          flex-basis: 100%;
+          height: 0;
+        }
+        /* On narrow screens the forced 5-up break looks cramped, so let pills wrap naturally. */
+        @media (max-width: 720px) {
+          .lp-showcase__filters-break { display: none; }
+        }
 
         .lp-filter {
           display: inline-flex;
@@ -4225,8 +4239,8 @@ export default function Landing() {
         .lp-showcase__grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
-          max-width: 880px;
+          gap: 18px;
+          max-width: 960px;
           margin: 0 auto;
           text-align: left;
         }
@@ -7054,12 +7068,11 @@ export default function Landing() {
           gap: 24px;
           margin-bottom: 60px;
           align-items: stretch;
-          min-height: min(84vh, 760px);
         }
         .lp-proof__big {
           display: flex; flex-direction: column; justify-content: center;
           background: var(--lp-section); border: 1px solid var(--lp-border);
-          border-radius: 24px; padding: 48px 44px;
+          border-radius: 24px; padding: 48px 44px; min-height: 380px;
         }
         .lp-proof__big-value {
           font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;
@@ -7069,12 +7082,13 @@ export default function Landing() {
           margin-top: 18px; font-family: var(--font-body, 'Inter', sans-serif);
           font-size: 17px; color: var(--lp-text-muted); font-weight: 600;
         }
-        .lp-proof__cards { display: flex; flex-direction: column; gap: 16px; }
+        /* Cards hug their content and spread to match the left card's height. */
+        .lp-proof__cards { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
         .lp-proof__card {
-          position: relative; text-align: left; cursor: pointer; flex: 1;
+          position: relative; text-align: left; cursor: pointer; flex: none;
           background: var(--lp-section); border: 1px solid var(--lp-border);
-          border-radius: 20px; padding: 22px 26px; font-family: inherit;
-          display: flex; flex-direction: column; gap: 4px;
+          border-radius: 20px; padding: 20px 26px; font-family: inherit;
+          display: flex; flex-direction: column; gap: 3px;
           transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
         }
         .lp-proof__card:hover, .lp-proof__card.is-active {

@@ -835,18 +835,6 @@ const fadeUpVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: 'easeOut' } },
 };
 
-// Audit deck entrance — cards stagger in one by one AFTER the heading/subtitle.
-// Only opacity/scale animate here; x/y/rotate stay driven by the scroll-linked
-// peel motion values in `style`, so the two systems don't fight over the same prop.
-const auditCardVariants = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: (i) => ({
-    opacity: 1,
-    scale: 1,
-    transition: { delay: 0.35 + i * 0.18, duration: 0.5, ease: 'easeOut' },
-  }),
-};
-
 const statVariants = {
   hidden: { opacity: 0, scale: 0.85 },
   visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -1152,12 +1140,23 @@ export default function Landing() {
 
   // Audit cards — scroll-linked peel-away animation
   const auditRef = useRef(null);
-  // One-shot entrance: heading/subtitle fade up first, then the Q1/Q2/Q3 cards stagger in
-  // one by one (opacity/scale only — x/y/rotate stay driven by the peel scroll values below).
+  // One-shot entrance: heading/subtitle fade up first (time-based — they're simple, no
+  // reason to gate them on scroll). The Q1/Q2/Q3 cards are different: they slide in from
+  // off-screen left, driven by SCROLL POSITION during the section's entering phase (see
+  // auditEnterProgress below), not a timer — so nothing shows until the user actually
+  // scrolls, and slower/faster scrolling changes how much of each card has arrived.
   const auditInView = useInView(auditRef, { once: true, margin: '-100px' });
   const { scrollYProgress: auditProgress } = useScroll({
     target: auditRef,
     offset: ['start start', 'end end'],
+  });
+  // Entrance-only progress: 0 when the section's top is at the viewport bottom (not yet
+  // visible), 1 when its top reaches the viewport top (the moment it pins and auditProgress's
+  // own 0..1 peel-away timeline takes over). This is a distinct scroll segment BEFORE the
+  // peel, so the two timelines never fight over the same range.
+  const { scrollYProgress: auditEnterProgress } = useScroll({
+    target: auditRef,
+    offset: ['start end', 'start start'],
   });
   // "Find & Hire" achieve section scroll — used (mobile) to lift the pinned heading UP in sync
   // with the card deck as it scrolls off, so the heading leaves WITH the cards instead of staying
@@ -1188,6 +1187,17 @@ export default function Landing() {
   const [heroStatic, setHeroStatic] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
+  // Cards slide in from off-screen left, one at a time, each starting once the previous
+  // is about half arrived (overlapping ranges: 0-0.5, 0.25-0.75, 0.5-1). Q1 first, Q2, Q3 —
+  // same left-to-right order they read in. Off-screen start MUST be a plain number, same
+  // type as the resting x values (0/90/-90) — mixing a 'vw' string into the same
+  // useTransform output range as numeric outputs silently breaks Framer's interpolator
+  // (two of the three cards rendered `transform: none`, verified in devtools).
+  const AUDIT_ENTER_FROM = typeof window !== 'undefined' ? -window.innerWidth * 0.7 : -1000;
+  const auditEnterQ1X = useTransform(auditEnterProgress, [0, 0.5], [AUDIT_ENTER_FROM, 0]);
+  const auditEnterQ2X = useTransform(auditEnterProgress, [0.25, 0.75], [AUDIT_ENTER_FROM, heroStatic ? 50 : 90]);
+  const auditEnterQ3X = useTransform(auditEnterProgress, [0.5, 1], [AUDIT_ENTER_FROM, heroStatic ? -50 : -90]);
+  const auditEnterX = [auditEnterQ1X, auditEnterQ2X, auditEnterQ3X];
   const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
   // These desktop glide-springs run a per-frame rAF physics loop while their source moves.
   // On mobile the cards use the raw mAudit* transforms below instead, so freeze the spring
@@ -2150,11 +2160,7 @@ export default function Landing() {
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
-                  variants={auditCardVariants}
-                  custom={i}
-                  initial="hidden"
-                  animate={auditInView ? 'visible' : 'hidden'}
+                  style={{ x: auditEnterX[i], y: p.y, rotate: p.rotate, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -2377,18 +2383,12 @@ export default function Landing() {
             Real founders. Real numbers. Same shift in how their ads land.
           </p>
 
-          {/* Avatar picker — click a face to jump the spotlight card below straight to their story. */}
+          {/* Static trust bar — the faces behind the stories below. */}
           <div className="lp-testimonial__trustbar">
             <span className="lp-testimonial__trustbar-label">Trusted by:</span>
             <div className="lp-testimonial__avatars">
-              {testimonials.map((t, i) => (
-                <button
-                  type="button"
-                  key={t.name}
-                  className={`lp-testimonial__avatar${i === tActive ? ' is-active' : ''}`}
-                  onClick={() => goToTestimonial(i)}
-                  aria-label={`Show ${t.name}'s story`}
-                >
+              {testimonials.map((t) => (
+                <span className="lp-testimonial__avatar" key={t.name}>
                   <img
                     src={t.photo}
                     alt=""
@@ -2398,31 +2398,22 @@ export default function Landing() {
                     }}
                   />
                   <span className="lp-tcard__initials">{t.initials}</span>
-                  {i === tActive && (
-                    <span className="lp-testimonial__avatar-tip">{t.name}</span>
-                  )}
-                </button>
+                </span>
               ))}
             </div>
           </div>
 
           <div className="lp-testimonial__carousel">
-            <div className="lp-testimonial__viewport" ref={tViewportRef}>
-              <div
-                className="lp-testimonial__grid"
-                style={{ transform: `translateX(${tOffset}px)` }}
-              >
-                {testimonials.map((t, i) => {
+            <div className="lp-testimonial__viewport lp-testimonial__viewport--marquee">
+              <div className="lp-testimonial__grid lp-testimonial__grid--marquee">
+                {[...testimonials, ...testimonials].map((t, i) => {
                   const [before, after] = t.accent && t.quote.includes(t.accent)
                     ? [t.quote.split(t.accent)[0], t.quote.split(t.accent)[1]]
                     : [t.quote, ''];
-                  const isActive = i === tActive;
                   return (
                     <article
-                      key={t.name}
-                      style={{ flex: `0 0 ${tCardW}px` }}
-                      className={`lp-tcard lp-tcard--spot${isActive ? ' is-active' : ''}`}
-                      onClick={() => !isActive && goToTestimonial(i)}
+                      key={`${t.name}-${i}`}
+                      className="lp-tcard lp-tcard--marq"
                     >
                       <div className="lp-tcard__rating">
                         {[1, 2, 3, 4, 5].map((s) => (
@@ -2464,6 +2455,13 @@ export default function Landing() {
                   );
                 })}
               </div>
+            </div>
+            {/* Fixed corner-bracket frame marking the centre spotlight card. */}
+            <div className="lp-testimonial__frame" aria-hidden="true">
+              <span className="lp-tframe-c lp-tframe-c--tl" />
+              <span className="lp-tframe-c lp-tframe-c--tr" />
+              <span className="lp-tframe-c lp-tframe-c--bl" />
+              <span className="lp-tframe-c lp-tframe-c--br" />
             </div>
           </div>
 
@@ -4937,7 +4935,7 @@ export default function Landing() {
           top: 88px;
           z-index: 5;
           background: linear-gradient(to bottom, #f3ecdd 0%, #f3ecdd 88%, rgba(243, 236, 221, 0) 100%);
-          min-height: 190px;
+          min-height: 120px;
         }
         .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
@@ -7680,6 +7678,65 @@ export default function Landing() {
           transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .lp-testimonial__grid > .lp-tcard { box-sizing: border-box; }
+
+        /* ── Infinite marquee variant (seamless, no empty edge, no spotlight) ── */
+        /* Center-peaked mask: whichever card is under the middle stays full-strength;
+           neighbours fade lighter toward the edges (the spotlight follows the scroll). */
+        .lp-testimonial__viewport--marquee {
+          overflow: hidden;
+          -webkit-mask-image: linear-gradient(90deg,
+            transparent 0%, rgba(0,0,0,0.28) 14%, rgba(0,0,0,0.42) 32%,
+            #000 50%,
+            rgba(0,0,0,0.42) 68%, rgba(0,0,0,0.28) 86%, transparent 100%);
+                  mask-image: linear-gradient(90deg,
+            transparent 0%, rgba(0,0,0,0.28) 14%, rgba(0,0,0,0.42) 32%,
+            #000 50%,
+            rgba(0,0,0,0.42) 68%, rgba(0,0,0,0.28) 86%, transparent 100%);
+        }
+        .lp-testimonial__grid--marquee {
+          width: max-content;
+          flex-wrap: nowrap;
+          transition: none;                 /* driven by the keyframes, not JS transforms */
+          animation: testimonialScroll 48s linear infinite;
+        }
+        .lp-testimonial__grid--marquee:hover { animation-play-state: paused; }
+        .lp-tcard--marq {
+          flex: 0 0 clamp(300px, 26vw, 360px);
+          cursor: default;
+        }
+        @keyframes testimonialScroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }   /* set duplicated once → seamless loop */
+        }
+        /* Centre spotlight frame — fixed corner brackets over the middle card. */
+        .lp-testimonial__carousel { position: relative; }
+        .lp-testimonial__frame {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: clamp(300px, 26vw, 360px);
+          height: calc(100% - 34px);
+          pointer-events: none;
+          z-index: 5;
+        }
+        .lp-tframe-c {
+          position: absolute;
+          width: 24px;
+          height: 24px;
+          border: 2px solid #a33b2a;   /* terracotta corner marks */
+        }
+        .lp-tframe-c--tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
+        .lp-tframe-c--tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
+        .lp-tframe-c--bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
+        .lp-tframe-c--br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+        @media (max-width: 640px) {
+          .lp-testimonial__frame { width: 82vw; }
+        }
+        @media (max-width: 640px) {
+          .lp-tcard--marq { flex-basis: 82vw; }
+          .lp-testimonial__grid--marquee { animation-duration: 32s; }
+        }
 
         .lp-tcard {
           position: relative;

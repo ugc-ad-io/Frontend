@@ -357,9 +357,9 @@ function PromiseCard({ card, i, total, vid, progress, navigate }) {
   const B = PROMISE_EXIT_END / (total - 1); // scroll length of one "card leaves" beat
   const frontAt = i * B;                     // progress at which this card reaches the front slot
   const leaveEnd = frontAt + B;              // progress at which it's fully gone (non-last)
-  const depth = Math.min(i, 2);              // capped visual depth behind the front card
-  const offVh = depth * 2.6;                 // starts this far DOWN (peek below), in vh
-  const startScale = 1 - depth * 0.06;       // ...and this much smaller
+  const depth = i;                           // full depth behind the front — every card peeks
+  const offVh = depth * 2.7;                 // starts this far DOWN (peek below), in vh
+  const startScale = 1 - depth * 0.05;       // ...and this much smaller
 
   // y — waits below+small, RISES to the front (0), then (non-last) slides up & off the top.
   const yIn = isLast ? [0, frontAt] : (i === 0 ? [0, leaveEnd] : [0, frontAt, leaveEnd]);
@@ -1082,11 +1082,14 @@ export default function Landing() {
   // it can never collapse from a mis-measured width.
   const tTrackTransform = `translateX(calc(-${tIndex} * (var(--tcard-w) + var(--tcard-gap))))`;
 
-  // Auto-advance one card at a time.
+  // Auto-advance: schedule the NEXT step 3800ms after each card settles. Skipped on the
+  // instant wrap-snap frame (tAnim false) so a snap never triggers an extra slide — this
+  // is what caused the jump/shift when the loop wrapped.
   useEffect(() => {
-    const id = setInterval(() => setTIndex((i) => i + 1), 3800);
-    return () => clearInterval(id);
-  }, []);
+    if (!tAnim) return undefined;
+    const id = setTimeout(() => setTIndex((i) => i + 1), 3800);
+    return () => clearTimeout(id);
+  }, [tIndex, tAnim]);
 
   // Seamless wrap: once the index leaves the middle copy, snap it back by N with the
   // transition momentarily disabled (620ms > the CSS slide, so the snap is invisible).
@@ -1252,6 +1255,10 @@ export default function Landing() {
   const auditEnterQ1Y = useTransform(auditEnterProgress, [0, 0.5], [AUDIT_ENTER_FROM_Y, 0]);
   const auditEnterQ2Y = useTransform(auditEnterProgress, [0.25, 0.75], [AUDIT_ENTER_FROM_Y, 0]);
   const auditEnterQ3Y = useTransform(auditEnterProgress, [0.5, 1], [AUDIT_ENTER_FROM_Y, 0]);
+  // Heading/subtitle fade out once the rising Q1 card reaches (covers) them, and stay
+  // gone — nothing later re-drives this opacity back up, so it never reappears once the
+  // scroll has passed this point, even for Q2/Q3's later cover-and-pass.
+  const auditHeadingOpacity = useTransform(auditEnterProgress, [0.2, 0.4], [1, 0]);
   const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
   // These desktop glide-springs run a per-frame rAF physics loop while their source moves.
   // On mobile the cards use the raw mAudit* transforms below instead, so freeze the spring
@@ -2165,25 +2172,31 @@ export default function Landing() {
             Quick reality check
           </motion.span>
 
-          <motion.h2
-            className="lp-audit__heading"
-            variants={fadeUpVariants}
-            initial="hidden"
-            animate={auditInView ? 'visible' : 'hidden'}
-            transition={{ delay: 0.1 }}
-          >
-            Answer This{' '}
-            <span className="lp-audit__heading--accent">Honestly</span>.
-          </motion.h2>
-          <motion.p
-            className="lp-audit__subtitle"
-            variants={fadeUpVariants}
-            initial="hidden"
-            animate={auditInView ? 'visible' : 'hidden'}
-            transition={{ delay: 0.2 }}
-          >
-            Three questions most brands avoid. The answers usually explain everything.
-          </motion.p>
+          {/* Fades out (and stays gone) once the rising Q1 card reaches it — see
+              auditHeadingOpacity. Wrapped rather than driving opacity directly on the h2/p so
+              their own fadeUpVariants entrance (opacity+y on first appear) keeps working
+              untouched; the wrapper's opacity multiplies on top of that. */}
+          <motion.div style={{ opacity: auditHeadingOpacity }}>
+            <motion.h2
+              className="lp-audit__heading"
+              variants={fadeUpVariants}
+              initial="hidden"
+              animate={auditInView ? 'visible' : 'hidden'}
+              transition={{ delay: 0.1 }}
+            >
+              Answer This{' '}
+              <span className="lp-audit__heading--accent">Honestly</span>.
+            </motion.h2>
+            <motion.p
+              className="lp-audit__subtitle"
+              variants={fadeUpVariants}
+              initial="hidden"
+              animate={auditInView ? 'visible' : 'hidden'}
+              transition={{ delay: 0.2 }}
+            >
+              Three questions most brands avoid. The answers usually explain everything.
+            </motion.p>
+          </motion.div>
 
           <div className="lp-audit__grid">
             {auditQuestions.map((q, i) => {
@@ -3646,7 +3659,7 @@ export default function Landing() {
         }
         .lp-promise__card {
           position: absolute; inset: 0;
-          border-radius: 26px; padding: 40px 44px; overflow: hidden;
+          border-radius: 0; padding: 40px 44px; overflow: hidden;
           box-shadow: 0 30px 60px -34px rgba(30,22,8,.40);
           will-change: transform;
         }
@@ -3662,7 +3675,7 @@ export default function Landing() {
         }
         /* Number — top-right */
         .lp-promise__num {
-          position: absolute; top: 36px; right: 44px;
+          position: absolute; top: 36px; right: 44px; z-index: 2;
           font-family: Georgia, 'Times New Roman', serif; font-style: italic;
           font-size: clamp(34px, 3.6vw, 52px); color: rgba(28,27,75,.4); line-height: 1;
         }
@@ -3682,8 +3695,8 @@ export default function Landing() {
         .lp-promise__btn svg { color: #d3f24f; }
         /* Video — tall panel on the right */
         .lp-promise__video {
-          position: absolute; right: 40px; top: 40px; bottom: 40px;
-          width: clamp(210px, 24vw, 260px); border-radius: 14px; overflow: hidden;
+          position: absolute; right: 40px; top: 96px; bottom: 40px;
+          width: clamp(210px, 24vw, 260px); border-radius: 0; overflow: hidden;
           background: rgba(0,0,0,.12); box-shadow: 0 14px 30px -16px rgba(0,0,0,.4);
         }
         .lp-promise__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -7692,8 +7705,8 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          transition: border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
-          opacity: 0.55;
+          transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, box-shadow 0.3s ease;
+          opacity: 0.45;
         }
         .lp-testimonial__avatar img {
           position: absolute;
@@ -7709,7 +7722,10 @@ export default function Landing() {
         .lp-testimonial__avatar.is-active {
           opacity: 1;
           border-color: #7387FF;
-          transform: translateY(-2px);
+          /* Clearly larger + a periwinkle glow so the active face is obvious. */
+          transform: scale(1.28) translateY(-2px);
+          box-shadow: 0 0 0 3px rgba(115, 135, 255, 0.28), 0 8px 18px rgba(115, 135, 255, 0.35);
+          z-index: 2;
         }
         .lp-testimonial__avatar-tip {
           position: absolute;

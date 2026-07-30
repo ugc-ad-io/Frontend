@@ -290,6 +290,7 @@ export default function BrandCampaignDetail() {
   };
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [selecting, setSelecting] = useState(null); // creator_id being accepted
+  const [finishing, setFinishing] = useState(false); // closing hiring early
   const [myReview, setMyReview] = useState(null);    // this brand's review of the creator (or null)
   const [reviewOpen, setReviewOpen] = useState(false);
   // Mobile: the Campaign Progress card collapses to a start/end summary bar with
@@ -448,6 +449,25 @@ export default function BrandCampaignDetail() {
         toast.error(e?.response?.data?.detail || 'Failed to select creator');
       }
     } finally { setSelecting(null); }
+  };
+
+  // Close a multi-creator brief early with whoever's already hired. The backend
+  // refunds the budget reserved for the slots you're not filling.
+  const finishHiring = async () => {
+    if (!window.confirm('Close hiring with the creators you’ve already picked? The reserved budget for the remaining slots will be refunded to your wallet.')) return;
+    setFinishing(true);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/${id}/finish-hiring`);
+      const back = Number(data?.refunded || 0);
+      toast.success(
+        back > 0
+          ? `Hiring closed with ${data.creators_hired} creator${data.creators_hired === 1 ? '' : 's'} — ₹${Math.round(back).toLocaleString('en-IN')} refunded to your wallet.`
+          : `Hiring closed with ${data.creators_hired} creator${data.creators_hired === 1 ? '' : 's'}.`
+      );
+      await load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Could not close hiring');
+    } finally { setFinishing(false); }
   };
 
   const requestRevision = () => setRevisionOpen(true);
@@ -891,6 +911,13 @@ export default function BrandCampaignDetail() {
                     ? `${hiredIds.length} of ${wanted} hired — ${openSlots} slot${openSlots === 1 ? '' : 's'} left. You're only charged when you pick someone.`
                     : `${openBids.length} creator${openBids.length === 1 ? '' : 's'} applied — pick up to ${wanted}. You're only charged when you pick someone.`}
                 </p>
+                {/* Hired at least one but don't want to fill every slot? Close hiring
+                    now and get the unused slots' budget back. */}
+                {hiredIds.length > 0 && openSlots > 0 && (
+                  <button type="button" className="bcd-finish-hiring" onClick={finishHiring} disabled={finishing} data-testid="finish-hiring-btn">
+                    <Check size={14} /> {finishing ? 'Closing…' : `Finish hiring with ${hiredIds.length} — refund ${openSlots} slot${openSlots === 1 ? '' : 's'}`}
+                  </button>
+                )}
                 {openBids.map((b) => (
                   <div key={b.id || b.creator_id} className="bcd-bid">
                     <div className="bcd-bid-top">
@@ -1206,6 +1233,9 @@ export default function BrandCampaignDetail() {
         .bcd-cta-ship{margin-top:10px}
         .bcd-bids{display:flex;flex-direction:column;gap:10px}
         .bcd-bids-h{margin:0 0 2px;font-size:13px;color:#6b6f95;font-weight:600}
+        .bcd-finish-hiring{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin:0 0 4px;padding:8px 12px;border:1px solid #cdd4ff;background:#f2f4ff;color:#4452f0;font-size:12.5px;font-weight:700;border-radius:10px;cursor:pointer}
+        .bcd-finish-hiring:hover{background:#e8ecff}
+        .bcd-finish-hiring:disabled{opacity:.6;cursor:default}
         .bcd-bid{border:1px solid #e8ecff;border-radius:12px;padding:12px 14px;background:#fbfcff}
         .bcd-bid-top{display:flex;align-items:center;gap:10px}
         .bcd-bid-who{flex:1;min-width:0}

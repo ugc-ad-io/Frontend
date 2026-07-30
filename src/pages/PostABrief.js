@@ -26,10 +26,10 @@ const COMMISSION_RATE = 0.20;
 //   2–10 creators                  -> Rs. 1,500
 //   11+ creators                   -> Rs. 3,000
 function listingFeeFor(creators, deliverables) {
-  const c = Math.max(1, Number(creators) || 1);
+  // Flat listing fee — it does NOT multiply by the number of creators hired (the
+  // backend charges a single flat listing_fee setting). Only the deliverable count
+  // nudges it, matching the platform's one-time listing charge.
   const d = Math.max(1, Number(deliverables) || 1);
-  if (c >= 11) return 3000;
-  if (c >= 2) return 1500;
   return d <= 1 ? 500 : 1500;
 }
 
@@ -476,10 +476,15 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     });
   };
 
+  // `budget` is the per-creator figure (what one creator is paid) — it feeds the
+  // per_video_budget / budget_max payload fields. The wallet holds it for EVERY
+  // creator the brief hires, so the money shown on hold multiplies by that count.
   const budget = Number(form.budgetMode === 'fixed' ? form.fixedBudget : form.budgetMax) || 0;
-  const commission = Math.round(budget * COMMISSION_RATE);
-  const listingFee = listingFeeFor(form.creatorsWanted, form.deliverables.length);
-  const totalDebit = budget + commission + listingFee;
+  const creatorsCount = Math.max(1, Number(form.creatorsWanted) || 1);
+  const totalBudget = budget * creatorsCount;                 // e.g. ₹3,000 × 4 = ₹12,000
+  const commission = Math.round(totalBudget * COMMISSION_RATE); // commission on the overall total
+  const listingFee = listingFeeFor(form.creatorsWanted, form.deliverables.length); // flat — not per creator
+  const totalDebit = totalBudget + commission + listingFee;
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
   // Only a physical product ships. Everything else skips shipping date + address + receipt.
   const needsShipping = typeNeedsShipping(form.productType);
@@ -871,7 +876,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       city_filter: form.cityFilter,
       creator_niche_tags: form.nicheTags,
       per_video_budget: budget,
-      total_budget: budget,
+      total_budget: totalBudget,
       currency: 'INR',
 
       // Full structured brief so a duplicate can be rebuilt exactly (the backend
@@ -1300,7 +1305,14 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
                 {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="brief-note"><Info size={18} /> Rush delivery is not available in V0.5.</div>
-                <div className="commission-card"><p>Your budget <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p><p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p><p>Listing fee <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p><p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p></div>
+                <div className="commission-card">
+                  <p>Budget per creator <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p>
+                  {creatorsCount > 1 && <p>Creators wanted <strong>× {creatorsCount}</strong></p>}
+                  <p>Total budget{creatorsCount > 1 ? ` (${budget.toLocaleString('en-IN')} × ${creatorsCount})` : ''} <strong>Rs. {totalBudget.toLocaleString('en-IN')}</strong></p>
+                  <p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p>
+                  <p>Listing fee (flat) <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p>
+                  <p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p>
+                </div>
               </>
             )}
 
@@ -1313,7 +1325,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
                 { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
                 { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
-                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget per creator', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Creators wanted', `${creatorsCount}`], ['Total budget', `Rs. ${totalBudget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
               ];
               const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
               const active = reviewSections[activeIdx];

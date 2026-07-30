@@ -2301,11 +2301,13 @@ export default function Landing() {
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.6, delay: i * 0.14, ease: [0.16, 1, 0.3, 1] }}
               >
-                <span className="lp-proof-num__index">0{i + 1}</span>
                 <span className="lp-proof-num__value">
                   <CountUp value={s.value} />
                 </span>
-                <span className="lp-proof-num__label">{s.label}</span>
+                <span className="lp-proof-num__details">
+                  <span className="lp-proof-num__index">0{i + 1}</span>
+                  <span className="lp-proof-num__label">{s.label}</span>
+                </span>
               </motion.div>
             ))}
           </div>
@@ -6786,33 +6788,34 @@ export default function Landing() {
           max-width: 600px;
         }
 
-        /* WEB: original editorial 3-column grid with vertical dividers + count-up numbers. */
+        /* WEB: editorial stacked rows — big number on the LEFT, index + label on the
+           RIGHT (each stat is a full-width row, divided by a horizontal rule). */
         .lp-proof__row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          align-items: center;
+          display: flex;
+          flex-direction: column;
           gap: 0;
           margin-bottom: 60px;
         }
         .lp-proof__row > .lp-proof-num {
-          padding: 8px 24px;
-          position: relative;
+          padding: 34px 4px;
         }
-        .lp-proof__row > .lp-proof-num:not(:last-child)::after {
-          content: '';
-          position: absolute;
-          top: 12%;
-          right: 0;
-          width: 1px;
-          height: 76%;
-          background: var(--lp-border);
+        .lp-proof__row > .lp-proof-num:not(:last-child) {
+          border-bottom: 1px solid var(--lp-border);
         }
         .lp-proof-num {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           align-items: center;
-          text-align: center;
-          gap: 16px;
+          justify-content: space-between;
+          gap: 24px;
+          text-align: left;
+        }
+        .lp-proof-num__details {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 8px;
+          text-align: right;
         }
         .lp-proof-num__index {
           font-family: var(--font-body);
@@ -6823,7 +6826,7 @@ export default function Landing() {
         }
         .lp-proof-num__value {
           font-family: var(--font-head);
-          font-size: clamp(2.6rem, 5.2vw, 4.4rem);
+          font-size: clamp(3rem, 6vw, 5.6rem);
           font-weight: var(--fw-head);
           color: #7387FF;
           letter-spacing: -0.045em;
@@ -6833,7 +6836,7 @@ export default function Landing() {
         }
         .lp-proof-num__label {
           font-family: var(--font-body);
-          font-size: 0.95rem;
+          font-size: 1.05rem;
           font-weight: 500;
           color: var(--lp-text);
           letter-spacing: -0.01em;

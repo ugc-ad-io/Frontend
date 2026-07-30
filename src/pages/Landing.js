@@ -358,7 +358,7 @@ function PromiseCard({ card, i, total, vid, progress, navigate }) {
   const frontAt = i * B;                     // progress at which this card reaches the front slot
   const leaveEnd = frontAt + B;              // progress at which it's fully gone (non-last)
   const depth = i;                           // full depth behind the front — every card peeks
-  const offVh = depth * 2.7;                 // starts this far DOWN (peek below), in vh
+  const offVh = depth * 3.8;                 // starts this far DOWN (peek below), in vh
   const startScale = 1 - depth * 0.05;       // ...and this much smaller
 
   // y — waits below+small, RISES to the front (0), then (non-last) slides up & off the top.
@@ -1247,18 +1247,20 @@ export default function Landing() {
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
   // Cards rise in from below, one at a time, each starting once the previous is about
-  // half arrived (overlapping ranges: 0-0.5, 0.25-0.75, 0.5-1) — Q1 first, Q2, Q3. This
-  // is added ON TOP of the existing peel-away Y (card2Y/card3Y/card1Y desktop,
-  // mAuditQ1-3Y mobile) rather than replacing it: the entrance motion resolves to 0
-  // once done, so it never fights the peel's own small resting baselines (0/35/-35).
+  // half arrived. A leading dead-zone (0 to AUDIT_SETTLE) is reserved BEFORE any card
+  // moves at all — the heading/subtitle finish their own fade-up-in and sit fully
+  // settled, centered, on their own first; only once the user keeps scrolling past that
+  // does Q1 start rising. This is ON TOP of the existing peel-away Y (card2Y/card3Y/
+  // card1Y desktop, mAuditQ1-3Y mobile) rather than replacing it: the entrance motion
+  // resolves to 0 once done, so it never fights the peel's own small resting baselines.
   const AUDIT_ENTER_FROM_Y = 700;
-  const auditEnterQ1Y = useTransform(auditEnterProgress, [0, 0.5], [AUDIT_ENTER_FROM_Y, 0]);
-  const auditEnterQ2Y = useTransform(auditEnterProgress, [0.25, 0.75], [AUDIT_ENTER_FROM_Y, 0]);
-  const auditEnterQ3Y = useTransform(auditEnterProgress, [0.5, 1], [AUDIT_ENTER_FROM_Y, 0]);
-  // Heading/subtitle fade out once the rising Q1 card reaches (covers) them, and stay
-  // gone — nothing later re-drives this opacity back up, so it never reappears once the
-  // scroll has passed this point, even for Q2/Q3's later cover-and-pass.
-  const auditHeadingOpacity = useTransform(auditEnterProgress, [0.2, 0.4], [1, 0]);
+  const AUDIT_SETTLE = 0.15;
+  const auditEnterQ1Y = useTransform(auditEnterProgress, [AUDIT_SETTLE, 0.575], [AUDIT_ENTER_FROM_Y, 0]);
+  const auditEnterQ2Y = useTransform(auditEnterProgress, [0.3625, 0.7875], [AUDIT_ENTER_FROM_Y, 0]);
+  const auditEnterQ3Y = useTransform(auditEnterProgress, [0.575, 1], [AUDIT_ENTER_FROM_Y, 0]);
+  // Heading/subtitle sit fully visible through the settle window, THEN fade out as Q1
+  // arrives (covering them) — and stay gone, since nothing later re-drives this opacity.
+  const auditHeadingOpacity = useTransform(auditEnterProgress, [0.42, 0.58], [1, 0]);
   const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
   // These desktop glide-springs run a per-frame rAF physics loop while their source moves.
   // On mobile the cards use the raw mAudit* transforms below instead, so freeze the spring
@@ -1754,18 +1756,21 @@ export default function Landing() {
 
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
           {/* 4 colored cards, stacked one behind another (hover to bring forward). */}
-          <div className="lp-promise">
-            {PROMISE_CARDS.map((card, i) => (
-              <PromiseCard
-                key={card.title}
-                card={card}
-                i={i}
-                total={PROMISE_CARDS.length}
-                vid={showcaseVideos[i]}
-                progress={logo3dProgress}
-                navigate={navigate}
-              />
-            ))}
+          <div className="lp-promise-wrap">
+            <h2 className="lp-promise-heading">Our Services</h2>
+            <div className="lp-promise">
+              {PROMISE_CARDS.map((card, i) => (
+                <PromiseCard
+                  key={card.title}
+                  card={card}
+                  i={i}
+                  total={PROMISE_CARDS.length}
+                  vid={showcaseVideos[i]}
+                  progress={logo3dProgress}
+                  navigate={navigate}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -3654,8 +3659,15 @@ export default function Landing() {
         /* Deck stage: fixed-size box; every card is absolutely stacked to fill it, so they all
            start on top of each other. Each card's scroll-driven translateY (PromiseCard) then
            slides the front one up and away, revealing the next — one by one. */
+        /* "Our Services" heading sits above the deck, inside the pinned viewport so it stays
+           put while the cards animate. */
+        .lp-promise-wrap { width: min(1120px, 94%); margin: 0 auto; }
+        .lp-promise-heading {
+          margin: 0 0 20px; font-family: Georgia, 'Times New Roman', serif; font-weight: 500;
+          font-size: clamp(24px, 2.6vw, 40px); color: #171334; letter-spacing: -0.5px;
+        }
         .lp-promise {
-          position: relative; width: min(940px, 94%); height: 400px; margin: 0 auto;
+          position: relative; width: 100%; height: 460px;
         }
         .lp-promise__card {
           position: absolute; inset: 0;
@@ -3664,7 +3676,7 @@ export default function Landing() {
           will-change: transform;
         }
         /* Head (title + subtitle) — top-left */
-        .lp-promise__head { position: absolute; top: 40px; left: 44px; right: 320px; }
+        .lp-promise__head { position: absolute; top: 40px; left: 44px; right: 380px; }
         .lp-promise__title {
           margin: 0; font-family: Georgia, 'Times New Roman', serif; font-weight: 500;
           font-size: clamp(28px, 3.4vw, 52px); color: #171334; line-height: 1.02; letter-spacing: -0.5px;
@@ -3695,17 +3707,20 @@ export default function Landing() {
         .lp-promise__btn svg { color: #d3f24f; }
         /* Video — tall panel on the right */
         .lp-promise__video {
-          position: absolute; right: 40px; top: 96px; bottom: 40px;
-          width: clamp(210px, 24vw, 260px); border-radius: 0; overflow: hidden;
-          background: rgba(0,0,0,.12); box-shadow: 0 14px 30px -16px rgba(0,0,0,.4);
+          position: absolute; right: 40px; top: 104px; bottom: 40px;
+          width: clamp(230px, 25vw, 300px); border: 8px solid #fff; border-radius: 0;
+          box-sizing: border-box; overflow: hidden;
+          background: rgba(0,0,0,.12); box-shadow: 0 18px 36px -18px rgba(0,0,0,.45);
         }
         .lp-promise__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
         @media (max-width: 760px) {
-          .lp-promise { width: 92%; height: 74vh; max-height: 600px; }
+          .lp-promise-wrap { width: 92%; }
+          .lp-promise-heading { font-size: 24px; margin: 0 0 14px; }
+          .lp-promise { width: 100%; height: 74vh; max-height: 600px; }
           .lp-promise__card { padding: 24px 22px; }
           .lp-promise__head { top: 22px; left: 22px; right: 70px; }
           .lp-promise__num { top: 20px; right: 22px; }
-          .lp-promise__video { top: 132px; right: 22px; bottom: auto; width: 132px; height: 188px; }
+          .lp-promise__video { top: 132px; right: 22px; bottom: auto; width: 128px; height: 184px; border-width: 6px; }
           .lp-promise__foot { left: 22px; right: 22px; bottom: 24px; width: auto; }
         }
         /* Smooth the hard hero(black)→section(navy) seam: a tall gradient at the top
@@ -7090,9 +7105,13 @@ export default function Landing() {
           justify-content: center;
           align-items: center;
           /* Shorter than the viewport so the inner pins cleanly to the section end (no
-             early-release blank) and there's no empty space below the centered card. */
+             early-release blank) and there's no empty space below the centered card.
+             Negative top margin pulls the resting deck UP so a rising card visually
+             covers the heading/subtitle (which fade out once covered, see
+             auditHeadingOpacity) instead of settling in its own separate space below
+             them — matches the reference where the cards overlap the hero text. */
           min-height: 440px;
-          margin: 60px auto;
+          margin: -200px auto 60px;
           max-width: 600px;
           text-align: left;
           perspective: 1200px;

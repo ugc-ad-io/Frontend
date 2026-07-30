@@ -343,6 +343,43 @@ const PROMISE_CARDS = [
     desc: 'We help you shape the brief, pick the right creators, and get to a video that actually performs.' },
 ];
 
+// Fraction of the pinned-section scroll over which the front cards slide away. The LAST
+// card doesn't move — after this point it rests on screen until the section un-pins.
+const PROMISE_EXIT_END = 0.85;
+
+// One card in the pinned "deck". All cards start stacked on top of each other; on scroll the
+// front card (i=0, highest z) slides UP and off, revealing the next — one by one. Each card
+// owns its own scroll-driven translateY, so it lives in its own component (hooks can't run in
+// a .map()). `progress` is the section's 0→1 scroll value (logo3dProgress).
+function PromiseCard({ card, i, total, vid, progress, navigate }) {
+  const isLast = i === total - 1;
+  const segLen = PROMISE_EXIT_END / (total - 1);
+  const start = i * segLen;
+  const end = start + segLen;
+  // Front cards travel 0 → -130vh (fully off the top). The last card stays put (0 → 0).
+  const y = useTransform(progress, [start, end], isLast ? ['0vh', '0vh'] : ['0vh', '-130vh'], { clamp: true });
+  return (
+    <motion.div className="lp-promise__card" style={{ y, zIndex: total - i, background: card.color }}>
+      <span className="lp-promise__num">0{i + 1}</span>
+      <div className="lp-promise__head">
+        <h3 className="lp-promise__title">{card.title}</h3>
+        <p className="lp-promise__sub">{card.sub}</p>
+      </div>
+      <div className="lp-promise__foot">
+        <p className="lp-promise__desc">{card.desc}</p>
+        <button type="button" className="lp-promise__btn" onClick={() => navigate('/auth?mode=signup&role=business')}>
+          Discover our approach <ArrowRight size={16} />
+        </button>
+      </div>
+      {vid && (
+        <div className="lp-promise__video">
+          <video src={vid.src} poster={cldPoster(vid.src)} muted loop playsInline autoPlay preload="none" />
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // Height of one leaderboard row, in vh (also used to compute the scroll range).
 const LOGO3D_ITEM_VH = 10;
 // Fraction of the section scroll over which all leaderboard rows pass the centre.
@@ -569,52 +606,57 @@ const howItWorksSteps = [
 
 const testimonials = [
   {
-    quote: 'We stopped guessing. Every creative now ships with a reason behind it.',
+    quote: 'We stopped guessing. Every creative now ships with a reason behind it. The team actually looks forward to launch days, and our CTR has climbed every single month since we switched. It changed how we brief, shoot, and scale.',
     accent: 'a reason behind it',
     name: 'Priya Nair',
     role: 'Head of Growth, Lumen Skincare',
     photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=faces',
     initials: 'PN',
+    rating: 5,
     metric: '+38%',
     metricLabel: 'CTR uplift',
   },
   {
-    quote: 'Our ads stopped feeling like ads. That\'s when ROAS stabilized.',
+    quote: 'Our ads stopped feeling like ads, and that\'s when ROAS stabilized. We\'re finally spending with confidence instead of crossing our fingers on every campaign. The creators actually understand our brand before a single frame is shot.',
     accent: 'ROAS stabilized',
     name: 'Rohan Kapoor',
     role: 'Founder, Glowly · D2C Beauty',
     photo: 'https://images.unsplash.com/photo-1600896997793-b8ed3459a17f?w=400&h=400&fit=crop&crop=faces',
     initials: 'RK',
+    rating: 5,
     metric: '+2.3×',
     metricLabel: 'ROAS in 60 days',
   },
   {
-    quote: 'Finally, content that doesn\'t scream "I was paid for this."',
+    quote: 'Finally, content that doesn\'t scream "I was paid for this." Our audience engages with it like a friend\'s recommendation, and the hook rates speak for themselves. We\'ve never had creative this authentic at this kind of volume.',
     accent: 'doesn\'t scream',
     name: 'Ananya Verma',
     role: 'CMO, Thix Hair',
     photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=faces',
     initials: 'AV',
+    rating: 5,
     metric: '4.1×',
     metricLabel: 'Hook-rate lift',
   },
   {
-    quote: 'We went from 12 mediocre creatives a month to 3 great ones. Sales doubled.',
-    accent: 'Sales doubled',
+    quote: 'We went from 12 mediocre creatives a month to 3 great ones, and sales doubled. Less noise, more trust — that trade turned out to be the best decision we made all year. Escrow meant we never once worried about the money.',
+    accent: 'sales doubled',
     name: 'Marcus Lee',
     role: 'Founder, Gener8',
     photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=faces',
     initials: 'ML',
+    rating: 5,
     metric: '2×',
     metricLabel: 'Revenue growth',
   },
   {
-    quote: 'Creators vetted, money in escrow, one dashboard. We finally trust the numbers.',
+    quote: 'Creators vetted, money in escrow, one clean dashboard — we finally trust the numbers. That trust changed how aggressively we\'re willing to scale, because every rupee is now tied to a result we can actually see and approve.',
     accent: 'trust the numbers',
     name: 'Sara Malhotra',
     role: 'Marketing Lead, NestHome',
     photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop&crop=faces',
     initials: 'SM',
+    rating: 5,
     metric: '+61%',
     metricLabel: 'Conversion lift',
   },
@@ -1014,45 +1056,47 @@ export default function Landing() {
     }
   });
 
-  // Testimonial "spotlight" carousel — one active card centered in the viewport, its
-  // neighbours dimmed and clipped at the viewport edges. An avatar (or an arrow) jumps
-  // straight to any testimonial by index — no infinite window/looping to manage.
+  // Testimonial carousel — infinite STEPPED spotlight. The centre card sits inside the
+  // fixed corner-bracket frame at full strength; neighbours dim. It auto-advances one
+  // card at a time, and the list is tripled so a card always fills both edges (no empty
+  // gap) — when the index drifts out of the middle copy we snap back by N with the
+  // transition off, so the loop is seamless.
   const T_LEN = testimonials.length;
-  const T_GAP = 24; // must match the flex gap in .lp-testimonial__grid CSS
-  const tViewportRef = useRef(null);
-  const [tViewportW, setTViewportW] = useState(0);
-  const [tActive, setTActive] = useState(0);
+  const T_LOOP = [...testimonials, ...testimonials, ...testimonials];
+  const [tIndex, setTIndex] = useState(T_LEN);   // start inside the middle copy
+  const [tAnim, setTAnim] = useState(true);
+  // Card width + gap live in CSS (--tcard-w / --tcard-gap); the track is centred with a
+  // 50% margin and stepped purely by translating whole "pitches" — no JS pixel math, so
+  // it can never collapse from a mis-measured width.
+  const tTrackTransform = `translateX(calc(-${tIndex} * (var(--tcard-w) + var(--tcard-gap))))`;
 
-  useLayoutEffect(() => {
-    const el = tViewportRef.current;
-    if (!el) return;
-    const measure = () => setTViewportW(el.clientWidth);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
+  // Auto-advance one card at a time.
+  useEffect(() => {
+    const id = setInterval(() => setTIndex((i) => i + 1), 3800);
+    return () => clearInterval(id);
   }, []);
 
-  // Cards are narrow enough that several sit side by side (like the original grid),
-  // with the outermost ones clipped by the viewport edges. Only their WIDTH shrinks
-  // on narrower screens — on phones that means a single near-full-width card.
-  const tCardW = tViewportW
-    ? tViewportW * (tViewportW <= 640 ? 0.82 : tViewportW <= 900 ? 0.42 : 0.22)
-    : 0;
-  const tPitch = tCardW + T_GAP;
-  const tOffset = tViewportW ? (tViewportW - tCardW) / 2 - tActive * tPitch : 0;
-
-  const goToTestimonial = (i) => setTActive(((i % T_LEN) + T_LEN) % T_LEN);
-
-  // Auto-advance, slowly — no manual arrows anymore, so the deck has to move itself.
-  // Re-armed on every tActive change (auto OR a manual avatar click) so a click doesn't
-  // get immediately undone by a timer that was already halfway to firing.
+  // Seamless wrap: once the index leaves the middle copy, snap it back by N with the
+  // transition momentarily disabled (620ms > the CSS slide, so the snap is invisible).
   useEffect(() => {
-    const id = setInterval(() => {
-      setTActive((a) => (a + 1) % T_LEN);
-    }, 4500);
-    return () => clearInterval(id);
-  }, [tActive, T_LEN]);
+    if (tIndex >= 2 * T_LEN || tIndex < T_LEN) {
+      const id = setTimeout(() => {
+        setTAnim(false);
+        setTIndex((i) => (i >= 2 * T_LEN ? i - T_LEN : i + T_LEN));
+      }, 620);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [tIndex, T_LEN]);
+
+  // Re-enable the slide transition on the next frame after an instant snap.
+  useEffect(() => {
+    if (!tAnim) {
+      const r = requestAnimationFrame(() => requestAnimationFrame(() => setTAnim(true)));
+      return () => cancelAnimationFrame(r);
+    }
+    return undefined;
+  }, [tAnim]);
 
   const visibleShowcase = selectedIndustry
     ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
@@ -1187,17 +1231,15 @@ export default function Landing() {
   const [heroStatic, setHeroStatic] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
-  // Cards slide in from off-screen left, one at a time, each starting once the previous
-  // is about half arrived (overlapping ranges: 0-0.5, 0.25-0.75, 0.5-1). Q1 first, Q2, Q3 —
-  // same left-to-right order they read in. Off-screen start MUST be a plain number, same
-  // type as the resting x values (0/90/-90) — mixing a 'vw' string into the same
-  // useTransform output range as numeric outputs silently breaks Framer's interpolator
-  // (two of the three cards rendered `transform: none`, verified in devtools).
-  const AUDIT_ENTER_FROM = typeof window !== 'undefined' ? -window.innerWidth * 0.7 : -1000;
-  const auditEnterQ1X = useTransform(auditEnterProgress, [0, 0.5], [AUDIT_ENTER_FROM, 0]);
-  const auditEnterQ2X = useTransform(auditEnterProgress, [0.25, 0.75], [AUDIT_ENTER_FROM, heroStatic ? 50 : 90]);
-  const auditEnterQ3X = useTransform(auditEnterProgress, [0.5, 1], [AUDIT_ENTER_FROM, heroStatic ? -50 : -90]);
-  const auditEnterX = [auditEnterQ1X, auditEnterQ2X, auditEnterQ3X];
+  // Cards rise in from below, one at a time, each starting once the previous is about
+  // half arrived (overlapping ranges: 0-0.5, 0.25-0.75, 0.5-1) — Q1 first, Q2, Q3. This
+  // is added ON TOP of the existing peel-away Y (card2Y/card3Y/card1Y desktop,
+  // mAuditQ1-3Y mobile) rather than replacing it: the entrance motion resolves to 0
+  // once done, so it never fights the peel's own small resting baselines (0/35/-35).
+  const AUDIT_ENTER_FROM_Y = 700;
+  const auditEnterQ1Y = useTransform(auditEnterProgress, [0, 0.5], [AUDIT_ENTER_FROM_Y, 0]);
+  const auditEnterQ2Y = useTransform(auditEnterProgress, [0.25, 0.75], [AUDIT_ENTER_FROM_Y, 0]);
+  const auditEnterQ3Y = useTransform(auditEnterProgress, [0.5, 1], [AUDIT_ENTER_FROM_Y, 0]);
   const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
   // These desktop glide-springs run a per-frame rAF physics loop while their source moves.
   // On mobile the cards use the raw mAudit* transforms below instead, so freeze the spring
@@ -1680,37 +1722,17 @@ export default function Landing() {
           {/* leaderboard — scrolls vertically; each rank fades in one-by-one at centre */}
           {/* 4 colored cards, stacked one behind another (hover to bring forward). */}
           <div className="lp-promise">
-            {PROMISE_CARDS.map((card, i) => {
-              const vid = showcaseVideos[i];
-              return (
-                <div
-                  className="lp-promise__card"
-                  key={card.title}
-                  style={{ '--i': i, zIndex: i + 1, background: card.color }}
-                >
-                  <span className="lp-promise__num">0{i + 1}</span>
-                  <div className="lp-promise__head">
-                    <h3 className="lp-promise__title">{card.title}</h3>
-                    <p className="lp-promise__sub">{card.sub}</p>
-                  </div>
-                  <div className="lp-promise__foot">
-                    <p className="lp-promise__desc">{card.desc}</p>
-                    <button
-                      type="button"
-                      className="lp-promise__btn"
-                      onClick={() => navigate('/auth?mode=signup&role=business')}
-                    >
-                      Discover our approach <ArrowRight size={16} />
-                    </button>
-                  </div>
-                  {vid && (
-                    <div className="lp-promise__video">
-                      <video src={vid.src} poster={cldPoster(vid.src)} muted loop playsInline autoPlay preload="none" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {PROMISE_CARDS.map((card, i) => (
+              <PromiseCard
+                key={card.title}
+                card={card}
+                i={i}
+                total={PROMISE_CARDS.length}
+                vid={showcaseVideos[i]}
+                progress={logo3dProgress}
+                navigate={navigate}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -2404,17 +2426,30 @@ export default function Landing() {
           </div>
 
           <div className="lp-testimonial__carousel">
-            <div className="lp-testimonial__viewport lp-testimonial__viewport--marquee">
-              <div className="lp-testimonial__grid lp-testimonial__grid--marquee">
-                {[...testimonials, ...testimonials].map((t, i) => {
+            <div className="lp-testimonial__viewport">
+              <div
+                className="lp-testimonial__grid"
+                style={{
+                  transform: tTrackTransform,
+                  transition: tAnim ? undefined : 'none',
+                }}
+              >
+                {T_LOOP.map((t, i) => {
                   const [before, after] = t.accent && t.quote.includes(t.accent)
                     ? [t.quote.split(t.accent)[0], t.quote.split(t.accent)[1]]
                     : [t.quote, ''];
+                  const isActive = i === tIndex;
                   return (
                     <article
-                      key={`${t.name}-${i}`}
-                      className="lp-tcard lp-tcard--marq"
+                      key={i}
+                      className={`lp-tcard lp-tcard--marq${isActive ? ' is-active' : ''}`}
                     >
+                      <div className="lp-tcard__rating">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} size={15} fill="#FBBF24" stroke="#FBBF24" />
+                        ))}
+                      </div>
+
                       <blockquote className="lp-tcard__quote">
                         {before}
                         {t.accent && <em>{t.accent}</em>}
@@ -3557,27 +3592,34 @@ export default function Landing() {
         /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
         /* The rotating leaderboard became 4 static cards — collapse the tall pinned
            scroll and un-stick the inner wrapper so the cards sit in normal flow. */
+        /* Tall scroll TRACK: gives the pinned deck room to run. As you scroll through these
+           extra viewports, the sticky child below stays pinned and the cards exit one by one. */
         .lp-logo3d {
           position: relative;
-          height: auto;                  /* was 175vh for the scroll-driven leaderboard */
+          height: 380vh;
           background: transparent;
           z-index: 2;
-          padding: 60px 6% 50px;
+          padding: 0;
         }
+        /* Pinned viewport: fills the screen and stays put while the section scrolls past,
+           centring the card deck. overflow visible so exiting cards can slide off the top. */
         .lp-logo3d__sticky {
-          position: static !important; height: auto !important; min-height: 0 !important;
+          position: sticky !important; top: 0 !important;
+          height: 100vh !important; min-height: 0 !important;
           transform: none !important; overflow: visible !important;
+          display: flex !important; align-items: center !important; justify-content: center !important;
         }
-        /* Scroll-stacking deck: each card is sticky and piles up as you scroll —
-           card N sticks a little lower than card N-1, so they stack with a peek. */
+        /* Deck stage: fixed-size box; every card is absolutely stacked to fill it, so they all
+           start on top of each other. Each card's scroll-driven translateY (PromiseCard) then
+           slides the front one up and away, revealing the next — one by one. */
         .lp-promise {
-          position: relative; width: min(940px, 94%); margin: 24px auto 0;
-          display: flex; flex-direction: column; gap: 18px;
+          position: relative; width: min(940px, 94%); height: 400px; margin: 0 auto;
         }
         .lp-promise__card {
-          position: sticky; top: calc(84px + var(--i) * 22px);
-          height: 400px; border-radius: 26px; padding: 40px 44px; overflow: hidden;
-          box-shadow: 0 20px 50px -30px rgba(30,22,8,.45);
+          position: absolute; inset: 0;
+          border-radius: 26px; padding: 40px 44px; overflow: hidden;
+          box-shadow: 0 30px 60px -34px rgba(30,22,8,.40);
+          will-change: transform;
         }
         /* Head (title + subtitle) — top-left */
         .lp-promise__head { position: absolute; top: 40px; left: 44px; right: 320px; }
@@ -3617,8 +3659,8 @@ export default function Landing() {
         }
         .lp-promise__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
         @media (max-width: 760px) {
-          .lp-promise { gap: 34px; }
-          .lp-promise__card { height: 560px; padding: 24px 22px; top: calc(70px + var(--i) * 16px); }
+          .lp-promise { width: 92%; height: 74vh; max-height: 600px; }
+          .lp-promise__card { padding: 24px 22px; }
           .lp-promise__head { top: 22px; left: 22px; right: 70px; }
           .lp-promise__num { top: 20px; right: 22px; }
           .lp-promise__video { top: 132px; right: 22px; bottom: auto; width: 132px; height: 188px; }
@@ -3747,7 +3789,7 @@ export default function Landing() {
           /* Shorter runway = less empty scroll AFTER the rows finish (the old 260vh left a long
              dead tail before the brand strip caught up). 175vh keeps a readable flow but the
              brand strip now rises in right behind the last rows. */
-          .lp-logo3d { height: 175vh; }
+          .lp-logo3d { height: 320vh; }
           .lp-logo3d__stage {
             top: 80%;          /* sit lower — down in the empty space below the leaderboard text */
             width: clamp(170px, 46vw, 280px);
@@ -7663,6 +7705,9 @@ export default function Landing() {
         .lp-testimonial__carousel {
           position: relative;
           margin-bottom: 56px;
+          /* Card width + gap drive everything (centering, stepping, frame). */
+          --tcard-w: clamp(300px, 34vw, 460px);
+          --tcard-gap: 24px;
         }
         /* Clips the horizontal slide so the off-screen row never spills out, while
            leaving vertical room for card hover-lift + drop shadows. */
@@ -7670,6 +7715,9 @@ export default function Landing() {
           overflow: hidden;
           padding: 10px 4px 34px;
           margin: -10px -4px -34px;
+          /* Soft fade at both edges so the off-centre cards trail off. */
+          -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 9%, #000 91%, transparent 100%);
+                  mask-image: linear-gradient(90deg, transparent 0%, #000 9%, #000 91%, transparent 100%);
         }
         /* One flexible track holding every card; JS centers the active card by
            translating the whole track, so the slide is one smooth CSS transition. */
@@ -7677,7 +7725,9 @@ export default function Landing() {
           position: relative;
           display: flex;
           flex-wrap: nowrap;
-          gap: 24px;
+          gap: var(--tcard-gap);
+          /* Centre the first card; JS then translates by whole pitches to step. */
+          margin-left: calc(50% - var(--tcard-w) / 2);
           text-align: left;
           will-change: transform;
           transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -7706,7 +7756,7 @@ export default function Landing() {
         }
         .lp-testimonial__grid--marquee:hover { animation-play-state: paused; }
         .lp-tcard--marq {
-          flex: 0 0 clamp(300px, 26vw, 360px);
+          flex: 0 0 var(--tcard-w);
           cursor: default;
         }
         @keyframes testimonialScroll {
@@ -7721,7 +7771,7 @@ export default function Landing() {
           left: 50%;
           transform: translate(-50%, -50%);
           /* A touch wider/taller than a card so the brackets sit just OUTSIDE it. */
-          width: clamp(326px, 27vw, 388px);
+          width: calc(var(--tcard-w) + 26px);
           height: calc(100% - 8px);
           pointer-events: none;
           z-index: 5;
@@ -7737,10 +7787,9 @@ export default function Landing() {
         .lp-tframe-c--bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
         .lp-tframe-c--br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
         @media (max-width: 640px) {
-          .lp-testimonial__frame { width: 82vw; }
+          .lp-testimonial__carousel { --tcard-w: 84vw; }
         }
         @media (max-width: 640px) {
-          .lp-tcard--marq { flex-basis: 82vw; }
           .lp-testimonial__grid--marquee { animation-duration: 32s; }
         }
 
@@ -7896,7 +7945,15 @@ export default function Landing() {
 
         /* Review-box variant (reference): plain panel, review text, author pinned to the
            bottom, uppercase letter-spaced name/role, uniform dark text, no divider. */
-        .lp-tcard--marq { padding: 34px 30px; justify-content: flex-start; }
+        .lp-tcard--marq {
+          padding: 34px 30px;
+          justify-content: flex-start;
+          /* Off-centre cards dim; the one in the frame is full-strength. */
+          opacity: 0.34;
+          transition: opacity 0.55s ease;
+        }
+        .lp-tcard--marq.is-active { opacity: 1; }
+        .lp-tcard--marq .lp-tcard__rating { margin-bottom: 18px; }
         .lp-tcard--marq .lp-tcard__quote {
           font-size: 1.02rem;
           font-weight: 500;

@@ -981,11 +981,13 @@ export default function Landing() {
     const measure = () => {
       const el = tViewportRef.current;
       if (!el) return;
-      const vw = window.innerWidth;
-      // Desktop shows all 4 cards across (wider, filling the full carousel width);
-      // tablet shows 2; phones show 1.
-      const visible = vw <= 768 ? 1 : vw <= 1024 ? 2 : T_LEN;
       const avail = el.clientWidth - 8; // minus the viewport's 4px side padding
+      // Bail if the viewport isn't laid out yet (or was measured while the section
+      // was display:none) — otherwise cardW collapses and every card renders 1-char wide.
+      if (avail < 120) return;
+      const vw = window.innerWidth;
+      // Desktop shows up to 4 cards across; tablet 2; phones 1.
+      const visible = vw <= 768 ? 1 : vw <= 1024 ? 2 : Math.min(T_LEN, 4);
       const cardW = (avail - (visible - 1) * T_GAP) / visible;
       setTMetrics((m) =>
         m.visible === visible && Math.abs(m.cardW - cardW) < 0.5
@@ -994,8 +996,12 @@ export default function Landing() {
       );
     };
     measure();
+    // Re-measure after layout settles — the first pass can run before the flex
+    // viewport has its real width (esp. right after the section becomes visible).
+    const raf = requestAnimationFrame(measure);
+    const t = setTimeout(measure, 250);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); window.removeEventListener('resize', measure); };
     // T_LEN in deps so the card width recomputes if the number of testimonials
     // changes (e.g. via hot-reload), instead of staying sized for the old count.
   }, [T_LEN]);
@@ -2777,7 +2783,7 @@ export default function Landing() {
         .lp-navbar__inner {
           display: flex;
           align-items: center;
-          gap: 32px;
+          gap: 0;                        /* no parent gap — the right group owns all spacing */
           max-width: var(--lp-maxw);
           margin: 0 auto;
           background: transparent;       /* no white container */
@@ -2831,9 +2837,9 @@ export default function Landing() {
         .lp-root .lp-navbar__links .lp-navlink:hover { color: inherit; opacity: 0.55; }
 
         .lp-navbar__actions {
-          margin-left: 30px;
+          margin-left: 30px;   /* = inter-link gap; parent gap is 0, so every gap is 30px */
           display: flex;
-          gap: 16px;
+          gap: 30px;
           align-items: center;
         }
 

@@ -608,6 +608,16 @@ const testimonials = [
     metric: '2×',
     metricLabel: 'Revenue growth',
   },
+  {
+    quote: 'Creators vetted, money in escrow, one dashboard. We finally trust the numbers.',
+    accent: 'trust the numbers',
+    name: 'Sara Malhotra',
+    role: 'Marketing Lead, NestHome',
+    photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop&crop=faces',
+    initials: 'SM',
+    metric: '+61%',
+    metricLabel: 'Conversion lift',
+  },
 ];
 
 const auditQuestions = [
@@ -1666,7 +1676,7 @@ export default function Landing() {
                 <div
                   className="lp-promise__card"
                   key={card.title}
-                  style={{ '--i': i, zIndex: 4 - i, background: card.color }}
+                  style={{ '--i': i, zIndex: i + 1, background: card.color }}
                 >
                   <span className="lp-promise__num">0{i + 1}</span>
                   <div className="lp-promise__head">
@@ -3577,7 +3587,7 @@ export default function Landing() {
            card N sticks a little lower than card N-1, so they stack with a peek. */
         .lp-promise {
           position: relative; width: min(940px, 94%); margin: 24px auto 0;
-          display: flex; flex-direction: column; gap: 60px;
+          display: flex; flex-direction: column; gap: 18px;
         }
         .lp-promise__card {
           position: sticky; top: calc(84px + var(--i) * 22px);

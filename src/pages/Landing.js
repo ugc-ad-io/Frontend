@@ -7068,6 +7068,7 @@ export default function Landing() {
           gap: 24px;
           margin-bottom: 60px;
           align-items: stretch;
+          min-height: min(88vh, 820px);
         }
         .lp-proof__big {
           display: flex; flex-direction: column; justify-content: center;
@@ -7087,10 +7088,10 @@ export default function Landing() {
            name pinned bottom-left. Cards fill the column height. */
         .lp-proof__cards { display: flex; flex-direction: column; gap: 16px; }
         .lp-proof__card {
-          position: relative; overflow: hidden; text-align: left; cursor: pointer; flex: 1;
+          position: relative; text-align: left; cursor: pointer; flex: 1;
           background: var(--lp-section); border: 1px solid var(--lp-border);
-          border-radius: 20px; padding: 22px 26px; font-family: inherit;
-          display: flex; flex-direction: column; justify-content: flex-end;
+          border-radius: 20px; padding: 26px 30px; font-family: inherit;
+          display: flex; flex-direction: column; justify-content: center; gap: 6px;
           transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
         }
         .lp-proof__card:hover, .lp-proof__card.is-active {
@@ -7098,21 +7099,18 @@ export default function Landing() {
           box-shadow: 0 16px 34px -18px rgba(68,82,240,.4);
         }
         .lp-proof__card-index {
-          position: absolute; top: 18px; right: 22px; font-size: 12px; font-weight: 700;
+          position: absolute; top: 20px; right: 24px; font-size: 12px; font-weight: 700;
           letter-spacing: 2px; color: var(--lp-text-muted); z-index: 2;
         }
-        /* Big faded number sitting behind, centred like the reference logo watermark. */
+        /* Big readable value, label underneath — no overlap. */
         .lp-proof__card-value {
-          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -54%);
           font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;
-          letter-spacing: -1.5px; font-size: clamp(40px, 5.6vw, 74px); line-height: 1;
-          color: rgba(28,27,75,0.10); pointer-events: none; white-space: nowrap; z-index: 0;
+          letter-spacing: -1.5px; font-size: clamp(42px, 5.2vw, 68px); line-height: 1; color: var(--lp-text);
         }
-        .lp-proof__card.is-active .lp-proof__card-value { color: rgba(68,82,240,0.16); }
+        .lp-proof__card.is-active .lp-proof__card-value { color: #4452f0; }
         .lp-proof__card-label {
-          position: relative; z-index: 2;
-          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
-          font-size: 18px; color: var(--lp-text); font-weight: 700;
+          font-family: var(--font-body, 'Inter', sans-serif);
+          font-size: 16px; color: var(--lp-text-muted); font-weight: 600;
         }
         @media (max-width: 900px) {
           .lp-proof__split { grid-template-columns: 1fr; gap: 16px; }
@@ -7595,14 +7593,17 @@ export default function Landing() {
            lavender bg. Give them solid white surfaces, a clearer shadow/border, and a
            slightly deeper purple accent so quotes + metrics read well. Dark mode unchanged. */
         .lp-root[data-theme="light"] .lp-tcard {
-          background: #ffffff;
-          border-color: rgba(28,27,75,0.10);
-          box-shadow: 0 14px 36px rgba(7,7,78,0.10);
+          background: #fbf8f1;
+          border-color: rgba(28,27,75,0.12);
+          box-shadow: none;
+        }
+        .lp-root[data-theme="light"] .lp-tcard:hover {
+          box-shadow: none;
         }
         .lp-root[data-theme="light"] .lp-tcard--featured {
-          background: linear-gradient(180deg, #ffffff 0%, #f3f1fe 100%);
-          border-color: rgba(115,135,255,0.45);
-          box-shadow: 0 22px 52px rgba(115,135,255,0.16);
+          background: #fbf8f1;
+          border-color: rgba(115,135,255,0.35);
+          box-shadow: none;
         }
         .lp-root[data-theme="light"] .lp-tcard__quote em,
         .lp-root[data-theme="light"] .lp-tcard__metric-val { color: #7387FF; }

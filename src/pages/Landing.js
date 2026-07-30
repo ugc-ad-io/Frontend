@@ -4924,7 +4924,7 @@ export default function Landing() {
           position: sticky;
           top: 88px;
           z-index: 5;
-          background: linear-gradient(to bottom, #f3ecdd 0%, #f3ecdd 88%, rgba(243, 236, 221, 0) 100%);
+          background: #f3ecdd;
           min-height: 120px;
         }
         /* Opaque mask ABOVE the pinned header. The navbar hides on scroll-down, leaving an

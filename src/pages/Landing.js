@@ -4,7 +4,6 @@ import { useAuth, useTheme } from '../App';
 import {
   ArrowRight,
   ChevronRight,
-  ChevronLeft,
   Star,
   Sparkle,
   Users,
@@ -1046,6 +1045,16 @@ export default function Landing() {
   const tOffset = tViewportW ? (tViewportW - tCardW) / 2 - tActive * tPitch : 0;
 
   const goToTestimonial = (i) => setTActive(((i % T_LEN) + T_LEN) % T_LEN);
+
+  // Auto-advance, slowly — no manual arrows anymore, so the deck has to move itself.
+  // Re-armed on every tActive change (auto OR a manual avatar click) so a click doesn't
+  // get immediately undone by a timer that was already halfway to firing.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTActive((a) => (a + 1) % T_LEN);
+    }, 4500);
+    return () => clearInterval(id);
+  }, [tActive, T_LEN]);
 
   const visibleShowcase = selectedIndustry
     ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
@@ -2376,15 +2385,6 @@ export default function Landing() {
           </div>
 
           <div className="lp-testimonial__carousel">
-            <button
-              type="button"
-              className="lp-testimonial__arrow lp-testimonial__arrow--left"
-              onClick={() => goToTestimonial(tActive - 1)}
-              aria-label="Previous testimonial"
-            >
-              <ChevronLeft size={22} />
-            </button>
-
             <div className="lp-testimonial__viewport" ref={tViewportRef}>
               <div
                 className="lp-testimonial__grid"
@@ -2443,15 +2443,6 @@ export default function Landing() {
                 })}
               </div>
             </div>
-
-            <button
-              type="button"
-              className="lp-testimonial__arrow lp-testimonial__arrow--right"
-              onClick={() => goToTestimonial(tActive + 1)}
-              aria-label="Next testimonial"
-            >
-              <ChevronRight size={22} />
-            </button>
           </div>
 
           <div className="lp-testimonial__more">
@@ -3568,21 +3559,19 @@ export default function Landing() {
         }
         .lp-logo3d__sticky {
           position: static !important; height: auto !important; min-height: 0 !important;
-          transform: none !important;
+          transform: none !important; overflow: visible !important;
         }
-        /* Straight stacked deck: cards layered, each nudged straight DOWN behind the
-           previous (peeking). No tilt, no shadow. Hover to bring a card forward. */
+        /* Scroll-stacking deck: each card is sticky and piles up as you scroll —
+           card N sticks a little lower than card N-1, so they stack with a peek. */
         .lp-promise {
-          position: relative; width: min(940px, 94%); margin: 24px auto 0; height: 440px;
+          position: relative; width: min(940px, 94%); margin: 24px auto 0;
+          display: flex; flex-direction: column; gap: 60px;
         }
         .lp-promise__card {
-          position: absolute; left: 0; right: 0; top: 0; height: 400px;
-          border-radius: 26px; padding: 40px 44px; overflow: hidden;
-          transform: translateY(calc(var(--i) * 20px));
-          transition: transform .28s cubic-bezier(.2,.7,.2,1);
-          cursor: pointer;
+          position: sticky; top: calc(84px + var(--i) * 22px);
+          height: 400px; border-radius: 26px; padding: 40px 44px; overflow: hidden;
+          box-shadow: 0 20px 50px -30px rgba(30,22,8,.45);
         }
-        .lp-promise__card:hover { transform: translateY(-6px); z-index: 20 !important; }
         /* Title — top-left */
         .lp-promise__title {
           position: absolute; top: 40px; left: 44px; right: 120px; margin: 0;
@@ -3609,8 +3598,8 @@ export default function Landing() {
         }
         .lp-promise__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
         @media (max-width: 760px) {
-          .lp-promise { height: 520px; }
-          .lp-promise__card { height: 480px; padding: 28px 26px; transform: translateY(calc(var(--i) * 14px)); }
+          .lp-promise { gap: 40px; }
+          .lp-promise__card { height: 480px; padding: 28px 26px; top: calc(70px + var(--i) * 16px); }
           .lp-promise__title { top: 26px; left: 26px; right: 80px; }
           .lp-promise__num { top: 26px; right: 26px; }
           .lp-promise__desc { left: 26px; right: 26px; bottom: 210px; width: auto; }
@@ -4913,8 +4902,8 @@ export default function Landing() {
           position: sticky;
           top: 88px;
           z-index: 5;
-          background: linear-gradient(to bottom, #f3ecdd 0%, #f3ecdd 60%, rgba(243, 236, 221, 0) 100%);
-          min-height: 165px;
+          background: linear-gradient(to bottom, #f3ecdd 0%, #f3ecdd 88%, rgba(243, 236, 221, 0) 100%);
+          min-height: 190px;
         }
         .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
@@ -7654,60 +7643,6 @@ export default function Landing() {
           transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .lp-testimonial__grid > .lp-tcard { box-sizing: border-box; }
-        .lp-testimonial__arrow {
-          position: absolute;
-          top: 44%;
-          transform: translateY(-50%);
-          z-index: 6;
-          width: 48px;
-          height: 48px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          background: rgba(var(--lp-fg), 0.08);
-          border: 1px solid var(--lp-border);
-          color: var(--lp-text);
-          cursor: pointer;
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          box-shadow: 0 8px 24px rgba(7, 7, 78, 0.18);
-          transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
-        }
-        .lp-testimonial__arrow:hover {
-          background: #7387FF;
-          color: #fff;
-          transform: translateY(-50%) scale(1.08);
-        }
-        .lp-testimonial__arrow:active {
-          transform: translateY(-50%) scale(0.96);
-        }
-        .lp-testimonial__arrow--left { left: -62px; }
-        .lp-testimonial__arrow--right { right: -62px; }
-
-        /* Sliding chevron — eases back to centre at rest, runs a gentle looping
-           nudge in its pointing direction while hovered. */
-        .lp-testimonial__arrow svg {
-          transition: transform 0.25s ease;
-        }
-        .lp-testimonial__arrow--left:hover svg {
-          animation: lp-arrow-slide-left 0.7s ease-in-out infinite;
-        }
-        .lp-testimonial__arrow--right:hover svg {
-          animation: lp-arrow-slide-right 0.7s ease-in-out infinite;
-        }
-        @keyframes lp-arrow-slide-left {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(-5px); }
-        }
-        @keyframes lp-arrow-slide-right {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(5px); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .lp-testimonial__arrow--left:hover svg,
-          .lp-testimonial__arrow--right:hover svg { animation: none; }
-        }
 
         .lp-tcard {
           position: relative;
@@ -7746,14 +7681,13 @@ export default function Landing() {
         }
         .lp-tcard--featured::before { opacity: 1; }
 
-        /* Spotlight carousel — cards keep the same size/background whether active or
-           not (so the row reads as one continuous panel, like the reference); only the
-           active card's content is full-strength, plus a border + corner brackets. */
+        /* Spotlight carousel — every card keeps the exact same plain panel (no border
+           or accent), whether active or not; the active one is just told apart by its
+           content being full-strength while its neighbours are muted. */
         .lp-tcard--spot {
           cursor: pointer;
-          transition: border-color 0.3s ease, box-shadow 0.3s ease;
+          transition: box-shadow 0.3s ease;
         }
-        .lp-tcard--spot:not(.is-active) { border-color: transparent; }
         .lp-tcard--spot:not(.is-active)::before { display: none; }
         .lp-tcard--spot:not(.is-active) .lp-tcard__rating,
         .lp-tcard--spot:not(.is-active) .lp-tcard__mark,
@@ -7773,21 +7707,7 @@ export default function Landing() {
         .lp-tcard--spot.is-active {
           cursor: default;
           z-index: 2;
-          border-color: #7387FF;
-          box-shadow: 0 20px 44px rgba(7, 7, 78, 0.12);
         }
-        .lp-tcard__corner {
-          position: absolute;
-          width: 18px;
-          height: 18px;
-          border: 0 solid #7387FF;
-          pointer-events: none;
-          z-index: 3;
-        }
-        .lp-tcard__corner--tl { top: 10px; left: 10px; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 6px; }
-        .lp-tcard__corner--tr { top: 10px; right: 10px; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 6px; }
-        .lp-tcard__corner--bl { bottom: 10px; left: 10px; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 6px; }
-        .lp-tcard__corner--br { bottom: 10px; right: 10px; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 6px; }
 
         .lp-tcard__rating {
           display: flex;
@@ -7929,14 +7849,6 @@ export default function Landing() {
         @media (max-width: 1024px) {
           .lp-testimonial__carousel { max-width: 560px; }
         }
-        /* Phones: shrink the arrows and pull them to the edges so they never run off
-           the viewport in the tight side padding. */
-        @media (max-width: 640px) {
-          .lp-testimonial__arrow { width: 40px; height: 40px; }
-          .lp-testimonial__arrow--left { left: -8px; }
-          .lp-testimonial__arrow--right { right: -8px; }
-        }
-
         .lp-testimonial__more {
           display: flex;
           align-items: center;

@@ -2132,9 +2132,11 @@ export default function Landing() {
 
           <div className="lpv-grid">
             {/* header row */}
-            <div className="lpv-h lpv-h--label" />
-            <div className="lpv-h lpv-h--us"><span className="lpv-brand">UGC<span className="lpv-brand-ad">ad.io</span></span></div>
-            <div className="lpv-h lpv-h--them">Traditional Agencies &amp; Marketplaces</div>
+            <div className="lpv-header">
+              <div className="lpv-h lpv-h--label" />
+              <div className="lpv-h lpv-h--us"><span className="lpv-brand">UGC<span className="lpv-brand-ad">ad.io</span></span></div>
+              <div className="lpv-h lpv-h--them">Traditional Agencies &amp; Marketplaces</div>
+            </div>
 
             {vsRows.map((r) => (
               <div className="lpv-rowgroup" key={r.label}>

@@ -343,9 +343,12 @@ const PROMISE_CARDS = [
     desc: 'We help you shape the brief, pick the right creators, and get to a video that actually performs.' },
 ];
 
-// Fraction of the pinned-section scroll over which the front cards slide away. The LAST
+// Lead-in: for the first slice of the pinned scroll the whole deck just SITS there (centred,
+// stacked) — nothing moves — so it doesn't start flying apart the instant the section pins.
+const PROMISE_EXIT_START = 0.12;
+// Fraction of the pinned-section scroll by which the front cards have slid away. The LAST
 // card doesn't move — after this point it rests on screen until the section un-pins.
-const PROMISE_EXIT_END = 0.85;
+const PROMISE_EXIT_END = 0.9;
 
 // One card in the pinned "deck". The cards are a receding STACK — the front card is full size,
 // the ones behind are progressively smaller and nudged DOWN so they peek out below (big · small ·
@@ -354,19 +357,20 @@ const PROMISE_EXIT_END = 0.85;
 // in its own component (hooks can't run in a .map()). `progress` is the section's 0→1 scroll value.
 function PromiseCard({ card, i, total, vid, progress, navigate }) {
   const isLast = i === total - 1;
-  const B = PROMISE_EXIT_END / (total - 1); // scroll length of one "card leaves" beat
-  const frontAt = i * B;                     // progress at which this card reaches the front slot
+  const START = PROMISE_EXIT_START;
+  const B = (PROMISE_EXIT_END - START) / (total - 1); // scroll length of one "card leaves" beat
+  const frontAt = START + i * B;             // progress at which this card reaches the front slot
   const leaveEnd = frontAt + B;              // progress at which it's fully gone (non-last)
   const depth = i;                           // full depth behind the front — every card peeks
   const offVh = depth * 3.8;                 // starts this far DOWN (peek below), in vh
   const startScale = 1 - depth * 0.05;       // ...and this much smaller
 
-  // y — waits below+small, RISES to the front (0), then (non-last) slides up & off the top.
-  const yIn = isLast ? [0, frontAt] : (i === 0 ? [0, leaveEnd] : [0, frontAt, leaveEnd]);
+  // y — holds stacked through the lead-in, RISES to the front (0), then (non-last) slides off top.
+  const yIn = isLast ? [START, frontAt] : (i === 0 ? [START, leaveEnd] : [START, frontAt, leaveEnd]);
   const yOut = isLast ? [`${offVh}vh`, '0vh'] : (i === 0 ? ['0vh', '-130vh'] : [`${offVh}vh`, '0vh', '-130vh']);
   const y = useTransform(progress, yIn, yOut, { clamp: true });
   // scale — grows from its depth size up to full by the time it reaches the front.
-  const scale = useTransform(progress, frontAt > 0 ? [0, frontAt] : [0, 1], frontAt > 0 ? [startScale, 1] : [1, 1], { clamp: true });
+  const scale = useTransform(progress, i > 0 ? [START, frontAt] : [0, 1], i > 0 ? [startScale, 1] : [1, 1], { clamp: true });
   // rotate — dead straight until it's the front, then SLANTS as it lifts away (non-last only).
   const rotate = useTransform(progress, isLast ? [0, 1] : [frontAt, leaveEnd], isLast ? [0, 0] : [0, -7], { clamp: true });
 

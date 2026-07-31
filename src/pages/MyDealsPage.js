@@ -1211,15 +1211,22 @@ export default function MyDealsPage() {
             <button type="button" className="x" aria-label="Close chat" onClick={() => { markChatSeen(); setChatOpen(false); }}><X size={18} /></button>
           </div>
           <div className="cmk-dr-msgs">
-            {chatMessages.length ? chatMessages.map((m) => (
-              <div key={m.id} className={`cmk-dr-m ${m.sender_type === 'creator' ? 'me' : m.sender_type === 'system' ? 'sys' : 'them'}`}>
-                <div className="who">{m.sender_name}</div>
-                <div className="bub">{m.message}</div>
-              </div>
-            )) : <p className="cmk-dr-empty-msg">No messages yet.</p>}
+            {chatMessages.length ? chatMessages.map((m) => {
+              // System notes render as one clean centered line (matching the brand's
+              // chat) — no "System" sender label stacked above every message.
+              if (m.sender_type === 'system') {
+                return <div key={m.id} className="cmk-dr-m sys"><div className="bub">{m.message}</div></div>;
+              }
+              return (
+                <div key={m.id} className={`cmk-dr-m ${m.sender_type === 'creator' ? 'me' : 'them'}`}>
+                  <div className="who">{m.sender_name}</div>
+                  <div className="bub">{m.message}</div>
+                </div>
+              );
+            }) : <p className="cmk-dr-empty-msg">No messages yet.</p>}
           </div>
           <div className="cmk-dr-chat-in">
-            <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your message..." onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }} />
+            <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type a message..." onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }} />
             <button type="button" className="send" onClick={handleSendMessage}><Send size={17} /></button>
           </div>
         </div>
@@ -1814,7 +1821,7 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, mess
             <div className="deal-message-list">
               {messages.length ? messages.map((item) => (
                 <p key={item.id} className={item.sender_type === 'creator' ? 'creator' : item.sender_type === 'system' ? 'system' : 'brand'}>
-                  {item.sender_name}: {item.message}
+                  {item.sender_type === 'system' ? item.message : `${item.sender_name}: ${item.message}`}
                 </p>
               )) : <p className="system">No messages yet.</p>}
             </div>

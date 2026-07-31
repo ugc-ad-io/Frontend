@@ -254,7 +254,7 @@ function DealChatPanel({ deal, onSent }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder="Type your message…"
+          placeholder="Type a message..."
         />
         <button type="button" onClick={send} disabled={sending || !text.trim()} aria-label="Send">
           <Send size={16} />

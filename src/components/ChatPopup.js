@@ -187,7 +187,7 @@ export default function ChatPopup({ user, onClose }) {
       </div>
 
       <form className="cpop-input" onSubmit={send}>
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message…" />
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message..." />
         <button type="submit" disabled={sending || !text.trim()} aria-label="Send"><Send size={17} /></button>
       </form>
     </div>
@@ -246,7 +246,7 @@ export default function ChatPopup({ user, onClose }) {
         .cpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
         .cpop-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
         .cpop-empty{margin:auto;color:#9296ba;font-size:13.5px;text-align:center}
-        .cpop-sys{align-self:center;background:#eef0f6;color:#585c7e;font-size:11.5px;padding:5px 12px;border-radius:14px}
+        .cpop-sys{align-self:center;max-width:92%;text-align:center;background:none;color:#8b90b0;font-size:13px;font-style:italic;padding:2px 0}
         .cpop-card{align-self:stretch;background:#f7f8ff;border:1px solid #e5e8fb;border-radius:12px;padding:12px 14px;margin:2px 0}
         .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#15163a;font-size:12.5px;margin-bottom:8px}
         .cpop-card-badge{text-transform:capitalize;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f6;color:#585c7e}

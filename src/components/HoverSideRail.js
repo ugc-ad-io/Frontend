@@ -145,7 +145,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         .cmk-app.has-rail .cmk-hamburger,
         .cmk-app.has-rail .cmk-mobile-menu{display:none}
         /* left-align content beside the rail (fills the space, keeps big layout) */
-        .cmk-app.has-rail .cmk-wrap{margin-left:0;margin-right:auto}
+        .cmk-app.has-rail .cmk-wrap{margin:0 auto}
         /* the top bar spans the full width so the actions (Post a Campaign,
            bell, avatar) sit flush against the right edge, not the wrap's cap */
         .cmk-app.has-rail .cmk-nav-inner{max-width:none}
@@ -169,7 +169,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
              inset so headings/chips don't hug the edge — the top nav is unaffected
              (it only uses .cmk-wrap, not .cmk-page). */
           .cmk-app.has-rail .cmk-page{padding-left:12px;padding-right:12px}
-          .cmk-app.has-rail .cmk-wrap{margin-left:auto}
+          .cmk-app.has-rail .cmk-wrap{margin:0 auto}
         }
       `}</style>
     </aside>

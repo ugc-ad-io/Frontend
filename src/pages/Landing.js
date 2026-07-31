@@ -941,43 +941,37 @@ function CountUp({ value }) {
   return <motion.span ref={ref}>{display}</motion.span>;
 }
 
-// Fanned, side-by-side cards. One card is "active" (raised, straightened, purple);
-// the rest fan out with a slight tilt. Auto-cycles, and hovering a card activates it.
-// Desktop: fanned, side-by-side cards with hover lift.
+// Card grid. Four cards sit side by side on desktop and stack gracefully on smaller screens.
 function AchieveFan({ items }) {
-  // Editorial vertical list (no cards): big serif number + kicker, divider, heading,
-  // description, footer tag. Rows alternate left/right like the reference.
-  const shown = items.slice(0, 4); // 4 items, staircased into a slant
+  const shown = items.slice(0, 4);
   return (
-    <div className="lp-achieve__list">
-      {shown.map((item, i) => (
-        <motion.div
-          key={item.title}
-          className="lp-achieve__row"
-          // Content stays put — it's revealed left-to-right by wiping back the clip
-          // mask, not by sliding into position.
-          initial={{ clipPath: 'inset(0 100% 0 0)' }}
-          whileInView={{ clipPath: 'inset(0 0% 0 0)' }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="lp-achieve__col" style={{ marginLeft: `${(i / (shown.length - 1)) * 82}%` }}>
-            <div className="lp-achieve__num">
-              <span className="lp-achieve__num-i">{`0${i + 1}`}</span> {item.kicker}
+    <div className="lp-achieve__cards">
+      {shown.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <motion.article
+            key={item.title}
+            className="lp-achieve-card"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 }}
+          >
+            <div className="lp-achieve-card__top">
+              {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
+              <div>
+                <div className="lp-achieve-card__num">{`0${i + 1}`}</div>
+                <div className="lp-achieve-card__label">{item.kicker}</div>
+              </div>
             </div>
-            <motion.div
-              className="lp-achieve__rule"
-              initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            />
-            <h3 className="lp-achieve__h">{String(item.title).replace(/\n/g, ' ')}</h3>
-            <p className="lp-achieve__p">{item.desc}</p>
-            {item.tag && <div className="lp-achieve__tag">{item.tag}</div>}
-          </div>
-        </motion.div>
-      ))}
+            <div className="lp-achieve-card__body">
+              <h3 className="lp-achieve-card__title">{item.title}</h3>
+              <p className="lp-achieve-card__desc">{item.desc}</p>
+              {item.tag && <div className="lp-achieve__tag">{item.tag}</div>}
+            </div>
+          </motion.article>
+        );
+      })}
     </div>
   );
 }
@@ -1909,7 +1903,9 @@ export default function Landing() {
             {(visibleShowcase.length ? visibleShowcase : showcaseVideos).slice(0, 8).map((v) => (
               <article key={v.id} className="lp-vcard">
                 <div className="lp-vcard__media">
-                  <span className="lp-vcard__tag">{v.label}</span>
+                  <span className={`lp-vcard__tier lp-vcard__tier--${v.tier.toLowerCase()}`}>
+                    {v.tier.charAt(0) + v.tier.slice(1).toLowerCase()}
+                  </span>
                   {v.isVideo ? (
                     <ShowcaseVideo className="lp-vcard__video" src={v.src} />
                   ) : (
@@ -1933,9 +1929,7 @@ export default function Landing() {
                     </div>
                   </div>
                   <span className="lp-vcard__rating-num">{v.rating.toFixed(1)}</span>
-                  <span className={`lp-vcard__tier lp-vcard__tier--${v.tier.toLowerCase()}`}>
-                    {v.tier.charAt(0) + v.tier.slice(1).toLowerCase()}
-                  </span>
+                  <span className="lp-vcard__tag">{v.label}</span>
                 </div>
               </article>
             ))}
@@ -2772,13 +2766,13 @@ export default function Landing() {
         }
         .lp-root[data-theme="light"] {
           --lp-fg: 28, 27, 75;          /* navy text/borders/surfaces */
-          --lp-page-bg: #f6f1e6;        /* cream (matches the hero) */
+          --lp-page-bg: #ffffff;        /* white page background */
           --lp-text: #1c1b4b;
-          --lp-bg: #f6f1e6;
-          --lp-bg-soft: #fbf8f0;
+          --lp-bg: #ffffff;
+          --lp-bg-soft: #ffffff;
           --lp-text-muted: rgba(28,27,75,0.66);
           --lp-text-soft: #5b5a7e;
-          --lp-section: #fbf8f0;        /* off-white/cream card surface, matches --lp-bg-soft */
+          --lp-section: #ffffff;       /* white card surface */
         }
         /* Dark base also exposes a section-surface token so both themes share it. */
         .lp-root { --lp-section: #07074e; }
@@ -2864,7 +2858,7 @@ export default function Landing() {
           height: 64px;
           padding: 0 4px;
         }
- 
+
         .lp-navbar__logo {
           /* Contained within the bar (mark-over-wordmark lockup, ~1.44:1). Vertically
              centered by the flex row — no overflow, no negative margin. */
@@ -3029,7 +3023,7 @@ export default function Landing() {
         /* Hide the old dark 3D-logo fly overlay so it doesn't float over the cream hero. */
         .nlp-hero {
           position: relative; z-index: 3; isolation: isolate;
-          background: #f6f1e6;
+          background: #ffffff;
           padding: 132px 24px 96px;
           text-align: center; overflow: hidden;
         }
@@ -3100,25 +3094,25 @@ export default function Landing() {
         .nlp-card { flex: 0 0 118px; transform: none !important; }
         .nlp-note { display: none; }
         }
- 
-        /* Cream page + no animated blobs. Sections are NOT hidden — they render
+
+        /* White page + no animated blobs. Sections are NOT hidden — they render
            light via the forced [data-theme="light"] theme. 3D logo mark removed. */
-        .lp-root { background: #f6f1e6 !important; }
+        .lp-root { background: #ffffff !important; }
         .lp-bg-animations { display: none !important; }
         .lp-logo-fly,
         .lp-logo3d__stage,
         .lp-logo3d__placeholder { display: none !important; }
  
-        /* Light header to match the cream hero (was a black mask + white text). */
+        /* Light header to match the white hero page. */
         .lp-navbar::before {
-          background: linear-gradient(180deg, #f6f1e6 0%, #f6f1e6 70%, transparent 100%) !important;
+          background: linear-gradient(180deg, #ffffff 0%, #ffffff 70%, transparent 100%) !important;
         }
         .lp-root .lp-navlink { color: #2b2b2b !important; }
         .lp-root .lp-navlink:hover { color: #000 !important; }
         .lp-root .lp-nav-join { color: #4452f0 !important; }
         .lp-btn-login { color: #171717 !important; border-color: rgba(0,0,0,0.22) !important; }
         .lp-btn-login:hover { border-color: rgba(0,0,0,0.45) !important; }
- 
+
         .lp-hero {
           position: relative;          height: 150vh;
           color: var(--lp-text);
@@ -4277,13 +4271,14 @@ export default function Landing() {
 
         /* ── Showcase / Best UGC ──────────────────────────────────────────── */
         .lp-showcase {
-          padding: 80px 8% 24px;
+          padding: 80px 0 24px;
           background: transparent;
           color: var(--lp-text);
         }
         .lp-showcase__inner {
           max-width: 1200px;
           margin: 0 auto;
+          padding: 0 8%;
           text-align: center;
         }
         .lp-showcase__heading {
@@ -4391,8 +4386,6 @@ export default function Landing() {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 20px;
-          max-width: 1120px;
-          margin: 0 auto;
           text-align: left;
         }
         /* Load more → signup */
@@ -4846,37 +4839,93 @@ export default function Landing() {
         }
 
         /* ── Editorial list (replaces the fanned cards) ─────────────────────── */
-        .lp-achieve__list {
-          display: flex; flex-direction: column; gap: 6px;
-          max-width: 1120px; margin: 44px auto 0; padding: 0 24px;
+        .lp-achieve__cards {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(220px, 1fr));
+          gap: 24px;
+          max-width: 1120px;
+          margin: 44px auto 0;
+          padding: 0 24px;
         }
-        .lp-achieve__row { display: flex; justify-content: flex-start; }
-        .lp-achieve__col { width: min(300px, 100%); text-align: left; }
-        .lp-achieve__num {
-          font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500;
-          font-size: clamp(26px, 3.2vw, 42px); line-height: 1; color: #ef6a4c; letter-spacing: -0.5px;
+        .lp-achieve__cards .lp-achieve-card {
+          position: relative !important;
+          top: auto !important;
+          left: auto !important;
+          margin-left: 0 !important;
+          width: 100% !important;
+          height: auto;
+          transform: none !important;
+          background: rgba(22, 22, 28, 0.97);
+          border: 1px solid rgba(var(--lp-fg), 0.08);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.14);
+          border-radius: 24px;
+          padding: 26px 24px 28px;
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
-        .lp-achieve__rule {
-          height: 1px;
-          background: rgba(var(--lp-fg), 0.45);
-          margin: 12px 0 12px;
-          transform-origin: left;
+        .lp-achieve__cards .lp-achieve-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 32px 74px rgba(0, 0, 0, 0.22);
         }
-        .lp-achieve__h {
-          margin: 0 0 8px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
-          font-size: clamp(16px, 1.9vw, 20px); font-weight: 800; color: var(--lp-text); line-height: 1.22;
+        .lp-achieve__cards .lp-achieve-card__top {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 22px;
         }
-        .lp-achieve__p {
-          margin: 0; font-family: var(--font-body, 'Inter', sans-serif);
-          font-size: 14.5px; line-height: 1.55; color: var(--lp-text-muted);
+        .lp-achieve__cards .lp-achieve-card__icon {
+          width: 44px;
+          height: 44px;
+          color: rgba(var(--lp-fg), 0.75);
+        }
+        .lp-achieve__cards .lp-achieve-card__num {
+          position: static !important;
+          top: auto !important;
+          left: auto !important;
+          margin: 0;
+          font-family: 'Instrument Serif', Georgia, serif;
+          font-size: 1.95rem;
+          line-height: 1;
+          color: rgba(var(--lp-fg), 0.9);
+        }
+        .lp-achieve__cards .lp-achieve-card__label {
+          font-family: var(--font-body, 'Inter', sans-serif);
+          text-transform: uppercase;
+          letter-spacing: 0.18em;
+          font-size: 0.78rem;
+          color: rgba(var(--lp-fg), 0.65);
+          font-weight: 700;
+          margin-top: 4px;
+        }
+        .lp-achieve__cards .lp-achieve-card__body {
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          flex: 1;
+        }
+        .lp-achieve__cards .lp-achieve-card .lp-achieve-card__title {
+          font-size: clamp(1.2rem, 1.6vw, 1.5rem);
+          margin: 0 0 10px;
+        }
+        .lp-achieve__cards .lp-achieve-card .lp-achieve-card__desc {
+          font-size: 1rem;
+          line-height: 1.6;
+          margin: 0;
+        }
+        .lp-achieve__cards .lp-achieve-card .lp-achieve-card__tag {
+          margin-top: auto;
         }
         .lp-achieve__tag {
           margin-top: 20px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
           font-size: 14px; font-weight: 700; color: var(--lp-text);
         }
-        @media (max-width: 700px) {
-          .lp-achieve__col { margin-left: 0 !important; width: 100%; }
-          .lp-achieve__list { gap: 48px; margin-top: 36px; }
+        @media (max-width: 1280px) {
+          .lp-achieve__cards { grid-template-columns: repeat(2, minmax(240px, 1fr)); }
+        }
+        @media (max-width: 900px) {
+          .lp-achieve__cards { grid-template-columns: 1fr; }
         }
 
         /* Fan container — cards are absolutely placed and fanned via inline transform. */

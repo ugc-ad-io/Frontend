@@ -134,7 +134,7 @@
     radial-gradient(120% 130% at 85% 10%, rgba(109,123,255,.20) 0%, rgba(109,123,255,0) 45%),
     radial-gradient(120% 130% at 60% 90%, rgba(91,107,255,.18) 0%, rgba(91,107,255,0) 50%),
     linear-gradient(135deg,#eef0ff 0%, #f4f0ff 45%, #fbf3fb 100%);
-  padding:44px 46px;display:grid;grid-template-columns:1.05fr 1.25fr;gap:30px;align-items:center;min-height:400px}
+  padding:44px 46px;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;min-height:400px}
 .cmk-hero-dots{position:absolute;inset:0;background-image:radial-gradient(rgba(91,107,255,.18) 1px,transparent 1px);
   background-size:22px 22px;mask:radial-gradient(60% 60% at 30% 60%,#000,transparent);opacity:.5;pointer-events:none}
 

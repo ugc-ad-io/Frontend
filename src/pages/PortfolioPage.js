@@ -366,44 +366,47 @@ export default function PortfolioPage() {
 
           {visibleItems.length ? (
             <>
-              {/* Top 3 — expanding panels: hover one and it stretches wide */}
-              <div className="cmk-pf-featured">
-                {visibleItems.slice(0, 3).map((item, index) => {
-                  const realIndex = portfolio.indexOf(item);
-                  return (
-                    <article key={item.urls?.[0] || `f${index}`} className="cmk-pf-feature cmk-rise">
-                      <PortfolioMedia url={item.urls?.[0] || ''} index={index} thumbnail demo={Boolean(item._demo)} />
-                      <span className="cmk-pf-feature-shade" />
-                      {isVid(item) && <span className="cmk-pf-play"><Play size={24} fill="currentColor" /></span>}
-                      <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={16} /></button>
-                      {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={15} /></button>}
-                      {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
-                      {item.title && <div className="cmk-pf-feature-cap"><strong>{item.title}</strong></div>}
-                    </article>
-                  );
-                })}
-              </div>
-
-              {/* The rest — standard grid */}
-              {visibleItems.length > 3 && (
-                <div className="cmk-pf-grid">
-                  {visibleItems.slice(3).map((item, index) => {
+              {/* Full-bleed wrapper so the portfolio/featured row can span the full viewport */}
+              <div className="cmk-bleed cmk-bleed--align">
+                {/* Top 3 — expanding panels: hover one and it stretches wide */}
+                <div className="cmk-pf-featured">
+                  {visibleItems.slice(0, 3).map((item, index) => {
                     const realIndex = portfolio.indexOf(item);
                     return (
-                      <article key={item.urls?.[0] || `g${index}`} className="cmk-pf-card cmk-rise">
-                        <div className="cmk-pf-media">
-                          <PortfolioMedia url={item.urls?.[0] || ''} index={index + 3} thumbnail demo={Boolean(item._demo)} />
-                          {isVid(item) && <span className="cmk-pf-play"><Play size={22} fill="currentColor" /></span>}
-                          <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={15} /></button>
-                          {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={14} /></button>}
-                          {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
-                        </div>
-                        {item.title && <h3 className="cmk-pf-title">{item.title}</h3>}
+                      <article key={item.urls?.[0] || `f${index}`} className="cmk-pf-feature cmk-rise">
+                        <PortfolioMedia url={item.urls?.[0] || ''} index={index} thumbnail demo={Boolean(item._demo)} />
+                        <span className="cmk-pf-feature-shade" />
+                        {isVid(item) && <span className="cmk-pf-play"><Play size={24} fill="currentColor" /></span>}
+                        <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={16} /></button>
+                        {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={15} /></button>}
+                        {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
+                        {item.title && <div className="cmk-pf-feature-cap"><strong>{item.title}</strong></div>}
                       </article>
                     );
                   })}
                 </div>
-              )}
+
+                {/* The rest — standard grid */}
+                {visibleItems.length > 3 && (
+                  <div className="cmk-pf-grid">
+                    {visibleItems.slice(3).map((item, index) => {
+                      const realIndex = portfolio.indexOf(item);
+                      return (
+                        <article key={item.urls?.[0] || `g${index}`} className="cmk-pf-card cmk-rise">
+                          <div className="cmk-pf-media">
+                            <PortfolioMedia url={item.urls?.[0] || ''} index={index + 3} thumbnail demo={Boolean(item._demo)} />
+                            {isVid(item) && <span className="cmk-pf-play"><Play size={22} fill="currentColor" /></span>}
+                            <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={15} /></button>
+                            {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={14} /></button>}
+                            {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
+                          </div>
+                          {item.title && <h3 className="cmk-pf-title">{item.title}</h3>}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <EmptyState title="No work yet" message={`Add your best ${tab === 'all' ? 'videos and photos' : tab} to showcase your talent to brands.`} />

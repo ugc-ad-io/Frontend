@@ -114,9 +114,7 @@
 .cmk-avatar-id{display:flex;flex-direction:column;line-height:1.2;text-align:left;padding-right:2px}
 .cmk-avatar-id strong{font-size:13.5px;font-weight:700;color:var(--ink);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmk-avatar-id small{font-size:11.5px;color:var(--muted);font-weight:500}
-.cmk-avatar-chevron{flex:none;color:var(--muted);transition:transform .18s ease}
-.cmk-avatar-chevron.is-open{transform:rotate(180deg)}
-@media (max-width:1180px){.cmk-avatar-id,.cmk-avatar-chevron{display:none}.cmk-nav-search{max-width:260px}}
+@media (max-width:1180px){.cmk-avatar-id{display:none}.cmk-nav-search{max-width:260px}}
 
 .cmk-menu{position:absolute;top:56px;right:0;width:236px;background:#fff;border:1px solid var(--line);
   border-radius:16px;box-shadow:var(--shadow-card);padding:8px;z-index:60}
@@ -364,21 +362,6 @@
 .cmk-tabs button.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;
   background:linear-gradient(90deg,var(--indigo),var(--violet))}
 .cmk-tabs-tools{display:flex;align-items:center;gap:12px;padding-bottom:8px}
-.cmk-aw-mobile-filter{display:none}
-
-@media (max-width:620px){
-  .cmk-tabs-row{flex-wrap:nowrap;gap:12px}
-  .cmk-tabs{gap:20px;overflow:visible}
-  .cmk-tabs .cmk-aw-mobile-filtered{display:none}
-  .cmk-aw-mobile-filter{display:block;position:relative;margin-left:auto;padding-bottom:8px;flex:none}
-  .cmk-aw-filter-btn{height:38px;display:flex;align-items:center;gap:6px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink-2);font:700 13px/1 var(--font-body,inherit);cursor:pointer}
-  .cmk-aw-filter-btn.is-active{border-color:var(--indigo);color:var(--indigo);background:#f4f5ff}
-  .cmk-aw-filter-menu{position:absolute;right:0;top:calc(100% + 2px);z-index:50;width:180px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 36px rgba(17,20,45,.16)}
-  .cmk-aw-filter-menu button{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font:600 14px/1.2 var(--font-body,inherit);cursor:pointer}
-  .cmk-aw-filter-menu button em{font-style:normal;color:var(--muted)}
-  .cmk-aw-filter-menu button.is-active{background:var(--indigo);color:#fff}
-  .cmk-aw-filter-menu button.is-active em{color:rgba(255,255,255,.8)}
-}
 
 /* ── active work rows ────────────────────────────────────────────────────── */
 .cmk-aw-list{display:flex;flex-direction:column;gap:16px}
@@ -450,8 +433,6 @@
 
 /* segmented stage progress bar — label above each segment */
 .cmk-awc-steps{flex:1;min-width:0;display:flex;gap:12px;align-items:flex-end}
-.cmk-awc-progress{flex:1;min-width:0;display:flex}
-.cmk-awc-progress-summary{display:none}
 .awc-step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px}
 .awc-step-lbl{max-width:100%;font-size:11.5px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .awc-step-bar{width:100%;height:7px;border-radius:6px;background:#e7e9f7}
@@ -473,23 +454,6 @@
 .cmk-awc-respond:hover{background:#3542d6;transform:translateY(-1px)}
 
 @media (max-width:760px){
-  /* Creator list/hub pages use the phone viewport as one continuous surface. */
-  .cmk-page.cmk-wrap:has(> .saved-campaigns-head),
-  .cmk-page.cmk-wrap:has(> .browse-campaigns-head),
-  .cmk-page.cmk-wrap:has(> .my-deals-head){
-    max-width:none;padding-left:0;padding-right:0;background:#fff
-  }
-  .saved-campaigns-head,.browse-campaigns-head,.my-deals-head{padding:0 16px}
-  .cmk-page:has(> .browse-campaigns-head) .cmk-filter-row,
-  .cmk-page:has(> .browse-campaigns-head) .cmk-search-note{margin-left:16px;margin-right:16px}
-  .cmk-page:has(> .saved-campaigns-head) .cmk-bb-grid,
-  .cmk-page:has(> .browse-campaigns-head) .cmk-bb-grid{gap:0}
-  .cmk-page:has(> .saved-campaigns-head) .cmk-bb-card,
-  .cmk-page:has(> .browse-campaigns-head) .cmk-bb-card{
-    border-left:0;border-right:0;border-top:0;border-radius:0;box-shadow:none;padding:18px 16px
-  }
-  .cmk-page:has(> .saved-campaigns-head) .cmk-bb-card:hover,
-  .cmk-page:has(> .browse-campaigns-head) .cmk-bb-card:hover{transform:none;box-shadow:none}
   .cmk-awc{flex-wrap:wrap;gap:14px}
   .cmk-awc-lead{width:auto;flex:1}
   .cmk-awc-steps{flex:1 1 100%;order:3}
@@ -549,6 +513,22 @@
 @media (max-width:600px){
   .cmk-post-fab{right:16px;bottom:16px;height:48px;padding:0 18px;font-size:14px}
 }
+/* Full-bleed helper: break out of the centered `.cmk-wrap` and span the
+   full viewport width so content (like the portfolio/video section) can
+   touch both edges of the screen. Use by wrapping the section in
+   `<div className="cmk-bleed">...</div>`. */
+.cmk-bleed{position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;width:100vw;max-width:100vw;box-sizing:border-box}
+
+/* Stronger full-bleed alignment for centered wrappers: translate by half the
+  difference between the parent width and the viewport so the element truly
+  aligns to the viewport edges on all screen sizes. */
+.cmk-bleed--align { transform: translateX(calc((100% - 100vw) / 2)); }
+
+/* Remove any accidental horizontal padding inside the featured row so the
+  first/last cards can reach the viewport edges. */
+.cmk-bleed .cmk-pf-featured { padding-left: 0; padding-right: 0; width:100%; }
+.cmk-bleed .cmk-pf-feature { min-width: 0; }
+
 
 /* "Post a Campaign" modal — opens the brief wizard as a card */
 .cmk-brief-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-start;
@@ -564,32 +544,8 @@
   background:#fff;color:#07074E;box-shadow:0 4px 14px rgba(7,7,78,.12);cursor:pointer;transition:.18s}
 .cmk-brief-close:hover{background:#EEF0FF;transform:translateY(-1px)}
 @media (max-width:600px){
-  .cmk-brief-overlay{
-    display:block;
-    padding:0;
-    overflow:hidden;
-    background:#fff;
-    backdrop-filter:none;
-  }
-  .cmk-brief-modal{
-    width:100%;
-    max-width:none;
-    height:100dvh;
-    margin:0;
-    padding:64px 0 0;
-    box-sizing:border-box;
-    overflow-x:hidden;
-    overflow-y:auto;
-    border-radius:0;
-    box-shadow:none;
-    background:#fff;
-  }
-  .cmk-brief-close{
-    position:fixed;
-    top:10px;
-    right:12px;
-    z-index:230;
-  }
+  .cmk-brief-overlay{padding:16px 10px}
+  .cmk-brief-modal{border-radius:16px;padding:18px}
 }
 
 /* expanding-panel featured row (top 3) */
@@ -1284,10 +1240,10 @@
 .cmk-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-soft)}
 .cmk-dr{padding-top:4px}
 .cmk-dr-back{display:flex;align-items:center;gap:14px;margin:4px 0 16px}
-.cmk-dr-back button{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:none;border:none;color:var(--indigo);
-  font-family:inherit;cursor:pointer;flex:none}
+.cmk-dr-back button{display:inline-flex;align-items:center;gap:7px;background:none;border:none;color:var(--indigo);
+  font-family:inherit;font-weight:600;font-size:14px;cursor:pointer}
 .cmk-dr-back select{height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-family:inherit;
-  margin-left:auto;font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;cursor:pointer}
+  font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;cursor:pointer}
 
 /* header */
 /* Header is two calm rows now: [logo · title · next action] over a quiet facts strip.
@@ -1309,7 +1265,6 @@
 .cmk-dr-title h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cmk-dr-id{display:flex;align-items:center;gap:10px;margin-top:5px;font-size:12.5px;color:var(--muted)}
-.cmk-dr-id .cmk-pill{font-family:inherit;text-align:left}
 .cmk-dr-tags{display:flex;gap:6px;margin-top:9px}
 .cmk-dr-tags span{background:#eef0ff;color:var(--indigo);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
 .cmk-dr-metacol{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -1317,9 +1272,7 @@
 .cmk-dr-metacol small{color:var(--muted);font-size:11px}
 .cmk-dr-metacol b{font-weight:700;font-size:13.5px}
 .cmk-dr-next{margin-left:auto;flex:none;display:flex;align-items:center;gap:9px;color:#9a6212;
-  background:#fdf3e3;border:1px solid #f6e2c0;border-radius:13px;padding:9px 13px;font-family:inherit;text-align:left;cursor:pointer}
-.cmk-dr-next:hover{border-color:#e9c98f;background:#fbeed9}
-.cmk-dr-next:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(245,158,11,.2)}
+  background:#fdf3e3;border:1px solid #f6e2c0;border-radius:13px;padding:9px 13px}
 .cmk-dr-next small{display:block;font-size:10.5px;color:#b9802e}
 .cmk-dr-next strong{font-size:13px;color:#8a5a13;white-space:nowrap}
 /* Finished deal: green "done" chip instead of the amber "you still owe something"
@@ -1575,11 +1528,11 @@
   /* filters + tabs scroll instead of wrapping awkwardly */
   .cmk-filter-row{gap:8px}
   .cmk-select{min-width:auto;flex:1 1 30%}
-  /* Keep Budget, Delivery and Sort by on one compact row on creator mobile. */
-  .cmk-filter-row .cmk-sort{margin-left:0;width:auto;flex:0 1 30%;min-width:0;gap:4px}
-  .cmk-filter-row .cmk-sort:nth-of-type(3){flex-basis:calc(40% - 16px)}
-  .cmk-filter-row .cmk-sort label{font-size:11px;letter-spacing:.15px;white-space:nowrap}
-  .cmk-filter-row .cmk-sort select{width:100%;min-width:0;height:42px;padding:0 25px 0 10px;font-size:12px;background-position:right 8px center;background-size:13px}
+  /* Pair the filters two-up and let each select fill its group. Previously every
+     .cmk-sort spanned 100% while the select inside stayed ~140px, so Browse showed
+     three tall rows each with a narrow dropdown hugging the left edge. */
+  .cmk-filter-row .cmk-sort{margin-left:0;width:auto;flex:1 1 calc(50% - 4px);min-width:0}
+  .cmk-filter-row .cmk-sort select{width:100%}
   /* margin-left:auto threw this onto a 4th row, detached from the filters it clears. */
   .cmk-filter-row .cmk-filter-clear{margin-left:0;flex:1 1 100%}
   .cmk-sort{margin-left:0;width:100%}
@@ -1595,20 +1548,7 @@
      This rule used to target .cmk-aw-steps/.cmk-step, which NO page renders (the
      markup is .cmk-awc-steps/.awc-step), so it never applied and the stepper stayed
      squeezed on phones. */
-  .cmk-awc-progress{flex:1 1 100%;order:3;display:block;min-width:0}
-  .cmk-awc-progress-summary{width:100%;display:flex;flex-direction:column;gap:7px;padding:2px 7px 0;border:0;background:transparent;color:var(--ink);font-family:inherit;cursor:pointer}
-  .cmk-awc-progress-labels{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;font-size:11px}
-  .cmk-awc-progress-labels strong:first-child{text-align:left}
-  .cmk-awc-progress-labels strong:last-child{text-align:right}
-  .cmk-awc-progress-labels em{max-width:130px;color:var(--indigo);font-style:normal;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .cmk-awc-progress-track{position:relative;width:calc(100% - 14px);height:7px;display:block;margin:0 7px;border-radius:999px;background:#e7e9f7}
-  .cmk-awc-progress-track i{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:linear-gradient(90deg,#3b82f6,#6d7bff)}
-  .cmk-awc-progress-track b{position:absolute;top:50%;width:15px;height:15px;border:3px solid #fff;border-radius:50%;background:#6d7bff;box-shadow:0 0 0 1px rgba(109,123,255,.24);transform:translate(-50%,-50%)}
-  .cmk-awc-progress-summary small{display:flex;align-items:center;align-self:center;gap:3px;color:var(--muted);font-size:10px;font-weight:700}
-  .cmk-awc-progress-summary small svg{transition:transform .18s ease}
-  .cmk-awc-progress.is-expanded .cmk-awc-progress-summary small svg{transform:rotate(180deg)}
-  .cmk-awc-steps{display:none;overflow-x:auto;padding:7px 0 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .cmk-awc-progress.is-expanded .cmk-awc-steps{display:flex}
+  .cmk-awc-steps{overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .cmk-awc-steps::-webkit-scrollbar{display:none}
   /* Size each step to its own label. With flex:1 the 5 stages split ~330px, leaving
      ~56px each, which ellipsised "Video Submission" down to "Vid…". */
@@ -1625,56 +1565,9 @@
   .cmk-awc-go{width:44px;height:44px}
 
   /* Deal Room */
-  .cmk-page.cmk-wrap:has(.cmk-dr){max-width:none;padding:0 0 96px;background:#fff}
-  .cmk-page.cmk-wrap:has(.cmk-dr){padding-left:0;padding-right:0}
-  .cmk-dr{width:100%;padding-top:0;background:#fff}
-  .cmk-dr-back{margin:0;padding:12px 16px;background:#fff;border-bottom:1px solid var(--line)}
   .cmk-dr-head{gap:14px;padding:18px;flex-wrap:wrap}
-  .cmk-dr-head{border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
-  .cmk-dr-top{position:relative;display:grid;grid-template-columns:1fr;width:100%;gap:10px}
-  .cmk-dr-logo{grid-row:1}
-  .cmk-dr-title{grid-row:2;width:100%}
-  .cmk-dr-next{position:absolute;top:0;right:0;margin:0;width:auto;max-width:190px;justify-content:flex-start;padding:8px 11px}
-  .cmk-dr-next strong{white-space:normal;line-height:1.25}
-  .cmk-dr-id{flex-wrap:nowrap;gap:8px;white-space:nowrap;width:100%}
-  .cmk-dr-id .cmk-pill{display:none}
-  .cmk-dr-id .cmk-pill{flex:1;max-width:190px;min-height:44px;padding:6px 12px;border-radius:20px;white-space:normal;line-height:1.25;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-  .cmk-dr-id .cmk-pill{display:none !important}
   .cmk-dr-metacol{min-width:42%;white-space:normal}
-  .cmk-dr-steps{margin-top:0;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
-  .cmk-dr-steps.is-collapsed{position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation}
-  .cmk-dr-steps.is-collapsed .cmk-dr-step:not(:first-child):not(:last-of-type){display:none}
-  .cmk-dr-steps.is-collapsed .cmk-dr-step{min-width:0}
-  .cmk-dr-steps.is-collapsed .cmk-dr-step:first-child{align-items:flex-start;text-align:left}
-  .cmk-dr-steps.is-collapsed .cmk-dr-step:last-of-type{align-items:flex-end;text-align:right}
-  .cmk-dr-steps.is-collapsed .cmk-dr-step:first-child .line{left:17px;width:calc(200% - 34px)}
-  .cmk-dr-steps.is-expanded{
-    justify-content:flex-start;
-    overflow-x:auto;
-    padding-left:0;
-    cursor:pointer;
-    touch-action:pan-x;
-    scrollbar-width:none;
-    overscroll-behavior-x:contain;
-  }
-  .cmk-dr-steps.is-expanded::-webkit-scrollbar{display:none}
-  .cmk-dr-steps.is-expanded .cmk-dr-step{flex:0 0 104px;min-width:104px}
-  .cmk-dr-steps.is-expanded .cmk-dr-step:first-child{
-    flex-basis:70px;
-    min-width:70px;
-    align-items:flex-start;
-    text-align:left;
-  }
-  .cmk-dr-steps.is-expanded .cmk-dr-step:first-child .dot,
-  .cmk-dr-steps.is-expanded .cmk-dr-step:first-child .lbl,
-  .cmk-dr-steps.is-expanded .cmk-dr-step:first-child .sub{align-self:flex-start}
-  .cmk-dr-steps.is-expanded .cmk-dr-step:first-child .line{left:17px;width:calc(100% - 17px)}
-  .cmk-dr-body{gap:0;margin:0 0 36px}
-  .cmk-dr-body>main{width:100%;max-width:100%;min-width:0;overflow:hidden}
-  .cmk-dr-tabs{padding:0 16px;border-left:0;border-right:0;border-radius:0}
-  .cmk-dr-sec.cmk-card{margin-top:0;padding:20px 16px;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
-  .cmk-dr-legacy{width:100%;max-width:100%;min-width:0;margin-top:0;padding:16px;box-sizing:border-box}
-  .cmk-dr-legacy>.deal-card{width:100%;max-width:100%;min-width:0}
+  .cmk-dr-next{margin-left:0;width:100%;justify-content:center}
   .cmk-dr-ship-grid{grid-template-columns:1fr 1fr}
   /* overflow-x alone did nothing: the buttons are shrinkable flex items, so they
      compressed to min-content and wrapped mid-word instead of triggering scroll.
@@ -1966,16 +1859,12 @@
     color: #15163a;
   }
 
-  /* Creator drawer: indicate the current page with colour only. A full-width dark
-     block felt like a pressed button and stayed behind after navigation. */
-  .cmk-mobile-item.is-active,
-  .cmk-mobile-item.is-active:hover,
-  .cmk-mobile-item:active {
-    background: transparent;
-    color: var(--indigo);
+  .cmk-mobile-item.is-active {
+    background: linear-gradient(100deg, #23236a, #12124f);
+    color: #fff;
   }
 
-  .cmk-mobile-item.is-active svg { color: var(--indigo); }
+  .cmk-mobile-item.is-active svg { color: #fff; }
 
   .cmk-mobile-sep {
     height: 1px;

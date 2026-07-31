@@ -803,6 +803,13 @@ const achieveItems = [
   },
 ];
 
+// Hero gallery poster stills — every /public/home/*.jpg exists (unlike the /ma clips,
+// which have no sibling still), so no card ever shows a broken image.
+const HERO_POSTERS = [
+  '03', '04', '05', '06', '07', '10', '13', '15',
+  '16', '19', '21', '22', '23', '24', '25', '26',
+].map((n) => `/home/video_${n}.jpg`);
+
 // Sixteen showcase video slots — local UGC clips from /public/home.
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
@@ -947,16 +954,24 @@ function AchieveFan({ items }) {
         <motion.div
           key={item.title}
           className="lp-achieve__row"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          // Content stays put — it's revealed left-to-right by wiping back the clip
+          // mask, not by sliding into position.
+          initial={{ clipPath: 'inset(0 100% 0 0)' }}
+          whileInView={{ clipPath: 'inset(0 0% 0 0)' }}
           viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="lp-achieve__col" style={{ marginLeft: `${(i / (shown.length - 1)) * 82}%` }}>
             <div className="lp-achieve__num">
               <span className="lp-achieve__num-i">{`0${i + 1}`}</span> {item.kicker}
             </div>
-            <div className="lp-achieve__rule" />
+            <motion.div
+              className="lp-achieve__rule"
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            />
             <h3 className="lp-achieve__h">{String(item.title).replace(/\n/g, ' ')}</h3>
             <p className="lp-achieve__p">{item.desc}</p>
             {item.tag && <div className="lp-achieve__tag">{item.tag}</div>}
@@ -1204,7 +1219,7 @@ export default function Landing() {
   // off-screen left, driven by SCROLL POSITION during the section's entering phase (see
   // auditEnterProgress below), not a timer — so nothing shows until the user actually
   // scrolls, and slower/faster scrolling changes how much of each card has arrived.
-  const auditInView = useInView(auditRef, { once: true, margin: '-100px' });
+  const auditInView = useInView(auditRef, { once: true, margin: '0px 0px -50% 0px', amount: 0.5 });
   const { scrollYProgress: auditProgress } = useScroll({
     target: auditRef,
     offset: ['start start', 'end end'],
@@ -1253,51 +1268,10 @@ export default function Landing() {
   // does Q1 start rising. This is ON TOP of the existing peel-away Y (card2Y/card3Y/
   // card1Y desktop, mAuditQ1-3Y mobile) rather than replacing it: the entrance motion
   // resolves to 0 once done, so it never fights the peel's own small resting baselines.
-  const AUDIT_ENTER_FROM_Y = 700;
-  const AUDIT_SETTLE = 0.15;
-  const auditEnterQ1Y = useTransform(auditEnterProgress, [AUDIT_SETTLE, 0.575], [AUDIT_ENTER_FROM_Y, 0]);
-  const auditEnterQ2Y = useTransform(auditEnterProgress, [0.3625, 0.7875], [AUDIT_ENTER_FROM_Y, 0]);
-  const auditEnterQ3Y = useTransform(auditEnterProgress, [0.575, 1], [AUDIT_ENTER_FROM_Y, 0]);
-  // Heading/subtitle sit fully visible through the settle window, THEN fade out as Q1
-  // arrives (covering them) — and stay gone, since nothing later re-drives this opacity.
-  const auditHeadingOpacity = useTransform(auditEnterProgress, [0.42, 0.58], [1, 0]);
-  const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
-  // These desktop glide-springs run a per-frame rAF physics loop while their source moves.
-  // On mobile the cards use the raw mAudit* transforms below instead, so freeze the spring
-  // sources to a constant (output [0,0]) when heroStatic — otherwise three idle springs
-  // would still animate during the exact scroll window the deck assembles, stealing frames
-  // and stuttering Q2/Q3 as they rise.
-  const card2Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.04, 0.33], heroStatic ? [0, 0] : [0, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card3Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.36, 0.65], heroStatic ? [0, 0] : [35, -800], { ease: easeInOut }), PEEL_SPRING);
-  const card1Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.68, 0.99], heroStatic ? [0, 0] : [-35, -800], { ease: easeInOut }), PEEL_SPRING);
-  // Mobile assemble — bound DIRECTLY to scroll (NO spring). On a phone the soft PEEL_SPRING
-  // made the cards trail the finger and keep drifting/settling after the scroll stopped; that
-  // overshoot + trailing is what read as "lag", and the spring also runs an extra rAF loop on
-  // the main thread every frame you scroll. A raw useTransform is a pure function of scroll
-  // position (still eased across each range), so the cards move exactly in step with the scroll
-  // — responsive, smooth, and they never drift or stutter. Desktop keeps its glide springs.
-  // Mobile PEEL (web-like): all three cards start STACKED together (y = 0) and then fly UP off the
-  // top one-by-one as you scroll — Q1 first, Q2, then Q3 last — mirroring the desktop peel. Raw
-  // useTransform (no spring) so they track the finger exactly without drift/lag on phones.
-  // Peel spans the FULL runway (last card finishes at ~0.99, right as the section unpins) so a card
-  // is always moving — no dead stretch where you scroll but nothing happens before the next section.
-  const mAuditQ1Y = useTransform(auditProgress, [0.05, 0.36], [0, -760], { ease: easeInOut });
-  const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [0, -760], { ease: easeInOut });
-  const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [0, -760], { ease: easeInOut });
-  // Rise-in Y + peel-away Y, summed — the two never overlap in time (rise finishes right
-  // as the peel's own auditProgress timeline begins), so this is just "whichever one is
-  // currently non-zero" in practice, but summing avoids needing to switch motion values
-  // mid-scroll (which would jump instead of continuing smoothly).
-  const auditCardY = [
-    useTransform([auditEnterQ1Y, card2Y], ([e, p]) => e + p),
-    useTransform([auditEnterQ2Y, card3Y], ([e, p]) => e + p),
-    useTransform([auditEnterQ3Y, card1Y], ([e, p]) => e + p),
-  ];
-  const mAuditCardY = [
-    useTransform([auditEnterQ1Y, mAuditQ1Y], ([e, p]) => e + p),
-    useTransform([auditEnterQ2Y, mAuditQ2Y], ([e, p]) => e + p),
-    useTransform([auditEnterQ3Y, mAuditQ3Y], ([e, p]) => e + p),
-  ];
+  // Card animation is disabled for this audit section; cards remain in place instead
+  // of peeling up with scroll.
+  const auditCardY = [0, 0, 0];
+  const mAuditCardY = [0, 0, 0];
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
   // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
   // "stuck" to the card — as the card goes above, the section is dragged up into view
@@ -1559,6 +1533,64 @@ export default function Landing() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Hero gallery — the poster cards auto-scroll as one infinite row while each card's
+  // vertical offset + tilt are recomputed every frame from its live x-position, so the
+  // cards ride a FIXED arch (curve) that stays put in space while they flow through it.
+  const nlpGalleryRef = useRef(null);
+  useEffect(() => {
+    const track = nlpGalleryRef.current;
+    const vp = track?.parentElement;
+    if (!track || !vp) return undefined;
+    const mq = window.matchMedia('(min-width: 901px)');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let raf = 0;
+    let offset = 0;
+    let last = 0;
+    let halfW = 0;
+    const measure = () => { halfW = track.scrollWidth / 2; };
+    const step = (ts) => {
+      if (!last) last = ts;
+      const dt = Math.min(64, ts - last);
+      last = ts;
+      offset += dt * 0.045;                 // scroll speed (px/ms)
+      if (halfW && offset >= halfW) offset -= halfW;   // seamless wrap at the mid-point
+      track.style.transform = `translateX(${-offset}px)`;
+      const vpRect = vp.getBoundingClientRect();
+      const cx = vpRect.left + vpRect.width / 2;
+      const half = vpRect.width / 2 || 1;
+      const cards = track.children;
+      for (let i = 0; i < cards.length; i++) {
+        const r = cards[i].getBoundingClientRect();
+        const c = Math.max(-1.15, Math.min(1.15, (r.left + r.width / 2 - cx) / half));
+        const y = (1 - c * c) * 92 - 30;    // centre lowest; ends LIFT UP above baseline (smile ∪)
+        const rot = c * 4;                  // subtle 2–5° tilt that follows the curve
+        cards[i].style.transform = `translateY(${y}px) rotate(${rot}deg)`;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    const start = () => {
+      if (raf || !mq.matches || reduce.matches) return;
+      last = 0;
+      measure();
+      raf = requestAnimationFrame(step);
+    };
+    const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+    const clear = () => {
+      track.style.transform = '';
+      for (const el of track.children) el.style.transform = '';
+    };
+    start();
+    const onResize = () => measure();
+    const onMq = () => { stop(); if (mq.matches && !reduce.matches) start(); else clear(); };
+    window.addEventListener('resize', onResize);
+    mq.addEventListener('change', onMq);
+    return () => {
+      stop();
+      window.removeEventListener('resize', onResize);
+      mq.removeEventListener('change', onMq);
+    };
+  }, []);
+
   const handleGetStarted = () => {
     if (user) {
       if (user.role === 'creator') navigate('/dashboard/creator');
@@ -1709,16 +1741,14 @@ export default function Landing() {
           <svg viewBox="0 0 80 60" className="nlp-note-arrow"><path d="M6,6 C50,0 74,20 66,52" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round"/><path d="M56,44 L66,54 L74,42" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </span>
 
-        <div className="nlp-gallery">
-          {showcaseVideos.slice(0, 7).map((v, i) => (
-            <figure
-              className="nlp-card"
-              key={v.id}
-              style={{ transform: `translateY(${Math.abs(i - 3) * 22}px) rotate(${(i - 3) * 1.4}deg)` }}
-            >
-              <img src={cldPoster(v.src)} alt="" loading="lazy" />
-            </figure>
-          ))}
+        <div className="nlp-gallery-vp">
+          <div className="nlp-gallery" ref={nlpGalleryRef}>
+            {[...HERO_POSTERS, ...HERO_POSTERS].map((src, i) => (
+              <figure className="nlp-card" key={i}>
+                <img src={src} alt="" loading="lazy" />
+              </figure>
+            ))}
+          </div>
         </div>
 
         <div className="nlp-cta-wrap">
@@ -1916,8 +1946,9 @@ export default function Landing() {
           )}
 
           {/* Load more: not real pagination — it routes to the sign-up form so a visitor
-              creates an account to browse the full library. */}
-          <div className="lp-showcase__more">
+              creates an account to browse the full library. Hidden when the centered
+              audit content appears. */}
+          <div className="lp-showcase__more" style={{ display: 'none' }}>
             <button
               type="button"
               className="lp-showcase__more-btn"
@@ -1932,7 +1963,7 @@ export default function Landing() {
       {/* connector 1: hero → hook — joined U-bridge with center drop into badge.
           Negative marginTop pulls the dashed verticals up so they touch the
           showcase video-card row above (no black gap between cards and line). */}
-      <div className="lp-connector" style={{ height: 380, marginTop: -24, marginBottom: -110 }}>
+      <div className="lp-connector" style={{ height: 380, marginTop: 0, marginBottom: 0 }}>
         <svg viewBox="0 0 1400 380" width="100%" height="100%" preserveAspectRatio="none">
           <path d="M 80 0 L 80 80 L 480 80 L 480 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
           <path d="M 1320 0 L 1320 80 L 920 80 L 920 180" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
@@ -1976,7 +2007,7 @@ export default function Landing() {
       </section>
 
       {/* connector 2: hook → steps — straight vertical line, overlaps into both sections */}
-      <div className="lp-connector" style={{ height: 320, marginTop: -100, marginBottom: -100 }}>
+      <div className="lp-connector" style={{ height: 320, marginTop: 0, marginBottom: 0 }}>
         <svg viewBox="0 0 1400 320" width="100%" height="100%" preserveAspectRatio="none">
           <path d="M 700 0 L 700 320" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
@@ -2155,55 +2186,34 @@ export default function Landing() {
       </section>
 
       {/* connector: steps → audit — center straight line into the cards */}
-      <div className="lp-connector" style={{ height: 270, marginTop: -100, marginBottom: -80 }}>
+      <div className="lp-connector" style={{ height: 270, marginTop: 0, marginBottom: 0 }}>
         <svg viewBox="0 0 1400 270" width="100%" height="100%" preserveAspectRatio="none">
           <path d="M 700 0 L 700 270" fill="none" stroke="rgb(152,161,172)" strokeWidth="1.5" strokeDasharray="6 6" strokeOpacity="0.5" />
         </svg>
       </div>
 
       {/* ── Psychological Audit ───────────────────────────────────────────── */}
-      <section className="lp-audit" ref={auditRef}>
+      <section className="lp-audit" ref={auditRef} style={{ marginTop: 0 }}>
         <div className="lp-audit__bg-orb lp-audit__bg-orb--1" aria-hidden="true" />
         <div className="lp-audit__bg-orb lp-audit__bg-orb--2" aria-hidden="true" />
 
-        <div className="lp-audit__inner">
-          <motion.span
-            className="lp-audit__pill"
-            variants={fadeUpVariants}
-            initial="hidden"
-            animate={auditInView ? 'visible' : 'hidden'}
-          >
+        <div className="lp-audit__inner" style={{ opacity: auditInView ? 1 : 0, transition: 'opacity 0.3s ease' }}>
+          <span className="lp-audit__pill">
             <HelpCircle size={14} />
             Quick reality check
-          </motion.span>
+          </span>
 
-          {/* Fades out (and stays gone) once the rising Q1 card reaches it — see
-              auditHeadingOpacity. Wrapped rather than driving opacity directly on the h2/p so
-              their own fadeUpVariants entrance (opacity+y on first appear) keeps working
-              untouched; the wrapper's opacity multiplies on top of that. */}
-          <motion.div style={{ opacity: auditHeadingOpacity }}>
-            <motion.h2
-              className="lp-audit__heading"
-              variants={fadeUpVariants}
-              initial="hidden"
-              animate={auditInView ? 'visible' : 'hidden'}
-              transition={{ delay: 0.1 }}
-            >
+          <div>
+            <h2 className="lp-audit__heading">
               Answer This{' '}
               <span className="lp-audit__heading--accent">Honestly</span>.
-            </motion.h2>
-            <motion.p
-              className="lp-audit__subtitle"
-              variants={fadeUpVariants}
-              initial="hidden"
-              animate={auditInView ? 'visible' : 'hidden'}
-              transition={{ delay: 0.2 }}
-            >
+            </h2>
+            <p className="lp-audit__subtitle">
               Three questions most brands avoid. The answers usually explain everything.
-            </motion.p>
-          </motion.div>
+            </p>
+          </div>
 
-          <div className="lp-audit__grid">
+          <div className="lp-audit__grid" style={{ display: 'none', minHeight: '200vh' }}>
             {auditQuestions.map((q, i) => {
               // Peel order: Q1 (front) first, Q2 (right) second, Q3 (back-left) last.
               // Q3 peels quickly and finishes at the section release so the page scrolls
@@ -2226,7 +2236,10 @@ export default function Landing() {
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
+                  initial={{ opacity: 0, y: 40, scale: 0.92 }}
+                  animate={auditInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.92 }}
+                  transition={{ duration: 0.55, delay: i * 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ x: p.x, rotate: p.rotate, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
                     <span className="lp-audit-card__qnum">Q{i + 1}</span>
@@ -2263,16 +2276,7 @@ export default function Landing() {
           large subtree on every scroll frame for no visual effect, hurting scroll perf. ── */}
       <motion.div
         className="lp-achieve-rise"
-        style={
-          heroStatic
-            ? // Mobile: NO transform here — the section contains position:sticky cards (and a
-              // sticky heading), and a transformed ancestor breaks sticky (cards mispositioned /
-              // overlapping the heading). Instead a LARGE STATIC negative margin parks the section
-              // just below the fold while the audit cards are stacked, so as they peel up it rides
-              // up into view WITH them via natural scroll — no transform, sticky stays intact.
-              { marginTop: -250, position: 'relative', zIndex: 4 }
-            : { y: achieveRiseY, marginTop: -300, position: 'relative', zIndex: 4 }
-        }
+        style={{ marginTop: -250, position: 'relative', zIndex: 4 }}
       >
         <section className="lp-achieve" ref={achieveRef}>
           <motion.h2 className="lp-achieve__title">
@@ -3050,14 +3054,27 @@ export default function Landing() {
           font-size: 17px; line-height: 1.6;
           font-family: var(--font-body, 'Inter', sans-serif);
         }
+        /* Clipping viewport: hides the horizontal overflow of the scrolling track but
+           leaves vertical room for the arched cards (padding reserves space for the CTA). */
+        .nlp-gallery-vp {
+          position: relative;
+          width: 100%;
+          max-width: 1320px;
+          margin: 40px auto 0;
+          overflow-x: clip;
+          overflow-y: visible;
+          /* Top room for the rising ends, bottom room for the low centre + the CTA below. */
+          padding: 66px 0 120px;
+        }
         .nlp-gallery {
-          display: flex; justify-content: center; align-items: flex-start;
-          gap: 16px; margin: 46px auto 0; max-width: 1180px;
+          display: flex; align-items: flex-start;
+          gap: 20px; width: max-content; will-change: transform;
         }
         .nlp-card {
-          flex: 0 0 148px; margin: 0; border-radius: 22px; overflow: hidden;
+          flex: 0 0 210px; margin: 0; border-radius: 24px; overflow: hidden;
           aspect-ratio: 9 / 14; background: #e7e0d2;
-          box-shadow: 0 26px 50px -22px rgba(30, 22, 8, .45);
+          box-shadow: 0 30px 56px -22px rgba(30, 22, 8, .45);
+          transform-origin: center center; will-change: transform;
         }
         .nlp-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .nlp-cta-wrap { position: relative; display: inline-flex; margin-top: 40px; }
@@ -3080,8 +3097,9 @@ export default function Landing() {
         .nlp-note--free .nlp-note-arrow2 { position: absolute; right: -58px; top: 6px; width: 56px; height: 34px; }
         @media (max-width: 900px) {
           .nlp-hero { padding: 108px 16px 72px; }
-          .nlp-gallery { overflow-x: auto; justify-content: flex-start; gap: 12px; padding: 6px 4px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-          .nlp-gallery::-webkit-scrollbar { display: none; }
+          .nlp-gallery-vp { overflow-x: auto; overflow-y: visible; padding: 6px 4px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+          .nlp-gallery-vp::-webkit-scrollbar { display: none; }
+          .nlp-gallery { gap: 12px; transform: none !important; }
           .nlp-card { flex: 0 0 118px; transform: none !important; }
           .nlp-note { display: none; }
         }
@@ -3665,6 +3683,7 @@ export default function Landing() {
         .lp-promise-heading {
           margin: 0 0 20px; font-family: Georgia, 'Times New Roman', serif; font-weight: 500;
           font-size: clamp(24px, 2.6vw, 40px); color: #171334; letter-spacing: -0.5px;
+          text-align: center;
         }
         .lp-promise {
           position: relative; width: 100%; height: 460px;
@@ -3715,7 +3734,7 @@ export default function Landing() {
         .lp-promise__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
         @media (max-width: 760px) {
           .lp-promise-wrap { width: 92%; }
-          .lp-promise-heading { font-size: 24px; margin: 0 0 14px; }
+          .lp-promise-heading { font-size: 24px; margin: 0 0 14px; text-align: center; }
           .lp-promise { width: 100%; height: 74vh; max-height: 600px; }
           .lp-promise__card { padding: 24px 22px; }
           .lp-promise__head { top: 22px; left: 22px; right: 70px; }
@@ -4765,19 +4784,15 @@ export default function Landing() {
           gap: 22px;
         }
         .lp-achieve__stack .lp-achieve-stackcard {
-          /* Sticky DECK — each card pins one-by-one as you scroll, the next sliding up over it.
-             The heading is NON-sticky (see below), so cards never scroll up through a pinned
-             heading — that split-the-card bug only happened when the heading was pinned. */
-          position: sticky;
-          top: calc(var(--stk-top) + var(--i) * var(--stk-step));
+          position: static;
+          top: auto;
           left: auto;
           width: 100%;
           height: auto;
-          min-height: 360px;
+          min-height: auto;
           margin-left: 0;
           transform: none;
-          /* Lighter surface + a clear top edge & shadow so each peeking card reads
-             distinctly when stacked, instead of blending into dark bars. */
+          /* Lighter surface + a clear top edge & shadow so each card reads distinctly. */
           background: #23232c;
           border: 1px solid rgba(255, 255, 255, 0.16);
           box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.55);
@@ -4796,25 +4811,19 @@ export default function Landing() {
           /* Pull the section up (STATIC margin, NOT a transform) so it follows close behind the
              peeled audit cards. A transform here would break the sticky heading + sticky card
              stack inside (they'd detach and overlap), so the lift must be a plain margin. */
-          .lp-achieve-rise { margin-top: -250px; transform: none; }
+          .lp-achieve-rise { margin-top: 0; transform: none; }
           /* Heading is STATIC so it rises WITH the section as one unit (a sticky child would break
              under the transformed ancestor and detach from the rise). Opaque bg keeps a peeling
              card hidden behind it instead of splitting it. */
           .lp-achieve { padding-top: 132px; }
           .lp-achieve__title {
-            /* STICKY (not static): pin the heading below the navbar so it stays on
-               screen while the whole card deck scrolls past, instead of scrolling off
-               the top early while the sticky cards are still pinned. Sticks relative to
-               the transformed .lp-achieve-rise (same as the cards), so it unpins only
-               once the entire section has scrolled past — i.e. it leaves WITH the cards.
-               Opaque bg + high z-index keep peeling cards hidden behind it (no split). */
-            position: sticky;
-            top: 88px;
-            z-index: 20;
+            position: static;
+            top: auto;
+            z-index: auto;
             max-width: 100%;
             margin: 0;
             padding: 14px 0 18px;
-            background: var(--lp-page-bg);
+            background: transparent;
           }
           /* Card titles on ONE line on mobile: collapse the manual "\n" break (white-space
              normal) and shrink to fit, so e.g. "Discover Creators in Every Niche" sits on a
@@ -4842,7 +4851,12 @@ export default function Landing() {
           font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500;
           font-size: clamp(26px, 3.2vw, 42px); line-height: 1; color: #ef6a4c; letter-spacing: -0.5px;
         }
-        .lp-achieve__rule { height: 1px; background: var(--lp-border); margin: 12px 0 12px; }
+        .lp-achieve__rule {
+          height: 1px;
+          background: rgba(var(--lp-fg), 0.45);
+          margin: 12px 0 12px;
+          transform-origin: left;
+        }
         .lp-achieve__h {
           margin: 0 0 8px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
           font-size: clamp(16px, 1.9vw, 20px); font-weight: 800; color: var(--lp-text); line-height: 1.22;
@@ -7013,12 +7027,11 @@ export default function Landing() {
         /* ── Psychological Audit ─────────────────────────────────────────── */
         .lp-audit {
           position: relative;
-          padding: 120px 8%;
+          padding: 120px 8% 120px;
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
-          /* Taller runway = the peel is spread over more scroll = slower, calmer. */
-          min-height: 220vh;
+          min-height: auto;
         }
         /* Soft glow via radial-gradient instead of filter: blur(90px) — a blur filter
            forces the browser to re-rasterize a large layer as this (scroll-heavy)
@@ -7038,9 +7051,14 @@ export default function Landing() {
           background: radial-gradient(circle, rgba(7, 7, 78, 0.20) 0%, transparent 68%);
           bottom: -170px; left: -150px;
         }
+        /* top:50% + translateY(-50%) instead of a fixed top offset: centers the pinned
+           block vertically in the viewport regardless of its exact height, rather than
+           pinning it flush near the top and leaving a large dead gap below (which is what
+           a fixed 'top: 80px' did once the deck's height changed). */
         .lp-audit__inner {
           position: sticky;
-          top: 80px;
+          top: 50%;
+          transform: translateY(-50%);
           z-index: 2;
           max-width: 1200px;
           margin: 0 auto;
@@ -7104,14 +7122,8 @@ export default function Landing() {
           display: flex;
           justify-content: center;
           align-items: center;
-          /* Shorter than the viewport so the inner pins cleanly to the section end (no
-             early-release blank) and there's no empty space below the centered card.
-             Negative top margin pulls the resting deck UP so a rising card visually
-             covers the heading/subtitle (which fade out once covered, see
-             auditHeadingOpacity) instead of settling in its own separate space below
-             them — matches the reference where the cards overlap the hero text. */
-          min-height: 440px;
-          margin: -200px auto 60px;
+          min-height: 0;
+          margin: 0 auto 60px;
           max-width: 600px;
           text-align: left;
           perspective: 1200px;

@@ -4843,9 +4843,10 @@ export default function Landing() {
           display: grid;
           grid-template-columns: repeat(4, minmax(300px, 1fr));
           gap: 24px;
-          width: min(1760px, 100%);
+          width: 100%;
+          max-width: 100%;
           margin: 44px auto 0;
-          padding: 0 24px;
+          padding: 0 16px;
         }
         .lp-achieve__cards .lp-achieve-card {
           position: relative !important;

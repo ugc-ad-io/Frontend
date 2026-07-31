@@ -946,6 +946,25 @@ function CountUp({ value }) {
 }
 
 // Card grid. Four cards sit side by side on desktop and stack gracefully on smaller screens.
+// Border-draw entrance for the achieve cards: two mirrored half-outlines, both starting
+// at top-centre, tracing out to their respective top corner, down that side, and along
+// the bottom back to bottom-centre — animated with the SAME timing so they visibly race
+// out from the top and meet again at the bottom. Percentage coordinates (viewBox 0 0 100
+// 100, preserveAspectRatio="none") so one path works for every card regardless of its
+// actual pixel size; vector-effect keeps the stroke width from stretching with it.
+const ACHIEVE_BORDER_PATH_RIGHT = 'M 50 1 L 93 1 Q 99 1 99 7 L 99 93 Q 99 99 93 99 L 50 99';
+const ACHIEVE_BORDER_PATH_LEFT = 'M 50 1 L 7 1 Q 1 1 1 7 L 1 93 Q 1 99 7 99 L 50 99';
+const achieveCardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 } }),
+};
+// Starts once the card's own fade/slide-up has essentially finished (delay carries the
+// same i*0.08 stagger forward, plus the 0.5s fade duration and a short beat).
+const achieveBorderVariants = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: (i) => ({ pathLength: 1, opacity: 1, transition: { duration: 0.7, ease: 'easeInOut', delay: i * 0.08 + 0.4 } }),
+};
+
 function AchieveFan({ items }) {
   const shown = items.slice(0, 4);
   return (
@@ -956,11 +975,34 @@ function AchieveFan({ items }) {
           <motion.article
             key={item.title}
             className="lp-achieve-card"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            custom={i}
+            variants={achieveCardVariants}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 }}
           >
+            <svg className="lp-achieve-card__border" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <motion.path
+                d={ACHIEVE_BORDER_PATH_RIGHT}
+                custom={i}
+                variants={achieveBorderVariants}
+                fill="none"
+                stroke="#7387FF"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+              <motion.path
+                d={ACHIEVE_BORDER_PATH_LEFT}
+                custom={i}
+                variants={achieveBorderVariants}
+                fill="none"
+                stroke="#7387FF"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
             <div className="lp-achieve-card__top">
               {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
               <div>
@@ -2264,15 +2306,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Find & Hire Creators — fanned cards. Dragged UP by achieveRiseY in lockstep
-          with Q3's peel, so it rises into view "stuck" to the last audit card. (No
-          opacity gate — the rise alone gives the effect and can't hide the section.)
-          On mobile the drag is disabled (CSS sets transform:none !important), so we drop
-          the motion value here too — otherwise framer would still write a transform to this
-          large subtree on every scroll frame for no visual effect, hurting scroll perf. ── */}
+      {/* ── Find & Hire Creators ── */}
+      {/* Was dragged UP -250px to meet the audit section's card-peel scroll effect, which is
+          now display:none — the pull just crushed the gap between "Answer This Honestly" and
+          this section (no proper spacing above/below). Static now, in normal flow. */}
       <motion.div
         className="lp-achieve-rise"
-        style={{ marginTop: -250, position: 'relative', zIndex: 4 }}
+        style={{ marginTop: 0, position: 'relative', zIndex: 4 }}
       >
         <section className="lp-achieve" ref={achieveRef}>
           <motion.h2 className="lp-achieve__title">
@@ -2828,7 +2868,7 @@ export default function Landing() {
           left: 0;
           right: 0;
           z-index: 1000;
-          padding: 0 8%;
+          padding: 0 5%;
           transition: top 0.3s ease;
         }
         /* Slides fully off the top when scrolling down; returns on scroll-up. */
@@ -3150,7 +3190,7 @@ export default function Landing() {
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          padding: 132px 8% 72px;
+          padding: 132px 5% 72px;
           display: flex;
           align-items: stretch;
         }
@@ -3889,7 +3929,7 @@ export default function Landing() {
 
         /* ── The Problem section ──────────────────────────────────────────── */
         .lp-problem {
-          padding: 100px 8% 60px;
+          padding: 100px 5% 60px;
           background: rgba(var(--lp-fg), 0.06);
         }
         .lp-problem__inner {
@@ -4282,7 +4322,7 @@ export default function Landing() {
         .lp-showcase__inner {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 8%;
+          padding: 0 5%;
           text-align: center;
         }
         .lp-showcase__heading {
@@ -4597,7 +4637,7 @@ export default function Landing() {
           display: flex;
           gap: 20px;
           width: max-content;
-          padding: 0 8%;
+          padding: 0 5%;
           will-change: transform;
         }
         .lp-showcase__track--left {
@@ -4732,7 +4772,7 @@ export default function Landing() {
         /* ── Find & Hire Creators — fanned, side-by-side cards ── */
         .lp-achieve {
           position: relative;
-          padding: 90px 8% 36px;
+          padding: 170px 5% 90px;
           background: transparent;
           color: var(--lp-text);
           text-align: center;
@@ -4869,6 +4909,17 @@ export default function Landing() {
           flex-direction: column;
           transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
+        /* The border-draw SVG overlay: fills the card, sits above its content so the
+           stroke reads clearly at the edges, and never intercepts hover/clicks. */
+        .lp-achieve-card__border {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 3;
+          pointer-events: none;
+          overflow: visible;
+        }
         .lp-achieve__cards .lp-achieve-card:hover {
           transform: translateY(-3px);
           box-shadow: 0 26px 55px rgba(0, 0, 0, 0.16);
@@ -4910,9 +4961,14 @@ export default function Landing() {
           gap: 14px;
           flex: 1;
         }
+        /* Title/desc/tag all rely purely on the body's own 14px gap for spacing now —
+           the title previously ALSO had its own 8px margin-bottom (stacking on top of the
+           gap, not replacing it) and the tag had a 20px margin-top, so title-to-desc and
+           desc-to-tag ended up with mismatched, inconsistent gaps. One spacing source, one
+           consistent rhythm down the whole card. */
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__title {
           font-size: clamp(1.2rem, 1.5vw, 1.45rem);
-          margin: 0 0 8px;
+          margin: 0;
           line-height: 1.25;
         }
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__desc {
@@ -4922,11 +4978,8 @@ export default function Landing() {
           max-height: 7.5em;
           overflow: hidden;
         }
-        .lp-achieve__cards .lp-achieve-card .lp-achieve-card__tag {
-          margin-top: auto;
-        }
         .lp-achieve__tag {
-          margin-top: 20px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
+          margin-top: 0; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
           font-size: 14px; font-weight: 700; color: var(--lp-text);
         }
         @media (max-width: 1600px) {
@@ -5069,7 +5122,7 @@ export default function Landing() {
 
         /* ── US vs Others — two-column comparison ─────────────────────────── */
         /* ── UGCad.io vs Traditional — editorial comparison table ── */
-        .lpv { padding: 100px 6% 110px; background: #f3ecdd; color: #2a2118; }
+        .lpv { padding: 100px 4% 110px; background: #f3ecdd; color: #2a2118; }
         .lpv-inner { max-width: 1120px; margin: 0 auto; }
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
            only ever swallows scrolling ROWS, never the section's own title on entrance. */
@@ -5161,7 +5214,7 @@ export default function Landing() {
           .lpv-cell--us .lpv-tag { color: #6d7bff; }
         }
         .lp-vs {
-          padding: 90px 8% 100px;
+          padding: 90px 5% 100px;
           color: var(--lp-text);
         }
         .lp-vs__inner {
@@ -5373,7 +5426,7 @@ export default function Landing() {
 
         /* ── Comparison Table ─────────────────────────────────────────────── */
         .lp-compare {
-          padding: 100px 8% 100px;
+          padding: 100px 5% 100px;
           background: transparent;
           color: var(--lp-text);
         }
@@ -5518,7 +5571,7 @@ export default function Landing() {
 
         /* ── Features ─────────────────────────────────────────────────────── */
         .lp-features {
-          padding: 60px 8% 120px;
+          padding: 60px 5% 120px;
           background: transparent;
           color: var(--lp-text);
           position: relative;
@@ -5669,7 +5722,7 @@ export default function Landing() {
         /* ── CTA ──────────────────────────────────────────────────────────── */
         .lp-cta {
           position: relative;
-          padding: 70px 8% 100px;
+          padding: 70px 5% 100px;
           background: transparent;
           color: var(--lp-text);
           overflow: hidden;
@@ -6199,7 +6252,7 @@ export default function Landing() {
         /* ── FAQ ──────────────────────────────────────────────────────────── */
         .lp-faq {
           position: relative;
-          padding: 110px 6% 90px;
+          padding: 110px 4% 90px;
           z-index: 2;
         }
         .lp-faq__inner {
@@ -6329,7 +6382,7 @@ export default function Landing() {
           position: relative;
           background: transparent;
           color: var(--lp-ink);
-          padding: 90px 8% 30px;
+          padding: 90px 5% 30px;
           overflow: hidden;
           border-top: 1px solid var(--lp-border);
         }
@@ -6738,7 +6791,7 @@ export default function Landing() {
         /* ── Scroll Hook ─────────────────────────────────────────────────── */
         .lp-hook {
           position: relative;
-          padding: 120px 8% 110px;
+          padding: 120px 5% 110px;
           background: transparent;
           color: var(--lp-text);
           text-align: center;
@@ -6902,7 +6955,7 @@ export default function Landing() {
 
         /* ── How It Works (3 Steps) ──────────────────────────────────────── */
         .lp-steps {
-          padding: 100px 8% 120px;
+          padding: 100px 5% 120px;
           background: transparent;
           color: var(--lp-text);
           position: relative;
@@ -7092,7 +7145,7 @@ export default function Landing() {
         /* ── Psychological Audit ─────────────────────────────────────────── */
         .lp-audit {
           position: relative;
-          padding: 120px 8% 120px;
+          padding: 240px 5% 240px;
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
@@ -7338,7 +7391,7 @@ export default function Landing() {
 
         /* ── Value Proof (Editorial Big Numbers) ─────────────────────────── */
         .lp-proof {
-          padding: 120px 8% 60px;
+          padding: 120px 5% 60px;
           background: transparent;
           color: var(--lp-text);
         }
@@ -7681,7 +7734,7 @@ export default function Landing() {
         /* ── Testimonial ─────────────────────────────────────────────────── */
         .lp-testimonial {
           position: relative;
-          padding: 60px 8% 60px;
+          padding: 60px 5% 60px;
           background: transparent;
           color: var(--lp-text);
           overflow: hidden;

@@ -1904,7 +1904,7 @@ export default function Landing() {
               preload="metadata" + the #t=0.1 hash seek to the first frame as a poster, so
               nothing downloads the full clip until the visitor actually presses play. */}
           <div className="lp-showcase__grid">
-            {/* Only ever show 2 rows of 4 (8 clips). "Load more" doesn't paginate —
+            {/* Only ever show 2 rows of 4 (8 clips). "Load more" doesn’t paginate —
                 it sends the visitor to the sign-up form to see the rest. */}
             {(visibleShowcase.length ? visibleShowcase : showcaseVideos).slice(0, 8).map((v) => (
               <article key={v.id} className="lp-vcard">
@@ -1945,10 +1945,8 @@ export default function Landing() {
             <p className="lp-showcase__empty">No examples in this industry yet — try another.</p>
           )}
 
-          {/* Load more: not real pagination — it routes to the sign-up form so a visitor
-              creates an account to browse the full library. Hidden when the centered
-              audit content appears. */}
-          <div className="lp-showcase__more" style={{ display: 'none' }}>
+          {/* Load more → sign up (full library unlocks after signup). */}
+          <div className="lp-showcase__more">
             <button
               type="button"
               className="lp-showcase__more-btn"
@@ -2862,18 +2860,18 @@ export default function Landing() {
           max-width: var(--lp-maxw);
           margin: 0 auto;
           background: transparent;       /* no white container */
-          height: 60px;
+          /* Real header-bar height; the logo is sized to sit INSIDE it, centered. */
+          height: 64px;
           padding: 0 4px;
         }
-
-        /* Text wordmark logo (icon removed) — small, left-aligned, brand colours. */
-        .lp-navbar__brand {
+ 
+        .lp-navbar__logo {
+          /* Contained within the bar (mark-over-wordmark lockup, ~1.44:1). Vertically
+             centered by the flex row — no overflow, no negative margin. */
+          height: 52px;
+          width: auto;
           flex: none;
-          display: inline-flex;
-          align-items: baseline;
-          padding: 0;
-          border: none;
-          background: transparent;
+          object-fit: contain;
           cursor: pointer;
           font-family: var(--font-head), 'Readex Pro', sans-serif;
           font-weight: 700;
@@ -3029,7 +3027,6 @@ export default function Landing() {
 
         /* ── NEW light hero ("Stunning Videos") ───────────────────────────── */
         /* Hide the old dark 3D-logo fly overlay so it doesn't float over the cream hero. */
-        .lp-logo-fly { display: none !important; }
         .nlp-hero {
           position: relative; z-index: 3; isolation: isolate;
           background: #f6f1e6;
@@ -3099,11 +3096,11 @@ export default function Landing() {
           .nlp-hero { padding: 108px 16px 72px; }
           .nlp-gallery-vp { overflow-x: auto; overflow-y: visible; padding: 6px 4px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
           .nlp-gallery-vp::-webkit-scrollbar { display: none; }
-          .nlp-gallery { gap: 12px; transform: none !important; }
-          .nlp-card { flex: 0 0 118px; transform: none !important; }
-          .nlp-note { display: none; }
+        .nlp-gallery { gap: 12px; transform: none !important; }
+        .nlp-card { flex: 0 0 118px; transform: none !important; }
+        .nlp-note { display: none; }
         }
-
+ 
         /* Cream page + no animated blobs. Sections are NOT hidden — they render
            light via the forced [data-theme="light"] theme. 3D logo mark removed. */
         .lp-root { background: #f6f1e6 !important; }
@@ -3111,7 +3108,7 @@ export default function Landing() {
         .lp-logo-fly,
         .lp-logo3d__stage,
         .lp-logo3d__placeholder { display: none !important; }
-
+ 
         /* Light header to match the cream hero (was a black mask + white text). */
         .lp-navbar::before {
           background: linear-gradient(180deg, #f6f1e6 0%, #f6f1e6 70%, transparent 100%) !important;
@@ -3121,10 +3118,9 @@ export default function Landing() {
         .lp-root .lp-nav-join { color: #4452f0 !important; }
         .lp-btn-login { color: #171717 !important; border-color: rgba(0,0,0,0.22) !important; }
         .lp-btn-login:hover { border-color: rgba(0,0,0,0.45) !important; }
-
+ 
         .lp-hero {
-          position: relative;
-          height: 150vh;
+          position: relative;          height: 150vh;
           color: var(--lp-text);
           isolation: isolate;
           z-index: 3;
@@ -4394,11 +4390,20 @@ export default function Landing() {
         .lp-showcase__grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 18px;
-          max-width: 960px;
+          gap: 20px;
+          max-width: 1120px;
           margin: 0 auto;
           text-align: left;
         }
+        /* Load more → signup */
+        .lp-showcase__more { display: flex; justify-content: center; margin-top: 34px; }
+        .lp-showcase__more-btn {
+          border: 1px solid rgba(28,27,75,0.18); background: #fff; color: #1c1b4b;
+          font-family: var(--font-body); font-weight: 700; font-size: 15px;
+          padding: 13px 34px; border-radius: 999px; cursor: pointer;
+          box-shadow: 0 10px 24px -12px rgba(28,27,75,0.28); transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .lp-showcase__more-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(28,27,75,0.34); }
         .lp-showcase__empty {
           margin: 40px auto 0;
           color: var(--lp-text-muted);
@@ -5956,7 +5961,7 @@ export default function Landing() {
           .lp-navbar__actions { display: none; }
           .lp-navbar__burger { display: inline-flex; }
           .lp-navbar__mobile--open { display: flex; }
-          .lp-navbar__logo { height: 184px; margin-left: -37px; }
+          .lp-navbar__logo { height: 44px; margin-left: 0; }
           .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }

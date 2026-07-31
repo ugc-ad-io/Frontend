@@ -128,7 +128,37 @@ code {
 .app,
 main,
 .content,
-#root {
+#root,
+.lp-root {
     padding-left: var(--site-h-pad) !important;
     padding-right: var(--site-h-pad) !important;
 }
+
+/* Landing page specific overrides: ensure the public landing respects the site horizontal pad
+   and doesn't leave a large left gap when the side rail is present. */
+.lp-root {
+    padding-left: var(--site-h-pad) !important;
+    padding-right: var(--site-h-pad) !important;
+    margin-left: 0 !important;
+}
+
+/* Aggressive landing overrides to collapse unexpected left gutters that appear
+   from layout transforms or container offsets. Targets only a few high-level
+   landing wrappers so internal component spacing still works. */
+.lp-root > *,
+.lp-root .lp-wrap,
+.lp-root .lp-hero__sticky,
+.lp-root .lp-hero__inner,
+.lp-root .lp-navbar,
+.lp-root .lp-section,
+.lp-root .lp-brandstrip {
+    margin-left: 0 !important;
+    padding-left: var(--site-h-pad) !important;
+}
+
+/* If an invisible fixed rail or leftover offset is present, hide any fixed
+   left rail inside the landing root so the visual gutter disappears while
+   preserving the rest of the layout. Only hides elements that match the
+   admin/rail classname used in the app (hsr). */
+.lp-root .hsr { display: none !important; }
+

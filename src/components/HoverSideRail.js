@@ -137,7 +137,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
            240px: the content smoothly shifts right AND its width adjusts to the
            remaining space — so it never runs off-screen, and the transition
            makes the resize look seamless. */
-        .cmk-app.has-rail{padding-left:76px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
+        .cmk-app.has-rail{padding-left:24px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
         .cmk-app.has-rail:has(.hsr.is-open){padding-left:240px}
         .cmk-app.has-rail .cmk-links{display:none}
         .cmk-app.has-rail .cmk-brand{display:none}
@@ -151,7 +151,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         .cmk-app.has-rail .cmk-nav-inner{max-width:none}
         /* shift ONLY the main body content right for breathing room from the
            rail — the header keeps its own (smaller) offset and is unaffected */
-        .cmk-app.has-rail .cmk-page{padding-left:60px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
+        .cmk-app.has-rail .cmk-page{padding-left:12px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
         /* when the rail is open it already takes the space — drop the extra body
            padding so the content shifts back left and hugs the open rail */
         .cmk-app.has-rail:has(.hsr.is-open) .cmk-page{padding-left:12px}

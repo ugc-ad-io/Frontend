@@ -1088,8 +1088,8 @@ export default function BrandCampaignDetail() {
         .bcd-dmsg.is-creator p{background:#f1f3fa;color:#2b2f52;border-bottom-left-radius:5px}
         .bcd-dmsg.is-brand{align-self:flex-end;align-items:flex-end}
         .bcd-dmsg.is-brand p{background:#15163a;color:#fff;border-bottom-right-radius:5px}
-        .bcd-dmsg.is-system{align-self:center;max-width:92%;text-align:center}
-        .bcd-dmsg.is-system p{background:none;color:#8b90b0;font-size:13px;font-style:italic;padding:2px 0}
+        .bcd-dmsg.is-system{align-self:center;max-width:90%;text-align:center}
+        .bcd-dmsg.is-system p{background:#eef0ff;color:#5b6070;font-size:12.5px;line-height:1.4;padding:7px 15px;border-radius:999px;border:1px solid #e0e4ff}
         .bcd-dchat-empty{margin:0;padding:18px 0;text-align:center;color:#9296ba;font-size:13px}
         .bcd-dchat-input{display:flex;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid #eef0f6}
         .bcd-dchat-input input{flex:1;min-width:0;border:1px solid #e4e7f2;border-radius:11px;padding:11px 14px;font-family:inherit;font-size:14px;color:#15163a;outline:none}

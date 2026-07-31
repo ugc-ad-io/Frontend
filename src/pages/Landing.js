@@ -4841,9 +4841,9 @@ export default function Landing() {
         /* ── Editorial list (replaces the fanned cards) ─────────────────────── */
         .lp-achieve__cards {
           display: grid;
-          grid-template-columns: repeat(4, minmax(260px, 1fr));
+          grid-template-columns: repeat(4, minmax(300px, 1fr));
           gap: 24px;
-          width: min(1360px, 100%);
+          width: min(1760px, 100%);
           margin: 44px auto 0;
           padding: 0 24px;
         }
@@ -4924,8 +4924,8 @@ export default function Landing() {
           margin-top: 20px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
           font-size: 14px; font-weight: 700; color: var(--lp-text);
         }
-        @media (max-width: 1440px) {
-          .lp-achieve__cards { grid-template-columns: repeat(4, minmax(240px, 1fr)); }
+        @media (max-width: 1600px) {
+          .lp-achieve__cards { grid-template-columns: repeat(4, minmax(280px, 1fr)); }
         }
         @media (max-width: 1280px) {
           .lp-achieve__cards { grid-template-columns: repeat(2, minmax(260px, 1fr)); }

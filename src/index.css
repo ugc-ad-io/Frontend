@@ -113,3 +113,22 @@ code {
         border-bottom-color: inherit;
     }
 }
+
+/* Reduced horizontal padding site-wide: adjust --site-h-pad to change left/right spacing */
+:root {
+    --site-h-pad: 12px; /* reduced from 24px */
+}
+
+/* Apply the reduced horizontal padding to common layout/container selectors. Use !important to override inline or component-level 0 24px rules where necessary. */
+.site-wrap,
+.wrap,
+.container,
+.page,
+.page-wrapper,
+.app,
+main,
+.content,
+#root {
+    padding-left: var(--site-h-pad) !important;
+    padding-right: var(--site-h-pad) !important;
+}

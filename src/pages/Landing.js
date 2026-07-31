@@ -2727,9 +2727,9 @@ export default function Landing() {
       {/* ── Styles ─────────────────────────────────────────────────────────── */}
       <style>{`
         :root {
-          --lp-purple-50:  rgba(var(--lp-fg),0.06);
-          --lp-purple-100: rgba(var(--lp-fg),0.08);
-          --lp-purple-200: #BBBBC8;
+          --lp-purple-50:  rgba(115, 135, 255, 0.08);
+          --lp-purple-100: rgba(115, 135, 255, 0.14);
+          --lp-purple-200: #d2d7ff;
           --lp-purple-300: #8888A0;
           --lp-purple-500: #3A3A66;
           --lp-purple-600: #1F1F4E;
@@ -3039,7 +3039,7 @@ export default function Landing() {
           font-weight: 800; letter-spacing: -2px; line-height: 1.02; color: #171717;
           font-size: clamp(40px, 7.2vw, 84px);
         }
-        .nlp-title-accent { color: #171717; }
+        .nlp-title-accent { color: var(--lp-purple-700); }
         .nlp-sub {
           max-width: 560px; margin: 22px auto 0; color: #5a5a5a;
           font-size: 17px; line-height: 1.6;
@@ -4298,17 +4298,17 @@ export default function Landing() {
         @media (max-width: 768px) {
           .lp-showcase__brk { display: inline; }
         }
-        /* "best UGC" reads green on both themes (matches the reference). */
+        /* "best UGC" reads purple on this theme for brand-aligned accent. */
         .lp-showcase__heading--accent {
-          color: #22c55e;
+          color: var(--lp-purple-700);
           background: none;
-          -webkit-text-fill-color: #22c55e;
+          -webkit-text-fill-color: var(--lp-purple-700);
         }
         /* Light theme: white would vanish on the lavender bg, so keep it readable. */
         .lp-root[data-theme="light"] .lp-showcase__heading { color: var(--lp-ink); }
         .lp-root[data-theme="light"] .lp-showcase__heading--accent {
-          color: #16a34a;
-          -webkit-text-fill-color: #16a34a;
+          color: #7387FF;
+          -webkit-text-fill-color: #7387FF;
         }
         .lp-showcase__subtitle {
           font-family: var(--font-body);
@@ -4841,9 +4841,9 @@ export default function Landing() {
         /* ── Editorial list (replaces the fanned cards) ─────────────────────── */
         .lp-achieve__cards {
           display: grid;
-          grid-template-columns: repeat(4, minmax(220px, 1fr));
+          grid-template-columns: repeat(4, minmax(260px, 1fr));
           gap: 24px;
-          max-width: 1120px;
+          width: min(1360px, 100%);
           margin: 44px auto 0;
           padding: 0 24px;
         }
@@ -4857,26 +4857,26 @@ export default function Landing() {
           transform: none !important;
           background: rgba(22, 22, 28, 0.97);
           border: 1px solid rgba(var(--lp-fg), 0.08);
-          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.14);
+          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.1);
           border-radius: 24px;
-          padding: 26px 24px 28px;
+          padding: 22px 22px 24px;
           display: flex;
           flex-direction: column;
           transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
         .lp-achieve__cards .lp-achieve-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 32px 74px rgba(0, 0, 0, 0.22);
+          transform: translateY(-3px);
+          box-shadow: 0 26px 55px rgba(0, 0, 0, 0.16);
         }
         .lp-achieve__cards .lp-achieve-card__top {
           display: flex;
           align-items: center;
-          gap: 14px;
-          margin-bottom: 22px;
+          gap: 16px;
+          margin-bottom: 16px;
         }
         .lp-achieve__cards .lp-achieve-card__icon {
-          width: 44px;
-          height: 44px;
+          width: 42px;
+          height: 42px;
           color: rgba(var(--lp-fg), 0.75);
         }
         .lp-achieve__cards .lp-achieve-card__num {
@@ -4885,7 +4885,7 @@ export default function Landing() {
           left: auto !important;
           margin: 0;
           font-family: 'Instrument Serif', Georgia, serif;
-          font-size: 1.95rem;
+          font-size: 1.8rem;
           line-height: 1;
           color: rgba(var(--lp-fg), 0.9);
         }
@@ -4902,17 +4902,20 @@ export default function Landing() {
           padding: 0;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
           flex: 1;
         }
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__title {
-          font-size: clamp(1.2rem, 1.6vw, 1.5rem);
-          margin: 0 0 10px;
+          font-size: clamp(1.2rem, 1.5vw, 1.45rem);
+          margin: 0 0 8px;
+          line-height: 1.25;
         }
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__desc {
-          font-size: 1rem;
-          line-height: 1.6;
+          font-size: 0.98rem;
+          line-height: 1.55;
           margin: 0;
+          max-height: 7.5em;
+          overflow: hidden;
         }
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__tag {
           margin-top: auto;
@@ -4921,8 +4924,11 @@ export default function Landing() {
           margin-top: 20px; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
           font-size: 14px; font-weight: 700; color: var(--lp-text);
         }
+        @media (max-width: 1440px) {
+          .lp-achieve__cards { grid-template-columns: repeat(4, minmax(240px, 1fr)); }
+        }
         @media (max-width: 1280px) {
-          .lp-achieve__cards { grid-template-columns: repeat(2, minmax(240px, 1fr)); }
+          .lp-achieve__cards { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
         }
         @media (max-width: 900px) {
           .lp-achieve__cards { grid-template-columns: 1fr; }

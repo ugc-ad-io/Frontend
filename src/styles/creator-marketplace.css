@@ -531,7 +531,10 @@
 
 
 /* "Post a Campaign" modal — opens the brief wizard as a card */
-.cmk-brief-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-start;
+/* Above the sticky top nav (.cmk-nav is z-index:1300) so the blur/backdrop covers
+   the header too — otherwise the search bar + Post-a-Campaign button showed through
+   on top of the open brief modal. */
+.cmk-brief-overlay{position:fixed;inset:0;z-index:1400;display:flex;align-items:flex-start;
   justify-content:center;padding:16px 20px;overflow-y:auto;
   background:rgba(18,20,46,.55);backdrop-filter:blur(4px)}
 .cmk-brief-modal{position:relative;width:100%;max-width:1120px;margin:0 auto;

@@ -332,14 +332,15 @@ const TOP_CREATORS = [
 
 // The 4 stacked "promise" cards (title top-left, number top-right, description
 // bottom-left, video bottom-right). Videos are pulled from the showcase set below.
+// Two-color palette (white / light purple) — alternates card by card.
 const PROMISE_CARDS = [
-  { color: '#e9f4a1', title: 'Your budget, your brief', sub: 'No agency retainer, no middleman.',
+  { color: '#ffffff', title: 'Your budget, your brief', sub: 'No agency retainer, no middleman.',
     desc: 'You set the budget and write the brief. The spend goes to the creator and the work — not a markup.' },
   { color: '#e5e2fb', title: 'Creators for every niche', sub: 'Vetted talent, any category.',
     desc: 'Beauty, fitness, tech, food, fashion and more. Every creator is manually vetted before they touch a brief.' },
-  { color: '#ffe1cf', title: 'Delivery from 24 hours', sub: 'Your campaign never waits.',
+  { color: '#ffffff', title: 'Delivery from 24 hours', sub: 'Your campaign never waits.',
     desc: 'Briefs move fast. Many creators turn around a first cut within a day, so production never holds you up.' },
-  { color: '#d3f1e2', title: 'Hands-on expert support', sub: 'A real team in your corner.',
+  { color: '#e5e2fb', title: 'Hands-on expert support', sub: 'A real team in your corner.',
     desc: 'We help you shape the brief, pick the right creators, and get to a video that actually performs.' },
 ];
 
@@ -1259,7 +1260,13 @@ export default function Landing() {
   // off-screen left, driven by SCROLL POSITION during the section's entering phase (see
   // auditEnterProgress below), not a timer — so nothing shows until the user actually
   // scrolls, and slower/faster scrolling changes how much of each card has arrived.
-  const auditInView = useInView(auditRef, { once: true, margin: '0px 0px -50% 0px', amount: 0.5 });
+  // Was { margin: '0px 0px -50% 0px', amount: 0.5 } — tuned for the old tall scroll-pin
+  // section. Once the section grew to its normal (much shorter) content height, requiring
+  // 50% of it to fit inside just the top half of the viewport became geometrically
+  // impossible, so this never fired and the whole block stayed opacity:0 forever (the
+  // heading + cards "disappeared"). Matches the simple '-80px' pattern every other
+  // one-time reveal on this page already uses.
+  const auditInView = useInView(auditRef, { once: true, margin: '-80px' });
   const { scrollYProgress: auditProgress } = useScroll({
     target: auditRef,
     offset: ['start start', 'end end'],
@@ -1588,6 +1595,17 @@ export default function Landing() {
     let last = 0;
     let halfW = 0;
     const measure = () => { halfW = track.scrollWidth / 2; };
+    // True edge-to-edge fix: the CSS width:100vw + margin:calc(50% - 50vw) breakout
+    // undershoots by a few px because html{scrollbar-gutter:stable} reserves gutter
+    // space that 50vw/50% don't agree on. Measure the real gap with getBoundingClientRect
+    // and cancel it out in px, so the arch always touches the true viewport edges.
+    const syncFullBleed = () => {
+      vp.style.marginLeft = '';
+      vp.style.width = '';
+      const rect = vp.getBoundingClientRect();
+      vp.style.marginLeft = `${-rect.left}px`;
+      vp.style.width = `${window.innerWidth}px`;
+    };
     const step = (ts) => {
       if (!last) last = ts;
       const dt = Math.min(64, ts - last);
@@ -1619,8 +1637,9 @@ export default function Landing() {
       track.style.transform = '';
       for (const el of track.children) el.style.transform = '';
     };
+    syncFullBleed();
     start();
-    const onResize = () => measure();
+    const onResize = () => { syncFullBleed(); measure(); };
     const onMq = () => { stop(); if (mq.matches && !reduce.matches) start(); else clear(); };
     window.addEventListener('resize', onResize);
     mq.addEventListener('change', onMq);
@@ -2251,7 +2270,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="lp-audit__grid" style={{ display: 'none', minHeight: '200vh' }}>
+          <div className="lp-audit__grid">
             {auditQuestions.map((q, i) => {
               // Peel order: Q1 (front) first, Q2 (right) second, Q3 (back-left) last.
               // Q3 peels quickly and finishes at the section release so the page scrolls
@@ -2274,9 +2293,11 @@ export default function Landing() {
                 <motion.article
                   key={i}
                   className="lp-audit-card"
-                  initial={{ opacity: 0, y: 40, scale: 0.92 }}
-                  animate={auditInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.92 }}
-                  transition={{ duration: 0.55, delay: i * 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  // 220px start (was 40px) so each card visibly rises up from below the
+                  // deck into place, instead of just a subtle nudge.
+                  initial={{ opacity: 0, y: 220, scale: 0.92 }}
+                  animate={auditInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 220, scale: 0.92 }}
+                  transition={{ duration: 0.65, delay: i * 0.22, ease: [0.16, 1, 0.3, 1] }}
                   style={{ x: p.x, rotate: p.rotate, zIndex: p.z }}
                 >
                   <div className="lp-audit-card__corner">
@@ -3093,9 +3114,12 @@ export default function Landing() {
            leaves vertical room for the arched cards (padding reserves space for the CTA). */
         .nlp-gallery-vp {
           position: relative;
-          width: 100%;
-          max-width: 1320px;
-          margin: 40px auto 0;
+          /* Full-bleed: was capped at max-width:1320px + centered, which left a visible
+             blank margin on wide screens before the (intentionally cropped) edge cards
+             even started. Break out of the section's own padding so the arch touches
+             both true screen edges instead of stopping short. */
+          width: 100vw;
+          margin: 40px calc(50% - 50vw) 0;
           overflow-x: clip;
           overflow-y: visible;
           /* Top room for the rising ends, bottom room for the low centre + the CTA below. */
@@ -3725,7 +3749,8 @@ export default function Landing() {
         .lp-promise__card {
           position: absolute; inset: 0;
           border-radius: 0; padding: 40px 44px; overflow: hidden;
-          box-shadow: 0 30px 60px -34px rgba(30,22,8,.40);
+          border: 1px solid rgba(28,27,75,0.12);
+          box-shadow: 0 30px 60px -34px rgba(28,27,75,.35);
           will-change: transform;
         }
         /* Head (title + subtitle) — top-left */
@@ -5122,13 +5147,13 @@ export default function Landing() {
 
         /* ── US vs Others — two-column comparison ─────────────────────────── */
         /* ── UGCad.io vs Traditional — editorial comparison table ── */
-        .lpv { padding: 100px 4% 110px; background: #f3ecdd; color: #2a2118; }
+        .lpv { padding: 100px 4% 110px; background: #e5e2fb; color: #1c1b4b; }
         .lpv-inner { max-width: 1120px; margin: 0 auto; }
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
            only ever swallows scrolling ROWS, never the section's own title on entrance. */
-        .lpv-kicker { margin: 0; text-align: center; color: #8a7f6b; font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
+        .lpv-kicker { margin: 0; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
         .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: Georgia, 'Times New Roman', serif;
-          font-weight: 500; font-size: clamp(30px, 5vw, 54px); line-height: 1.08; color: #2a2118; letter-spacing: -0.5px;
+          font-weight: 500; font-size: clamp(30px, 5vw, 54px); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
           position: relative; z-index: 6; }
         .lpv-grid { display: flex; flex-direction: column; }
         .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.5fr 1fr 1fr; align-items: center; }
@@ -5155,13 +5180,13 @@ export default function Landing() {
           position: sticky;
           top: 88px;
           z-index: 5;
-          background: #f3ecdd;
+          background: #e5e2fb;
           min-height: 120px;
         }
         /* Opaque mask ABOVE the pinned header. The navbar hides on scroll-down, leaving an
            ~88px band above the header (top:88px) uncovered — rows scrolling up used to poke
            out INTO that band above the UGCad.io/Traditional titles. This band paints the same
-           #f3ecdd as the section, so it seamlessly hides any row text the moment it rises above
+           #e5e2fb as the section, so it seamlessly hides any row text the moment it rises above
            the header; the text simply disappears off the top edge while still masked. Height is
            just enough to cover the nav gap (kept < the heading distance so it never reaches the
            kicker; the heading is protected by z-index anyway). */
@@ -5170,26 +5195,26 @@ export default function Landing() {
           position: absolute;
           left: 0; right: 0; bottom: 100%;
           height: 130px;
-          background: #f3ecdd;
+          background: #e5e2fb;
           pointer-events: none;
         }
-        .lpv-h--us, .lpv-cell--us { background: rgba(78, 58, 30, 0.05); }
+        .lpv-h--us, .lpv-cell--us { background: rgba(28, 27, 75, 0.06); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
         /* Keep the header's UGCad.io cell shaded like the rows below (continuous column),
            but flatten its corners so it doesn't read as a rounded "card" when pinned. */
         .lpv-header .lpv-h--us { border-radius: 0; }
         .lpv-header .lpv-h { padding: 26px 20px; }
         .lpv-h--us { display: flex; align-items: center; justify-content: center; }
-        .lpv-brand { font-family: Georgia, serif; font-weight: 800; font-size: 30px; letter-spacing: -1px; color: #2a2118; }
+        .lpv-brand { font-family: Georgia, serif; font-weight: 800; font-size: 30px; letter-spacing: -1px; color: #1c1b4b; }
         .lpv-brand-ad { color: #6d7bff; }
-        .lpv-h--them { display: flex; align-items: center; justify-content: center; text-align: center; color: #8a7f6b; font-weight: 600; font-size: 15px; }
+        .lpv-h--them { display: flex; align-items: center; justify-content: center; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 15px; }
         /* Stretch cells to fill the full row height so the shaded UGCad.io column reads as
            one continuous block instead of separate cards with unshaded gaps between rows. */
-        .lpv-rowgroup { border-top: 1px solid rgba(42, 33, 24, 0.12); align-items: stretch; }
+        .lpv-rowgroup { border-top: 1px solid rgba(28, 27, 75, 0.12); align-items: stretch; }
         /* align-items: flex-start (not center) matches .lpv-cell's top alignment: the label
            has to clear the sticky header at the same moment as the us/them titles beside it,
            or whichever one is vertically centered lower lingers behind after the others fade. */
-        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #2a2118; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
+        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
         /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
            descriptions wrap to a different number of lines, centering makes their titles land
            at different heights within the row. Since the row scrolls behind the sticky header
@@ -5197,9 +5222,9 @@ export default function Landing() {
            "ghost text" leak in just that column. Top-aligning keeps titles at the same Y in
            every row, so both columns clear the header at the same moment. */
         .lpv-cell { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; justify-content: flex-start; gap: 6px; }
-        .lpv-cell strong { font-weight: 700; font-size: 15.5px; color: #2a2118; }
-        .lpv-cell span { font-size: 14px; line-height: 1.5; color: #7c7362; }
-        .lpv-cell--them strong { color: #5b5346; }
+        .lpv-cell strong { font-weight: 700; font-size: 15.5px; color: #1c1b4b; }
+        .lpv-cell span { font-size: 14px; line-height: 1.5; color: rgba(28,27,75,0.6); }
+        .lpv-cell--them strong { color: rgba(28,27,75,0.75); }
         .lpv-tag { display: none; }
         @media (max-width: 760px) {
           .lpv { padding: 60px 22px 70px; }
@@ -5208,9 +5233,9 @@ export default function Landing() {
           .lpv-rowgroup { grid-template-columns: 1fr 1fr; grid-template-areas: 'label label' 'us them'; gap: 0 12px; padding-top: 18px; }
           .lpv-label { grid-area: label; padding: 0 0 12px; font-size: 22px; }
           .lpv-cell { text-align: left; padding: 14px; border-radius: 12px; }
-          .lpv-cell--us { grid-area: us; background: rgba(78, 58, 30, 0.06); }
+          .lpv-cell--us { grid-area: us; background: rgba(28, 27, 75, 0.07); }
           .lpv-cell--them { grid-area: them; background: transparent; }
-          .lpv-tag { display: block; font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: #8a7f6b; margin-bottom: 2px; }
+          .lpv-tag { display: block; font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(28,27,75,0.55); margin-bottom: 2px; }
           .lpv-cell--us .lpv-tag { color: #6d7bff; }
         }
         .lp-vs {
@@ -7145,7 +7170,7 @@ export default function Landing() {
         /* ── Psychological Audit ─────────────────────────────────────────── */
         .lp-audit {
           position: relative;
-          padding: 240px 5% 240px;
+          padding: 320px 5% 240px;
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
@@ -7169,14 +7194,14 @@ export default function Landing() {
           background: radial-gradient(circle, rgba(7, 7, 78, 0.20) 0%, transparent 68%);
           bottom: -170px; left: -150px;
         }
-        /* top:50% + translateY(-50%) instead of a fixed top offset: centers the pinned
-           block vertically in the viewport regardless of its exact height, rather than
-           pinning it flush near the top and leaving a large dead gap below (which is what
-           a fixed 'top: 80px' did once the deck's height changed). */
+        /* Was position:sticky + top:50% to pin this block centered while a tall scroll-pin
+           card-peel effect played out underneath. The cards now do a simple one-time
+           reveal (whileInView-style, no pin/scrub), so there's nothing left to stick
+           against — sticky there only caused the block to jump/settle as the short
+           section scrolled past. Static now, nudged right per the earlier request. */
         .lp-audit__inner {
-          position: sticky;
-          top: 50%;
-          transform: translateY(-50%);
+          position: relative;
+          transform: translateX(56px);
           z-index: 2;
           max-width: 1200px;
           margin: 0 auto;
@@ -7240,7 +7265,10 @@ export default function Landing() {
           display: flex;
           justify-content: center;
           align-items: center;
-          min-height: 0;
+          /* The cards are position:absolute (no flow height of their own), so the deck
+             needs an explicit height to reserve its own space now that this is a simple
+             one-time reveal (no more 200vh scroll-pin runway providing the room). */
+          min-height: 340px;
           margin: 0 auto 60px;
           max-width: 600px;
           text-align: left;
@@ -8304,22 +8332,14 @@ export default function Landing() {
             width: 100%; max-width: 420px; min-height: auto;
           }
         }
-        /* Audit cards on MOBILE (≤768px): keep the absolute FAN (centred via flex
-           static-position), sized for a phone, and give the section a TALL sticky runway so the
-           cards assemble by SCROLL (Q1 present, then Q2, then Q3 rise in — heroStatic branch in
-           the JSX). No position:static / transform:none here (kills the fan). */
+        /* Audit cards on MOBILE (≤768px): the fan (centred via flex static-position), sized
+           for a phone. No more tall sticky scroll-pin runway — the cards do the same simple
+           one-time reveal as desktop now, so the section is just its own natural height. */
         @media (max-width: 768px) {
-          /* Shorter runway (was 190vh): enough pinned scroll for a smooth peel, but trimmed so the
-             section unpins right as the last card leaves — no tall empty pinned tail. Combined with
-             the achieve section's -300px overlap, the Find & Hire block rises into view as the final
-             cards peel instead of after a gap. */
-          .lp-audit { min-height: 185vh; padding: 0 6%; }
-          /* Promote the sticky inner to its own GPU layer so the cards rising over it
-             composite independently instead of repainting this whole pinned area each
-             scroll frame (that repaint was the Q2 stutter). */
+          .lp-audit { min-height: auto; padding: 100px 6%; }
           .lp-audit__inner {
-            position: sticky; top: 60px; padding-top: 22px;
-            transform: translateZ(0);
+            position: relative; top: auto; padding-top: 0;
+            transform: none;
           }
           .lp-audit__grid {
             position: relative;

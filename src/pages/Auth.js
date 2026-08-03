@@ -1259,9 +1259,22 @@ export default function Auth() {
           /* single column — never slide the form off-screen */
           .ap-shell.is-signin .ap-left, .ap-shell.is-signin .ap-promo { transform: none !important; }
           .ap-left { padding: 40px 28px; align-items: center; }
-          .ap-card { margin: 0 auto; }
+          /* .ap-shell.is-signup .ap-left sets padding-left:106px to shift the form right
+             in the desktop two-column split layout — that rule has no media guard, so on
+             mobile it was ALSO eating 106px instead of the intended 28px, squeezing
+             .ap-card down to ~165px. That starved the role-selector's 1fr/1fr grid of
+             real width, and the wider "Business" button overflowed off the right edge of
+             the screen. Reset it back to match the other side on mobile (single column,
+             no rightward shift needed). */
+          .ap-shell.is-signup .ap-left { padding-left: 28px; }
+          .ap-card { margin: 0 auto; width: 100%; }
           .ap-header { text-align: center; }
           .ap-logo-wrap { justify-content: center; }
+          /* .ap-back uses a negative margin-left (-34px, -66px on signup) to sit flush
+             with the desktop form's wide left padding (74px/106px). Mobile resets that
+             padding to 28px above but never reset the negative margin, so the button was
+             pulled past the card's left edge and clipped by .ap-shell's overflow:hidden. */
+          .ap-back, .ap-shell.is-signup .ap-back { margin-left: 0; }
         }
       `}</style>
     </div>

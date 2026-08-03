@@ -9,9 +9,13 @@ const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
 
 // Default showcase reels — used until (and unless) an admin curates the list via
 // Admin → Home Showcase. Admin entries replace these at runtime.
+// "-sm" (compressed, ~250-950KB) variants only — this hero autoplays 1-2 of these at
+// once and re-fetches a fresh one every CLIP_SECONDS, so the raw uncompressed "-uhd"
+// originals (1.8-5.6MB each) here made the dashboard refetch/decode several MB of
+// video every 4s, which was the dashboard's main source of lag.
 const DEFAULT_REELS = [
-  { src: '/17811912-uhd_2160_3840_24fps.mp4', name: '@priya.moves',   category: 'Fashion',   earned: 420000, deals: 128, rating: 4.9, level: 'Elite' },
-  { src: '/7690504-hd_1080_1920_30fps.mp4',    name: '@rohan.creator', category: 'Fitness',   earned: 360000, deals: 112, rating: 4.8, level: 'L2' },
+  { src: '/17811912-uhd_2160_3840_24fps-sm.mp4', name: '@priya.moves',   category: 'Fashion',   earned: 420000, deals: 128, rating: 4.9, level: 'Elite' },
+  { src: '/7690504-hd_1080_1920_30fps-sm.mp4',    name: '@rohan.creator', category: 'Fitness',   earned: 360000, deals: 112, rating: 4.8, level: 'L2' },
   { src: '/6944288-uhd_2160_3840_24fps-sm.mp4', name: '@arjun.fit',    category: 'Lifestyle', earned: 310000, deals: 98,  rating: 5.0, level: 'L2' },
 ];
 

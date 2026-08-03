@@ -16,13 +16,8 @@ import {
   Activity,
   Home as HomeIcon,
   Instagram,
-  Music2,
-  AlertTriangle,
   HelpCircle,
   MessageCircle,
-  Hash,
-  Play,
-  User,
   Heart,
   Coffee,
   Dumbbell,
@@ -41,7 +36,6 @@ import {
   Repeat,
   ChevronDown,
   LayoutGrid,
-  LogIn,
   Menu,
   Sun,
   Moon,
@@ -334,13 +328,13 @@ const TOP_CREATORS = [
 // bottom-left, video bottom-right). Videos are pulled from the showcase set below.
 // Two-color palette (white / light purple) — alternates card by card.
 const PROMISE_CARDS = [
-  { color: '#ffffff', title: 'Your budget, your brief', sub: 'No agency retainer, no middleman.',
+  { color: '#e9f4a1', btnBg: '#16121f', btnText: '#fff', title: 'Your budget, your brief', sub: 'No agency retainer, no middleman.',
     desc: 'You set the budget and write the brief. The spend goes to the creator and the work — not a markup.' },
-  { color: '#e5e2fb', title: 'Creators for every niche', sub: 'Vetted talent, any category.',
+  { color: '#e5e2fb', btnBg: '#16121f', btnText: '#fff', title: 'Creators for every niche', sub: 'Vetted talent, any category.',
     desc: 'Beauty, fitness, tech, food, fashion and more. Every creator is manually vetted before they touch a brief.' },
-  { color: '#ffffff', title: 'Delivery from 24 hours', sub: 'Your campaign never waits.',
+  { color: '#ffe1cf', btnBg: '#16121f', btnText: '#fff', title: 'Delivery from 24 hours', sub: 'Your campaign never waits.',
     desc: 'Briefs move fast. Many creators turn around a first cut within a day, so production never holds you up.' },
-  { color: '#e5e2fb', title: 'Hands-on expert support', sub: 'A real team in your corner.',
+  { color: '#d3f1e2', btnBg: '#16121f', btnText: '#fff', title: 'Hands-on expert support', sub: 'A real team in your corner.',
     desc: 'We help you shape the brief, pick the right creators, and get to a video that actually performs.' },
 ];
 
@@ -384,7 +378,12 @@ function PromiseCard({ card, i, total, vid, progress, navigate }) {
       </div>
       <div className="lp-promise__foot">
         <p className="lp-promise__desc">{card.desc}</p>
-        <button type="button" className="lp-promise__btn" onClick={() => navigate('/auth?mode=signup&role=business')}>
+        <button
+          type="button"
+          className="lp-promise__btn"
+          style={{ background: card.btnBg, color: card.btnText }}
+          onClick={() => navigate('/auth?mode=signup&role=business')}
+        >
           Discover our approach <ArrowRight size={16} />
         </button>
       </div>
@@ -733,43 +732,50 @@ const compareRows = [
   { label: 'Control over content',             us: CHECK, inhouse: CHECK, agencies: CROSS, platforms: CHECK },
 ];
 
-// "US vs Others" — two-column comparison (us vs marketplaces).
+// "US vs Others" — three-column comparison (us vs traditional agencies vs marketplaces).
 // Each side is a bold title + a supporting line (comparison-table style).
 const vsRows = [
   {
     label: 'Creator Vetting',
-    us:   { title: 'Manually reviewed', desc: 'Every creator is vetted before they touch a brief' },
-    them: { title: 'Open sign-up', desc: 'Anyone can apply — no real vetting' },
+    us:        { title: 'Manually reviewed', desc: 'Every creator is vetted before they touch a brief' },
+    agencies:  { title: 'Curated in-house', desc: 'Limited to the agency’s own small roster' },
+    platforms: { title: 'Open sign-up', desc: 'Anyone can list themselves — no real vetting' },
   },
   {
     label: 'Payment Safety',
-    us:   { title: 'Held in escrow', desc: 'Funds are held by the platform until you approve the work' },
-    them: { title: 'Pay upfront', desc: 'Pay in advance or chase refunds if it goes wrong' },
+    us:        { title: 'Held in escrow', desc: 'Funds are held by the platform until you approve the work' },
+    agencies:  { title: 'Invoiced monthly', desc: 'Pay via retainer or invoice, little recourse' },
+    platforms: { title: 'Pay upfront', desc: 'Pay in advance or chase refunds if it goes wrong' },
   },
   {
     label: 'Contact Protection',
-    us:   { title: 'On-platform only', desc: 'Names and contacts stay protected inside UGCad.io' },
-    them: { title: 'Easily poached', desc: 'Creators taken off-platform after the first deal' },
+    us:        { title: 'On-platform only', desc: 'Names and contacts stay protected inside UGCad.io' },
+    agencies:  { title: 'Held by the agency', desc: 'You never own the direct creator relationship' },
+    platforms: { title: 'Easily poached', desc: 'Creators taken off-platform after the first deal' },
   },
   {
     label: 'Delivery Speed',
-    us:   { title: 'Under 10 days', desc: 'Tracked delivery, milestone by milestone' },
-    them: { title: '4–6 weeks', desc: 'Long agency timelines and endless back-and-forth' },
+    us:        { title: 'Under 10 days', desc: 'Tracked delivery, milestone by milestone' },
+    agencies:  { title: '4–6 weeks', desc: 'Long agency timelines and endless back-and-forth' },
+    platforms: { title: 'Unpredictable', desc: 'No guaranteed timeline, depends on the creator' },
   },
   {
     label: 'Cost',
-    us:   { title: 'Commission only', desc: 'No retainers, no hidden markups' },
-    them: { title: '3–5× markup', desc: 'Agency markup plus a monthly retainer' },
+    us:        { title: 'Commission only', desc: 'No retainers, no hidden markups' },
+    agencies:  { title: '3–5× markup', desc: 'Agency markup plus a monthly retainer' },
+    platforms: { title: 'Cheap but risky', desc: 'Lower cost, but quality and reliability vary a lot' },
   },
   {
     label: 'Content Rights',
-    us:   { title: 'Full usage rights', desc: 'You own the content you pay for' },
-    them: { title: 'Limited / unclear', desc: 'Rights often restricted or cost extra' },
+    us:        { title: 'Full usage rights', desc: 'You own the content you pay for' },
+    agencies:  { title: 'Negotiated', desc: 'Rights bundled into a bigger, costlier contract' },
+    platforms: { title: 'Limited / unclear', desc: 'Rights often restricted or cost extra' },
   },
   {
     label: 'Support',
-    us:   { title: 'Managed disputes', desc: 'The platform mediates if anything goes wrong' },
-    them: { title: 'On your own', desc: 'No mediation when a deal falls apart' },
+    us:        { title: 'Managed disputes', desc: 'The platform mediates if anything goes wrong' },
+    agencies:  { title: 'Account manager', desc: 'Dedicated, but tied to a long-term contract' },
+    platforms: { title: 'On your own', desc: 'No mediation when a deal falls apart' },
   },
 ];
 
@@ -813,7 +819,7 @@ const achieveItems = [
 const HERO_POSTERS = [
   '03', '04', '05', '06', '07', '10', '13', '15',
   '16', '19', '21', '22', '23', '24', '25', '26',
-].map((n) => `/home/video_${n}.jpg`);
+].map((n) => ({ poster: `/home/video_${n}.jpg`, video: `/home/video_${n}.mp4` }));
 
 // Sixteen showcase video slots — local UGC clips from /public/home.
 const showcaseVideos = [
@@ -953,17 +959,9 @@ function CountUp({ value }) {
 // out from the top and meet again at the bottom. Percentage coordinates (viewBox 0 0 100
 // 100, preserveAspectRatio="none") so one path works for every card regardless of its
 // actual pixel size; vector-effect keeps the stroke width from stretching with it.
-const ACHIEVE_BORDER_PATH_RIGHT = 'M 50 1 L 93 1 Q 99 1 99 7 L 99 93 Q 99 99 93 99 L 50 99';
-const ACHIEVE_BORDER_PATH_LEFT = 'M 50 1 L 7 1 Q 1 1 1 7 L 1 93 Q 1 99 7 99 L 50 99';
 const achieveCardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 } }),
-};
-// Starts once the card's own fade/slide-up has essentially finished (delay carries the
-// same i*0.08 stagger forward, plus the 0.5s fade duration and a short beat).
-const achieveBorderVariants = {
-  hidden: { pathLength: 0, opacity: 0 },
-  visible: (i) => ({ pathLength: 1, opacity: 1, transition: { duration: 0.7, ease: 'easeInOut', delay: i * 0.08 + 0.4 } }),
 };
 
 function AchieveFan({ items }) {
@@ -982,39 +980,10 @@ function AchieveFan({ items }) {
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
           >
-            <svg className="lp-achieve-card__border" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <motion.path
-                d={ACHIEVE_BORDER_PATH_RIGHT}
-                custom={i}
-                variants={achieveBorderVariants}
-                fill="none"
-                stroke="#7387FF"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-              />
-              <motion.path
-                d={ACHIEVE_BORDER_PATH_LEFT}
-                custom={i}
-                variants={achieveBorderVariants}
-                fill="none"
-                stroke="#7387FF"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            </svg>
-            <div className="lp-achieve-card__top">
-              {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.5} /> : null}
-              <div>
-                <div className="lp-achieve-card__num">{`0${i + 1}`}</div>
-                <div className="lp-achieve-card__label">{item.kicker}</div>
-              </div>
-            </div>
+            {Icon ? <Icon className="lp-achieve-card__icon" strokeWidth={1.2} /> : null}
             <div className="lp-achieve-card__body">
               <h3 className="lp-achieve-card__title">{item.title}</h3>
               <p className="lp-achieve-card__desc">{item.desc}</p>
-              {item.tag && <div className="lp-achieve__tag">{item.tag}</div>}
             </div>
           </motion.article>
         );
@@ -1087,6 +1056,16 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
+  // <html>/<body> have no background of their own (every other page is the sitewide dark
+  // navy default, so it's never needed) — that leaves the scrollbar-gutter strip reserved
+  // by `scrollbar-gutter: stable` in App.css showing the browser's plain white/grey canvas
+  // instead of blending into the page, a visible seam down the right edge. This page is the
+  // one sitewide exception (always the light/cream theme), so set it here, scoped to this
+  // page's lifetime, rather than changing the shared global default for every other page.
+  useEffect(() => {
+    document.body.style.background = '#fefcf9';
+    return () => { document.body.style.background = ''; };
+  }, []);
   const [scrolled, setScrolled] = useState(false);
   const [navHidden, setNavHidden] = useState(false);   // hide nav on scroll-down, reveal on scroll-up
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1253,32 +1232,11 @@ export default function Landing() {
   const ctaRef = useRef(null);
   const featuresInView = useInView(featuresRef, { once: true, margin: '-80px' });
 
-  // Audit cards — scroll-linked peel-away animation
+  // Audit cards — reveal once, staggered, when the section scrolls into view (no more
+  // scroll-scrubbed peel tied to a tall pinned runway).
   const auditRef = useRef(null);
-  // One-shot entrance: heading/subtitle fade up first (time-based — they're simple, no
-  // reason to gate them on scroll). The Q1/Q2/Q3 cards are different: they slide in from
-  // off-screen left, driven by SCROLL POSITION during the section's entering phase (see
-  // auditEnterProgress below), not a timer — so nothing shows until the user actually
-  // scrolls, and slower/faster scrolling changes how much of each card has arrived.
-  // Was { margin: '0px 0px -50% 0px', amount: 0.5 } — tuned for the old tall scroll-pin
-  // section. Once the section grew to its normal (much shorter) content height, requiring
-  // 50% of it to fit inside just the top half of the viewport became geometrically
-  // impossible, so this never fired and the whole block stayed opacity:0 forever (the
-  // heading + cards "disappeared"). Matches the simple '-80px' pattern every other
-  // one-time reveal on this page already uses.
+  // Matches the simple '-80px' pattern every other one-time reveal on this page uses.
   const auditInView = useInView(auditRef, { once: true, margin: '-80px' });
-  const { scrollYProgress: auditProgress } = useScroll({
-    target: auditRef,
-    offset: ['start start', 'end end'],
-  });
-  // Entrance-only progress: 0 when the section's top is at the viewport bottom (not yet
-  // visible), 1 when its top reaches the viewport top (the moment it pins and auditProgress's
-  // own 0..1 peel-away timeline takes over). This is a distinct scroll segment BEFORE the
-  // peel, so the two timelines never fight over the same range.
-  const { scrollYProgress: auditEnterProgress } = useScroll({
-    target: auditRef,
-    offset: ['start end', 'start start'],
-  });
   // "Find & Hire" achieve section scroll — used (mobile) to lift the pinned heading UP in sync
   // with the card deck as it scrolls off, so the heading leaves WITH the cards instead of staying
   // pinned until the whole deck is gone. y holds at 0 while the deck stacks (heading pinned via
@@ -1308,25 +1266,6 @@ export default function Landing() {
   const [heroStatic, setHeroStatic] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
-  // Cards rise in from below, one at a time, each starting once the previous is about
-  // half arrived. A leading dead-zone (0 to AUDIT_SETTLE) is reserved BEFORE any card
-  // moves at all — the heading/subtitle finish their own fade-up-in and sit fully
-  // settled, centered, on their own first; only once the user keeps scrolling past that
-  // does Q1 start rising. This is ON TOP of the existing peel-away Y (card2Y/card3Y/
-  // card1Y desktop, mAuditQ1-3Y mobile) rather than replacing it: the entrance motion
-  // resolves to 0 once done, so it never fights the peel's own small resting baselines.
-  // Card animation is disabled for this audit section; cards remain in place instead
-  // of peeling up with scroll.
-  const auditCardY = [0, 0, 0];
-  const mAuditCardY = [0, 0, 0];
-  // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel:
-  // while Q3 rises [0.68 → 0.99], the section slides up from below (700px → 0) so it's
-  // "stuck" to the card — as the card goes above, the section is dragged up into view
-  // behind it. easeInOut + a spring smooth the motion so it glides in, not snaps to scroll.
-  // (Desktop only — on mobile this drag is disabled in CSS, and the JSX below drops the
-  // motion value entirely so framer isn't writing transforms to a big subtree every frame.)
-  const achieveRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
-  const achieveRiseY = useSpring(achieveRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
   // Mobile: the Find & Hire section is pulled up via a STATIC negative margin (CSS) to follow the
   // peeled audit cards — NOT a scroll-driven transform, which would break the section's sticky
   // heading + sticky card stack (transformed ancestor detaches sticky descendants → overlap).
@@ -1580,9 +1519,14 @@ export default function Landing() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Hero gallery — the poster cards auto-scroll as one infinite row while each card's
-  // vertical offset + tilt are recomputed every frame from its live x-position, so the
-  // cards ride a FIXED arch (curve) that stays put in space while they flow through it.
+  // Hero gallery — the poster cards auto-scroll as one infinite row while riding a fixed
+  // 3D curve: each card's DEPTH (translateZ) is the primary effect — the centre bulges
+  // forward toward the viewer, both sides recede back into the screen — plus a subtle
+  // rotateY (cards angle to face the centre, never past ~10°), a small residual vertical
+  // arc, and a gentle scale/shadow falloff so distant cards read as smaller and softer.
+  // All of it is computed every frame from each card's own live distance from the
+  // viewport's horizontal centre, so the curve is pinned in space (not to any one card)
+  // and works the same at any screen width without hardcoding per-breakpoint values.
   const nlpGalleryRef = useRef(null);
   useEffect(() => {
     const track = nlpGalleryRef.current;
@@ -1595,17 +1539,8 @@ export default function Landing() {
     let last = 0;
     let halfW = 0;
     const measure = () => { halfW = track.scrollWidth / 2; };
-    // True edge-to-edge fix: the CSS width:100vw + margin:calc(50% - 50vw) breakout
-    // undershoots by a few px because html{scrollbar-gutter:stable} reserves gutter
-    // space that 50vw/50% don't agree on. Measure the real gap with getBoundingClientRect
-    // and cancel it out in px, so the arch always touches the true viewport edges.
-    const syncFullBleed = () => {
-      vp.style.marginLeft = '';
-      vp.style.width = '';
-      const rect = vp.getBoundingClientRect();
-      vp.style.marginLeft = `${-rect.left}px`;
-      vp.style.width = `${window.innerWidth}px`;
-    };
+    // Lerp helper for the depth-based scale interpolation below.
+    const lerp = (a, b, t) => a + (b - a) * t;
     const step = (ts) => {
       if (!last) last = ts;
       const dt = Math.min(64, ts - last);
@@ -1613,21 +1548,107 @@ export default function Landing() {
       offset += dt * 0.045;                 // scroll speed (px/ms)
       if (halfW && offset >= halfW) offset -= halfW;   // seamless wrap at the mid-point
       track.style.transform = `translateX(${-offset}px)`;
-      const vpRect = vp.getBoundingClientRect();
-      const cx = vpRect.left + vpRect.width / 2;
-      const half = vpRect.width / 2 || 1;
+      // Normalize against the TRUE viewport, not the (already full-bleed, but let's not
+      // depend on that assumption) gallery container — guarantees a card sitting at the
+      // real left/right edge of the screen actually reaches c=-1/+1, regardless of
+      // anything going on with the container's own box.
+      const viewportCenter = window.innerWidth / 2;
+      const halfViewport = window.innerWidth / 2 || 1;
       const cards = track.children;
+      // Read ALL card positions first, THEN write all the style changes below — never
+      // interleaved. Reading layout (getBoundingClientRect) right after writing a
+      // layout-affecting style forces the browser to synchronously recompute layout on
+      // the spot; doing that for every card, every frame, was the main source of lag.
+      // (The flexBasis resize that used to sit in this loop was the actual layout-
+      // affecting write — removed below — so these reads are now cheap either way, but
+      // batching is a free extra safety margin.)
+      const rects = new Array(cards.length);
+      const widths = new Array(cards.length);
       for (let i = 0; i < cards.length; i++) {
-        const r = cards[i].getBoundingClientRect();
-        const c = Math.max(-1.15, Math.min(1.15, (r.left + r.width / 2 - cx) / half));
-        const y = (1 - c * c) * 92 - 30;    // centre lowest; ends LIFT UP above baseline (smile ∪)
-        const rot = c * 4;                  // subtle 2–5° tilt that follows the curve
-        cards[i].style.transform = `translateY(${y}px) rotate(${rot}deg)`;
+        rects[i] = cards[i].getBoundingClientRect();
+        // offsetWidth is the LAYOUT width (the flex-basis clamp value) — unlike
+        // getBoundingClientRect, it ignores the transform:scale below, so it's a stable
+        // reference for how much a card's own scale grows/shrinks it on each side.
+        widths[i] = cards[i].offsetWidth;
+      }
+      // Running left-to-right compensation (see below) that keeps the VISIBLE gap between
+      // every pair of cards constant, regardless of each card's own scale.
+      let shiftAccum = 0;
+      let prevOverflow = 0;
+      for (let i = 0; i < cards.length; i++) {
+        const el = cards[i];
+        const r = rects[i];
+        const cardCenter = r.left + r.width / 2;
+        // -1 at the left viewport edge, 0 at screen centre, +1 at the right viewport edge.
+        let c = (cardCenter - viewportCenter) / halfViewport;
+        c = Math.max(-1, Math.min(1, c));
+        // Cosine profile (was circular/sqrt): flat/smooth through the centre AND at the
+        // edges. The old sqrt(1-c²) curve has an infinite slope right at |c|=1 — combined
+        // with the perspective/translateZ below, that made z (and so the perspective
+        // foreshortening of each card's horizontal position) change drastically between
+        // one edge card and the next, reading as the gap suddenly shrinking right at the
+        // ends. Cosine has a finite, gentle slope everywhere, so the perspective spacing
+        // stays visually even all the way to the edge.
+        const curve = Math.cos((Math.PI / 2) * c);
+        // Z depth, MUCH shallower than before (was -30..+110). translateZ + perspective
+        // doesn't just move a card, it also visually SCALES it (closer = bigger, farther
+        // = smaller) — that scaling is exactly what was reading as "the gap isn't
+        // constant": centre cards were rendering ~10% bigger than edge cards purely from
+        // perspective, regardless of the actual layout gap between them. Capped to a much
+        // smaller range so that scale difference is barely perceptible, while the arc
+        // still reads via translateY + rotateY + shadow below.
+        const z = curve * 40 - 15;
+        // No vertical arc (used to be translateY(curve*65)) — cards all sit in the same
+        // row, on the shared bottom baseline (see .nlp-gallery align-items:flex-end +
+        // .nlp-card transform-origin:center bottom), varying only in depth (z), tilt
+        // (rotateY), and size (scale) below.
+        // Cards angle to face the centre — mirrored, capped at ±12°.
+        const rotY = -c * 12;
+        // No horizontal pull here (there used to be an inward xPull as cards approached
+        // the edges) — it made the gap between adjacent cards visibly compress/expand as
+        // they scrolled through, since neighboring cards sit at slightly different `c`
+        // values and so got pulled by different amounts. Horizontal spacing now comes
+        // ONLY from the flex `gap` + the track's own translateX scroll, so it stays
+        // constant everywhere, including while cards enter/exit at the edges.
+        // Cards read SMALLEST at screen-centre and grow bigger toward both edges — the
+        // opposite of a centre-bulge. Driven by `curve` (continuous, position-based, the
+        // same smooth cosine used for z/y/rotate above) rather than a fixed per-index
+        // pattern, so it stays smooth as cards scroll through instead of jumping in
+        // steps. Relies on .nlp-gallery's bottom-alignment + .nlp-card's "center bottom"
+        // transform-origin (both already in place) to keep every card's bottom edge on
+        // the same baseline as it grows/shrinks, so the row still reads as organized.
+        const scale = lerp(1.2, 0.82, curve);
+        // transform:scale (GPU-composited, no layout/paint cost) instead of resizing via
+        // flexBasis. flexBasis WAS used here to avoid scale() visually encroaching into
+        // the fixed CSS `gap` between cards — but a real width resize forces the browser
+        // to recompute the WHOLE flex row's layout on every single card, every frame
+        // (60/sec × up to 32 cards) — that forced layout thrashing was the actual cause
+        // of the animation lag, and it dwarfs the minor visual gap-compression tradeoff
+        // from using scale() instead. All three transforms combine into one GPU-
+        // composited write per card, nothing here touches layout or paint anymore.
+        //
+        // scale() still grows/shrinks each card symmetrically about its own centre, which
+        // by itself DOES make the visible gap uneven — a shrunk (centre) card leaves extra
+        // empty space on both sides, a grown (edge) card eats into the fixed 44px gap on
+        // both sides. `shiftAccum` cancels this out with a per-card translateX: each card's
+        // own half-overflow, PLUS its left neighbour's half-overflow (prevOverflow), so the
+        // visible gap between every adjacent pair stays exactly the CSS `gap` value no
+        // matter how much either card has grown or shrunk. translateX is compositor-only
+        // (same as translateZ/rotateY/scale above) so this adds zero layout/reflow cost.
+        const overflow = (scale - 1) * widths[i] / 2;
+        shiftAccum = i === 0 ? -overflow : shiftAccum + prevOverflow + overflow;
+        prevOverflow = overflow;
+        el.style.transform = `translateX(${shiftAccum}px) translateZ(${z}px) rotateY(${rotY}deg) scale(${scale})`;
       }
       raf = requestAnimationFrame(step);
     };
+    // Whether the gallery is actually on screen right now — without this, the rAF loop
+    // below (32 getBoundingClientRect + style writes, every frame) kept running for as
+    // long as the page stayed open, even after the user scrolled miles past this section,
+    // permanently stealing frame budget from everything else on the page.
+    let inView = false;
     const start = () => {
-      if (raf || !mq.matches || reduce.matches) return;
+      if (raf || !mq.matches || reduce.matches || !inView) return;
       last = 0;
       measure();
       raf = requestAnimationFrame(step);
@@ -1635,19 +1656,53 @@ export default function Landing() {
     const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
     const clear = () => {
       track.style.transform = '';
-      for (const el of track.children) el.style.transform = '';
+      for (const el of track.children) {
+        el.style.transform = '';
+      }
     };
-    syncFullBleed();
-    start();
-    const onResize = () => { syncFullBleed(); measure(); };
-    const onMq = () => { stop(); if (mq.matches && !reduce.matches) start(); else clear(); };
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        if (inView) start(); else { stop(); }
+      },
+      { rootMargin: '200px' }
+    );
+    io.observe(vp);
+    const onResize = () => { measure(); };
+    const onMq = () => { stop(); if (mq.matches && !reduce.matches && inView) start(); else clear(); };
     window.addEventListener('resize', onResize);
     mq.addEventListener('change', onMq);
     return () => {
       stop();
+      io.disconnect();
       window.removeEventListener('resize', onResize);
       mq.removeEventListener('change', onMq);
     };
+  }, []);
+
+  // Play/pause each hero-arch clip based on real visibility (not just "on screen" — the
+  // IntersectionObserver algorithm clips through .nlp-gallery-vp's overflow-x:clip, so a
+  // card cropped off by the arch's edge correctly counts as not-intersecting). Keeps at
+  // most a handful of the 32 video instances actually decoding at once instead of all of
+  // them, which is what makes autoplaying this many clips viable.
+  useEffect(() => {
+    const track = nlpGalleryRef.current;
+    if (!track) return undefined;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return undefined;
+    const videos = track.querySelectorAll('video');
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const v = entry.target;
+          if (entry.isIntersecting) v.play().catch(() => {});
+          else v.pause();
+        }
+      },
+      { threshold: 0.4 }
+    );
+    videos.forEach((v) => io.observe(v));
+    return () => io.disconnect();
   }, []);
 
   const handleGetStarted = () => {
@@ -1688,7 +1743,7 @@ export default function Landing() {
             aria-label="UGCad.io — back to top"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            <span className="lp-navbar__brand-a">UGC</span><span className="lp-navbar__brand-b">ad.io</span>
+            <img src="/ugcad-logo.png" alt="UGCad.io" className="lp-navbar__logo" />
           </button>
 
           <nav className="lp-navbar__links">
@@ -1698,14 +1753,20 @@ export default function Landing() {
             <a className="lp-navlink" href="/creator" onClick={(e) => { e.preventDefault(); navigate('/creator'); }}>
               Join as Creator
             </a>
+            <a className="lp-navlink" href="#proof" onClick={(e) => { e.preventDefault(); document.getElementById('proof')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+              Proof
+            </a>
+            <a className="lp-navlink" href="#services" onClick={(e) => { e.preventDefault(); document.getElementById('services')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+              Services
+            </a>
           </nav>
 
           <div className="lp-navbar__actions">
+            <button className="lp-btn-login" onClick={() => navigate('/auth?role=business')}>
+              Log in
+            </button>
             <button className="lp-btn-signup" onClick={() => navigate('/auth?mode=signup&role=business')}>
               Sign Up
-            </button>
-            <button className="lp-btn-login" onClick={() => navigate('/auth?role=business')}>
-              <LogIn size={16} /> Log in
             </button>
           </div>
 
@@ -1728,9 +1789,15 @@ export default function Landing() {
           <a className="lp-navlink" href="#" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/creator'); }}>
             Join as Creator
           </a>
+          <a className="lp-navlink" href="#proof" onClick={(e) => { e.preventDefault(); setMenuOpen(false); document.getElementById('proof')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+            Proof
+          </a>
+          <a className="lp-navlink" href="#services" onClick={(e) => { e.preventDefault(); setMenuOpen(false); document.getElementById('services')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+            Services
+          </a>
           <div className="lp-navbar__mobile-actions">
             <button className="lp-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth?role=business'); }}>
-              <LogIn size={16} /> Log in
+              Log in
             </button>
             <button className="lp-btn-signup" onClick={() => { setMenuOpen(false); navigate('/auth?mode=signup&role=business'); }}>
               Sign Up
@@ -1802,9 +1869,19 @@ export default function Landing() {
 
         <div className="nlp-gallery-vp">
           <div className="nlp-gallery" ref={nlpGalleryRef}>
-            {[...HERO_POSTERS, ...HERO_POSTERS].map((src, i) => (
+            {/* Autoplay muted/looped, but only while actually on screen — an
+                IntersectionObserver (below) play()/pause()s each clip as the arch
+                scrolls it in and out, so all 32 instances are never decoding at once. */}
+            {[...HERO_POSTERS, ...HERO_POSTERS].map((p, i) => (
               <figure className="nlp-card" key={i}>
-                <img src={src} alt="" loading="lazy" />
+                <video
+                  src={p.video}
+                  poster={p.poster}
+                  muted
+                  loop
+                  playsInline
+                  preload="none"
+                />
               </figure>
             ))}
           </div>
@@ -1826,7 +1903,7 @@ export default function Landing() {
       </section>
 
       {/* ── 3D glass logo (left) + center copy — scroll-driven ──────────────── */}
-      <section className={`lp-logo3d${logo3dInView ? ' is-in' : ''}`} ref={logo3dRef}>
+      <section id="services" className={`lp-logo3d${logo3dInView ? ' is-in' : ''}`} ref={logo3dRef}>
         <div className="lp-logo3d__sticky">
           {/* Desktop: the fixed .lp-logo-fly overlay flies the 3D mark into this section.
               Mobile: no 3D logo here — the leaderboard carries the moment on its own. */}
@@ -1873,7 +1950,7 @@ export default function Landing() {
       <motion.div style={{ position: 'relative', zIndex: 3 }}>
       <section className="lp-brandstrip" ref={brandStripRef}>
         <div className="lp-hero__strip">
-          <span className="lp-brandstrip__label">Trusted by leading brands</span>
+          <span className="lp-brandstrip__label">Trusted by leading<br /><span className="lp-brandstrip__label--accent">brands</span></span>
           <div className="lp-brands__viewport">
             <div className="lp-brands__track lp-brands__track--single">
               {(() => {
@@ -2111,137 +2188,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── The Problem ────────────────────────────────────────────────────── */}
-      <section className="lp-problem" style={{ display: 'none' }}>
-        <div className="lp-problem__inner">
-          <span className="lp-problem__pill">
-            <AlertTriangle size={14} />
-            The problem
-          </span>
-          <h2 className="lp-problem__heading">
-            Creating content that{' '}
-            <span className="lp-problem__heading--accent">truly performs</span>{' '}
-            isn't easy
-          </h2>
-          <p className="lp-problem__subtitle">
-            We know firsthand how tough it is to consistently create content that performs.
-          </p>
-
-          <div className="lp-problem__grid">
-            {/* Card 1 — Tedious price negotiations */}
-            <article className="lp-pcard">
-              <div className="lp-pcard__visual">
-                <div className="lp-pmedia lp-pmedia--c1">
-                  <div className="lp-stamp lp-stamp--fiverr">fiverr.</div>
-                  <div className="lp-stamp lp-stamp--slack"><Hash size={20} /></div>
-                  <div className="lp-stamp lp-stamp--wa"><MessageCircle size={20} /></div>
-                  <div className="lp-stamp lp-stamp--check">✓✓</div>
-                  <div className="lp-stamp lp-stamp--num">3</div>
-                  <div className="lp-stamp lp-stamp--bell">🔔<span className="lp-stamp__badge">10</span></div>
-
-                  <div className="lp-update-card">
-                    <div className="lp-update-card__title">Content updates</div>
-                    <div className="lp-update-card__body">You've been waiting for <strong>4 days</strong> without a response.</div>
-                  </div>
-
-                  <div className="lp-tag-pill lp-tag-pill--reject">
-                    <span className="lp-tag-dot lp-tag-dot--reject"></span>
-                    Contract Rejected
-                  </div>
-
-                  <div className="lp-contract-card">
-                    <div className="lp-contract-card__title">Your contract</div>
-                    <div className="lp-tag-pill lp-tag-pill--pending">
-                      <AlertTriangle size={12} />
-                      Signature pending
-                    </div>
-                  </div>
-
-                  <div className="lp-vertical-tag">Signature pending</div>
-                  <div className="lp-vertical-tag lp-vertical-tag--right">Endless Slack Channels</div>
-                </div>
-              </div>
-              <h3 className="lp-pcard__title">Tedious price negotiations</h3>
-            </article>
-
-            {/* Card 2 — Limited UGC creator access */}
-            <article className="lp-pcard">
-              <div className="lp-pcard__visual">
-                <div className="lp-pmedia lp-pmedia--c2">
-                  <div className="lp-ring lp-ring--1"></div>
-                  <div className="lp-ring lp-ring--2"></div>
-
-                  <div className="lp-center-avatar">
-                    <User size={36} />
-                  </div>
-
-                  <div className="lp-q lp-q--1"><HelpCircle size={20} /></div>
-                  <div className="lp-q lp-q--2"><HelpCircle size={20} /></div>
-                  <div className="lp-q lp-q--3"><HelpCircle size={20} /></div>
-                  <div className="lp-q lp-q--4"><HelpCircle size={20} /></div>
-                  <div className="lp-q lp-q--5"><HelpCircle size={20} /></div>
-
-                  <div className="lp-tag-pill lp-tag-pill--reject lp-tag-pill--center">
-                    <span className="lp-tag-dot lp-tag-dot--reject"></span>
-                    Only one creator found
-                  </div>
-                </div>
-              </div>
-              <h3 className="lp-pcard__title">Limited UGC creator access</h3>
-            </article>
-
-            {/* Card 3 — Inconsistent quality */}
-            <article className="lp-pcard">
-              <div className="lp-pcard__visual">
-                <div className="lp-pmedia lp-pmedia--c3">
-                  <div className="lp-task-row">
-                    <div className="lp-task-icon"><Music2 size={18} /></div>
-                    <div className="lp-task-info">
-                      <div className="lp-task-title">Tik tok</div>
-                      <div className="lp-task-sub">follow-up assignments</div>
-                    </div>
-                    <div className="lp-tag-pill lp-tag-pill--reject">
-                      <span className="lp-tag-dot lp-tag-dot--reject"></span>
-                      Delayed tasks!
-                    </div>
-                  </div>
-
-                  <div className="lp-progress-card">
-                    <div className="lp-progress-card__label">Task Done: <strong>02 / 50</strong></div>
-                    <div className="lp-progress-track"><div className="lp-progress-fill"></div></div>
-                  </div>
-
-                  <div className="lp-submission-row">
-                    <div className="lp-submission-icon"><Play size={14} /></div>
-                    <div className="lp-submission-info">
-                      <div className="lp-submission-title">Raw content</div>
-                      <div className="lp-submission-sub">Latest submission</div>
-                    </div>
-                    <div className="lp-tag-pill lp-tag-pill--reject lp-tag-pill--sm">
-                      <span className="lp-tag-dot lp-tag-dot--reject"></span>
-                      Rejected
-                    </div>
-                  </div>
-
-                  <div className="lp-submission-row lp-submission-row--muted">
-                    <div className="lp-submission-icon"><Play size={14} /></div>
-                    <div className="lp-submission-info">
-                      <div className="lp-submission-title">Edited content</div>
-                      <div className="lp-submission-sub">Latest submission</div>
-                    </div>
-                    <div className="lp-tag-pill lp-tag-pill--pending lp-tag-pill--sm">
-                      <span className="lp-tag-dot lp-tag-dot--pending"></span>
-                      Pending
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <h3 className="lp-pcard__title">Inconsistent quality or no creator follow-up</h3>
-            </article>
-          </div>
-        </div>
-      </section>
-
       {/* connector: steps → audit — center straight line into the cards */}
       <div className="lp-connector" style={{ height: 270, marginTop: 0, marginBottom: 0 }}>
         <svg viewBox="0 0 1400 270" width="100%" height="100%" preserveAspectRatio="none">
@@ -2255,12 +2201,13 @@ export default function Landing() {
         <div className="lp-audit__bg-orb lp-audit__bg-orb--2" aria-hidden="true" />
 
         <div className="lp-audit__inner" style={{ opacity: auditInView ? 1 : 0, transition: 'opacity 0.3s ease' }}>
-          <span className="lp-audit__pill">
-            <HelpCircle size={14} />
-            Quick reality check
-          </span>
-
-          <div>
+          {/* Left: copy column (pill, heading, subtitle, CTA) — right: a zigzag
+              "brick" grid of numbered dark blocks, matching the reference layout. */}
+          <div className="lp-audit__copy">
+            <span className="lp-audit__pill">
+              <HelpCircle size={14} />
+              Quick reality check
+            </span>
             <h2 className="lp-audit__heading">
               Answer This{' '}
               <span className="lp-audit__heading--accent">Honestly</span>.
@@ -2268,61 +2215,34 @@ export default function Landing() {
             <p className="lp-audit__subtitle">
               Three questions most brands avoid. The answers usually explain everything.
             </p>
+            <button
+              type="button"
+              className="lp-audit__cta"
+              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
+              See our services <ArrowRight size={16} />
+            </button>
           </div>
 
           <div className="lp-audit__grid">
-            {auditQuestions.map((q, i) => {
-              // Peel order: Q1 (front) first, Q2 (right) second, Q3 (back-left) last.
-              // Q3 peels quickly and finishes at the section release so the page scrolls
-              // to the next section the instant the last card goes up.
-              const positions = [
-                { x:   0, rotate:  -4, z: 3, y: auditCardY[0] },  // Q1 — front, peels first
-                { x:  90, rotate:  12, z: 2, y: auditCardY[1] },  // Q2 — right, peels second
-                { x: -90, rotate: -20, z: 1, y: auditCardY[2] },  // Q3 — left, peels last (quick)
-              ];
-              // Mobile: a tighter fan, all three present together from the start, then PEELED UP
-              // by scroll (same as desktop). Q1 is frontmost and peels first, revealing Q2, then
-              // Q3 last — so the deck visibly empties upward as you scroll.
-              const mobilePositions = [
-                { x:   0, rotate:  -4, z: 3, y: mAuditCardY[0] },  // Q1 — front & centre, peels first
-                { x:  50, rotate:  11, z: 2, y: mAuditCardY[1] },  // Q2 — right, peels second
-                { x: -50, rotate: -18, z: 1, y: mAuditCardY[2] },  // Q3 — back-left, peels last
-              ];
-              const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
-              return (
-                <motion.article
-                  key={i}
-                  className="lp-audit-card"
-                  // 220px start (was 40px) so each card visibly rises up from below the
-                  // deck into place, instead of just a subtle nudge.
-                  initial={{ opacity: 0, y: 220, scale: 0.92 }}
-                  animate={auditInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 220, scale: 0.92 }}
-                  transition={{ duration: 0.65, delay: i * 0.22, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ x: p.x, rotate: p.rotate, zIndex: p.z }}
-                >
-                  <div className="lp-audit-card__corner">
-                    <span className="lp-audit-card__qnum">Q{i + 1}</span>
-                    <span className="lp-audit-card__qmark">?</span>
-                  </div>
-                  <div className="lp-audit-card__body">
-                    <p className="lp-audit-card__title">{q.title}</p>
-                    <p className="lp-audit-card__sub">{q.sub}</p>
-                  </div>
-                  <div className="lp-audit-card__divider" />
-                  <div className="lp-audit-card__hint">Pause. Be honest.</div>
-                </motion.article>
-              );
-            })}
-          </div>
-
-          {/* footer pill removed */}
-          <div className="lp-audit__footer-card" style={{ display: 'none' }}>
-            <div className="lp-audit__footer-icon">
-              <ArrowRight size={18} />
-            </div>
-            <p className="lp-audit__footer-text">
-              This platform exists for brands who don't like their answers yet.
-            </p>
+            {/* Cards reveal once, staggered by index, the moment the section scrolls
+               into view (auditInView) — no scroll-scrubbed peel. */}
+            {auditQuestions.map((q, i) => (
+              <motion.article
+                key={i}
+                className={`lp-audit-card lp-audit-card--${i + 1}`}
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                animate={auditInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.95 }}
+                transition={{ duration: 0.5, delay: i * 0.45, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <span className="lp-audit-card__num">0{i + 1}</span>
+                <q.Icon className="lp-audit-card__icon" size={28} strokeWidth={1.6} />
+                <div className="lp-audit-card__divider" />
+                <h3 className="lp-audit-card__title">
+                  {q.title} {q.sub}
+                </h3>
+              </motion.article>
+            ))}
           </div>
         </div>
       </section>
@@ -2353,8 +2273,8 @@ export default function Landing() {
       </div>
 
       {/* US vs Others — comparison table */}
-      {/* Comparison table — editorial "Evolve"-style: cream bg, serif heading, a
-          highlighted centre column for UGCad.io vs a plain "traditional" column. */}
+      {/* Comparison table — editorial "Evolve"-style: cream bg, serif heading,
+          three plain columns (UGCad.io / Traditional Agencies / Marketplaces), no highlight fill. */}
       <section className="lpv">
         <div className="lpv-inner">
           <p className="lpv-kicker">Why UGCad.io?</p>
@@ -2365,7 +2285,8 @@ export default function Landing() {
             <div className="lpv-header">
               <div className="lpv-h lpv-h--label" />
               <div className="lpv-h lpv-h--us"><span className="lpv-brand">UGC<span className="lpv-brand-ad">ad.io</span></span></div>
-              <div className="lpv-h lpv-h--them">Traditional Agencies &amp; Marketplaces</div>
+              <div className="lpv-h lpv-h--them">Traditional Agencies</div>
+              <div className="lpv-h lpv-h--them">Marketplaces</div>
             </div>
 
             {vsRows.map((r) => (
@@ -2377,9 +2298,14 @@ export default function Landing() {
                   <span>{r.us.desc}</span>
                 </div>
                 <div className="lpv-cell lpv-cell--them">
-                  <em className="lpv-tag">Traditional</em>
-                  <strong>{r.them.title}</strong>
-                  <span>{r.them.desc}</span>
+                  <em className="lpv-tag">Agencies</em>
+                  <strong>{r.agencies.title}</strong>
+                  <span>{r.agencies.desc}</span>
+                </div>
+                <div className="lpv-cell lpv-cell--them">
+                  <em className="lpv-tag">Marketplaces</em>
+                  <strong>{r.platforms.title}</strong>
+                  <span>{r.platforms.desc}</span>
                 </div>
               </div>
             ))}
@@ -2460,7 +2386,7 @@ export default function Landing() {
       </div>
 
       {/* ── Value Proof (Editorial Stats) ─────────────────────────────────── */}
-      <section className="lp-proof" ref={proofSectionRef}>
+      <section id="proof" className="lp-proof" ref={proofSectionRef}>
         <div className="lp-proof__inner lpr">
           {/* Editorial pull-quote */}
           <p className="lpr-kicker">Don&apos;t take our word for it</p>
@@ -2585,13 +2511,17 @@ export default function Landing() {
                   );
                 })}
               </div>
-            </div>
-            {/* Fixed corner-bracket frame marking the centre spotlight card. */}
-            <div className="lp-testimonial__frame" aria-hidden="true">
-              <span className="lp-tframe-c lp-tframe-c--tl" />
-              <span className="lp-tframe-c lp-tframe-c--tr" />
-              <span className="lp-tframe-c lp-tframe-c--bl" />
-              <span className="lp-tframe-c lp-tframe-c--br" />
+              {/* Fixed corner-bracket frame marking the centre spotlight card. Anchored
+                  to the viewport (not the carousel) and inset by its exact padding
+                  values, so it hugs the active card's real box instead of guessing a
+                  size off the carousel's height (which floated the brackets well clear
+                  of the card on some viewports). */}
+              <div className="lp-testimonial__frame" aria-hidden="true">
+                <span className="lp-tframe-c lp-tframe-c--tl" />
+                <span className="lp-tframe-c lp-tframe-c--tr" />
+                <span className="lp-tframe-c lp-tframe-c--bl" />
+                <span className="lp-tframe-c lp-tframe-c--br" />
+              </div>
             </div>
           </div>
 
@@ -2798,8 +2728,13 @@ export default function Landing() {
           --lp-purple-300: #8888A0;
           --lp-purple-500: #3A3A66;
           --lp-purple-600: #1F1F4E;
-          --lp-purple-700: #7387FF;
+          --lp-purple-700: #7387FF;   /* "Periwinkle Pulse" — primary */
           --lp-purple-900: #050538;
+          /* Brand palette: Periwinkle Pulse (--lp-purple-700 above) is primary; Midnight
+             Indigo is the existing #07074E navy used throughout (audit/testimonial glows,
+             card text); these two round it out for surfaces/accents. */
+          --lp-lilac: #F3F3FF;        /* "Frosted Lilac" — neutral/background */
+          --lp-mist:  #9F9FD1;        /* "Velvet Mist" — accent */
           --lp-ink:        #0A0A0A;
           --lp-text:       #ffffff;
           --lp-text-muted: rgba(var(--lp-fg), 0.7);
@@ -2831,13 +2766,14 @@ export default function Landing() {
         }
         .lp-root[data-theme="light"] {
           --lp-fg: 28, 27, 75;          /* navy text/borders/surfaces */
-          --lp-page-bg: #ffffff;        /* white page background */
+          --lp-page-bg: #fefcf9;        /* Warm cream page background */
           --lp-text: #1c1b4b;
-          --lp-bg: #ffffff;
-          --lp-bg-soft: #ffffff;
+          --lp-bg: #fefcf9;
+          --lp-bg-soft: #fefcf9;
           --lp-text-muted: rgba(28,27,75,0.66);
           --lp-text-soft: #5b5a7e;
-          --lp-section: #ffffff;       /* white card surface */
+          --lp-section: #ffffff;       /* white card surface — stays white so cards
+                                           still pop off the lilac page background */
         }
         /* Dark base also exposes a section-surface token so both themes share it. */
         .lp-root { --lp-section: #07074e; }
@@ -2894,40 +2830,30 @@ export default function Landing() {
         }
         /* Slides fully off the top when scrolling down; returns on scroll-up. */
         .lp-navbar--hidden { top: -110px; }
-        /* Top mask: a page-bg gradient that sits BEHIND the nav links but ABOVE the
-           scrolling page content, so hero copy (and anything else) fades out and
-           disappears at the navbar line instead of showing through / overlapping it. */
-        .lp-navbar::before {
-          content: '';
-          position: absolute;
-          top: -20px;            /* navbar sits at top:20px → reach the viewport top */
-          left: 0;
-          right: 0;
-          height: 124px;
-          background: linear-gradient(180deg,
-            var(--lp-page-bg) 0%,
-            var(--lp-page-bg) 68%,
-            transparent 100%);
-          z-index: -1;           /* behind the links, in front of page content */
-          pointer-events: none;
-        }
+        /* Fade mask removed — it was washing out the hero heading with a soft gradient
+           ("shadow") as it scrolled up behind the nav. */
+        .lp-navbar::before { display: none; }
 
         .lp-navbar__inner {
+          position: relative;            /* anchors the absolutely-centered nav links */
           display: flex;
           align-items: center;
-          gap: 0;                        /* no parent gap — the right group owns all spacing */
-          max-width: var(--lp-maxw);
-          margin: 0 auto;
-          background: transparent;       /* no white container */
+          justify-content: space-between; /* logo left, actions (or burger) right */
+          gap: 0;
+          /* Plain/transparent, full width — logo and actions sit unboxed at the true
+             edges of the bar. Only the centered nav-links group (below) gets its own
+             pill background now, not the whole bar. */
+          width: 100%;
+          background: transparent;
           /* Real header-bar height; the logo is sized to sit INSIDE it, centered. */
           height: 64px;
           padding: 0 4px;
         }
 
         .lp-navbar__logo {
-          /* Contained within the bar (mark-over-wordmark lockup, ~1.44:1). Vertically
-             centered by the flex row — no overflow, no negative margin. */
-          height: 52px;
+          /* Contained within the bar. Vertically centered by the flex row — no
+             overflow, no negative margin. */
+          height: 46px;
           width: auto;
           flex: none;
           object-fit: contain;
@@ -2944,14 +2870,29 @@ export default function Landing() {
         .lp-navbar__brand-b { color: #07074e; }   /* "ad.io" — navy */
         .lp-root[data-theme="dark"] .lp-navbar__brand-b { color: #EDE7DA; }
 
-        /* Nav links — grouped on the RIGHT (shifted over from the left). */
+        /* Nav links — centred in the bar (logo stays left, actions stay right via
+           .lp-navbar__inner's justify-content:space-between). Taken out of flex flow
+           and centred absolutely so its own width never pushes the logo or actions.
+           This is the ONLY part of the bar with a background — a floating glass pill,
+           while the logo and Log in/Sign up sit unboxed at the true edges. */
         .lp-navbar__links {
-          margin-left: auto;
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
           display: flex;
           align-items: center;
           gap: 30px;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(28, 27, 75, 0.08);
+          border-radius: 999px;
+          box-shadow: 0 12px 32px rgba(28, 27, 75, 0.12);
+          padding: 14px 30px;
         }
         .lp-root .lp-navlink {
+          position: relative;
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -2967,31 +2908,42 @@ export default function Landing() {
         .lp-navlink svg { color: rgba(var(--lp-fg), 0.6); }
         /* On the cream bar, white-on-hover is invisible — dim via opacity instead. */
         .lp-root .lp-navbar__links .lp-navlink:hover { color: inherit; opacity: 0.55; }
+        /* Hover underline — grows in left-to-right beneath the centred nav links. */
+        .lp-navbar__links .lp-navlink::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          bottom: -6px;
+          width: 0%;
+          height: 2px;
+          background: #7387FF;
+          transition: width 0.28s ease;
+        }
+        .lp-navbar__links .lp-navlink:hover::after { width: 100%; }
 
         .lp-navbar__actions {
-          margin-left: 30px;   /* = inter-link gap; parent gap is 0, so every gap is 30px */
           display: flex;
           gap: 30px;
           align-items: center;
         }
 
-        /* Log in — the single solid pill CTA in the bar. */
+        /* Log in — outlined (secondary) pill, Sign Up below carries the solid emphasis. */
         .lp-root .lp-btn-login {
           display: inline-flex;
           align-items: center;
           gap: 7px;
           padding: 10px 22px;
           border-radius: 999px;
-          border: 1px solid #7387FF;
-          background: #7387FF;
-          color: #fff;
+          border: 1px solid rgba(var(--lp-fg), 0.25);
+          background: transparent;
+          color: var(--lp-text);
           font-family: var(--font-body);
           font-weight: 600;
           font-size: 0.92rem;
           cursor: pointer;
           transition: all 0.2s ease;
         }
-        .lp-root .lp-btn-login:hover { background: #5c6cff; border-color: #5c6cff; }
+        .lp-root .lp-btn-login:hover { border-color: rgba(var(--lp-fg), 0.45); background: rgba(var(--lp-fg), 0.04); }
 
         /* Theme toggle (sun/moon pill switch) */
         .lp-root .lp-theme { position: relative; width: 64px; height: 30px; border-radius: 999px; cursor: pointer;
@@ -3008,20 +2960,20 @@ export default function Landing() {
         .lp-theme__ic--sun { left: 8px; }
         .lp-theme__ic--moon { right: 8px; }
 
-        /* Sign Up — plain text link now (button removed; only Log in is a button). */
+        /* Sign Up — the single solid pill CTA in the bar (was a plain text link). */
         .lp-root .lp-btn-signup {
-          padding: 8px 4px;
-          border: none;
-          background: transparent;
-          color: rgba(var(--lp-fg), 0.88);
+          padding: 10px 24px;
+          border: 1px solid #7387FF;
+          background: #7387FF;
+          color: #fff;
           font-family: var(--font-body);
-          font-weight: 500;
-          font-size: 0.95rem;
+          font-weight: 600;
+          font-size: 0.92rem;
           cursor: pointer;
           border-radius: 999px;
-          transition: opacity 0.2s ease;
+          transition: all 0.2s ease;
         }
-        .lp-root .lp-btn-signup:hover { opacity: 0.55; background: transparent; }
+        .lp-root .lp-btn-signup:hover { background: #5c6cff; border-color: #5c6cff; }
 
         /* Mobile hamburger + slide-down menu (hidden on desktop) */
         .lp-navbar__burger {
@@ -3088,55 +3040,92 @@ export default function Landing() {
         /* Hide the old dark 3D-logo fly overlay so it doesn't float over the cream hero. */
         .nlp-hero {
           position: relative; z-index: 3; isolation: isolate;
-          background: #ffffff;
-          padding: 132px 24px 96px;
+          /* Flat Frosted Lilac — same solid color as the rest of the page (no cream
+             base, no separate glow), so the hero doesn't read as a different section. */
+          background: #fefcf9;
+          /* Compacted (was 132px/96px) so the whole hero — heading, subtitle, card row,
+             and CTA — fits in a single view without scrolling on a typical desktop
+             viewport, instead of running well past the fold. Top padding must stay
+             ABOVE the fixed .lp-navbar's own footprint (top:20px + 64px tall = 84px) —
+             going lower hides the badge/heading behind it, since the navbar is
+             position:fixed and doesn't push page content down on its own. */
+          padding: 104px 24px 32px;
           text-align: center; overflow: hidden;
         }
         .nlp-badge {
           display: inline-block; background: #f7d49b; color: #7a4711;
           font-weight: 700; font-size: 13.5px; letter-spacing: .1px;
-          padding: 8px 22px; border-radius: 999px; margin: 0 auto 26px;
+          padding: 8px 22px; border-radius: 999px; margin: 0 auto 16px;
           font-family: var(--font-body, 'Inter', sans-serif);
         }
         .nlp-title {
           margin: 0 auto; max-width: 980px;
           font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
           font-weight: 800; letter-spacing: -2px; line-height: 1.02; color: #171717;
-          font-size: clamp(40px, 7.2vw, 84px);
+          /* Max size trimmed (was 84px) as part of the overall compacting pass. */
+          font-size: clamp(36px, 5.6vw, 60px);
         }
         .nlp-title-accent { color: var(--lp-purple-700); }
         .nlp-sub {
-          max-width: 560px; margin: 22px auto 0; color: #5a5a5a;
-          font-size: 17px; line-height: 1.6;
+          max-width: 560px; margin: 14px auto 0; color: #5a5a5a;
+          font-size: 16px; line-height: 1.5;
           font-family: var(--font-body, 'Inter', sans-serif);
         }
         /* Clipping viewport: hides the horizontal overflow of the scrolling track but
            leaves vertical room for the arched cards (padding reserves space for the CTA). */
         .nlp-gallery-vp {
           position: relative;
-          /* Full-bleed: was capped at max-width:1320px + centered, which left a visible
-             blank margin on wide screens before the (intentionally cropped) edge cards
-             even started. Break out of the section's own padding so the arch touches
-             both true screen edges instead of stopping short. */
-          width: 100vw;
-          margin: 40px calc(50% - 50vw) 0;
+          /* Full-bleed by cancelling the PARENT's own known padding (.nlp-hero: 24px each
+             side) instead of a width:100vw + calc(50% - 50vw) breakout. The vw-based
+             version undershot by a few px because html{scrollbar-gutter:stable} reserves
+             gutter space that vw/% don't agree on — this version needs no measurement or
+             JS correction at all: it's an exact, purely-CSS relationship to the direct
+             parent, so it's correct at every breakpoint automatically. Must stay in sync
+             with .nlp-hero's own horizontal padding (24px here, 16px in the ≤900px rule
+             below — each has a matching override there). */
+          width: calc(100% + 48px);
+          margin: 20px -24px 0;
           overflow-x: clip;
           overflow-y: visible;
-          /* Top room for the rising ends, bottom room for the low centre + the CTA below. */
-          padding: 66px 0 120px;
+          /* Shared vanishing point for every card's translateZ/rotateY, so the whole row
+             reads as one continuous curved surface rather than each card popping in its
+             own isolated 3D space. */
+          perspective: 1200px;
+          /* Bottom room for the ~65px vertical arc drop (centre cards sit up to 65px
+             lower than the edges). Trimmed a lot from the old 90px/170px now that the
+             depth bulge itself is much shallower (see the z-depth comment in the scroll
+             effect above) and the CTA has its own margin-top below, not borrowed from here. */
+          padding: 24px 0 50px;
         }
         .nlp-gallery {
-          display: flex; align-items: flex-start;
-          gap: 20px; width: max-content; will-change: transform;
+          /* Bottom-aligned (not flex-start): the small/big/big pattern gives cards
+             different rendered heights via transform:scale, and with a shared
+             transform-origin of "center bottom" (below) that keeps every card's bottom
+             edge sitting on the same baseline — so the row reads as an organized
+             step rhythm instead of cards floating at random heights. */
+          display: flex; align-items: flex-end;
+          /* Wider than the base 24px — the small/big/big pattern above scales cards up to
+             1.08x via transform (which doesn't reflow layout), so extra gap keeps the
+             enlarged "big" cards from visually crowding their neighbors. */
+          gap: 44px; width: max-content; will-change: transform;
+          transform-style: preserve-3d;
         }
         .nlp-card {
-          flex: 0 0 210px; margin: 0; border-radius: 24px; overflow: hidden;
-          aspect-ratio: 9 / 14; background: #e7e0d2;
-          box-shadow: 0 30px 56px -22px rgba(30, 22, 8, .45);
-          transform-origin: center center; will-change: transform;
+          /* Sized so ~7 cards span the viewport at once (6 gaps of 44px between them),
+             clamped so it doesn't degenerate on very narrow (tablet) or very wide
+             (ultrawide) desktop screens. Max trimmed (was 260px) as part of the
+             compacting pass — a shorter card (9:16 aspect) means a shorter hero. */
+          flex: 0 0 clamp(140px, calc((100vw - 144px) / 7), 180px);
+          margin: 0; border-radius: 26px; overflow: hidden;
+          aspect-ratio: 9 / 16; background: #e7e0d2;
+          box-shadow: 0 18px 34px -16px rgba(30, 22, 8, .32);
+          /* "center bottom" — see .nlp-gallery comment above: keeps scaled cards'
+             bottoms anchored to the shared baseline instead of growing/shrinking
+             from their own centre. */
+          transform-origin: center bottom; will-change: transform;
         }
-        .nlp-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .nlp-cta-wrap { position: relative; display: inline-flex; margin-top: 40px; }
+        .nlp-card img, .nlp-card video { width: 100%; height: 100%; object-fit: cover; display: block; background: #e7e0d2; }
+        .nlp-cta-wrap { position: relative; display: inline-flex; margin-top: 10px; }
         .nlp-cta {
           background: #ef6a4c; color: #fff; border: none; border-radius: 999px;
           padding: 15px 42px; font-weight: 700; font-size: 16px; cursor: pointer;
@@ -3149,32 +3138,38 @@ export default function Landing() {
         .nlp-note {
           position: absolute; font-family: 'Bradley Hand', 'Segoe Script', 'Comic Sans MS', cursive;
           color: #3a3a3a; font-size: 21px; line-height: 1.15; font-weight: 600; pointer-events: none;
+          /* The "It's free" arrow's tip deliberately reaches into the CTA button's box to
+             point at it. Without this, the button (later in the DOM, so painted on top by
+             default) covers the arrow tip on :hover when its box-shadow grows/darkens —
+             the arrow visibly vanishing right when you hover it. Keeping notes above the
+             button always, in both states, fixes that. */
+          z-index: 2;
         }
-        .nlp-note--elevate { top: 210px; right: max(40px, calc(50vw - 560px)); text-align: left; transform: rotate(6deg); }
+        /* top trimmed (was 210px) to track the heading, which now sits higher/smaller
+           after the hero compacting pass above. */
+        .nlp-note--elevate { top: 210px; right: max(160px, calc(50vw - 680px)); text-align: left; transform: translateX(-130px) rotate(6deg); }
         .nlp-note--elevate .nlp-note-arrow { position: absolute; left: -6px; top: 46px; width: 66px; height: 52px; }
         .nlp-note--free { position: absolute; right: calc(100% + 6px); bottom: 2px; white-space: nowrap; transform: rotate(-8deg); }
         .nlp-note--free .nlp-note-arrow2 { position: absolute; right: -58px; top: 6px; width: 56px; height: 34px; }
         @media (max-width: 900px) {
           .nlp-hero { padding: 108px 16px 72px; }
-          .nlp-gallery-vp { overflow-x: auto; overflow-y: visible; padding: 6px 4px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+          /* .nlp-hero's horizontal padding drops to 16px here — match it so the
+             full-bleed cancellation stays exact (was hardcoded to the desktop 24px). */
+          .nlp-gallery-vp { width: calc(100% + 32px); margin-left: -16px; margin-right: -16px; overflow-x: auto; overflow-y: visible; padding: 6px 4px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
           .nlp-gallery-vp::-webkit-scrollbar { display: none; }
         .nlp-gallery { gap: 12px; transform: none !important; }
         .nlp-card { flex: 0 0 118px; transform: none !important; }
         .nlp-note { display: none; }
         }
 
-        /* White page + no animated blobs. Sections are NOT hidden — they render
+        /* Warm cream page + no animated blobs. Sections are NOT hidden — they render
            light via the forced [data-theme="light"] theme. 3D logo mark removed. */
-        .lp-root { background: #ffffff !important; }
+        .lp-root { background: #fefcf9 !important; }
         .lp-bg-animations { display: none !important; }
         .lp-logo-fly,
         .lp-logo3d__stage,
         .lp-logo3d__placeholder { display: none !important; }
  
-        /* Light header to match the white hero page. */
-        .lp-navbar::before {
-          background: linear-gradient(180deg, #ffffff 0%, #ffffff 70%, transparent 100%) !important;
-        }
         .lp-root .lp-navlink { color: #2b2b2b !important; }
         .lp-root .lp-navlink:hover { color: #000 !important; }
         .lp-root .lp-nav-join { color: #4452f0 !important; }
@@ -3519,32 +3514,46 @@ export default function Landing() {
           justify-content: center;
         }
         /* In the standalone section the strip flows normally (not pinned absolute).
-           Single-line marquee: a small label above one continuously-scrolling row. */
+           Side-by-side row: the label sits fixed on the left, the continuously-scrolling
+           logo track fills the remaining width to its right (was stacked/centered —
+           label above a full-bleed row — now matches the label-left, logos-right layout). */
         .lp-brandstrip .lp-hero__strip {
           position: relative;
           left: auto;
           bottom: auto;
-          padding: 0;
-          flex-direction: column;
+          padding: 0 6%;
+          flex-direction: row;
           align-items: center;
-          gap: 26px;
+          gap: 40px;
           width: 100%;
         }
         .lp-brandstrip__label {
+          flex-shrink: 0;
           font-family: var(--font-body);
-          font-size: 0.8rem;
-          font-weight: 600;
+          font-size: 1rem;
+          font-weight: 900;
           letter-spacing: 0.14em;
           text-transform: uppercase;
           color: rgba(var(--lp-fg), 0.5);
+          line-height: 1.5;
         }
-        /* Single full-bleed viewport with a soft fade on BOTH edges. */
+        /* Two classes (not one) to out-specificity the global ".lp-root span { color:
+           var(--lp-text) }" base-text-color rule — a single-class selector here loses
+           to that class+element-type selector regardless of source order. */
+        .lp-brandstrip .lp-brandstrip__label--accent {
+          color: var(--lp-purple-700);
+        }
+        /* Fills the remaining width next to the label (was 100vw full-bleed when the
+           label sat above it); the mask fade still softens the right edge where the
+           scrolling track runs out of room. */
         .lp-brands__viewport {
-          width: 100vw;
-          max-width: 100vw;
+          flex: 1;
+          min-width: 0;
+          width: auto;
+          max-width: 100%;
           overflow: hidden;
-          -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
-                  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+          -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 92%, transparent 100%);
+                  mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 92%, transparent 100%);
         }
         .lp-brands__track--single {
           display: flex;
@@ -3726,11 +3735,16 @@ export default function Landing() {
         }
         /* Pinned viewport: fills the screen and stays put while the section scrolls past,
            centring the card deck. overflow visible so exiting cards can slide off the top. */
+        /* z-index above the section's ::after glow (below): as a sibling stacking context
+           generated LATER in the DOM, the glow would otherwise paint on top of the card
+           deck by default (equal/auto z-index falls back to DOM order), tinting the
+           promise cards purple instead of sitting behind them. */
         .lp-logo3d__sticky {
           position: sticky !important; top: 0 !important;
           height: 100vh !important; min-height: 0 !important;
           transform: none !important; overflow: visible !important;
           display: flex !important; align-items: center !important; justify-content: center !important;
+          z-index: 1 !important;
         }
         /* Deck stage: fixed-size box; every card is absolutely stacked to fill it, so they all
            start on top of each other. Each card's scroll-driven translateY (PromiseCard) then
@@ -3739,7 +3753,7 @@ export default function Landing() {
            put while the cards animate. */
         .lp-promise-wrap { width: min(1120px, 94%); margin: 0 auto; }
         .lp-promise-heading {
-          margin: 0 0 20px; font-family: Georgia, 'Times New Roman', serif; font-weight: 500;
+          margin: 0 0 20px; font-family: var(--font-head); font-weight: 500;
           font-size: clamp(24px, 2.6vw, 40px); color: #171334; letter-spacing: -0.5px;
           text-align: center;
         }
@@ -3756,7 +3770,7 @@ export default function Landing() {
         /* Head (title + subtitle) — top-left */
         .lp-promise__head { position: absolute; top: 40px; left: 44px; right: 380px; }
         .lp-promise__title {
-          margin: 0; font-family: Georgia, 'Times New Roman', serif; font-weight: 500;
+          margin: 0; font-family: var(--font-head); font-weight: 500;
           font-size: clamp(28px, 3.4vw, 52px); color: #171334; line-height: 1.02; letter-spacing: -0.5px;
         }
         .lp-promise__sub {
@@ -3766,7 +3780,7 @@ export default function Landing() {
         /* Number — top-right */
         .lp-promise__num {
           position: absolute; top: 36px; right: 44px; z-index: 2;
-          font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+          font-family: var(--font-head); font-weight: 700; font-style: italic;
           font-size: clamp(34px, 3.6vw, 52px); color: rgba(28,27,75,.4); line-height: 1;
         }
         /* Foot (description + button) — bottom-left */
@@ -3777,12 +3791,12 @@ export default function Landing() {
         }
         .lp-promise__btn {
           display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
-          background: #16121f; color: #fff; border: none; border-radius: 10px;
+          border: none; border-radius: 10px;
           padding: 12px 18px; font-family: var(--font-body, 'Inter', sans-serif);
           font-size: 14.5px; font-weight: 700; transition: transform .18s ease;
         }
         .lp-promise__btn:hover { transform: translateY(-2px); }
-        .lp-promise__btn svg { color: #d3f24f; }
+        .lp-promise__btn svg { color: currentColor; }
         /* Video — tall panel on the right */
         .lp-promise__video {
           position: absolute; right: 40px; top: 104px; bottom: 40px;
@@ -3812,25 +3826,11 @@ export default function Landing() {
           z-index: 0;
           pointer-events: none;
         }
-        /* Light mode: melt the lavender hero into the lavender section, not black. */
-        .lp-root[data-theme="light"] .lp-logo3d::before {
-          background: linear-gradient(180deg, var(--lp-page-bg) 0%, rgba(236,235,248,0.55) 38%, transparent 100%);
-        }
-        /* Soft glow that eases in when the section enters view, so the transition
-           feels intentional rather than an abrupt cut. */
-        .lp-logo3d::after {
-          content: '';
-          position: absolute;
-          top: 6vh; left: 50%;
-          width: min(900px, 90vw); height: 70vh;
-          transform: translateX(-50%);
-          background: radial-gradient(50% 50% at 50% 50%, rgba(99,102,241,0.18), transparent 70%);
-          opacity: 0;
-          z-index: 0;
-          pointer-events: none;
-          transition: opacity 1.1s ease;
-        }
-        .lp-logo3d.is-in::after { opacity: 1; }
+        /* Light mode: both the hero above and this section already sit on the same
+           flat Frosted Lilac page background, so no "melt into" gradient (or the
+           glow blob below) is needed to hide a seam — removed both. */
+        .lp-root[data-theme="light"] .lp-logo3d::before { display: none; }
+        .lp-logo3d::after { display: none; }
         .lp-logo3d__sticky {
           position: sticky;
           top: 0;
@@ -4438,16 +4438,16 @@ export default function Landing() {
         .lp-filter.is-active svg { color: var(--lp-purple-600); }
 
         .lp-filter--reset {
-          background: var(--lp-ink);
-          color: #fff;
-          border-color: var(--lp-ink);
+          background: var(--lp-purple-50);
+          color: var(--lp-ink);
+          border-color: var(--lp-purple-300);
           font-weight: 700;
         }
-        .lp-filter--reset svg { color: #fff; }
+        .lp-filter--reset svg { color: var(--lp-ink); }
         .lp-filter--reset:hover {
-          background: var(--lp-purple-700);
-          color: #fff;
-          border-color: var(--lp-purple-700);
+          background: var(--lp-purple-100, var(--lp-purple-50));
+          color: var(--lp-ink);
+          border-color: var(--lp-purple-500);
         }
 
         /* ── Filterable example grid (replaces the old auto-scroll marquee) ── */
@@ -4485,8 +4485,8 @@ export default function Landing() {
           gap: 8px;
           padding: 14px 34px;
           border-radius: 100px;
-          border: 1px solid var(--lp-border);
-          background: var(--lp-ink);
+          border: 1px solid #7387FF;
+          background: #7387FF;
           color: #fff;
           font-family: var(--font-body);
           font-size: 1rem;
@@ -4497,7 +4497,8 @@ export default function Landing() {
           box-shadow: 0 12px 28px -12px rgba(7, 7, 78, 0.5);
         }
         .lp-showcase__more-btn:hover {
-          background: var(--lp-purple-700);
+          background: #5c6cff;
+          border-color: #5c6cff;
           transform: translateY(-2px);
           box-shadow: 0 18px 34px -12px rgba(7, 7, 78, 0.55);
         }
@@ -4591,6 +4592,7 @@ export default function Landing() {
           flex-shrink: 0;
         }
         .lp-vcard__stars-row { display: flex; gap: 1px; }
+        .lp-vcard__stars-row svg { flex-shrink: 0; }
         .lp-vcard__stars-row--full {
           position: absolute;
           top: 0;
@@ -4797,7 +4799,7 @@ export default function Landing() {
         /* ── Find & Hire Creators — fanned, side-by-side cards ── */
         .lp-achieve {
           position: relative;
-          padding: 170px 5% 90px;
+          padding: 120px 5% 90px;
           background: transparent;
           color: var(--lp-text);
           text-align: center;
@@ -4811,7 +4813,7 @@ export default function Landing() {
           font-weight: var(--fw-head);
           font-size: var(--fs-h1);
           line-height: 1.05;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.01em;
           color: var(--lp-text);
         }
         .lp-achieve__title em { font-style: italic; }
@@ -4908,14 +4910,17 @@ export default function Landing() {
         }
 
         /* ── Editorial list (replaces the fanned cards) ─────────────────────── */
+        /* Billo-style layout: plain columns (no card box), separated by a thin vertical
+           divider — icon, then title, then description, stacked. */
         .lp-achieve__cards {
           display: grid;
-          grid-template-columns: repeat(4, minmax(300px, 1fr));
-          gap: 24px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 0;
           width: 100%;
-          max-width: 100%;
-          margin: 44px auto 0;
-          padding: 0 16px;
+          max-width: 1280px;
+          margin: 110px auto 0;
+          margin-left: 0;
+          padding: 0 32px;
         }
         .lp-achieve__cards .lp-achieve-card {
           position: relative !important;
@@ -4925,75 +4930,41 @@ export default function Landing() {
           width: 100% !important;
           height: auto;
           transform: none !important;
-          background: rgba(22, 22, 28, 0.97);
-          border: 1px solid rgba(var(--lp-fg), 0.08);
-          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.1);
-          border-radius: 24px;
-          padding: 22px 22px 24px;
+          background: transparent;
+          border: none;
+          box-shadow: none;
+          border-radius: 0;
+          padding: 0 60px;
           display: flex;
           flex-direction: column;
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
+          gap: 32px;
         }
-        /* The border-draw SVG overlay: fills the card, sits above its content so the
-           stroke reads clearly at the edges, and never intercepts hover/clicks. */
-        .lp-achieve-card__border {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 3;
-          pointer-events: none;
-          overflow: visible;
-        }
-        .lp-achieve__cards .lp-achieve-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 26px 55px rgba(0, 0, 0, 0.16);
-        }
-        .lp-achieve__cards .lp-achieve-card__top {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 16px;
+        .lp-achieve__cards .lp-achieve-card:first-child { padding-left: 0; }
+        .lp-achieve__cards .lp-achieve-card:last-child { padding-right: 0; }
+        /* .lp-root prefix bumps specificity above the light-theme card border-color
+           rule below, which would otherwise win the cascade tie and fade this out. */
+        .lp-root .lp-achieve__cards .lp-achieve-card:not(:last-child) {
+          border-right: 1px solid rgba(var(--lp-fg), 0.18);
         }
         .lp-achieve__cards .lp-achieve-card__icon {
-          width: 42px;
-          height: 42px;
-          color: rgba(var(--lp-fg), 0.75);
-        }
-        .lp-achieve__cards .lp-achieve-card__num {
-          position: static !important;
-          top: auto !important;
-          left: auto !important;
-          margin: 0;
-          font-family: 'Instrument Serif', Georgia, serif;
-          font-size: 1.8rem;
-          line-height: 1;
-          color: rgba(var(--lp-fg), 0.9);
-        }
-        .lp-achieve__cards .lp-achieve-card__label {
-          font-family: var(--font-body, 'Inter', sans-serif);
-          text-transform: uppercase;
-          letter-spacing: 0.18em;
-          font-size: 0.78rem;
-          color: rgba(var(--lp-fg), 0.65);
-          font-weight: 700;
-          margin-top: 4px;
+          width: 68px;
+          height: 68px;
+          color: rgba(var(--lp-fg), 0.5);
         }
         .lp-achieve__cards .lp-achieve-card__body {
           padding: 0;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 18px;
           flex: 1;
         }
-        /* Title/desc/tag all rely purely on the body's own 14px gap for spacing now —
-           the title previously ALSO had its own 8px margin-bottom (stacking on top of the
-           gap, not replacing it) and the tag had a 20px margin-top, so title-to-desc and
-           desc-to-tag ended up with mismatched, inconsistent gaps. One spacing source, one
-           consistent rhythm down the whole card. */
+        /* No divider line under the title here (unlike the fan/stack card design) — the
+           body's own 18px gap gives title-to-desc spacing on its own. */
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__title {
           font-size: clamp(1.2rem, 1.5vw, 1.45rem);
           margin: 0;
+          padding-bottom: 0;
+          border-bottom: none;
           line-height: 1.25;
         }
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__desc {
@@ -5003,15 +4974,11 @@ export default function Landing() {
           max-height: 7.5em;
           overflow: hidden;
         }
-        .lp-achieve__tag {
-          margin-top: 0; font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
-          font-size: 14px; font-weight: 700; color: var(--lp-text);
-        }
         @media (max-width: 1600px) {
-          .lp-achieve__cards { grid-template-columns: repeat(4, minmax(280px, 1fr)); }
+          .lp-achieve__cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
         @media (max-width: 1280px) {
-          .lp-achieve__cards { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+          .lp-achieve__cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 900px) {
           .lp-achieve__cards { grid-template-columns: 1fr; }
@@ -5116,6 +5083,14 @@ export default function Landing() {
         .lp-root[data-theme="light"] .lp-achieve-card.is-active {
           box-shadow: none;
         }
+        /* The editorial grid variant has no card surface at all (see .lp-achieve__cards
+           .lp-achieve-card above) — override the light-theme card background back off for
+           it specifically, without touching the fan/stack card, which still wants the
+           cream surface. Deliberately does NOT touch border-color: that would also wipe
+           out the border-right column divider set above. */
+        .lp-root[data-theme="light"] .lp-achieve__cards .lp-achieve-card {
+          background: transparent;
+        }
 
         /* Mobile: drop the fan, stack the cards vertically (neutralise inline transforms).
            Scoped to .lp-achieve__fan so it never touches the mobile sticky deck, which
@@ -5147,16 +5122,30 @@ export default function Landing() {
 
         /* ── US vs Others — two-column comparison ─────────────────────────── */
         /* ── UGCad.io vs Traditional — editorial comparison table ── */
-        .lpv { padding: 100px 4% 110px; background: #e5e2fb; color: #1c1b4b; }
+        .lpv { padding: 100px 4% 110px; background: #fefcf9; color: #1c1b4b; }
         .lpv-inner { max-width: 1120px; margin: 0 auto; }
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
            only ever swallows scrolling ROWS, never the section's own title on entrance. */
         .lpv-kicker { margin: 0; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
-        .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: Georgia, 'Times New Roman', serif;
+        .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: var(--font-head);
           font-weight: 500; font-size: clamp(30px, 5vw, 54px); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
           position: relative; z-index: 6; }
-        .lpv-grid { display: flex; flex-direction: column; }
-        .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.5fr 1fr 1fr; align-items: center; }
+        .lpv-grid {
+          display: flex;
+          flex-direction: column;
+          /* Frame + dividers in Velvet Mist (the palette's accent) instead of a flat
+             navy tint — ties the table's structure into the brand palette. */
+          border: 1px solid rgba(159, 159, 209, 0.4);
+          border-radius: 24px;
+          box-shadow: 0 4px 28px rgba(159, 159, 209, 0.18);
+          padding: 0 28px;
+        }
+        /* Thin column dividers, like the reference table — every cell but the last
+           in a row gets a hairline right border. */
+        .lpv-header > *:not(:last-child), .lpv-rowgroup > *:not(:last-child) {
+          border-right: 1px solid rgba(159, 159, 209, 0.3);
+        }
+        .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; align-items: center; }
         /* Sticky header: the UGCad.io / Traditional column titles stay pinned just below
            the floating navbar while the comparison rows scroll underneath. The opaque
            section background keeps rows from showing through the transparent columns.
@@ -5180,13 +5169,13 @@ export default function Landing() {
           position: sticky;
           top: 88px;
           z-index: 5;
-          background: #e5e2fb;
+          background: #fefcf9;
           min-height: 120px;
         }
         /* Opaque mask ABOVE the pinned header. The navbar hides on scroll-down, leaving an
            ~88px band above the header (top:88px) uncovered — rows scrolling up used to poke
            out INTO that band above the UGCad.io/Traditional titles. This band paints the same
-           #e5e2fb as the section, so it seamlessly hides any row text the moment it rises above
+           white as the section, so it seamlessly hides any row text the moment it rises above
            the header; the text simply disappears off the top edge while still masked. Height is
            just enough to cover the nav gap (kept < the heading distance so it never reaches the
            kicker; the heading is protected by z-index anyway). */
@@ -5195,26 +5184,25 @@ export default function Landing() {
           position: absolute;
           left: 0; right: 0; bottom: 100%;
           height: 130px;
-          background: #e5e2fb;
+          background: #fefcf9;
           pointer-events: none;
         }
-        .lpv-h--us, .lpv-cell--us { background: rgba(28, 27, 75, 0.06); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
-        /* Keep the header's UGCad.io cell shaded like the rows below (continuous column),
-           but flatten its corners so it doesn't read as a rounded "card" when pinned. */
         .lpv-header .lpv-h--us { border-radius: 0; }
+        /* Periwinkle Pulse tint down the whole UGCad.io column, header included
+           (rgb(115,135,255) — matches --lp-purple-700 exactly, not an approximation). */
+        .lpv-h--us, .lpv-cell--us { background: rgba(115, 135, 255, 0.10); }
+        .lpv-rowgroup:last-child .lpv-cell--us { border-radius: 0 0 16px 16px; }
         .lpv-header .lpv-h { padding: 26px 20px; }
         .lpv-h--us { display: flex; align-items: center; justify-content: center; }
-        .lpv-brand { font-family: Georgia, serif; font-weight: 800; font-size: 30px; letter-spacing: -1px; color: #1c1b4b; }
-        .lpv-brand-ad { color: #6d7bff; }
+        .lpv-brand { font-family: var(--font-head); font-weight: 700; font-size: 30px; letter-spacing: -1px; color: #1c1b4b; }
+        .lpv-brand-ad { color: #7387FF; }
         .lpv-h--them { display: flex; align-items: center; justify-content: center; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 15px; }
-        /* Stretch cells to fill the full row height so the shaded UGCad.io column reads as
-           one continuous block instead of separate cards with unshaded gaps between rows. */
-        .lpv-rowgroup { border-top: 1px solid rgba(28, 27, 75, 0.12); align-items: stretch; }
+        .lpv-rowgroup { border-top: 1px solid rgba(159, 159, 209, 0.32); align-items: stretch; }
         /* align-items: flex-start (not center) matches .lpv-cell's top alignment: the label
            has to clear the sticky header at the same moment as the us/them titles beside it,
            or whichever one is vertically centered lower lingers behind after the others fade. */
-        .lpv-label { font-family: Georgia, serif; font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
+        .lpv-label { font-family: var(--font-head); font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
         /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
            descriptions wrap to a different number of lines, centering makes their titles land
            at different heights within the row. Since the row scrolls behind the sticky header
@@ -5230,13 +5218,18 @@ export default function Landing() {
           .lpv { padding: 60px 22px 70px; }
           .lpv-heading { margin-bottom: 34px; }
           .lpv-header { display: none; }
-          .lpv-rowgroup { grid-template-columns: 1fr 1fr; grid-template-areas: 'label label' 'us them'; gap: 0 12px; padding-top: 18px; }
-          .lpv-label { grid-area: label; padding: 0 0 12px; font-size: 22px; }
-          .lpv-cell { text-align: left; padding: 14px; border-radius: 12px; }
-          .lpv-cell--us { grid-area: us; background: rgba(28, 27, 75, 0.07); }
-          .lpv-cell--them { grid-area: them; background: transparent; }
+          .lpv-grid { padding: 16px 16px 4px; border-radius: 18px; }
+          /* Columns stack full-width on mobile, so the desktop column dividers
+             would just be stray vertical lines — drop them. */
+          .lpv-rowgroup > *:not(:last-child) { border-right: none; }
+          /* Three comparison values no longer fit side by side on mobile — stack
+             label + all three cells in natural DOM order, each full width. */
+          .lpv-rowgroup { grid-template-columns: 1fr; gap: 8px 0; padding-top: 18px; }
+          .lpv-label { padding: 0 0 4px; font-size: 22px; }
+          .lpv-cell { text-align: left; padding: 14px; border-radius: 12px; background: transparent; }
+          .lpv-cell--us { background: rgba(115, 135, 255, 0.10); }
           .lpv-tag { display: block; font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(28,27,75,0.55); margin-bottom: 2px; }
-          .lpv-cell--us .lpv-tag { color: #6d7bff; }
+          .lpv-cell--us .lpv-tag { color: #7387FF; }
         }
         .lp-vs {
           padding: 90px 5% 100px;
@@ -6099,7 +6092,7 @@ export default function Landing() {
           .lp-navbar__actions { display: none; }
           .lp-navbar__burger { display: inline-flex; }
           .lp-navbar__mobile--open { display: flex; }
-          .lp-navbar__logo { height: 44px; margin-left: 0; }
+          .lp-navbar__logo { height: 34px; margin-left: 0; }
           .lp-btn-login, .lp-btn-signup { padding: 7px 14px; font-size: 0.85rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
@@ -6822,9 +6815,11 @@ export default function Landing() {
           text-align: center;
           overflow: hidden;
         }
-        .lp-hook__bg-orb,
-        .lp-audit__bg-orb,
-        .lp-testimonial__bg-orb {
+        /* .lp-hook itself is unused/removed from this page, so its orb stays hidden.
+           .lp-audit__bg-orb / .lp-testimonial__bg-orb are re-enabled below as part of
+           bringing the purple ambient-glow look (added to the hero) to the rest of the
+           page's plain-white sections. */
+        .lp-hook__bg-orb {
           display: none;
         }
         .lp-hook__bg-orb--legacy {
@@ -7170,11 +7165,10 @@ export default function Landing() {
         /* ── Psychological Audit ─────────────────────────────────────────── */
         .lp-audit {
           position: relative;
-          padding: 320px 5% 240px;
+          padding: 120px 5%;
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
-          min-height: auto;
         }
         /* Soft glow via radial-gradient instead of filter: blur(90px) — a blur filter
            forces the browser to re-rasterize a large layer as this (scroll-heavy)
@@ -7194,19 +7188,21 @@ export default function Landing() {
           background: radial-gradient(circle, rgba(7, 7, 78, 0.20) 0%, transparent 68%);
           bottom: -170px; left: -150px;
         }
-        /* Was position:sticky + top:50% to pin this block centered while a tall scroll-pin
-           card-peel effect played out underneath. The cards now do a simple one-time
-           reveal (whileInView-style, no pin/scrub), so there's nothing left to stick
-           against — sticky there only caused the block to jump/settle as the short
-           section scrolled past. Static now, nudged right per the earlier request. */
+        /* Normal flow now — cards reveal via a one-time whileInView animation (see JSX),
+           not a scroll-scrubbed peel, so no pin/sticky runway is needed. */
         .lp-audit__inner {
           position: relative;
-          transform: translateX(56px);
           z-index: 2;
-          max-width: 1200px;
+          max-width: 1280px;
           margin: 0 auto;
-          text-align: center;
+          display: grid;
+          grid-template-columns: minmax(300px, 420px) 1fr;
+          gap: 64px;
+          align-items: center;
+          text-align: left;
         }
+
+        .lp-audit__copy { display: flex; flex-direction: column; align-items: flex-start; }
 
         .lp-audit__pill {
           display: inline-flex;
@@ -7256,165 +7252,108 @@ export default function Landing() {
           font-size: 1.05rem;
           line-height: 1.5;
           letter-spacing: -0.015em;
-          margin: 0 auto 60px;
-          max-width: 580px;
+          margin: 0 0 32px;
+          max-width: 420px;
         }
+        .lp-audit__cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 24px;
+          border-radius: 999px;
+          border: 1px solid rgba(var(--lp-fg), 0.25);
+          background: transparent;
+          color: var(--lp-ink);
+          font-family: var(--font-body);
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .lp-audit__cta:hover { background: rgba(var(--lp-fg), 0.06); border-color: rgba(var(--lp-fg), 0.4); }
+        .lp-audit__cta svg { transition: transform 0.2s ease; }
+        .lp-audit__cta:hover svg { transform: translateX(3px); }
 
+        /* Right side: a "brick" grid — 2 columns × 3 rows, cards placed on alternating
+           diagonal cells (col2/row1, col1/row2, col2/row3). Each upper card overflows
+           --joint (40px) past its row into the empty cell below-left of it, with a big
+           radius on that trailing corner, so it forms a rounded tab that overlaps on top
+           of (higher z-index than) the next card. Same fill color on both, so the seam is
+           invisible and the boundary reads as one continuous curve, not a corner meeting. */
         .lp-audit__grid {
           position: relative;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          /* The cards are position:absolute (no flow height of their own), so the deck
-             needs an explicit height to reserve its own space now that this is a simple
-             one-time reveal (no more 200vh scroll-pin runway providing the room). */
-          min-height: 340px;
-          margin: 0 auto 60px;
-          max-width: 600px;
-          text-align: left;
-          perspective: 1200px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: repeat(3, 320px);
+          gap: 0;
         }
         .lp-audit-card {
-          position: absolute;
+          position: relative;
           width: 100%;
-          max-width: 290px;
-          background: #7387FF;
-          border: 1px solid rgba(var(--lp-fg), 0.2);
-          border-radius: 22px;
-          padding: 36px 30px 26px;
-          min-height: 0;
+          box-sizing: border-box;
+          background: #ffffff;
+          border: 1px solid rgba(28, 27, 75, 0.08);
+          box-shadow: 0 8px 24px rgba(28, 27, 75, 0.08);
+          border-radius: 20px;
+          padding: 28px;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 10px 28px rgba(7, 7, 78, 0.4);
-          overflow: hidden;
-          transform-origin: center center;
-          /* Keep each card on its own GPU layer for the whole peel so it composites
-             instead of repainting the shadow each scroll frame (and so framer isn't
-             promoting/de-promoting it on every spring start/settle). */
-          will-change: transform;
-          backface-visibility: hidden;
+          justify-content: flex-start;
         }
-        .lp-audit-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #8888A0, #07074e);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          border-radius: 22px 22px 0 0;
+        .lp-audit-card--1 {
+          grid-column: 2; grid-row: 1;
+          height: 360px;
+          z-index: 3;
+          border-radius: 20px 20px 20px 20px;
         }
-        .lp-audit-card__corner {
-          position: relative;
+        .lp-audit-card--2 {
+          grid-column: 1; grid-row: 2;
+          height: 360px;
+          z-index: 2;
+          border-radius: 20px 0 20px 20px;
+        }
+        .lp-audit-card--3 {
+          grid-column: 2; grid-row: 3;
+          height: 100%;
           z-index: 1;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 22px;
-        }
-        .lp-root .lp-audit-card__qnum {
-          font-family: var(--font-body);
-          font-size: 0.78rem;
-          font-weight: 700;
-          color: var(--lp-text);
-          letter-spacing: 0.1em;
-          padding: 5px 12px;
-          background: #7387FF;
-          border: 1px solid rgba(var(--lp-fg), 0.6);
-          border-radius: 100px;
-        }
-        .lp-root .lp-audit-card__qmark {
-          font-family: var(--font-body);
-          font-size: 3rem;
-          font-weight: 700;
-          color: #07074e;
-          line-height: 0.5;
-          font-style: italic;
+          border-radius: 0 20px 20px 20px;
         }
 
-        .lp-audit-card__body {
-          position: relative;
-          z-index: 1;
-          /* Don't grow to fill the card — sit tight under the heading so the divider +
-             hint follow immediately (no dead space in the middle). */
-          flex: 0 0 auto;
-          margin-bottom: 30px;
+        .lp-audit-card__icon {
+          margin-top: 22px;
+          color: #7387FF;
+          background: rgba(115, 135, 255, 0.1);
+          border-radius: 12px;
+          padding: 10px;
+          width: 48px;
+          height: 48px;
+          box-sizing: border-box;
         }
+        .lp-audit-card__num {
+          font-family: var(--font-body);
+          font-size: 0.85rem;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          color: rgba(28, 27, 75, 0.4);
+        }
+        /* Pushes itself (+ the title after it) to the bottom of the card, leaving the
+           number pinned at the top — matches the reference's number-top/label-bottom
+           layout while adding a visible divider between them. */
+        .lp-audit-card__divider {
+          margin-top: auto;
+          height: 1px;
+          background: rgba(28, 27, 75, 0.12);
+          margin-bottom: 14px;
+        }
+
         .lp-root .lp-audit-card__title {
           font-family: var(--font-head);
-          /* Sized so even the longest title (Q2 — "If Your Brand Went Silent for a Week,")
-             fits on a SINGLE line within the card, matching Q3. Reads as an eyebrow lead-in
-             above the larger punch line (.lp-audit-card__sub). */
-          font-size: clamp(0.72rem, 1.4vw, 0.8rem);
+          font-size: 1.4rem;
           font-weight: var(--fw-head);
-          color: #07074e;
-          line-height: 1.4;
-          letter-spacing: -0.015em;
-          margin: 0 0 10px 0;
-          white-space: nowrap;
-        }
-        .lp-root .lp-audit-card__sub {
-          font-family: var(--font-body);
-          /* Trimmed so the longest sub still fits one line in the narrower card. */
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: #07074e;
-          letter-spacing: -0.025em;
+          color: #0a0a0a;
+          letter-spacing: -0.02em;
           line-height: 1.3;
           margin: 0;
-          white-space: nowrap;
-        }
-
-        .lp-audit-card__divider {
-          position: relative;
-          z-index: 1;
-          height: 1px;
-          background: rgba(7, 7, 78, 0.25);
-          margin-bottom: 12px;
-        }
-        .lp-root .lp-audit-card__hint {
-          position: relative;
-          z-index: 1;
-          font-family: var(--font-body);
-          font-size: 0.95rem;
-          color: rgba(7, 7, 78, 0.75);
-          font-style: italic;
-          letter-spacing: 0.02em;
-        }
-
-        .lp-audit__footer-card {
-          display: inline-flex;
-          align-items: center;
-          gap: 16px;
-          padding: 18px 28px 18px 18px;
-          background: rgba(var(--lp-fg), 0.06);
-          border: 1px solid var(--lp-purple-200);
-          border-radius: 100px;
-          box-shadow: 0 10px 30px rgba(7, 7, 78, 0.08);
-          max-width: 100%;
-        }
-        .lp-audit__footer-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #07074e, #050538);
-          color: var(--lp-text);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        /* Light mode: dark navy circle but the arrow inherited navy text (invisible) — white it. */
-        .lp-root[data-theme="light"] .lp-audit__footer-icon,
-        .lp-root[data-theme="light"] .lp-audit__footer-icon svg { color: #ffffff; }
-        .lp-audit__footer-text {
-          font-family: var(--font-body);
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--lp-ink);
-          letter-spacing: -0.015em;
-          margin: 0;
-          text-align: left;
         }
 
         /* ── Value Proof (Editorial Big Numbers) ─────────────────────────── */
@@ -7440,10 +7379,10 @@ export default function Landing() {
         }
         .lpr-quote {
           font-family: var(--font-head), 'Readex Pro', sans-serif;
-          font-weight: 800;
+          font-weight: 600;
           text-transform: uppercase;
-          font-size: clamp(2rem, 5vw, 4.4rem);
-          line-height: 1.03;
+          font-size: clamp(1.6rem, 3.8vw, 3.2rem);
+          line-height: 1.08;
           letter-spacing: -0.02em;
           color: var(--lp-text);
           margin: 0;
@@ -7453,7 +7392,7 @@ export default function Landing() {
           font-style: italic;
           text-transform: none;
           font-weight: 500;
-          color: #ec4899;      /* pink accent, like the reference */
+          color: #7387FF;      /* periwinkle-purple accent, matches brand primary */
         }
         .lpr-cite {
           font-family: var(--font-body);
@@ -7478,8 +7417,8 @@ export default function Landing() {
         }
         .lpr-stat__value {
           font-family: var(--font-head), 'Readex Pro', sans-serif;
-          font-weight: 800;
-          font-size: clamp(2.6rem, 5vw, 4.4rem);
+          font-weight: 600;
+          font-size: clamp(2.1rem, 4vw, 3.4rem);
           line-height: 1;
           letter-spacing: -0.02em;
           color: var(--lp-text);
@@ -7491,7 +7430,7 @@ export default function Landing() {
           margin-top: 16px;
         }
         @media (max-width: 760px) {
-          .lpr-quote { font-size: clamp(1.7rem, 8vw, 2.8rem); max-width: none; }
+          .lpr-quote { font-size: clamp(1.3rem, 6vw, 2rem); max-width: none; }
           .lpr-kicker--receipts { margin-top: 68px; }
           .lpr-stats { grid-template-columns: repeat(2, 1fr); gap: 28px; }
         }
@@ -7934,6 +7873,7 @@ export default function Landing() {
         /* Clips the horizontal slide so the off-screen row never spills out, while
            leaving vertical room for card hover-lift + drop shadows. */
         .lp-testimonial__viewport {
+          position: relative;
           overflow: hidden;
           padding: 10px 4px 34px;
           margin: -10px -4px -34px;
@@ -7985,16 +7925,19 @@ export default function Landing() {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }   /* set duplicated once → seamless loop */
         }
-        /* Centre spotlight frame — fixed corner brackets over the middle card. */
+        /* Centre spotlight frame — fixed corner brackets over the middle card.
+           Anchored to the viewport and inset by its exact padding values (10px
+           top / 4px sides / 34px bottom, minus a 3px outset), so the frame's box
+           always matches the active card's real box regardless of viewport size —
+           no guessing off the carousel's auto height. */
         .lp-testimonial__carousel { position: relative; }
         .lp-testimonial__frame {
           position: absolute;
-          top: 50%;
+          top: 7px;
+          bottom: 31px;
           left: 50%;
-          transform: translate(-50%, -50%);
-          /* A touch wider/taller than a card so the brackets sit just OUTSIDE it. */
-          width: calc(var(--tcard-w) + 26px);
-          height: calc(100% - 8px);
+          width: calc(var(--tcard-w) + 6px);
+          transform: translateX(-50%);
           pointer-events: none;
           z-index: 5;
         }
@@ -8322,50 +8265,38 @@ export default function Landing() {
            scroll-peel needs a tall pinned runway that's awkward at this width). */
         @media (min-width: 769px) and (max-width: 900px) {
           .lp-audit { min-height: auto; padding: 80px 6%; }
-          .lp-audit__inner { position: static; top: auto; }
+          .lp-audit__inner {
+            position: static; top: auto;
+            display: flex; flex-direction: column; align-items: center; gap: 40px;
+          }
+          .lp-audit__copy { align-items: center; text-align: center; }
+          .lp-audit__subtitle { max-width: 480px; }
           .lp-audit__grid {
             display: flex; flex-direction: column; align-items: center; gap: 20px;
-            min-height: auto; margin: 40px auto; max-width: 100%; perspective: none;
+            min-height: auto; margin: 0 auto; max-width: 100%;
           }
           .lp-audit-card {
-            position: static !important; transform: none !important;
             width: 100%; max-width: 420px; min-height: auto;
           }
         }
-        /* Audit cards on MOBILE (≤768px): the fan (centred via flex static-position), sized
-           for a phone. No more tall sticky scroll-pin runway — the cards do the same simple
-           one-time reveal as desktop now, so the section is just its own natural height. */
+        /* Audit cards on MOBILE (≤768px): stacked vertically, same as tablet. */
         @media (max-width: 768px) {
           .lp-audit { min-height: auto; padding: 100px 6%; }
           .lp-audit__inner {
             position: relative; top: auto; padding-top: 0;
-            transform: none;
+            display: flex; flex-direction: column; gap: 32px;
           }
+          .lp-audit__copy { align-items: center; text-align: center; }
+          .lp-audit__subtitle { max-width: 100%; }
           .lp-audit__grid {
             position: relative;
             display: flex; justify-content: center; align-items: center;
-            flex-direction: row; gap: 0;
-            min-height: clamp(360px, 54vh, 460px); margin: 14px auto 0; max-width: 100%;
-            /* No perspective on mobile: the cards only do a flat 2D translate + rotate, so
-               perspective adds nothing visually but stops the rising cards from compositing
-               cleanly on phone GPUs — which is what made Q2 lag. */
-            perspective: none;
+            flex-direction: column; gap: 18px;
+            min-height: auto; margin: 0 auto; max-width: 100%;
           }
           .lp-audit-card {
-            width: 86%; max-width: 270px; min-height: 0; padding: 26px 24px 22px;
-            box-shadow: 0 6px 16px rgba(7, 7, 78, 0.30);
-          }
-          /* On the narrow phone card BOTH lines wrap (the single-line treatment is desktop-only),
-             so the card stays a proper portrait shape instead of being stretched wide to hold a
-             long line. Bump the sizes back up since wrapping gives them the room. */
-          .lp-root .lp-audit-card__title {
-            white-space: normal;
-            font-size: 1rem;
-          }
-          .lp-root .lp-audit-card__sub {
-            white-space: normal;
-            font-size: 1.5rem;
-            line-height: 1.2;
+            width: 100%; max-width: 380px; min-height: auto; padding: 26px 24px 22px;
+            box-shadow: 0 8px 20px rgba(28, 27, 75, 0.12);
           }
         }
 

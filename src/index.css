@@ -12,6 +12,37 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Thin, semi-transparent scrollbar (sitewide) instead of the bulky default OS one (grey
+   track + arrow buttons) — the default reads as a visible "wall" cutting into the page on
+   the right edge. Neutral grey-on-transparent so it stays legible on both the dark-navy
+   default theme and the light/cream Landing page, rather than matching one and clashing
+   with the other. Firefox via scrollbar-width/-color; Chrome/Edge/Safari via ::-webkit-*. */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 120, 140, 0.35) transparent;
+}
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background-color: rgba(120, 120, 140, 0.35);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(120, 120, 140, 0.55);
+}
+::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
 code {
     font-family:
         source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -128,23 +159,34 @@ code {
 .app,
 main,
 .content,
-#root,
-.lp-root {
+#root {
     padding-left: var(--site-h-pad) !important;
     padding-right: var(--site-h-pad) !important;
 }
 
-/* Landing page specific overrides: ensure the public landing respects the site horizontal pad
-   and doesn't leave a large left gap when the side rail is present. */
+/* ── Public landing: FULL-BLEED ──────────────────────────────────────────────
+   The landing draws its own edge-to-edge sections (black hero, card marquee,
+   brand strip), so the site-wide gutter above must NOT apply to it. It was
+   stacking three deep — #root (12px) + .lp-root (12px) + .lp-root > * (12px,
+   which catches .lp-journey and so the hero) = a 36px inset that no section
+   could escape. Every landing section already supplies its own inner padding
+   (.nlp-hero 24px, .lp-audit 5%, …), so nothing loses its gutter here.
+
+   Note the old `.lp-root > *` rule set padding-LEFT only — that asymmetry is
+   what made the page's left gutter differ from its right.
+
+   The margin-left:0 declarations are deliberately KEPT: those are the fix for
+   the large left gap that appears when the admin side rail is mounted (see the
+   .hsr rule below), which is a separate problem from the padding. */
+#root:has(.lp-root) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
 .lp-root {
-    padding-left: var(--site-h-pad) !important;
-    padding-right: var(--site-h-pad) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     margin-left: 0 !important;
 }
-
-/* Aggressive landing overrides to collapse unexpected left gutters that appear
-   from layout transforms or container offsets. Targets only a few high-level
-   landing wrappers so internal component spacing still works. */
 .lp-root > *,
 .lp-root .lp-wrap,
 .lp-root .lp-hero__sticky,
@@ -153,7 +195,6 @@ main,
 .lp-root .lp-section,
 .lp-root .lp-brandstrip {
     margin-left: 0 !important;
-    padding-left: var(--site-h-pad) !important;
 }
 
 /* If an invisible fixed rail or leftover offset is present, hide any fixed

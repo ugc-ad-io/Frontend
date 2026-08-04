@@ -1087,13 +1087,18 @@ export default function CreatorLanding() {
         .cl-brands__logo { display: inline-flex; align-items: center; justify-content: center;
           flex-shrink: 0; height: 78px; padding: 0 12px; opacity: 0.9;
           transition: opacity 0.2s, transform 0.25s ease; }
-        .cl-brands__icon { height: 62px; width: auto; max-width: 220px; object-fit: contain; flex-shrink: 0; }
+        .cl-brands__icon { height: 62px; width: auto; max-width: 220px; object-fit: contain; flex-shrink: 0;
+          filter: grayscale(100%); transition: filter 0.25s ease; }
         /* Oversized wordmarks (awfis, KUKU FM) scaled down to sit in line with the rest. */
         .cl-brands__logo--small .cl-brands__icon { height: 34px; }
         /* Undersized wordmarks (UBALANCE, Cristello, EULER) scaled up to match the rest. */
         .cl-brands__logo--large .cl-brands__icon { height: 82px; max-width: 260px; }
+        /* Already-white silhouettes (flipped so black artwork reads on the dark strip) have no
+           color to reveal -- grayscale is a no-op on them, hover just skips straight to opacity. */
         .cl-brands__logo--dark .cl-brands__icon { filter: brightness(0) invert(1); }
         .cl-brands__logo:hover { opacity: 1; transform: translateY(-3px); }
+        .cl-brands__logo:hover .cl-brands__icon { filter: grayscale(0%); }
+        .cl-brands__logo--dark:hover .cl-brands__icon { filter: brightness(0) invert(1); }
         /* Duplicate logos exist only to feed the mobile marquee loop -- hidden on desktop. */
         .cl-brands__logo--dup { display: none; }
         @media (prefers-reduced-motion: reduce) { .cl-brands__line { animation: none !important; } }

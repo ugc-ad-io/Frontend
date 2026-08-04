@@ -1230,7 +1230,15 @@ export default function Landing() {
   // ghost cards behind it (each rotated a few degrees), so dragging the top card reads as
   // physically tilting it off the stack rather than just sliding it sideways.
   const lpzFanX = useMotionValue(0);
-  const lpzFanRotate = useTransform(lpzFanX, [-40, 40], [-10, 10]);
+  // Range matches the front card's tight dragElastic (0.08) — a big drag only moves it
+  // ~20-25px, so the rotate input range has to be that small too or the tilt would never
+  // visibly kick in before the drag threshold fires.
+  const lpzFanRotate = useTransform(lpzFanX, [-25, 25], [-10, 10]);
+  // The actual "goes back / comes forward" depth cue — shrinks (and sinks slightly) as it's
+  // dragged EITHER direction away from center, so the recede-into-the-stack feeling happens
+  // live, continuously, while dragging — not just as a snap after release.
+  const lpzFanScale = useTransform(lpzFanX, [-25, 0, 25], [0.9, 1, 0.9]);
+  const lpzFanDragY = useTransform(lpzFanX, [-25, 0, 25], [10, 0, 10]);
   const { scrollYProgress: proofScroll } = useScroll({
     target: proofSectionRef,
     offset: ['start start', 'end end'],
@@ -1300,6 +1308,30 @@ export default function Landing() {
     }
     return undefined;
   }, [tAnim]);
+
+  // Corner-bracket frame alignment. .lp-tcard has min-height:300px but grows taller for
+  // longer quotes (auto height) — the frame's old top/bottom offsets were fixed pixel
+  // values calculated for ONE assumed card height, so they only lined up for whichever
+  // testimonial happened to match that height; every other one showed a gap on one edge
+  // and a snug fit on the other. Measuring the actual active card's box each time it
+  // changes (and settles, mid-slide) fixes it for every quote length, not just one.
+  const tFrameRef = useRef(null);
+  useEffect(() => {
+    const align = () => {
+      const frame = tFrameRef.current;
+      const viewport = frame?.closest('.lp-testimonial__viewport');
+      const card = viewport?.querySelector('.lp-tcard.is-active');
+      if (!frame || !viewport || !card) return;
+      const vpRect = viewport.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const OUTSET = 3; // matches the bracket's intended 3px-outside-the-card gap
+      frame.style.top = `${cardRect.top - vpRect.top - OUTSET}px`;
+      frame.style.bottom = `${vpRect.bottom - cardRect.bottom - OUTSET}px`;
+    };
+    const id = setTimeout(align, 350); // after the slide transition settles
+    window.addEventListener('resize', align);
+    return () => { clearTimeout(id); window.removeEventListener('resize', align); };
+  }, [tIndex]);
 
   const visibleShowcase = selectedIndustry
     ? showcaseVideos.filter((v) => v.industryId === selectedIndustry)
@@ -2659,13 +2691,6 @@ export default function Landing() {
                   </div>
                 );
               })}
-              <button
-                type="button"
-                className="lp-fh__cta"
-                onClick={() => navigate('/auth?mode=signup&role=business')}
-              >
-                View examples
-              </button>
             </div>
           </div>
         </section>
@@ -2826,6 +2851,7 @@ export default function Landing() {
                 <motion.div
                   className="lpz-fan__card lpz-fan__card--front"
                   drag="x"
+                  style={{ x: lpzFanX, rotate: lpzFanRotate, scale: lpzFanScale, y: lpzFanDragY }}
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.08}
                   onDragEnd={(e, info) => {
@@ -2994,7 +3020,7 @@ export default function Landing() {
                   values, so it hugs the active card's real box instead of guessing a
                   size off the carousel's height (which floated the brackets well clear
                   of the card on some viewports). */}
-              <div className="lp-testimonial__frame" aria-hidden="true">
+              <div className="lp-testimonial__frame" ref={tFrameRef} aria-hidden="true">
                 <span className="lp-tframe-c lp-tframe-c--tl" />
                 <span className="lp-tframe-c lp-tframe-c--tr" />
                 <span className="lp-tframe-c lp-tframe-c--bl" />
@@ -3097,29 +3123,43 @@ export default function Landing() {
             </p>
           </div>
 
+          {/* Two INDEPENDENT columns, not one 2-column grid. In a grid the two cards
+              in a row share a row height, so opening one left a dead gap under its
+              collapsed neighbour. Splitting even/odd indexes into their own flex
+              columns keeps every card at its natural height and packs each column
+              tight — and because the old grid was row-major, even→left / odd→right
+              lands every card in exactly the position it had before.
+              `order: i` restores true 0,1,2… sequence on mobile, where the columns
+              collapse to display:contents and all six cards re-flow into one list. */}
           <div className="lp-faq__grid">
-            {FAQ_ITEMS.map((item, i) => {
-              const isOpen = faqOpen === i;
-              return (
-                <div
-                  key={item.q}
-                  className={`lp-faq__item${isOpen ? ' is-open' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="lp-faq__q"
-                    aria-expanded={isOpen}
-                    onClick={() => setFaqOpen(isOpen ? -1 : i)}
-                  >
-                    <span>{item.q}</span>
-                    <ChevronDown size={20} className="lp-faq__chevron" aria-hidden="true" />
-                  </button>
-                  <div className="lp-faq__answer-wrap">
-                    <p className="lp-faq__answer">{item.a}</p>
-                  </div>
-                </div>
-              );
-            })}
+            {[0, 1].map((col) => (
+              <div className="lp-faq__col" key={col}>
+                {FAQ_ITEMS.map((item, i) => {
+                  if (i % 2 !== col) return null;
+                  const isOpen = faqOpen === i;
+                  return (
+                    <div
+                      key={item.q}
+                      className={`lp-faq__item${isOpen ? ' is-open' : ''}`}
+                      style={{ order: i }}
+                    >
+                      <button
+                        type="button"
+                        className="lp-faq__q"
+                        aria-expanded={isOpen}
+                        onClick={() => setFaqOpen(isOpen ? -1 : i)}
+                      >
+                        <span>{item.q}</span>
+                        <ChevronDown size={20} className="lp-faq__chevron" aria-hidden="true" />
+                      </button>
+                      <div className="lp-faq__answer-wrap">
+                        <p className="lp-faq__answer">{item.a}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -3231,7 +3271,7 @@ export default function Landing() {
           --lp-text: #ffffff;
           /* ── ONE content container width for every section, so content edges
                 line up vertically down the whole page (equal L/R gutters). ──── */
-          --lp-maxw: 1200px;
+          --lp-maxw: 1320px;
           min-height: 100vh;
           font-family: var(--font-body);
           background: var(--lp-page-bg);
@@ -3303,7 +3343,7 @@ export default function Landing() {
           left: 0;
           right: 0;
           z-index: 1000;
-          padding: 0 5%;
+          padding: 0 4%;
           transition: top 0.3s ease;
         }
         /* Slides fully off the top when scrolling down; returns on scroll-up. */
@@ -3696,7 +3736,7 @@ export default function Landing() {
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          padding: 132px 5% 72px;
+          padding: 132px 4% 72px;
           display: flex;
           align-items: stretch;
         }
@@ -4008,7 +4048,7 @@ export default function Landing() {
           position: relative;
           left: auto;
           bottom: auto;
-          padding: 0 6%;
+          padding: 0 4%;
           flex-direction: row;
           align-items: center;
           gap: 40px;
@@ -4245,7 +4285,10 @@ export default function Landing() {
              the stage's column gap, reused by the left path (which has to overflow its
              own column by exactly that much to reach the card). */
           position: relative;
-          width: min(1120px, 94%); margin: 0 auto;
+          /* Matches every other section's gutter exactly: they use max-width:1320px with 4%
+             horizontal padding, which resolves to min(1320px, 92vw) — so this mirrors that
+             rather than carrying its own one-off width. */
+          width: min(1320px, 92%); margin: 0 auto;
           --svc-deck-h: 460px;
           --svc-gap: clamp(28px, 3vw, 60px);
         }
@@ -4278,9 +4321,11 @@ export default function Landing() {
         .lp-promise-stage { display: block; }
         .lp-svc-aside, .lp-svc-rail { display: none; }
         @media (min-width: 1340px) {
-          /* The wrap widens to make room for the two side columns — the deck itself
-             gives up ~10% at 1440px and gains a little back above 1600px. */
-          .lp-promise-wrap { width: min(1560px, 95%); }
+          /* No width override here any more — the wrap used to widen to min(1560px, 95%)
+             to make room for the two side columns, which is exactly what made this section
+             run wider than every other one on the page. It now keeps the shared
+             min(1320px, 92%) from the base rule and the side columns take their share of
+             that instead (the deck still clears ~1000px after the aside + gap). */
           .lp-promise-stage {
             display: grid;
             grid-template-columns: clamp(190px, 16.5vw, 258px) minmax(0, 1fr);
@@ -4578,11 +4623,11 @@ export default function Landing() {
 
         /* ── The Problem section ──────────────────────────────────────────── */
         .lp-problem {
-          padding: 100px 5% 60px;
+          padding: 100px 4% 60px;
           background: rgba(var(--lp-fg), 0.06);
         }
         .lp-problem__inner {
-          max-width: 1200px;
+          max-width: 1320px;
           margin: 0 auto;
           text-align: center;
         }
@@ -4969,9 +5014,9 @@ export default function Landing() {
           color: var(--lp-text);
         }
         .lp-showcase__inner {
-          max-width: 1200px;
+          max-width: 1320px;
           margin: 0 auto;
-          padding: 0 5%;
+          padding: 0 4%;
           text-align: center;
         }
         .lp-showcase__heading {
@@ -5018,7 +5063,7 @@ export default function Landing() {
           flex-wrap: wrap;
           gap: 10px;
           margin-bottom: 50px;
-          max-width: 1240px;
+          max-width: 1320px;
           margin-left: auto;
           margin-right: auto;
         }
@@ -5077,7 +5122,7 @@ export default function Landing() {
         /* ── Filterable example grid (replaces the old auto-scroll marquee) ── */
         .lp-showcase__grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(5, 1fr);
           gap: 20px;
           text-align: left;
         }
@@ -5258,6 +5303,12 @@ export default function Landing() {
           letter-spacing: -0.02em;
           box-shadow: 0 6px 16px rgba(0,0,0,0.14);
         }
+        /* Steps down one column at a time (5→4→3→2→1). The 1280 stop is new: with a
+           5-wide base, going straight from 5 to 3 at 1024 made each card jump ~65% wider
+           in a single breakpoint. */
+        @media (max-width: 1280px) {
+          .lp-showcase__grid { grid-template-columns: repeat(4, 1fr); }
+        }
         @media (max-width: 1024px) {
           .lp-showcase__grid { grid-template-columns: repeat(3, 1fr); }
         }
@@ -5288,7 +5339,7 @@ export default function Landing() {
           display: flex;
           gap: 20px;
           width: max-content;
-          padding: 0 5%;
+          padding: 0 4%;
           will-change: transform;
         }
         .lp-showcase__track--left {
@@ -5423,11 +5474,13 @@ export default function Landing() {
         /* ── Find & Hire Creators — fanned, side-by-side cards ── */
         .lp-achieve {
           position: relative;
-          /* Bottom trimmed 90px -> 40px: that 90px was tuned for the old, shorter 4-icon-
-             card grid. Stacked with the connector spacer + .lpv's own 100px top padding
+          /* Bottom trimmed 90px -> 40px -> 0: that 90px was tuned for the old, shorter
+             4-icon-card grid. Stacked with the connector spacer + .lpv's own top padding
              right after it, it left a large dead gap once this section's own content
-             (taller video cards + sidebar) already carries its own visual weight. */
-          padding: 120px 5% 40px;
+             (taller video cards + sidebar) already carries its own visual weight. Now 0 —
+             the removal of the "View examples" CTA took the last thing that needed clearance
+             below the sidebar, so the connector + next section supply all the gap needed. */
+          padding: 120px 4% 0;
           background: transparent;
           color: var(--lp-text);
           text-align: center;
@@ -5535,6 +5588,12 @@ export default function Landing() {
         .lp-fh__side {
           display: flex;
           flex-direction: column;
+          /* Height comes from the three features alone. As a grid item this defaults to
+             align-self:stretch, so it was being pulled down to the height of the (much
+             taller) video cards beside it — the removed "View examples" button used to
+             occupy that slack, and without it the card ran on with dead space below the
+             last feature. start lets it end where its content ends. */
+          align-self: start;
           background: var(--lp-page-bg);
           border: 1px solid rgba(var(--lp-fg), 0.1);
           border-radius: 18px;
@@ -5567,33 +5626,10 @@ export default function Landing() {
           line-height: 1.5;
           color: var(--lp-text);
         }
-        /* .lp-fh__side .lp-fh__cta (two classes, not one) is load-bearing: a sitewide
-           base rule (".lp-root button { color: var(--lp-text) }") has higher specificity
-           than a single class, so it was silently winning over this and showing the
-           button's text in the page's ink color instead of the color set here. */
-        .lp-fh__side .lp-fh__cta {
-          margin-top: 18px;
-          padding: 13px 22px;
-          border: 1px solid rgba(var(--lp-fg), 0.14);
-          border-radius: 100px;
-          background: #ffffff;
-          color: var(--lp-ink);
-          font-family: var(--font-body);
-          font-weight: 700;
-          font-size: 0.95rem;
-          cursor: pointer;
-          box-shadow: 0 6px 16px rgba(7, 7, 78, 0.1);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .lp-fh__side .lp-fh__cta:hover {
-          box-shadow: 0 10px 22px rgba(7, 7, 78, 0.16);
-          transform: translateY(-2px);
-        }
         @media (max-width: 1100px) {
           .lp-fh { grid-template-columns: repeat(3, minmax(0, 1fr)); }
           .lp-fh__side { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; gap: 20px 32px; }
           .lp-fh__feature { flex: 1 1 240px; border-bottom: none; padding: 0; }
-          .lp-fh__cta { flex-basis: 100%; }
         }
         @media (max-width: 720px) {
           .lp-fh { grid-template-columns: 1fr; }
@@ -5681,7 +5717,7 @@ export default function Landing() {
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 0;
           width: 100%;
-          max-width: 1280px;
+          max-width: 1320px;
           margin: 110px auto 0;
           margin-left: 0;
           padding: 0 32px;
@@ -5738,7 +5774,7 @@ export default function Landing() {
           max-height: 7.5em;
           overflow: hidden;
         }
-        @media (max-width: 1600px) {
+        @media (max-width: 1320px) {
           .lp-achieve__cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
         @media (max-width: 1280px) {
@@ -5887,7 +5923,7 @@ export default function Landing() {
         /* ── US vs Others — two-column comparison ─────────────────────────── */
         /* ── UGCad.io vs Traditional — editorial comparison table ── */
         .lpv { padding: 100px 4% 110px; background: #fefcf9; color: #1c1b4b; }
-        .lpv-inner { max-width: 1120px; margin: 0 auto; }
+        .lpv-inner { max-width: 1320px; margin: 0 auto; }
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
            only ever swallows scrolling ROWS, never the section's own title on entrance. */
         .lpv-kicker { margin: 0; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
@@ -5966,18 +6002,37 @@ export default function Landing() {
         .lpv-header::before {
           content: '';
           position: absolute;
-          left: 0; right: 0; bottom: 100%;
+          /* Overhangs the header sideways by the grid's own padding (28px) + its 1px frame
+             border, so it also swallows the two short vertical segments of .lpv-grid's
+             rounded frame that used to poke up past the pinned header into the navbar strip
+             — the stray lines at the top corners. Cream-on-cream everywhere else, so the
+             overhang costs nothing visually. */
+          left: -30px; right: -30px; bottom: 100%;
           height: 96px;
           background: #fefcf9;
-          /* Closes the table off ABOVE the pinned titles. Once rows have scrolled up behind
-             the header, the mask leaves plain cream above it and the table reads as open at
-             the top; this draws the same divider the rows use, sitting exactly on the
-             header's top edge so the header is bounded on both sides. Lives on the mask's
-             bottom edge rather than as a border-top on .lpv-header itself so it can't add to
-             the header's own box height (which min-height above depends on staying exact). */
-          border-bottom: 1px solid rgba(159, 159, 209, 0.32);
           pointer-events: none;
         }
+        /* Closes the table off ABOVE the pinned titles. Once rows have scrolled up behind the
+           header, the mask leaves plain cream above it and the table reads as open at the top;
+           this draws the same divider the rows use, sitting exactly on the header's top edge.
+           Its own element rather than a border on the mask, because the mask now overhangs
+           sideways to eat the frame — a border there would run 60px wider than the table.
+           Painted at bottom:100% (not border-top on .lpv-header) so it can't add to the
+           header's own box height, which min-height above depends on staying exact. */
+        .lpv-header::after {
+          content: '';
+          position: absolute;
+          left: 0; right: 0; bottom: 100%;
+          height: 1px;
+          /* Transparent while the navbar is on screen: it returns to exactly this strip on
+             scroll-up, so the divider read as a stray hairline running under the nav pill.
+             The navbar is the table's top boundary in that state; the line only earns its
+             place once the header is pinned flush to the viewport edge on its own. */
+          background: transparent;
+          transition: background-color 0.3s ease;
+          pointer-events: none;
+        }
+        .lp-nav-hidden .lpv-header::after { background: rgba(159, 159, 209, 0.32); }
         .lpv-h--us { border-radius: 16px 16px 0 0; }
         .lpv-header .lpv-h--us { border-radius: 0; }
         /* Periwinkle Pulse tint down the whole UGCad.io column, header included
@@ -6016,14 +6071,14 @@ export default function Landing() {
           /* Three comparison values no longer fit side by side on mobile — stack
              label + all three cells in natural DOM order, each full width. */
           .lpv-rowgroup { grid-template-columns: 1fr; gap: 8px 0; padding-top: 18px; }
-          .lpv-label { padding: 0 0 4px; font-size: 22px; }
+          .lpv-label { padding: 0 0 4px; font-size: 15px; }
           .lpv-cell { text-align: left; padding: 14px; border-radius: 12px; background: transparent; }
           .lpv-cell--us { background: rgba(115, 135, 255, 0.10); }
           .lpv-tag { display: block; font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(28,27,75,0.55); margin-bottom: 2px; }
           .lpv-cell--us .lpv-tag { color: #7387FF; }
         }
         .lp-vs {
-          padding: 90px 5% 100px;
+          padding: 90px 4% 100px;
           color: var(--lp-text);
         }
         .lp-vs__inner {
@@ -6235,12 +6290,12 @@ export default function Landing() {
 
         /* ── Comparison Table ─────────────────────────────────────────────── */
         .lp-compare {
-          padding: 100px 5% 100px;
+          padding: 100px 4% 100px;
           background: transparent;
           color: var(--lp-text);
         }
         .lp-compare__inner {
-          max-width: 1200px;
+          max-width: 1320px;
           margin: 0 auto;
           text-align: center;
         }
@@ -6380,13 +6435,13 @@ export default function Landing() {
 
         /* ── Features ─────────────────────────────────────────────────────── */
         .lp-features {
-          padding: 60px 5% 120px;
+          padding: 60px 4% 120px;
           background: transparent;
           color: var(--lp-text);
           position: relative;
         }
         .lp-features__inner {
-          max-width: 1200px;
+          max-width: 1320px;
           margin: 0 auto;
           text-align: center;
         }
@@ -6531,7 +6586,7 @@ export default function Landing() {
         /* ── CTA ──────────────────────────────────────────────────────────── */
         .lp-cta {
           position: relative;
-          padding: 70px 5% 100px;
+          padding: 70px 4% 100px;
           background: transparent;
           color: var(--lp-text);
           overflow: hidden;
@@ -6840,7 +6895,7 @@ export default function Landing() {
           gap: 30px;
           /* Top padding clears the fixed navbar; the showcase marquee row then sits in the
              space above the title (previously empty). */
-          padding: 100px 6% 48px;
+          padding: 100px 4% 48px;
           /* subtle radial purple glow behind the hero copy */
           background: radial-gradient(circle at 50% 36%, rgba(115, 135, 255, 0.16),
                       rgba(115, 135, 255, 0) 60%), var(--lp-page-bg);
@@ -7117,14 +7172,25 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.08);
           border-color: rgba(var(--lp-fg), 0.50);
         }
-        /* Two-column card grid — each card expands independently. */
+        /* Two-column card grid — each card expands independently. The grid only lays
+           out the two COLUMNS; the cards themselves stack inside a column, so an open
+           card pushes the ones below it in its own column and never stretches a shared
+           row (which is what left a gap under the collapsed card opposite it). */
         .lp-faq__grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 16px;
+          align-items: start;
+        }
+        .lp-faq__col {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
         }
         .lp-faq__item {
-          align-self: start;
+          /* No align-self:start here — as a flex child that would shrink the card to
+             its text width instead of filling the column. Height is content-driven
+             anyway, which is the whole point. */
           background: rgba(var(--lp-fg), 0.04);
           border: 1px solid rgba(var(--lp-fg), 0.08);
           border-radius: 10px;
@@ -7184,6 +7250,11 @@ export default function Landing() {
           .lp-faq { padding: 70px 5% 60px; }
           .lp-faq__head { flex-direction: column; gap: 20px; margin-bottom: 32px; }
           .lp-faq__grid { grid-template-columns: 1fr; }
+          /* One column on mobile: dissolve the two column wrappers so all six cards
+             become direct grid children again, and let each card's order (its real
+             index) put them back in 0,1,2… reading order — DOM order here is
+             0,2,4,1,3,5 because of the even/odd split above. */
+          .lp-faq__col { display: contents; }
         }
 
         /* ── Footer ─────────────────────────────────────────────────────────── */
@@ -7191,7 +7262,7 @@ export default function Landing() {
           position: relative;
           background: transparent;
           color: var(--lp-ink);
-          padding: 90px 5% 30px;
+          padding: 90px 4% 30px;
           overflow: hidden;
           border-top: 1px solid var(--lp-border);
         }
@@ -7600,7 +7671,7 @@ export default function Landing() {
         /* ── Scroll Hook ─────────────────────────────────────────────────── */
         .lp-hook {
           position: relative;
-          padding: 120px 5% 110px;
+          padding: 120px 4% 110px;
           background: transparent;
           color: var(--lp-text);
           text-align: center;
@@ -7766,13 +7837,13 @@ export default function Landing() {
 
         /* ── How It Works (3 Steps) ──────────────────────────────────────── */
         .lp-steps {
-          padding: 100px 5% 120px;
+          padding: 100px 4% 120px;
           background: transparent;
           color: var(--lp-text);
           position: relative;
         }
         .lp-steps__inner {
-          max-width: 1200px;
+          max-width: 1320px;
           margin: 0 auto;
           text-align: center;
         }
@@ -7956,7 +8027,7 @@ export default function Landing() {
         /* ── Psychological Audit ─────────────────────────────────────────── */
         .lp-audit {
           position: relative;
-          padding: 120px 5%;
+          padding: 120px 4%;
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
@@ -7985,7 +8056,9 @@ export default function Landing() {
         .lp-audit__inner {
           position: relative;
           z-index: 2;
-          max-width: 1000px;
+          /* 1000px -> 1320px to match .lp-showcase__inner (and every other section's
+             max-width) — at 1000 this section sat visibly narrower than the one below it. */
+          max-width: 1320px;
           margin: 0 auto;
           display: flex;
           flex-direction: column;
@@ -8192,12 +8265,12 @@ export default function Landing() {
         /* Follows the site's light/dark toggle, like every other section (transparent
            lets .lp-root's own background show through). */
         .lp-proof {
-          padding: 120px 5% 140px;
+          padding: 120px 4% 140px;
           background: transparent;
           color: var(--lp-text);
         }
         .lp-proof__inner {
-          max-width: 1200px;
+          max-width: 1320px;
           margin: 0 auto;
         }
         .lpz {
@@ -8562,7 +8635,7 @@ export default function Landing() {
         /* ── Testimonial ─────────────────────────────────────────────────── */
         .lp-testimonial {
           position: relative;
-          padding: 60px 5% 60px;
+          padding: 60px 4% 60px;
           background: transparent;
           color: var(--lp-text);
           overflow: hidden;

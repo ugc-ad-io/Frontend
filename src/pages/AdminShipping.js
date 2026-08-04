@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Package, Upload, Truck, X, MapPin, Clock3, CheckCircle, ExternalLink, Zap, Boxes } from 'lucide-react';
+import { Package, Upload, Truck, X, MapPin, Clock3, CheckCircle, ExternalLink, Zap, Boxes, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -40,8 +40,15 @@ export default function AdminShipping() {
   const [tracking, setTracking] = useState('');
   const [labelFile, setLabelFile] = useState(null);
   const [working, setWorking] = useState(false);
+  const [expandedIds, setExpandedIds] = useState(() => new Set()); // campaign ids showing their per-creator rows
 
   useEffect(() => { fetchRequests(); }, []);
+
+  const toggleExpanded = (cid) => setExpandedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(cid)) next.delete(cid); else next.add(cid);
+    return next;
+  });
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -134,6 +141,57 @@ export default function AdminShipping() {
     });
   }, [requests]);
 
+  // A multi-creator brief needs a separate shipment per creator, but as flat
+  // top-level rows they read as confusing duplicates (same campaign, often the
+  // same fallback "requested" timestamp before any of them have shipped). Group
+  // by campaign — a single-creator brief still renders as one plain row; a
+  // multi-creator brief collapses to one brief row that expands to each
+  // creator's own row (still individually actionable).
+  const groups = useMemo(() => {
+    const byId = new Map();
+    for (const r of sortedRequests) {
+      const cid = getId(r);
+      if (!byId.has(cid)) byId.set(cid, []);
+      byId.get(cid).push(r);
+    }
+    return Array.from(byId.values());
+  }, [sortedRequests]);
+
+  const SLA_RANK = { danger: 3, warn: 2, muted: 1, ok: 0 };
+  const worstSla = (rows) => rows.map(slaInfo).reduce((worst, s) => (SLA_RANK[s.tone] > SLA_RANK[worst.tone] ? s : worst), { tone: 'ok', label: 'On time' });
+
+  // One creator's shipment row — used standalone for a single-creator brief, and
+  // nested (indented, campaign/deal-id columns blanked since the group header
+  // above it already shows those) under an expanded multi-creator brief.
+  const creatorRow = (r, nested = false) => {
+    const sla = slaInfo(r);
+    const status = r.status || 'pending';
+    return (
+      <tr
+        key={`${getId(r)}-${r.creator_id || ''}`}
+        className={nested ? 'ash-child-row' : ''}
+        data-testid={`shipping-row-${getId(r)}-${r.creator_id || ''}`}
+      >
+        <td className="ash-mono">{nested ? '' : `#${dealId(r)}`}</td>
+        <td className="ash-strong">{nested ? `↳ ${r.creator_handle || r.creator || 'Creator'}` : (r.campaign_title || r.campaign?.title || 'Campaign')}</td>
+        <td>{(r.brand_handle || r.brand || '—')} → {(r.creator_handle || r.creator || '—')}</td>
+        <td className="ash-prod" title={productSummary(r)}>{productSummary(r)}</td>
+        <td className="ash-dims"><Boxes size={13} /> {weightDims(r)}</td>
+        <td className="ash-addr"><MapPin size={13} /> {r.ship_city || r.address?.city || r.shipping_city || 'Hidden until action'}</td>
+        <td>{(r.requested_at || r.created_at) ? new Date(r.requested_at || r.created_at).toLocaleString() : '—'}</td>
+        <td><span className={`ash-sla ${sla.tone}`}>{sla.label}</span></td>
+        <td><span className={`ash-badge ${['shipped','in_transit','delivered'].includes(status) ? 'ok' : 'warn'}`}>{status.replace('_', ' ')}</span></td>
+        <td>
+          {['shipped', 'in_transit', 'delivered'].includes(status) ? (
+            <span className="ash-done"><CheckCircle size={15} /> Done</span>
+          ) : (
+            <button className="ash-action" onClick={() => openAction(r)} data-testid={`action-shipping-${getId(r)}`}>Process</button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
   const counts = useMemo(() => {
     const pending = requests.filter((r) => ['pending', 'requested', 'label_generated', 'awaiting_pickup'].includes(r.status || 'pending'));
     return {
@@ -181,28 +239,38 @@ export default function AdminShipping() {
                 <tr><th>Deal ID</th><th>Campaign</th><th>Brand → Creator</th><th>Product</th><th>Weight / dims</th><th>Ship to</th><th>Requested</th><th>SLA</th><th>Status</th><th></th></tr>
               </thead>
               <tbody>
-                {sortedRequests.map((r) => {
-                  const sla = slaInfo(r);
-                  const status = r.status || 'pending';
+                {groups.map((rows) => {
+                  const cid = getId(rows[0]);
+                  if (rows.length === 1) return creatorRow(rows[0]);
+
+                  const isOpen = expandedIds.has(cid);
+                  const first = rows[0];
+                  const pendingCount = rows.filter((r) => !['shipped', 'in_transit', 'delivered'].includes(r.status || 'pending')).length;
+                  const sla = worstSla(rows);
                   return (
-                    <tr key={`${getId(r)}-${r.creator_id || ''}`} data-testid={`shipping-row-${getId(r)}-${r.creator_id || ''}`}>
-                      <td className="ash-mono">#{dealId(r)}</td>
-                      <td className="ash-strong">{r.campaign_title || r.campaign?.title || 'Campaign'}</td>
-                      <td>{(r.brand_handle || r.brand || '—')} → {(r.creator_handle || r.creator || '—')}</td>
-                      <td className="ash-prod" title={productSummary(r)}>{productSummary(r)}</td>
-                      <td className="ash-dims"><Boxes size={13} /> {weightDims(r)}</td>
-                      <td className="ash-addr"><MapPin size={13} /> {r.ship_city || r.address?.city || r.shipping_city || 'Hidden until action'}</td>
-                      <td>{(r.requested_at || r.created_at) ? new Date(r.requested_at || r.created_at).toLocaleString() : '—'}</td>
-                      <td><span className={`ash-sla ${sla.tone}`}>{sla.label}</span></td>
-                      <td><span className={`ash-badge ${['shipped','in_transit','delivered'].includes(status) ? 'ok' : 'warn'}`}>{status.replace('_', ' ')}</span></td>
-                      <td>
-                        {['shipped', 'in_transit', 'delivered'].includes(status) ? (
-                          <span className="ash-done"><CheckCircle size={15} /> Done</span>
-                        ) : (
-                          <button className="ash-action" onClick={() => openAction(r)} data-testid={`action-shipping-${getId(r)}`}>Process</button>
-                        )}
-                      </td>
-                    </tr>
+                    <Fragment key={cid}>
+                      <tr
+                        className="ash-group-row"
+                        onClick={() => toggleExpanded(cid)}
+                        data-testid={`shipping-group-${cid}`}
+                      >
+                        <td className="ash-mono">#{dealId(first)}</td>
+                        <td className="ash-strong">
+                          <span className="ash-group-toggle">
+                            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            {first.campaign_title || 'Campaign'}
+                          </span>
+                        </td>
+                        <td><Users size={13} /> {(first.brand_handle || first.brand || '—')} → {rows.length} creators</td>
+                        <td className="ash-prod" colSpan={2}>{pendingCount} of {rows.length} pending shipment</td>
+                        <td className="ash-addr">Multiple</td>
+                        <td>{(first.requested_at || first.created_at) ? new Date(first.requested_at || first.created_at).toLocaleString() : '—'}</td>
+                        <td><span className={`ash-sla ${sla.tone}`}>{sla.label}</span></td>
+                        <td><span className={`ash-badge ${pendingCount === 0 ? 'ok' : 'warn'}`}>{pendingCount === 0 ? 'all shipped' : `${pendingCount} pending`}</span></td>
+                        <td className="ash-group-chev">{isOpen ? 'Hide' : 'Show'}</td>
+                      </tr>
+                      {isOpen && rows.map((r) => creatorRow(r, true))}
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -301,6 +369,13 @@ export default function AdminShipping() {
         .ash-table tbody tr:last-child td { border-bottom: 0; }
         .ash-table tbody tr:hover { background: #f9fafb; }
         .ash-strong { font-weight: 600; color: #111827; }
+        .ash-group-row { cursor: pointer; background: #f9fafb; }
+        .ash-group-row:hover { background: #f1f5f9; }
+        .ash-group-toggle { display: inline-flex; align-items: center; gap: 6px; }
+        .ash-group-toggle svg { color: #5b6bff; flex: none; }
+        .ash-group-chev { color: #5b6bff; font-weight: 600; font-size: 0.8rem; }
+        .ash-child-row td { background: #fff; color: #5b6573; }
+        .ash-child-row .ash-strong { font-weight: 500; padding-left: 6px; }
         .ash-addr { display: inline-flex; align-items: center; gap: 5px; color: #5b6573; }
         .ash-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; text-transform: capitalize; }
         .ash-badge.ok { background: #ecfdf3; color: #067647; }

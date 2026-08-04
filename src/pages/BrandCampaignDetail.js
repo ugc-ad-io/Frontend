@@ -595,6 +595,33 @@ export default function BrandCampaignDetail() {
   // campaign's details so the brand can edit before publishing the copy.
   const duplicateBrief = () => setDupOpen(true);
 
+  // Multi-creator brief: one tab per hired creator. Switching drives the whole
+  // panel — progress, profile, chat, work review, review — for that creator.
+  // Shared between the Overview creator card and the Work Review tab, so both
+  // places let the brand pick whose deal they're looking at.
+  const CreatorTabs = () => (
+    <div className="bcd-cre-tabs" role="tablist">
+      {creators.map((c) => {
+        const nm = creatorFirstName(c) || 'Creator';
+        const on = String(c.id) === String(activeCreatorId);
+        return (
+          <button
+            key={c.id}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            className={`bcd-cre-tab${on ? ' is-active' : ''}`}
+            onClick={() => setActiveCreatorId(c.id)}
+            data-testid={`creator-tab-${c.id}`}
+          >
+            <span className="bcd-cre-tab-ava">{creatorPhoto(c) ? <img src={creatorPhoto(c)} alt="" /> : nm.replace('@', '').charAt(0).toUpperCase()}</span>
+            {nm.replace(/^@+/, '')}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <BrandTopNavLayout>
       <div className="bcd">
@@ -630,7 +657,12 @@ export default function BrandCampaignDetail() {
         </div>
 
         {tab === 'work' ? (
-          ws ? (
+          <>
+            {/* Multi-creator: pick whose submission to review — without this the
+                tab just showed whichever creator was last active on Overview, with
+                no way to tell (or change) whose work you were looking at. */}
+            {creators.length > 1 && <CreatorTabs />}
+          {ws ? (
             <div className="bwr-list">
               {(() => {
                 const st = WS_STATUS[wsStatus] || WS_STATUS.pending_review;
@@ -781,8 +813,16 @@ export default function BrandCampaignDetail() {
               {deal?.deal_id && <DealChatPanel deal={deal} onSent={load} />}
             </div>
           ) : (
-            <EmptyState title="Nothing to review yet" message="Once the creator submits their content, it will appear here for you to review and approve." />
-          )
+            <EmptyState
+              title="Nothing to review yet"
+              message={
+                creators.length > 1 && handle
+                  ? `Once ${handle.replace(/^@/, '')} submits their content, it will appear here for you to review and approve.`
+                  : "Once the creator submits their content, it will appear here for you to review and approve."
+              }
+            />
+          )}
+          </>
         ) : tab === 'about' ? (
           <div className="bcd-card bcd-about-card">
             <h3>About Campaign</h3>
@@ -795,7 +835,7 @@ export default function BrandCampaignDetail() {
         {/* Campaign Progress — horizontal; shipment folded in */}
         <div className="bcd-card bcd-progress-card">
           <div className="bcd-progress-head">
-            <h3>Campaign Progress</h3>
+            <h3>Campaign Progress{creators.length > 1 && handle ? ` — ${handle.replace(/^@/, '')}` : ''}</h3>
             {(campaign.requires_shipment || ship.required) && (delivered || shipped) && (
               <div className="bcd-progress-ship">
                 <span className={`bcd-pill ${delivered ? 'ok' : 'info'}`}>{delivered ? 'Delivered' : 'Shipped'}</span>
@@ -899,30 +939,7 @@ export default function BrandCampaignDetail() {
         {/* Creator */}
         <div className="bcd-card bcd-creator-card">
           <h3>{creators.length > 1 ? `Creators (${creators.length})` : 'Creator'}</h3>
-            {/* Multi-creator brief: one tab per hired creator. Switching drives the
-                whole panel — profile, chat, work review, review — for that creator. */}
-            {creators.length > 1 && (
-              <div className="bcd-cre-tabs" role="tablist">
-                {creators.map((c) => {
-                  const nm = creatorFirstName(c) || 'Creator';
-                  const on = String(c.id) === String(activeCreatorId);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={on}
-                      className={`bcd-cre-tab${on ? ' is-active' : ''}`}
-                      onClick={() => setActiveCreatorId(c.id)}
-                      data-testid={`creator-tab-${c.id}`}
-                    >
-                      <span className="bcd-cre-tab-ava">{creatorPhoto(c) ? <img src={creatorPhoto(c)} alt="" /> : nm.replace('@', '').charAt(0).toUpperCase()}</span>
-                      {nm.replace(/^@+/, '')}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            {creators.length > 1 && <CreatorTabs />}
             {creator ? (
               <>
                 <div className="bcd-creator">
@@ -958,11 +975,15 @@ export default function BrandCampaignDetail() {
               </>
             ) : null}
 
-            {/* A brief hires `creators_wanted` creators, so the bid list stays open
-                until every slot is filled — it used to vanish on the first pick,
-                which made a multi-creator brief impossible to fill. Creators
-                already hired are dropped from the list. */}
-            {openBids.length > 0 && openSlots > 0 && (
+            {/* A brief hires `creators_wanted` creators, so this section stays open
+                until every slot is filled — it used to vanish once every pending bid
+                was either accepted or the bid list ran dry, which meant a 5-creator
+                brief with only 2 bids (both accepted) had no way to close its 3
+                permanently-unfillable slots. "Finish hiring" now shows any time slots
+                are still open and at least one creator is hired, whether or not any
+                bids are left to review. Creators already hired are dropped from the
+                bid list below. */}
+            {openSlots > 0 && (openBids.length > 0 || hiredIds.length > 0) && (
               <div className="bcd-bids">
                 <p className="bcd-bids-h">
                   {hiredIds.length > 0
@@ -971,7 +992,7 @@ export default function BrandCampaignDetail() {
                 </p>
                 {/* Hired at least one but don't want to fill every slot? Close hiring
                     now and get the unused slots' budget back. */}
-                {hiredIds.length > 0 && openSlots > 0 && (
+                {hiredIds.length > 0 && (
                   <button type="button" className="bcd-finish-hiring" onClick={finishHiring} disabled={finishing} data-testid="finish-hiring-btn">
                     <Check size={14} /> {finishing ? 'Closing…' : `Finish hiring with ${hiredIds.length} — refund ${openSlots} slot${openSlots === 1 ? '' : 's'}`}
                   </button>
@@ -1001,6 +1022,9 @@ export default function BrandCampaignDetail() {
                     </div>
                   </div>
                 ))}
+                {openBids.length === 0 && hiredIds.length > 0 && (
+                  <p className="bcd-muted">No more pending bids — waiting for more creators to apply for the remaining {openSlots} slot{openSlots === 1 ? '' : 's'}, or finish hiring above.</p>
+                )}
               </div>
             )}
 

@@ -89,7 +89,8 @@ export default function AdminShipping() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await axios.post(`${API}/admin/shipping/${getId(active)}/label`, fd, {
+      const qs = active.creator_id ? `?creator_id=${encodeURIComponent(active.creator_id)}` : '';
+      const res = await axios.post(`${API}/admin/shipping/${getId(active)}/label${qs}`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setLabelFile(res.data?.file_url || file.name);
@@ -108,7 +109,8 @@ export default function AdminShipping() {
     }
     setWorking(true);
     try {
-      await axios.post(`${API}/admin/shipping/${getId(active)}/ship`, {
+      const qs = active.creator_id ? `?creator_id=${encodeURIComponent(active.creator_id)}` : '';
+      await axios.post(`${API}/admin/shipping/${getId(active)}/ship${qs}`, {
         courier: courier.trim(),
         tracking_number: tracking.trim(),
         label_url: typeof labelFile === 'string' ? labelFile : undefined
@@ -183,7 +185,7 @@ export default function AdminShipping() {
                   const sla = slaInfo(r);
                   const status = r.status || 'pending';
                   return (
-                    <tr key={getId(r)} data-testid={`shipping-row-${getId(r)}`}>
+                    <tr key={`${getId(r)}-${r.creator_id || ''}`} data-testid={`shipping-row-${getId(r)}-${r.creator_id || ''}`}>
                       <td className="ash-mono">#{dealId(r)}</td>
                       <td className="ash-strong">{r.campaign_title || r.campaign?.title || 'Campaign'}</td>
                       <td>{(r.brand_handle || r.brand || '—')} → {(r.creator_handle || r.creator || '—')}</td>

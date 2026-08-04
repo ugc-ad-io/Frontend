@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
+import { isSelectedCreator } from '../utils/campaignCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -25,7 +26,7 @@ const lookupPincode = async (pin) => {
   }
 };
 
-export default function ShipmentTracking({ embedCampaignId, autoShip, onClose }) {
+export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip, onClose }) {
   const [searchParams] = useSearchParams();
   const campaignId = embedCampaignId || searchParams.get('campaign');
   const navigate = useNavigate();
@@ -86,7 +87,8 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
       fetchCampaign();
       fetchShipment();
     }
-  }, [campaignId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignId, creatorId]);
 
   // When opened via the "Ship" action, jump straight to the Ship Product form
   // (skip the tracking page) — but only if nothing has actually shipped yet.
@@ -120,7 +122,8 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
 
   const fetchShipment = async () => {
     try {
-      const response = await axios.get(`${API}/shipment/${campaignId}`);
+      const qs = creatorId ? `?creator_id=${encodeURIComponent(creatorId)}` : '';
+      const response = await axios.get(`${API}/shipment/${campaignId}${qs}`);
       setShipment(response.data);
     } catch (error) {
       // Shipment might not exist yet
@@ -141,6 +144,7 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
       }
       await axios.post(`${API}/shipment/update`, {
         campaign_id: campaignId,
+        creator_id: creatorId || undefined,
         tracking_number: shipmentData.tracking_number,
         courier_slip: courierSlip,
         expected_delivery: shipmentData.expected_delivery,
@@ -202,7 +206,11 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
     e.preventDefault();
     setUploading(true);
     try {
-      await axios.post(`${API}/deals/${campaignId}/request-shipment`, {
+      // A creator-suffixed deal id ("<campaign>~<creatorId>") tells the backend
+      // WHICH hired creator this request is for on a multi-creator brief — the
+      // bare campaign id would silently default to whichever creator was hired first.
+      const dealId = creatorId ? `${campaignId}~${creatorId}` : campaignId;
+      await axios.post(`${API}/deals/${dealId}/request-shipment`, {
         description: shipForm.description,
         weight: Number(shipForm.weight),
         dimensions: {
@@ -274,7 +282,7 @@ export default function ShipmentTracking({ embedCampaignId, autoShip, onClose })
   if (!campaign) return <div className="error-page">Campaign not found</div>;
 
   const isBusiness = user?.role === 'business' && campaign.business_id === user.id;
-  const isCreator = user?.role === 'creator' && campaign.selected_creator === user.id;
+  const isCreator = user?.role === 'creator' && isSelectedCreator(campaign, user.id);
 
   // What-to-do-next guidance based on who is viewing and the shipment status.
   const getNextSteps = () => {

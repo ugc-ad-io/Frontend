@@ -1082,6 +1082,7 @@ export default function BrandCampaignDetail() {
         <PageModal drawer maxWidth={560} onClose={() => { setShipmentOpen(false); load(); }}>
           <ShipmentTracking
             embedCampaignId={campaign.id || campaign._id}
+            creatorId={creators.length > 1 ? activeCreatorId : undefined}
             onClose={() => { setShipmentOpen(false); load(); }}
           />
         </PageModal>

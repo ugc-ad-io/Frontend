@@ -128,10 +128,12 @@ const formatBudget = (min, max) => {
 
 // Creator Bids review block for a single campaign — header + filter tabs + bid rows.
 function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile }) {
-  // On a multi-creator brief, hired creators stay in campaign.bids — exclude them
-  // here so an already-accepted creator doesn't still show up as "pending".
+  // On a multi-creator brief, hired creators stay in campaign.bids — keep them
+  // visible under their own "Accepted" tab (rather than dropping them entirely)
+  // so the brand can still see who they picked, same as "Declined" stays visible.
   const hiredIds = selectedCreators(campaign);
-  const bids = (campaign.bids || []).filter(b => !hiredIds.includes(String(b.creator_id)));
+  const bids = campaign.bids || [];
+  const isHired = (b) => hiredIds.includes(String(b.creator_id));
   const [tab, setTab] = useState('all');
   const [shortlist, setShortlist] = useState(() => new Set());
   // Seed from the persisted bid status so a decline survives a page refresh —
@@ -156,9 +158,10 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
   const hasResponded = (b) => !!(b.proposal && b.proposal.trim());
 
   const counts = {
-    all: bids.filter(b => !declined.has(idOf(b))).length,
-    shortlisted: bids.filter(b => shortlist.has(idOf(b))).length,
-    responded: bids.filter(b => hasResponded(b) && !declined.has(idOf(b))).length,
+    all: bids.filter(b => !declined.has(idOf(b)) && !isHired(b)).length,
+    shortlisted: bids.filter(b => shortlist.has(idOf(b)) && !isHired(b)).length,
+    responded: bids.filter(b => hasResponded(b) && !declined.has(idOf(b)) && !isHired(b)).length,
+    accepted: bids.filter(isHired).length,
     declined: bids.filter(b => declined.has(idOf(b))).length,
   };
 
@@ -166,15 +169,17 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
     { id: 'all', label: 'All Bids' },
     { id: 'shortlisted', label: 'Shortlisted' },
     { id: 'responded', label: 'Responded' },
+    { id: 'accepted', label: 'Accepted' },
     { id: 'declined', label: 'Declined' },
   ];
 
   const visible = bids.filter(b => {
     const id = idOf(b);
-    if (tab === 'shortlisted') return shortlist.has(id);
-    if (tab === 'responded') return hasResponded(b) && !declined.has(id);
+    if (tab === 'shortlisted') return shortlist.has(id) && !isHired(b);
+    if (tab === 'responded') return hasResponded(b) && !declined.has(id) && !isHired(b);
+    if (tab === 'accepted') return isHired(b);
     if (tab === 'declined') return declined.has(id);
-    return !declined.has(id);
+    return !declined.has(id) && !isHired(b);
   });
 
   const num = (v) => (v == null || v === '' ? null : Number(v));
@@ -326,8 +331,10 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
               </div>
               <div className="cb-bid-collapsible cb-bid-actions">
                 <button type="button" className="cb-view-profile" onClick={() => onViewProfile(campaign.id, bid)}>View Profile</button>
-                {/* A declined bid can't be accepted/declined again — show its state. */}
-                {declined.has(id) ? (
+                {/* A hired or declined bid can't be acted on again — show its state. */}
+                {isHired(bid) ? (
+                  <span className="cb-accepted-tag">Accepted</span>
+                ) : declined.has(id) ? (
                   <span className="cb-declined-tag">Declined</span>
                 ) : (<>
                   <button type="button" className="cb-accept" onClick={() => onAccept(campaign.id, bid.creator_id)}>Accept</button>
@@ -5339,6 +5346,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
         .cb-decline:hover { text-decoration: underline; }
         .cb-declined-tag { display:inline-flex; align-items:center; padding:7px 14px; border-radius:999px; background:#fee2e2; color:#b42318; font-weight:700; font-size:13px; }
+        .cb-accepted-tag { display:inline-flex; align-items:center; padding:7px 14px; border-radius:999px; background:#ecfdf3; color:#067647; font-weight:700; font-size:13px; }
         .cb-empty { padding: 40px; text-align: center; color: #9296ba; font-size: 14px; }
 
         /* "View all N bids" — only 3 show by default, this reveals the rest. */

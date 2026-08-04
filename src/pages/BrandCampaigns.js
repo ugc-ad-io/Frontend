@@ -60,6 +60,9 @@ export default function BrandCampaigns() {
   // Id of the draft currently being deleted, so its card can show a busy state
   // and ignore repeat clicks while the request is in flight.
   const [deletingId, setDeletingId] = useState(null);
+  // The draft awaiting a delete confirmation — an in-app card instead of the
+  // browser's native confirm(), to match the rest of the app's styling.
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   // A draft isn't a real campaign yet: the detail page renders it half-empty and
   // read-only. Reopen it in the wizard so it can actually be finished and edited.
@@ -75,11 +78,18 @@ export default function BrandCampaigns() {
 
   // Delete a draft outright. Only offered on drafts/rejected briefs — nothing is
   // held in escrow and creators never saw them, so the backend allows a hard delete.
-  const deleteDraft = async (e, c) => {
+  // Asking is a separate step from doing: this just opens the confirm card.
+  const askDeleteDraft = (e, c) => {
     e.stopPropagation(); // don't also open/edit the card
-    const cid = c.id || c._id;
     if (deletingId) return;
-    if (!window.confirm(`Delete draft “${c.title || 'Untitled campaign'}”? This can't be undone.`)) return;
+    setConfirmDelete(c);
+  };
+
+  const confirmDeleteDraft = async () => {
+    const c = confirmDelete;
+    if (!c) return;
+    const cid = c.id || c._id;
+    setConfirmDelete(null);
     setDeletingId(cid);
     try {
       await axios.delete(`${API}/campaigns/${cid}`);
@@ -275,7 +285,7 @@ export default function BrandCampaigns() {
                         aria-label="Delete draft"
                         title="Delete draft"
                         disabled={deletingId === (c.id || c._id)}
-                        onClick={(e) => deleteDraft(e, c)}
+                        onClick={(e) => askDeleteDraft(e, c)}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -326,6 +336,40 @@ export default function BrandCampaigns() {
           </div>
         </div>
       )}
+
+      {confirmDelete && (
+        <div className="bcam-confirm-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="bcam-confirm-card" onClick={(e) => e.stopPropagation()}>
+            <div className="bcam-confirm-icon"><Trash2 size={20} /></div>
+            <h3 className="bcam-confirm-title">Delete this draft?</h3>
+            <p className="bcam-confirm-body">
+              “{confirmDelete.title || 'Untitled campaign'}” will be deleted permanently. This can't be undone.
+            </p>
+            <div className="bcam-confirm-actions">
+              <button type="button" className="bcam-confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button type="button" className="bcam-confirm-ok" onClick={confirmDeleteDraft}>Delete draft</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .bcam-confirm-overlay{position:fixed;inset:0;background:rgba(11,12,32,.5);backdrop-filter:blur(2px);
+          display:flex;align-items:center;justify-content:center;z-index:2000;padding:20px}
+        .bcam-confirm-card{width:100%;max-width:400px;background:#fff;border-radius:16px;padding:24px;
+          box-shadow:0 24px 60px rgba(11,12,32,.28);text-align:left}
+        .bcam-confirm-icon{width:40px;height:40px;border-radius:10px;background:#fef2f2;color:#dc2626;
+          display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+        .bcam-confirm-title{margin:0 0 8px;font-size:17px;font-weight:700;color:#15163a}
+        .bcam-confirm-body{margin:0 0 20px;font-size:13.5px;line-height:1.55;color:#5c608a;word-break:break-word}
+        .bcam-confirm-actions{display:flex;gap:10px;justify-content:flex-end}
+        .bcam-confirm-cancel{padding:9px 16px;border:1px solid #e8ecff;background:#fff;color:#5c608a;
+          font-size:13px;font-weight:600;border-radius:10px;cursor:pointer;font-family:inherit}
+        .bcam-confirm-cancel:hover{background:#f7f8ff}
+        .bcam-confirm-ok{padding:9px 16px;border:1px solid #dc2626;background:#dc2626;color:#fff;
+          font-size:13px;font-weight:700;border-radius:10px;cursor:pointer;font-family:inherit}
+        .bcam-confirm-ok:hover{background:#c11f1f}
+      `}</style>
     </BrandTopNavLayout>
   );
 }

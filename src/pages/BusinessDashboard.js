@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { firstName } from '../utils/displayName';
+import { isOpenForBids, selectedCreators } from '../utils/campaignCreators';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X, ChevronDown } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -127,7 +128,10 @@ const formatBudget = (min, max) => {
 
 // Creator Bids review block for a single campaign — header + filter tabs + bid rows.
 function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile }) {
-  const bids = campaign.bids || [];
+  // On a multi-creator brief, hired creators stay in campaign.bids — exclude them
+  // here so an already-accepted creator doesn't still show up as "pending".
+  const hiredIds = selectedCreators(campaign);
+  const bids = (campaign.bids || []).filter(b => !hiredIds.includes(String(b.creator_id)));
   const [tab, setTab] = useState('all');
   const [shortlist, setShortlist] = useState(() => new Set());
   // Seed from the persisted bid status so a decline survives a page refresh —
@@ -960,7 +964,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   // Calculate stats
   const totalSpent = completedCampaigns.reduce((sum, c) => sum + (c.budget_max || 0), 0);
-  const totalBidsReceived = campaigns.reduce((sum, c) => sum + (c.bids?.length || 0), 0);
+  // Only bids still worth reviewing — a hired creator's bid stays in campaign.bids
+  // but shouldn't keep inflating the badge once they're no longer actionable.
+  const totalBidsReceived = campaigns.reduce((sum, c) => {
+    const hired = selectedCreators(c);
+    return sum + (c.bids || []).filter(b => !hired.includes(String(b.creator_id))).length;
+  }, 0);
   const businessTabs = [
     { id: 'overview', label: 'Brand Dashboard', icon: LayoutGrid, path: '/dashboard/business' },
     { id: 'post-brief', label: 'Post a Campaign', icon: SquarePen, path: '/dashboard/business/post-brief' },
@@ -1835,7 +1844,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
           })()}
 
           {activeTab === 'pending-bids' && (() => {
-            const bidCampaigns = campaigns.filter(c => c.bids && c.bids.length > 0 && !c.selected_creator);
+            // A multi-creator brief keeps taking bids for its open slots after the
+            // first hire — filtering out anything with ANY selected_creator hid the
+            // whole campaign (and every other creator's pending bid with it) the
+            // moment the brand accepted just one of several creators.
+            const bidCampaigns = campaigns.filter(c => c.bids && c.bids.length > 0 && isOpenForBids(c));
             const current = bidCampaigns.find(c => c.id === bidCampaignId) || bidCampaigns[0];
             return (
             <div className="cb-section">
@@ -1850,9 +1863,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   <div className="cb-campaign-filter">
                     <span>Campaign</span>
                     <select value={current.id} onChange={(e) => setBidCampaignId(e.target.value)}>
-                      {bidCampaigns.map(c => (
-                        <option key={c.id} value={c.id}>{c.title} · {(c.bids || []).length} bid{(c.bids || []).length === 1 ? '' : 's'}</option>
-                      ))}
+                      {bidCampaigns.map(c => {
+                        const hired = selectedCreators(c);
+                        const openBidCount = (c.bids || []).filter(b => !hired.includes(String(b.creator_id))).length;
+                        return (
+                          <option key={c.id} value={c.id}>{c.title} · {openBidCount} bid{openBidCount === 1 ? '' : 's'}</option>
+                        );
+                      })}
                     </select>
                   </div>
                 )}

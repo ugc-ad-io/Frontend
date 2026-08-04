@@ -2373,9 +2373,11 @@ export default function Landing() {
               preload="metadata" + the #t=0.1 hash seek to the first frame as a poster, so
               nothing downloads the full clip until the visitor actually presses play. */}
           <div className="lp-showcase__grid">
-            {/* Only ever show 2 rows of 4 (8 clips). "Load more" doesn’t paginate —
-                it sends the visitor to the sign-up form to see the rest. */}
-            {(visibleShowcase.length ? visibleShowcase : showcaseVideos).slice(0, 8).map((v) => (
+            {/* Only ever show 2 rows of 5 (10 clips) — matches the grid's actual 5-column
+                track (repeat(5, 1fr) at this width); 8 was written for a 4-column assumption
+                that doesn't match, leaving the second row short by 2. "Load more" doesn't
+                paginate — it sends the visitor to the sign-up form to see the rest. */}
+            {(visibleShowcase.length ? visibleShowcase : showcaseVideos).slice(0, 10).map((v) => (
               <article key={v.id} className="lp-vcard">
                 <div className="lp-vcard__media">
                   <span className={`lp-vcard__tier lp-vcard__tier--${v.tier.toLowerCase()}`}>
@@ -3261,6 +3263,14 @@ export default function Landing() {
           --lp-bg-soft:    #0a0a0a;
           --lp-border:     #E5E7EB;
         }
+
+        /* Hides the native page scrollbar while this page is mounted — this <style> tag
+           isn't styled-jsx-scoped (no "jsx" attribute), so html/body rules here reach
+           outside .lp-root and apply for real, but only for as long as Landing stays
+           mounted (unmounting removes the tag, restoring the scrollbar elsewhere). Scroll
+           itself still works; only the visible track/thumb is hidden. */
+        html, body { scrollbar-width: none; -ms-overflow-style: none; }
+        html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
         /* ── Root ─────────────────────────────────────────────────────────── */
         .lp-root {
@@ -5008,15 +5018,19 @@ export default function Landing() {
         }
 
         /* ── Showcase / Best UGC ──────────────────────────────────────────── */
+        /* Gutter lives on the SECTION and the cap on the inner — the same split every other
+           section uses (cf. .lp-audit + .lp-audit__inner). It used to put the 4% on the inner
+           INSTEAD, which silently ate the padding out of the 1320px cap: content came out
+           1320 - 8% = 1214px, i.e. ~53px narrower per side than the sections above and below
+           it, even though both were nominally "1320px wide with 4% padding". */
         .lp-showcase {
-          padding: 80px 0 24px;
+          padding: 80px 4% 24px;
           background: transparent;
           color: var(--lp-text);
         }
         .lp-showcase__inner {
           max-width: 1320px;
           margin: 0 auto;
-          padding: 0 4%;
           text-align: center;
         }
         .lp-showcase__heading {

@@ -17,7 +17,6 @@ import {
   Activity,
   Home as HomeIcon,
   Instagram,
-  HelpCircle,
   MessageCircle,
   Heart,
   Coffee,
@@ -2441,12 +2440,12 @@ export default function Landing() {
           <p className="lp-showcase__subtitle">Choose your industry to see examples!</p>
 
           {/* Industry filter pills — clicking one narrows the grid to that industry.
-              A second click (or Reset) clears the filter back to all.
-              Only the first 9 industries are shown, laid out as two rows: 5 on the
-              first, then 4 + Reset on the second. The full-width spacer forces the
-              wrap after the 5th pill regardless of each pill's text width. */}
+              A second click (or Reset) clears the filter back to all. All 13 industries
+              show (used to cap at 9, silently dropping Finance/Travel/Home/Charity); the
+              full-width spacer after the 5th just forces the desktop row to break 5/rest —
+              it's already disabled below 1024px so mobile just wraps naturally. */}
           <div className="lp-showcase__filters">
-            {industries.slice(0, 9).map((ind, i) => {
+            {industries.map((ind, i) => {
               const Ic = ind.Icon;
               const active = selectedIndustry === ind.id;
               return (
@@ -2640,13 +2639,10 @@ export default function Landing() {
         <div className="lp-audit__bg-orb lp-audit__bg-orb--2" aria-hidden="true" />
 
         <div className="lp-audit__inner" style={{ opacity: auditInView ? 1 : 0, transition: 'opacity 0.3s ease' }}>
-          {/* Eyebrow + heading sit full-width above the list (not a side column) — matching
-              the reference's "How We Work Together" layout. */}
+          {/* Heading sits full-width above the list (not a side column) — matching the
+              reference's "How We Work Together" layout. The "Quick reality check" eyebrow
+              pill that used to lead this block has been removed. */}
           <div className="lp-audit__copy">
-            <span className="lp-audit__pill">
-              <HelpCircle size={14} />
-              Quick reality check
-            </span>
             <h2 className="lp-audit__heading">
               Answer This{' '}
               <span className="lp-audit__heading--accent">Honestly</span>.
@@ -3462,6 +3458,12 @@ export default function Landing() {
           --lp-space-xl:      clamp(32px, 46.7px + 1.125vw, 76px);
           --lp-space-2xl:     clamp(48px, 70.1px + 1.688vw, 113px);
           --lp-space-section: clamp(56px, 87.6px + 2.11vw, 142px); /* vertical rhythm between sections */
+          /* Hero top offset. Steeper than the other tokens on purpose: the hero is the only
+             block sitting directly under the fixed navbar, so on a wide screen it read as
+             crowded against the bar while space went unused lower down. 104px at the 1536
+             reference (unchanged), rising to 170px at 2560. The min holds it at 104 below the
+             reference so nothing on a laptop or smaller moves. */
+          --lp-space-hero-top: clamp(104px, 5px + 6.45vw, 170px);
 
           /* ONE container width for the whole page — navbar, hero, sections, footer.
              At 1536 this resolves to 1320px (the tuned reference). It stays 1320 up to
@@ -3815,7 +3817,7 @@ export default function Landing() {
              ABOVE the fixed .lp-navbar's own footprint (top:20px + 64px tall = 84px) —
              going lower hides the badge/heading behind it, since the navbar is
              position:fixed and doesn't push page content down on its own. */
-          padding: 104px 24px 32px;
+          padding: var(--lp-space-hero-top) 24px 32px;
           text-align: center; overflow: hidden;
         }
         .nlp-badge {
@@ -4584,7 +4586,13 @@ export default function Landing() {
              horizontal padding, which resolves to min(1320px, 92vw) — so this mirrors that
              rather than carrying its own one-off width. */
           width: min(1320px, 92%); margin: 0 auto;
-          --svc-deck-h: 460px;
+          /* Sized from viewport HEIGHT — one of the few places that is legitimate, because
+             this deck lives inside a 100vh sticky pin (the scroll-driven card stack). A fixed
+             460px left ~200px of dead space above AND below it on a tall monitor while the
+             pin itself still filled the screen. 54vh resolves to ~467px at the 864px-tall
+             reference, so the laptop view is unchanged; it fills a tall screen and floors at
+             400px so a short laptop never crushes the cards. */
+          --svc-deck-h: clamp(400px, 54vh, 640px);
           --svc-gap: clamp(28px, 3vw, 60px);
         }
         .lp-promise-heading {
@@ -5428,16 +5436,20 @@ export default function Landing() {
         /* ── Filterable example grid (replaces the old auto-scroll marquee) ── */
         .lp-showcase__grid {
           display: grid;
-          /* auto-fill instead of a fixed column count per breakpoint. The stepped version
-             made card size NON-MONOTONIC as you resized: 220px at 1281 -> 279px at 1280 ->
-             221px at 1025 -> 301px at 1024. Cards shrank, jumped 27% bigger, shrank, jumped
-             36% bigger — and since .lp-vcard__media is a fixed 9/15 ratio, row height swung
-             ~100px on a single pixel of window width. Letting the track size drive the count
-             keeps cards between 210px and ~250px continuously, at every width. */
-          grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+          /* FIVE columns on desktop — an explicit count, not auto-fill. auto-fill derives the
+             count from available width, which on a wide screen produced SEVEN columns and left
+             the 10 cards as a ragged 7 + 3. A fixed count keeps them as two clean rows of five
+             at every desktop width, and the cards simply get wider on a bigger screen (which is
+             what "premium desktop" should look like) instead of multiplying.
+             Steps down on the standard ladder below; the count only ever changes at a
+             breakpoint, so card width stays monotonic as the window resizes. */
+          grid-template-columns: repeat(5, 1fr);
           gap: 20px;
           text-align: left;
         }
+        @media (max-width: 1280px) { .lp-showcase__grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 1024px) { .lp-showcase__grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px)  { .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
         /* Load more → signup */
         .lp-showcase__more { display: flex; justify-content: center; margin-top: 34px; }
         .lp-showcase__more-btn {
@@ -8441,22 +8453,7 @@ export default function Landing() {
            sitting flush left. (Was align-items:flex-start with no auto margins.) */
         .lp-audit__copy { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 640px; margin: 0 auto 56px; }
 
-        .lp-audit__pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 7px 16px;
-          background: rgba(var(--lp-fg), 0.06);
-          border: 1px solid var(--lp-purple-200);
-          border-radius: 100px;
-          font-family: var(--font-body);
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #7387FF;
-          margin-bottom: 22px;
-          box-shadow: 0 4px 14px rgba(7, 7, 78, 0.08);
-        }
-        .lp-audit__pill svg { color: #7387FF; }
+        /* The .lp-audit__pill rules that were here are removed along with the eyebrow. */
 
         .lp-audit__heading {
           font-family: var(--font-head);

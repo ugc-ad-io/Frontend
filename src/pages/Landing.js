@@ -9377,7 +9377,19 @@ export default function Landing() {
            .lpz-col--badges is only 0,1,0 and loses to anything more specific that also
            touches layout on these columns. */
         .lp-proof .lpz-col--badges {
-          grid-column: 1 / -1;
+          /* Column 2, not the full panel. Column 1 holds the "Trust Changes the Math."
+             heading and column 2 holds the description + CTAs — so spanning 1/-1 centred the
+             shields on the WHOLE panel, which reads as left-of-centre against the copy
+             stacked above them. Sitting in the same track as that copy lines them up with it.
+             Reset to a full span at <=1180px, where .lpz collapses to a single column and a
+             track 2 no longer exists. */
+          grid-column: 2 / -1;
+          /* Then eased back left. Sitting fully inside track 2 aligned the shields with the
+             copy but pushed them further right than wanted; this lands them between the
+             panel's centre and the copy's. vw-based rather than a fixed px nudge so the
+             offset keeps its proportion as the panel grows. Reset at <=1180px, where the
+             grid is one column and there is nothing to offset from. */
+          margin-left: calc(-1 * clamp(20px, 4vw, 75px));
           /* justify-self matters as much as justify-content here: as a GRID ITEM the box
              would otherwise stretch (or align to start) within its track, and centring the
              flex children inside a box that isn't itself full-width leaves the row sitting
@@ -9431,6 +9443,11 @@ export default function Landing() {
              no longer are. */
           .lpz { grid-template-columns: 1fr; gap: 26px clamp(24px, 3.5vw, 48px); }
           .lpz-col--text { grid-column: 1 / -1; }
+          /* There is no track 2 in a single-column grid, so the base rule's grid-column: 2/-1
+             would push the shields into an implicit column and out of the panel. The negative
+             margin goes with it — with nothing to offset from it would just pull them off the
+             left edge. */
+          .lp-proof .lpz-col--badges { grid-column: 1 / -1; margin-left: 0; }
         }
         @media (max-width: 760px) {
           .lp-proof { padding: 90px 5% 100px; }

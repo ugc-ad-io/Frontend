@@ -3432,7 +3432,13 @@ export default function Landing() {
           --lp-text: #ffffff;
           /* ── ONE content container width for every section, so content edges
                 line up vertically down the whole page (equal L/R gutters). ──── */
-          --lp-maxw: 1320px;
+          /* Fluid above ~1690px only. 78vw does not reach the 1320px floor until the window is
+             ~1692 wide, so every laptop up to and including 1600 keeps exactly the 1320px
+             column that was tuned earlier — nothing changes there. Past that the column grows
+             with the screen instead of leaving a fixed 1320px ribbon stranded in the middle
+             (620px of dead gutter each side at 2560), which is the "too much empty space on a
+             big screen" complaint. Capped at 1680 so line lengths stay readable. */
+          --lp-maxw: clamp(1320px, 78vw, 1680px);
           min-height: 100vh;
           font-family: var(--font-body);
           background: var(--lp-page-bg);
@@ -3848,11 +3854,14 @@ export default function Landing() {
           transform-style: preserve-3d;
         }
         .nlp-card {
-          /* Sized so ~7 cards span the viewport at once (6 gaps of 44px between them),
-             clamped so it doesn't degenerate on very narrow (tablet) or very wide
-             (ultrawide) desktop screens. Max trimmed (was 260px) as part of the
-             compacting pass — a shorter card (9:16 aspect) means a shorter hero. */
-          flex: 0 0 clamp(140px, calc((100vw - 144px) / 7), 180px);
+          /* Sized from viewport HEIGHT, not width. The card is 9/16 portrait, so its height is
+             what decides whether the hero fits the screen — and the old width-based formula
+             capped at 180px, meaning a 900px-tall laptop and a 1440px-tall monitor both got a
+             320px-tall card with the extra height left as dead space below it. (The formula
+             was also off by 120px on its own terms: 7 cards + 6x44px gaps is 100vw + 120, not
+             100vw.) Deriving width from a vh-based height ties the row to the space actually
+             available, so it fills a tall screen and shrinks on a short one. */
+          flex: 0 0 calc(clamp(230px, 38vh, 400px) * 9 / 16);
           margin: 0; border-radius: 26px; overflow: hidden;
           aspect-ratio: 9 / 16; background: #e7e0d2;
           /* "center center" — the cylinder scales cards about the row's shared centreline
@@ -3883,21 +3892,20 @@ export default function Landing() {
         }
         /* top trimmed (was 210px) to track the heading, which now sits higher/smaller
            after the hero compacting pass above. */
-        /* Anchored to the HEADING, not the viewport edge. It used to be positioned with
-           right: max(160px, calc(50vw - 680px)), which measures from the screen edge and has
-           no relationship to where the centred heading actually ends — so as the window
-           narrowed the note walked straight into "with Stunning Videos".
-           .nlp-title is max-width:980px and centred, so its right edge is at 50% + 490px;
-           starting the note at 50% + 500px keeps a 10px margin from it at every width.
-           Hidden below 1380px (see the media query below) because that is the width at which
-           the note's own ~190px no longer fits beside the heading — there is genuinely no
-           room for it there, and overlapping the headline is worse than omitting a
-           decorative annotation. */
-        .nlp-note--elevate { top: 188px; left: calc(50% + 240px); text-align: left; transform: rotate(6deg); }
+        /* Tracks the HEADLINE'S TEXT edge, not the viewport edge and not the title's max-width
+           box. Two earlier attempts both failed for the same underlying reason — they used a
+           constant where a relationship was needed:
+             - right: max(160px, calc(50vw - 680px)) measured from the screen edge, so as the
+               window narrowed the note walked into "with Stunning Videos";
+             - left: calc(50% + 500px) used .nlp-title's 980px max-width box, but the text only
+               fills that box on very large screens, so on a ~1600px window the note sat far to
+               the right of the visible headline (and was hidden outright below 1380px).
+           The text's right edge is ~50% + 4.95·font, and font is clamp(36px, 22px + 1.6vw, 76px)
+           — so it expands as roughly 0.58W + 109. Matching that expression holds a constant
+           ~20px gap from the words at EVERY width from 960 to 2560, which is why the hide-below
+           rule is gone: there is no longer a width where it collides. */
+        .nlp-note--elevate { top: 188px; left: calc(58% + 128px); text-align: left; transform: rotate(6deg); }
         .nlp-note--elevate .nlp-note-arrow { position: absolute; left: -6px; top: 46px; width: 66px; height: 52px; }
-        @media (max-width: 1380px) {
-          .nlp-note--elevate { display: none; }
-        }
         .nlp-note--free { position: absolute; right: calc(100% + 6px); bottom: 2px; white-space: nowrap; transform: rotate(-8deg); }
         .nlp-note--free .nlp-note-arrow2 { position: absolute; right: -58px; top: 6px; width: 56px; height: 34px; }
         @media (max-width: 900px) {
@@ -4553,7 +4561,7 @@ export default function Landing() {
           /* 20px → 10px: the rule below now carries the separation, so the heading→deck
              stack lands at ~25px total instead of growing the section vertically. */
           margin: 0 0 10px; font-family: var(--font-head); font-weight: 500;
-          font-size: clamp(24px, 2.6vw, 40px); color: #171334; letter-spacing: -0.5px;
+          font-size: clamp(24px, 25px + 0.86vw, 44px); color: #171334; letter-spacing: -0.5px;
           text-align: center;
         }
         /* Short rule under the heading — one of only two purely decorative marks in
@@ -4689,7 +4697,7 @@ export default function Landing() {
         .lp-promise__num {
           flex-shrink: 0;
           font-family: var(--font-head); font-weight: 800;
-          font-size: clamp(26px, 2.8vw, 38px); color: #171334; line-height: 1.05;
+          font-size: clamp(26px, 24.7px + 0.92vw, 45px); color: #171334; line-height: 1.05;
         }
         .lp-promise__content {
           flex: 1 1 auto; min-width: 0; align-self: center;
@@ -4697,7 +4705,7 @@ export default function Landing() {
         }
         .lp-promise__title {
           margin: 0; font-family: var(--font-head); font-weight: 500;
-          font-size: clamp(26px, 2.8vw, 38px); color: #171334; line-height: 1.05; letter-spacing: -0.5px;
+          font-size: clamp(26px, 24.7px + 0.92vw, 45px); color: #171334; line-height: 1.05; letter-spacing: -0.5px;
         }
         .lp-promise__sub {
           margin: 0; font-family: var(--font-body, 'Inter', sans-serif);
@@ -4884,7 +4892,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.06);
         }
         .lp-problem__inner {
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           text-align: center;
         }
@@ -5276,7 +5284,7 @@ export default function Landing() {
           color: var(--lp-text);
         }
         .lp-showcase__inner {
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           text-align: center;
         }
@@ -5324,7 +5332,7 @@ export default function Landing() {
           flex-wrap: wrap;
           gap: 10px;
           margin-bottom: 50px;
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin-left: auto;
           margin-right: auto;
         }
@@ -6015,7 +6023,7 @@ export default function Landing() {
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 0;
           width: 100%;
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 110px auto 0;
           margin-left: 0;
           padding: 0 32px;
@@ -6072,7 +6080,7 @@ export default function Landing() {
           max-height: 7.5em;
           overflow: hidden;
         }
-        @media (max-width: 1320px) {
+        @media (max-width: var(--lp-maxw)) {
           .lp-achieve__cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
         @media (max-width: 1280px) {
@@ -6221,12 +6229,12 @@ export default function Landing() {
         /* ── US vs Others — two-column comparison ─────────────────────────── */
         /* ── UGCad.io vs Traditional — editorial comparison table ── */
         .lpv { padding: 100px 4% 110px; background: #fefcf9; color: #1c1b4b; }
-        .lpv-inner { max-width: 1320px; margin: 0 auto; }
+        .lpv-inner { max-width: var(--lp-maxw); margin: 0 auto; }
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
            only ever swallows scrolling ROWS, never the section's own title on entrance. */
         .lpv-kicker { margin: 0; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
         .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: var(--font-head);
-          font-weight: 500; font-size: clamp(30px, 5vw, 54px); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
+          font-weight: 500; font-size: clamp(30px, 35.1px + 1.32vw, 64px); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
           position: relative; z-index: 6; }
         .lpv-grid {
           display: flex;
@@ -6346,7 +6354,7 @@ export default function Landing() {
         /* align-items: flex-start (not center) matches .lpv-cell's top alignment: the label
            has to clear the sticky header at the same moment as the us/them titles beside it,
            or whichever one is vertically centered lower lingers behind after the others fade. */
-        .lpv-label { font-family: var(--font-head); font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
+        .lpv-label { font-family: var(--font-head); font-weight: 500; font-size: clamp(20px, 20.5px + 0.66vw, 35px); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
         /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
            descriptions wrap to a different number of lines, centering makes their titles land
            at different heights within the row. Since the row scrolls behind the sticky header
@@ -6599,7 +6607,7 @@ export default function Landing() {
           color: var(--lp-text);
         }
         .lp-compare__inner {
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           text-align: center;
         }
@@ -6745,7 +6753,7 @@ export default function Landing() {
           position: relative;
         }
         .lp-features__inner {
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           text-align: center;
         }
@@ -8170,7 +8178,7 @@ export default function Landing() {
           position: relative;
         }
         .lp-steps__inner {
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           text-align: center;
         }
@@ -8388,7 +8396,7 @@ export default function Landing() {
           z-index: 2;
           /* 1000px -> 1320px to match .lp-showcase__inner (and every other section's
              max-width) — at 1000 this section sat visibly narrower than the one below it. */
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
           display: flex;
           flex-direction: column;
@@ -8486,7 +8494,7 @@ export default function Landing() {
           flex: 1;
           font-family: var(--font-head);
           font-weight: var(--fw-head);
-          font-size: clamp(1.3rem, 2.6vw, 2rem);
+          font-size: clamp(1.3rem, 20.6px + 0.79vw, 38px);
           letter-spacing: -0.02em;
           line-height: 1.25;
           color: var(--lp-ink);
@@ -8600,7 +8608,7 @@ export default function Landing() {
           color: var(--lp-text);
         }
         .lp-proof__inner {
-          max-width: 1320px;
+          max-width: var(--lp-maxw);
           margin: 0 auto;
         }
         .lpz {
@@ -8617,7 +8625,7 @@ export default function Landing() {
            but kept for the parts that intentionally diverge (fan card front, em accent). */
         .lp-proof .lpz-heading {
           margin: 0 0 26px; font-family: var(--font-head); font-weight: 500;
-          font-size: clamp(40px, 5vw, 68px); line-height: 1.05; letter-spacing: -0.5px;
+          font-size: clamp(40px, 45.3px + 1.58vw, 80px); line-height: 1.05; letter-spacing: -0.5px;
           color: var(--lp-text);
         }
         .lp-proof .lpz-heading em { font-style: italic; color: #7387FF; }
@@ -8735,7 +8743,7 @@ export default function Landing() {
         }
         .lp-proof .lpz-fan__value {
           font-family: var(--font-head); font-weight: 700;
-          font-size: clamp(52px, 6.5vw, 80px); line-height: 1; color: #fff;
+          font-size: clamp(52px, 53.5px + 1.84vw, 94px); line-height: 1; color: #fff;
         }
         /* Kept even though CountUp (which rendered an unclassed inner <span> for the
            animated digits) is gone: the value is a plain string now, but the global reset
@@ -9192,7 +9200,7 @@ export default function Landing() {
              occupy (18px gap + 44px button) or they'd collide with .lp-testimonial__more. */
           margin-bottom: 112px;
           /* Card width + gap drive everything (centering, stepping, frame). */
-          --tcard-w: clamp(300px, 34vw, 460px);
+          --tcard-w: clamp(300px, 302.7px + 10.92vw, 543px);
           --tcard-gap: 24px;
         }
         /* Manual prev/next — same setTIndex the auto-advance timer already uses, so a

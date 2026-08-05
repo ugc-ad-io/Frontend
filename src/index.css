@@ -150,6 +150,19 @@ code {
     --site-h-pad: 4px; /* 24px -> 12px -> 4px: keep app pages nearly edge-to-edge */
 }
 
+/* Phones need a real gutter. 4px is a wide-desktop density value — on a 360px screen it
+   leaves body text and card edges almost touching the bezel, with nothing to separate
+   content from the screen edge. Every consumer of --site-h-pad reads it through var(),
+   so raising it here propagates to all of them at once.
+   Note this does NOT affect the public landing: that page zeroes the gutter entirely
+   (see the .lp-root / #root:has(.lp-root) block below) because it draws its own
+   full-bleed sections and each one carries its own internal padding. */
+@media (max-width: 768px) {
+    :root {
+        --site-h-pad: 14px;
+    }
+}
+
 /* Apply the reduced horizontal padding to common layout/container selectors. Use !important to override inline or component-level 0 24px rules where necessary. */
 .site-wrap,
 .wrap,

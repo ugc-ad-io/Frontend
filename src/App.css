@@ -25,7 +25,12 @@ input, select, textarea { color-scheme: light; }
   /* Type scale (brand spec, pt→responsive clamp). Every heading maps to one of these.
      Sizes reduced ~10–12% site-wide for a tighter, less oversized look. */
   --fs-hero:      clamp(2.15rem, 6vw, 4.5rem);      /* Hero title      homepage hero only */
-  --fs-h1:        clamp(1.75rem, 3.4vw, 2.6rem);    /* Page title      screen H1 / section headlines */
+  /* Two-point form (base + gentler vw slope) so the max is reached near 2200px instead of
+     1224px. With the old 3.4vw slope every section heading on the landing page froze at its
+     maximum by ~1224px, so a 1440, a 1920 and a 2560 monitor all rendered identical type —
+     which is why large screens read as a small page stranded in empty space. Same 1.75rem
+     floor, so nothing changes on phones. */
+  --fs-h1:        clamp(1.75rem, 1.28rem + 1.5vw, 3.4rem);  /* Page title      screen H1 / section headlines */
   --fs-h2:        clamp(1.4rem, 2.6vw, 1.75rem);    /* Section title   card titles / sub-section headers */
   --fs-h3:        clamp(1rem, 1.7vw, 1.2rem);       /* Component title card H3 / sidebar labels */
   --fs-body:      clamp(0.875rem, 1.1vw, 0.95rem);  /* Body */

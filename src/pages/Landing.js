@@ -43,9 +43,12 @@ import {
   Lock,
   Volume2,
   VolumeX,
-  ArrowUpRight,
+  HelpCircle,
+  Play,
+  Pause,
+  MoreVertical,
 } from 'lucide-react';
-import { motion, AnimatePresence, useInView, useMotionValue, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
+import { motion, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
@@ -269,6 +272,8 @@ function LazyVideo(props) {
 function ShowcaseVideo({ src, className }) {
   const ref = useRef(null);
   const [muted, setMuted] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0); // 0-100, drives the scrub bar fill
   useEffect(() => {
     const v = ref.current;
     if (!v) return undefined;
@@ -277,7 +282,18 @@ function ShowcaseVideo({ src, className }) {
       { threshold: 0.25 }
     );
     io.observe(v);
-    return () => io.disconnect();
+    const onTime = () => { if (v.duration) setProgress((v.currentTime / v.duration) * 100); };
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    v.addEventListener('timeupdate', onTime);
+    v.addEventListener('play', onPlay);
+    v.addEventListener('pause', onPause);
+    return () => {
+      io.disconnect();
+      v.removeEventListener('timeupdate', onTime);
+      v.removeEventListener('play', onPlay);
+      v.removeEventListener('pause', onPause);
+    };
   }, []);
   const toggleMute = (e) => {
     e.stopPropagation();
@@ -286,6 +302,21 @@ function ShowcaseVideo({ src, className }) {
     v.muted = !v.muted;
     setMuted(v.muted);
     if (!v.muted) v.play?.().catch(() => {});
+  };
+  const togglePlay = (e) => {
+    e.stopPropagation();
+    const v = ref.current;
+    if (!v) return;
+    if (v.paused) v.play?.().catch(() => {}); else v.pause?.();
+  };
+  const seek = (e) => {
+    e.stopPropagation();
+    const v = ref.current;
+    if (!v || !v.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    v.currentTime = pct * v.duration;
+    setProgress(pct * 100);
   };
   return (
     <div className="lp-vcard__videowrap">
@@ -299,14 +330,23 @@ function ShowcaseVideo({ src, className }) {
         playsInline
         preload="metadata"
       />
-      <button
-        type="button"
-        className="lp-vcard__mute"
-        onClick={toggleMute}
-        aria-label={muted ? 'Unmute' : 'Mute'}
-      >
-        {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-      </button>
+      {/* Bottom control bar — play/pause, scrub bar, mute, and a decorative "more" dot
+          (no menu behind it; it's there purely so the bar reads as a real video player,
+          matching the reference card). */}
+      <div className="lp-vcard__controls">
+        <button type="button" className="lp-vcard__ctl" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
+          {playing ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+        </button>
+        <button type="button" className="lp-vcard__ctl" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
+          {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+        </button>
+        <button type="button" className="lp-vcard__ctl" onClick={(e) => e.stopPropagation()} aria-label="More options" tabIndex={-1}>
+          <MoreVertical size={14} />
+        </button>
+      </div>
+      <div className="lp-vcard__scrub" onClick={seek} role="presentation">
+        <div className="lp-vcard__scrub-fill" style={{ width: `${progress}%` }} />
+      </div>
     </div>
   );
 }
@@ -1053,53 +1093,26 @@ const statVariants = {
   visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeOut' } },
 };
 
-// Proof-card swap — the card moves INTO AND OUT OF THE DECK, not sideways off it.
+// Proof panel — one wide mint card: big heading left, copy + CTAs middle, award-shield
+// stat badges stacked down the right. The whole panel rises in once on scroll (the badges
+// a beat later, staggered) instead of each stat animating forever.
 //
-// This is real 3D, not a fake. Two earlier versions failed for different reasons: throwing
-// the card 300px left made it leave the component entirely, and replacing that with a flat
-// scale()+fade looked like a dissolve rather than a card going anywhere. Both were 2D.
-// .lpz-fan now carries a `perspective`, so translateZ below is genuine depth — the browser
-// does the size falloff itself, and rotateX/rotateY turn the card against that same
-// vanishing point, which is what the eye actually reads as "it went back".
-//
-// Three things together sell it, and removing any one of them flattens it again:
-//   1. negative translateZ under a perspective (real recession, not scale)
-//   2. rotateY, so the card TURNS as it goes — a flat rectangle sliding back reads as 2D
-//   3. a DELAYED opacity fade, so it is still solid while it travels (see exit below)
-// zIndex drops it under the ghost cards (z-index 1) for the whole exit; zIndex isn't
-// interpolated, it snaps at the start, which is exactly what's wanted.
-//
-// How far back the card travels, in px of real Z depth against .lpz-fan's perspective.
-const FAN_DEPTH = 230;
-const fanSwapVariants = {
-  enter: (dir) => ({
-    z: -FAN_DEPTH, x: dir * -18, y: 8, rotateY: dir * -26, rotateX: 7, rotate: dir * 8,
-    opacity: 0, zIndex: 2,
-  }),
-  center: {
-    z: 0, x: 0, y: 0, rotateY: 0, rotateX: 0, rotate: 0, opacity: 1, zIndex: 2,
-    // Opacity resolves in a third of the move's duration: the card is fully solid for most
-    // of its travel forward, so what you watch is it MOVING, not materialising.
-    transition: { duration: 0.42, ease: [0.16, 1, 0.3, 1], opacity: { duration: 0.15 } },
+// (This replaced a draggable fanned card-deck that cycled the three stats one at a time.
+// The deck showed one stat at a time and needed a swipe/timer to reveal the rest; the
+// shields show all three at once, which is what a proof section is actually for. The
+// CountUp roll-up counter that predated the deck is gone for the same reason — the numbers
+// are plain text now.)
+const proofPanelVariants = {
+  hidden: { opacity: 0, y: 34 },
+  visible: {
+    opacity: 1, y: 0,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1], staggerChildren: 0.09, delayChildren: 0.18 },
   },
-  exit: (dir) => ({
-    z: -FAN_DEPTH, x: dir * 18, y: 8, rotateY: dir * 26, rotateX: 7, rotate: dir * -8,
-    opacity: 0, zIndex: 0,
-    // The fade is DELAYED, which is the whole trick. Fading from the first frame is what
-    // made the old version feel fake — the card dissolved before it had gone anywhere, so
-    // there was nothing to read as depth. Now it stays opaque while it recedes and turns,
-    // and only disappears once it's small and already behind the ghost cards.
-    // Delay + duration stay proportional to the (now shorter) 0.42s move — the fade must
-    // still start about halfway through the travel, or the trick stops working.
-    transition: { duration: 0.42, ease: [0.4, 0, 0.2, 1], opacity: { delay: 0.2, duration: 0.22 } },
-  }),
 };
-
-// (The CountUp roll-up counter that used to live here is gone. It was only ever used by
-// the proof card's big number, and that card now auto-advances between stats every few
-// seconds — a 2.2s digit roll on top of a 3s rotation meant the number spent most of its
-// time mid-count and was rarely readable as the actual figure. The stat now renders as
-// plain text and only the existing card-swap animation moves.)
+const proofBadgeVariants = {
+  hidden: { opacity: 0, y: 18, scale: 0.94 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+};
 
 // Nav-link hover text: each character gets its own clipped two-row slot (original label on
 // top, a duplicate directly below it) with a small per-character transition-delay, so on
@@ -1250,82 +1263,11 @@ export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState(null);
   const [faqOpen, setFaqOpen] = useState(-1);
-  // Proof stat carousel (MOBILE): the section pins while you scroll, and page-scroll progress
-  // slides the stats 01 → 02 → 03 (track translateX) and moves the active dot. Then the pin
-  // releases and the page continues. Desktop ignores this (it shows the static grid).
+  // Proof panel: one entrance animation, fired the first time the section scrolls into
+  // view. once:true — this is a static panel now (see proofPanelVariants), so re-running
+  // the rise every time it scrolls back past would just be motion for its own sake.
   const proofSectionRef = useRef(null);
-  const proofDotsRef = useRef(null);
-  const [proofActive, setProofActive] = useState(0); // which stat the big-number card shows
-  // Which way the card should travel on the next swap: +1 forward, -1 back. Read by
-  // fanSwapVariants through AnimatePresence's `custom`, so the exiting and entering cards
-  // agree on a direction instead of the animation always sweeping the same way.
-  const [proofDir, setProofDir] = useState(1);
-  // Every path that changes the stat goes through these two, so direction is never set in
-  // one place and forgotten in another.
-  const proofStep = (dir) => {
-    setProofDir(dir);
-    setProofActive((i) => (i + dir + stats.length) % stats.length);
-  };
-  const proofGoTo = (i) => {
-    setProofDir(i > proofActive ? 1 : -1);
-    setProofActive(i);
-  };
-  const proofIdxRef = useRef(0);
-  // Drives the front stat card's tilt while it's being dragged — same idea as the fanned
-  // ghost cards behind it (each rotated a few degrees), so dragging the top card reads as
-  // physically tilting it off the stack rather than just sliding it sideways.
-  const lpzFanX = useMotionValue(0);
-  // Range matches the front card's tight dragElastic (0.08) — a big drag only moves it
-  // ~20-25px, so the rotate input range has to be that small too or the tilt would never
-  // visibly kick in before the drag threshold fires.
-  const lpzFanRotate = useTransform(lpzFanX, [-25, 25], [-10, 10]);
-  // The actual "goes back / comes forward" depth cue — shrinks (and sinks slightly) as it's
-  // dragged EITHER direction away from center, so the recede-into-the-stack feeling happens
-  // live, continuously, while dragging — not just as a snap after release.
-  const lpzFanScale = useTransform(lpzFanX, [-25, 0, 25], [0.9, 1, 0.9]);
-  const lpzFanDragY = useTransform(lpzFanX, [-25, 0, 25], [10, 0, 10]);
-  // Auto-advance the stat card. Dragging and the dots still work — they just re-arm the
-  // timer, because the effect re-runs on every proofActive change, so a manual pick always
-  // gets a full interval on screen instead of being cut short by a tick that was already
-  // half elapsed. A ref (not state) holds the drag flag so pressing the card doesn't
-  // re-render this very large component on pointer-down.
-  const lpzFanDragging = useRef(false);
-  // Only ticks while #proof is actually on screen — otherwise the card would silently
-  // cycle the whole time the page is open and the visitor would arrive mid-sequence.
-  // once:false (the default) so it stops again on the way out, not just starts once.
-  const proofInView = useInView(proofSectionRef, { margin: '-80px' });
-  useEffect(() => {
-    if (!proofInView) return undefined;
-    const id = setInterval(() => {
-      if (lpzFanDragging.current) return;   // don't yank the card out from under a drag
-      proofStep(1);
-    }, 3400);
-    return () => clearInterval(id);
-  }, [proofInView, proofActive]);
-  const { scrollYProgress: proofScroll } = useScroll({
-    target: proofSectionRef,
-    offset: ['start start', 'end end'],
-  });
-  // Slide one full item-width per stat across the pinned runway (with small dead-zones at the
-  // ends so the first/last stat sits still briefly before/after the cycle).
-  const proofTrackX = useTransform(
-    proofScroll,
-    [0.08, 0.92],
-    ['0%', `-${(stats.length - 1) * 100}%`]
-  );
-  // Move the active dot via DIRECT DOM (no setState) so the 1→2→3 slide never triggers a React
-  // re-render of this huge component mid-transition — that re-render was the lag/hitch.
-  useMotionValueEvent(proofScroll, 'change', (v) => {
-    const idx = Math.round(Math.min(1, Math.max(0, v)) * (stats.length - 1));
-    if (idx === proofIdxRef.current) return;
-    proofIdxRef.current = idx;
-    const dots = proofDotsRef.current && proofDotsRef.current.children;
-    if (dots) {
-      for (let i = 0; i < dots.length; i++) {
-        dots[i].classList.toggle('lp-proof__dot--active', i === idx);
-      }
-    }
-  });
+  const proofInView = useInView(proofSectionRef, { once: true, margin: '-120px' });
 
   // Testimonial carousel — infinite STEPPED spotlight. The centre card sits inside the
   // fixed corner-bracket frame at full strength; neighbours dim. It auto-advances one
@@ -1480,19 +1422,15 @@ export default function Landing() {
   const ctaRef = useRef(null);
   const featuresInView = useInView(featuresRef, { once: true, margin: '-80px' });
 
-  // Audit cards — reveal once, staggered, when the section scrolls into view (no more
-  // scroll-scrubbed peel tied to a tall pinned runway).
+  // Audit cards — scroll-linked peel. The three questions sit as a fanned DECK on a tall
+  // pinned runway; as you scroll they fly UP off the top one at a time (Q1, Q2, Q3), so the
+  // deck visibly empties. (This replaced the accordion row list + cursor-trailing preview
+  // card — back to the original stacked-card treatment, restyled for the light page.)
   const auditRef = useRef(null);
-  // Matches the simple '-80px' pattern every other one-time reveal on this page uses.
-  const auditInView = useInView(auditRef, { once: true, margin: '-80px' });
-  // Hovered audit row → drives the floating preview card that trails the cursor.
-  // Spring-smoothed so the card eases toward the pointer instead of snapping to it.
-  const [auditHoverIdx, setAuditHoverIdx] = useState(null);
-  const auditCursorX = useMotionValue(0);
-  const auditCursorY = useMotionValue(0);
-  const auditCardX = useSpring(auditCursorX, { stiffness: 300, damping: 30, mass: 0.5 });
-  const auditCardY = useSpring(auditCursorY, { stiffness: 300, damping: 30, mass: 0.5 });
-  const handleAuditRowMove = (e) => { auditCursorX.set(e.clientX); auditCursorY.set(e.clientY); };
+  const { scrollYProgress: auditProgress } = useScroll({
+    target: auditRef,
+    offset: ['start start', 'end end'],
+  });
   // Destination for the audit rows. #services is the "Our Services" section — the answer to
   // the questions the rows pose. scrollIntoView rather than a hash link so it animates and
   // doesn't push a history entry the back button then has to undo.
@@ -1528,6 +1466,29 @@ export default function Landing() {
   const [heroStatic, setHeroStatic] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
+  const PEEL_SPRING = { stiffness: 64, damping: 26, mass: 0.9 };
+  // Desktop glide-springs. These run a per-frame rAF physics loop while their source moves, so
+  // on mobile — where the cards use the raw mAudit* transforms below instead — the spring
+  // sources are frozen to a constant (output [0,0]); three idle springs animating during the
+  // exact window the deck peels would steal frames and stutter Q2/Q3.
+  const card2Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.04, 0.33], heroStatic ? [0, 0] : [0, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card3Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.36, 0.65], heroStatic ? [0, 0] : [35, -800], { ease: easeInOut }), PEEL_SPRING);
+  const card1Y = useSpring(useTransform(auditProgress, heroStatic ? [0, 1] : [0.68, 0.99], heroStatic ? [0, 0] : [-35, -800], { ease: easeInOut }), PEEL_SPRING);
+  // Mobile peel — bound DIRECTLY to scroll (NO spring). On a phone the soft PEEL_SPRING made the
+  // cards trail the finger and keep drifting after the scroll stopped; a raw useTransform is a
+  // pure function of scroll position (still eased across each range), so they track exactly.
+  // The peel spans the FULL runway (last card finishes ~0.99, right as the section unpins) so a
+  // card is always moving — no dead stretch where you scroll and nothing happens.
+  const mAuditQ1Y = useTransform(auditProgress, [0.05, 0.36], [0, -760], { ease: easeInOut });
+  const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [0, -760], { ease: easeInOut });
+  const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [0, -760], { ease: easeInOut });
+  // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel: while Q3
+  // rises [0.66 → 1.0] it slides up from below (700px → 0) so it's "stuck" to the card — without
+  // this, the pinned area is simply empty for the last stretch of the runway once the deck has
+  // emptied. It settles at y=0 (its natural position, marginTop untouched), so unlike the old
+  // -300px pull it can't crush the gap between the two sections.
+  const achieveRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
+  const achieveRiseY = useSpring(achieveRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
   // Mobile: the Find & Hire section is pulled up via a STATIC negative margin (CSS) to follow the
   // peeled audit cards — NOT a scroll-driven transform, which would break the section's sticky
   // heading + sticky card stack (transformed ancestor detaches sticky descendants → overlap).
@@ -2096,7 +2057,15 @@ export default function Landing() {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return undefined;
     const videos = track.querySelectorAll('video');
-    const HERO_ARCH_MAX_PLAYING = IS_MOBILE ? 3 : 6;
+    // Must be >= the number of cards visible AT ONCE, or the cap itself becomes the bug.
+    // Desktop was 6 while the cylinder shows ~7 cards across plus a partial at each edge —
+    // so a card entering from the right found every slot taken, went into `waiting`, and
+    // only started once a card exited on the LEFT, i.e. roughly when it reached centre.
+    // That is exactly the "queue behind clips already playing near centre" failure the
+    // VIDEO_PLAY_MARGIN comment at the top of this file describes for the other marquees.
+    // 10 covers the widest desktop case; mobile shows 3 across + 2 partials, hence 5 (the
+    // shared MAX_PLAYING_VIDEOS already treats 6 as safe on phones).
+    const HERO_ARCH_MAX_PLAYING = IS_MOBILE ? 5 : 10;
     const playing = new Set();
     const waiting = new Set();
     const play = (v) => {
@@ -2126,10 +2095,40 @@ export default function Landing() {
           if (entry.isIntersecting) play(entry.target); else pause(entry.target);
         }
       },
-      { threshold: 0.4 }
+      // 0.4 -> 0.15. The second half of the same bug: a card sliding in at the screen edge
+      // is cropped, so it sat below a 40%-visible threshold and stayed paused for a good
+      // part of its travel even once slots were free. 0.15 starts it while it's still
+      // entering; it's low enough to catch the edge cards and high enough that a card
+      // clipped to a sliver by .nlp-gallery-vp's overflow still counts as gone.
+      { threshold: 0.15 }
     );
     videos.forEach((v) => io.observe(v));
-    return () => io.disconnect();
+
+    // Third piece: buffer the clip BEFORE it reaches the edge. These <video>s are
+    // preload="none" (there are 32 of them — preloading all at first paint is what that
+    // attribute is there to avoid), so calling play() as a card slid in kicked off a
+    // network fetch at that moment and nothing actually moved until the data landed. Even
+    // with a slot free and the threshold met, the card still looked frozen on its way in.
+    // A wide-rootMargin observer flips it to preload="auto" roughly a screen-width early,
+    // so by the time the play observer fires the data is already there.
+    const primer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const v = entry.target;
+          primer.unobserve(v);          // one-shot: once primed it stays primed
+          v.preload = 'auto';
+          // load() restarts playback, so never call it on a clip already running. It can't
+          // be one here in practice (this fires while the card is still off-screen), but
+          // the marquee wraps and re-enters, so the guard is worth having.
+          if (!playing.has(v)) v.load();
+        }
+      },
+      { rootMargin: '200px 900px' }
+    );
+    videos.forEach((v) => primer.observe(v));
+
+    return () => { io.disconnect(); primer.disconnect(); };
   }, []);
 
   const handleGetStarted = () => {
@@ -2291,12 +2290,6 @@ export default function Landing() {
           Boost your brand with high-impact short videos from our expert content
           creators. Our team is ready to propel your business forward.
         </motion.p>
-
-        {/* handwritten annotations (desktop only) */}
-        <span className="nlp-note nlp-note--elevate" aria-hidden="true">
-          Elevate<br />your brand
-          <svg viewBox="0 0 80 60" className="nlp-note-arrow"><path d="M6,6 C50,0 74,20 66,52" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round"/><path d="M56,44 L66,54 L74,42" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </span>
 
         <div className="nlp-gallery-vp">
           <div className="nlp-gallery" ref={nlpGalleryRef}>
@@ -2486,6 +2479,11 @@ export default function Landing() {
                   <span className={`lp-vcard__tier lp-vcard__tier--${v.tier.toLowerCase()}`}>
                     {v.tier.charAt(0) + v.tier.slice(1).toLowerCase()}
                   </span>
+                  {/* Industry chip lives ON the clip (top-right) now, not in the meta row
+                      below — matches the reference card. .lp-vcard__media is the positioned
+                      ancestor here, so absolute actually resolves against the clip itself
+                      (see the .lp-vcard__tag comment below for the bug this used to be). */}
+                  <span className="lp-vcard__tag lp-vcard__tag--onmedia">{v.label}</span>
                   {v.isVideo ? (
                     <ShowcaseVideo className="lp-vcard__video" src={v.src} />
                   ) : (
@@ -2493,23 +2491,33 @@ export default function Landing() {
                   )}
                 </div>
                 <div className="lp-vcard__meta">
-                  <div className="lp-vcard__stars" aria-label={`${v.rating} out of 5`}>
-                    <div className="lp-vcard__stars-row lp-vcard__stars-row--empty">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} size={15} fill="none" stroke="#FBBF24" />
-                      ))}
+                  <div className="lp-vcard__meta-top">
+                    <div className="lp-vcard__who">
+                      <span className="lp-vcard__brand">{v.brand}</span>
+                      <span className="lp-vcard__by">By {v.creator}</span>
                     </div>
-                    <div
-                      className="lp-vcard__stars-row lp-vcard__stars-row--full"
-                      style={{ width: `${(v.rating / 5) * 100}%` }}
-                    >
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} size={15} fill="#FBBF24" stroke="#FBBF24" />
-                      ))}
-                    </div>
+                    <span className="lp-vcard__logo" style={{ background: v.logoBg }} aria-hidden="true">
+                      {v.logoText}
+                    </span>
                   </div>
-                  <span className="lp-vcard__rating-num">{v.rating.toFixed(1)}</span>
-                  <span className="lp-vcard__tag">{v.label}</span>
+                  <div className="lp-vcard__meta-bottom">
+                    <div className="lp-vcard__stars" aria-label={`${v.rating} out of 5`}>
+                      <div className="lp-vcard__stars-row lp-vcard__stars-row--empty">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} size={15} fill="none" stroke="#FBBF24" />
+                        ))}
+                      </div>
+                      <div
+                        className="lp-vcard__stars-row lp-vcard__stars-row--full"
+                        style={{ width: `${(v.rating / 5) * 100}%` }}
+                      >
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} size={15} fill="#FBBF24" stroke="#FBBF24" />
+                        ))}
+                      </div>
+                    </div>
+                    <span className="lp-vcard__rating-num">{v.rating.toFixed(1)}</span>
+                  </div>
                 </div>
               </article>
             ))}
@@ -2638,127 +2646,76 @@ export default function Landing() {
         <div className="lp-audit__bg-orb lp-audit__bg-orb--1" aria-hidden="true" />
         <div className="lp-audit__bg-orb lp-audit__bg-orb--2" aria-hidden="true" />
 
-        <div className="lp-audit__inner" style={{ opacity: auditInView ? 1 : 0, transition: 'opacity 0.3s ease' }}>
-          {/* Heading sits full-width above the list (not a side column) — matching the
-              reference's "How We Work Together" layout. The "Quick reality check" eyebrow
-              pill that used to lead this block has been removed. */}
-          <div className="lp-audit__copy">
-            <h2 className="lp-audit__heading">
-              Answer This{' '}
-              <span className="lp-audit__heading--accent">Honestly</span>.
-            </h2>
-            <p className="lp-audit__subtitle">
-              Three questions most brands avoid. The answers usually explain everything.
-            </p>
-          </div>
+        <div className="lp-audit__inner">
+          <span className="lp-audit__pill">
+            <HelpCircle size={14} />
+            Quick reality check
+          </span>
 
-          {/* Accordion-style row list. Hovering a row doesn't expand it in place — it drives
-              a small preview card that trails the cursor (auditCardX/Y, spring-smoothed),
-              showing that row's icon + full question. */}
-          <div className="lp-audit__rows" onMouseLeave={() => setAuditHoverIdx(null)}>
-            <div className="lp-audit__rows-line" aria-hidden="true" />
-            {auditQuestions.map((q, i) => (
-              <Fragment key={i}>
-                {/* The row had cursor:pointer and a hover "+" but NO click handler — it looked
-                    interactive and did nothing. It now sends straight to sign-up (these
-                    questions are the pitch; clicking one is "yes, I need this"). role/
-                    tabIndex/onKeyDown make it reachable by keyboard too, since a div is not
-                    focusable on its own. */}
-                <motion.div
-                  className="lp-audit-row"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${q.title} ${q.sub} — sign up`}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={auditInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-                  transition={{ duration: 0.45, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                  onMouseEnter={() => setAuditHoverIdx(i)}
-                  onMouseMove={handleAuditRowMove}
-                  onClick={() => navigate('/auth?mode=signup&role=business')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/auth?mode=signup&role=business'); }
-                  }}
+          <h2 className="lp-audit__heading">
+            Answer This{' '}
+            <span className="lp-audit__heading--accent">Honestly</span>.
+          </h2>
+          <p className="lp-audit__subtitle">
+            Three questions most brands avoid. The answers usually explain everything.
+          </p>
+
+          <div className="lp-audit__grid">
+            {auditQuestions.map((q, i) => {
+              // Peel order: Q1 (front) first, Q2 (right) second, Q3 (back-left) last.
+              // Q3 peels quickly and finishes at the section release so the page scrolls
+              // to the next section the instant the last card goes up.
+              const positions = [
+                { x:   0, rotate:  -4, z: 3, y: card2Y },  // Q1 — front, peels first
+                { x:  90, rotate:  12, z: 2, y: card3Y },  // Q2 — right, peels second
+                { x: -90, rotate: -20, z: 1, y: card1Y },  // Q3 — left, peels last (quick)
+              ];
+              // Mobile: a tighter fan, all three present together from the start, then PEELED UP
+              // by scroll (same as desktop). Q1 is frontmost and peels first, revealing Q2, then
+              // Q3 last — so the deck visibly empties upward as you scroll.
+              const mobilePositions = [
+                { x:   0, rotate:  -4, z: 3, y: mAuditQ1Y },  // Q1 — front & centre, peels first
+                { x:  50, rotate:  11, z: 2, y: mAuditQ2Y },  // Q2 — right, peels second
+                { x: -50, rotate: -18, z: 1, y: mAuditQ3Y },  // Q3 — back-left, peels last
+              ];
+              const p = (heroStatic ? mobilePositions : positions)[i] || positions[0];
+              return (
+                <motion.article
+                  key={i}
+                  className="lp-audit-card"
+                  style={{ x: p.x, y: p.y, rotate: p.rotate, zIndex: p.z }}
                 >
-                  <span className="lp-audit-row__num">0{i + 1}</span>
-                  <h3 className="lp-audit-row__title">{q.title} {q.sub}</h3>
-                  {/* An arrow, not a "+". Plus promises the row expands to reveal more
-                      content in place, and nothing here does that — the row navigates to
-                      sign-up, so the indicator should read as "go there". */}
-                  <span className="lp-audit-row__go" aria-hidden="true">
-                    <ArrowUpRight size={16} />
-                  </span>
-                </motion.div>
-                <div className="lp-audit__rows-line" aria-hidden="true" />
-              </Fragment>
-            ))}
+                  <div className="lp-audit-card__corner">
+                    <span className="lp-audit-card__qnum">Q{i + 1}</span>
+                    <span className="lp-audit-card__qmark">?</span>
+                  </div>
+                  <div className="lp-audit-card__body">
+                    <p className="lp-audit-card__title">{q.title}</p>
+                    <p className="lp-audit-card__sub">{q.sub}</p>
+                  </div>
+                  <div className="lp-audit-card__divider" />
+                  <div className="lp-audit-card__hint">Pause. Be honest.</div>
+                </motion.article>
+              );
+            })}
           </div>
         </div>
-
-        {/* Floating preview card — follows the cursor while a row is hovered (desktop only,
-            hidden via CSS on touch devices where hover doesn't apply). Position (spring-
-            follow + the "sit above the cursor" offset) lives on this outer, un-animated
-            anchor; scale/opacity animate on the inner card. framer-motion writes its own
-            inline `transform` for animated scale, which would silently clobber a CSS
-            `transform: translate(...)` used for positioning if both were on one element. */}
-        <motion.div className="lp-audit__floatcard-anchor" style={{ left: auditCardX, top: auditCardY }}>
-          {/* OUTER card — deliberately has NO key, so moving between rows does not remount
-              it. The box itself just fades in when the pointer enters the rows and out when
-              it leaves; row-to-row changes are handled entirely by the inner curtain below.
-              (It previously carried key={auditHoverIdx} with mode="popLayout", which made
-              every row change tear the whole tile down and build a new one — the outgoing
-              and incoming cards then animated AT THE SAME TIME, and that overlap is what
-              read as an unsmooth smear rather than a clean swap.) */}
-          <AnimatePresence>
-            {auditHoverIdx !== null && (
-              <motion.div
-                className="lp-audit__floatcard"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {/* INNER curtain — the new question descends OVER the old one, exactly like
-                    a blind being pulled down. Both layers are absolutely stacked and the
-                    incoming one is opaque, so at every instant the card shows new content
-                    in the top band and the previous content in the band below it. It is
-                    never empty.
-
-                    NO mode="wait" here on purpose: "wait" removes the outgoing content
-                    BEFORE admitting the incoming one, which is what left the card blank
-                    between questions. The outgoing layer instead just sits there, fully
-                    painted, and is dropped only once the incoming layer has finished
-                    covering it — hence the delayed, instant exit below (nothing needs to
-                    animate out; it's already hidden behind the new layer by then). */}
-                <AnimatePresence initial={false}>
-                  <motion.div
-                    key={auditHoverIdx}
-                    className="lp-audit__floatcard-inner"
-                    initial={{ clipPath: 'inset(0% 0% 100% 0%)' }}
-                    animate={{ clipPath: 'inset(0% 0% 0% 0%)' }}
-                    exit={{ opacity: 0, transition: { duration: 0.01, delay: 0.32 } }}
-                    transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    {(() => { const Q = auditQuestions[auditHoverIdx]; const Ic = Q.Icon; return (
-                      <>
-                        <Ic className="lp-audit__floatcard-icon" size={20} strokeWidth={1.6} />
-                        <span className="lp-audit__floatcard-title">{Q.title} {Q.sub}</span>
-                      </>
-                    ); })()}
-                  </motion.div>
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
       </section>
 
       {/* ── Find & Hire Creators ── */}
-      {/* Was dragged UP -250px to meet the audit section's card-peel scroll effect, which is
-          now display:none — the pull just crushed the gap between "Answer This Honestly" and
-          this section (no proper spacing above/below). Static now, in normal flow. */}
+      {/* Dragged UP by achieveRiseY in lockstep with Q3's peel, so it rises into view "stuck" to
+          the last audit card instead of leaving the pinned area blank once the deck empties. The
+          rise is scroll-linked and lands on y=0 — the old fixed -250/-300px margin version is NOT
+          restored, since that permanently crushed the gap between the two sections.
+          Dropped entirely on mobile: the pull there is a static CSS margin, and writing a
+          transform to this large subtree every scroll frame for no visual effect hurts perf. */}
       <motion.div
         className="lp-achieve-rise"
-        style={{ marginTop: 0, position: 'relative', zIndex: 4 }}
+        style={
+          heroStatic
+            ? { marginTop: 0, position: 'relative', zIndex: 4 }
+            : { y: achieveRiseY, marginTop: 0, position: 'relative', zIndex: 4 }
+        }
       >
         <section className="lp-achieve" ref={achieveRef}>
           <motion.h2 className="lp-achieve__title">
@@ -2928,123 +2885,63 @@ export default function Landing() {
         </svg>
       </div>
 
-      {/* ── Value Proof — "We are zero"-style: copy on the left, a fanned card
-          stack with one hero stat on the right. ───────────────────────────── */}
+      {/* ── Value Proof — one wide mint panel: oversized heading on the left, the
+          pitch + both CTAs in the middle, and the three stats as award-shield
+          badges down the right edge. ─────────────────────────────────────── */}
       <section id="proof" className="lp-proof" ref={proofSectionRef}>
-        <div className="lp-proof__inner lpz">
+        <motion.div
+          className="lp-proof__inner lpz"
+          variants={proofPanelVariants}
+          initial="hidden"
+          animate={proofInView ? 'visible' : 'hidden'}
+        >
           <div className="lpz-col lpz-col--text">
-            <h2 className="lpz-heading">We are <em>UGCad.io</em></h2>
-            <p className="lpz-subtitle">a creator marketplace built for UGC that actually converts</p>
+            <h2 className="lpz-heading">The better way<br />to get great UGC<br />done</h2>
+          </div>
+
+          <div className="lpz-col lpz-col--body">
             <p className="lpz-desc">
-              We connect vetted UGC creators with brands who want content that performs —
-              escrow-protected payments, tracked delivery, and every creator manually
-              reviewed before they ever touch a brief.
+              UGCad.io is your go-to partner for UGC. Whether you're a brand, an agency or a
+              creator, we bring together vetted creators to produce authentic, scroll-stopping
+              content for ads, websites, emails and social channels.
             </p>
-            <button
-              type="button"
-              className="lpz-cta"
-              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            >
-              See Our Services
-            </button>
-          </div>
-
-          <div className="lpz-col lpz-col--fan">
-            <div className="lpz-fan-wrap">
-              <div className="lpz-fan">
-                <span className="lpz-fan__card lpz-fan__card--1" />
-                <span className="lpz-fan__card lpz-fan__card--2" />
-                <span className="lpz-fan__card lpz-fan__card--3" />
-                {/* The SWAP moves the whole card in 3D, not just the text inside it. This
-                    wrapper is keyed by proofActive, so each stat gets its own card: the old
-                    one recedes into the deck while the new one comes forward out of it. The
-                    two deliberately overlap (no mode="wait") — seeing both mid-move is what
-                    makes it read as one physical card being replaced by another.
-
-                    The move lives on this wrapper and NOT on the draggable card below on
-                    purpose: the card's x is the shared lpzFanX motion value, and animating
-                    x here too would mean the swap and the drag fight over one value. Two
-                    nested elements, two independent transforms.
-
-                    No `transition` prop — each variant in fanSwapVariants carries its own,
-                    because the exit needs a delayed opacity that the enter must not have.
-                    An element-level transition here would be the default for both and the
-                    per-variant ones would have to restate everything to override it. */}
-                <AnimatePresence initial={false} custom={proofDir}>
-                  <motion.div
-                    key={proofActive}
-                    className="lpz-fan__swap"
-                    custom={proofDir}
-                    variants={fanSwapVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                  >
-                    {/* Small elastic give on drag — just enough tactile feedback that
-                        you're dragging something, not a big visual slide over the back
-                        cards. The actual transition is the wrapper's 3D move, not this. */}
-                    <motion.div
-                      className="lpz-fan__card lpz-fan__card--front"
-                      drag="x"
-                      style={{ x: lpzFanX, rotate: lpzFanRotate, scale: lpzFanScale, y: lpzFanDragY }}
-                      dragConstraints={{ left: 0, right: 0 }}
-                      dragElastic={0.08}
-                      onDragStart={() => { lpzFanDragging.current = true; }}
-                      onDragEnd={(e, info) => {
-                        lpzFanDragging.current = false;
-                        if (info.offset.x < -60) proofStep(1);
-                        else if (info.offset.x > 60) proofStep(-1);
-                      }}
-                    >
-                      <div className="lpz-fan__content">
-                        <span className="lpz-fan__value">{stats[proofActive].value}</span>
-                        <span className="lpz-fan__label">{stats[proofActive].label}</span>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Arrows flank the dots rather than the card itself: the card is draggable,
-                and buttons sitting on top of it would swallow the pointer-down that starts
-                a drag. Both call proofStep, so they set the direction the same way a swipe
-                does and the card tucks the correct way. */}
-            <div className="lpz-fan__nav">
+            <div className="lpz-actions">
               <button
                 type="button"
-                className="lpz-fan__arrow"
-                aria-label="Previous stat"
-                onClick={() => proofStep(-1)}
+                className="lpz-cta lpz-cta--dark"
+                onClick={() => navigate('/auth?mode=signup&role=business')}
               >
-                <ChevronLeft size={18} />
+                Get Started
+                <ArrowRight size={18} />
               </button>
-
-              <div className="lpz-fan__dots">
-                {stats.map((s, i) => (
-                  <button
-                    type="button"
-                    key={s.label}
-                    className={`lpz-fan__dot${i === proofActive ? ' is-active' : ''}`}
-                    aria-label={`Show ${s.label}`}
-                    onClick={() => proofGoTo(i)}
-                  />
-                ))}
-              </div>
-
               <button
                 type="button"
-                className="lpz-fan__arrow"
-                aria-label="Next stat"
-                onClick={() => proofStep(1)}
+                className="lpz-cta lpz-cta--light"
+                onClick={() => navigate('/creator')}
               >
-                <ChevronRight size={18} />
+                For creators
               </button>
             </div>
           </div>
-        </div>
+
+          {/* The three proof stats, shaped as award shields (see .lpz-badge). They replace
+              the old one-at-a-time card deck: all three are readable at a glance, which is
+              the only job this section has. */}
+          <div className="lpz-col lpz-col--badges">
+            {stats.map((s) => (
+              <motion.div className="lpz-badge" key={s.label} variants={proofBadgeVariants}>
+                <span className="lpz-badge__brand">UGCad<em>.io</em></span>
+                <span className="lpz-badge__value">{s.value}</span>
+                <span className="lpz-badge__label">{s.label}</span>
+                <span className="lpz-badge__year">2026</span>
+                <span className="lpz-badge__stars" aria-hidden="true">★★★</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </section>
       </div>
+
 
       {/* connector 8: proof → testimonial — straight center line, reduced spacing */}
       <div className="lp-connector" style={{ height: 220, marginTop: -60, marginBottom: -60, position: 'relative', zIndex: 5 }}>
@@ -3464,6 +3361,9 @@ export default function Landing() {
              reference (unchanged), rising to 170px at 2560. The min holds it at 104 below the
              reference so nothing on a laptop or smaller moves. */
           --lp-space-hero-top: clamp(104px, 5px + 6.45vw, 170px);
+          /* Brand-strip logo height. Same scale shape as the rest: 104px at the 1536
+             reference, ~123px at 2560, floors at 64px on small screens. */
+          --lp-logo-h: clamp(64px, 75.9px + 1.829vw, 123px);
 
           /* ONE container width for the whole page — navbar, hero, sections, footer.
              At 1536 this resolves to 1320px (the tuned reference). It stays 1320 up to
@@ -3588,7 +3488,7 @@ export default function Landing() {
           flex: none;
           object-fit: contain;
           cursor: pointer;
-          font-family: var(--font-head), 'Readex Pro', sans-serif;
+          font-family: var(--font-head);
           font-weight: 700;
           font-size: 1.4rem;
           letter-spacing: -0.02em;
@@ -3824,14 +3724,14 @@ export default function Landing() {
           display: inline-block; background: #f7d49b; color: #7a4711;
           font-weight: 700; font-size: 13.5px; letter-spacing: .1px;
           padding: 8px 22px; border-radius: 999px; margin: 0 auto 16px;
-          font-family: var(--font-body, 'Inter', sans-serif);
+          font-family: var(--font-body);
         }
         .nlp-title {
           margin: 0 auto; max-width: 980px;
-          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif);
+          font-family: var(--font-head);
           /* Was hardcoded #171717 (near-black) — fine against the old always-cream hero,
              illegible now that the hero follows the dark theme by default. */
-          font-weight: 800; letter-spacing: -2px; line-height: 1.02; color: var(--lp-text);
+          font-weight: 700; letter-spacing: -2px; line-height: 1.02; color: var(--lp-text);
           /* Max size trimmed (was 84px) as part of the overall compacting pass. */
           /* Two-point form: the old 5.6vw slope hit its 60px cap at 1071px, so every screen
              from a small laptop to a 2560 monitor rendered the hero headline at exactly the
@@ -3842,7 +3742,7 @@ export default function Landing() {
         .nlp-sub {
           max-width: 560px; margin: 14px auto 0; color: var(--lp-text-muted);
           font-size: 16px; line-height: 1.5;
-          font-family: var(--font-body, 'Inter', sans-serif);
+          font-family: var(--font-body);
         }
         /* Clipping viewport: hides the horizontal overflow of the scrolling track but
            leaves vertical room for the arched cards (padding reserves space for the CTA). */
@@ -3906,7 +3806,7 @@ export default function Landing() {
         .nlp-cta {
           background: #ef6a4c; color: #fff; border: none; border-radius: 999px;
           padding: 15px 42px; font-weight: 700; font-size: 16px; cursor: pointer;
-          font-family: var(--font-body, 'Inter', sans-serif);
+          font-family: var(--font-body);
           box-shadow: 0 18px 34px -14px rgba(239, 106, 76, .75);
           transition: transform .18s ease, box-shadow .18s ease;
         }
@@ -3936,8 +3836,6 @@ export default function Landing() {
            — so it expands as roughly 0.58W + 109. Matching that expression holds a constant
            ~20px gap from the words at EVERY width from 960 to 2560, which is why the hide-below
            rule is gone: there is no longer a width where it collides. */
-        .nlp-note--elevate { top: 188px; left: calc(58% + 128px); text-align: left; transform: rotate(6deg); }
-        .nlp-note--elevate .nlp-note-arrow { position: absolute; left: -6px; top: 46px; width: 66px; height: 52px; }
         .nlp-note--free { position: absolute; right: calc(100% + 6px); bottom: 2px; white-space: nowrap; transform: rotate(-8deg); }
         .nlp-note--free .nlp-note-arrow2 { position: absolute; right: -58px; top: 6px; width: 56px; height: 34px; }
         @media (max-width: 900px) {
@@ -4466,14 +4364,19 @@ export default function Landing() {
           align-items: center;
           font-family: var(--font-body);
         }
+        /* Sized by HEIGHT with width free, the standard logo-strip pattern (and what
+           CreatorLanding's brand row already does). It was a fixed SQUARE box, which is why
+           these read as tiny: every one of these files is a "-removebg-preview" export with
+           transparent padding baked in, so forcing a 4:1 wordmark into a square left its
+           actual ink occupying a small patch in the middle. A common height instead makes
+           every mark render at the same optical size whatever its aspect ratio, and wide
+           wordmarks get the width they need (capped so one long mark can't dominate). */
         .lp-brand-item__icon {
           position: relative;
-          /* 64 -> 84px. object-fit:contain letterboxes each logo inside this box, so wide
-             wordmarks were only using a fraction of it and read as small; a bigger box gives
-             them more actual pixels without changing the row's rhythm. */
-          width: 84px;
-          height: 84px;
-          border-radius: 16px;
+          height: var(--lp-logo-h);
+          width: auto;
+          min-width: var(--lp-logo-h);
+          max-width: 210px;
           overflow: hidden;
           background: transparent;   /* no chip — logo sits flat on the page bg */
           border: none;
@@ -4483,10 +4386,12 @@ export default function Landing() {
           justify-content: center;
         }
         .lp-brand-item__icon img {
-          width: 100%;
           height: 100%;
-          object-fit: cover;
-          border-radius: inherit;
+          width: auto;
+          max-width: 210px;
+          /* contain, NOT cover. cover cropped a wide mark to a square centre slice — with
+             these padded exports that meant showing mostly empty transparent canvas. */
+          object-fit: contain;
           /* Baked-in white backgrounds blend into the cream page bg so logos float. */
           mix-blend-mode: multiply;
           filter: grayscale(100%);
@@ -4494,6 +4399,12 @@ export default function Landing() {
         }
         .lp-brand-item:hover .lp-brand-item__icon img {
           filter: grayscale(0%);
+        }
+        /* Touch devices have no :hover, so the grayscale-by-default/color-on-hover pair
+           above would leave every logo permanently gray on mobile — show full color there
+           since there's no gesture that could ever reveal it otherwise. */
+        @media (hover: none) {
+          .lp-brand-item__icon img { filter: grayscale(0%); }
         }
 
         /* Center main logo — highlighted with glow */
@@ -4654,7 +4565,7 @@ export default function Landing() {
             transition: color .5s cubic-bezier(.22, 1, .36, 1);
           }
           .lp-svc-aside__sub {
-            margin: 0; font-family: var(--font-body, 'Inter', sans-serif);
+            margin: 0; font-family: var(--font-body);
             font-size: 14.5px; line-height: 1.65; color: rgba(23, 19, 52, .58);
           }
           /* Overflows its own column to the right by exactly one --svc-gap (less 14px)
@@ -4734,7 +4645,7 @@ export default function Landing() {
         }
         .lp-promise__num {
           flex-shrink: 0;
-          font-family: var(--font-head); font-weight: 800;
+          font-family: var(--font-head); font-weight: 700;
           font-size: var(--lp-fs-h2); color: #171334; line-height: 1.05;
         }
         .lp-promise__content {
@@ -4746,17 +4657,17 @@ export default function Landing() {
           font-size: var(--lp-fs-h2); color: #171334; line-height: 1.05; letter-spacing: -0.5px;
         }
         .lp-promise__sub {
-          margin: 0; font-family: var(--font-body, 'Inter', sans-serif);
+          margin: 0; font-family: var(--font-body);
           font-size: 15.5px; color: rgba(23,19,52,.72);
         }
         .lp-promise__desc {
-          margin: 6px 0 4px; font-family: var(--font-body, 'Inter', sans-serif);
+          margin: 6px 0 4px; font-family: var(--font-body);
           font-size: 15px; line-height: 1.6; color: rgba(23,19,52,.82);
         }
         .lp-promise__btn {
           display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
           border: none; border-radius: 10px;
-          padding: 12px 18px; font-family: var(--font-body, 'Inter', sans-serif);
+          padding: 12px 18px; font-family: var(--font-body);
           font-size: 14.5px; font-weight: 700; transition: transform .18s ease;
         }
         .lp-promise__btn:hover { transform: translateY(-2px); }
@@ -5509,22 +5420,48 @@ export default function Landing() {
           background: #111;
           box-shadow: 0 18px 40px rgba(7, 7, 78, 0.10);
         }
+        /* Fallback for browsers without aspect-ratio support (some older Chrome/Firefox/Safari
+           builds, still out there on older laptops) — without this, .lp-vcard__media collapses
+           to 0 height and each card falls back to its video/image's own intrinsic size, which
+           is why cards in the same row ended up visibly different heights on some machines. */
+        @supports not (aspect-ratio: 1 / 1) {
+          .lp-vcard__media { height: 0; padding-top: 166.67%; }
+        }
         .lp-vcard__video {
+          position: absolute;
+          inset: 0;
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
           background: #111;
         }
-        /* Autoplay clip wrapper + single mute control (replaces native video chrome). */
+        /* Autoplay clip wrapper + a real bottom control bar (play/pause, mute, a decorative
+           "more" dot, and a scrub bar) — replaces the old single floating mute button,
+           matching the reference card's native-player look. */
         .lp-vcard__videowrap { position: absolute; inset: 0; }
-        .lp-vcard__mute {
+        .lp-vcard__videowrap::after {
+          /* Soft gradient so the white control icons stay legible over any footage. */
+          content: '';
           position: absolute;
-          bottom: 12px;
-          right: 12px;
+          left: 0; right: 0; bottom: 0;
+          height: 46%;
+          background: linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+          pointer-events: none;
+          z-index: 2;
+        }
+        .lp-vcard__controls {
+          position: absolute;
+          left: 10px;
+          bottom: 16px;
           z-index: 3;
-          width: 36px;
-          height: 36px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .lp-vcard__ctl {
+          width: 26px;
+          height: 26px;
           border-radius: 50%;
           border: none;
           background: rgba(15, 15, 25, 0.55);
@@ -5536,17 +5473,32 @@ export default function Landing() {
           backdrop-filter: blur(4px);
           transition: background 0.2s ease;
         }
-        .lp-vcard__mute:hover { background: rgba(15, 15, 25, 0.82); }
-        .lp-vcard__mute svg { color: #fff; }
-        /* Category tag, top-right of the clip */
+        .lp-vcard__ctl:hover { background: rgba(15, 15, 25, 0.82); }
+        .lp-vcard__ctl svg { color: #fff; }
+        .lp-vcard__scrub {
+          position: absolute;
+          left: 10px;
+          right: 10px;
+          bottom: 8px;
+          z-index: 3;
+          height: 3px;
+          border-radius: 100px;
+          background: rgba(255, 255, 255, 0.28);
+          cursor: pointer;
+        }
+        .lp-vcard__scrub-fill {
+          height: 100%;
+          border-radius: 100px;
+          background: #fff;
+        }
+        /* Category tag — sits ON the clip now (top-right), not in the meta row below.
+           .lp-vcard__media (its actual parent, see JSX) is position:relative, so absolute
+           resolves against the clip itself. It USED to render inside .lp-vcard__meta
+           instead — static, same as .lp-vcard/the grid/the section — so with no positioned
+           ancestor anywhere it resolved against .lp-root and every chip on the page piled
+           up in the top-right corner behind the navbar. Fixed by moving it to the clip,
+           the one place an absolute chip actually makes sense here. */
         .lp-vcard__tag {
-          /* Was position:absolute with top/right — but it is rendered inside .lp-vcard__meta,
-             which is static, as are .lp-vcard, the grid and the section. So it resolved
-             against .lp-root (the only positioned ancestor) and ALL ten category chips piled
-             up in the top-right corner of the whole page, behind the navbar, instead of
-             appearing on their cards. In flow it sits where it is actually rendered: at the
-             end of the stars/rating row. */
-          margin-left: auto;
           min-width: 0;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -5561,13 +5513,39 @@ export default function Landing() {
           letter-spacing: -0.01em;
           box-shadow: 0 4px 12px rgba(0,0,0,0.14);
         }
-        /* Footer under each clip: now just the star rating (category shows on the clip). */
+        .lp-vcard__tag--onmedia {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 2;
+          max-width: calc(100% - 20px);
+        }
+        /* Footer under each clip: brand + creator + avatar on top, star rating below —
+           the brand/by/logo pieces existed in CSS but weren't rendered anywhere in the
+           JSX (dead styles); wired back in since the data (v.brand/v.creator/v.logoBg/
+           v.logoText) was already there waiting for them. */
         .lp-vcard__meta {
           display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          gap: 8px;
+          flex-direction: column;
+          gap: 10px;
           padding: 0 2px;
+        }
+        .lp-vcard__meta-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .lp-vcard__who {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .lp-vcard__meta-bottom {
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
         .lp-vcard__brand {
           font-family: var(--font-head);
@@ -5638,7 +5616,7 @@ export default function Landing() {
           color: #fff;
           font-family: var(--font-head);
           font-size: 0.82rem;
-          font-weight: 800;
+          font-weight: 700;
           letter-spacing: -0.02em;
           box-shadow: 0 6px 16px rgba(0,0,0,0.14);
         }
@@ -5655,12 +5633,17 @@ export default function Landing() {
           .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
           /* Card furniture is sized for a ~250px desktop card; scaled down so it doesn't
              swamp a 150px one (a 36px mute button would cover a quarter of the width). */
-          /* 40px box with the icon kept small: 28px was visually right for a 150px card but
-             is a hard target inset in a corner, so the box grows and the glyph stays 13px. */
-          .lp-vcard__mute { width: 40px; height: 40px; right: 6px; bottom: 6px; }
-          .lp-vcard__mute svg { width: 13px; height: 13px; }
+          /* Smaller control dots on a ~150px-wide card so the bar doesn't dominate it. */
+          .lp-vcard__ctl { width: 20px; height: 20px; }
+          .lp-vcard__ctl svg { width: 10px; height: 10px; }
+          .lp-vcard__controls { left: 7px; bottom: 12px; gap: 5px; }
+          .lp-vcard__scrub { left: 7px; right: 7px; bottom: 6px; }
           .lp-vcard__tier { font-size: 0.58rem; padding: 2px 7px; }
-          .lp-vcard__tag { top: 8px; right: 8px; padding: 4px 9px; font-size: 0.62rem; }
+          .lp-vcard__tag { padding: 4px 9px; font-size: 0.62rem; }
+          .lp-vcard__tag--onmedia { top: 8px; right: 8px; }
+          .lp-vcard__logo { width: 30px; height: 30px; font-size: 0.66rem; }
+          .lp-vcard__brand { font-size: 0.8rem; }
+          .lp-vcard__by { font-size: 0.68rem; }
           .lp-vcard__meta { gap: 5px; }
           .lp-vcard__rating-num { font-size: 0.78rem; }
         }
@@ -5973,6 +5956,10 @@ export default function Landing() {
           font-size: 1.05rem;
           line-height: 1.5;
           color: var(--lp-text);
+          /* .lp-achieve (the section ancestor) sets text-align:center for its own heading —
+             that inherits straight down through nothing-else-overriding-it and left this
+             centered next to a left-aligned icon, an odd mismatch. Left-align it back. */
+          text-align: left;
         }
         @media (max-width: 1100px) {
           .lp-fh { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -5980,7 +5967,41 @@ export default function Landing() {
           .lp-fh__feature { flex: 1 1 240px; border-bottom: none; padding: 0; }
         }
         @media (max-width: 720px) {
-          .lp-fh { grid-template-columns: 1fr; }
+          /* Two across (was a single column, i.e. everything stacked). There are exactly
+             3 videos + the features card, and .lp-fh__videos is display:contents, so the
+             four boxes are direct grid items in DOM order — a 2-column track lays them out
+             as [video 1 | video 2] then [video 3 | features] with no explicit placement
+             needed. Gap trimmed from the 20px base because half of a phone width is not
+             much to give away. */
+          .lp-fh { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+          /* Undoes the ≤1100px rules, which are still in force here (that block is a wider
+             max-width, so it also matches at ≤720px). There, the card spanned the full row
+             and laid its features out sideways; in a half-width cell it has to go back to
+             the base vertical list with its dividers, so every one of those three
+             declarations needs an explicit counterpart. */
+          .lp-fh__side {
+            grid-column: auto;
+            flex-direction: column;
+            gap: 0;
+            padding: 16px 14px;
+            border-radius: 14px;
+          }
+          .lp-fh__feature { flex: 0 1 auto; padding: 12px 0; gap: 9px; border-bottom: 1px solid rgba(var(--lp-fg), 0.1); }
+          .lp-fh__feature:first-child { padding-top: 0; }
+          .lp-fh__feature:last-of-type { border-bottom: none; }
+          /* Scaled down to survive a ~170px-wide column: at the desktop 42px icon and
+             1.05rem text, the copy wrapped to one or two words per line. */
+          .lp-fh__feature-icon { width: 32px; height: 32px; border-radius: 9px; }
+          .lp-fh__feature p { font-size: 0.82rem; line-height: 1.45; }
+          /* The video cards are ~170px wide in this layout, so their overlays need the
+             same treatment. "Fitness/Supplements" at the desktop 0.76rem badge overran the
+             card, and the meta line ("FitFuel By Noah") ran past it on one line — hence the
+             smaller type plus flex-wrap so it breaks instead of overflowing. */
+          .lp-fh__video-wrap { border-radius: 14px; }
+          .lp-fh__badge { top: 8px; left: 8px; padding: 4px 9px; font-size: 0.64rem; }
+          .lp-fh__meta { flex-wrap: wrap; gap: 0 6px; }
+          .lp-fh__brand { font-size: 0.88rem; }
+          .lp-fh__by { font-size: 0.78rem; }
         }
 
         /* ── Stacked-card scroll deck (mobile only) ────────────────────────────
@@ -6286,13 +6307,15 @@ export default function Landing() {
           border: 1px solid rgba(159, 159, 209, 0.4);
           border-radius: 24px;
           box-shadow: 0 4px 28px rgba(159, 159, 209, 0.18);
-          padding: 0 28px;
+          /* Was 0 28px. The gutter moved onto the first and last CELLS instead, because the
+             row stripes below have to reach the card's edges — with padding on the grid the
+             stripes stopped 28px short and read as floating bands rather than table rows. */
+          padding: 0;
         }
-        /* Thin column dividers, like the reference table — every cell but the last
-           in a row gets a hairline right border. */
-        .lpv-header > *:not(:last-child), .lpv-rowgroup > *:not(:last-child) {
-          border-right: 1px solid rgba(159, 159, 209, 0.3);
-        }
+        /* Column dividers removed. Vertical hairlines between every column plus a hairline
+           under every row made the table read as a spreadsheet; the structure now comes
+           from row striping and the highlighted column alone, which is what separates the
+           columns visually without drawing a line for it. */
         .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; align-items: center; }
         /* Sticky header: the UGCad.io / Traditional column titles stay pinned just below
            the floating navbar while the comparison rows scroll underneath. The opaque
@@ -6381,32 +6404,71 @@ export default function Landing() {
           pointer-events: none;
         }
         .lp-nav-hidden .lpv-header::after { background: rgba(159, 159, 209, 0.32); }
-        .lpv-h--us { border-radius: 16px 16px 0 0; }
-        .lpv-header .lpv-h--us { border-radius: 0; }
-        /* Periwinkle Pulse tint down the whole UGCad.io column, header included
-           (rgb(115,135,255) — matches --lp-purple-700 exactly, not an approximation). */
-        .lpv-h--us, .lpv-cell--us { background: rgba(115, 135, 255, 0.10); }
-        .lpv-rowgroup:last-child .lpv-cell--us { border-radius: 0 0 16px 16px; }
-        .lpv-header .lpv-h { padding: 26px 20px; }
+        /* The UGCad.io column reads as a single card standing proud of the table: a tint
+           plus a continuous 1px side border running from the header down to the last row,
+           closed off with a rounded top on the header cell and a rounded bottom on the last
+           row's cell. Periwinkle Pulse (rgb(115,135,255) — exactly --lp-purple-700, not an
+           approximation) is our stand-in for the reference's green. */
+        .lpv-h--us, .lpv-cell--us {
+          background: rgba(115, 135, 255, 0.10);
+          border-left: 1px solid rgba(115, 135, 255, 0.38);
+          border-right: 1px solid rgba(115, 135, 255, 0.38);
+        }
+        /* The header cell is the top of that card, so it gets the top border and rounding.
+           (It was explicitly squared off before, back when the column was a flat tint with
+           no outline and a rounded header corner had nothing to close.) */
+        .lpv-header .lpv-h--us {
+          border-top: 1px solid rgba(115, 135, 255, 0.38);
+          border-radius: 16px 16px 0 0;
+        }
+        .lpv-rowgroup:last-child .lpv-cell--us {
+          border-bottom: 1px solid rgba(115, 135, 255, 0.38);
+          border-radius: 0 0 16px 16px;
+        }
+        .lpv-header .lpv-h { padding: 30px 22px; }
+        /* Matches .lpv-cell:last-child below, so the last column's header title lines up
+           with the values under it now that the gutter lives on the cells. */
+        .lpv-header > .lpv-h:last-child { padding-right: 30px; }
         .lpv-h--us { display: flex; align-items: center; justify-content: center; }
         .lpv-brand { font-family: var(--font-head); font-weight: 700; font-size: 30px; letter-spacing: -1px; color: #1c1b4b; }
         .lpv-brand-ad { color: #7387FF; }
         .lpv-h--them { display: flex; align-items: center; justify-content: center; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 15px; }
-        .lpv-rowgroup { border-top: 1px solid rgba(159, 159, 209, 0.32); align-items: stretch; }
+        /* Zebra striping replaces the per-row top border. ".lpv-grid"'s children are
+           [header, row, row, …], so the rows are children 2,3,4… — :nth-child(odd) picks
+           3,5,7, i.e. the 2nd, 4th, 6th ROW, which is the alternation the reference uses
+           (first row unshaded). The tint is our navy at very low alpha rather than a neutral
+           grey, so it sits in the same family as the rest of the section. */
+        .lpv-rowgroup { align-items: stretch; }
+        .lpv-rowgroup:nth-child(odd) { background: rgba(28, 27, 75, 0.035); }
+        /* Stripes now run edge to edge, so the last one would square off the card's bottom
+           corners without this. 23px = the grid's 24px radius less its 1px border. */
+        .lpv-rowgroup:last-child { border-radius: 0 0 23px 23px; }
         /* align-items: flex-start (not center) matches .lpv-cell's top alignment: the label
            has to clear the sticky header at the same moment as the us/them titles beside it,
            or whichever one is vertically centered lower lingers behind after the others fade. */
-        .lpv-label { font-family: var(--font-head); font-weight: 500; font-size: var(--lp-fs-h3); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
+        /* Row labels: body font at a calm reading size, not a heading. They were --lp-fs-h3
+           in the head font, which made every label compete with the section's own title and
+           left the actual comparison values looking like footnotes. The 30px left padding is
+           the table's gutter — it lives here now that .lpv-grid has none. */
+        .lpv-label { font-family: var(--font-body); font-weight: 500; font-size: 1.02rem; line-height: 1.4; color: #1c1b4b; padding: 30px 24px 30px 30px; display: flex; align-items: flex-start; }
         /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
            descriptions wrap to a different number of lines, centering makes their titles land
            at different heights within the row. Since the row scrolls behind the sticky header
            above, whichever title sits lower clears the header a beat after the other — a torn
            "ghost text" leak in just that column. Top-aligning keeps titles at the same Y in
            every row, so both columns clear the header at the same moment. */
-        .lpv-cell { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; justify-content: flex-start; gap: 6px; }
-        .lpv-cell strong { font-weight: 700; font-size: 15.5px; color: #1c1b4b; }
+        .lpv-cell { padding: 30px 24px; text-align: center; display: flex; flex-direction: column; justify-content: flex-start; gap: 6px; }
+        /* The last column carries the table's right-hand gutter, mirroring .lpv-label on
+           the left, since .lpv-grid no longer has padding of its own. */
+        .lpv-rowgroup > .lpv-cell:last-child { padding-right: 30px; }
+        .lpv-cell strong { font-weight: 700; font-size: 16px; color: #1c1b4b; }
         .lpv-cell span { font-size: 14px; line-height: 1.5; color: rgba(28,27,75,0.6); }
-        .lpv-cell--them strong { color: rgba(28,27,75,0.75); }
+        /* Contrast, not just tint, is what makes the comparison land: OUR column stays at
+           full navy while the other two step back to a muted grey-navy. Previously both
+           sides were nearly the same weight and the highlighted column was doing all the
+           work on its own. */
+        .lpv-cell--them strong { color: rgba(28,27,75,0.6); font-weight: 600; }
+        .lpv-cell--them span { color: rgba(28,27,75,0.45); }
         .lpv-tag { display: none; }
         /* Stacking point raised 760px -> 1080px. Four columns share (min(1320, 92vw) - 56px),
            and each cell has 20px of side padding, so usable text width per comparison cell was
@@ -6419,17 +6481,31 @@ export default function Landing() {
           .lpv-heading { margin-bottom: 34px; }
           .lpv-header { display: none; }
           .lpv-grid { padding: 16px 16px 4px; border-radius: 18px; }
-          /* Columns stack full-width on mobile, so the desktop column dividers
-             would just be stray vertical lines — drop them. */
-          .lpv-rowgroup > *:not(:last-child) { border-right: none; }
           /* Three comparison values no longer fit side by side on mobile — stack
              label + all three cells in natural DOM order, each full width. */
           .lpv-rowgroup { grid-template-columns: 1fr; gap: 8px 0; padding-top: 18px; }
+          /* Striping is a DESKTOP device: it separates side-by-side columns across a wide
+             row. Stacked, each "row" is a tall block and the tint just becomes a big grey
+             slab behind alternating groups, so it's switched off along with the bottom
+             rounding that went with it. */
+          .lpv-rowgroup:nth-child(odd) { background: transparent; }
+          .lpv-rowgroup:last-child { border-radius: 0; }
           .lpv-label { padding: 0 0 4px; font-size: 15px; }
           .lpv-cell { text-align: left; padding: 14px; border-radius: 12px; background: transparent; }
-          .lpv-cell--us { background: rgba(115, 135, 255, 0.10); }
+          .lpv-rowgroup > .lpv-cell:last-child { padding-right: 14px; }
+          /* Stacked, the highlight is a self-contained card per row, so it needs a border
+             on all four sides — the desktop rule only draws the left/right edges because
+             there it's one continuous column running the height of the table. */
+          .lpv-cell--us {
+            background: rgba(115, 135, 255, 0.10);
+            border: 1px solid rgba(115, 135, 255, 0.38);
+            border-radius: 12px;
+          }
           .lpv-tag { display: block; font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: rgba(28,27,75,0.55); margin-bottom: 2px; }
           .lpv-cell--us .lpv-tag { color: #7387FF; }
+          /* Mobile shows only UGCad.io + Agencies — the Marketplaces cell (last child of
+             each rowgroup) is dropped to keep the stacked list to two comparisons. */
+          .lpv-rowgroup .lpv-cell--them:last-child { display: none; }
         }
         .lp-vs {
           padding: calc(var(--lp-space-section) * 0.75) 4% calc(var(--lp-space-section) * 0.833);
@@ -7282,8 +7358,8 @@ export default function Landing() {
           .lp-hero__title { max-width: 100%; font-size: clamp(2.4rem, 8vw, 3.6rem); }
           /* Each sentence on ONE line (mobile only): nowrap + sized to fit the longest line. */
           .lp-hero__subtitle { font-size: clamp(0.72rem, 3.3vw, 0.95rem); line-height: 1.5; white-space: nowrap; }
-          .lp-brand-item__icon { width: 72px; height: 72px; }
-          .lp-brand-item__icon img { width: 36px; height: 36px; }
+          .lp-brand-item__icon { height: 65px; min-width: 46px; }
+          .lp-brand-item__icon img { height: 100%; width: auto; }
           .lp-hero__brand-center { width: 104px; height: 104px; }
           .lp-hero__brand-center img { width: 78px; height: 78px; }
           /* The desktop layout puts the "TRUSTED BY LEADING BRANDS" label and the logo
@@ -7331,8 +7407,8 @@ export default function Landing() {
           .lp-hero__divider { height: 50px; }
           .lp-hero__title { font-size: clamp(2rem, 9vw, 2.8rem); }
           .lp-hero__subtitle { font-size: clamp(0.66rem, 3.4vw, 0.85rem); line-height: 1.5; white-space: nowrap; }
-          .lp-brand-item__icon { width: 58px; height: 58px; border-radius: 16px; }
-          .lp-brand-item__icon img { width: 30px; height: 30px; }
+          .lp-brand-item__icon { height: 52px; min-width: 36px; }
+          .lp-brand-item__icon img { height: 100%; width: auto; }
           .lp-hero__brand-center { width: 82px; height: 82px; border-radius: 20px; }
           .lp-hero__brand-center img { width: 60px; height: 60px; }
           /* Even smaller on phones, and nudged to the top so it clears the copy. */
@@ -7478,8 +7554,8 @@ export default function Landing() {
             height: clamp(180px, 22vw, 320px);
           }
           .lp-hero__strip { padding: 16px 0 28px; }
-          .lp-brand-item__icon { width: 72px; height: 72px; border-radius: 18px; }
-          .lp-brand-item__icon img { width: 36px; height: 36px; }
+          .lp-brand-item__icon { height: 65px; min-width: 46px; }
+          .lp-brand-item__icon img { height: 100%; width: auto; }
           .lp-hero__brand-center { width: 108px; height: 108px; }
           .lp-hero__brand-center img { width: 82px; height: 82px; }
         }
@@ -8402,15 +8478,19 @@ export default function Landing() {
         }
 
         /* ── Psychological Audit ─────────────────────────────────────────── */
+        /* Tall pinned runway: the inner block sticks while the three question cards peel
+           UP off the top one by one (card1Y/card2Y/card3Y in the JSX). The runway height IS
+           the peel duration — shorten it and the cards fly off faster. */
         .lp-audit {
           position: relative;
-          /* Bottom 120px -> 40px: .lp-achieve directly below opens with its own 60px top pad,
-             and the connector between them is display:none, so the two full pads stacked into
-             a large empty band under "Click the Ad If It Wasn't Yours?". */
-          padding: var(--lp-space-section) 4% calc(var(--lp-space-section) * 0.333);
+          /* No BOTTOM padding: once the last card has peeled, everything below the subtitle is
+             the deck's own (now empty) reserved box — adding a full section pad under that
+             stacked into a screen and a half of dead space before Find & Hire arrived. */
+          padding: var(--lp-space-section) 4% 0;
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
+          min-height: 220vh;
         }
         /* Soft glow via radial-gradient instead of filter: blur(90px) — a blur filter
            forces the browser to re-rasterize a large layer as this (scroll-heavy)
@@ -8422,38 +8502,42 @@ export default function Landing() {
         }
         .lp-audit__bg-orb--1 {
           width: 520px; height: 520px;
-          background: radial-gradient(circle, rgba(154, 154, 191, 0.30) 0%, transparent 68%);
+          background: radial-gradient(circle, rgba(115, 135, 255, 0.16) 0%, transparent 68%);
           top: -190px; right: -190px;
         }
         .lp-audit__bg-orb--2 {
           width: 460px; height: 460px;
-          background: radial-gradient(circle, rgba(7, 7, 78, 0.20) 0%, transparent 68%);
+          background: radial-gradient(circle, rgba(7, 7, 78, 0.10) 0%, transparent 68%);
           bottom: -170px; left: -150px;
         }
-        /* Normal flow now — rows reveal via a one-time whileInView animation (see JSX),
-           not a scroll-scrubbed peel, so no pin/sticky runway is needed. Eyebrow/heading
-           sit full-width above the row list (not a side column), matching the reference. */
         .lp-audit__inner {
-          position: relative;
+          position: sticky;
+          top: 90px;
           z-index: 2;
-          /* 1000px -> 1320px to match .lp-showcase__inner (and every other section's
-             max-width) — at 1000 this section sat visibly narrower than the one below it. */
           max-width: var(--lp-maxw);
           margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          text-align: left;
+          text-align: center;
         }
 
-        /* Centred block: align-items centres the pill and the (max-width-capped) subtitle
-           as flex ITEMS, while text-align centres the wrapped lines INSIDE the heading and
-           subtitle — both are needed, since centring a flex item doesn't centre its text.
-           margin:auto is what actually pulls the 640px column to the middle of the section;
-           without it align-items:center would only centre the children within a block still
-           sitting flush left. (Was align-items:flex-start with no auto margins.) */
-        .lp-audit__copy { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 640px; margin: 0 auto 56px; }
-
-        /* The .lp-audit__pill rules that were here are removed along with the eyebrow. */
+        /* Light-theme eyebrow: white pill on the white page needs a hairline + a soft
+           shadow to separate from the background (the old dark-section version relied on a
+           translucent light fill over navy, which is invisible here). */
+        .lp-audit__pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 16px;
+          background: #ffffff;
+          border: 1px solid rgba(28, 27, 75, 0.10);
+          border-radius: 100px;
+          font-family: var(--font-body);
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--lp-ink);
+          margin-bottom: 22px;
+          box-shadow: 0 4px 14px rgba(28, 27, 75, 0.07);
+        }
+        .lp-audit__pill svg { color: #7387FF; }
 
         .lp-audit__heading {
           font-family: var(--font-head);
@@ -8486,144 +8570,128 @@ export default function Landing() {
           font-size: 1.05rem;
           line-height: 1.5;
           letter-spacing: -0.015em;
-          /* Bottom margin 32px -> 0: that gap existed to separate the subtitle from the
-             "See our services" button below it. The button is gone, and .lp-audit__copy's
-             own 56px bottom margin already sets the distance to the question rows — keeping
-             both would have stacked to 88px of dead space. */
-          margin: 0;
-          max-width: 420px;
+          margin: 0 auto 36px;
+          max-width: 580px;
         }
-        /* The .lp-audit__cta rules that were here are removed along with the button. */
 
-        /* Accordion-style row list — number, big title, "+" indicator, hairline above and
-           below each row. Rows don't expand on click; hovering instead drives the floating
-           preview card below (see .lp-audit__floatcard) via auditHoverIdx. */
-        .lp-audit__rows { position: relative; display: flex; flex-direction: column; }
-        .lp-audit__rows-line { height: 1px; background: rgba(28, 27, 75, 0.12); width: 100%; }
-        .lp-audit-row {
+        /* The deck. All three cards are absolutely positioned on top of each other and fanned
+           apart by the per-card x/rotate in the JSX; only y is scroll-driven. */
+        .lp-audit__grid {
           position: relative;
           display: flex;
-          align-items: center;
-          gap: 24px;
-          padding: 36px 4px;
-          cursor: pointer;
-        }
-        .lp-audit-row__num {
-          flex-shrink: 0;
-          font-family: var(--font-body);
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: #7387FF;
-          align-self: flex-start;
-          margin-top: 4px;
-        }
-        .lp-root .lp-audit-row__title {
-          flex: 1;
-          font-family: var(--font-head);
-          font-weight: var(--fw-head);
-          font-size: var(--lp-fs-h3);
-          letter-spacing: -0.02em;
-          line-height: 1.25;
-          color: var(--lp-ink);
-          margin: 0;
-          transition: color 0.2s ease;
-        }
-        .lp-audit-row:hover .lp-audit-row__title { color: #7387FF; }
-        .lp-audit-row__go {
-          flex-shrink: 0;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: 1px solid rgba(28, 27, 75, 0.18);
-          display: flex;
-          align-items: center;
           justify-content: center;
-          color: var(--lp-ink);
-          transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+          align-items: center;
+          /* Shorter than the viewport so the inner pins cleanly to the section end (no
+             early-release blank) and there's no empty space below the centered card.
+             Sized (with the trimmed margins above) so the whole fan — including the corners
+             of the -20deg/+12deg rotated back cards — clears a ~800px-tall laptop viewport
+             once the block pins at top:90. Any taller and the bottom card gets clipped. */
+          min-height: 380px;
+          margin: 24px auto 0;
+          max-width: 600px;
+          text-align: left;
+          perspective: 1200px;
         }
-        /* Was rotate(90deg) — that read as a "+" turning into an "x" (i.e. "this closes
-           again"), which is exactly the expand/collapse promise the icon change is meant to
-           drop. A short nudge along the arrow's own diagonal says "follow this" instead. */
-        .lp-audit-row:hover .lp-audit-row__go {
-          background: #7387FF;
-          border-color: #7387FF;
-          color: #fff;
-          transform: translate(3px, -3px);
-        }
-        /* Floating preview card — trails the cursor (position:fixed, driven by spring-smoothed
-           motion values set on row mousemove). Desktop/hover-capable devices only — touch
-           devices have no hover to trigger it, so it's hidden there (see touch media query).
-           The position offset lives here, on the un-animated anchor, NOT on .lp-audit__floatcard
-           itself — framer-motion writes its own inline transform for that element's animated
-           scale, which would silently override a CSS transform used for positioning. */
-        .lp-audit__floatcard-anchor {
-          position: fixed;
-          z-index: 50;
-          pointer-events: none;
-          /* Sits to the RIGHT of the cursor and slightly ABOVE its centre line: fixed 24px
-             gap on the X axis (independent of the card's own width, so resizing the card
-             can't eat the gap), and -50% on Y to centre it against the pointer, minus a
-             further fixed 30px lift so it reads as hovering over the row rather than
-             sitting on it. Both offsets stay in px for the same reason — a percentage
-             would drift every time the card's box changes. */
-          transform: translate(24px, calc(-50% - 30px));
-        }
-        /* Just the frame now — the layout moved to .lp-audit__floatcard-inner, which has to
-           be absolutely positioned so the outgoing and incoming questions can stack. */
-        .lp-audit__floatcard {
-          position: relative;
-          width: 132px;
-          height: 132px;
-          box-sizing: border-box;
-          text-align: center;
-          background: #ffffff;
-          border: 1px solid rgba(28, 27, 75, 0.08);
-          border-radius: 16px;
-          /* Keeps the stacked inner layers inside the rounded frame while they clip. */
-          overflow: hidden;
-          box-shadow: 0 16px 32px rgba(28, 27, 75, 0.18);
-        }
-        /* One full-size box per question, stacked on top of each other. inset:0 (not
-           width/height:100%) so both layers occupy the exact same rect regardless of
-           padding, giving the clip-path a stable full-height area to sweep across.
-           The opaque background is what makes the curtain work: the incoming layer
-           genuinely COVERS the outgoing one as it descends, so nothing shows through
-           and the card never flashes empty. */
-        .lp-audit__floatcard-inner {
+        .lp-audit-card {
           position: absolute;
-          inset: 0;
+          width: 100%;
+          max-width: 290px;
+          /* The card keeps its periwinkle fill — it's the one saturated block in this section
+             and what makes the deck read as a deck. Only the frame/shadow/edge treatment is
+             re-tuned for the light page (dark-navy hairline shadow instead of a heavy one
+             tuned to sit on navy). */
+          background: #7387FF;
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          border-radius: 22px;
+          padding: 36px 30px 26px;
+          min-height: 0;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 16px;
-          box-sizing: border-box;
-          background: #ffffff;
-        }
-        .lp-audit__floatcard-icon {
-          flex-shrink: 0;
-          color: #7387FF;
-          background: rgba(115, 135, 255, 0.12);
-          border-radius: 10px;
-          padding: 8px;
-          width: 36px;
-          height: 36px;
-          box-sizing: border-box;
-        }
-        .lp-audit__floatcard-title {
-          font-family: var(--font-head);
-          font-weight: var(--fw-head);
-          font-size: 0.77rem;
-          line-height: 1.25;
-          color: #7387FF;
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
+          box-shadow: 0 18px 40px rgba(28, 27, 75, 0.22);
           overflow: hidden;
+          transform-origin: center center;
+          /* Keep each card on its own GPU layer for the whole peel so it composites
+             instead of repainting the shadow each scroll frame (and so framer isn't
+             promoting/de-promoting it on every spring start/settle). */
+          will-change: transform;
+          backface-visibility: hidden;
         }
-        @media (hover: none) {
-          .lp-audit__floatcard-anchor { display: none; }
+        .lp-audit-card__corner {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 22px;
+        }
+        .lp-root .lp-audit-card__qnum {
+          font-family: var(--font-body);
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #ffffff;
+          letter-spacing: 0.1em;
+          padding: 5px 12px;
+          background: rgba(255, 255, 255, 0.16);
+          border: 1px solid rgba(255, 255, 255, 0.55);
+          border-radius: 100px;
+        }
+        .lp-root .lp-audit-card__qmark {
+          font-family: var(--font-body);
+          font-size: 3rem;
+          font-weight: 700;
+          color: #07074e;
+          line-height: 0.5;
+          font-style: italic;
+        }
+
+        .lp-audit-card__body {
+          position: relative;
+          z-index: 1;
+          /* Don't grow to fill the card — sit tight under the heading so the divider +
+             hint follow immediately (no dead space in the middle). */
+          flex: 0 0 auto;
+          margin-bottom: 30px;
+        }
+        .lp-root .lp-audit-card__title {
+          font-family: var(--font-head);
+          /* Sized so even the longest title (Q2 — "If Your Brand Went Silent for a Week,")
+             fits on a SINGLE line within the card, matching Q3. Reads as an eyebrow lead-in
+             above the larger punch line (.lp-audit-card__sub). */
+          font-size: clamp(0.72rem, 1.4vw, 0.8rem);
+          font-weight: var(--fw-head);
+          color: #07074e;
+          line-height: 1.4;
+          letter-spacing: -0.015em;
+          margin: 0 0 10px 0;
+          white-space: nowrap;
+        }
+        .lp-root .lp-audit-card__sub {
+          font-family: var(--font-body);
+          /* Trimmed so the longest sub still fits one line in the narrower card. */
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: #07074e;
+          letter-spacing: -0.025em;
+          line-height: 1.3;
+          margin: 0;
+          white-space: nowrap;
+        }
+
+        .lp-audit-card__divider {
+          position: relative;
+          z-index: 1;
+          height: 1px;
+          background: rgba(7, 7, 78, 0.25);
+          margin-bottom: 12px;
+        }
+        .lp-root .lp-audit-card__hint {
+          position: relative;
+          z-index: 1;
+          font-family: var(--font-body);
+          font-size: 0.95rem;
+          color: rgba(7, 7, 78, 0.75);
+          font-style: italic;
+          letter-spacing: 0.02em;
         }
 
         /* ── Value Proof — "We are zero"-style layout ─────────────────────── */
@@ -8638,158 +8706,139 @@ export default function Landing() {
           max-width: var(--lp-maxw);
           margin: 0 auto;
         }
-        .lpz {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 60px;
-          align-items: center;
-        }
-        /* .lp-proof prefix (not just .lpz-heading etc.) is load-bearing: a global reset
-           rule (".lp-root h1, h2, p, span, div, ... { color: var(--lp-text) }") has
-           higher specificity than a single class, and would otherwise win over these
-           — same fix already used by .lp-root .lp-audit-row__title elsewhere in this
-           file. Here it's mostly moot since both resolve to the same var(--lp-text),
-           but kept for the parts that intentionally diverge (fan card front, em accent). */
-        .lp-proof .lpz-heading {
-          margin: 0 0 26px; font-family: var(--font-head); font-weight: 500;
-          font-size: var(--lp-fs-display); line-height: 1.05; letter-spacing: -0.5px;
-          color: var(--lp-text);
-        }
-        .lp-proof .lpz-heading em { font-style: italic; color: #7387FF; }
-        .lp-proof .lpz-subtitle {
-          margin: 0 0 20px; font-family: var(--font-body); font-weight: 500;
-          font-size: clamp(16px, 1.6vw, 20px); color: var(--lp-text);
-        }
-        .lp-proof .lpz-desc {
-          margin: 0 0 36px; font-family: var(--font-body); font-size: 15px;
-          line-height: 1.7; color: rgba(var(--lp-fg), 0.6); max-width: 460px;
-        }
-        .lp-proof .lpz-cta {
-          display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
-          padding: 15px 32px; border-radius: 100px;
-          border: 1px solid rgba(var(--lp-fg), 0.35); background: transparent;
-          color: var(--lp-text); font-family: var(--font-body); font-weight: 600;
-          font-size: 15px; transition: background 0.25s ease, border-color 0.25s ease;
-        }
-        .lp-proof .lpz-cta:hover { background: rgba(var(--lp-fg), 0.08); border-color: rgba(var(--lp-fg), 0.6); }
 
-        /* Fanned card stack — 3 faded decorative cards behind, one front card with the
-           hero stat. Fixed pixel box (not %) so the rotated/offset cards don't clip.
-           Clickable prev/next arrows + dots cycle the front card through all of "stats". */
-        .lpz-col--fan { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        /* No overflow clip here. One was added when the swap threw the card 300px sideways
-           (it had to be stopped before it crossed the copy column); the card now tucks back
-           into the deck and never leaves the fan's own footprint, so clipping would only
-           risk cutting the front card's 60px-blur drop shadow. */
-        .lpz-fan-wrap { display: flex; align-items: center; justify-content: center; }
-        /* Arrows + dots on one row. The gap looks far too small at 4px, but the dots either
-           side of it carry an 18px negative margin (see .lpz-fan__dot below) that shrinks
-           their box inward, so the SEEN gap between an arrow and the nearest dot is ~22px. */
-        .lpz-fan__nav { display: flex; align-items: center; gap: 4px; }
-        /* Two classes, not one: the sitewide ".lp-root button { color: var(--lp-text) }"
-           base rule outranks a single class and would otherwise win the color here — the
-           same trap the .lp-fh__cta rule was written to dodge. */
-        .lp-proof .lpz-fan__arrow {
-          width: 42px; height: 42px; flex-shrink: 0;
-          border-radius: 50%;
-          display: grid; place-items: center;
-          border: 1px solid rgba(var(--lp-fg), 0.2);
-          background: transparent;
-          color: var(--lp-text);
-          cursor: pointer;
-          transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
-        }
-        .lp-proof .lpz-fan__arrow:hover {
-          background: #7387FF; border-color: #7387FF; color: #fff; transform: scale(1.08);
-        }
-        .lpz-fan__dots { display: flex; align-items: center; gap: 8px; }
-        /* 44px HIT AREA around an 8px dot. These are real buttons and the only non-drag way to
-           switch the three proof stats, but at a literal 8x8 with an 8px gap they were far under
-           any usable touch size. The padding grows the button to 44px while background-clip:
-           content-box keeps the painted dot at 8px — so the target grows and the visual doesn't.
-           The negative margin cancels the extra box so the dots' spacing stays as designed. */
-        .lpz-fan__dot {
-          width: 44px; height: 44px; padding: 18px; margin: -18px; box-sizing: border-box;
-          border-radius: 50%; cursor: pointer; background-clip: content-box;
-          border: none; background-color: rgba(var(--lp-fg), 0.25); transition: background-color 0.2s ease, transform 0.2s ease;
-        }
-        /* background-COLOR, not the background shorthand — the shorthand resets background-clip
-           back to border-box, which would paint the whole 44px hit area as a solid circle. */
-        .lpz-fan__dot.is-active { background-color: #7387FF; transform: scale(1.3); }
-        /* perspective is what turns the swap's translateZ into actual depth instead of a
-           no-op — without it the browser flattens Z and the card just fades. Short-ish
-           (900px against a 340px card) on purpose: a long lens barely separates the card
-           from the stack, and the whole point is that you can see it drop back. */
-        .lpz-fan { position: relative; width: 340px; height: 400px; perspective: 900px; }
-        /* Same blue family as the front card (not a neutral gray) so the stack reads as
-           one card fanned behind itself, not unrelated pale cards behind a blue one —
-           opacity alone (below) is what fades them back into the stack. */
-        .lpz-fan__card {
-          position: absolute; inset: 0;
-          border-radius: 28px;
-          background: linear-gradient(160deg, #4452f0 0%, #07074e 100%);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          /* Explicit z-index so the OUTGOING front card can be sent below the ghosts
-             (fanSwapVariants.exit sets zIndex 0) and genuinely disappear into the pile.
-             Without a stacking order here, DOM order alone would keep the exiting card
-             painted on top of them no matter what its z-index was. */
-          z-index: 1;
-        }
-        .lpz-fan__card--1 { transform: rotate(-12deg) translateX(-22px); opacity: 0.35; }
-        /* Rotating a 260x300 card by 12deg widens its bounding box to ~316px; with the extra
-           -22px shift the back card reached ~50px past its own box, which is exactly the
-           gutter it has at 360px — so it grazed the bezel there and was sliced below that.
-           Easing both the angle and the offset pulls it back inside on the smallest screens. */
-        @media (max-width: 400px) {
-          .lpz-fan__card--1 { transform: rotate(-9deg) translateX(-12px); }
-        }
-        .lpz-fan__card--2 { transform: rotate(-6deg) translateX(-11px); opacity: 0.5; }
-        .lpz-fan__card--3 { transform: rotate(6deg) translateX(11px); opacity: 0.5; }
-        /* Carries the tuck-into-the-deck animation for a stat swap. Absolutely positioned
-           over the whole fan box so the outgoing and incoming cards stack on top of each
-           other instead of sitting side by side and doubling the layout width mid-
-           transition. The ghost cards behind it stay put — only this one moves.
-           z-index 2 keeps the live card above the ghosts (z-index 1); the exit variant
-           overrides it to 0 to send the outgoing one underneath them. */
-        .lpz-fan__swap { position: absolute; inset: 0; z-index: 2; }
-        /* Front card is intentionally always dark (a "hero stat chip"), independent of
-           theme — same idea as the dark pill buttons on light cards elsewhere on this page. */
-        .lpz-fan__card--front {
+        /* The panel itself. Painted in the site palette (periwinkle #7387FF wash, navy
+           #1c1b4b ink) rather than the mint of the reference shot, and pinned to those
+           literals in both themes — same call already made for the dark stat chips and the
+           dark pill buttons that sit on light cards elsewhere on this page: it's a fixed
+           piece of art, not themed chrome. That is also why each rule carries the .lp-proof
+           prefix — the global reset (".lp-root h2, p, span, ... { color: var(--lp-text) }")
+           outranks a single class and would repaint this whole panel white if the root ever
+           went back to data-theme="dark". */
+        .lpz {
+          position: relative;
+          display: grid;
+          grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr) auto;
+          align-items: center;
+          gap: clamp(28px, 4.2vw, 76px);
+          padding: clamp(38px, 4.4vw, 68px) clamp(30px, 3.6vw, 62px);
+          border-radius: clamp(26px, 2.4vw, 42px);
+          border: 1px solid rgba(255, 255, 255, 0.7);
+          /* Site palette, not the mint of the reference shot: a periwinkle wash of the
+             brand accent (#7387FF) deepening toward the navy end (#1c1b4b), plus a soft
+             white bloom behind the heading so the corner doesn't read as flat paint. */
+          background:
+            radial-gradient(120% 150% at 8% 12%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 48%),
+            linear-gradient(104deg, #e7e9ff 0%, #d9deff 34%, #c7cfff 66%, #d8dcff 100%);
+          box-shadow: 0 30px 70px -34px rgba(28, 27, 75, 0.45);
           overflow: hidden;
-          background: linear-gradient(160deg, #4452f0 0%, #07074e 100%);
-          border-color: rgba(255,255,255,0.14);
-          box-shadow: 0 30px 60px -20px rgba(7,7,78,0.55);
-          cursor: grab; touch-action: pan-y;
         }
-        .lpz-fan__card--front:active { cursor: grabbing; }
-        /* Absolutely positioned so the outgoing/incoming stat overlap during the
-           depth-crossfade (AnimatePresence) instead of the card resizing/jumping. */
-        .lpz-fan__content {
-          position: absolute; inset: 0;
-          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        .lp-proof .lpz-heading {
+          margin: 0;
+          font-family: var(--font-head); font-weight: 500;
+          /* Three hand-broken lines carry this layout, so the type has to stay big without
+             ever wrapping a fourth time — hence its own clamp rather than --lp-fs-display. */
+          font-size: clamp(30px, 3.5vw, 62px);
+          line-height: 1.06; letter-spacing: -1.2px;
+          color: #1c1b4b;
         }
-        .lp-proof .lpz-fan__value {
+        .lp-proof .lpz-heading em { font-style: normal; color: #4452f0; }
+        .lp-proof .lpz-desc {
+          margin: 0 0 26px;
+          font-family: var(--font-body);
+          font-size: clamp(14px, 1.05vw, 17px);
+          line-height: 1.6;
+          color: rgba(28, 27, 75, 0.78);
+          max-width: 46ch;
+        }
+        .lpz-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        /* Both pills are two classes deep for the same specificity reason as above — the
+           sitewide ".lp-root button { color: var(--lp-text) }" base rule beats one class. */
+        .lp-proof .lpz-cta {
+          display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+          cursor: pointer; padding: 15px 28px; border-radius: 100px;
+          font-family: var(--font-body); font-weight: 600; font-size: 15px;
+          border: 1px solid transparent;
+          transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.25s ease;
+        }
+        /* Same navy-to-indigo pill the rest of the page uses for its primary action, so
+           this CTA doesn't read as a different button family from the hero's. */
+        .lp-proof .lpz-cta--dark {
+          background: linear-gradient(180deg, #2b2a6d 0%, #07074e 100%);
+          color: #fff;
+          box-shadow: 0 12px 26px -12px rgba(7, 7, 78, 0.8);
+        }
+        .lp-proof .lpz-cta--dark:hover {
+          transform: translateY(-2px);
+          background: linear-gradient(180deg, #4452f0 0%, #1c1b4b 100%);
+          box-shadow: 0 18px 34px -14px rgba(7, 7, 78, 0.85);
+        }
+        .lp-proof .lpz-cta--light {
+          background: #fff; color: #1c1b4b;
+          box-shadow: 0 10px 22px -14px rgba(28, 27, 75, 0.65);
+        }
+        .lp-proof .lpz-cta--light:hover { transform: translateY(-2px); background: #f4f5ff; }
+
+        /* Award shields — one per stat, stacked down the right edge.
+           Shape: the box is rounded normally and clip-path only removes the two bottom
+           corners, leaving a downward point. The drop shadow is a filter, not box-shadow,
+           because clip-path would cut a box-shadow off at the same outline; a filter is
+           applied after the clip and so traces the shield. */
+        .lpz-col--badges { display: flex; flex-direction: column; gap: 14px; }
+        .lpz-badge {
+          width: clamp(96px, 8vw, 122px);
+          padding: 10px 10px 26px;
+          border-radius: 10px;
+          background: linear-gradient(178deg, #ffffff 0%, #ffffff 62%, #eef0fb 100%);
+          clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), 50% 100%, 0 calc(100% - 18px));
+          filter: drop-shadow(0 12px 20px rgba(28, 27, 75, 0.28));
+          display: flex; flex-direction: column; align-items: center; gap: 5px;
+          text-align: center;
+        }
+        .lp-proof .lpz-badge__brand {
+          font-family: var(--font-body); font-weight: 700;
+          font-size: 8px; letter-spacing: 0.2px; color: #1c1b4b;
+        }
+        .lp-proof .lpz-badge__brand em { font-style: normal; color: #7387FF; }
+        .lp-proof .lpz-badge__value {
           font-family: var(--font-head); font-weight: 700;
-          font-size: var(--lp-fs-stat); line-height: 1; color: #fff;
+          /* The stat strings vary a lot in length ("100cr+" vs "10,000+"), so this is sized
+             for the longest one — the shield width is fixed and a wrap would break it. */
+          font-size: clamp(15px, 1.35vw, 20px); line-height: 1; color: #07074e;
         }
-        /* Kept even though CountUp (which rendered an unclassed inner <span> for the
-           animated digits) is gone: the value is a plain string now, but the global reset
-           ".lp-root span { color: var(--lp-text) }" would still win over inherited white
-           for any nested span a future stat string introduces. Cheap insurance. */
-        .lp-proof .lpz-fan__value span { color: #fff; }
-        .lp-proof .lpz-fan__label {
-          font-family: var(--font-body); font-size: 17px; color: rgba(255,255,255,0.85);
+        .lp-proof .lpz-badge__label {
+          display: block; width: calc(100% + 20px); margin: 2px -10px 0;
+          padding: 5px 6px;
+          background: #1c1b4b; color: #fff;
+          font-family: var(--font-body); font-weight: 600;
+          font-size: 7.5px; line-height: 1.25; letter-spacing: 0.3px; text-transform: uppercase;
         }
-        @media (max-width: 900px) {
-          .lp-proof { padding: 90px 6% 100px; }
-          .lpz { grid-template-columns: 1fr; gap: 48px; text-align: left; }
-          .lpz-desc { max-width: none; }
-          .lpz-fan { width: 260px; height: 300px; margin: 0 auto; }
-          .lpz-fan__value { font-size: 44px; }
-          /* .lp-proof prefix is required, not stylistic: the base rule is
-             ".lp-proof .lpz-fan__arrow" (two classes), so a bare ".lpz-fan__arrow" here
-             loses on specificity and the 42px desktop size would survive on mobile. */
-          .lp-proof .lpz-fan__arrow { width: 38px; height: 38px; }
+        .lp-proof .lpz-badge__year {
+          font-family: var(--font-body); font-size: 8px; font-weight: 600;
+          letter-spacing: 0.5px; color: rgba(28, 27, 75, 0.65);
+        }
+        .lp-proof .lpz-badge__stars { font-size: 8px; letter-spacing: 2px; color: #7387FF; }
+
+        /* Below ~1180px the three columns can't all hold their measure, so the heading
+           takes the full width and the copy + shields share the row under it. */
+        @media (max-width: 1180px) {
+          .lpz { grid-template-columns: minmax(0, 1fr) auto; gap: 30px clamp(24px, 3.5vw, 48px); }
+          .lpz-col--text { grid-column: 1 / -1; }
+        }
+        @media (max-width: 760px) {
+          .lp-proof { padding: 90px 5% 100px; }
+          .lpz { grid-template-columns: 1fr; padding: 34px 24px 30px; gap: 24px; }
+          .lpz-col--text { grid-column: auto; }
+          /* The heading's three hard-broken lines are what set the panel's minimum width,
+             so its own floor drops below the desktop clamp's 30px — at 320px the line
+             "to get great UGC" would otherwise be wider than the panel's content box. */
+          .lp-proof .lpz-heading { font-size: clamp(25px, 7.2vw, 40px); letter-spacing: -0.6px; }
+          .lp-proof .lpz-desc { max-width: none; margin-bottom: 22px; }
+          .lp-proof .lpz-cta { flex: 1 1 140px; padding: 14px 20px; }
+          /* Shields go side by side rather than stacking — three of them in a column would
+             out-height the copy they're meant to sit beside. */
+          .lpz-col--badges { flex-direction: row; justify-content: flex-start; gap: 10px; }
+          .lpz-badge { flex: 1 1 0; width: auto; max-width: 118px; }
         }
 
         .lp-proof__header {
@@ -8851,11 +8900,11 @@ export default function Landing() {
           box-shadow: none;
         }
         .lp-proof__big-value {
-          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;
+          font-family: var(--font-head); font-weight: 700;
           letter-spacing: -2px; font-size: clamp(64px, 9vw, 132px); line-height: 1; color: var(--lp-text);
         }
         .lp-proof__big-label {
-          margin-top: 18px; font-family: var(--font-body, 'Inter', sans-serif);
+          margin-top: 18px; font-family: var(--font-body);
           font-size: 17px; color: var(--lp-text-muted); font-weight: 600;
         }
         /* Cards hug their content and spread to match the left card's height. */
@@ -8879,12 +8928,12 @@ export default function Landing() {
         }
         /* Big readable value, label underneath — no overlap. */
         .lp-proof__card-value {
-          font-family: var(--font-head, 'Plus Jakarta Sans', sans-serif); font-weight: 800;
+          font-family: var(--font-head); font-weight: 700;
           letter-spacing: -1.5px; font-size: clamp(42px, 5.2vw, 68px); line-height: 1; color: var(--lp-text);
         }
         .lp-proof__card.is-active .lp-proof__card-value { color: #4452f0; }
         .lp-proof__card-label {
-          font-family: var(--font-body, 'Inter', sans-serif);
+          font-family: var(--font-body);
           font-size: 16px; color: var(--lp-text-muted); font-weight: 600;
         }
         @media (max-width: 900px) {
@@ -9674,22 +9723,62 @@ export default function Landing() {
           font-weight: 500;
         }
 
-        /* Audit rows on TABLET (769–900px): centered copy block, rows keep their own layout
-           (the row list is already full-width/stacked by nature). */
+        /* Audit cards on TABLET (769–900px): simple vertical stack (the desktop 220vh
+           scroll-peel needs a tall pinned runway that's awkward at this width). */
         @media (min-width: 769px) and (max-width: 900px) {
           .lp-audit { min-height: auto; padding: 80px 6%; }
           .lp-audit__inner { position: static; top: auto; }
-          .lp-audit__copy { align-items: center; text-align: center; max-width: 100%; margin: 0 auto 40px; }
-          .lp-audit__subtitle { max-width: 480px; }
+          .lp-audit__grid {
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+            min-height: auto; margin: 40px auto; max-width: 100%; perspective: none;
+          }
+          .lp-audit-card {
+            position: static !important; transform: none !important;
+            width: 100%; max-width: 420px; min-height: auto;
+          }
         }
-        /* Audit rows on MOBILE (≤768px): tighter row padding/gap, centered copy. */
+        /* Audit cards on MOBILE (≤768px): keep the absolute FAN (centred via flex
+           static-position), sized for a phone, and give the section a TALL sticky runway so the
+           cards peel by SCROLL (Q1 first, then Q2, then Q3 — heroStatic branch in the JSX).
+           No position:static / transform:none here (that kills the fan). */
         @media (max-width: 768px) {
-          .lp-audit { min-height: auto; padding: 100px 6%; }
-          .lp-audit__inner { position: relative; top: auto; padding-top: 0; }
-          .lp-audit__copy { align-items: center; text-align: center; max-width: 100%; margin: 0 auto 32px; }
-          .lp-audit__subtitle { max-width: 100%; }
-          .lp-audit-row { gap: 14px; padding: 24px 0; }
-          .lp-audit-row__go { width: 32px; height: 32px; }
+          /* Shorter runway than desktop: enough pinned scroll for a smooth peel, but trimmed so
+             the section unpins right as the last card leaves — no tall empty pinned tail. */
+          .lp-audit { min-height: 185vh; padding: 0 6%; }
+          /* Promote the sticky inner to its own GPU layer so the cards rising over it
+             composite independently instead of repainting this whole pinned area each
+             scroll frame (that repaint was the Q2 stutter). */
+          .lp-audit__inner {
+            position: sticky; top: 60px; padding-top: 22px;
+            transform: translateZ(0);
+          }
+          .lp-audit__subtitle { max-width: 100%; margin-bottom: 0; }
+          .lp-audit__grid {
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: row; gap: 0;
+            min-height: clamp(360px, 54vh, 460px); margin: 14px auto 0; max-width: 100%;
+            /* No perspective on mobile: the cards only do a flat 2D translate + rotate, so
+               perspective adds nothing visually but stops the rising cards from compositing
+               cleanly on phone GPUs — which is what made Q2 lag. */
+            perspective: none;
+          }
+          .lp-audit-card {
+            width: 86%; max-width: 270px; min-height: 0; padding: 26px 24px 22px;
+            box-shadow: 0 8px 20px rgba(28, 27, 75, 0.20);
+          }
+          /* On the narrow phone card BOTH lines wrap (the single-line treatment is desktop-only),
+             so the card stays a proper portrait shape instead of being stretched wide to hold a
+             long line. Bump the sizes back up since wrapping gives them the room. */
+          .lp-root .lp-audit-card__title {
+            white-space: normal;
+            font-size: 1rem;
+          }
+          .lp-root .lp-audit-card__sub {
+            white-space: normal;
+            font-size: 1.5rem;
+            line-height: 1.2;
+          }
         }
 
         @media (max-width: 900px) {
@@ -9782,8 +9871,8 @@ export default function Landing() {
             backdrop-filter: none !important;
           }
           /* Cheaper shadows on the cards that SCROLL/animate (big blur radii repaint every frame). */
-          .lp-showcase-card, .lp-audit__floatcard, .lp-achieve-card, .lp-tcard, .lp-brand-item__icon {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32) !important;
+          .lp-showcase-card, .lp-audit-card, .lp-achieve-card, .lp-tcard, .lp-brand-item__icon {
+            box-shadow: 0 4px 12px rgba(28, 27, 75, 0.20) !important;
           }
           /* content-visibility:auto = the browser skips rendering off-screen sections entirely (the
              single biggest fast-scroll win). ONLY static sections here — the scroll-PINNED ones
@@ -9810,11 +9899,11 @@ export default function Landing() {
           backdrop-filter: none !important;
         }
         .lp-perf-lite .lp-showcase-card,
-        .lp-perf-lite .lp-audit__floatcard,
+        .lp-perf-lite .lp-audit-card,
         .lp-perf-lite .lp-achieve-card,
         .lp-perf-lite .lp-tcard,
         .lp-perf-lite .lp-brand-item__icon {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32) !important;
+          box-shadow: 0 4px 12px rgba(28, 27, 75, 0.20) !important;
         }
 
         /* Respect the OS "reduce motion" preference for everyone — also halts the

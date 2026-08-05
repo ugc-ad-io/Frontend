@@ -1,9 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../App';
 import {
   ArrowRight,
-  Play,
   LogIn,
   Menu,
   X,
@@ -20,34 +18,36 @@ import {
   BatteryFull,
   Bell,
   Check,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // -- Static content (edit freely) ------------------------------------------
 
-// Brand "logo wall" -- real client/brand logos shipped in /public/logo. Each renders inside a
-// light tile (see .cl-brands__logo) so mixed-background logos (transparent, white-bg, dark) all
-// read cleanly on the dark strip.
-// `dark: true` marks logos whose artwork is black/dark — they'd vanish on the dark strip, so
-// only those get flipped to white (see .cl-brands__logo--dark). Colored logos render untouched.
+// Brand "logo wall" -- real client/brand logos shipped in /public/logo. Every logo renders in
+// its own colours, untouched, directly on the cream page background.
+// (The old `dark: true` flag is gone. It flipped black artwork to a white silhouette, which was
+// right back when this strip sat on a dark band — on the current light page it made those seven
+// logos near-invisible. Black artwork reads fine on cream, so nothing needs flipping now.)
 const BRANDS = [
   { name: 'Awfis', img: '/bg/Awfis-new-logo-removebg-preview.png', small: true },
   { name: 'Daisen', img: '/bg/DAISEN-LOGO-PNG-2-1024x1024-removebg-preview.png' },
-  { name: 'Sephora', img: '/bg/Sephora-Logo.jpg-removebg-preview.png', dark: true },
+  { name: 'Sephora', img: '/bg/Sephora-Logo.jpg-removebg-preview.png' },
   { name: 'Amazon', img: '/bg/amazon-logo-amazon-logo-white-background-vector-format-avaliable-124289859-removebg-preview.png' },
   { name: 'Paavi', img: '/bg/paavi-logo-1-removebg-preview.png' },
-  { name: 'Brand', img: '/bg/6b496a50-a54f-4a93-8156-4e1a7a99abe0-removebg-preview.png', dark: true },
+  { name: 'Brand', img: '/bg/6b496a50-a54f-4a93-8156-4e1a7a99abe0-removebg-preview.png' },
   { name: 'Brand', img: '/bg/6e758deba2689e4122853b0b5e079e8e.jpg-removebg-preview.png' },
-  { name: 'Brand', img: '/bg/ANI-20241114083006.jpg-removebg-preview.png', dark: true },
+  { name: 'Brand', img: '/bg/ANI-20241114083006.jpg-removebg-preview.png' },
   { name: 'Brand', img: '/bg/My-project-2024-04-08T145719.697-removebg-preview.png' },
   { name: 'Brand', img: '/bg/cropped-229x30-1-removebg-preview.png', small: true },
-  { name: 'Brand', img: '/bg/cropped-og-1-removebg-preview.png', dark: true, large: true },
-  { name: 'Brand', img: '/bg/images__1___1_-removebg-preview.png', dark: true, large: true },
-  { name: 'Brand', img: '/bg/images__2___1_-removebg-preview.png', dark: true, large: true },
+  { name: 'Brand', img: '/bg/cropped-og-1-removebg-preview.png', large: true },
+  { name: 'Brand', img: '/bg/images__1___1_-removebg-preview.png', large: true },
+  { name: 'Brand', img: '/bg/images__2___1_-removebg-preview.png', large: true },
   { name: 'Brand', img: '/bg/images__3___1_-removebg-preview.png' },
   { name: 'Brand', img: '/bg/images__5_-removebg-preview.png' },
   { name: 'Brand', img: '/bg/logo__1_-removebg-preview.png' },
-  { name: 'Brand', img: '/bg/unnamed-removebg-preview.png', dark: true },
+  { name: 'Brand', img: '/bg/unnamed-removebg-preview.png' },
 ];
 
 // Portrait thumbs for the hero gallery row -- local UGC clips from /public/creator.
@@ -137,6 +137,15 @@ function releaseGallery(v) {
     }
   }
 }
+// Play a clip WITH sound. It jumps the cap — the visitor asked for this specific card — but
+// still takes a slot so the normal off-screen release path cleans up after it.
+function playWithSound(v) {
+  _glWaiting.delete(v);
+  _glPlaying.add(v);
+  v.muted = false;
+  const p = v.play?.();
+  if (p && p.catch) p.catch(() => { v.muted = true; });
+}
 
 // Hero marquee card -- muted autoplay clip. The src is attached only once the card nears the
 // viewport (lazy), preload="none" so nothing fetches until it actually plays, and a global cap
@@ -194,60 +203,96 @@ function GalleryCard({ av, src, hidden }) {
   );
 }
 
-// Testimonial card -- styled like a TikTok phone screen; click to play with sound.
-// Rendered inside an auto-scrolling marquee, so no scroll-triggered fade (off-screen
+// Only one testimonial may have sound at a time; this mutes whichever one currently does.
+let _tcardMuteActive = null;
+
+// Testimonial card -- styled like a TikTok phone screen. The clip auto-plays MUTED while the
+// card is on screen (so the wall shows real video, not just its gradient) and a click toggles
+// sound. Rendered inside an auto-scrolling marquee, so no scroll-triggered fade (off-screen
 // copies must stay visible).
-function TestimonialCard({ name, handle, likes, comments, av, src, hidden }) {
+function TestimonialCard({ name, handle, likes, comments, av, src, photo, hidden }) {
   const ref = useRef(null);
-  const [playing, setPlaying] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
 
-  const toggle = () => {
-    const v = ref.current;
-    if (!v) return;
-    if (v.paused) {
-      v.muted = false;
-      v.play?.().then(() => setPlaying(true)).catch(() => {});
-    } else {
-      v.pause();
-      setPlaying(false);
-    }
-  };
+  // One mute callback per card, stable for the card's whole life — both the off-screen
+  // observer and the "only one card has sound" registry call this exact function, so the
+  // registry can always tell whether the card it points at is still the one with sound.
+  const muteRef = useRef(null);
+  if (!muteRef.current) {
+    muteRef.current = () => {
+      if (ref.current) ref.current.muted = true;
+      setSoundOn(false);
+      if (_tcardMuteActive === muteRef.current) _tcardMuteActive = null;
+    };
+  }
 
-  // Stop playback (and audio) when the card scrolls out of view.
+  // React's `muted` JSX prop is unreliable at setting the DOM property, so the browser can
+  // treat these as un-muted autoplay and BLOCK them (the card then shows only its gradient).
+  // Force muted imperatively so muted autoplay is always permitted.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.muted = true;
+    el.defaultMuted = true;
+  }, []);
+
+  // Play on screen / pause (and drop sound) off screen — shares the global decode cap with
+  // the hero gallery so we never decode more clips at once than the cap allows.
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
+    const mute = muteRef.current;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting && !v.paused) {
-          v.pause();
-          setPlaying(false);
+        if (entry.isIntersecting) {
+          playGalleryCapped(v);
+        } else {
+          mute();
+          releaseGallery(v);
         }
       },
-      { threshold: 0 },
+      { rootMargin: '150px', threshold: 0.01 },
     );
     io.observe(v);
-    return () => io.disconnect();
+    // On unmount, silence + release WITHOUT setState (the component is going away).
+    return () => {
+      io.disconnect();
+      v.muted = true;
+      if (_tcardMuteActive === mute) _tcardMuteActive = null;
+      releaseGallery(v);
+    };
   }, []);
+
+  // Click toggles SOUND, not playback — the clip is already rolling.
+  const toggleSound = () => {
+    const v = ref.current;
+    if (!v) return;
+    if (soundOn) { muteRef.current(); return; }
+    if (_tcardMuteActive) _tcardMuteActive();   // silence whichever card had sound
+    playWithSound(v);
+    setSoundOn(true);
+    _tcardMuteActive = muteRef.current;
+  };
 
   return (
     <button
       type="button"
-      className={`cl-tcard${playing ? ' cl-tcard--playing' : ''}`}
-      onClick={toggle}
+      className="cl-tcard"
+      onClick={toggleSound}
       style={{ background: `linear-gradient(160deg, ${av[0]}, ${av[1]})` }}
-      aria-label={`${playing ? 'Pause' : 'Play'} ${name}'s video`}
+      aria-label={`${soundOn ? 'Mute' : 'Unmute'} ${name}'s video`}
       aria-hidden={hidden}
     >
       <video
         ref={ref}
         className="cl-tcard__media"
         src={src}
+        muted
         loop
         playsInline
-        preload="none"
-        onPause={() => setPlaying(false)}
-        onPlay={() => setPlaying(true)}
+        preload="auto"
+        disablePictureInPicture
+        onVolumeChange={(e) => setSoundOn(!e.currentTarget.muted)}
       />
 
       {/* Phone status bar */}
@@ -264,14 +309,36 @@ function TestimonialCard({ name, handle, likes, comments, av, src, hidden }) {
         <span className="cl-tcard__tab--active">For You</span>
       </div>
 
-      {/* Center play button */}
-      {!playing && (
-        <span className="cl-tcard__play"><Play size={22} fill="#1f2937" stroke="none" /></span>
-      )}
+      {/* Sound chip — the clip is always rolling, so this toggles audio, not playback.
+          Tucked top-right (the old centre play button now just covered the video). */}
+      <span className={`cl-tcard__sound${soundOn ? ' cl-tcard__sound--on' : ''}`}>
+        {soundOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+      </span>
 
       {/* Right action rail */}
       <div className="cl-tcard__rail">
+        {/* Profile picture. There are no creator headshots in the repo (public/creator/
+            holds only the .mp4s), so the default is the creator's OWN clip frozen on its
+            first frame — the same "preload=metadata + #t=0.1 seek" trick this codebase
+            already uses to get a poster out of a video without a separate .jpg. It's the
+            same URL as the card's video, so the browser serves it from cache rather than
+            re-fetching, and only one frame is ever decoded (it is never played).
+            Drop a real headshot in and pass `photo` on the TESTIMONIALS entry to override
+            it; the gradient stays underneath as the fallback if either fails to load. */}
         <span className="cl-tcard__avatar" style={{ background: `linear-gradient(135deg, ${av[0]}, ${av[1]})` }}>
+          {photo ? (
+            <img className="cl-tcard__avatar-media" src={photo} alt="" loading="lazy" />
+          ) : (
+            <video
+              className="cl-tcard__avatar-media"
+              src={`${src}#t=0.1`}
+              muted
+              playsInline
+              preload="metadata"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          )}
           <span className="cl-tcard__follow"><Plus size={11} /></span>
         </span>
         <span className="cl-tcard__action"><Heart size={26} fill="#fff" stroke="none" /><b>{likes}</b></span>
@@ -286,7 +353,6 @@ function TestimonialCard({ name, handle, likes, comments, av, src, hidden }) {
 
 export default function CreatorLanding() {
   const navigate = useNavigate();
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(-1);
   // Mobile flag — used to auto-play the product video (no hover on touch devices).
@@ -300,14 +366,14 @@ export default function CreatorLanding() {
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   }, []);
-  // Theme is global now (controlled from the home page); this page just follows it.
-  const { theme } = useTheme();
+  // This page is light-only, exactly like the home landing page (which also hardcodes
+  // data-theme="light"). It used to follow the global theme, which meant a visitor whose
+  // site-wide theme was dark landed on a black "Join as Creator" page that didn't match
+  // the landing page they came from.
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // The scroll listener that lived here only existed to toggle `cl-nav--scrolled` on the
+  // top bar. With the bar gone it had no consumer, so it was a listener running on every
+  // scroll frame and re-rendering this whole page for nothing — removed along with it.
 
   // Every CTA on this page drives the visitor to the main signup form (creator role).
   const handleJoin = () => {
@@ -326,7 +392,7 @@ export default function CreatorLanding() {
   const NAV_LINKS = ['Explore Creators', 'Pricing', 'Intelligence', 'Others'];
 
   return (
-    <div className="cl-root" data-theme={theme}>
+    <div className="cl-root" data-theme="light">
       {/* -- Animated background blobs ------------------------------------ */}
       <div className="cl-bg" aria-hidden="true">
         <div className="cl-blob cl-blob--1" />
@@ -334,14 +400,11 @@ export default function CreatorLanding() {
         <div className="cl-blob cl-blob--3" />
       </div>
 
-      {/* -- Top bar: brand logo ----------------------------------------- */}
-      <header className={`cl-nav${scrolled ? ' cl-nav--scrolled' : ''}`}>
-        <div className="cl-nav__inner">
-          <button className="cl-brand" onClick={() => navigate('/')} aria-label="UGCad.io home">
-            <img src="/newlogo.png" alt="UGCad.io" className="cl-brand__logo" />
-          </button>
-        </div>
-      </header>
+      {/* Top bar removed. It held nothing but the UGCad.io lockup, and that logo is 184px
+          tall inside a 56px fixed bar (deliberately, to match the Landing navbar) — so on
+          this page it hung well below the bar and sat on top of the section beneath it.
+          With no links or actions left in the bar there was nothing else for it to carry.
+          The footer still links back to the main site. */}
 
       {/* -- Hero --------------------------------------------------------- */}
       <section className="cl-hero">
@@ -412,10 +475,10 @@ export default function CreatorLanding() {
               <div key={li} className={`cl-brands__line${li === 0 ? ' cl-brands__line--top' : ' cl-brands__line--bottom'}`}>
                 {/* Items are duplicated so the mobile marquee loops seamlessly (translateX -50%).
                     The second set is hidden on desktop via .cl-brands__logo--dup. */}
-                {[...line, ...line].map(({ name, img, dark, small, large }, i) => (
+                {[...line, ...line].map(({ name, img, small, large }, i) => (
                   <span
                     key={`${name}-${i}`}
-                    className={`cl-brands__logo${dark ? ' cl-brands__logo--dark' : ''}${small ? ' cl-brands__logo--small' : ''}${large ? ' cl-brands__logo--large' : ''}${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
+                    className={`cl-brands__logo${small ? ' cl-brands__logo--small' : ''}${large ? ' cl-brands__logo--large' : ''}${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
                     aria-hidden={i >= line.length}
                   >
                     <img
@@ -905,10 +968,14 @@ export default function CreatorLanding() {
           --cl-purple: #4f63e6;          /* accent -- deepened so it reads on light */
           --cl-purple-deep: #3d51d6;
           --cl-fg: 28, 27, 75;           /* foreground RGB (navy) for text/borders/surfaces */
-          --cl-bg: #ecebf8;              /* page background (light lavender) */
+          /* Same warm cream as the home landing page (--lp-page-bg) so a visitor coming
+             from "Join as Creator" lands on the identical surface, not a different white. */
+          --cl-bg: #fefcf9;
           --cl-text: #1c1b4b;            /* solid headings/body text */
-          --cl-nav-bg: rgba(255,255,255,0.82);
-          --cl-panel: rgba(255,255,255,0.7);   /* darker mockup panels */
+          --cl-nav-bg: rgba(254,252,249,0.86);
+          /* Solid white panels: on cream, a 70%-white panel washed out against the page,
+             so cards/mockups lost their edge. White still separates from cream. */
+          --cl-panel: #ffffff;
           --cl-blob: linear-gradient(135deg, #d8d0ff 0%, #c3b8ff 100%);
           --cl-blob-op: 0.5;
           min-height: 100vh;
@@ -1041,7 +1108,10 @@ export default function CreatorLanding() {
              tall video gallery instead of overflowing — which kept the below-fold category pills
              from overlapping the videos. Phones (≤480px) override this to height:auto below. */
           min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start;
-          gap: clamp(10px, 2vh, 22px); padding: clamp(120px, 16vh, 180px) 6% 0; }
+          /* Top padding was clamp(120px, 16vh, 180px) — clearance for the fixed top bar and
+             the 184px logo that overhung it. Both are gone, so that much space now reads as
+             a blank band above the headline; this keeps a normal section inset instead. */
+          gap: clamp(10px, 2vh, 22px); padding: clamp(56px, 7vh, 88px) 6% 0; }
         .cl-hero__main { display: flex; flex-direction: column; justify-content: center;
           align-items: center; text-align: center; flex-shrink: 0; }
         .cl-hero__title { font-size: var(--fs-hero); font-weight: var(--fw-head); line-height: 1.06;
@@ -1081,24 +1151,19 @@ export default function CreatorLanding() {
           max-width: 1500px; margin: 0 auto; padding: 72px 3% 40px; }
         .cl-brands__line { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-evenly; gap: 20px; width: 100%; }
         .cl-brands__line--bottom { justify-content: center; gap: 36px; }
-        /* Background-removed (transparent) client logos sit directly on the dark strip — no tile.
-           Only black/dark artwork (tagged .cl-brands__logo--dark) is flipped to white so it reads;
-           colored logos render as-is. */
+        /* Background-removed (transparent) client logos sit directly on the cream page — no
+           tile, no filters. Every logo keeps its own brand colours, all the time. */
         .cl-brands__logo { display: inline-flex; align-items: center; justify-content: center;
-          flex-shrink: 0; height: 78px; padding: 0 12px; opacity: 0.9;
-          transition: opacity 0.2s, transform 0.25s ease; }
-        .cl-brands__icon { height: 62px; width: auto; max-width: 220px; object-fit: contain; flex-shrink: 0;
-          filter: grayscale(100%); transition: filter 0.25s ease; }
+          flex-shrink: 0; height: 78px; padding: 0 12px; opacity: 1;
+          transition: transform 0.25s ease; }
+        .cl-brands__icon { height: 62px; width: auto; max-width: 220px; object-fit: contain; flex-shrink: 0; }
         /* Oversized wordmarks (awfis, KUKU FM) scaled down to sit in line with the rest. */
         .cl-brands__logo--small .cl-brands__icon { height: 34px; }
         /* Undersized wordmarks (UBALANCE, Cristello, EULER) scaled up to match the rest. */
         .cl-brands__logo--large .cl-brands__icon { height: 82px; max-width: 260px; }
-        /* Already-white silhouettes (flipped so black artwork reads on the dark strip) have no
-           color to reveal -- grayscale is a no-op on them, hover just skips straight to opacity. */
-        .cl-brands__logo--dark .cl-brands__icon { filter: brightness(0) invert(1); }
-        .cl-brands__logo:hover { opacity: 1; transform: translateY(-3px); }
-        .cl-brands__logo:hover .cl-brands__icon { filter: grayscale(0%); }
-        .cl-brands__logo--dark:hover .cl-brands__icon { filter: brightness(0) invert(1); }
+        /* Hover is the lift only. No colour/grey change either way — the strip looks the
+           same with or without a pointer, so mobile (no :hover) matches desktop exactly. */
+        .cl-brands__logo:hover { transform: translateY(-3px); }
         /* Duplicate logos exist only to feed the mobile marquee loop -- hidden on desktop. */
         .cl-brands__logo--dup { display: none; }
         @media (prefers-reduced-motion: reduce) { .cl-brands__line { animation: none !important; } }
@@ -1165,34 +1230,49 @@ export default function CreatorLanding() {
         .cl-tcard::before { top: 0; height: 30%; background: linear-gradient(180deg, rgba(0,0,0,0.45), transparent); }
         .cl-tcard::after { bottom: 0; height: 38%; background: linear-gradient(0deg, rgba(0,0,0,0.5), transparent); }
 
+        /* Every text overlay on the phone card goes through --font-body. They inherited
+           whatever the button element defaulted to before (buttons do NOT inherit the page
+           font unless told to), so the status time, tabs, counts and handle were rendering
+           in the browser's UI font while the rest of the page used the brand face. */
         .cl-tcard__status { position: absolute; top: 11px; left: 14px; right: 14px; z-index: 2;
-          display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; font-weight: 700; }
+          display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; font-weight: 700;
+          font-family: var(--font-body); }
         .cl-tcard__statusicons { display: flex; align-items: center; gap: 4px; }
         .cl-tcard__tabs { position: absolute; top: 34px; left: 0; right: 0; z-index: 2;
           display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 0.8rem; font-weight: 600;
-          color: rgba(255,255,255,0.6); }
+          color: rgba(255,255,255,0.6); font-family: var(--font-body); }
         .cl-tcard__tab--active { color: #fff; position: relative; }
         .cl-tcard__tab--active::after { content: ''; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
           width: 18px; height: 2px; border-radius: 2px; background: #fff; }
 
-        .cl-tcard__play { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 2;
-          width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-          background: rgba(255,255,255,0.92); box-shadow: 0 4px 14px rgba(0,0,0,0.25); padding-left: 3px;
-          transition: transform 0.2s, opacity 0.2s; }
-        .cl-tcard:hover .cl-tcard__play { transform: translate(-50%,-50%) scale(1.06); }
+        /* Sound toggle — small glass chip under the status bar, out of the frame's way. */
+        .cl-tcard__sound { position: absolute; top: 56px; right: 10px; z-index: 3;
+          width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
+          justify-content: center; color: #fff !important; background: rgba(0,0,0,0.38);
+          border: 1px solid rgba(255,255,255,0.28); backdrop-filter: blur(6px);
+          transition: background 0.2s, transform 0.2s; }
+        .cl-tcard:hover .cl-tcard__sound { background: rgba(0,0,0,0.55); transform: scale(1.08); }
+        .cl-tcard__sound--on { background: rgba(255,255,255,0.92); color: #1f2937 !important;
+          border-color: rgba(255,255,255,0.92); }
 
         .cl-tcard__rail { position: absolute; right: 9px; bottom: 16px; z-index: 2; display: flex;
           flex-direction: column; align-items: center; gap: 16px; }
         .cl-tcard__avatar { position: relative; width: 34px; height: 34px; border-radius: 50%;
           border: 1.5px solid #fff; margin-bottom: 4px; }
+        /* Fills the circle. overflow stays VISIBLE on the parent — the follow "+" badge is
+           positioned bottom:-7px and has to hang outside — so the picture is clipped by its
+           own border-radius instead of by the parent. */
+        .cl-tcard__avatar-media { position: absolute; inset: 0; width: 100%; height: 100%;
+          object-fit: cover; border-radius: 50%; display: block; }
         .cl-tcard__follow { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
           width: 17px; height: 17px; border-radius: 50%; background: #fe2c55; color: #fff;
           display: flex; align-items: center; justify-content: center; }
         .cl-tcard__action { display: flex; flex-direction: column; align-items: center; gap: 3px;
           font-size: 0.68rem; font-weight: 700; color: #fff !important;
+          font-family: var(--font-body);
           filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4)); }
         .cl-tcard__handle { position: absolute; left: 14px; bottom: 18px; z-index: 2; font-size: 0.78rem;
-          font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+          font-weight: 700; font-family: var(--font-body); text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
 
         /* How it works -- bento steps */
         .cl-hiw { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; max-width: 1640px; margin: 0 auto; }
@@ -1441,7 +1521,7 @@ export default function CreatorLanding() {
              scroll frame. Drop the blur on mobile and use a near-opaque bar instead. */
           .cl-nav--scrolled { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
           .cl-root[data-theme="dark"] .cl-nav--scrolled { background: rgba(10,10,10,0.96); }
-          .cl-root:not([data-theme="dark"]) .cl-nav--scrolled { background: rgba(255,255,255,0.96); }
+          .cl-root:not([data-theme="dark"]) .cl-nav--scrolled { background: rgba(254,252,249,0.96); }
           .cl-section { padding: 60px 6%; }
           .cl-community { grid-template-columns: repeat(2, 1fr); }
           .cl-tcard { height: clamp(420px, 70vh, 560px); }
@@ -1477,7 +1557,9 @@ export default function CreatorLanding() {
           /* Let the hero shrink to its content instead of a full 100vh — otherwise
              the leftover viewport space below the video cards pushes the category
              pills far down the screen. Collapsing it brings the pills up under the cards. */
-          .cl-hero { padding: clamp(92px, 13vh, 130px) 5% 0; height: auto; min-height: 0; gap: 16px; }
+          /* Same trim as the desktop rule above (was clamp(92px, 13vh, 130px)) — the nav
+             it was clearing no longer exists on this page at any width. */
+          .cl-hero { padding: clamp(40px, 6vh, 64px) 5% 0; height: auto; min-height: 0; gap: 16px; }
           .cl-hero__title { line-height: 1.12; }
           .cl-hero__sub { font-size: 1.05rem; }
           .cl-hero__ctas { margin-top: 0px; }

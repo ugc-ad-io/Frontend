@@ -45,12 +45,12 @@ import {
   ShieldCheck,
   Package,
   Tag,
-  FileCheck,
-  FileText,
   Headphones,
   CalendarDays,
   ReceiptText,
   HelpCircle,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { motion, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
 
@@ -309,6 +309,7 @@ const CAN_HOVER = typeof window !== 'undefined' && !!window.matchMedia
 // instead — otherwise the whole grid would sit there as static images on a phone.
 function ShowcaseVideo({ src, poster, className }) {
   const ref = useRef(null);
+  const [muted, setMuted] = useState(true);
 
   // Touch only: play on screen, pause off screen.
   useEffect(() => {
@@ -326,15 +327,54 @@ function ShowcaseVideo({ src, poster, className }) {
     return () => io.disconnect();
   }, []);
 
+  // ONE audible clip at a time. Ten cards are on screen together, so unmuting a
+  // second without silencing the first would just stack overlapping audio.
+  // Every card listens for this event and re-mutes itself unless it is the sender.
+  useEffect(() => {
+    const onSolo = (e) => {
+      const v = ref.current;
+      if (!v || e.detail === v) return;
+      if (!v.muted) { v.muted = true; setMuted(true); }
+    };
+    window.addEventListener('lp-video-solo', onSolo);
+    return () => window.removeEventListener('lp-video-solo', onSolo);
+  }, []);
+
+  const toggleMute = (e) => {
+    // The button sits inside the hover area that drives play/pause; without this the
+    // click would also bubble to any future card-level handler.
+    e.preventDefault();
+    e.stopPropagation();
+    const v = ref.current;
+    if (!v) return;
+    const next = !v.muted;
+    v.muted = next;
+    setMuted(next);
+    if (!next) {
+      // Unmuting: make sure it is actually rolling (on hover devices preload is
+      // 'none', so a card the pointer never entered has nothing playing yet), and
+      // silence every other card.
+      v.play?.().catch(() => {});
+      window.dispatchEvent(new CustomEvent('lp-video-solo', { detail: v }));
+    }
+  };
+
   const onEnter = () => {
     const v = ref.current;
     if (!v || !CAN_HOVER) return;
-    v.muted = true;          // guarantee muted, or the autoplay policy rejects play()
+    // Only force-mute if the visitor hasn't deliberately turned sound ON for this card.
+    // (Muting is what lets autoplay policy accept play() in the first place.)
+    if (v.muted) v.muted = true;
     v.play?.().catch(() => {});
   };
   const onLeave = () => {
     const v = ref.current;
     if (!v || !CAN_HOVER) return;
+    // If the visitor explicitly unmuted this card, leave it alone — pausing and
+    // rewinding here would silently discard that choice. It also matters mechanically:
+    // load() re-applies the `muted` attribute, so the element would go back to muted
+    // while the button's state still said "unmuted", desyncing the icon.
+    if (!v.muted) return;
     v.pause?.();
     // load() rewinds AND puts the poster back up; without it the card freezes on whatever
     // frame the pointer happened to leave on. The file stays in the HTTP cache, so the
@@ -357,6 +397,15 @@ function ShowcaseVideo({ src, poster, className }) {
         preload={CAN_HOVER ? 'none' : 'metadata'}
         disablePictureInPicture
       />
+      <button
+        type="button"
+        className="lp-vcard__mute"
+        onClick={toggleMute}
+        aria-label={muted ? 'Unmute video' : 'Mute video'}
+        aria-pressed={!muted}
+      >
+        {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+      </button>
     </div>
   );
 }
@@ -384,7 +433,7 @@ const TOP_CREATORS = [
 // inside the card uses it, so the cards look exactly as they did.
 const PROMISE_CARDS = [
   { color: '#e9f4a1', accent: '#a3ba22', btnBg: '#16121f', btnText: '#fff', title: 'Your budget, your brief', sub: 'No agency retainer, no middleman.',
-    desc: 'You set the budget and write the brief. The spend goes to the creator and the work — not a markup.' },
+    desc: 'You set the budget and write the brief. The spend goes to the creator and the work, not a markup.' },
   { color: '#e5e2fb', accent: '#7d74dd', btnBg: '#16121f', btnText: '#fff', title: 'Creators for every niche', sub: 'Vetted talent, any category.',
     desc: 'Beauty, fitness, tech, food, fashion and more. Every creator is manually vetted before they touch a brief.' },
   { color: '#ffe1cf', accent: '#e08758', btnBg: '#16121f', btnText: '#fff', title: 'Delivery from 24 hours', sub: 'Your campaign never waits.',
@@ -1050,7 +1099,7 @@ const vsRows = [
   {
     label: 'Delivery Speed',
     icon: Package, themIcon: CalendarDays,
-    us:        { title: 'Under 10 days', desc: 'Tracked delivery, milestone by milestone' },
+    us:        { title: 'Starts from 24 hours', desc: 'Tracked delivery, milestone by milestone' },
     agencies:  { title: '4–6 weeks', desc: 'Long agency timelines and endless back-and-forth' },
     platforms: { title: 'Unpredictable', desc: 'No guaranteed timeline, depends on the creator' },
   },
@@ -1060,13 +1109,6 @@ const vsRows = [
     us:        { title: 'Commission only', desc: 'No retainers, no hidden markups' },
     agencies:  { title: '3–5× markup', desc: 'Agency markup plus a monthly retainer' },
     platforms: { title: 'Cheap but risky', desc: 'Lower cost, but quality and reliability vary a lot' },
-  },
-  {
-    label: 'Content Rights',
-    icon: FileCheck, themIcon: FileText,
-    us:        { title: 'Full usage rights', desc: 'You own the content you pay for' },
-    agencies:  { title: 'Negotiated', desc: 'Rights bundled into a bigger, costlier contract' },
-    platforms: { title: 'Limited / unclear', desc: 'Rights often restricted or cost extra' },
   },
   {
     label: 'Support',
@@ -1089,10 +1131,10 @@ const FIND_HIRE_VIDEOS = [
   { id: 7, label: 'Pets', src: '/home/video_13.mp4', brand: 'Pawfect', creator: 'Riya' },
 ];
 const FIND_HIRE_FEATURES = [
-  { icon: Shield, text: 'Tough vetting process — we only select the best creators.' },
+  { icon: Shield, text: 'Tough vetting process: we only select the best creators.' },
   { icon: Users, text: 'The most talented creators across every niche and age group.' },
   { icon: Sparkles, text: 'Diverse niches: beauty, fitness, food, tech, pets & more.' },
-  { icon: Zap, text: 'Fast turnaround — briefs matched and shot in days, not weeks.' },
+  { icon: Zap, text: 'Fast turnaround: briefs matched and shot in days, not weeks.' },
 ];
 
 const achieveItems = [
@@ -2971,10 +3013,6 @@ export default function Landing() {
                       poster={cldPoster(v.src)}
                     />
                   </div>
-                  <div className="lp-fh__meta">
-                    <span className="lp-fh__brand">{v.brand}</span>
-                    <span className="lp-fh__by">By {v.creator}</span>
-                  </div>
                 </motion.div>
               ))}
             </div>
@@ -3152,9 +3190,9 @@ export default function Landing() {
 
           <div className="lpz-col lpz-col--body">
             <p className="lpz-desc">
-              Every creator is manually reviewed before they touch a brief. Funds stay in
-              escrow until you approve the work. Names and contacts never leave the platform,
-              and delivery is tracked in under 10 days.
+              UGCAD.IO is your go-to partner for UGC. Whether you&rsquo;re a brand, agency or a
+              UGC creator, we bring together 7000+ talented creators to produce authentic,
+              scroll-stopping content for ads, websites, emails, and social channels.
             </p>
             <div className="lpz-actions">
               <button
@@ -3184,7 +3222,6 @@ export default function Landing() {
                 <span className="lpz-badge__brand">UGCad<em>.io</em></span>
                 <span className="lpz-badge__value">{s.value}</span>
                 <span className="lpz-badge__label">{s.label}</span>
-                <span className="lpz-badge__year">2026</span>
                 <span className="lpz-badge__stars" aria-hidden="true">★★★</span>
               </motion.div>
             ))}
@@ -3982,11 +4019,71 @@ export default function Landing() {
           padding: var(--lp-space-hero-top) 24px 32px;
           text-align: center; overflow: hidden;
         }
+        /* Shiny pill: glossy gradient fill + a specular sweep that glints across every few
+           seconds + a four-point sparkle at each end. Keeps the badge's amber palette
+           (it sits on the cream hero) rather than the green of the reference. */
         .nlp-badge {
-          display: inline-block; background: #f7d49b; color: #7a4711;
+          position: relative;
+          display: inline-block; color: #7a4711;
+          /* Was a flat #f7d49b. The gradient alone already reads as a lit surface, so the
+             pill still looks shiny in the frames between sweeps. */
+          background: linear-gradient(100deg, #f0c179 0%, #fce3b6 40%, #f7d49b 62%, #ecb968 100%);
           font-weight: 700; font-size: 13.5px; letter-spacing: .1px;
           padding: 8px 22px; border-radius: 999px; margin: 0 auto 16px;
           font-family: var(--font-body);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.8),
+                      inset 0 -1px 0 rgba(150, 98, 20, 0.18),
+                      0 6px 18px rgba(196, 138, 45, 0.26);
+          /* Creates a stacking context so ::before's z-index:-1 stays scoped to the badge:
+             it then paints ABOVE this element's own background but BELOW the label. */
+          isolation: isolate;
+        }
+        /* Specular sweep. On ::before with border-radius: inherit so the pill's own shape
+           clips it — overflow:hidden would have worked too, but it would equally have cut
+           off the sparkles on ::after, which are meant to overhang the edge. */
+        .nlp-badge::before {
+          content: '';
+          position: absolute; inset: 0; border-radius: inherit; z-index: -1;
+          /* Sized BELOW 100% on purpose: for a background smaller than its box, percentage
+             positioning is the intuitive kind (0% = flush left, 100% = flush right), so the
+             sweep travels predictably. At >100% the percentages resolve against negative
+             free space and the band barely moves — which is what a 220% size did here. */
+          background: linear-gradient(100deg,
+            transparent 0%, rgba(255,255,255,0.92) 50%, transparent 100%);
+          background-size: 45% 100%;
+          background-repeat: no-repeat;
+          animation: nlpBadgeSheen 4.2s ease-in-out infinite;
+        }
+        /* Sweeps across, then HOLDS off-pill for the rest of the cycle, so it reads as an
+           occasional glint rather than a continuously scrolling stripe. */
+        @keyframes nlpBadgeSheen {
+          0%        { background-position: -60% 0; }
+          45%, 100% { background-position: 160% 0; }
+        }
+        /* The two four-point sparkles. Drawn as an inline SVG star rather than crossed
+           gradients: multi-layer gradients position by each layer's top-left corner, so the
+           horizontal and vertical arms cannot be centred on each other without hand-computed
+           per-layer offsets — they rendered as an offset bar instead of a star. One square,
+           symmetric SVG sidesteps that entirely. Insets are negative so the stars can sit
+           over the pill's edge like the reference. */
+        .nlp-badge::after {
+          content: '';
+          position: absolute; inset: -8px; pointer-events: none;
+          background-repeat: no-repeat;
+          background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12 16 13 13 16 12 24 11 16 8 13 0 12 8 11 11 8 12 0Z' fill='%23ffffff'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12 16 13 13 16 12 24 11 16 8 13 0 12 8 11 11 8 12 0Z' fill='%23ffffff'/%3E%3C/svg%3E");
+          background-size: 26px 26px, 17px 17px;
+          background-position: 4px 50%, calc(100% - 8px) 30%;
+          filter: drop-shadow(0 0 5px rgba(255,255,255,0.95));
+          animation: nlpBadgeTwinkle 3.6s ease-in-out infinite;
+        }
+        @keyframes nlpBadgeTwinkle {
+          0%, 100% { opacity: 0.5; }
+          50%      { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nlp-badge::before, .nlp-badge::after { animation: none; }
         }
         .nlp-title {
           margin: 0 auto; max-width: 980px;
@@ -5865,6 +5962,37 @@ export default function Landing() {
            and the dark gradient that kept its icons legible are both gone — the card is now
            just the footage, with the poster still showing until the pointer arrives. */
         .lp-vcard__videowrap { position: absolute; inset: 0; }
+        /* Mute / unmute toggle, bottom-right of the clip. Always visible rather than
+           hover-only: on touch there is no hover, and it is the sole way to get audio.
+           Dark translucent pill so it reads on any frame the video happens to be showing. */
+        .lp-root .lp-vcard__mute {
+          position: absolute;
+          right: 8px;
+          bottom: 8px;
+          z-index: 3;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          border: none;
+          border-radius: 50%;
+          background: rgba(15, 15, 25, 0.62);
+          color: #fff;
+          cursor: pointer;
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          transition: background 0.18s ease, transform 0.18s ease;
+        }
+        .lp-root .lp-vcard__mute:hover { background: rgba(15, 15, 25, 0.82); transform: scale(1.06); }
+        /* Keyboard focus has to stay visible — the button sits on video, so the default
+           outline can vanish against a light frame. */
+        .lp-root .lp-vcard__mute:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+        /* Bigger tap target on touch, where 32px is below a comfortable minimum. */
+        @media (hover: none) {
+          .lp-root .lp-vcard__mute { width: 40px; height: 40px; }
+        }
         /* Category tag — sits ON the clip now (top-right), not in the meta row below.
            .lp-vcard__media (its actual parent, see JSX) is position:relative, so absolute
            resolves against the clip itself. It USED to render inside .lp-vcard__meta
@@ -6250,22 +6378,6 @@ export default function Landing() {
           font-weight: 600;
           letter-spacing: -0.01em;
         }
-        .lp-fh__meta {
-          display: flex;
-          align-items: baseline;
-          gap: 8px;
-        }
-        .lp-fh__brand {
-          font-family: var(--font-head);
-          font-weight: 700;
-          font-size: 1.05rem;
-          color: var(--lp-text);
-        }
-        .lp-fh__by {
-          font-family: var(--font-body);
-          font-size: 0.95rem;
-          color: var(--lp-text-muted);
-        }
         .lp-fh__side {
           display: flex;
           flex-direction: column;
@@ -6357,9 +6469,6 @@ export default function Landing() {
              smaller type plus flex-wrap so it breaks instead of overflowing. */
           .lp-fh__video-wrap { border-radius: 14px; }
           .lp-fh__badge { top: 8px; left: 8px; padding: 4px 9px; font-size: 0.64rem; }
-          .lp-fh__meta { flex-wrap: wrap; gap: 0 6px; }
-          .lp-fh__brand { font-size: 0.88rem; }
-          .lp-fh__by { font-size: 0.78rem; }
         }
 
         /* ── Stacked-card scroll deck (mobile only) ────────────────────────────
@@ -9184,7 +9293,10 @@ export default function Landing() {
         .lpz {
           position: relative;
           display: grid;
-          grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr) auto;
+          /* Two content columns on the top row; the badges now sit on their OWN row
+             underneath, spanning the full panel (see .lpz-col--badges). Previously they
+             were a third column beside the copy, which squeezed both. */
+          grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
           align-items: center;
           gap: clamp(28px, 4.2vw, 76px);
           padding: clamp(38px, 4.4vw, 68px) clamp(30px, 3.6vw, 62px);
@@ -9258,7 +9370,28 @@ export default function Landing() {
            corners, leaving a downward point. The drop shadow is a filter, not box-shadow,
            because clip-path would cut a box-shadow off at the same outline; a filter is
            applied after the clip and so traces the shield. */
-        .lpz-col--badges { display: flex; flex-direction: column; gap: 14px; }
+        /* Full-width row BELOW the copy, not a third column beside it. grid-column 1/-1
+           makes it span every track, so the three shields sit centred under the heading,
+           description and CTAs rather than competing with them for horizontal space. */
+        /* Scoped under .lp-proof to match every other rule in this section — a bare
+           .lpz-col--badges is only 0,1,0 and loses to anything more specific that also
+           touches layout on these columns. */
+        .lp-proof .lpz-col--badges {
+          grid-column: 1 / -1;
+          /* justify-self matters as much as justify-content here: as a GRID ITEM the box
+             would otherwise stretch (or align to start) within its track, and centring the
+             flex children inside a box that isn't itself full-width leaves the row sitting
+             off to one side. width:100% + justify-self:stretch pins the box across the whole
+             panel first, then justify-content centres the three shields inside it. */
+          justify-self: stretch;
+          width: 100%;
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: flex-start;
+          gap: clamp(14px, 2vw, 28px);
+          margin-top: clamp(6px, 1.4vw, 18px);
+        }
         .lpz-badge {
           width: clamp(96px, 8vw, 122px);
           padding: 10px 10px 26px;
@@ -9287,16 +9420,16 @@ export default function Landing() {
           font-family: var(--font-body); font-weight: 600;
           font-size: 7.5px; line-height: 1.25; letter-spacing: 0.3px; text-transform: uppercase;
         }
-        .lp-proof .lpz-badge__year {
-          font-family: var(--font-body); font-size: 8px; font-weight: 600;
-          letter-spacing: 0.5px; color: rgba(28, 27, 75, 0.65);
-        }
+        /* (.lpz-badge__year removed along with the "2026" line in the JSX.) */
         .lp-proof .lpz-badge__stars { font-size: 8px; letter-spacing: 2px; color: #7387FF; }
 
         /* Below ~1180px the three columns can't all hold their measure, so the heading
            takes the full width and the copy + shields share the row under it. */
         @media (max-width: 1180px) {
-          .lpz { grid-template-columns: minmax(0, 1fr) auto; gap: 30px clamp(24px, 3.5vw, 48px); }
+          /* Single column: heading, copy, then the shield row underneath. The old
+             "minmax(0,1fr) auto" existed to keep the badges as a side column, which they
+             no longer are. */
+          .lpz { grid-template-columns: 1fr; gap: 26px clamp(24px, 3.5vw, 48px); }
           .lpz-col--text { grid-column: 1 / -1; }
         }
         @media (max-width: 760px) {
@@ -9316,9 +9449,11 @@ export default function Landing() {
              rows on the narrowest phones instead of squashing. Each then grows to the full row
              width, so the label always has room. */
           .lp-proof .lpz-cta { flex: 1 1 140px; padding: 14px 20px; white-space: nowrap; }
-          /* Shields go side by side rather than stacking — three of them in a column would
-             out-height the copy they're meant to sit beside. */
-          .lpz-col--badges { flex-direction: row; justify-content: flex-start; gap: 10px; }
+          /* Row is now the base behaviour, so this only tightens the gap and lets the three
+             shields share the width evenly across a phone. */
+          /* Same .lp-proof scope as the base rule above, or this 0,1,0 selector would lose
+             to it and the phone layout would silently keep the desktop gap. */
+          .lp-proof .lpz-col--badges { justify-content: center; gap: 10px; margin-top: 4px; }
           .lpz-badge { flex: 1 1 0; width: auto; max-width: 118px; }
         }
 

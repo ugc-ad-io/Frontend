@@ -3430,15 +3430,45 @@ export default function Landing() {
           --lp-fg: 255, 255, 255;
           --lp-page-bg: #0a0a0a;
           --lp-text: #ffffff;
-          /* ── ONE content container width for every section, so content edges
-                line up vertically down the whole page (equal L/R gutters). ──── */
-          /* Fluid above ~1690px only. 78vw does not reach the 1320px floor until the window is
-             ~1692 wide, so every laptop up to and including 1600 keeps exactly the 1320px
-             column that was tuned earlier — nothing changes there. Past that the column grows
-             with the screen instead of leaving a fixed 1320px ribbon stranded in the middle
-             (620px of dead gutter each side at 2560), which is the "too much empty space on a
-             big screen" complaint. Capped at 1680 so line lengths stay readable. */
-          --lp-maxw: clamp(1320px, 78vw, 1680px);
+          /* ══════════════════════════════════════════════════════════════════════
+             ONE RESPONSIVE SYSTEM. Reference viewport 1536px — every token below
+             resolves to the page's reference value at exactly 1536 and scales in a
+             single controlled band around it:  ~-9% at 1024, ~+18% at 2560.
+
+             Every token is the same two-point clamp, so the whole page scales at ONE
+             rate. There are deliberately no per-component formulas: a section that
+             needs a different size picks a different TOKEN, it does not invent its
+             own curve. That is what stops one resolution improving while another
+             regresses.
+
+             Scaling is bounded on purpose. A 2560 monitor gets ~18% larger type and
+             spacing than 1536 — noticeably more generous, but not the 66% that a
+             naive vw-proportional scale would give.
+             ══════════════════════════════════════════════════════════════════════ */
+
+          /* Type scale. Values at 1536: 64 / 54 / 40 / 31 / 16 / 14. */
+          --lp-fs-display: clamp(34px, 46.7px + 1.125vw, 76px);   /* hero + biggest headings */
+          --lp-fs-h1:      clamp(30px, 39.4px + 0.949vw, 64px);   /* major section headings   */
+          --lp-fs-h2:      clamp(24px, 29.2px + 0.703vw, 47px);   /* section headings         */
+          --lp-fs-h3:      clamp(20px, 22.6px + 0.545vw, 37px);   /* card / row titles        */
+          --lp-fs-body:    clamp(15px, 11.7px + 0.281vw, 19px);
+          --lp-fs-small:   clamp(13px, 10.2px + 0.246vw, 17px);
+          --lp-fs-stat:    clamp(44px, 58.4px + 1.406vw, 94px);   /* big numerals only        */
+
+          /* Spacing scale. Values at 1536: 16 / 24 / 40 / 64 / 96, section 120. */
+          --lp-space-sm:      clamp(12px, 11.7px + 0.281vw, 19px);
+          --lp-space-md:      clamp(16px, 17.5px + 0.422vw, 28px);
+          --lp-space-lg:      clamp(24px, 29.2px + 0.703vw, 47px);
+          --lp-space-xl:      clamp(32px, 46.7px + 1.125vw, 76px);
+          --lp-space-2xl:     clamp(48px, 70.1px + 1.688vw, 113px);
+          --lp-space-section: clamp(56px, 87.6px + 2.11vw, 142px); /* vertical rhythm between sections */
+
+          /* ONE container width for the whole page — navbar, hero, sections, footer.
+             At 1536 this resolves to 1320px (the tuned reference). It stays 1320 up to
+             ~1535, grows with the screen past that, and stops at 1560 so line lengths
+             stay readable on a 2560 display. Sections consume it via .lp-container
+             semantics: width: min(92vw, var(--lp-maxw)). */
+          --lp-maxw: clamp(1320px, 86vw, 1720px);
           min-height: 100vh;
           font-family: var(--font-body);
           background: var(--lp-page-bg);
@@ -3655,7 +3685,7 @@ export default function Landing() {
         .lp-navbar__brand { justify-self: start; }
         /* Tighten the pill just before it would crowd the buttons, instead of letting it
            collide — covers the old 769–1045px dead zone. */
-        @media (max-width: 1120px) {
+        @media (max-width: 1024px) {
           .lp-navbar__links { gap: 18px; padding: 12px 20px; font-size: 0.88rem; }
           .lp-navbar__actions { gap: 14px; }
         }
@@ -3804,7 +3834,7 @@ export default function Landing() {
           /* Two-point form: the old 5.6vw slope hit its 60px cap at 1071px, so every screen
              from a small laptop to a 2560 monitor rendered the hero headline at exactly the
              same size. Same 36px floor for phones; now keeps growing to 76px at ~2400. */
-          font-size: clamp(36px, 22px + 1.6vw, 76px);
+          font-size: var(--lp-fs-display);
         }
         .nlp-title-accent { color: var(--lp-purple-700); }
         .nlp-sub {
@@ -3861,7 +3891,7 @@ export default function Landing() {
              was also off by 120px on its own terms: 7 cards + 6x44px gaps is 100vw + 120, not
              100vw.) Deriving width from a vh-based height ties the row to the space actually
              available, so it fills a tall screen and shrinks on a short one. */
-          flex: 0 0 calc(clamp(230px, 38vh, 400px) * 9 / 16);
+          flex: 0 0 clamp(150px, 11.5vw, 230px);
           margin: 0; border-radius: 26px; overflow: hidden;
           aspect-ratio: 9 / 16; background: #e7e0d2;
           /* "center center" — the cylinder scales cards about the row's shared centreline
@@ -3900,7 +3930,7 @@ export default function Landing() {
              - left: calc(50% + 500px) used .nlp-title's 980px max-width box, but the text only
                fills that box on very large screens, so on a ~1600px window the note sat far to
                the right of the visible headline (and was hidden outright below 1380px).
-           The text's right edge is ~50% + 4.95·font, and font is clamp(36px, 22px + 1.6vw, 76px)
+           The text's right edge is ~50% + 4.95·font, and font is var(--lp-fs-display)
            — so it expands as roughly 0.58W + 109. Matching that expression holds a constant
            ~20px gap from the words at EVERY width from 960 to 2560, which is why the hide-below
            rule is gone: there is no longer a width where it collides. */
@@ -3992,7 +4022,7 @@ export default function Landing() {
           height: 100vh;
           overflow: hidden;
           background: var(--lp-page-bg);
-          padding: 132px 4% 72px;
+          padding: calc(var(--lp-space-section) * 1.1) 4% calc(var(--lp-space-section) * 0.6);
           display: flex;
           align-items: stretch;
         }
@@ -4561,7 +4591,7 @@ export default function Landing() {
           /* 20px → 10px: the rule below now carries the separation, so the heading→deck
              stack lands at ~25px total instead of growing the section vertically. */
           margin: 0 0 10px; font-family: var(--font-head); font-weight: 500;
-          font-size: clamp(24px, 25px + 0.86vw, 44px); color: #171334; letter-spacing: -0.5px;
+          font-size: var(--lp-fs-h2); color: #171334; letter-spacing: -0.5px;
           text-align: center;
         }
         /* Short rule under the heading — one of only two purely decorative marks in
@@ -4585,7 +4615,7 @@ export default function Landing() {
            than 10% of its width. */
         .lp-promise-stage { display: block; }
         .lp-svc-aside, .lp-svc-rail { display: none; }
-        @media (min-width: 1340px) {
+        @media (min-width: 1280px) {
           /* No width override here any more — the wrap used to widen to min(1560px, 95%)
              to make room for the two side columns, which is exactly what made this section
              run wider than every other one on the page. It now keeps the shared
@@ -4673,7 +4703,7 @@ export default function Landing() {
         /* The rail only earns its column once there's width to spare — under 1400px the
            aside plus the deck already use it all, and squeezing the deck further to fit
            a 38px rail would cost more than the rail is worth. */
-        @media (min-width: 1400px) {
+        @media (min-width: 1280px) {
           .lp-promise-stage {
             grid-template-columns: clamp(190px, 16.5vw, 258px) minmax(0, 1fr) 38px;
           }
@@ -4697,7 +4727,7 @@ export default function Landing() {
         .lp-promise__num {
           flex-shrink: 0;
           font-family: var(--font-head); font-weight: 800;
-          font-size: clamp(26px, 24.7px + 0.92vw, 45px); color: #171334; line-height: 1.05;
+          font-size: var(--lp-fs-h2); color: #171334; line-height: 1.05;
         }
         .lp-promise__content {
           flex: 1 1 auto; min-width: 0; align-self: center;
@@ -4705,7 +4735,7 @@ export default function Landing() {
         }
         .lp-promise__title {
           margin: 0; font-family: var(--font-head); font-weight: 500;
-          font-size: clamp(26px, 24.7px + 0.92vw, 45px); color: #171334; line-height: 1.05; letter-spacing: -0.5px;
+          font-size: var(--lp-fs-h2); color: #171334; line-height: 1.05; letter-spacing: -0.5px;
         }
         .lp-promise__sub {
           margin: 0; font-family: var(--font-body, 'Inter', sans-serif);
@@ -4888,7 +4918,7 @@ export default function Landing() {
 
         /* ── The Problem section ──────────────────────────────────────────── */
         .lp-problem {
-          padding: 100px 4% 60px;
+          padding: calc(var(--lp-space-section) * 0.833) 4% calc(var(--lp-space-section) * 0.5);
           background: rgba(var(--lp-fg), 0.06);
         }
         .lp-problem__inner {
@@ -4915,7 +4945,7 @@ export default function Landing() {
 
         .lp-problem__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           line-height: 1.15;
@@ -5279,7 +5309,7 @@ export default function Landing() {
            1320 - 8% = 1214px, i.e. ~53px narrower per side than the sections above and below
            it, even though both were nominally "1320px wide with 4% padding". */
         .lp-showcase {
-          padding: 80px 4% 24px;
+          padding: calc(var(--lp-space-section) * 0.667) 4% calc(var(--lp-space-section) * 0.2);
           background: transparent;
           color: var(--lp-text);
         }
@@ -5291,7 +5321,7 @@ export default function Landing() {
         .lp-showcase__heading {
           font-family: var(--font-head);
           /* vw-scaled so the whole sentence stays on ONE line across widths */
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: #ffffff;
           line-height: 1.2;
@@ -5347,7 +5377,7 @@ export default function Landing() {
           flex-basis: 100%;
           height: 0;
         }
-        @media (max-width: 1080px) {
+        @media (max-width: 1024px) {
           .lp-showcase__filters-break { display: none; }
         }
         /* (The old duplicate of this at 720px is gone — the 1080px rule above already covers
@@ -5786,7 +5816,7 @@ export default function Landing() {
              (taller video cards + sidebar) already carries its own visual weight. Now 0 —
              the removal of the "View examples" CTA took the last thing that needed clearance
              below the sidebar, so the connector + next section supply all the gap needed. */
-          padding: 75px 4% 0;
+          padding: calc(var(--lp-space-section) * 0.625) 4% 0;
           background: transparent;
           color: var(--lp-text);
           text-align: center;
@@ -5798,7 +5828,7 @@ export default function Landing() {
           text-align: center;
           font-family: var(--font-head);
           font-weight: var(--fw-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           line-height: 1.05;
           letter-spacing: -0.01em;
           color: var(--lp-text);
@@ -6203,7 +6233,7 @@ export default function Landing() {
            reuses .lp-achieve-card but needs position:sticky. */
         @media (max-width: 900px) {
           /* Match the audit heading ("Answer This Honestly.") exactly — same --fs-h1 token. */
-          .lp-achieve__title { font-size: var(--fs-h1); white-space: normal; }
+          .lp-achieve__title { font-size: var(--lp-fs-h2); white-space: normal; }
           .lp-achieve__fan {
             height: auto;
             display: flex;
@@ -6228,13 +6258,13 @@ export default function Landing() {
 
         /* ── US vs Others — two-column comparison ─────────────────────────── */
         /* ── UGCad.io vs Traditional — editorial comparison table ── */
-        .lpv { padding: 100px 4% 110px; background: #fefcf9; color: #1c1b4b; }
+        .lpv { padding: calc(var(--lp-space-section) * 0.833) 4% calc(var(--lp-space-section) * 0.917); background: #fefcf9; color: #1c1b4b; }
         .lpv-inner { max-width: var(--lp-maxw); margin: 0 auto; }
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
            only ever swallows scrolling ROWS, never the section's own title on entrance. */
         .lpv-kicker { margin: 0; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
         .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: var(--font-head);
-          font-weight: 500; font-size: clamp(30px, 35.1px + 1.32vw, 64px); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
+          font-weight: 500; font-size: var(--lp-fs-h1); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
           position: relative; z-index: 6; }
         .lpv-grid {
           display: flex;
@@ -6354,7 +6384,7 @@ export default function Landing() {
         /* align-items: flex-start (not center) matches .lpv-cell's top alignment: the label
            has to clear the sticky header at the same moment as the us/them titles beside it,
            or whichever one is vertically centered lower lingers behind after the others fade. */
-        .lpv-label { font-family: var(--font-head); font-weight: 500; font-size: clamp(20px, 20.5px + 0.66vw, 35px); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
+        .lpv-label { font-family: var(--font-head); font-weight: 500; font-size: var(--lp-fs-h3); color: #1c1b4b; padding: 26px 8px 26px 0; display: flex; align-items: flex-start; }
         /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
            descriptions wrap to a different number of lines, centering makes their titles land
            at different heights within the row. Since the row scrolls behind the sticky header
@@ -6372,7 +6402,7 @@ export default function Landing() {
            the "Traditional Agencies" header wrapped — rows roughly doubled in height and the
            thing stopped reading as a comparison. It never clipped, so no breakpoint was ever
            added; it was just quietly unusable across that whole band. */
-        @media (max-width: 1080px) {
+        @media (max-width: 1024px) {
           .lpv { padding: 60px 22px 70px; }
           .lpv-heading { margin-bottom: 34px; }
           .lpv-header { display: none; }
@@ -6390,7 +6420,7 @@ export default function Landing() {
           .lpv-cell--us .lpv-tag { color: #7387FF; }
         }
         .lp-vs {
-          padding: 90px 4% 100px;
+          padding: calc(var(--lp-space-section) * 0.75) 4% calc(var(--lp-space-section) * 0.833);
           color: var(--lp-text);
         }
         .lp-vs__inner {
@@ -6503,7 +6533,7 @@ export default function Landing() {
 
         .lp-vs__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           letter-spacing: 0.015em;
           word-spacing: 0.18em;
@@ -6602,7 +6632,7 @@ export default function Landing() {
 
         /* ── Comparison Table ─────────────────────────────────────────────── */
         .lp-compare {
-          padding: 100px 4% 100px;
+          padding: calc(var(--lp-space-section) * 0.833) 4% calc(var(--lp-space-section) * 0.833);
           background: transparent;
           color: var(--lp-text);
         }
@@ -6613,7 +6643,7 @@ export default function Landing() {
         }
         .lp-compare__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           line-height: 1.2;
@@ -6747,7 +6777,7 @@ export default function Landing() {
 
         /* ── Features ─────────────────────────────────────────────────────── */
         .lp-features {
-          padding: 60px 4% 120px;
+          padding: calc(var(--lp-space-section) * 0.5) 4% var(--lp-space-section);
           background: transparent;
           color: var(--lp-text);
           position: relative;
@@ -6776,7 +6806,7 @@ export default function Landing() {
 
         .lp-section-heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           margin-bottom: 60px;
@@ -6898,7 +6928,7 @@ export default function Landing() {
         /* ── CTA ──────────────────────────────────────────────────────────── */
         .lp-cta {
           position: relative;
-          padding: 70px 4% 100px;
+          padding: calc(var(--lp-space-section) * 0.583) 4% calc(var(--lp-space-section) * 0.833);
           background: transparent;
           color: var(--lp-text);
           overflow: hidden;
@@ -6960,7 +6990,7 @@ export default function Landing() {
 
         .lp-cta__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           margin: 0 0 18px 0;
@@ -7207,7 +7237,7 @@ export default function Landing() {
           gap: 30px;
           /* Top padding clears the fixed navbar; the showcase marquee row then sits in the
              space above the title (previously empty). */
-          padding: 100px 4% 48px;
+          padding: calc(var(--lp-space-section) * 0.833) 4% calc(var(--lp-space-section) * 0.4);
           /* subtle radial purple glow behind the hero copy */
           background: radial-gradient(circle at 50% 36%, rgba(115, 135, 255, 0.16),
                       rgba(115, 135, 255, 0) 60%), var(--lp-page-bg);
@@ -7449,7 +7479,7 @@ export default function Landing() {
         /* ── FAQ ──────────────────────────────────────────────────────────── */
         .lp-faq {
           position: relative;
-          padding: 110px 4% 90px;
+          padding: calc(var(--lp-space-section) * 0.917) 4% calc(var(--lp-space-section) * 0.75);
           z-index: 2;
         }
         .lp-faq__inner {
@@ -7458,7 +7488,7 @@ export default function Landing() {
         }
         .lp-faq__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           letter-spacing: -0.02em;
           color: rgba(var(--lp-fg), 0.96);
@@ -7595,7 +7625,7 @@ export default function Landing() {
           position: relative;
           background: transparent;
           color: var(--lp-ink);
-          padding: 90px 4% 30px;
+          padding: calc(var(--lp-space-section) * 0.75) 4% calc(var(--lp-space-section) * 0.25);
           overflow: hidden;
           border-top: 1px solid var(--lp-border);
         }
@@ -8006,7 +8036,7 @@ export default function Landing() {
         /* ── Scroll Hook ─────────────────────────────────────────────────── */
         .lp-hook {
           position: relative;
-          padding: 120px 4% 110px;
+          padding: var(--lp-space-section) 4% calc(var(--lp-space-section) * 0.917);
           background: transparent;
           color: var(--lp-text);
           text-align: center;
@@ -8075,7 +8105,7 @@ export default function Landing() {
 
         .lp-hook__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           line-height: 1.15;
@@ -8172,7 +8202,7 @@ export default function Landing() {
 
         /* ── How It Works (3 Steps) ──────────────────────────────────────── */
         .lp-steps {
-          padding: 100px 4% 120px;
+          padding: calc(var(--lp-space-section) * 0.833) 4% var(--lp-space-section);
           background: transparent;
           color: var(--lp-text);
           position: relative;
@@ -8198,7 +8228,7 @@ export default function Landing() {
         }
         .lp-steps__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
@@ -8365,7 +8395,7 @@ export default function Landing() {
           /* Bottom 120px -> 40px: .lp-achieve directly below opens with its own 60px top pad,
              and the connector between them is display:none, so the two full pads stacked into
              a large empty band under "Click the Ad If It Wasn't Yours?". */
-          padding: 120px 4% 40px;
+          padding: var(--lp-space-section) 4% calc(var(--lp-space-section) * 0.333);
           background: transparent;
           color: var(--lp-text);
           overflow: visible;
@@ -8430,7 +8460,7 @@ export default function Landing() {
 
         .lp-audit__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
@@ -8494,7 +8524,7 @@ export default function Landing() {
           flex: 1;
           font-family: var(--font-head);
           font-weight: var(--fw-head);
-          font-size: clamp(1.3rem, 20.6px + 0.79vw, 38px);
+          font-size: var(--lp-fs-h3);
           letter-spacing: -0.02em;
           line-height: 1.25;
           color: var(--lp-ink);
@@ -8603,7 +8633,7 @@ export default function Landing() {
         /* Follows the site's light/dark toggle, like every other section (transparent
            lets .lp-root's own background show through). */
         .lp-proof {
-          padding: 120px 4% 140px;
+          padding: var(--lp-space-section) 4% calc(var(--lp-space-section) * 1.167);
           background: transparent;
           color: var(--lp-text);
         }
@@ -8625,7 +8655,7 @@ export default function Landing() {
            but kept for the parts that intentionally diverge (fan card front, em accent). */
         .lp-proof .lpz-heading {
           margin: 0 0 26px; font-family: var(--font-head); font-weight: 500;
-          font-size: clamp(40px, 45.3px + 1.58vw, 80px); line-height: 1.05; letter-spacing: -0.5px;
+          font-size: var(--lp-fs-display); line-height: 1.05; letter-spacing: -0.5px;
           color: var(--lp-text);
         }
         .lp-proof .lpz-heading em { font-style: italic; color: #7387FF; }
@@ -8743,7 +8773,7 @@ export default function Landing() {
         }
         .lp-proof .lpz-fan__value {
           font-family: var(--font-head); font-weight: 700;
-          font-size: clamp(52px, 53.5px + 1.84vw, 94px); line-height: 1; color: #fff;
+          font-size: var(--lp-fs-stat); line-height: 1; color: #fff;
         }
         /* Kept even though CountUp (which rendered an unclassed inner <span> for the
            animated digits) is gone: the value is a plain string now, but the global reset
@@ -8782,7 +8812,7 @@ export default function Landing() {
         }
         .lp-proof__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
@@ -9031,7 +9061,7 @@ export default function Landing() {
         /* ── Testimonial ─────────────────────────────────────────────────── */
         .lp-testimonial {
           position: relative;
-          padding: 60px 4% 60px;
+          padding: calc(var(--lp-space-section) * 0.5) 4% calc(var(--lp-space-section) * 0.5);
           background: transparent;
           color: var(--lp-text);
           overflow: hidden;
@@ -9079,7 +9109,7 @@ export default function Landing() {
 
         .lp-testimonial__heading {
           font-family: var(--font-head);
-          font-size: var(--fs-h1);
+          font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
           color: var(--lp-ink);
           letter-spacing: -0.04em;
@@ -9200,7 +9230,7 @@ export default function Landing() {
              occupy (18px gap + 44px button) or they'd collide with .lp-testimonial__more. */
           margin-bottom: 112px;
           /* Card width + gap drive everything (centering, stepping, frame). */
-          --tcard-w: clamp(300px, 302.7px + 10.92vw, 543px);
+          --tcard-w: clamp(300px, 299px + 10.4vw, 543px);
           --tcard-gap: 24px;
         }
         /* Manual prev/next — same setTIndex the auto-advance timer already uses, so a
@@ -9801,6 +9831,7 @@ export default function Landing() {
             transition-duration: 0.001ms !important;
           }
         }
+
       `}</style>
     </div>
   );

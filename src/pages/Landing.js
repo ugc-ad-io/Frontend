@@ -41,12 +41,7 @@ import {
   Moon,
   Search,
   Lock,
-  Volume2,
-  VolumeX,
   HelpCircle,
-  Play,
-  Pause,
-  MoreVertical,
 } from 'lucide-react';
 import { motion, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
 
@@ -266,87 +261,66 @@ function LazyVideo(props) {
   return <LazyVideoEl {...props} />;
 }
 
-// Showcase-grid clip: autoplays muted + looping while scrolled into view, with a
-// SINGLE mute/unmute control — no play/scrub/fullscreen/menu chrome. Visibility-gated
-// so we never run all 8 decodes at once off-screen.
-function ShowcaseVideo({ src, className }) {
+// Does this device actually have a pointer that can hover? Read once — a mouse doesn't
+// appear mid-session, and every card would otherwise re-run the same query.
+const CAN_HOVER = typeof window !== 'undefined' && !!window.matchMedia
+  && window.matchMedia('(hover: hover)').matches;
+
+// Showcase-grid clip: a poster still at rest, plays muted + looping while the visitor
+// hovers it, and rewinds to the poster on leave. NO player chrome at all — no play/pause,
+// no scrub bar, no mute button, no menu dot.
+// Touch devices have no hover, so there the clip plays whenever it is scrolled into view
+// instead — otherwise the whole grid would sit there as static images on a phone.
+function ShowcaseVideo({ src, poster, className }) {
   const ref = useRef(null);
-  const [muted, setMuted] = useState(true);
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0); // 0-100, drives the scrub bar fill
+
+  // Touch only: play on screen, pause off screen.
   useEffect(() => {
+    if (CAN_HOVER) return undefined;
     const v = ref.current;
     if (!v) return undefined;
     const io = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { v.play?.().catch(() => {}); } else { v.pause?.(); } },
-      { threshold: 0.25 }
+      ([e]) => {
+        if (e.isIntersecting) { v.muted = true; v.play?.().catch(() => {}); }
+        else v.pause?.();
+      },
+      { threshold: 0.25 },
     );
     io.observe(v);
-    const onTime = () => { if (v.duration) setProgress((v.currentTime / v.duration) * 100); };
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    v.addEventListener('timeupdate', onTime);
-    v.addEventListener('play', onPlay);
-    v.addEventListener('pause', onPause);
-    return () => {
-      io.disconnect();
-      v.removeEventListener('timeupdate', onTime);
-      v.removeEventListener('play', onPlay);
-      v.removeEventListener('pause', onPause);
-    };
+    return () => io.disconnect();
   }, []);
-  const toggleMute = (e) => {
-    e.stopPropagation();
+
+  const onEnter = () => {
     const v = ref.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
-    if (!v.muted) v.play?.().catch(() => {});
+    if (!v || !CAN_HOVER) return;
+    v.muted = true;          // guarantee muted, or the autoplay policy rejects play()
+    v.play?.().catch(() => {});
   };
-  const togglePlay = (e) => {
-    e.stopPropagation();
+  const onLeave = () => {
     const v = ref.current;
-    if (!v) return;
-    if (v.paused) v.play?.().catch(() => {}); else v.pause?.();
+    if (!v || !CAN_HOVER) return;
+    v.pause?.();
+    // load() rewinds AND puts the poster back up; without it the card freezes on whatever
+    // frame the pointer happened to leave on. The file stays in the HTTP cache, so the
+    // next hover replays without re-downloading.
+    v.load?.();
   };
-  const seek = (e) => {
-    e.stopPropagation();
-    const v = ref.current;
-    if (!v || !v.duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    v.currentTime = pct * v.duration;
-    setProgress(pct * 100);
-  };
+
   return (
-    <div className="lp-vcard__videowrap">
+    <div className="lp-vcard__videowrap" onMouseEnter={onEnter} onMouseLeave={onLeave}>
       <video
         ref={ref}
         className={className}
         src={src}
+        poster={poster}
         muted
         loop
-        autoPlay
         playsInline
-        preload="metadata"
+        // Hover devices fetch nothing until the visitor actually hovers — the grid loads
+        // as 10 posters instead of 10 video streams.
+        preload={CAN_HOVER ? 'none' : 'metadata'}
+        disablePictureInPicture
       />
-      {/* Bottom control bar — play/pause, scrub bar, mute, and a decorative "more" dot
-          (no menu behind it; it's there purely so the bar reads as a real video player,
-          matching the reference card). */}
-      <div className="lp-vcard__controls">
-        <button type="button" className="lp-vcard__ctl" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
-          {playing ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
-        </button>
-        <button type="button" className="lp-vcard__ctl" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
-          {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-        </button>
-        <button type="button" className="lp-vcard__ctl" onClick={(e) => e.stopPropagation()} aria-label="More options" tabIndex={-1}>
-          <MoreVertical size={14} />
-        </button>
-      </div>
-      <div className="lp-vcard__scrub" onClick={seek} role="presentation">
-        <div className="lp-vcard__scrub-fill" style={{ width: `${progress}%` }} />
-      </div>
     </div>
   );
 }
@@ -994,52 +968,52 @@ const HERO_POSTERS = [
 const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/ma/video_03.mp4',
-    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8 },
+    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8, avatar: '/avatars/a01.jpg', poster: '/posters/p01.jpg' },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
     src: '/ma/video_04.mp4',
-    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9 },
+    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9, avatar: '/avatars/a02.jpg', poster: '/posters/p02.jpg' },
   { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
     src: '/ma/video_05.mp4',
-    brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0 },
+    brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0, avatar: '/avatars/a03.jpg', poster: '/posters/p03.jpg' },
   { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/home/video_06.mp4',
-    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7 },
+    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7, avatar: '/avatars/a04.jpg', poster: '/posters/p04.jpg' },
   { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/home/video_07.mp4',
-    brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9 },
+    brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9, avatar: '/avatars/a05.jpg', poster: '/posters/p05.jpg' },
   { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
     src: '/home/video_10.mp4',
-    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8 },
+    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8, avatar: '/avatars/a06.jpg', poster: '/posters/p06.jpg' },
   { id: 7, industryId: 'pets',    label: 'Pets',             isVideo: true,
     src: '/home/video_13.mp4',
-    brand: 'Pawfect',         creator: 'Riya',    logoBg: 'linear-gradient(135deg, #1F1F4E, #a855f7)', logoText: 'Pf', tier: 'ELITE', rating: 4.9 },
+    brand: 'Pawfect',         creator: 'Riya',    logoBg: 'linear-gradient(135deg, #1F1F4E, #a855f7)', logoText: 'Pf', tier: 'ELITE', rating: 4.9, avatar: '/avatars/a07.jpg', poster: '/posters/p07.jpg' },
   { id: 8, industryId: 'food',    label: 'Food/Beverage',    isVideo: true,
     src: '/home/video_15.mp4',
-    brand: 'BrewHaus',        creator: 'Sofia',   logoBg: 'linear-gradient(135deg, #78350f, #f59e0b)', logoText: 'BH', tier: 'PRO', rating: 4.8 },
+    brand: 'BrewHaus',        creator: 'Sofia',   logoBg: 'linear-gradient(135deg, #78350f, #f59e0b)', logoText: 'BH', tier: 'PRO', rating: 4.8, avatar: '/avatars/a08.jpg', poster: '/posters/p08.jpg' },
   { id: 9, industryId: 'fitness', label: 'Fitness/Supplements', isVideo: true,
     src: '/home/video_16.mp4',
-    brand: 'FitFuel',         creator: 'Noah',    logoBg: 'linear-gradient(135deg, #14532d, #22c55e)', logoText: 'FF', tier: 'RISING', rating: 4.7 },
+    brand: 'FitFuel',         creator: 'Noah',    logoBg: 'linear-gradient(135deg, #14532d, #22c55e)', logoText: 'FF', tier: 'RISING', rating: 4.7, avatar: '/avatars/a09.jpg', poster: '/posters/p09.jpg' },
   { id: 10, industryId: 'health', label: 'Health/Wellness',  isVideo: true,
     src: '/home/video_19.mp4',
-    brand: 'VitaGlow',        creator: 'Emma',    logoBg: 'linear-gradient(135deg, #0e7490, #06b6d4)', logoText: 'VG', tier: 'ELITE', rating: 5.0 },
+    brand: 'VitaGlow',        creator: 'Emma',    logoBg: 'linear-gradient(135deg, #0e7490, #06b6d4)', logoText: 'VG', tier: 'ELITE', rating: 5.0, avatar: '/avatars/a10.jpg', poster: '/posters/p10.jpg' },
   { id: 11, industryId: 'travel', label: 'Travel',           isVideo: true,
     src: '/home/video_21.mp4',
-    brand: 'NomadPack',       creator: 'Liam',    logoBg: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', logoText: 'NP', tier: 'PRO', rating: 4.8 },
+    brand: 'NomadPack',       creator: 'Liam',    logoBg: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', logoText: 'NP', tier: 'PRO', rating: 4.8, avatar: '/avatars/a11.jpg', poster: '/posters/p11.jpg' },
   { id: 12, industryId: 'finance', label: 'Finance/Insurance', isVideo: true,
     src: '/home/video_22.mp4',
-    brand: 'CoinKeep',        creator: 'Ava',     logoBg: 'linear-gradient(135deg, #3A3A66, #fbbf24)', logoText: 'CK', tier: 'RISING', rating: 4.7 },
+    brand: 'CoinKeep',        creator: 'Ava',     logoBg: 'linear-gradient(135deg, #3A3A66, #fbbf24)', logoText: 'CK', tier: 'RISING', rating: 4.7, avatar: '/avatars/a12.jpg', poster: '/posters/p12.jpg' },
   { id: 13, industryId: 'home',   label: 'Home/Household',   isVideo: true,
     src: '/home/video_23.mp4',
-    brand: 'NestHome',        creator: 'Olivia',  logoBg: 'linear-gradient(135deg, #7c2d12, #fb7185)', logoText: 'NH', tier: 'PRO', rating: 4.9 },
+    brand: 'NestHome',        creator: 'Olivia',  logoBg: 'linear-gradient(135deg, #7c2d12, #fb7185)', logoText: 'NH', tier: 'PRO', rating: 4.9, avatar: '/avatars/a13.jpg', poster: '/posters/p13.jpg' },
   { id: 14, industryId: 'gaming', label: 'Gaming',           isVideo: true,
     src: '/home/video_24.mp4',
-    brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #8b5cf6)', logoText: 'PV', tier: 'ELITE', rating: 4.8 },
+    brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #8b5cf6)', logoText: 'PV', tier: 'ELITE', rating: 4.8, avatar: '/avatars/a14.jpg', poster: '/posters/p14.jpg' },
   { id: 15, industryId: 'charity', label: 'Charity',         isVideo: true,
     src: '/home/video_25.mp4',
-    brand: 'CareCircle',      creator: 'Mia',     logoBg: 'linear-gradient(135deg, #831843, #ec4899)', logoText: 'CC', tier: 'RISING', rating: 4.9 },
+    brand: 'CareCircle',      creator: 'Mia',     logoBg: 'linear-gradient(135deg, #831843, #ec4899)', logoText: 'CC', tier: 'RISING', rating: 4.9, avatar: '/avatars/a15.jpg', poster: '/posters/p15.jpg' },
   { id: 16, industryId: 'services', label: 'Consumer Services', isVideo: true,
     src: '/home/video_26.mp4',
-    brand: 'SwiftServe',      creator: 'Lucas',   logoBg: 'linear-gradient(135deg, #1F1F4E, #0ea5e9)', logoText: 'SS', tier: 'PRO', rating: 4.7 },
+    brand: 'SwiftServe',      creator: 'Lucas',   logoBg: 'linear-gradient(135deg, #1F1F4E, #0ea5e9)', logoText: 'SS', tier: 'PRO', rating: 4.7, avatar: '/avatars/a16.jpg', poster: '/posters/p16.jpg' },
 ];
 
 // Curated pick for the "Our Services" promise cards (PromiseCard) — plain showcaseVideos[i]
@@ -1483,11 +1457,16 @@ export default function Landing() {
   const mAuditQ2Y = useTransform(auditProgress, [0.36, 0.67], [0, -760], { ease: easeInOut });
   const mAuditQ3Y = useTransform(auditProgress, [0.67, 0.99], [0, -760], { ease: easeInOut });
   // The next section (Find & Hire) is pulled UP in lockstep with the last card's peel: while Q3
-  // rises [0.66 → 1.0] it slides up from below (700px → 0) so it's "stuck" to the card — without
-  // this, the pinned area is simply empty for the last stretch of the runway once the deck has
-  // emptied. It settles at y=0 (its natural position, marginTop untouched), so unlike the old
-  // -300px pull it can't crush the gap between the two sections.
-  const achieveRiseRaw = useTransform(auditProgress, [0.66, 1.0], [700, 0], { ease: easeInOut });
+  // rises [0.62 → 1.0] it slides up from below (620px → 0) so it's "stuck" to the card and is
+  // already on screen the moment the deck empties.
+  // The rise alone isn't enough — landing on y=0 still leaves it a full screen below, because the
+  // deck's reserved box stays behind as dead space once the cards have flown off. So the section
+  // ALSO carries a static negative margin (.lp-achieve-rise in CSS — it has to be CSS, not an
+  // inline px value, because the size of that dead space is viewport-height dependent). It's a
+  // permanent overlap by design: the space it eats is only ever empty (the cards are
+  // position:absolute and have left by then), and .lp-achieve's own top padding still supplies
+  // the real gap between the two sections.
+  const achieveRiseRaw = useTransform(auditProgress, [0.62, 1.0], [620, 0], { ease: easeInOut });
   const achieveRiseY = useSpring(achieveRiseRaw, { stiffness: 90, damping: 22, mass: 0.6 });
   // Mobile: the Find & Hire section is pulled up via a STATIC negative margin (CSS) to follow the
   // peeled audit cards — NOT a scroll-driven transform, which would break the section's sticky
@@ -2267,7 +2246,7 @@ export default function Landing() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          Join over 100,000 happy creators
+          Trusted by 800+ D2C brands
         </motion.span>
 
         <motion.h1
@@ -2276,9 +2255,11 @@ export default function Landing() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.05 }}
         >
-          Engage Audiences
-          <br />
-          with <span className="nlp-title-accent">Stunning Videos</span>
+          {/* No hard <br>: at the top of the display clamp "Behind The Top 1% D2C Brands"
+              is wider than .nlp-title's 980px box, so a forced break would overflow it.
+              Left to wrap on its own, exactly as the old landing page did. */}
+          The <span className="nlp-title-accent">Performance System</span>{' '}
+          Behind The Top <span className="nlp-title-accent">1% D2C Brands</span>
         </motion.h1>
 
         <motion.p
@@ -2287,8 +2268,8 @@ export default function Landing() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.12 }}
         >
-          Boost your brand with high-impact short videos from our expert content
-          creators. Our team is ready to propel your business forward.
+          Top-notch UGC video ads in just a few clicks. Unlock serious growth
+          with <span className="nlp-sub-accent">high-performing UGC ads</span>.
         </motion.p>
 
         <div className="nlp-gallery-vp">
@@ -2316,12 +2297,21 @@ export default function Landing() {
             It's free
             <svg viewBox="0 0 70 40" className="nlp-note-arrow2"><path d="M4,10 C24,34 44,34 60,18" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round"/><path d="M50,22 L61,17 L58,29" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </span>
+          {/* Both hero CTAs, same split (and same test ids) the page has always had:
+              creators go to the creator landing, brands go straight to signup. */}
           <button
             className="nlp-cta"
-            onClick={() => navigate('/auth?mode=signup&role=business')}
+            onClick={() => navigate('/creator')}
             data-testid="get-started-btn"
           >
-            Get Started
+            Join as Creator
+          </button>
+          <button
+            className="nlp-cta nlp-cta--ghost"
+            onClick={() => navigate('/auth?mode=signup&role=business')}
+            data-testid="learn-more-btn"
+          >
+            Sign up as Brand
           </button>
         </div>
       </section>
@@ -2426,9 +2416,11 @@ export default function Landing() {
       <section className="lp-showcase" ref={showcaseRef}>
         <div className="lp-showcase__inner">
           <h2 className="lp-showcase__heading">
-            We create the{' '}
-            <span className="lp-showcase__heading--accent">best UGC</span>{' '}
-            on the internet
+            We created{' '}
+            <span className="lp-showcase__heading--accent">10,000+</span>{' '}
+            UGC ads<br className="lp-showcase__brk" /> that resulted in{' '}
+            <span className="lp-showcase__heading--accent">100cr+</span>{' '}
+            in sales
           </h2>
           <p className="lp-showcase__subtitle">Choose your industry to see examples!</p>
 
@@ -2485,21 +2477,17 @@ export default function Landing() {
                       (see the .lp-vcard__tag comment below for the bug this used to be). */}
                   <span className="lp-vcard__tag lp-vcard__tag--onmedia">{v.label}</span>
                   {v.isVideo ? (
-                    <ShowcaseVideo className="lp-vcard__video" src={v.src} />
+                    <ShowcaseVideo className="lp-vcard__video" src={v.src} poster={v.poster} />
                   ) : (
                     <img className="lp-vcard__video" src={v.src} alt={v.brand} loading="lazy" />
                   )}
                 </div>
                 <div className="lp-vcard__meta">
-                  <div className="lp-vcard__meta-top">
-                    <div className="lp-vcard__who">
-                      <span className="lp-vcard__brand">{v.brand}</span>
-                      <span className="lp-vcard__by">By {v.creator}</span>
-                    </div>
-                    <span className="lp-vcard__logo" style={{ background: v.logoBg }} aria-hidden="true">
-                      {v.logoText}
-                    </span>
-                  </div>
+                  {/* The whole top row — brand name, "By <creator>", and the creator
+                      profile-photo chip — has been removed; only the star rating is left under
+                      each clip. v.brand is still used for the <img> alt text above, and
+                      v.avatar / v.logoBg / v.logoText stay in the data (logoBg is still the
+                      fallback background for the showcase marquee cards). */}
                   <div className="lp-vcard__meta-bottom">
                     <div className="lp-vcard__stars" aria-label={`${v.rating} out of 5`}>
                       <div className="lp-vcard__stars-row lp-vcard__stars-row--empty">
@@ -2703,18 +2691,18 @@ export default function Landing() {
       </section>
 
       {/* ── Find & Hire Creators ── */}
-      {/* Dragged UP by achieveRiseY in lockstep with Q3's peel, so it rises into view "stuck" to
-          the last audit card instead of leaving the pinned area blank once the deck empties. The
-          rise is scroll-linked and lands on y=0 — the old fixed -250/-300px margin version is NOT
-          restored, since that permanently crushed the gap between the two sections.
-          Dropped entirely on mobile: the pull there is a static CSS margin, and writing a
-          transform to this large subtree every scroll frame for no visual effect hurts perf. */}
+      {/* Rides UP with the last audit card: a static ACHIEVE_OVERLAP margin parks it over the
+          deck's (soon-to-be-empty) box, and achieveRiseY slides it in from below in lockstep with
+          Q3's peel, so it arrives as the card leaves instead of after a blank screen.
+          Mobile gets the margin only — the section is transform-free there because a transformed
+          ancestor breaks position:sticky descendants, and writing a transform to this large
+          subtree every scroll frame would cost frames for no visual gain. */}
       <motion.div
         className="lp-achieve-rise"
         style={
           heroStatic
-            ? { marginTop: 0, position: 'relative', zIndex: 4 }
-            : { y: achieveRiseY, marginTop: 0, position: 'relative', zIndex: 4 }
+            ? { position: 'relative', zIndex: 4 }
+            : { y: achieveRiseY, position: 'relative', zIndex: 4 }
         }
       >
         <section className="lp-achieve" ref={achieveRef}>
@@ -2777,8 +2765,8 @@ export default function Landing() {
           three plain columns (UGCad.io / Traditional Agencies / Marketplaces), no highlight fill. */}
       <section className="lpv">
         <div className="lpv-inner">
-          <p className="lpv-kicker">Why UGCad.io?</p>
-          <h2 className="lpv-heading">Vetted creators. Protected payments.</h2>
+          <p className="lpv-kicker">UGCad.io vs Others (Marketplaces / Agencies)</p>
+          <h2 className="lpv-heading">WHY CHOOSE <em>US</em></h2>
 
           <div className="lpv-grid">
             {/* header row */}
@@ -2896,14 +2884,15 @@ export default function Landing() {
           animate={proofInView ? 'visible' : 'hidden'}
         >
           <div className="lpz-col lpz-col--text">
-            <h2 className="lpz-heading">The better way<br />to get great UGC<br />done</h2>
+            <span className="lpz-eyebrow">— proof, not promises</span>
+            <h2 className="lpz-heading">Trust Changes<br />the Math.</h2>
           </div>
 
           <div className="lpz-col lpz-col--body">
             <p className="lpz-desc">
-              UGCad.io is your go-to partner for UGC. Whether you're a brand, an agency or a
-              creator, we bring together vetted creators to produce authentic, scroll-stopping
-              content for ads, websites, emails and social channels.
+              Every creator is manually reviewed before they touch a brief. Funds stay in
+              escrow until you approve the work. Names and contacts never leave the platform,
+              and delivery is tracked in under 10 days.
             </p>
             <div className="lpz-actions">
               <button
@@ -2911,7 +2900,7 @@ export default function Landing() {
                 className="lpz-cta lpz-cta--dark"
                 onClick={() => navigate('/auth?mode=signup&role=business')}
               >
-                Get Started
+                Sign up as Brand
                 <ArrowRight size={18} />
               </button>
               <button
@@ -2919,7 +2908,7 @@ export default function Landing() {
                 className="lpz-cta lpz-cta--light"
                 onClick={() => navigate('/creator')}
               >
-                For creators
+                Join as Creator
               </button>
             </div>
           </div>
@@ -2939,6 +2928,10 @@ export default function Landing() {
             ))}
           </div>
         </motion.div>
+
+        {/* Closing micro-line the proof section has always signed off with. Outside the
+            panel, so it reads as the section's sign-off rather than panel copy. */}
+        <p className="lp-proof__micro">— Not louder ads. Better ones. —</p>
       </section>
       </div>
 
@@ -3744,6 +3737,9 @@ export default function Landing() {
           font-size: 16px; line-height: 1.5;
           font-family: var(--font-body);
         }
+        /* Accent phrase inside the subline. nowrap so "high-performing UGC ads" can't be
+           split across two lines — it's read as one term. */
+        .nlp-sub-accent { color: var(--lp-purple-700); font-weight: 600; white-space: nowrap; }
         /* Clipping viewport: hides the horizontal overflow of the scrolling track but
            leaves vertical room for the arched cards (padding reserves space for the CTA). */
         .nlp-gallery-vp {
@@ -3802,15 +3798,35 @@ export default function Landing() {
           transform-origin: center center; will-change: transform;
         }
         .nlp-card img, .nlp-card video { width: 100%; height: 100%; object-fit: cover; display: block; background: #e7e0d2; }
-        .nlp-cta-wrap { position: relative; display: inline-flex; margin-top: -20px; }
+        .nlp-cta-wrap { position: relative; display: inline-flex; gap: 12px; margin-top: -20px; }
+        /* Primary hero CTA. Was a one-off orange (#ef6a4c) that belonged to no palette on this
+           page — now the site accent, the same periwinkle every other primary fill uses (nav
+           join pill, audit deck, proof cards). Flat: the coloured glow this used to cast has
+           been removed, so the lift + darkening carry the hover on their own. */
         .nlp-cta {
-          background: #ef6a4c; color: #fff; border: none; border-radius: 999px;
+          background: #7387FF; color: #fff; border: none; border-radius: 999px;
           padding: 15px 42px; font-weight: 700; font-size: 16px; cursor: pointer;
           font-family: var(--font-body);
-          box-shadow: 0 18px 34px -14px rgba(239, 106, 76, .75);
-          transition: transform .18s ease, box-shadow .18s ease;
+          box-shadow: none;
+          transition: transform .18s ease, background .18s ease;
         }
-        .nlp-cta:hover { transform: translateY(-2px); box-shadow: 0 22px 40px -14px rgba(239, 106, 76, .8); }
+        /* Deepens to the darker end of the same ramp on hover (#4452f0 — the tone already used
+           for the PRO tier chip and the proof-card accents). */
+        .nlp-cta:hover {
+          background: #4452f0;
+          transform: translateY(-2px);
+        }
+        /* Secondary hero CTA ("Sign up as Brand"). Outline, not a second filled pill —
+           two solid buttons side by side would give the brand path equal visual weight
+           to the primary creator one. */
+        .nlp-cta--ghost {
+          background: transparent; color: var(--lp-text);
+          border: 1px solid rgba(var(--lp-fg), 0.3); box-shadow: none;
+        }
+        .nlp-cta--ghost:hover {
+          background: rgba(var(--lp-fg), 0.06); border-color: rgba(var(--lp-fg), 0.5);
+          box-shadow: none;
+        }
         /* Handwritten annotations */
         .nlp-note {
           position: absolute; font-family: 'Bradley Hand', 'Segoe Script', 'Comic Sans MS', cursive;
@@ -5436,61 +5452,10 @@ export default function Landing() {
           display: block;
           background: #111;
         }
-        /* Autoplay clip wrapper + a real bottom control bar (play/pause, mute, a decorative
-           "more" dot, and a scrub bar) — replaces the old single floating mute button,
-           matching the reference card's native-player look. */
+        /* Hover-to-play clip wrapper. The control bar (play/pause, mute, "more" dot, scrub)
+           and the dark gradient that kept its icons legible are both gone — the card is now
+           just the footage, with the poster still showing until the pointer arrives. */
         .lp-vcard__videowrap { position: absolute; inset: 0; }
-        .lp-vcard__videowrap::after {
-          /* Soft gradient so the white control icons stay legible over any footage. */
-          content: '';
-          position: absolute;
-          left: 0; right: 0; bottom: 0;
-          height: 46%;
-          background: linear-gradient(to top, rgba(0,0,0,0.55), transparent);
-          pointer-events: none;
-          z-index: 2;
-        }
-        .lp-vcard__controls {
-          position: absolute;
-          left: 10px;
-          bottom: 16px;
-          z-index: 3;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .lp-vcard__ctl {
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          border: none;
-          background: rgba(15, 15, 25, 0.55);
-          color: #fff;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          -webkit-backdrop-filter: blur(4px);
-          backdrop-filter: blur(4px);
-          transition: background 0.2s ease;
-        }
-        .lp-vcard__ctl:hover { background: rgba(15, 15, 25, 0.82); }
-        .lp-vcard__ctl svg { color: #fff; }
-        .lp-vcard__scrub {
-          position: absolute;
-          left: 10px;
-          right: 10px;
-          bottom: 8px;
-          z-index: 3;
-          height: 3px;
-          border-radius: 100px;
-          background: rgba(255, 255, 255, 0.28);
-          cursor: pointer;
-        }
-        .lp-vcard__scrub-fill {
-          height: 100%;
-          border-radius: 100px;
-          background: #fff;
-        }
         /* Category tag — sits ON the clip now (top-right), not in the meta row below.
            .lp-vcard__media (its actual parent, see JSX) is position:relative, so absolute
            resolves against the clip itself. It USED to render inside .lp-vcard__meta
@@ -5520,47 +5485,19 @@ export default function Landing() {
           z-index: 2;
           max-width: calc(100% - 20px);
         }
-        /* Footer under each clip: brand + creator + avatar on top, star rating below —
-           the brand/by/logo pieces existed in CSS but weren't rendered anywhere in the
-           JSX (dead styles); wired back in since the data (v.brand/v.creator/v.logoBg/
-           v.logoText) was already there waiting for them. */
+        /* Footer under each clip: just the star rating now. The brand name, "By <creator>"
+           and the avatar chip that used to sit in a row above it are gone, so the
+           .lp-vcard__meta-top / __who / __brand / __by rules went with them. */
         .lp-vcard__meta {
           display: flex;
           flex-direction: column;
           gap: 10px;
           padding: 0 2px;
         }
-        .lp-vcard__meta-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-        }
-        .lp-vcard__who {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-        }
         .lp-vcard__meta-bottom {
           display: flex;
           align-items: center;
           gap: 8px;
-        }
-        .lp-vcard__brand {
-          font-family: var(--font-head);
-          font-size: 1rem;
-          font-weight: 700;
-          color: var(--lp-ink);
-          letter-spacing: -0.02em;
-          line-height: 1.2;
-        }
-        .lp-vcard__by {
-          font-family: var(--font-body);
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: var(--lp-text-muted);
-          margin-top: 2px;
         }
         /* Rating: outline stars with a gold fill layer clipped to the rating %. */
         .lp-vcard__stars {
@@ -5602,24 +5539,20 @@ export default function Landing() {
           padding: 3px 9px;
           border-radius: 100px;
           white-space: nowrap;
+          /* White on a SOLID tier colour. These sit on top of arbitrary video frames, so the
+             old treatment — a dark tint of the tier colour at 14–16% opacity — was effectively
+             transparent: dark green/blue/purple text over whatever the clip happened to show,
+             which on a dark or busy frame was unreadable. The fill now carries the colour
+             coding and the text is always white; the drop shadow keeps the pill's edge visible
+             against a light frame. */
+          color: #ffffff;
+          box-shadow: 0 2px 8px rgba(7, 7, 78, 0.30);
         }
-        .lp-vcard__tier--rising { background: rgba(34, 197, 94, 0.14); color: #15803d; }
-        .lp-vcard__tier--pro    { background: rgba(115, 135, 255, 0.16); color: #4452f0; }
-        .lp-vcard__tier--elite  { background: rgba(168, 85, 247, 0.16); color: #7c3aed; }
-        .lp-vcard__logo {
-          flex-shrink: 0;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          color: #fff;
-          font-family: var(--font-head);
-          font-size: 0.82rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          box-shadow: 0 6px 16px rgba(0,0,0,0.14);
-        }
+        .lp-vcard__tier--rising { background: #16a34a; }
+        .lp-vcard__tier--pro    { background: #4452f0; }
+        .lp-vcard__tier--elite  { background: #7c3aed; }
+        /* The .lp-vcard__logo / .lp-vcard__logo-img rules that were here are removed along with
+           the creator profile-photo chip. */
         /* The 1280 / 1024 / 760 column-count overrides are gone — auto-fill above derives the
            count from the available width continuously, so there is nothing left to step. Only
            the phone rule below survives, and solely to force TWO columns where auto-fill's
@@ -5632,18 +5565,11 @@ export default function Landing() {
         @media (max-width: 460px) {
           .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
           /* Card furniture is sized for a ~250px desktop card; scaled down so it doesn't
-             swamp a 150px one (a 36px mute button would cover a quarter of the width). */
-          /* Smaller control dots on a ~150px-wide card so the bar doesn't dominate it. */
-          .lp-vcard__ctl { width: 20px; height: 20px; }
-          .lp-vcard__ctl svg { width: 10px; height: 10px; }
-          .lp-vcard__controls { left: 7px; bottom: 12px; gap: 5px; }
-          .lp-vcard__scrub { left: 7px; right: 7px; bottom: 6px; }
+             swamp a 150px one. (The control-dot overrides that used to live here went with
+             the control bar itself.) */
           .lp-vcard__tier { font-size: 0.58rem; padding: 2px 7px; }
           .lp-vcard__tag { padding: 4px 9px; font-size: 0.62rem; }
           .lp-vcard__tag--onmedia { top: 8px; right: 8px; }
-          .lp-vcard__logo { width: 30px; height: 30px; font-size: 0.66rem; }
-          .lp-vcard__brand { font-size: 0.8rem; }
-          .lp-vcard__by { font-size: 0.68rem; }
           .lp-vcard__meta { gap: 5px; }
           .lp-vcard__rating-num { font-size: 0.78rem; }
         }
@@ -5748,8 +5674,11 @@ export default function Landing() {
           padding: 4px 9px;
           border-radius: 100px;
           background: rgba(10, 10, 20, 0.78);
-          border: 1px solid rgba(var(--lp-fg),0.14);
-          color: var(--lp-text);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          /* Hardcoded white, NOT var(--lp-text): this pill's own background is near-black, so it
+             needs light text regardless of the page theme. On the light theme --lp-text resolves
+             to #1c1b4b — navy on near-black, i.e. invisible. */
+          color: #ffffff;
           font-family: var(--font-body);
           font-size: 0.78rem;
           font-weight: 700;
@@ -5768,7 +5697,9 @@ export default function Landing() {
           font-size: 0.66rem;
           font-weight: 800;
           letter-spacing: 0.06em;
-          color: var(--lp-text);
+          /* Same reason as .lp-showcase-card__rating above — all three tier fills below are
+             saturated darks, so the label is always white rather than theme-dependent. */
+          color: #ffffff;
           text-transform: uppercase;
           box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
@@ -5803,6 +5734,16 @@ export default function Landing() {
         }
 
         /* ── Find & Hire Creators — fanned, side-by-side cards ── */
+        /* Overlap onto the audit section's emptied card box, so Find & Hire is already on screen
+           when the last question card peels off instead of arriving after a blank screen. The
+           amount MUST track viewport height: the pinned audit block is a fixed ~730px tall, so
+           the dead space it leaves is (viewport height - 730) and grows on tall monitors. Hence
+           the vh term — a fixed px overlap that looks right at 800px tall leaves a 600px hole at
+           1080. Clamped at both ends so a very short or very tall window can't run away.
+           Overridden to 0 on tablet (no peel there) and to a phone-specific value on mobile. */
+        .lp-achieve-rise {
+          margin-top: clamp(-760px, calc(430px - 107vh), -260px);
+        }
         .lp-achieve {
           position: relative;
           /* Bottom trimmed 90px -> 40px -> 0: that 90px was tuned for the old, shorter
@@ -5989,6 +5930,14 @@ export default function Landing() {
           .lp-fh__feature { flex: 0 1 auto; padding: 12px 0; gap: 9px; border-bottom: 1px solid rgba(var(--lp-fg), 0.1); }
           .lp-fh__feature:first-child { padding-top: 0; }
           .lp-fh__feature:last-of-type { border-bottom: none; }
+          /* Three points only on a phone. In this half-width cell the copy wraps to 3-4
+             lines each, so the fourth pushed the card far past the height of the video
+             sitting beside it and left a long dead gap down the other column. The 4th is
+             hidden rather than dropped from the data so the desktop layout still gets it. */
+          .lp-fh__feature:nth-child(4) { display: none; }
+          /* :last-of-type still matches the (hidden) 4th, so the 3rd needs its divider
+             removed explicitly — otherwise the list ends on a stray rule. */
+          .lp-fh__feature:nth-child(3) { border-bottom: none; }
           /* Scaled down to survive a ~170px-wide column: at the desktop 42px icon and
              1.05rem text, the copy wrapped to one or two words per line. */
           .lp-fh__feature-icon { width: 32px; height: 32px; border-radius: 9px; }
@@ -6046,10 +5995,12 @@ export default function Landing() {
         @media (max-width: 768px) {
           .lp-achieve__fan { display: none !important; }
           .lp-achieve__stack { display: flex; --stk-top: 226px; --stk-step: 52px; margin-top: 56px; }
-          /* Pull the section up (STATIC margin, NOT a transform) so it follows close behind the
-             peeled audit cards. A transform here would break the sticky heading + sticky card
-             stack inside (they'd detach and overlap), so the lift must be a plain margin. */
-          .lp-achieve-rise { margin-top: 0; transform: none; }
+          /* The lift here is a STATIC margin, NOT a transform: a transform would break the sticky
+             heading + sticky card stack inside (they'd detach and overlap), so transform:none
+             guarantees none survives. Its own value (not the desktop clamp) because the phone
+             deck reserves a taller box — clamp(360px, 54vh, 460px) — and .lp-achieve carries a
+             132px top pad here. */
+          .lp-achieve-rise { transform: none; margin-top: clamp(-560px, -56vh, -380px); }
           /* Heading is STATIC so it rises WITH the section as one unit (a sticky child would break
              under the transformed ancestor and detach from the rise). Opaque bg keeps a peeling
              card hidden behind it instead of splitting it. */
@@ -6299,6 +6250,9 @@ export default function Landing() {
         .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: var(--font-head);
           font-weight: 500; font-size: var(--lp-fs-h1); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
           position: relative; z-index: 6; }
+        /* "US" carries the accent — the whole point of the line is the contrast with the
+           two "Others" columns underneath it. */
+        .lpv-heading em { font-style: normal; color: var(--lp-purple-700); }
         .lpv-grid {
           display: flex;
           flex-direction: column;
@@ -6490,7 +6444,14 @@ export default function Landing() {
              rounding that went with it. */
           .lpv-rowgroup:nth-child(odd) { background: transparent; }
           .lpv-rowgroup:last-child { border-radius: 0; }
-          .lpv-label { padding: 0 0 4px; font-size: 15px; }
+          /* Centred once stacked: the label is a full-width row heading over the cards
+             below it, not a left-hand table column any more. justify-content AND
+             text-align are both needed — the base rule makes this a flex container, so
+             text-align alone wouldn't move the single flex child. */
+          .lpv-label {
+            padding: 0 0 4px; font-size: 15px;
+            justify-content: center; text-align: center;
+          }
           .lpv-cell { text-align: left; padding: 14px; border-radius: 12px; background: transparent; }
           .lpv-rowgroup > .lpv-cell:last-child { padding-right: 14px; }
           /* Stacked, the highlight is a self-contained card per row, so it needs a border
@@ -8733,6 +8694,14 @@ export default function Landing() {
           box-shadow: 0 30px 70px -34px rgba(28, 27, 75, 0.45);
           overflow: hidden;
         }
+        /* Section eyebrow above the heading — the em-dash lead-in the old proof section
+           used ("— proof, not promises"), kept verbatim. */
+        .lp-proof .lpz-eyebrow {
+          display: block; margin: 0 0 14px;
+          font-family: var(--font-body); font-size: 13px; font-weight: 600;
+          font-style: italic; letter-spacing: 0.04em;
+          color: rgba(28, 27, 75, 0.6);
+        }
         .lp-proof .lpz-heading {
           margin: 0;
           font-family: var(--font-head); font-weight: 500;
@@ -9099,7 +9068,9 @@ export default function Landing() {
           font-size: 1rem;
           color: var(--lp-text-muted);
           font-style: italic;
-          margin: 0;
+          /* Sits under the panel now (it used to be the last child inside it), so it needs
+             its own breathing room instead of inheriting the panel's padding. */
+          margin: 28px 0 0;
           text-align: center;
           letter-spacing: 0.02em;
         }
@@ -9736,6 +9707,9 @@ export default function Landing() {
             position: static !important; transform: none !important;
             width: 100%; max-width: 420px; min-height: auto;
           }
+          /* No peel at this width, so there is no emptied card box to reclaim — the desktop
+             overlap would just drag Find & Hire up over three cards that are still there. */
+          .lp-achieve-rise { margin-top: 0; }
         }
         /* Audit cards on MOBILE (≤768px): keep the absolute FAN (centred via flex
            static-position), sized for a phone, and give the section a TALL sticky runway so the

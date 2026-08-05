@@ -147,7 +147,22 @@ function playVideoCapped(v) {
     _waitingVideos.delete(v);
     _playingVideos.add(v);
     const p = v.play();
-    if (p && p.catch) p.catch(() => {});
+    // A rejected play() used to be swallowed while the element STAYED in _playingVideos —
+    // and the has() guard above then made every later attempt a no-op, so the card sat
+    // frozen on its poster until it happened to leave and re-enter the play zone. That is
+    // the marquee's "the cards at the left/right edge never start" bug: a card entering the
+    // edge calls play() before its source has data, the promise rejects with AbortError, and
+    // nothing ever retries. Dropping it from the set on failure makes it retryable — and
+    // hands its slot to a waiting card so a capped device doesn't lose one to a dead entry.
+    if (p && p.catch) {
+      p.catch(() => {
+        _playingVideos.delete(v);
+        for (const next of _waitingVideos) {
+          if (next.isConnected) { playVideoCapped(next); break; }
+          _waitingVideos.delete(next);
+        }
+      });
+    }
   } else {
     _waitingVideos.add(v);
   }
@@ -194,6 +209,9 @@ function cldPoster(src) {
 // the clip from page load instead of from whenever the load observer happens to fire.
 function LazyVideoEl({ src, className, eager = false }) {
   const ref = useRef(null);
+  // Whether the play observer currently considers this card on screen. A ref, not state:
+  // it is written from the observer on every edge crossing and must not cause a render.
+  const onScreen = useRef(eager);
   // Low-end / Save-Data devices never load the clip — `loaded` stays false so the real
   // first-frame poster shows with NO network fetch and NO decode (see preload below).
   const [loaded, setLoaded] = useState(eager && !IS_LOW_END);
@@ -231,6 +249,7 @@ function LazyVideoEl({ src, className, eager = false }) {
     if (eager && v.src) playVideoCapped(v);
     const io = new IntersectionObserver(
       ([entry]) => {
+        onScreen.current = entry.isIntersecting;
         if (entry.isIntersecting) {
           if (v.src) playVideoCapped(v);
         } else {
@@ -258,6 +277,14 @@ function LazyVideoEl({ src, className, eager = false }) {
       preload={IS_LOW_END ? 'none' : 'auto'}
       webkit-playsinline="true"
       disablePictureInPicture
+      // Safety net for the edge cards: play() can be called (and fail) before the clip has
+      // data. By the time enough arrives the observer has long since fired and will not fire
+      // again until the card crosses the boundary, so without this the card stays parked on
+      // its poster. If it is still on screen when it becomes playable, start it.
+      onCanPlay={(e) => {
+        const v = e.currentTarget;
+        if (onScreen.current && v.paused) playVideoCapped(v);
+      }}
       {...(loaded ? { src: cldThumb(src) } : {})}
     />
   );
@@ -2250,12 +2277,16 @@ export default function Landing() {
           if (entry.isIntersecting) play(entry.target); else pause(entry.target);
         }
       },
-      // 0.4 -> 0.15. The second half of the same bug: a card sliding in at the screen edge
-      // is cropped, so it sat below a 40%-visible threshold and stayed paused for a good
-      // part of its travel even once slots were free. 0.15 starts it while it's still
-      // entering; it's low enough to catch the edge cards and high enough that a card
-      // clipped to a sliver by .nlp-gallery-vp's overflow still counts as gone.
-      { threshold: 0.15 }
+      // 0.4 -> 0.15 -> 0.01. Same bug, twice under-corrected: a card cropped by the screen
+      // edge is only a few percent visible BY AREA, so it sat under the threshold and never
+      // started — the "cards at the left/right edge don't play" report. Measured: the card
+      // parked at the right edge had ratio 0.069, i.e. still under 0.15.
+      // 0.01 is safe here. A card scrolled past the viewport, or clipped away entirely by
+      // .nlp-gallery-vp's overflow, has ratio exactly 0 and is still treated as gone; only
+      // genuinely-visible slivers now count. Concurrency stays bounded by
+      // HERO_ARCH_MAX_PLAYING above (10 desktop / 5 mobile) — the threshold was never what
+      // was limiting decode count, it was only ever deciding WHEN a visible card starts.
+      { threshold: 0.01 }
     );
     videos.forEach((v) => io.observe(v));
 
@@ -2481,16 +2512,20 @@ export default function Landing() {
             <svg viewBox="0 0 70 40" className="nlp-note-arrow2"><path d="M4,10 C24,34 44,34 60,18" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round"/><path d="M50,22 L61,17 L58,29" fill="none" stroke="#3a3a3a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </span>
           {/* Both hero CTAs, same split (and same test ids) the page has always had:
-              creators go to the creator landing, brands go straight to signup. */}
+              creators go to the creator landing, brands go straight to signup.
+              EMPHASIS IS ON "Sign up as Brand": it carries the filled .nlp-cta and the
+              creator route takes the outline --ghost. Only the styling swapped — each
+              button keeps its own destination and data-testid, so nothing that targets
+              them by id changes meaning. */}
           <button
-            className="nlp-cta"
+            className="nlp-cta nlp-cta--ghost"
             onClick={() => navigate('/creator')}
             data-testid="get-started-btn"
           >
             Join as Creator
           </button>
           <button
-            className="nlp-cta nlp-cta--ghost"
+            className="nlp-cta"
             onClick={() => navigate('/auth?mode=signup&role=business')}
             data-testid="learn-more-btn"
           >
@@ -3958,14 +3993,22 @@ export default function Landing() {
           font-family: var(--font-head);
           /* Was hardcoded #171717 (near-black) — fine against the old always-cream hero,
              illegible now that the hero follows the dark theme by default. */
-          font-weight: 700; letter-spacing: -2px; line-height: 1.02; color: var(--lp-text);
+          /* 700 -> 600. Readex Pro is loaded at 200-700 (see the @import in App.css), so 600 is
+             a real cut rather than a browser-synthesized in-between. */
+          font-weight: 600; letter-spacing: -2px; line-height: 1.02; color: var(--lp-text);
           /* Max size trimmed (was 84px) as part of the overall compacting pass. */
           /* Two-point form: the old 5.6vw slope hit its 60px cap at 1071px, so every screen
              from a small laptop to a 2560 monitor rendered the hero headline at exactly the
              same size. Same 36px floor for phones; now keeps growing to 76px at ~2400. */
           font-size: var(--lp-fs-display);
         }
-        .nlp-title-accent { color: var(--lp-purple-700); }
+        /* Scoped under .lp-root deliberately. The blanket rule above
+           (".lp-root h1, .lp-root span, …  { color: var(--lp-text) }") is specificity 0,1,1;
+           a bare .nlp-title-accent is 0,1,0 and LOSES, so the accent phrases were being
+           repainted in the body colour and the whole headline rendered flat navy.
+           Matching that rule's specificity — and coming later in the sheet — restores them
+           without needing !important. */
+        .lp-root .nlp-title-accent { color: var(--lp-purple-700); }
         /* Keeps "The Performance" on one line — see the h1. inline-block so the nowrap
            applies to the pair as a unit while the surrounding text still wraps normally. */
         .nlp-title-nb { white-space: nowrap; display: inline-block; }
@@ -3976,7 +4019,7 @@ export default function Landing() {
         }
         /* Accent phrase inside the subline. nowrap so "high-performing UGC ads" can't be
            split across two lines — it's read as one term. */
-        .nlp-sub-accent { color: var(--lp-purple-700); font-weight: 600; white-space: nowrap; }
+        .lp-root .nlp-sub-accent { color: var(--lp-purple-700); font-weight: 600; white-space: nowrap; }
         /* Clipping viewport: hides the horizontal overflow of the scrolling track but
            leaves vertical room for the arched cards (padding reserves space for the CTA). */
         .nlp-gallery-vp {
@@ -4040,7 +4083,7 @@ export default function Landing() {
            page — now the site accent, the same periwinkle every other primary fill uses (nav
            join pill, audit deck, proof cards). Flat: the coloured glow this used to cast has
            been removed, so the lift + darkening carry the hover on their own. */
-        .nlp-cta {
+        .lp-root .nlp-cta {
           background: #7387FF; color: #fff; border: none; border-radius: 999px;
           padding: 15px 42px; font-weight: 700; font-size: 16px; cursor: pointer;
           font-family: var(--font-body);
@@ -4056,7 +4099,7 @@ export default function Landing() {
         /* Secondary hero CTA ("Sign up as Brand"). Outline, not a second filled pill —
            two solid buttons side by side would give the brand path equal visual weight
            to the primary creator one. */
-        .nlp-cta--ghost {
+        .lp-root .nlp-cta--ghost {
           background: transparent; color: var(--lp-text);
           border: 1px solid rgba(var(--lp-fg), 0.3); box-shadow: none;
         }
@@ -4132,7 +4175,7 @@ export default function Landing() {
              120px of text + 36px padding, so the pair plus the gap sits ~330px, inside a 360px
              viewport. Below that the ≤380px step trims again. */
           .nlp-cta-wrap { gap: 10px; }
-          .nlp-cta {
+          .lp-root .nlp-cta {
             padding: 12px 18px;
             font-size: 14px;
             white-space: nowrap;
@@ -4141,7 +4184,7 @@ export default function Landing() {
         @media (max-width: 380px) {
           /* 320-360px phones: one more step down so both pills still clear the screen edge. */
           .nlp-cta-wrap { gap: 8px; }
-          .nlp-cta { padding: 11px 13px; font-size: 13px; }
+          .lp-root .nlp-cta { padding: 11px 13px; font-size: 13px; }
         }
 
         /* No animated blobs / 3D logo mark in this build (unrelated to page color — kept
@@ -4322,7 +4365,7 @@ export default function Landing() {
           border-radius: 10px;
           white-space: nowrap;
         }
-        .lp-hero__title-accent {
+        .lp-root .lp-hero__title-accent {
           /* inline (not inline-block) + clone so a highlight that wraps to a second
              line keeps the same purple padding/radius on every line. */
           display: inline;
@@ -4351,7 +4394,7 @@ export default function Landing() {
         /* Hero subtitle second line ("Unlock serious growth…") shown on desktop, hidden on mobile. */
         @media (max-width: 768px) { .lp-hero__sub-line2 { display: none; } }
 
-        .lp-hero__accent {
+        .lp-root .lp-hero__accent {
           color: #C8F23A;
           font-weight: 600;
         }
@@ -5256,7 +5299,7 @@ export default function Landing() {
           margin-left: auto;
           margin-right: auto;
         }
-        .lp-problem__heading--accent {
+        .lp-root .lp-problem__heading--accent {
           color: #7387FF;
           background: none;
           -webkit-text-fill-color: #7387FF;
@@ -5637,7 +5680,7 @@ export default function Landing() {
           .lp-showcase__brk { display: inline; }
         }
         /* "best UGC" reads purple on this theme for brand-aligned accent. */
-        .lp-showcase__heading--accent {
+        .lp-root .lp-showcase__heading--accent {
           color: var(--lp-purple-700);
           background: none;
           -webkit-text-fill-color: var(--lp-purple-700);
@@ -5745,7 +5788,7 @@ export default function Landing() {
         @media (max-width: 768px)  { .lp-showcase__grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
         /* Load more → signup */
         .lp-showcase__more { display: flex; justify-content: center; margin-top: 34px; }
-        .lp-showcase__more-btn {
+        .lp-root .lp-showcase__more-btn {
           border: 1px solid rgba(28,27,75,0.18); background: #fff; color: #1c1b4b;
           font-family: var(--font-body); font-weight: 700; font-size: 15px;
           padding: 13px 34px; border-radius: 999px; cursor: pointer;
@@ -5765,7 +5808,7 @@ export default function Landing() {
           justify-content: center;
           margin-top: 44px;
         }
-        .lp-showcase__more-btn {
+        .lp-root .lp-showcase__more-btn {
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -7151,7 +7194,7 @@ export default function Landing() {
           margin-left: auto;
           margin-right: auto;
         }
-        .lp-compare__heading--accent {
+        .lp-root .lp-compare__heading--accent {
           color: #7387FF;
           background: none;
           -webkit-text-fill-color: #7387FF;
@@ -7424,7 +7467,7 @@ export default function Landing() {
         }
 
         /* ── CTA ──────────────────────────────────────────────────────────── */
-        .lp-cta {
+        .lp-root .lp-cta {
           position: relative;
           padding: calc(var(--lp-space-section) * 0.583) 4% calc(var(--lp-space-section) * 0.833);
           background: transparent;
@@ -7486,7 +7529,7 @@ export default function Landing() {
           flex-shrink: 0;
         }
 
-        .lp-cta__heading {
+        .lp-root .lp-cta__heading {
           font-family: var(--font-head);
           font-size: var(--lp-fs-h2);
           font-weight: var(--fw-head);
@@ -7495,7 +7538,7 @@ export default function Landing() {
           line-height: 1.05;
           letter-spacing: -0.05em;
         }
-        .lp-cta__heading--strike {
+        .lp-root .lp-cta__heading--strike {
           position: relative;
           color: var(--lp-text-muted);
           font-style: italic;
@@ -7511,7 +7554,7 @@ export default function Landing() {
           transform: rotate(-3deg);
           border-radius: 4px;
         }
-        .lp-cta__heading--accent {
+        .lp-root .lp-cta__heading--accent {
           color: #7387FF;
           font-style: italic;
           position: relative;
@@ -7529,7 +7572,7 @@ export default function Landing() {
           opacity: 0.55;
         }
 
-        .lp-cta__subtext {
+        .lp-root .lp-cta__subtext {
           font-family: var(--font-body);
           color: var(--lp-text-muted);
           font-size: 1.05rem;
@@ -7568,7 +7611,7 @@ export default function Landing() {
           text-transform: uppercase;
         }
 
-        .lp-cta__subtext {
+        .lp-root .lp-cta__subtext {
           font-family: var(--font-body);
           font-size: 1.1rem;
           color: var(--lp-text);
@@ -7587,7 +7630,7 @@ export default function Landing() {
           margin-bottom: 22px;
         }
 
-        .lp-btn-join {
+        .lp-root .lp-btn-join {
           display: inline-flex;
           align-items: center;
           gap: 9px;
@@ -7642,7 +7685,7 @@ export default function Landing() {
           color: #7387FF;
         }
 
-        .lp-cta__proof {
+        .lp-root .lp-cta__proof {
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -7702,7 +7745,7 @@ export default function Landing() {
         }
 
         @media (max-width: 640px) {
-          .lp-cta { padding: 90px 5%; }
+          .lp-root .lp-cta { padding: 90px 5%; }
           .lp-cta__signals { flex-direction: column; gap: 16px; padding: 20px 24px; }
           .lp-cta__signal-divider { width: 38px; height: 1px; }
           .lp-cta__btn-row { flex-direction: column; width: 100%; }
@@ -7927,7 +7970,7 @@ export default function Landing() {
           .lp-features { padding: 56px 6% 72px; }
           .lp-proof { padding: 64px 6%; }
           .lp-testimonial { padding: 56px 6%; }
-          .lp-cta { padding: 56px 6% 72px; }
+          .lp-root .lp-cta { padding: 56px 6% 72px; }
           /* Keep big display headings from overflowing very small screens */
           .lp-section-heading,
           .lp-steps__heading,
@@ -8193,7 +8236,7 @@ export default function Landing() {
           margin: 0 auto;
           max-width: 820px;
         }
-        .lp-footer__statement-accent {
+        .lp-root .lp-footer__statement-accent {
           color: #7387FF;
           font-style: italic;
           position: relative;
@@ -8244,7 +8287,7 @@ export default function Landing() {
           display: flex;
           gap: 8px;
         }
-        .lp-footer__social-btn {
+        .lp-root .lp-footer__social-btn {
           /* 44px, not 36px — these sit in a row with an 8px gap at the very bottom of a phone
              screen, where mis-taps are most likely. */
           width: 44px;
@@ -8357,7 +8400,7 @@ export default function Landing() {
           margin: 14px 0 0 0;
           max-width: 340px;
         }
-        .lp-footer__link-accent {
+        .lp-root .lp-footer__link-accent {
           color: #7387FF;
           text-decoration: underline;
           font-weight: 500;
@@ -8630,7 +8673,7 @@ export default function Landing() {
             font-size: clamp(1.4rem, 5vw, 2rem);
           }
         }
-        .lp-hook__heading--accent {
+        .lp-root .lp-hook__heading--accent {
           color: #7387FF;
         }
 
@@ -8971,7 +9014,7 @@ export default function Landing() {
           line-height: 1.15;
           margin: 0 0 14px 0;
         }
-        .lp-audit__heading--accent {
+        .lp-root .lp-audit__heading--accent {
           color: #7387FF;
           font-style: italic;
           position: relative;
@@ -9602,7 +9645,7 @@ export default function Landing() {
           line-height: 1.15;
           margin: 0 0 56px 0;
         }
-        .lp-testimonial__heading--accent {
+        .lp-root .lp-testimonial__heading--accent {
           color: #7387FF;
           font-style: italic;
           position: relative;

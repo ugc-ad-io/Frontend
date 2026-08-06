@@ -1588,6 +1588,16 @@ export default function Landing() {
   const T_LOOP = [...testimonials, ...testimonials, ...testimonials];
   const [tIndex, setTIndex] = useState(T_LEN);   // start inside the middle copy
   const [tAnim, setTAnim] = useState(true);
+  // The wrap-snap effect below only corrects tIndex once it's sat outside the middle copy
+  // for 620ms — deliberately, so the slide plays before the invisible snap. But every further
+  // tIndex change resets that 620ms wait (it's keyed on [tIndex]), so clicking an arrow
+  // repeatedly fast enough (each tap under 620ms after the last) kept deferring the snap
+  // indefinitely, letting tIndex march straight past the array's real bounds — the viewport
+  // was translating to a "pitch" with no card left to show, i.e. blank. Clamping every step to
+  // at most one pitch outside the middle copy means rapid clicks just pile up at that edge
+  // instead of running off the end; the snap (once it finally fires) always has real ground to
+  // return to.
+  const clampT = (i) => Math.max(T_LEN - 1, Math.min(2 * T_LEN, i));
   // Card width + gap live in CSS (--tcard-w / --tcard-gap); the track is centred with a
   // 50% margin and stepped purely by translating whole "pitches" — no JS pixel math, so
   // it can never collapse from a mis-measured width.
@@ -1598,7 +1608,7 @@ export default function Landing() {
   // is what caused the jump/shift when the loop wrapped.
   useEffect(() => {
     if (!tAnim) return undefined;
-    const id = setTimeout(() => setTIndex((i) => i + 1), 3800);
+    const id = setTimeout(() => setTIndex((i) => clampT(i + 1)), 3800);
     return () => clearTimeout(id);
   }, [tIndex, tAnim]);
 
@@ -2817,7 +2827,7 @@ export default function Landing() {
               so CSS alone can't switch between them. Exactly one is ever displayed (see
               .lp-brandstrip__label--web / --mob). */}
           <span className="lp-brandstrip__label lp-brandstrip__label--web">Trusted by leading<br /><span className="lp-brandstrip__label--accent">brands</span></span>
-          <span className="lp-brandstrip__label lp-brandstrip__label--mob">Supporting today's <span className="lp-brandstrip__label--accent">top brands</span></span>
+          <span className="lp-brandstrip__label lp-brandstrip__label--mob">Trusted by leading <span className="lp-brandstrip__label--accent">brands</span></span>
           <div className="lp-brands__viewport">
             <div className="lp-brands__track lp-brands__track--single">
               {(() => {
@@ -3189,17 +3199,16 @@ export default function Landing() {
             you work with top-tier UGC creators.
           </p>
           <div className="lp-fh">
-            {/* The set is rendered TWICE. The second copy exists only to feed the mobile
-                marquee (a -50% translate loops seamlessly when the track holds exactly two
-                identical halves) and is display:none above 720px, where the layout is a
-                static grid — see .lp-fh__card--dup. */}
+            {/* One copy of the set. A second, duplicated half briefly lived here to make a
+                mobile marquee loop seamlessly; the mobile row is a real snap-scroller now
+                (see the ≤720px block), so nothing wants the duplicates — they were hidden
+                at every width and only cost three extra <video> elements. */}
             <div className="lp-fh__videos">
-              {[...FIND_HIRE_VIDEOS, ...FIND_HIRE_VIDEOS].map((v, i) => (
+              {FIND_HIRE_VIDEOS.map((v, i) => (
                 <motion.div
-                  className={`lp-fh__card${i >= FIND_HIRE_VIDEOS.length ? ' lp-fh__card--dup' : ''}`}
-                  key={`${v.id}-${i}`}
-                  aria-hidden={i >= FIND_HIRE_VIDEOS.length}
-                  custom={i % FIND_HIRE_VIDEOS.length}
+                  className="lp-fh__card"
+                  key={v.id}
+                  custom={i}
                   variants={cardVariants}
                   initial="hidden"
                   animate={findHireCardsInView ? 'visible' : 'hidden'}
@@ -3256,7 +3265,12 @@ export default function Landing() {
             {/* header row */}
             <div className="lpv-header">
               <div className="lpv-h lpv-h--label" />
-              <div className="lpv-h lpv-h--us"><span className="lpv-brand">UGC<span className="lpv-brand-ad">ad.io</span></span></div>
+              {/* The real logo image, same file the navbar uses — this was a hand-built text
+                  lockup ("UGC" navy + "ad.io" periwinkle) that only approximated the mark and
+                  drifted from it whenever the brand asset changed. */}
+              <div className="lpv-h lpv-h--us">
+                <img src="/ugcad-logo.png" alt="UGCad.io" className="lpv-brand-logo" />
+              </div>
               <div className="lpv-h lpv-h--them">Traditional Agencies</div>
               <div className="lpv-h lpv-h--them">Marketplaces</div>
             </div>
@@ -3494,7 +3508,7 @@ export default function Landing() {
               type="button"
               className="lp-testimonial__arrow lp-testimonial__arrow--prev"
               aria-label="Previous testimonial"
-              onClick={() => setTIndex((i) => i - 1)}
+              onClick={() => setTIndex((i) => clampT(i - 1))}
             >
               <ChevronLeft size={22} />
             </button>
@@ -3502,7 +3516,7 @@ export default function Landing() {
               type="button"
               className="lp-testimonial__arrow lp-testimonial__arrow--next"
               aria-label="Next testimonial"
-              onClick={() => setTIndex((i) => i + 1)}
+              onClick={() => setTIndex((i) => clampT(i + 1))}
             >
               <ChevronRight size={22} />
             </button>
@@ -6715,8 +6729,6 @@ export default function Landing() {
         .lp-fh__videos {
           display: contents;
         }
-        /* Duplicate marquee half — mobile-only (see the ≤720px block). */
-        .lp-fh__card--dup { display: none; }
         .lp-fh__card {
           display: flex;
           flex-direction: column;
@@ -6812,25 +6824,37 @@ export default function Landing() {
             display: flex;
             flex-direction: column;
             gap: 18px;
-            overflow: hidden;
+            /* visible, not hidden: the scroll container is .lp-fh__videos now, and clipping
+               here would cut the row off before it could scroll. */
+            overflow: visible;
           }
-          /* display:contents on the base rule made the cards direct grid items; here the
-             wrapper has to be a real box again, because it IS the moving track. */
+          /* SWIPEABLE, not auto-scrolling. This row used to run on a 30s infinite marquee,
+             which meant the only way to see a given clip was to wait for it to come round —
+             and the animation kept the compositor working on a row of videos the whole time.
+             It is now a native horizontal scroller with snap points, so it is dragged by hand.
+             (The prefers-reduced-motion block further down already switched to exactly this;
+             it is simply the default now, and that block's overrides became redundant.) */
           .lp-fh__videos {
             display: flex;
             flex-direction: row;
-            width: max-content;
             gap: 12px;
-            animation: fhMarquee 30s linear infinite;
-            will-change: transform;
-            backface-visibility: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;   /* don't chain into the page/back-gesture */
+            /* Cards start and end flush with the section's gutter rather than the raw
+               viewport edge, and snap to that same line. */
+            padding-inline: 5%;
+            scroll-padding-inline: 5%;
+            /* The bar itself adds nothing on touch and shifts layout on desktop-narrow. */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
           }
-          /* The second half of the loop, hidden everywhere else. */
-          .lp-fh__card--dup { display: flex; }
-          /* Fixed width, so the track's total width is stable and the -50% loop lines up.
-             ~66vw shows one card plus the edge of the next, which is what reads as "this
-             row is moving" rather than a static hero clip. */
-          .lp-fh__card { flex: 0 0 66vw; max-width: 280px; }
+          .lp-fh__videos::-webkit-scrollbar { display: none; }
+          /* ~78vw shows the current card with the next one peeking, which is what signals
+             "this row scrolls" now that nothing moves on its own. */
+          .lp-fh__card { flex: 0 0 78vw; max-width: 300px; scroll-snap-align: center; }
           /* Undoes the ≤1100px rules, which are still in force here (that block is a wider
              max-width, so it also matches at ≤720px). There, the card spanned the full grid
              row and laid its features out sideways; stacked it goes back to the base
@@ -6863,20 +6887,10 @@ export default function Landing() {
           .lp-fh__video-wrap { border-radius: 14px; }
           .lp-fh__badge { top: 8px; left: 8px; padding: 4px 9px; font-size: 0.64rem; }
         }
-        /* -50% is exactly one of the two identical halves, so the track lands back on a
-           frame indistinguishable from where it started — no visible jump. */
-        @keyframes fhMarquee {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        /* Reduced motion: stop the scroll rather than hide the section. Killing the
-           animation alone would leave the track frozen inside an overflow:hidden box with
-           the later cards permanently unreachable, so the viewport is switched to a real
-           swipeable scroller at the same time. */
-        @media (prefers-reduced-motion: reduce) {
-          .lp-fh__videos { animation: none !important; }
-          .lp-fh { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        }
+        /* The reduced-motion block that used to sit here is gone: it turned the auto-scrolling
+           marquee into a swipeable scroller, which is now what every phone gets by default, so
+           it had nothing left to override. The fhMarquee keyframes went with it: nothing
+           referenced them once the mobile rule stopped animating this row. */
 
         /* ── Stacked-card scroll deck (mobile only) ────────────────────────────
            Reuses the SAME .lp-achieve-card design as the desktop fan; only overrides
@@ -7172,8 +7186,13 @@ export default function Landing() {
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
            only ever swallows scrolling ROWS, never the section's own title on entrance. */
         .lpv-kicker { margin: 0; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
+        /* --lp-fs-h2, matching every other section heading on the page (Our Services, We
+           create the best UGC, Answer This Honestly, the proof and testimonial headings all
+           use it). This was the only one still on --lp-fs-h1, which is a full step larger —
+           54px vs 40px at the 1536 reference — so it read as outsized next to its neighbours.
+           Sharing the token also means it now scales with them instead of on its own curve. */
         .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: var(--font-head);
-          font-weight: 500; font-size: var(--lp-fs-h1); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
+          font-weight: 500; font-size: var(--lp-fs-h2); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
           position: relative; z-index: 6; }
         /* "US" carries the accent — the whole point of the line is the contrast with the
            two "Others" columns underneath it. */
@@ -7315,7 +7334,15 @@ export default function Landing() {
            with the values under it now that the gutter lives on the cells. */
         .lpv-header > .lpv-h:last-child { padding-right: 30px; }
         .lpv-h--us { display: flex; align-items: center; justify-content: center; }
-        .lpv-brand { font-family: var(--font-head); font-weight: 700; font-size: 30px; letter-spacing: -1px; color: #1c1b4b; }
+        /* Sized by HEIGHT with width:auto, exactly like .lp-navbar__logo, so the mark keeps
+           its own proportions instead of being stretched to the column. 40px rather than the
+           navbar's 46px: this cell's padding is 30px top and bottom, and the sticky header's
+           min-height is what the rows dissolve against — a taller mark would grow that box
+           and change how much of a passing row it swallows. */
+        .lpv-brand-logo { height: 40px; width: auto; flex: none; object-fit: contain; display: block; }
+        /* .lpv-brand (the old text lockup) is gone; .lpv-brand-ad stays — the MOBILE header
+           at .lpv-mhead__us still uses it, and it sits on a filled dark chip there, so it
+           keeps the text treatment rather than this dark-ink image. */
         .lpv-brand-ad { color: #7387FF; }
         .lpv-h--them { display: flex; align-items: center; justify-content: center; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 15px; }
         /* Zebra striping replaces the per-row top border. ".lpv-grid"'s children are

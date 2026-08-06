@@ -128,14 +128,56 @@ const MAX_PLAYING_GALLERY =
   (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 768px)').matches) ? 3 : 10;
 const _glPlaying = new Set();
 const _glWaiting = new Set();
+// Clips whose play() the browser REJECTED. This is the gap that made the wall dead on real
+// phones while looking fine in a desktop browser's device emulator: emulation keeps the
+// desktop autoplay policy, a real handset does not. iOS in particular refuses muted autoplay
+// outright in Low Power Mode, and both iOS and Android can refuse it on a cold load before
+// the page has seen any interaction. The old catch just dropped the clip out of _glPlaying
+// and gave up, so a single early rejection left that card paused for the rest of the visit.
+// Rejected clips are parked here instead and retried on the visitor's first touch — the
+// moment the policy starts allowing playback.
+const _glBlocked = new Set();
+let _glGestureHooked = false;
+function hookGestureRetry() {
+  if (_glGestureHooked || typeof document === 'undefined') return;
+  _glGestureHooked = true;
+  const retry = () => {
+    if (!_glBlocked.size) return;
+    const pending = [..._glBlocked];
+    _glBlocked.clear();
+    for (const el of pending) if (el.isConnected) playGalleryCapped(el);
+  };
+  // NOT { once: true }. The first gesture can easily land before anything has been blocked
+  // (a visitor taps something above the fold), and a one-shot listener would be spent by
+  // then. It stays subscribed and no-ops while the set is empty, which costs nothing.
+  document.addEventListener('pointerdown', retry, { passive: true });
+  document.addEventListener('touchstart', retry, { passive: true });
+}
+// Hands the freed slot to the first waiting clip that is still in the document.
+function promoteWaiting() {
+  for (const next of _glWaiting) {
+    if (next.isConnected) { playGalleryCapped(next); return; }
+    _glWaiting.delete(next);
+  }
+}
 function playGalleryCapped(v) {
   if (_glPlaying.has(v)) return;
   if (_glPlaying.size < MAX_PLAYING_GALLERY) {
     _glWaiting.delete(v);
     _glPlaying.add(v);
-    v.muted = true; // guarantee muted so the autoplay policy never rejects play()
+    v.muted = true;         // property — what the element actually plays at
+    v.defaultMuted = true;  // ATTRIBUTE — what the autoplay policy inspects on iOS
     const p = v.play?.();
-    if (p && p.catch) p.catch(() => { _glPlaying.delete(v); });
+    if (p && p.catch) {
+      p.catch(() => {
+        _glPlaying.delete(v);
+        _glBlocked.add(v);
+        hookGestureRetry();
+        // Don't strand the slot this clip just gave back. Terminates: playGalleryCapped
+        // removes the promoted clip from _glWaiting, so the set shrinks on every hop.
+        promoteWaiting();
+      });
+    }
   } else {
     _glWaiting.add(v);
   }
@@ -143,13 +185,12 @@ function playGalleryCapped(v) {
 function releaseGallery(v) {
   const wasPlaying = _glPlaying.delete(v);
   _glWaiting.delete(v);
+  // A clip that has scrolled away is no longer a retry candidate — otherwise the first touch
+  // would wake cards the visitor has long since scrolled past, burning the mobile decode cap
+  // on clips nobody can see.
+  _glBlocked.delete(v);
   v.pause?.();
-  if (wasPlaying) {
-    for (const next of _glWaiting) {
-      if (next.isConnected) { playGalleryCapped(next); break; }
-      _glWaiting.delete(next);
-    }
-  }
+  if (wasPlaying) promoteWaiting();
 }
 // Play a clip WITH sound. It jumps the cap — the visitor asked for this specific card — but
 // still takes a slot so the normal off-screen release path cleans up after it.
@@ -158,7 +199,15 @@ function playWithSound(v) {
   _glPlaying.add(v);
   v.muted = false;
   const p = v.play?.();
-  if (p && p.catch) p.catch(() => { v.muted = true; });
+  if (p && p.catch) {
+    p.catch(() => {
+      // Unmuted playback refused. Restoring `muted` alone left the card PAUSED — the tap
+      // looked like it did nothing. Fall back to playing it silently, which is always
+      // permitted from inside a gesture, so the card at least starts moving.
+      v.muted = true;
+      v.play?.().catch(() => {});
+    });
+  }
 }
 
 // Hero marquee card -- muted autoplay clip. The src is attached only once the card nears the
@@ -502,11 +551,15 @@ export default function CreatorLanding() {
           The links point at this page's own sections; "For Brands" leaves for the main site. */}
       <nav className={`cl-nav${navScrolled ? ' cl-nav--scrolled' : ''}`}>
         <div className="cl-nav__inner">
+          {/* Goes HOME, not just back to top. This is a sub-page (/creator), so a logo that
+              only scrolled to the top of it left no way back to the main landing page — and a
+              logo is the one control users universally expect to be a link home. The "For
+              Brands" nav link below already navigates to '/', so this matches it. */}
           <button
             type="button"
             className="cl-brand"
-            aria-label="UGCad.io — back to top"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="UGCad.io — go to home page"
+            onClick={() => navigate('/')}
           >
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cl-brand__logo" />
           </button>
@@ -798,19 +851,46 @@ export default function CreatorLanding() {
           </p>
         </motion.div>
 
+        {/* Ported from the home page's FAQ (.lp-faq__grid). Two INDEPENDENT columns, not one
+            2-column grid: in a grid the two cards in a row share a row height, so opening one
+            left a dead gap under its collapsed neighbour. Splitting even/odd indexes into
+            their own flex columns keeps every card at its natural height and packs each column
+            tight — and because the old grid was row-major, even→left / odd→right lands every
+            card exactly where it was before.
+            `order: i` restores true 0,1,2… sequence on mobile, where the columns collapse to
+            display:contents and all the cards re-flow into one list. */}
         <div className="cl-faq">
-          {FAQS.map(({ q, a }, i) => {
-            const open = openFaq === i;
-            return (
-              <div key={q} className={`cl-faq__item${open ? ' cl-faq__item--open' : ''}`}>
-                <button className="cl-faq__q" onClick={() => setOpenFaq(open ? -1 : i)}>
-                  <span>{q}</span>
-                  <ChevronDown size={18} className="cl-faq__chev" />
-                </button>
-                {open && <p className="cl-faq__a">{a}</p>}
-              </div>
-            );
-          })}
+          {[0, 1].map((col) => (
+            <div className="cl-faq__col" key={col}>
+              {FAQS.map(({ q, a }, i) => {
+                if (i % 2 !== col) return null;
+                const open = openFaq === i;
+                return (
+                  <div
+                    key={q}
+                    className={`cl-faq__item${open ? ' cl-faq__item--open' : ''}`}
+                    style={{ order: i }}
+                  >
+                    <button
+                      type="button"
+                      className="cl-faq__q"
+                      aria-expanded={open}
+                      onClick={() => setOpenFaq(open ? -1 : i)}
+                    >
+                      <span>{q}</span>
+                      <ChevronDown size={20} className="cl-faq__chev" aria-hidden="true" />
+                    </button>
+                    {/* The answer is always MOUNTED and revealed by animating the wrapper's
+                        grid-template-rows 0fr -> 1fr, same as home. It used to be
+                        `{open && <p>}`, which snaps open and shut with no transition. */}
+                    <div className="cl-faq__answer-wrap">
+                      <p className="cl-faq__a">{a}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         <div className="cl-faq__cta">
@@ -1674,19 +1754,42 @@ export default function CreatorLanding() {
         .cl-faq__title { font-size: var(--fs-h1); font-weight: var(--fw-head); line-height: 1.08;
           letter-spacing: -0.02em; margin: 0 0 22px; }
         .cl-faq__title em { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 500; }
-        .cl-faq__intro { font-size: 1.05rem; line-height: 1.6; margin: 0; max-width: 540px;
+        /* Intro copy sized to home's .lp-faq__intro (0.96rem / 1.7) rather than this page's
+           old 1.05rem / 1.6. */
+        .cl-faq__intro { font-size: 0.96rem; line-height: 1.7; margin: 0; max-width: 560px;
           color: rgba(var(--cl-fg),0.62) !important; }
-        .cl-faq { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; align-items: start; }
-        .cl-faq__item { border-radius: 14px; border: 1px solid rgba(var(--cl-fg),0.1);
-          background: rgba(var(--cl-fg),0.03); overflow: hidden; transition: border-color 0.2s, background 0.2s; }
-        .cl-faq__item--open { border-color: rgba(115,135,255,0.4); background: rgba(115,135,255,0.06); }
-        .cl-faq__q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding: 26px 28px; background: transparent; border: none; cursor: pointer; font-size: 1.08rem;
-          font-weight: 600; text-align: left; color: inherit; }
-        .cl-faq__chev { color: rgba(var(--cl-fg),0.55); flex-shrink: 0; transition: transform 0.25s; }
+        /* The grid lays out the two COLUMNS only; cards stack inside a column, so an open card
+           pushes the ones below it in its own column and never stretches a shared row. */
+        .cl-faq { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+        .cl-faq__col { display: flex; flex-direction: column; gap: 16px; }
+        /* Card treatment ported from .lp-faq__item: 10px radius (was 14), a lighter fill and
+           hairline, and a hover lift. */
+        .cl-faq__item { border-radius: 10px; border: 1px solid rgba(var(--cl-fg),0.08);
+          background: rgba(var(--cl-fg),0.04); overflow: hidden;
+          transition: background 0.2s ease, border-color 0.2s ease; }
+        .cl-faq__item:hover { background: rgba(var(--cl-fg),0.06); }
+        /* Open state changes the BORDER only. The old rule also washed the card in
+           rgba(115,135,255,0.06), which home doesn't do — that purple fill was the loudest
+           difference between the two pages' accordions. */
+        .cl-faq__item--open { border-color: rgba(115,135,255,0.30); }
+        .cl-faq__q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 18px;
+          padding: 20px 22px; background: none; border: none; cursor: pointer; text-align: left;
+          font-size: clamp(0.9rem, 1.3vw, 1rem); font-weight: 500;
+          color: rgba(var(--cl-fg),0.90); transition: color 0.2s ease; }
+        .cl-faq__q:hover { color: rgba(var(--cl-fg),1); }
+        .cl-faq__chev { color: rgba(var(--cl-fg),0.55); flex-shrink: 0;
+          transition: transform 0.3s ease, color 0.3s ease; }
         .cl-faq__item--open .cl-faq__chev { transform: rotate(180deg); color: var(--cl-purple); }
-        .cl-faq__a { padding: 0 28px 26px; margin: 0; font-size: 0.97rem; line-height: 1.65;
-          color: rgba(var(--cl-fg),0.62) !important; }
+        /* 0fr -> 1fr on a grid row is what animates the reveal without needing a measured
+           max-height. The <p> needs overflow:hidden + min-height:0 or it refuses to be
+           clipped below its content height while the row collapses. */
+        .cl-faq__answer-wrap { display: grid; grid-template-rows: 0fr;
+          transition: grid-template-rows 0.38s cubic-bezier(0.4, 0, 0.2, 1); }
+        .cl-faq__item--open .cl-faq__answer-wrap { grid-template-rows: 1fr; }
+        .cl-faq__a { overflow: hidden; min-height: 0; padding: 0 22px 20px; margin: 0;
+          font-size: 0.92rem; line-height: 1.7; color: rgba(var(--cl-fg),0.62) !important;
+          opacity: 0; transition: opacity 0.3s ease; }
+        .cl-faq__item--open .cl-faq__a { opacity: 1; }
         .cl-faq__cta { display: flex; justify-content: center; margin-top: 44px; }
 
         /* Footer */
@@ -1718,10 +1821,12 @@ export default function CreatorLanding() {
         @media (max-width: 768px) {
           .cl-nav__links, .cl-nav__actions { display: none; }
           .cl-nav__burger { display: inline-flex; }
-          /* Leftover from the 184px overhanging-lockup era — 150px in a 56px bar swamped the
-             whole phone header and painted over the hero. The logo is contained now, so this
-             only needs to be a touch smaller than the 46px desktop size. */
-          .cl-brand__logo { height: 38px; }
+          /* Match Landing's phone bar exactly (.lp-navbar__inner is 48px with a 34px logo on
+             a 5% gutter). This bar was 64px tall carrying a 38px logo, which is why the two
+             pages' headers still looked different one click apart. */
+          .cl-nav { padding-inline: 5%; }
+          .cl-nav__inner { height: 48px; padding: 0; gap: 16px; }
+          .cl-brand__logo { height: 34px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
           /* PERF: a blurred blob that animates re-rasterizes the whole blur every frame — the
@@ -1729,19 +1834,25 @@ export default function CreatorLanding() {
              the blur radius so the one-time raster is cheap. Visual is unchanged at rest. */
           .cl-blob { width: 300px !important; height: 300px !important; filter: blur(60px);
             animation: none !important; will-change: auto; }
-          /* PERF: a FIXED bar with backdrop-filter re-samples everything behind it on every
-             scroll frame. Drop the blur on mobile and use a near-opaque bar instead. */
-          .cl-nav--scrolled { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-          /* Same reason, and the rule above missed it: the nav LINKS pill (ported from the
-             home page) carries its own blur(14px), and it sits on the same fixed bar — so it
-             re-sampled the page behind it on every scroll frame. Opaque white instead; at 0.97
-             the difference is invisible against this page's cream. */
+          /* The bar stays TRANSPARENT on scroll, exactly as Landing's does — only the logo and
+             the burger float over the page. The two rules that used to paint it near-opaque
+             here (cream in light, near-black in dark) are gone: they were written for the old
+             solid full-width bar, and the desktop port to Landing's floating treatment left
+             them behind. The result was an edge-to-edge cream band slicing across the content
+             the moment you scrolled, which is not what the home page does.
+             backdrop-filter still goes, for the reason it always did — a FIXED bar with a blur
+             re-samples everything behind it on every scroll frame, the biggest scroll cost on
+             a phone. With no background left there is nothing for it to sample anyway. */
+          .cl-nav--scrolled {
+            background: transparent;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+          }
+          /* The links pill is display:none at this width, but it carries its own blur(14px);
+             killing it here too keeps the rule honest if the pill is ever shown on mobile. */
           .cl-nav__links {
             backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
             background: rgba(255, 255, 255, 0.97);
           }
-          .cl-root[data-theme="dark"] .cl-nav--scrolled { background: rgba(10,10,10,0.96); }
-          .cl-root:not([data-theme="dark"]) .cl-nav--scrolled { background: rgba(254,252,249,0.96); }
           .cl-section { padding: 60px 6%; }
           .cl-community { grid-template-columns: repeat(2, 1fr); }
           .cl-tcard { height: clamp(420px, 70vh, 560px);
@@ -1765,7 +1876,12 @@ export default function CreatorLanding() {
           .cl-brands__line--bottom { animation: clMarqueeRight 24s linear infinite; }
           .cl-brands__logo { height: 46px; padding: 0 10px; }
           .cl-brands__icon { height: 32px; width: auto; max-width: 130px; }
+          /* display:contents dissolves the two column wrappers so all the cards become direct
+             children of the single-column grid and re-flow in true 0,1,2… order via their
+             inline "order". Without it the left column's cards would all list before the
+             right column's. Same trick home uses at its own breakpoint. */
           .cl-faq { grid-template-columns: 1fr; }
+          .cl-faq__col { display: contents; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); }
           /* PERF: drop the small decorative backdrop-blurs — cheap to lose, costly on mobile GPUs. */
           .cl-hiw__play, .cl-hiw__chip { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
@@ -1782,13 +1898,21 @@ export default function CreatorLanding() {
           /* Let the hero shrink to its content instead of a full 100vh — otherwise
              the leftover viewport space below the video cards pushes the category
              pills far down the screen. Collapsing it brings the pills up under the cards. */
-          /* The fixed nav is back at this width too, so the hero clears it again. The bar is
-             shorter here (.cl-nav drops to 14px padding around the 56px row = 84px). */
+          /* The fixed nav is back at this width too, so the hero clears it again. The bar now
+             matches Landing's phone geometry: top:20px + a 48px row = 68px of chrome. */
           .cl-hero { padding: clamp(96px, 14vh, 116px) 5% 0; height: auto; min-height: 0; gap: 16px; }
           .cl-hero__title { line-height: 1.12; }
           .cl-hero__sub { font-size: 1.05rem; }
           .cl-hero__ctas { margin-top: 0px; }
           .cl-section { padding: 46px 5%; }
+          /* Gap between the client-logo rows and the "How it works" pill. Measured at 390px it
+             was 74px of dead space: the logo row carries 40px of padding-bottom from its base
+             rule, then .cl-brands adds 4px, then this section's own 46px of padding-top lands
+             on top. Trimmed at both ends rather than one, so neither the logos nor the pill
+             ends up sitting hard against the join. Only the TOP of #how is touched — the
+             blanket .cl-section rule above still gives every other section its full 46px. */
+          .cl-brands__row { padding-bottom: 14px; }
+          #how.cl-section { padding-top: 26px; }
           .cl-belowfold { padding: 14px 5% 24px; }
           .cl-brands__row { padding-top: 36px; gap: 22px; }
           .cl-hiw__card { padding: 24px 20px 0; }
@@ -1806,8 +1930,9 @@ export default function CreatorLanding() {
           .cl-hiw__chip--comments { right: 4%; top: 60%; }
           .cl-community { grid-template-columns: repeat(2, 1fr); gap: 12px; }
           .cl-tcard { height: clamp(360px, 62vh, 480px); }
-          .cl-faq__q { padding: 20px; font-size: 1rem; }
-          .cl-faq__a { padding: 0 20px 20px; }
+          /* Matched to home's own phone sizing (.lp-faq__q / .lp-faq__answer). */
+          .cl-faq__q { padding: 16px; gap: 12px; font-size: 0.88rem; }
+          .cl-faq__a { padding: 0 16px 15px; font-size: 0.86rem; }
           .cl-footer { padding: 40px 5% 32px; }
           /* Two columns on phones: Product/Legal/US stack on the left,
              Alternatives/Blog/India on the right (matches the reference). */

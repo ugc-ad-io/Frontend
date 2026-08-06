@@ -576,43 +576,22 @@ const SVC_ARROW_D = 'M 257.8 160.5 L 270 168 L 256.4 172.5';
 //
 // Copy, colours and videos come from the SAME PROMISE_CARDS / PROMISE_VIDEOS as desktop —
 // this is a layout change only, so the two can never drift apart.
-// Fraction of a card's slice of the scroll runway that its entrance swing occupies — shared
-// by ServiceCard (its own x/rotate) and PromiseMobile (the ghost strip's fade). 0.85 of a
-// ~320-340px per-card slice ≈ the card travels over roughly half a screen of scroll.
-const SERVICE_ENTRY_SPAN = 0.85;
-
-// Own instance of the swing/spring/x/rotate chain per card, scoped to this card's OWN fixed
-// `index` rather than "whichever index the live scroll position currently implies". They used
-// to be a single set of motion values shared across whichever card happened to be rendered —
-// including the one AnimatePresence keeps mounted during its exit animation. The instant
-// scroll crossed into the next card's zone, that shared chain snapped to computing the NEW
-// card's entrance target, and since the exiting card's DOM node was still subscribed to the
-// same motion values, it got visibly dragged toward the new card's position (appearing to
-// "come from the right") at the same moment its own `exit` animation was pulling it left —
-// the two fighting over the same value. Scoping each card's chain to its own fixed index means
-// once scroll moves past it, its swing target simply settles at 0 and stays there — nothing
-// left to fight the exit animation.
-function ServiceCard({ card: c, index: i, n, svcP, reduceMotion, video, navigate }) {
-  const swing = useTransform(svcP, (p) => {
-    if (reduceMotion) return 0;
-    if (i === 0 || i === n - 1) return 0;
-    const local = Math.min(1, Math.max(0, p * n - i));
-    const t = Math.min(1, local / SERVICE_ENTRY_SPAN);
-    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    const side = i % 2 === 0 ? -1 : 1;
-    return side * (1 - eased);
-  });
-  const swingSmooth = useSpring(swing, { stiffness: 42, damping: 26, mass: 0.9 });
-  const cardX = useTransform(swingSmooth, (s) => s * 480);
-  const cardRotate = useTransform(swingSmooth, (s) => s * 4);
-
+// One shared mental model, direction-aware: picture a blind mounted at the TOP of the deck.
+// Scrolling forward rolls it UP to hide the current card (only the OUTGOING card animates,
+// clip-path eating it from the bottom up, and the incoming one is just there underneath once
+// it's gone). Scrolling back rolls it back DOWN to reveal the previous card (only the
+// INCOMING card animates, unclipping from the top down — the outgoing one just vanishes,
+// since the roll motion belongs to whichever card is arriving in that direction).
+const ROLL_TRANSITION = { duration: 0.5, ease: [0.61, 1, 0.88, 1] };
+// The card's actual content, shared between the real animated ServiceCard and the depth-1
+// ghost strip behind it (see PromiseMobile) — the ghost used to be title-only, which meant
+// rolling the front card away exposed blank space (the title sits near the ghost's own top,
+// already covered by the still-intact upper part of the front card mid-roll; only the
+// title-less lower portion was ever what the roll actually revealed). Giving the ghost the
+// same real content means the roll reveals the next card for real, not an empty box.
+function ServiceCardBody({ card: c, index: i, n, video, navigate }) {
   return (
-    <motion.div
-      key={c.title}
-      className="lp-svcm__card"
-      style={{ background: c.color, x: cardX, rotate: cardRotate }}
-      exit={{ x: -420, rotate: -8, transition: { duration: 0.38, ease: 'easeIn' } }}
-    >
+    <>
       <div className="lp-svcm__card-top">
         <span className="lp-svcm__num">{String(i + 1).padStart(2, '0')}</span>
         <div className="lp-svcm__meter">
@@ -658,6 +637,33 @@ function ServiceCard({ card: c, index: i, n, svcP, reduceMotion, video, navigate
       >
         Discover our approach <ArrowRight size={16} />
       </button>
+    </>
+  );
+}
+
+function ServiceCard({ card: c, index: i, n, video, navigate, direction }) {
+  const reverse = direction === -1;
+  return (
+    <motion.div
+      key={c.title}
+      className="lp-svcm__card"
+      // The resting clip-path for the forward case lives in the plain `style` object (a
+      // static value, not initial/animate) so there's a real starting value in the DOM from
+      // the moment it mounts — framer reads that as exit's "from" state. Pinning initial/
+      // animate to the same value instead looked equivalent but let framer skip treating
+      // clip-path as live, so exit had nothing to tween from and just snapped instead of
+      // rolling. The reverse case doesn't need this trick since IT owns initial/animate.
+      // clip-path's 2nd value pair is (bottom, left) after (top, right) — animating BOTTOM
+      // from 100%->0% keeps the visible top edge fixed at the card's own top and grows the
+      // visible area downward from there, i.e. content appears top-first. Animating TOP
+      // instead (what this had before) keeps the BOTTOM edge fixed and grows upward, so it
+      // reads as content rising from below — backwards from what "comes from up" means here.
+      style={reverse ? { background: c.color } : { background: c.color, clipPath: 'inset(0% 0 0% 0)' }}
+      initial={reverse ? { clipPath: 'inset(0% 0 100% 0)' } : false}
+      animate={reverse ? { clipPath: 'inset(0% 0 0% 0)', transition: ROLL_TRANSITION } : false}
+      exit={reverse ? { opacity: 0, transition: { duration: 0.01 } } : { clipPath: 'inset(0% 0 100% 0)', transition: ROLL_TRANSITION }}
+    >
+      <ServiceCardBody card={c} index={i} n={n} video={video} navigate={navigate} />
     </motion.div>
   );
 }
@@ -665,6 +671,12 @@ function ServiceCard({ card: c, index: i, n, svcP, reduceMotion, video, navigate
 function PromiseMobile({ cards, videos, navigate, progress }) {
   const [active, setActive] = useState(0);
   const card = cards[active];
+  // Which way the deck is being scrolled — read by ServiceCard to pick which side of the
+  // roll it plays (see the note above that component). `direction` is state since it needs
+  // to trigger a render; `activeRef` just mirrors `active` so the comparison below reads the
+  // latest value synchronously instead of a stale one from the closure.
+  const [direction, setDirection] = useState(1);
+  const activeRef = useRef(0);
 
   // The index is driven by the SECTION's scroll progress, passed in — not by a useScroll on
   // this element. That distinction is the whole fix for "it jumps to the last card / the
@@ -679,39 +691,13 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
   // The section itself is the tall runway that keeps scrolling behind the pin, so its progress
   // is the thing that maps cleanly onto "which card should be showing".
   const svcP = progress;
-  // A slide-and-tilt is exactly the kind of motion that triggers discomfort, and the page's
-  // CSS prefers-reduced-motion block only neutralises CSS animations/transitions — it cannot
-  // touch framer's inline transforms. Fall back to a plain fade when the OS asks for less.
-  const reduceMotion = useReducedMotion();
   useMotionValueEvent(svcP, 'change', (p) => {
     const i = Math.min(cards.length - 1, Math.max(0, Math.floor(p * cards.length)));
-    setActive((cur) => (cur === i ? cur : i));   // no-op when unchanged, so no render churn
+    if (i === activeRef.current) return;   // no-op when unchanged, so no render churn
+    setDirection(i > activeRef.current ? 1 : -1);
+    activeRef.current = i;
+    setActive(i);
   });
-
-  const n = cards.length;
-  // Mirrors ServiceCard's own swing math (see the note above that component), but for the
-  // LIVE active index rather than one card's fixed index — that's the right thing here, since
-  // the ghost isn't a per-card persistent element with an exit animation to fight over. It
-  // only needs "how swung-out is whatever card is currently active", to fade itself out while
-  // that card is still off-screen (see ghostOpacity below) rather than sitting there alone
-  // showing just a title.
-  const activeSwing = useTransform(svcP, (p) => {
-    if (reduceMotion) return 0;
-    const idx = Math.min(n - 1, Math.max(0, Math.floor(p * n)));
-    if (idx === 0 || idx === n - 1) return 0;
-    const local = Math.min(1, Math.max(0, p * n - idx));
-    const t = Math.min(1, local / SERVICE_ENTRY_SPAN);
-    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    const side = idx % 2 === 0 ? -1 : 1;
-    return side * (1 - eased);
-  });
-  const activeSwingSmooth = useSpring(activeSwing, { stiffness: 42, damping: 26, mass: 0.9 });
-  // The ghost stack previews the upcoming card, but only once the front card has actually
-  // settled near centre. While it's still swung out (early in a long, scroll-scrubbed entry)
-  // the ghost would be sitting there alone, on-screen, showing nothing but a title — reads as
-  // a broken empty card rather than "the next thing." Fading it out while |swing| is large
-  // means that stretch of scroll shows just the front card sliding in, nothing competing.
-  const ghostOpacity = useTransform(activeSwingSmooth, (s) => Math.max(0, 1 - Math.abs(s) * 1.6));
 
   return (
     <div className="lp-svcm">
@@ -746,47 +732,32 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
                 background: c.color,
                 transform: `translateY(${depth * 26}px) scale(${1 - depth * 0.07})`,
                 zIndex: cards.length - depth,
-                // Only the nearest strip (depth 1) tracks the front card's swing — deeper
-                // ones are already hidden behind it regardless.
-                opacity: depth === 1 ? ghostOpacity : 1,
               }}
             >
-              {/* Only the immediate next card (depth 1) shows its title — deeper strips are
-                  only a sliver of colour behind it anyway, so text there would just overlap. */}
-              {depth === 1 && <span className="lp-svcm__ghost-title">{c.title}</span>}
+              {/* Only the immediate next card (depth 1) gets real content — it's the one the
+                  front card's roll actually reveals, so it needs to be the genuine next card,
+                  not a placeholder. Deeper strips stay bare colour: they're fully covered by
+                  this one and never directly exposed by a roll. */}
+              {depth === 1 && (
+                <ServiceCardBody card={c} index={i} n={cards.length} video={videos[i]} navigate={navigate} />
+              )}
             </motion.span>
           );
         })}
-        {/* mode="wait" (was "popLayout") — the exiting card now fully finishes leaving
-            before the next one mounts and starts its own entry swing. Under "popLayout"
-            both ran at once: the moment scroll crossed into card 2's range, active flipped
-            immediately, so card 1's exit and card 2's entry motion both started in the same
-            instant — card 1 sliding out while card 2 was ALREADY tilting in behind it. */}
+        {/* Only the front card is built. The rest are the colour strips above; cards already
+            scrolled past are gone entirely, exactly as they are on desktop once they slide
+            away. (This replaced a full list of tappable collapsed rows — keeping both meant
+            every upcoming card appeared twice: once as a strip behind, once as a row below.) */}
         <AnimatePresence mode="wait" initial={false}>
-        {cards.map((c, i) => {
-          // Only the front card is built. The rest are the colour strips above; cards already
-          // scrolled past are gone entirely, exactly as they are on desktop once they slide
-          // away. (This replaced a full list of tappable collapsed rows — keeping both meant
-          // every upcoming card appeared twice: once as a strip behind, once as a row below.)
-          if (i === active) {
-            // Each ServiceCard owns its own swing/spring/x/rotate chain, scoped to its own
-            // fixed `index` — see the note above that component for why that's load-bearing
-            // (not just organisation) for the exit animation to work cleanly.
-            return (
-              <ServiceCard
-                key={c.title}
-                card={c}
-                index={i}
-                n={n}
-                svcP={svcP}
-                reduceMotion={reduceMotion}
-                video={videos[i]}
-                navigate={navigate}
-              />
-            );
-          }
-          return null;
-        })}
+          <ServiceCard
+            key={card.title}
+            card={card}
+            index={active}
+            n={cards.length}
+            video={videos[active]}
+            navigate={navigate}
+            direction={direction}
+          />
         </AnimatePresence>
       </div>
     </div>
@@ -5489,11 +5460,11 @@ export default function Landing() {
         .lp-svcm__deck { position: relative; margin-top: 20px; }
         .lp-svcm__ghost {
           position: absolute;
-          /* Inset from the sides on top of the JS scale/translateY, so once the front card
-             swings fully off-screen (480px, see cardX) what's left behind reads unmistakably
-             as a smaller background strip rather than a same-size empty duplicate of the card. */
+          /* Inset from the sides on top of the JS scale/translateY, so a strip always reads
+             as a smaller background card rather than a same-size duplicate of the front one. */
           inset: 0 14px;
           display: block;
+          overflow: hidden;
           border-radius: 22px;
           padding: 20px 18px;
           /* Same origin as the scale() applied inline, so each strip shrinks toward the deck's
@@ -5502,15 +5473,6 @@ export default function Landing() {
           pointer-events: none;
           box-shadow: 0 10px 22px -14px rgba(23, 19, 52, 0.28);
           transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s ease;
-        }
-        /* Preview of the upcoming card's title, revealed on the nearest strip only (depth 1)
-           as the front card slides away. Same family/weight as the real card title but
-           smaller and slightly muted — it's a hint of what's next, not the full heading. */
-        .lp-svcm__ghost-title {
-          display: block;
-          font-family: var(--font-head); font-weight: var(--fw-head);
-          font-size: 18px; line-height: 1.25; letter-spacing: -0.3px;
-          color: rgba(23, 19, 52, 0.55);
         }
         .lp-svcm__card {
           /* Above the strips. The card is static and they are absolute, so without an explicit

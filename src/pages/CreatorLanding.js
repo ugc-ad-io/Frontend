@@ -436,6 +436,21 @@ export default function CreatorLanding() {
   // actually FLIPS — a bare setNavScrolled(window.scrollY > 8) would re-render this whole
   // page on every scroll frame, which is why the previous listener was deleted rather than
   // kept. Passive so it can't block scrolling.
+  // Stop the testimonial marquee while it is off-screen. Without this its infinite transform
+  // animation keeps the compositor working on a layer holding twelve video cards for the whole
+  // life of the page, which is felt as jank in sections that have nothing to do with it.
+  const testiMarqRef = useRef(null);
+  useEffect(() => {
+    const el = testiMarqRef.current;
+    if (!el) return undefined;
+    const io = new IntersectionObserver(
+      ([e]) => el.classList.toggle('cl-testimarq--offscreen', !e.isIntersecting),
+      { rootMargin: '200px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   const [navScrolled, setNavScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => {
@@ -760,7 +775,7 @@ export default function CreatorLanding() {
           </p>
         </motion.div>
 
-        <div className="cl-testimarq">
+        <div className="cl-testimarq" ref={testiMarqRef}>
           <div className="cl-testimarq__track">
             {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
               <TestimonialCard key={i} {...t} hidden={i >= TESTIMONIALS.length} />
@@ -1405,6 +1420,12 @@ export default function CreatorLanding() {
         .cl-testimarq__track { display: flex; width: max-content; gap: 26px; padding: 8px 13px;
           animation: clMarquee 80s linear infinite; will-change: transform; }
         .cl-testimarq:hover .cl-testimarq__track { animation-play-state: paused; }
+        /* Off-screen = stopped. The track is an infinite transform animation over a layer
+           holding twelve video cards, and it kept running while the section was nowhere near
+           the viewport — the compositor does that work on every frame of the whole page, so
+           it showed up as scroll jank in sections that have nothing to do with this one.
+           The class is toggled by an IntersectionObserver in PageMarqueeGate below. */
+        .cl-testimarq--offscreen .cl-testimarq__track { animation-play-state: paused; }
         .cl-tcard { position: relative; flex-shrink: 0; height: clamp(480px, 64vh, 660px); width: auto;
           aspect-ratio: 9 / 19.5; border-radius: 26px; overflow: hidden;
           padding: 0; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; display: block;
@@ -1434,8 +1455,13 @@ export default function CreatorLanding() {
         /* Sound toggle — small glass chip under the status bar, out of the frame's way. */
         .cl-tcard__sound { position: absolute; top: 56px; right: 10px; z-index: 3;
           width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
-          justify-content: center; color: #fff !important; background: rgba(0,0,0,0.38);
-          border: 1px solid rgba(255,255,255,0.28); backdrop-filter: blur(6px);
+          justify-content: center; color: #fff !important; background: rgba(0,0,0,0.45);
+          border: 1px solid rgba(255,255,255,0.28);
+          /* No backdrop-filter here on purpose. This chip is rendered once per card and the
+             marquee duplicates every card, so it was TWELVE backdrop blurs living inside a
+             track under a permanent 80s transform animation — each one re-sampling what is
+             behind it every frame, on top of the video decode already happening. The flat
+             0.45 black below reads the same over footage at 30px. */
           transition: background 0.2s, transform 0.2s; }
         .cl-tcard:hover .cl-tcard__sound { background: rgba(0,0,0,0.55); transform: scale(1.08); }
         .cl-tcard__sound--on { background: rgba(255,255,255,0.92); color: #1f2937 !important;
@@ -1706,11 +1732,22 @@ export default function CreatorLanding() {
           /* PERF: a FIXED bar with backdrop-filter re-samples everything behind it on every
              scroll frame. Drop the blur on mobile and use a near-opaque bar instead. */
           .cl-nav--scrolled { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+          /* Same reason, and the rule above missed it: the nav LINKS pill (ported from the
+             home page) carries its own blur(14px), and it sits on the same fixed bar — so it
+             re-sampled the page behind it on every scroll frame. Opaque white instead; at 0.97
+             the difference is invisible against this page's cream. */
+          .cl-nav__links {
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+            background: rgba(255, 255, 255, 0.97);
+          }
           .cl-root[data-theme="dark"] .cl-nav--scrolled { background: rgba(10,10,10,0.96); }
           .cl-root:not([data-theme="dark"]) .cl-nav--scrolled { background: rgba(254,252,249,0.96); }
           .cl-section { padding: 60px 6%; }
           .cl-community { grid-template-columns: repeat(2, 1fr); }
-          .cl-tcard { height: clamp(420px, 70vh, 560px); }
+          .cl-tcard { height: clamp(420px, 70vh, 560px);
+            /* 44px of shadow blur on twelve permanently-animating layers is a real repaint
+               cost on a phone; the card still reads as lifted at 14px. */
+            box-shadow: 0 6px 14px rgba(7,7,78,0.28); }
           /* Brand strip on mobile: two auto-scrolling marquee lines (top→left, bottom→right)
              instead of a wrapped grid. Duplicate logos become visible to fill the loop. */
           .cl-brands { overflow: hidden;

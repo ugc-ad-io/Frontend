@@ -579,24 +579,42 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
   //   * Scrubbing makes it reversible: easing back up un-swings the card instead of
   //     re-triggering a fresh animation.
   // ENTRY_SPAN is the fraction of each card's slice of the runway that the swing occupies.
-  // At 240vh / 4 cards = 60vh per card, 0.55 spends ~33vh settling the card — slow enough to
-  // watch, while leaving ~27vh of still, readable time before the next card takes over.
-  const ENTRY_SPAN = 0.55;
+  // 0.8 of a 60vh slice (240vh / 4 cards) = ~48vh of scrolling per swing, up from ~33vh —
+  // the card travels over roughly half a screen of scroll, which is slow enough to follow.
+  // The remaining ~12vh is still, settled time before the next card takes over.
+  const ENTRY_SPAN = 0.85;
   const n = cards.length;
-  // Where we are WITHIN the current card (0 = just arrived, 1 = about to hand over), and
-  // which side that card enters from (alternating, so 01 left / 02 right / 03 left / 04 right).
   const swing = useTransform(svcP, (p) => {
     if (reduceMotion) return 0;
     const idx = Math.min(n - 1, Math.max(0, Math.floor(p * n)));
+    // CARD 01 NEVER SWINGS. It is the first thing you see when the section arrives, so it
+    // should already be sitting in place — animating it in meant the reader met the section
+    // with a faded, half-offset card. Only 02 onward slide in, alternating sides:
+    // 02 from the right, 03 from the left, 04 from the right.
+    if (idx === 0) return 0;
     const local = Math.min(1, Math.max(0, p * n - idx));
     const t = Math.min(1, local / ENTRY_SPAN);        // 0 -> 1 across the entry span
-    const eased = 1 - Math.pow(1 - t, 3);             // ease-out cubic: fast start, soft landing
+    // Cubic ease-IN-OUT, not ease-out. Ease-out front-loads the movement — most of the
+    // distance is covered immediately, which reads as a fast snap however long the span is.
+    // In-out starts gently, moves through the middle, and settles gently, so the same
+    // distance feels considerably smoother.
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     const side = idx % 2 === 0 ? -1 : 1;
     return side * (1 - eased);                        // ±1 -> 0
   });
-  const cardX = useTransform(swing, (s) => s * 52);
-  const cardRotate = useTransform(swing, (s) => s * 4);
-  const cardOpacity = useTransform(swing, (s) => 1 - Math.min(0.85, Math.abs(s)));
+  // Spring-SMOOTHED, not used raw. Scroll events arrive in coarse, uneven jumps (especially
+  // touch momentum), and feeding them straight into a transform makes the card judder along
+  // with them. The spring chases the scroll-derived target instead, so the motion is
+  // continuous even when the input is not. Low stiffness + high damping = a slow, unhurried
+  // follow with no overshoot.
+  // It stays scroll-linked: the spring settles ON the target, so stopping mid-scroll still
+  // parks the card mid-swing rather than completing an animation.
+  const swingSmooth = useSpring(swing, { stiffness: 42, damping: 26, mass: 0.9 });
+  const cardX = useTransform(swingSmooth, (s) => s * 52);
+  const cardRotate = useTransform(swingSmooth, (s) => s * 4);
+  // Floor raised from 0.15 to 0.5: at 0.15 the incoming card was nearly invisible for the
+  // first stretch of its travel, which read as a broken/washed-out card rather than motion.
+  const cardOpacity = useTransform(swingSmooth, (s) => 1 - Math.min(0.5, Math.abs(s)));
 
   return (
     <div className="lp-svcm">
@@ -4402,9 +4420,17 @@ export default function Landing() {
              justify-content:center distributes the extra room evenly around the
              existing content instead of dumping it all as one gap below the CTAs. */
           .nlp-hero {
-            padding: 60px 16px 72px;
-            min-height: 100vh;
-            min-height: 100dvh;
+            padding: 60px 16px 32px;
+            /* Was a full 100dvh. With justify-content:center the leftover height splits
+               evenly above and below the content, and measured at 390x860 that left 163px
+               of blank under the CTA pair - the gap before "Our Services" that kept getting
+               reported. Trimming 120px of runway (and 40px of bottom padding) removes the
+               slack at SOURCE instead of overlapping it with a negative margin on the next
+               section: that approach had run out of room, since any further and the pinned
+               section's box would cover the buttons and swallow their taps.
+               Still min-height, so longer content pushes the section taller. */
+            min-height: calc(100vh - 120px);
+            min-height: calc(100dvh - 120px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -5430,7 +5456,16 @@ export default function Landing() {
              padding, so shortening its padding would not move the section up at all (and a
              sub-100vh hero is a different design decision). Overlapping the empty tail is
              what actually closes the gap, and there is nothing painted there to collide with. */
-          .lp-logo3d { height: 240vh !important; margin-top: -140px; }
+          /* -140px -> -40px. Most of what this compensated for is gone now that the hero
+             no longer reserves a full 100dvh (see .nlp-hero above). Keeping the large offset
+             on top of the shorter hero would slide this section's box up over the CTA pair,
+             and since it paints after the hero it would intercept their taps. Invariant to
+             preserve if retuned: the sticky's TOP must stay at or below the CTA's bottom. */
+          /* 240vh -> 320vh: 80vh of runway per card instead of 60. The swing is a fraction of
+             each card's slice, so lengthening the runway slows every card proportionally —
+             this is the real "make it slower" dial; easing only changes how the same distance
+             is distributed. */
+          .lp-logo3d { height: 320vh !important; margin-top: -70px; }
           .lp-logo3d__sticky {
             position: sticky !important;
             top: 0 !important;

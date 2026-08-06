@@ -4456,7 +4456,12 @@ export default function Landing() {
              "Sign up as Brand" is the long label and sets the floor: at 14px it needs roughly
              120px of text + 36px padding, so the pair plus the gap sits ~330px, inside a 360px
              viewport. Below that the ≤380px step trims again. */
-          .nlp-cta-wrap { gap: 10px; }
+          /* margin-top 26px -> 4px, phone only. The 26px base was tuned against the DESKTOP
+             arch, where the cards are ~370px tall and overhang the gallery's padding a long
+             way; at this breakpoint they are ~239px and clear it easily. Measured at 390x860
+             the lowest card sat at 614px with the buttons at 661px — 47px of gap, more than
+             the row above it needed. 4px brings that to ~25px, still clear of the overhang. */
+          .nlp-cta-wrap { gap: 10px; margin-top: 4px; }
           .lp-root .nlp-cta {
             padding: 12px 18px;
             font-size: 14px;

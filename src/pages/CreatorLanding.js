@@ -1106,36 +1106,80 @@ export default function CreatorLanding() {
         .cl-brand__logo { height: 46px; width: auto; flex: none; display: block;
           object-fit: contain; transition: opacity 0.2s ease; }
         .cl-brand:hover .cl-brand__logo { opacity: 0.8; }
-        /* Light theme: recolour the navy logo to the brand purple (dark theme unchanged). */
-        .cl-root:not([data-theme="dark"]) .cl-brand__logo {
-          filter: brightness(0) saturate(100%) invert(29%) sepia(95%) saturate(2462%)
-            hue-rotate(249deg) brightness(97%) contrast(94%);
-        }
+        /* The light-theme purple recolour that used to be here is gone. It made this page's
+           mark read as a different logo from the home page's navy/periwinkle one, which was
+           the most visible mismatch between two bars a single click apart. Same asset, same
+           colours on both now. */
         .cl-brand__mark { width: 22px; height: 22px; border-radius: 6px;
           background: linear-gradient(135deg, #7387FF, #7387FF);
           box-shadow: 0 4px 14px rgba(115,135,255,0.5); }
         .cl-brand__name { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
         .cl-brand__name-2 { font-weight: 500; color: rgba(var(--cl-fg),0.7) !important; }
 
-        /* Navbar */
-        .cl-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 18px 6%; transition: all 0.3s ease; }
-        .cl-nav--scrolled { padding: 12px 6%; background: var(--cl-nav-bg);
-          backdrop-filter: blur(14px); border-bottom: 1px solid rgba(var(--cl-fg),0.07); }
-        /* FIXED bar height so the bigger logo overflows it instead of growing the bar (matches Landing). */
-        .cl-nav__inner { display: flex; align-items: center; gap: 30px; max-width: 1320px; margin: 0 auto; height: 56px; }
-        .cl-nav__links { display: flex; align-items: center; gap: 26px; }
+        /* ── Navbar — ported from the home landing (.lp-navbar) ───────────────────
+           This page's bar used to be a plain full-width row: links sitting inline next to
+           the logo, and a solid background + bottom border once scrolled. Landing's is a
+           different shape entirely, and the two pages sit one click apart, so the switch
+           was jarring. The home treatment, restated here in this page's own tokens:
+             - the BAR is transparent and stays transparent (no scrolled background/border);
+             - .cl-nav__inner is a 1fr auto 1fr GRID, not a flex row, so the centre column
+               always claims its own width and the links can never push or overlap the
+               logo/actions at awkward widths;
+             - only the LINKS group is painted — a floating white glass pill — while the
+               logo and Log in / Join sit unboxed at the true edges of the bar;
+             - it floats 20px off the top rather than being flush.
+           The links and both CTAs are unchanged: they still point at this page's sections
+           and still open auth on the CREATOR side. */
+        .cl-nav {
+          position: fixed; top: 20px; left: 0; right: 0; z-index: 1000;
+          /* Same expression Landing uses, so the bar's edges track the content column at
+             every width instead of drifting apart on wide screens. */
+          padding-inline: max(4%, calc((100% - 1320px) / 2));
+          transition: top 0.3s ease;
+        }
+        /* Deliberately empty of paint: the pill below is the only background in the bar, so
+           there is nothing to fill in on scroll the way the old solid bar did. */
+        .cl-nav--scrolled { background: transparent; border-bottom: none; backdrop-filter: none; }
+        .cl-nav__inner {
+          position: relative;
+          display: grid; grid-template-columns: 1fr auto 1fr;
+          align-items: center; gap: 12px;
+          width: 100%; max-width: none; margin: 0;
+          background: transparent;
+          height: 64px; padding: 0 4px;
+        }
+        /* The floating glass pill. Kept on rgba(255,255,255,.85) rather than a --cl token:
+           it is the same white pill on the home page and this page's light theme sits on the
+           same cream, so a themed value would only make the two drift apart again. */
+        .cl-nav__links {
+          justify-self: center;
+          display: flex; align-items: center; gap: 30px;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(28, 27, 75, 0.08);
+          border-radius: 999px;
+          box-shadow: 0 12px 32px rgba(28, 27, 75, 0.12);
+          padding: 14px 30px;
+        }
         .cl-navlink { display: inline-flex; align-items: center; gap: 4px; font-size: 0.94rem; font-weight: 500;
           color: rgba(var(--cl-fg),0.82) !important; text-decoration: none; background: none; border: none;
           cursor: pointer; transition: color 0.2s; }
         .cl-navlink:hover { color: var(--cl-purple) !important; }
-        .cl-nav__actions { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+        /* justify-self:end replaces the old margin-left:auto — that trick only works in a
+           flex row; in the grid it would leave the actions floating in the middle of a 1fr
+           track instead of pinned to the bar's right edge. */
+        .cl-nav__actions { justify-self: end; display: flex; gap: 14px; align-items: center; }
         .cl-navlink--accent { color: var(--cl-purple) !important; }
         .cl-navlink--accent em { font-style: italic; }
-        .cl-btn-login { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 10px;
-          border: 1px solid rgba(var(--cl-fg),0.25); background: transparent; font-weight: 500; font-size: 0.92rem;
+        /* Pill radius + weights matched to Landing's .lp-btn-login / .lp-btn-signup. These sit
+           in the same bar as the ported pill above, so a 10px rounded rectangle next to a
+           999px pill was the remaining tell that the two pages' bars were built separately. */
+        .cl-btn-login { display: inline-flex; align-items: center; gap: 7px; padding: 10px 22px; border-radius: 999px;
+          border: 1px solid rgba(var(--cl-fg),0.25); background: transparent; font-weight: 600; font-size: 0.92rem;
           cursor: pointer; transition: all 0.2s; }
-        .cl-btn-login:hover { border-color: rgba(var(--cl-fg),0.55); }
-        .cl-btn-signup { padding: 9px 22px; border-radius: 10px; border: 1px solid var(--cl-purple);
+        .cl-btn-login:hover { border-color: rgba(var(--cl-fg),0.45); background: rgba(var(--cl-fg),0.04); }
+        .cl-btn-signup { padding: 10px 24px; border-radius: 999px; border: 1px solid var(--cl-purple);
           background: var(--cl-purple); font-weight: 600; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; }
         .cl-btn-signup:hover { background: var(--cl-purple-deep); border-color: var(--cl-purple-deep); }
         /* Theme toggle (sun/moon pill switch) */
@@ -1152,7 +1196,11 @@ export default function CreatorLanding() {
           align-items: center; justify-content: center; color: rgba(var(--cl-fg),0.5); z-index: 1; }
         .cl-theme__icon--sun { left: 8px; }
         .cl-theme__icon--moon { right: 8px; }
-        .cl-nav__burger { display: none; margin-left: auto; width: 42px; height: 42px; align-items: center;
+        /* justify-self/grid-column, not margin-left:auto — that pins an item right in a FLEX
+           row, but .cl-nav__inner is now a 3-column grid, where it would leave the burger
+           adrift in the middle of its track. Explicit column 3 keeps it on the bar's right
+           edge once the links and actions are hidden. */
+        .cl-nav__burger { display: none; grid-column: 3; justify-self: end; width: 42px; height: 42px; align-items: center;
           justify-content: center; border-radius: 12px; border: 1px solid rgba(var(--cl-fg),0.2);
           background: rgba(var(--cl-fg),0.06); cursor: pointer; }
         /* Panel follows the theme. It was hardcoded to a near-black rgba(18,18,22,0.97) from
@@ -1631,7 +1679,9 @@ export default function CreatorLanding() {
         }
         /* Small phones — tighter padding, smaller type, single-column stacks. */
         @media (max-width: 480px) {
-          .cl-nav { padding: 14px 5%; }
+          /* padding-INLINE only. The shorthand that used to be here reset the vertical
+             padding too, which fought the floating top:20px bar this now is. */
+          .cl-nav { padding-inline: 5%; }
           /* Let the hero shrink to its content instead of a full 100vh — otherwise
              the leftover viewport space below the video cards pushes the category
              pills far down the screen. Collapsing it brings the pills up under the cards. */

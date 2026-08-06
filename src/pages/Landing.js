@@ -52,7 +52,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { motion, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, useReducedMotion, easeInOut } from 'framer-motion';
+import { motion, AnimatePresence, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, useReducedMotion, easeInOut } from 'framer-motion';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
@@ -274,7 +274,12 @@ function LazyVideoEl({ src, className, eager = false }) {
       muted
       loop
       playsInline
-      preload={IS_LOW_END ? 'none' : 'auto'}
+      /* 'auto' means "download the whole clip", and the hero has ~24 of these. On a phone
+         that is the single largest thing the page fetches before the visitor has scrolled
+         anywhere. Phones get 'metadata' instead: the poster is already a real first frame
+         (cldPoster), the play-cap only ever runs a handful at a time, and play() pulls the
+         rest on demand. Desktop keeps 'auto' so the marquee never stutters mid-loop. */
+      preload={IS_LOW_END ? 'none' : (IS_MOBILE ? 'metadata' : 'auto')}
       webkit-playsinline="true"
       disablePictureInPicture
       // Safety net for the edge cards: play() can be called (and fail) before the clip has
@@ -333,19 +338,44 @@ function ShowcaseVideo({ src, poster, className }) {
   }, []);
 
   // Phone / narrow / touch: play on screen, pause off screen. No hover involved.
+  //
+  // Routed through playVideoCapped/releaseVideo — the same global cap the hero marquee
+  // uses — NOT a bare v.play(). Measured on a phone-width page there are 12 of these
+  // (6 showcase cards + 6 find-and-hire), and a bare play() let every one that scrolled
+  // into view decode at once, on top of whatever the hero still had running. That is the
+  // mobile lag: concurrent H.264 decodes, not the file sizes. The cap holds the whole page
+  // to MAX_PLAYING_VIDEOS (6 on mobile) and hands slots on as clips scroll away.
   useEffect(() => {
     if (hoverPlay) return undefined;
     const v = ref.current;
     if (!v) return undefined;
     const io = new IntersectionObserver(
       ([e]) => {
-        if (e.isIntersecting) { v.muted = true; v.play?.().catch(() => {}); }
-        else v.pause?.();
+        if (e.isIntersecting) { v.muted = true; playVideoCapped(v); }
+        else releaseVideo(v);
       },
       { threshold: 0.25 },
     );
     io.observe(v);
-    return () => io.disconnect();
+
+    // Primer, same trick the hero marquee uses. preload="none" means play() has to start a
+    // fetch at the moment the card arrives, so the clip sits frozen on its poster until the
+    // data lands. This flips it to 'auto' about a screen early — off-screen, where the work
+    // is free — so by the time the play observer fires the bytes are already there. Still
+    // far cheaper than preloading all 12 at first paint, which is what we just stopped doing.
+    const primer = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting) return;
+        primer.disconnect();          // one-shot
+        v.preload = 'auto';
+        if (v.paused) v.load();       // load() restarts playback, so never on a running clip
+      },
+      { rootMargin: '600px 0px' },
+    );
+    primer.observe(v);
+
+    // Release the slot on unmount too, or a card that never scrolled out holds it forever.
+    return () => { io.disconnect(); primer.disconnect(); releaseVideo(v); };
   }, [hoverPlay]);
 
   // ONE audible clip at a time. Ten cards are on screen together, so unmuting a
@@ -413,10 +443,12 @@ function ShowcaseVideo({ src, poster, className }) {
         muted
         loop
         playsInline
-        // Hover devices fetch nothing until the visitor actually hovers — the grid loads
-        // as 10 posters instead of 10 video streams. Everywhere else the clip plays on
-        // scroll, so it needs at least metadata up front.
-        preload={hoverPlay ? 'none' : 'metadata'}
+        // 'none' on EVERY device, not just hover ones. The scroll path used to ask for
+        // 'metadata', which measured as 12 container-header fetches on a phone before the
+        // visitor had reached any of them. play() pulls what it needs when a clip actually
+        // starts, and the poster is what fills the card until then — so metadata up front
+        // bought nothing except load-time work on the slowest devices.
+        preload="none"
         disablePictureInPicture
       />
       <button
@@ -591,7 +623,11 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
     // should already be sitting in place — animating it in meant the reader met the section
     // with a faded, half-offset card. Only 02 onward slide in, alternating sides:
     // 02 from the right, 03 from the left, 04 from the right.
-    if (idx === 0) return 0;
+    // The LAST card doesn't swing either — it's the end of the deck, nothing follows it,
+    // and by the time it becomes active the section's own scroll runway is close to running
+    // out, so a full swing-in either got cut short or fired against a settled-looking page.
+    // It just sits in place, same treatment as card 01.
+    if (idx === 0 || idx === n - 1) return 0;
     const local = Math.min(1, Math.max(0, p * n - idx));
     const t = Math.min(1, local / ENTRY_SPAN);        // 0 -> 1 across the entry span
     // Cubic ease-IN-OUT, not ease-out. Ease-out front-loads the movement — most of the
@@ -610,11 +646,12 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
   // It stays scroll-linked: the spring settles ON the target, so stopping mid-scroll still
   // parks the card mid-swing rather than completing an animation.
   const swingSmooth = useSpring(swing, { stiffness: 42, damping: 26, mass: 0.9 });
-  const cardX = useTransform(swingSmooth, (s) => s * 52);
+  // 52 -> 480: at 52px the card only ever shifted a few finger-widths and tilted in place —
+  // never actually left the viewport, so it read as a nudge rather than a slide. 480px clears
+  // every phone width the deck ships on, so at full swing (±1) the card is genuinely off-screen
+  // before it eases back to centre.
+  const cardX = useTransform(swingSmooth, (s) => s * 480);
   const cardRotate = useTransform(swingSmooth, (s) => s * 4);
-  // Floor raised from 0.15 to 0.5: at 0.15 the incoming card was nearly invisible for the
-  // first stretch of its travel, which read as a broken/washed-out card rather than motion.
-  const cardOpacity = useTransform(swingSmooth, (s) => 1 - Math.min(0.5, Math.abs(s)));
 
   return (
     <div className="lp-svcm">
@@ -647,12 +684,22 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
               aria-hidden="true"
               style={{
                 background: c.color,
-                transform: `translateY(${depth * 13}px) scale(${1 - depth * 0.028})`,
+                transform: `translateY(${depth * 26}px) scale(${1 - depth * 0.07})`,
                 zIndex: cards.length - depth,
               }}
-            />
+            >
+              {/* Only the immediate next card (depth 1) shows its title — deeper strips are
+                  only a sliver of colour behind it anyway, so text there would just overlap. */}
+              {depth === 1 && <span className="lp-svcm__ghost-title">{c.title}</span>}
+            </span>
           );
         })}
+        {/* mode="wait" (was "popLayout") — the exiting card now fully finishes leaving
+            before the next one mounts and starts its own entry swing. Under "popLayout"
+            both ran at once: the moment scroll crossed into card 2's range, active flipped
+            immediately, so card 1's exit and card 2's entry motion both started in the same
+            instant — card 1 sliding out while card 2 was ALREADY tilting in behind it. */}
+        <AnimatePresence mode="wait" initial={false}>
         {cards.map((c, i) => {
           // Only the front card is built. The rest are the colour strips above; cards already
           // scrolled past are gone entirely, exactly as they are on desktop once they slide
@@ -666,6 +713,11 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
               // reader stopped. Passing them through `style` means the card's position is a
               // direct function of scroll: stop halfway and it stays halfway, tilted.
               // Side alternates by card (01 left, 02 right, 03 left, 04 right) — see `swing`.
+              // `exit` is the one part of this deck that ISN'T scroll-scrubbed: the outgoing
+              // card unmounts the instant `active` changes (it's a keyed conditional, not a
+              // persistent element), so there's no scroll position left to scrub against by
+              // that point. A short fixed slide-left + tilt stands in for it instead of the
+              // card just vanishing.
               <motion.div
                 key={c.title}
                 className="lp-svcm__card"
@@ -673,8 +725,8 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
                   background: c.color,
                   x: cardX,
                   rotate: cardRotate,
-                  opacity: cardOpacity,
                 }}
+                exit={{ x: -420, rotate: -8, transition: { duration: 0.38, ease: 'easeIn' } }}
               >
                 <div className="lp-svcm__card-top">
                   <span className="lp-svcm__num">{String(active + 1).padStart(2, '0')}</span>
@@ -726,6 +778,7 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
           }
           return null;
         })}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -4420,7 +4473,14 @@ export default function Landing() {
              justify-content:center distributes the extra room evenly around the
              existing content instead of dumping it all as one gap below the CTAs. */
           .nlp-hero {
-            padding: 60px 16px 32px;
+            /* 60px -> 84px. The navbar is position:fixed at top:20px and its inner row is
+               48px tall on phones, so it occupies y=20..68 — a 60px top padding put the
+               "Trusted by 800+ D2C brands" badge at y=60, underneath it, and the two
+               collided over the logo. 84px clears the bar with 16px to spare (the same
+               figure the desktop rule uses, recomputed for the 48px mobile navbar).
+               The section is min-height + justify-content:center, so this is a floor: when
+               content is shorter than the viewport it still centres. */
+            padding: 84px 16px 32px;
             /* Was a full 100dvh. With justify-content:center the leftover height splits
                evenly above and below the content, and measured at 390x860 that left 163px
                of blank under the CTA pair - the gap before "Our Services" that kept getting
@@ -5375,15 +5435,28 @@ export default function Landing() {
         .lp-svcm__deck { position: relative; margin-top: 20px; }
         .lp-svcm__ghost {
           position: absolute;
-          inset: 0;
+          /* Inset from the sides on top of the JS scale/translateY, so once the front card
+             swings fully off-screen (480px, see cardX) what's left behind reads unmistakably
+             as a smaller background strip rather than a same-size empty duplicate of the card. */
+          inset: 0 14px;
           display: block;
           border-radius: 22px;
+          padding: 20px 18px;
           /* Same origin as the scale() applied inline, so each strip shrinks toward the deck's
              top edge and its offset below stays even. */
           transform-origin: 50% 0;
           pointer-events: none;
           box-shadow: 0 10px 22px -14px rgba(23, 19, 52, 0.28);
           transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s ease;
+        }
+        /* Preview of the upcoming card's title, revealed on the nearest strip only (depth 1)
+           as the front card slides away. Same family/weight as the real card title but
+           smaller and slightly muted — it's a hint of what's next, not the full heading. */
+        .lp-svcm__ghost-title {
+          display: block;
+          font-family: var(--font-head); font-weight: var(--fw-head);
+          font-size: 18px; line-height: 1.25; letter-spacing: -0.3px;
+          color: rgba(23, 19, 52, 0.55);
         }
         .lp-svcm__card {
           /* Above the strips. The card is static and they are absolute, so without an explicit
@@ -10784,7 +10857,11 @@ export default function Landing() {
              composite independently instead of repainting this whole pinned area each
              scroll frame (that repaint was the Q2 stutter). */
           .lp-audit__inner {
-            position: sticky; top: 60px; padding-top: 22px;
+            /* top 60px -> 84px, same clearance as the hero. The navbar is fixed at top:20px
+               and 48px tall on phones (y=20..68), so pinning at 60px parked this heading
+               inside that band — and since it carries z-index:2 against the navbar's 1000, it
+               slid BEHIND the bar rather than over it. */
+            position: sticky; top: 84px; padding-top: 22px;
             transform: translateZ(0);
           }
           .lp-audit__subtitle { max-width: 100%; margin-bottom: 0; }

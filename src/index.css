@@ -195,6 +195,19 @@ main,
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
+
+/* ── Auth (login / sign-up): FULL-BLEED ──────────────────────────────────────
+   Same reasoning as the landing above, and the same fix. .ap-root paints its own
+   dark gradient across the whole screen and already supplies its own 26px inner
+   gutter around the card, so the site-wide #root padding did nothing useful here:
+   it inset the entire page by 14px on phones, leaving a strip of page background
+   down both edges and making the auth screen read as a floating box rather than a
+   full screen. The card keeps its gutter — that comes from .ap-root's own padding,
+   not from this rule. */
+#root:has(.ap-root) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
 .lp-root {
     padding-left: 0 !important;
     padding-right: 0 !important;

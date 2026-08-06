@@ -708,7 +708,12 @@ export default function Auth() {
       <style>{`
         /* ── Root ────────────────────────────────────────────────── */
         .ap-root {
+          /* dvh, with vh first as the fallback for browsers without it. On a phone 100vh
+             counts the strip behind the address bar, so the screen was taller than what is
+             actually visible — the card sat off-centre and the page scrolled a little even
+             with nothing to scroll to. dvh measures the real visible viewport. */
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;

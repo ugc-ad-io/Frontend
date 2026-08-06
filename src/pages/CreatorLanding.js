@@ -69,11 +69,25 @@ const CATEGORIES = [
 // Creator testimonial videos -- Cloudinary-hosted (click-to-play with sound). A larger
 // width than the muted gallery thumbs since these go full phone-card when tapped.
 const TESTIMONIALS = [
-  { name: 'Abigail', handle: '@abigailcreates', likes: '328.7K', comments: '578', av: ['#7387FF', '#5b21b6'], src: '/creator/video_01.mp4' },
-  { name: 'Chelsea', handle: '@chelsea.ugc',    likes: '124.2K', comments: '341', av: ['#818cf8', '#4338ca'], src: '/creator/video_08.mp4' },
-  { name: 'Maya',    handle: '@maya.makes',     likes: '512.9K', comments: '1.2K', av: ['#fb7185', '#f43f5e'], src: '/creator/video_27.mp4' },
-  { name: 'Priya',   handle: '@priya.shoots',   likes: '88.4K',  comments: '212', av: ['#a5b4fc', '#4c1d95'], src: '/creator/video_28.mp4' },
-  { name: 'Lara',    handle: '@laralovesugc',   likes: '263.1K', comments: '904', av: ['#7dd3fc', '#1d4ed8'], src: '/creator/video_29.mp4' },
+  // Real creator reviews, transcoded from the originals dropped in /public/join
+  // (see review_0N.mp4/.jpg in /public/creator). Each source was 4-40 MB straight off a
+  // phone — 2160x3840 in two cases — and is now 360x640 at ~180-560 KB, matching the scale
+  // the rest of this page's clips already use.
+  //
+  // NOTE ON THE MISSING FIELDS: the placeholder entries this replaced carried invented
+  // handles ("@maya.makes") and invented engagement ("512.9K likes"). Those numbers are
+  // decorative furniture for a mockup, but under a real, identifiable person's face they
+  // read as that person's actual stats — so they are deliberately NOT carried over. Supply
+  // real handles/counts and they will render; leave them out and the card just shows the
+  // icons. `name` is taken from the filename the videos arrived under.
+  { name: 'Muskan',   handle: '', likes: '', comments: '', av: ['#fb7185', '#f43f5e'], src: '/creator/review_04.mp4', photo: '/creator/review_04.jpg' },
+  { name: 'Anshika',  handle: '', likes: '', comments: '', av: ['#818cf8', '#4338ca'], src: '/creator/review_05.mp4', photo: '/creator/review_05.jpg' },
+  { name: 'Shashank', handle: '', likes: '', comments: '', av: ['#7dd3fc', '#1d4ed8'], src: '/creator/review_06.mp4', photo: '/creator/review_06.jpg' },
+  // These two arrived as 1st.mp4 / 2nd.mp4 with no name in the filename, so there is
+  // nothing to label them with. Fill in `name` when you know who they are.
+  { name: '', handle: '', likes: '', comments: '', av: ['#a5b4fc', '#4c1d95'], src: '/creator/review_01.mp4', photo: '/creator/review_01.jpg' },
+  { name: '', handle: '', likes: '', comments: '', av: ['#34d399', '#14b8a6'], src: '/creator/review_02.mp4', photo: '/creator/review_02.jpg' },
+  { name: 'Girishh',  handle: '', likes: '', comments: '', av: ['#7387FF', '#5b21b6'], src: '/creator/review_03.mp4', photo: '/creator/review_03.jpg' },
 ];
 
 const FAQS = [
@@ -210,7 +224,7 @@ let _tcardMuteActive = null;
 // card is on screen (so the wall shows real video, not just its gradient) and a click toggles
 // sound. Rendered inside an auto-scrolling marquee, so no scroll-triggered fade (off-screen
 // copies must stay visible).
-function TestimonialCard({ name, handle, likes, comments, av, src, photo, hidden }) {
+function TestimonialCard({ name, handle, likes, comments, av, src, photo, poster, hidden }) {
   const ref = useRef(null);
   const [soundOn, setSoundOn] = useState(false);
 
@@ -238,25 +252,56 @@ function TestimonialCard({ name, handle, likes, comments, av, src, photo, hidden
 
   // Play on screen / pause (and drop sound) off screen — shares the global decode cap with
   // the hero gallery so we never decode more clips at once than the cap allows.
+  //
+  // Two observers, and the split matters. These cards start at preload="none" (the marquee
+  // renders every clip TWICE, so eager loading meant downloading 12 videos up front), which
+  // means a card arriving on screen has NO data yet. playGalleryCapped takes its cap slot the
+  // moment play() is called — so a clip that is still fetching sits on a slot doing nothing,
+  // and with the 3-slot mobile cap that is precisely how the wall ends up with one card
+  // moving and the rest frozen. So: buffer first, take a slot second.
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
     const mute = muteRef.current;
+    let onScreen = false;
+
+    // Only ever claim a slot once the clip can actually render frames.
+    const onCanPlay = () => { if (onScreen) playGalleryCapped(v); };
+    v.addEventListener('canplay', onCanPlay);
+
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          playGalleryCapped(v);
-        } else {
-          mute();
-          releaseGallery(v);
-        }
+        onScreen = entry.isIntersecting;
+        if (!onScreen) { mute(); releaseGallery(v); return; }
+        if (v.readyState >= 2) { playGalleryCapped(v); return; }  // HAVE_CURRENT_DATA
+        // Nothing buffered yet — start the fetch and let onCanPlay take it from here.
+        v.preload = 'auto';
+        if (v.paused) v.load();
       },
       { rootMargin: '150px', threshold: 0.01 },
     );
     io.observe(v);
+
+    // Primer: begin buffering roughly a screen early, off-screen where it costs nothing, so
+    // the clip usually already has data by the time the play observer above fires.
+    const primer = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting) return;
+        primer.disconnect();                        // one-shot
+        if (v.preload !== 'auto') {
+          v.preload = 'auto';
+          if (v.paused) v.load();                   // load() restarts playback — never on a running clip
+        }
+      },
+      { rootMargin: '800px' },
+    );
+    primer.observe(v);
+
     // On unmount, silence + release WITHOUT setState (the component is going away).
     return () => {
       io.disconnect();
+      primer.disconnect();
+      v.removeEventListener('canplay', onCanPlay);
       v.muted = true;
       if (_tcardMuteActive === mute) _tcardMuteActive = null;
       releaseGallery(v);
@@ -287,10 +332,20 @@ function TestimonialCard({ name, handle, likes, comments, av, src, photo, hidden
         ref={ref}
         className="cl-tcard__media"
         src={src}
+        /* "metadata", deliberately between the "auto" this used to be and the "none" I first
+           replaced it with. "auto" downloaded all twelve elements up front. But "none" went
+           too far the other way and is what made the wall stall: a card arriving on screen
+           had nothing buffered, so it had to start a fetch before it could show a frame.
+           "metadata" costs a few KB per clip, gets the first frame decodable immediately, and
+           the primer in the effect below upgrades it to "auto" a screen early. The whole set
+           is only ~1.8 MB across 6 unique files (the other 6 elements are the marquee's
+           duplicate loop and come from cache), so this is a cheap middle ground — the 45-video
+           landing page is where aggressive lazy-loading actually pays. */
+        poster={poster || photo}   /* same still serves as avatar and video poster */
         muted
         loop
         playsInline
-        preload="auto"
+        preload="metadata"
         disablePictureInPicture
         onVolumeChange={(e) => setSoundOn(!e.currentTarget.muted)}
       />
@@ -341,8 +396,13 @@ function TestimonialCard({ name, handle, likes, comments, av, src, photo, hidden
           )}
           <span className="cl-tcard__follow"><Plus size={11} /></span>
         </span>
-        <span className="cl-tcard__action"><Heart size={26} fill="#fff" stroke="none" /><b>{likes}</b></span>
-        <span className="cl-tcard__action"><MessageCircle size={26} fill="#fff" stroke="none" /><b>{comments}</b></span>
+        {/* Coloured, not flat white. The heart takes the same #fe2c55 the follow badge just
+            above it already uses, so the rail reads as one set rather than a red "+" over two
+            white glyphs; the comment bubble takes the page accent. Both keep the rail's
+            drop-shadow (see .cl-tcard__action), which is what holds them legible over a light
+            frame — colour alone would disappear against a pale background. */}
+        <span className="cl-tcard__action"><Heart size={26} fill="#fe2c55" stroke="none" /><b>{likes}</b></span>
+        <span className="cl-tcard__action"><MessageCircle size={26} fill="var(--cl-purple)" stroke="none" /><b>{comments}</b></span>
       </div>
 
       {/* Handle */}

@@ -576,6 +576,92 @@ const SVC_ARROW_D = 'M 257.8 160.5 L 270 168 L 256.4 172.5';
 //
 // Copy, colours and videos come from the SAME PROMISE_CARDS / PROMISE_VIDEOS as desktop —
 // this is a layout change only, so the two can never drift apart.
+// Fraction of a card's slice of the scroll runway that its entrance swing occupies — shared
+// by ServiceCard (its own x/rotate) and PromiseMobile (the ghost strip's fade). 0.85 of a
+// ~320-340px per-card slice ≈ the card travels over roughly half a screen of scroll.
+const SERVICE_ENTRY_SPAN = 0.85;
+
+// Own instance of the swing/spring/x/rotate chain per card, scoped to this card's OWN fixed
+// `index` rather than "whichever index the live scroll position currently implies". They used
+// to be a single set of motion values shared across whichever card happened to be rendered —
+// including the one AnimatePresence keeps mounted during its exit animation. The instant
+// scroll crossed into the next card's zone, that shared chain snapped to computing the NEW
+// card's entrance target, and since the exiting card's DOM node was still subscribed to the
+// same motion values, it got visibly dragged toward the new card's position (appearing to
+// "come from the right") at the same moment its own `exit` animation was pulling it left —
+// the two fighting over the same value. Scoping each card's chain to its own fixed index means
+// once scroll moves past it, its swing target simply settles at 0 and stays there — nothing
+// left to fight the exit animation.
+function ServiceCard({ card: c, index: i, n, svcP, reduceMotion, video, navigate }) {
+  const swing = useTransform(svcP, (p) => {
+    if (reduceMotion) return 0;
+    if (i === 0 || i === n - 1) return 0;
+    const local = Math.min(1, Math.max(0, p * n - i));
+    const t = Math.min(1, local / SERVICE_ENTRY_SPAN);
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const side = i % 2 === 0 ? -1 : 1;
+    return side * (1 - eased);
+  });
+  const swingSmooth = useSpring(swing, { stiffness: 42, damping: 26, mass: 0.9 });
+  const cardX = useTransform(swingSmooth, (s) => s * 480);
+  const cardRotate = useTransform(swingSmooth, (s) => s * 4);
+
+  return (
+    <motion.div
+      key={c.title}
+      className="lp-svcm__card"
+      style={{ background: c.color, x: cardX, rotate: cardRotate }}
+      exit={{ x: -420, rotate: -8, transition: { duration: 0.38, ease: 'easeIn' } }}
+    >
+      <div className="lp-svcm__card-top">
+        <span className="lp-svcm__num">{String(i + 1).padStart(2, '0')}</span>
+        <div className="lp-svcm__meter">
+          <span className="lp-svcm__count">
+            {String(i + 1).padStart(2, '0')} / {String(n).padStart(2, '0')}
+          </span>
+          <span className="lp-svcm__bar" aria-hidden="true">
+            <span
+              className="lp-svcm__bar-fill"
+              style={{ width: `${((i + 1) / n) * 100}%`, background: c.accent }}
+            />
+          </span>
+        </div>
+      </div>
+
+      <h3 className="lp-svcm__card-title">{c.title}</h3>
+      <p className="lp-svcm__card-sub">{c.sub}</p>
+
+      {/* Same source + poster derivation the desktop card uses (vid is a showcaseVideos
+          entry, not a bare path). key on src so switching cards remounts the element and
+          the new clip actually starts, rather than the old one continuing under a new src. */}
+      {video && (
+        <div className="lp-svcm__video">
+          <video
+            key={video.src}
+            src={video.src}
+            poster={cldPoster(video.src)}
+            muted
+            loop
+            playsInline
+            autoPlay
+            preload="none"
+          />
+        </div>
+      )}
+
+      <p className="lp-svcm__card-desc">{c.desc}</p>
+      <button
+        type="button"
+        className="lp-svcm__cta"
+        style={{ background: c.btnBg, color: c.btnText }}
+        onClick={() => navigate('/auth?mode=signup&role=business')}
+      >
+        Discover our approach <ArrowRight size={16} />
+      </button>
+    </motion.div>
+  );
+}
+
 function PromiseMobile({ cards, videos, navigate, progress }) {
   const [active, setActive] = useState(0);
   const card = cards[active];
@@ -602,62 +688,30 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
     setActive((cur) => (cur === i ? cur : i));   // no-op when unchanged, so no render churn
   });
 
-  // ── Scroll-SCRUBBED entry (not a fired animation) ──────────────────────────────────
-  // The swing is derived from scroll position every frame rather than played on a spring
-  // when the index flips. Two reasons:
-  //   * Stopping mid-scroll leaves the card genuinely halfway — tilted and part-way across —
-  //     because its transform IS the scroll position. A spring ignores the scroll once
-  //     triggered and always runs to the end, which is why it felt like it "went too fast".
-  //   * Scrubbing makes it reversible: easing back up un-swings the card instead of
-  //     re-triggering a fresh animation.
-  // ENTRY_SPAN is the fraction of each card's slice of the runway that the swing occupies.
-  // 0.8 of a 60vh slice (240vh / 4 cards) = ~48vh of scrolling per swing, up from ~33vh —
-  // the card travels over roughly half a screen of scroll, which is slow enough to follow.
-  // The remaining ~12vh is still, settled time before the next card takes over.
-  const ENTRY_SPAN = 0.85;
   const n = cards.length;
-  const swing = useTransform(svcP, (p) => {
+  // Mirrors ServiceCard's own swing math (see the note above that component), but for the
+  // LIVE active index rather than one card's fixed index — that's the right thing here, since
+  // the ghost isn't a per-card persistent element with an exit animation to fight over. It
+  // only needs "how swung-out is whatever card is currently active", to fade itself out while
+  // that card is still off-screen (see ghostOpacity below) rather than sitting there alone
+  // showing just a title.
+  const activeSwing = useTransform(svcP, (p) => {
     if (reduceMotion) return 0;
     const idx = Math.min(n - 1, Math.max(0, Math.floor(p * n)));
-    // CARD 01 NEVER SWINGS. It is the first thing you see when the section arrives, so it
-    // should already be sitting in place — animating it in meant the reader met the section
-    // with a faded, half-offset card. Only 02 onward slide in, alternating sides:
-    // 02 from the right, 03 from the left, 04 from the right.
-    // The LAST card doesn't swing either — it's the end of the deck, nothing follows it,
-    // and by the time it becomes active the section's own scroll runway is close to running
-    // out, so a full swing-in either got cut short or fired against a settled-looking page.
-    // It just sits in place, same treatment as card 01.
     if (idx === 0 || idx === n - 1) return 0;
     const local = Math.min(1, Math.max(0, p * n - idx));
-    const t = Math.min(1, local / ENTRY_SPAN);        // 0 -> 1 across the entry span
-    // Cubic ease-IN-OUT, not ease-out. Ease-out front-loads the movement — most of the
-    // distance is covered immediately, which reads as a fast snap however long the span is.
-    // In-out starts gently, moves through the middle, and settles gently, so the same
-    // distance feels considerably smoother.
+    const t = Math.min(1, local / SERVICE_ENTRY_SPAN);
     const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     const side = idx % 2 === 0 ? -1 : 1;
-    return side * (1 - eased);                        // ±1 -> 0
+    return side * (1 - eased);
   });
-  // Spring-SMOOTHED, not used raw. Scroll events arrive in coarse, uneven jumps (especially
-  // touch momentum), and feeding them straight into a transform makes the card judder along
-  // with them. The spring chases the scroll-derived target instead, so the motion is
-  // continuous even when the input is not. Low stiffness + high damping = a slow, unhurried
-  // follow with no overshoot.
-  // It stays scroll-linked: the spring settles ON the target, so stopping mid-scroll still
-  // parks the card mid-swing rather than completing an animation.
-  const swingSmooth = useSpring(swing, { stiffness: 42, damping: 26, mass: 0.9 });
-  // 52 -> 480: at 52px the card only ever shifted a few finger-widths and tilted in place —
-  // never actually left the viewport, so it read as a nudge rather than a slide. 480px clears
-  // every phone width the deck ships on, so at full swing (±1) the card is genuinely off-screen
-  // before it eases back to centre.
-  const cardX = useTransform(swingSmooth, (s) => s * 480);
-  const cardRotate = useTransform(swingSmooth, (s) => s * 4);
+  const activeSwingSmooth = useSpring(activeSwing, { stiffness: 42, damping: 26, mass: 0.9 });
   // The ghost stack previews the upcoming card, but only once the front card has actually
   // settled near centre. While it's still swung out (early in a long, scroll-scrubbed entry)
   // the ghost would be sitting there alone, on-screen, showing nothing but a title — reads as
   // a broken empty card rather than "the next thing." Fading it out while |swing| is large
   // means that stretch of scroll shows just the front card sliding in, nothing competing.
-  const ghostOpacity = useTransform(swingSmooth, (s) => Math.max(0, 1 - Math.abs(s) * 1.6));
+  const ghostOpacity = useTransform(activeSwingSmooth, (s) => Math.max(0, 1 - Math.abs(s) * 1.6));
 
   return (
     <div className="lp-svcm">
@@ -715,74 +769,20 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
           // away. (This replaced a full list of tappable collapsed rows — keeping both meant
           // every upcoming card appeared twice: once as a strip behind, once as a row below.)
           if (i === active) {
+            // Each ServiceCard owns its own swing/spring/x/rotate chain, scoped to its own
+            // fixed `index` — see the note above that component for why that's load-bearing
+            // (not just organisation) for the exit animation to work cleanly.
             return (
-              // x / rotate / opacity are MOTION VALUES driven by scroll (see the swing
-              // transform above) — deliberately not initial/animate, which would fire a
-              // fixed-length animation on mount and run to completion no matter where the
-              // reader stopped. Passing them through `style` means the card's position is a
-              // direct function of scroll: stop halfway and it stays halfway, tilted.
-              // Side alternates by card (01 left, 02 right, 03 left, 04 right) — see `swing`.
-              // `exit` is the one part of this deck that ISN'T scroll-scrubbed: the outgoing
-              // card unmounts the instant `active` changes (it's a keyed conditional, not a
-              // persistent element), so there's no scroll position left to scrub against by
-              // that point. A short fixed slide-left + tilt stands in for it instead of the
-              // card just vanishing.
-              <motion.div
+              <ServiceCard
                 key={c.title}
-                className="lp-svcm__card"
-                style={{
-                  background: c.color,
-                  x: cardX,
-                  rotate: cardRotate,
-                }}
-                exit={{ x: -420, rotate: -8, transition: { duration: 0.38, ease: 'easeIn' } }}
-              >
-                <div className="lp-svcm__card-top">
-                  <span className="lp-svcm__num">{String(active + 1).padStart(2, '0')}</span>
-                  <div className="lp-svcm__meter">
-                    <span className="lp-svcm__count">
-                      {String(active + 1).padStart(2, '0')} / {String(cards.length).padStart(2, '0')}
-                    </span>
-                    <span className="lp-svcm__bar" aria-hidden="true">
-                      <span
-                        className="lp-svcm__bar-fill"
-                        style={{ width: `${((active + 1) / cards.length) * 100}%`, background: c.accent }}
-                      />
-                    </span>
-                  </div>
-                </div>
-
-                <h3 className="lp-svcm__card-title">{c.title}</h3>
-                <p className="lp-svcm__card-sub">{c.sub}</p>
-
-                {/* Same source + poster derivation the desktop card uses (vid is a showcaseVideos
-                    entry, not a bare path). key on src so switching cards remounts the element and
-                    the new clip actually starts, rather than the old one continuing under a new src. */}
-                {videos[active] && (
-                  <div className="lp-svcm__video">
-                    <video
-                      key={videos[active].src}
-                      src={videos[active].src}
-                      poster={cldPoster(videos[active].src)}
-                      muted
-                      loop
-                      playsInline
-                      autoPlay
-                      preload="none"
-                    />
-                  </div>
-                )}
-
-                <p className="lp-svcm__card-desc">{c.desc}</p>
-                <button
-                  type="button"
-                  className="lp-svcm__cta"
-                  style={{ background: c.btnBg, color: c.btnText }}
-                  onClick={() => navigate('/auth?mode=signup&role=business')}
-                >
-                  Discover our approach <ArrowRight size={16} />
-                </button>
-              </motion.div>
+                card={c}
+                index={i}
+                n={n}
+                svcP={svcP}
+                reduceMotion={reduceMotion}
+                video={videos[i]}
+                navigate={navigate}
+              />
             );
           }
           return null;
@@ -2379,8 +2379,19 @@ export default function Landing() {
     // permanently stealing frame budget from everything else on the page.
     let inView = false;
     let hasStartedOnce = false;
+    // The row ships hidden (.is-posing is in the JSX className) and is revealed only once
+    // its final shape is decided — either posed into the cylinder, or explicitly left flat
+    // on low-end/reduced-motion. Posing synchronously isn't enough on its own: under CPU
+    // throttling this effect doesn't run until ~3s after first paint, so a row that starts
+    // visible is on screen flat for seconds before any JS can curve it. Hiding for that
+    // window and fading in costs a beat; showing a flat row that later jumps is the bug.
+    // EVERY path that ends with "no further transform is coming" must call this, or the
+    // gallery stays invisible.
+    const reveal = () => track.classList.remove('is-posing');
     const start = () => {
-      if (raf || IS_LOW_END || reduce.matches || !inView) return;
+      if (raf || !inView) return;
+      // Flat row IS the intended fallback for these two — so reveal it as-is.
+      if (IS_LOW_END || reduce.matches) { reveal(); return; }
       const beginPlayback = () => {
         if (raf || !inView) return; // state may have changed while this was deferred
         last = 0;
@@ -2395,6 +2406,7 @@ export default function Landing() {
         // it's what stops the row snapping from flat to arched seconds later.
         measure();
         layout();
+        reveal();
         // Defer only the very FIRST start past the page's initial mount burst — this huge
         // page mounts ~20 other scroll-tracking hooks (useScroll/useInView) across its many
         // sections in the same React commit, and their own initial layout measurements all
@@ -2418,7 +2430,13 @@ export default function Landing() {
       for (const el of track.children) {
         el.style.transform = '';
       }
+      reveal();   // flat row from here on — it must not be left hidden
     };
+    // Safety net for the hidden-until-posed state above: if the observer somehow never
+    // fires, or a future early-return path forgets to reveal, show the row anyway rather
+    // than leave a blank band. Deliberately longer than the ~3s a throttled phone takes to
+    // reach start(), so it never pre-empts the real pose and re-introduces the flat flash.
+    const revealNet = setTimeout(reveal, 4000);
     const io = new IntersectionObserver(
       ([entry]) => {
         inView = entry.isIntersecting;
@@ -2436,6 +2454,7 @@ export default function Landing() {
     reduce.addEventListener('change', onReduce);
     return () => {
       stop();
+      clearTimeout(revealNet);
       io.disconnect();
       window.removeEventListener('resize', onResize);
       reduce.removeEventListener('change', onReduce);
@@ -2710,7 +2729,11 @@ export default function Landing() {
         </motion.p>
 
         <div className="nlp-gallery-vp">
-          <div className="nlp-gallery" ref={nlpGalleryRef}>
+          {/* is-posing (opacity 0) ships in the markup on purpose — the cylinder's shape
+              is decided in JS, and the class is removed the instant that shape exists.
+              Starting visible means the row paints flat and then jumps once the effect
+              runs, which on a throttled phone is seconds later. */}
+          <div className="nlp-gallery is-posing" ref={nlpGalleryRef}>
             {/* Autoplay muted/looped, but only while actually on screen — an
                 IntersectionObserver (below) play()/pause()s each clip as the arch
                 scrolls it in and out, so all 32 instances are never decoding at once. */}
@@ -4391,7 +4414,12 @@ export default function Landing() {
           display: flex; align-items: center;
           gap: 44px; width: max-content; will-change: transform;
           transform-style: preserve-3d;
+          transition: opacity 0.3s ease;
         }
+        /* Hidden until JS has posed the cylinder — see the .is-posing note in the JSX and
+           reveal() in the gallery effect. The class is only ever REMOVED, so if the effect
+           never runs the safety-net timeout still shows the row. */
+        .nlp-gallery.is-posing { opacity: 0; }
         .nlp-card {
           /* Sized from viewport HEIGHT, not width. The card is 9/16 portrait, so its height is
              what decides whether the hero fits the screen — and the old width-based formula

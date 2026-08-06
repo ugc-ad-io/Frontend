@@ -652,6 +652,12 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
   // before it eases back to centre.
   const cardX = useTransform(swingSmooth, (s) => s * 480);
   const cardRotate = useTransform(swingSmooth, (s) => s * 4);
+  // The ghost stack previews the upcoming card, but only once the front card has actually
+  // settled near centre. While it's still swung out (early in a long, scroll-scrubbed entry)
+  // the ghost would be sitting there alone, on-screen, showing nothing but a title — reads as
+  // a broken empty card rather than "the next thing." Fading it out while |swing| is large
+  // means that stretch of scroll shows just the front card sliding in, nothing competing.
+  const ghostOpacity = useTransform(swingSmooth, (s) => Math.max(0, 1 - Math.abs(s) * 1.6));
 
   return (
     <div className="lp-svcm">
@@ -678,7 +684,7 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
           const depth = i - active;
           if (depth <= 0) return null;           // already passed — nothing left to peek
           return (
-            <span
+            <motion.span
               key={`ghost-${c.title}`}
               className="lp-svcm__ghost"
               aria-hidden="true"
@@ -686,12 +692,15 @@ function PromiseMobile({ cards, videos, navigate, progress }) {
                 background: c.color,
                 transform: `translateY(${depth * 26}px) scale(${1 - depth * 0.07})`,
                 zIndex: cards.length - depth,
+                // Only the nearest strip (depth 1) tracks the front card's swing — deeper
+                // ones are already hidden behind it regardless.
+                opacity: depth === 1 ? ghostOpacity : 1,
               }}
             >
               {/* Only the immediate next card (depth 1) shows its title — deeper strips are
                   only a sliver of colour behind it anyway, so text there would just overlap. */}
               {depth === 1 && <span className="lp-svcm__ghost-title">{c.title}</span>}
-            </span>
+            </motion.span>
           );
         })}
         {/* mode="wait" (was "popLayout") — the exiting card now fully finishes leaving
@@ -2310,13 +2319,15 @@ export default function Landing() {
       buildSpacingMap((document.documentElement.clientWidth || 2) / 2);
     };
 
-    const step = (ts) => {
-      if (!last) last = ts;
-      const dt = Math.min(64, ts - last);
-      last = ts;
-      offset += dt * 0.045;                 // scroll speed (px/ms)
-      if (halfW && offset >= halfW) offset -= halfW;   // seamless wrap at the mid-point
-
+    // The positioning pass, split out of step() so it can also be run ONCE as a static
+    // pose before the animation ever starts. Without that, the cylinder only existed
+    // inside the rAF loop, so until the loop's (deliberately deferred — see start()) first
+    // frame the row painted flat: every card at its untransformed CSS width with perfectly
+    // level tops. On a mid-range phone that flat state lasted >3s, and the moment the loop
+    // did start the whole row snapped — middle cards shrinking ~134px→108px and dropping,
+    // edge cards ballooning to ~180px. Landing mid-scroll, it read as "the videos resize
+    // and shift down when I scroll".
+    const layout = () => {
       // ── ALL layout reads happen here, up front, BEFORE any style write ────────
       // Card positions are computed ARITHMETICALLY (stride × index − scroll offset)
       // rather than read back with getBoundingClientRect per card. Transforms never
@@ -2351,6 +2362,15 @@ export default function Landing() {
           cards[i].style.transform = `translateX(${tx}px) translateZ(${g.z}px) rotateY(${g.rot}deg)`;
         }
       }
+    };
+
+    const step = (ts) => {
+      if (!last) last = ts;
+      const dt = Math.min(64, ts - last);
+      last = ts;
+      offset += dt * 0.045;                 // scroll speed (px/ms)
+      if (halfW && offset >= halfW) offset -= halfW;   // seamless wrap at the mid-point
+      layout();
       raf = requestAnimationFrame(step);
     };
     // Whether the gallery is actually on screen right now — without this, the rAF loop
@@ -2369,6 +2389,12 @@ export default function Landing() {
       };
       if (!hasStartedOnce) {
         hasStartedOnce = true;
+        // Pose the cylinder NOW, synchronously, so the row's very first paint is already
+        // curved. One measure + one positioning pass is a rounding error next to the
+        // continuous rAF loop the defer below exists to keep out of the mount burst — and
+        // it's what stops the row snapping from flat to arched seconds later.
+        measure();
+        layout();
         // Defer only the very FIRST start past the page's initial mount burst — this huge
         // page mounts ~20 other scroll-tracking hooks (useScroll/useInView) across its many
         // sections in the same React commit, and their own initial layout measurements all

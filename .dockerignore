@@ -1,0 +1,46 @@
+# Everything here is excluded from the build context. This matters for speed as
+# much as correctness: public/ alone is ~150MB of video, and node_modules is
+# larger still — without this file every `docker build` uploads all of it to the
+# daemon before the first instruction runs.
+
+# Reinstalled inside the image by `npm ci`. Copying the host's copy would also
+# drag in platform-specific binaries built for Windows.
+node_modules
+**/node_modules
+
+# Build artefacts — the image produces its own.
+build
+dist
+coverage
+
+# VCS + editor
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.swp
+
+# Secrets. The image needs REACT_APP_* as BUILD ARGS, not as a baked-in file;
+# copying .env here would embed whatever the developer had locally into the
+# image and make builds non-reproducible across machines.
+.env
+.env.*
+!.env.example
+
+# Docker's own files — no reason to send them into the context.
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Logs / OS noise
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+.DS_Store
+Thumbs.db
+
+# Local scratch
+*.crdownload
+README.md

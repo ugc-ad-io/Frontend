@@ -333,9 +333,21 @@ h3 { font-size: var(--fs-h3); }
 html {
   scroll-behavior: smooth;
   overflow-x: clip;         /* clip stray horizontal overflow (mobile white-bg seam) without breaking position: sticky */
-  overflow-y: scroll;       /* always reserve the scrollbar gutter so switching tabs/pages doesn't shift the layout right */
-  scrollbar-gutter: stable; /* modern browsers: reserve the gutter without forcing a visible track */
   max-width: 100%;
+}
+
+/* overflow-y:scroll + scrollbar-gutter:stable reserve a permanent scrollbar-width strip
+   on desktop, so a page toggling between "needs a scrollbar" and "doesn't" never shifts
+   its content sideways. Scoped to desktop only — mobile/touch scrolling uses an overlay
+   scrollbar that needs no reserved track, so applying this unconditionally left a visible
+   empty gutter strip down the right edge of every mobile view (including Chrome DevTools'
+   device-emulation mode, which still honours scrollbar-gutter even though the simulated
+   viewport scrolls via touch). */
+@media (min-width: 900px) {
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
 }
 
 body {

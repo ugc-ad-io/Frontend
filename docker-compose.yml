@@ -1,0 +1,47 @@
+# Build + run the frontend container.
+#
+#   docker compose build          # rebuild after changing code or env
+#   docker compose up -d          # start on http://localhost:3000
+#   docker compose logs -f web
+#   docker compose down
+#
+# NOTE: because Create React App bakes REACT_APP_* into the bundle at BUILD time,
+# these live under `build.args`, not `environment`. Changing them requires a
+# rebuild (`docker compose build`), not just a restart — a plain `up` will keep
+# serving the previously compiled values.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Read from your shell / .env at build time, with the current production
+        # backend as the default so a bare `docker compose build` still works.
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-https://backend-chq9.onrender.com}
+        REACT_APP_GOOGLE_CLIENT_ID: ${REACT_APP_GOOGLE_CLIENT_ID:-}
+    image: ugcad-frontend:latest
+    container_name: ugcad-frontend
+    restart: unless-stopped
+    ports:
+      # host:container — nginx listens on 8080 inside (unprivileged).
+      - "3000:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    # Static file serving needs no writable filesystem. tmpfs covers the paths
+    # nginx must write to, so the rest of the container can stay read-only.
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

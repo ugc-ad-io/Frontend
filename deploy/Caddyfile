@@ -1,0 +1,60 @@
+# Single public entrypoint for the whole stack.
+#
+# SITE_ADDRESS comes from compose:
+#   - a domain (app.example.com) -> Caddy provisions and renews a Let's Encrypt
+#     certificate automatically, and redirects HTTP to HTTPS. Nothing else to do.
+#   - ":80"                      -> plain HTTP, for local testing or when this
+#     sits behind another load balancer that already terminates TLS.
+{$SITE_ADDRESS} {
+
+	# ── Backend ─────────────────────────────────────────────────────────────
+	# Every router in server.py is mounted under /api (server.py L65, plus
+	# categories.py, applications.py and gigs.py, which all use an /api prefix),
+	# so one matcher covers the entire API surface.
+	#
+	# /uploads/* is served by an explicit FastAPI route (server.py L14977),
+	# NOT StaticFiles — it must reach the backend too, or every profile photo,
+	# logo and work file 404s when Cloudinary isn't configured.
+	#
+	# /docs and /openapi.json are FastAPI's built-in docs, also used by the
+	# container healthcheck.
+	@backend path /api/* /uploads/* /docs /docs/* /openapi.json /redoc
+	handle @backend {
+		reverse_proxy backend:8000
+	}
+
+	# ── Frontend ────────────────────────────────────────────────────────────
+	# Everything else is the SPA. nginx inside that container already does the
+	# history fallback, so deep links work.
+	handle {
+		reverse_proxy frontend:8080
+	}
+
+	# ── Uploads need a large body limit ─────────────────────────────────────
+	# Creators upload video work files. Caddy's default has no hard cap, but
+	# being explicit documents the intent and gives a clean 413 instead of a
+	# truncated stream. Raise if you accept longer clips.
+	request_body {
+		max_size 200MB
+	}
+
+	encode zstd gzip
+
+	header {
+		# HSTS is only meaningful once you are actually on HTTPS with a real
+		# domain. Harmless on plain HTTP (browsers ignore it there), but do not
+		# enable includeSubDomains until every subdomain is on TLS.
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options    "nosniff"
+		Referrer-Policy           "strict-origin-when-cross-origin"
+		# Caddy advertises itself by default; drop it.
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+		# Health checks would otherwise dominate the log.
+		level INFO
+	}
+}

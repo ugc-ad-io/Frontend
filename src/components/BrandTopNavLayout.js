@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { toast } from 'sonner';
 import { ChevronDown, Plus, Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send, Star, Settings, Bell, LifeBuoy } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import HoverSideRail, { openHelpDialog } from './HoverSideRail';
@@ -51,7 +50,6 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const isMessages = pathname === '/messages' || pathname.startsWith('/messages/');
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
@@ -94,16 +92,16 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   }, [briefOpen]);
 
   const displayName = user?.profile?.business_name || brandName(user);
-  const googlePhotoSuppressed = Boolean(user?.brand_logo_removed)
-    || (user?.id && localStorage.getItem(`ugc_brand_logo_removed:${user.id}`) === '1');
-  const photo = user?.brand_logo || (!googlePhotoSuppressed ? user?.profile_photo : '');
+  const photo = user?.profile_photo || user?.brand_logo;
   const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // Approval gate — a brand whose profile is still pending review (or was
+  // rejected) must not reach ANY feature page. BusinessDashboard already gates
+  // its own pages; this makes the standalone brand pages (Campaigns, etc.)
+  // behave identically, so it's never "some tabs work, others say under review".
   const approval = user?.approval_status;
   const isBrand = ['business', 'brand'].includes(String(user?.role || '').toLowerCase());
-  const isPending = isBrand && approval === 'pending';
-  const showApprovalNotice = () => toast.info('Your brand profile is under review. Actions unlock after approval.');
   if (isBrand && approval === 'rejected') {
     return <RejectedGate user={user} onHome={handleLogout} kind="business" />;
   }
@@ -113,6 +111,33 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   if (isBrand && approval === 'more_info') {
     return <MoreInfoGate user={user} kind="business" onLogout={handleLogout} />;
   }
+  if (isBrand && approval === 'pending') {
+    return (
+      <div className="brl-gate">
+        <div className="brl-gate-card">
+          <span className="brl-gate-ic">🕓</span>
+          <p className="brl-gate-eyebrow">Business verification</p>
+          <h1>Profile Under Review</h1>
+          <p>
+            Your business profile is being verified by our team. Most accounts are approved within 24–48 hours,
+            and we’ll email you once you’re cleared to launch campaigns.
+          </p>
+          <button type="button" className="brl-gate-btn" onClick={handleLogout}>Back to Home</button>
+        </div>
+        <style>{`
+          .brl-gate{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(160deg,#05050f 0%,#0d0b26 100%)}
+          .brl-gate-card{width:min(560px,100%);padding:48px 40px;border-radius:24px;background:#141420;color:#f4f4f8;text-align:center;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+          .brl-gate-ic{font-size:44px;line-height:1}
+          .brl-gate-eyebrow{margin:16px 0 4px;color:#8b8fb5;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+          .brl-gate-card h1{margin:0 0 12px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:26px;color:#fff}
+          .brl-gate-card p{margin:0 auto;max-width:420px;color:rgba(255,255,255,.62);font-size:14.5px;line-height:1.65}
+          .brl-gate-btn{margin-top:26px;padding:12px 26px;border-radius:12px;border:none;cursor:pointer;font:inherit;font-weight:700;font-size:14px;background:#5b6bff;color:#fff}
+          .brl-gate-btn:hover{background:#4452f0}
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="cmk-app has-rail">
       <HoverSideRail
@@ -127,15 +152,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       />
       <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
-          <button
-            type="button"
-            className="cmk-hamburger"
-            aria-label="Menu"
-            onClick={() => {
-              setMenuOpen(false);
-              setMobileOpen((v) => !v);
-            }}
-          >
+          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">
@@ -167,36 +184,13 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </nav>
 
           <div className="cmk-nav-right" ref={menuRef}>
-            <button
-              type="button"
-              className="cmk-btn-primary-sm cmk-nav-post-full"
-              onClick={() => {
-                setMobileOpen(false);
-                setMenuOpen(false);
-                if (isPending) {
-                  showApprovalNotice();
-                  return;
-                }
-                setBriefOpen(true);
-              }}
-              title="Post a Campaign"
-              aria-label="Post a Campaign"
-            >
+            <button type="button" className="cmk-btn-primary-sm cmk-nav-post-full" onClick={() => setBriefOpen(true)} title="Post a Campaign" aria-label="Post a Campaign">
               <Plus size={18} /><span className="cmk-btn-label">Post a Campaign</span>
             </button>
 
             <NotificationBell />
 
-            <button
-              type="button"
-              className="cmk-avatar-btn"
-              onClick={() => {
-                setMobileOpen(false);
-                setMenuOpen((v) => !v);
-              }}
-              aria-label="Account menu"
-              aria-expanded={menuOpen}
-            >
+            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
               <span className="cmk-avatar">
                 {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
               </span>
@@ -204,7 +198,6 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
                 <strong>{displayName}</strong>
                 <small>Brand Account</small>
               </span>
-              <ChevronDown size={16} className={`cmk-avatar-chevron${menuOpen ? ' is-open' : ''}`} aria-hidden="true" />
             </button>
 
             {menuOpen && (
@@ -258,16 +251,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         )}
       </header>
 
-      {isPending && (
-        <div className="cmk-wrap" role="status">
-          <div className="brl-review-banner">
-            <strong>Profile under review</strong>
-            <span>You can browse creator profiles and message creators. Publishing campaigns and payments unlock after approval.</span>
-          </div>
-        </div>
-      )}
-
-      <main className={`cmk-wrap cmk-page${isMessages ? ' cmk-page--flush' : ''}`}>
+      <main className="cmk-wrap cmk-page">
         {children}
       </main>
 
@@ -311,11 +295,6 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           </div>
         </div>
       )}
-      <style>{`
-        .brl-review-banner{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;border:1px solid #f6d7a7;background:#fff8ed;color:#92400e;font-size:13px}
-        .brl-review-banner strong{white-space:nowrap;color:#78350f}
-        @media(max-width:640px){.brl-review-banner{align-items:flex-start;flex-direction:column;gap:3px}}
-      `}</style>
     </div>
   );
 }

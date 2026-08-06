@@ -371,9 +371,30 @@ export default function CreatorLanding() {
   // site-wide theme was dark landed on a black "Join as Creator" page that didn't match
   // the landing page they came from.
 
-  // The scroll listener that lived here only existed to toggle `cl-nav--scrolled` on the
-  // top bar. With the bar gone it had no consumer, so it was a listener running on every
-  // scroll frame and re-rendering this whole page for nothing — removed along with it.
+  // Drives `cl-nav--scrolled`, which is what gives the fixed bar its background + blur once
+  // the page moves; over the hero it stays transparent. setState only when the boolean
+  // actually FLIPS — a bare setNavScrolled(window.scrollY > 8) would re-render this whole
+  // page on every scroll frame, which is why the previous listener was deleted rather than
+  // kept. Passive so it can't block scrolling.
+  const [navScrolled, setNavScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      const next = window.scrollY > 8;
+      setNavScrolled((prev) => (prev === next ? prev : next));
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Nav links land ON the section, not under the fixed bar — scrollIntoView alone would put
+  // the heading behind it, so the offset is applied manually.
+  const scrollToId = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 84;
+    window.scrollTo({ top, behavior: 'smooth' });
+  };
 
   // Every CTA on this page drives the visitor to the main signup form (creator role).
   const handleJoin = () => {
@@ -389,7 +410,6 @@ export default function CreatorLanding() {
     }),
   };
 
-  const NAV_LINKS = ['Explore Creators', 'Pricing', 'Intelligence', 'Others'];
 
   return (
     <div className="cl-root" data-theme="light">
@@ -400,11 +420,61 @@ export default function CreatorLanding() {
         <div className="cl-blob cl-blob--3" />
       </div>
 
-      {/* Top bar removed. It held nothing but the UGCad.io lockup, and that logo is 184px
-          tall inside a 56px fixed bar (deliberately, to match the Landing navbar) — so on
-          this page it hung well below the bar and sat on top of the section beneath it.
-          With no links or actions left in the bar there was nothing else for it to carry.
-          The footer still links back to the main site. */}
+      {/* Top bar. It was removed once because the lockup was 184px tall inside a 56px fixed
+          bar, so it hung below the bar and sat on top of the section beneath it. Landing has
+          since contained its own logo (46px, no negative margin) and .cl-brand__logo now
+          matches, so the bar can carry a real nav: links, log in / sign up, and a burger.
+          The links point at this page's own sections; "For Brands" leaves for the main site. */}
+      <nav className={`cl-nav${navScrolled ? ' cl-nav--scrolled' : ''}`}>
+        <div className="cl-nav__inner">
+          <button
+            type="button"
+            className="cl-brand"
+            aria-label="UGCad.io — back to top"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <img src="/ugcad-logo.png" alt="UGCad.io" className="cl-brand__logo" />
+          </button>
+
+          <div className="cl-nav__links">
+            <a className="cl-navlink" href="#how" onClick={(e) => { e.preventDefault(); scrollToId('how'); }}>How it works</a>
+            <a className="cl-navlink" href="#creators" onClick={(e) => { e.preventDefault(); scrollToId('creators'); }}>Creators</a>
+            <a className="cl-navlink" href="#faq" onClick={(e) => { e.preventDefault(); scrollToId('faq'); }}>FAQ</a>
+            <a className="cl-navlink" href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>For Brands</a>
+          </div>
+
+          <div className="cl-nav__actions">
+            {/* Creator role on BOTH, unlike Landing's business-role bar — a visitor on this
+                page is here to join as a creator, so the auth screen should open on that side. */}
+            <button className="cl-btn-login" onClick={() => navigate('/auth?role=creator')}>
+              <LogIn size={15} /> Log in
+            </button>
+            <button className="cl-btn-signup" onClick={handleJoin}>Join as Creator</button>
+          </div>
+
+          <button
+            className="cl-nav__burger"
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+
+        <div className={`cl-nav__mobile${menuOpen ? ' cl-nav__mobile--open' : ''}`}>
+          <a className="cl-navlink" href="#how" onClick={(e) => { e.preventDefault(); setMenuOpen(false); scrollToId('how'); }}>How it works</a>
+          <a className="cl-navlink" href="#creators" onClick={(e) => { e.preventDefault(); setMenuOpen(false); scrollToId('creators'); }}>Creators</a>
+          <a className="cl-navlink" href="#faq" onClick={(e) => { e.preventDefault(); setMenuOpen(false); scrollToId('faq'); }}>FAQ</a>
+          <a className="cl-navlink" href="/" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navigate('/'); }}>For Brands</a>
+          <div className="cl-nav__mobile-actions">
+            <button className="cl-btn-login" onClick={() => { setMenuOpen(false); navigate('/auth?role=creator'); }}>
+              <LogIn size={15} /> Log in
+            </button>
+            <button className="cl-btn-signup" onClick={() => { setMenuOpen(false); handleJoin(); }}>Join</button>
+          </div>
+        </div>
+      </nav>
 
       {/* -- Hero --------------------------------------------------------- */}
       <section className="cl-hero">
@@ -617,7 +687,8 @@ export default function CreatorLanding() {
       </section>
 
       {/* -- Hear from Our Creators --------------------------------------- */}
-      <section className="cl-section">
+      {/* id added so the nav's "Creators" link has something to target. */}
+      <section id="creators" className="cl-section">
         <motion.div
           className="cl-section__head"
           variants={fadeUp} initial="hidden" animate="visible"
@@ -1029,9 +1100,12 @@ export default function CreatorLanding() {
         /* Brand mark */
         .cl-brand { display: inline-flex; align-items: center; gap: 9px; background: none;
           border: none; cursor: pointer; padding: 0; }
-        /* Match the Landing navbar logo size: a tall stacked lockup that overflows the fixed bar. */
-        .cl-brand__logo { height: 184px; width: auto; flex: none; display: block;
-          margin-left: -34px; transform: translateY(-4px); }
+        /* CONTAINED in the bar — 46px inside the 56px row, matching what Landing settled on.
+           This used to be 184px with a -34px pull, which is exactly why the whole top bar got
+           deleted: the lockup hung far below the 56px bar and painted over the hero. */
+        .cl-brand__logo { height: 46px; width: auto; flex: none; display: block;
+          object-fit: contain; transition: opacity 0.2s ease; }
+        .cl-brand:hover .cl-brand__logo { opacity: 0.8; }
         /* Light theme: recolour the navy logo to the brand purple (dark theme unchanged). */
         .cl-root:not([data-theme="dark"]) .cl-brand__logo {
           filter: brightness(0) saturate(100%) invert(29%) sepia(95%) saturate(2462%)
@@ -1081,9 +1155,12 @@ export default function CreatorLanding() {
         .cl-nav__burger { display: none; margin-left: auto; width: 42px; height: 42px; align-items: center;
           justify-content: center; border-radius: 12px; border: 1px solid rgba(var(--cl-fg),0.2);
           background: rgba(var(--cl-fg),0.06); cursor: pointer; }
+        /* Panel follows the theme. It was hardcoded to a near-black rgba(18,18,22,0.97) from
+           when this page was dark; the page is forced light now, so the links (navy, via
+           --cl-fg) were dark-on-dark and unreadable. --cl-panel is white here. */
         .cl-nav__mobile { display: none; flex-direction: column; gap: 4px; margin: 12px 4px 0; padding: 14px;
-          border-radius: 16px; background: rgba(18,18,22,0.97); border: 1px solid rgba(var(--cl-fg),0.12);
-          box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+          border-radius: 16px; background: var(--cl-panel); border: 1px solid rgba(var(--cl-fg),0.12);
+          box-shadow: 0 24px 60px rgba(28,27,75,0.18); }
         .cl-nav__mobile--open { display: flex; }
         .cl-nav__mobile .cl-navlink { padding: 12px; border-radius: 10px; }
         .cl-nav__mobile-actions { display: flex; gap: 10px; margin-top: 8px; padding-top: 12px;
@@ -1108,10 +1185,11 @@ export default function CreatorLanding() {
              tall video gallery instead of overflowing — which kept the below-fold category pills
              from overlapping the videos. Phones (≤480px) override this to height:auto below. */
           min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start;
-          /* Top padding was clamp(120px, 16vh, 180px) — clearance for the fixed top bar and
-             the 184px logo that overhung it. Both are gone, so that much space now reads as
-             a blank band above the headline; this keeps a normal section inset instead. */
-          gap: clamp(10px, 2vh, 22px); padding: clamp(56px, 7vh, 88px) 6% 0; }
+          /* The fixed top bar is back, so the hero needs clearance again — but only for the
+             bar itself (56px row + 2x18px padding = 92px), NOT the old clamp(120px, 16vh,
+             180px) that was also making room for a 184px overhanging logo. The logo is
+             contained now, so anything past ~92px + a small gap is just a blank band. */
+          gap: clamp(10px, 2vh, 22px); padding: clamp(112px, 13vh, 140px) 6% 0; }
         .cl-hero__main { display: flex; flex-direction: column; justify-content: center;
           align-items: center; text-align: center; flex-shrink: 0; }
         .cl-hero__title { font-size: var(--fs-hero); font-weight: var(--fw-head); line-height: 1.06;
@@ -1506,10 +1584,10 @@ export default function CreatorLanding() {
         @media (max-width: 768px) {
           .cl-nav__links, .cl-nav__actions { display: none; }
           .cl-nav__burger { display: inline-flex; }
-          /* Mobile: the wide-padding -34px offset drags the lockup off the left edge here
-             (mobile padding is far smaller), clipping the logo. Smaller box + gentler pull
-             keeps "UGCad.io" fully visible and inset from the edge. */
-          .cl-brand__logo { height: 150px; margin-left: -16px; }
+          /* Leftover from the 184px overhanging-lockup era — 150px in a 56px bar swamped the
+             whole phone header and painted over the hero. The logo is contained now, so this
+             only needs to be a touch smaller than the 46px desktop size. */
+          .cl-brand__logo { height: 38px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
           /* PERF: a blurred blob that animates re-rasterizes the whole blur every frame — the
@@ -1557,9 +1635,9 @@ export default function CreatorLanding() {
           /* Let the hero shrink to its content instead of a full 100vh — otherwise
              the leftover viewport space below the video cards pushes the category
              pills far down the screen. Collapsing it brings the pills up under the cards. */
-          /* Same trim as the desktop rule above (was clamp(92px, 13vh, 130px)) — the nav
-             it was clearing no longer exists on this page at any width. */
-          .cl-hero { padding: clamp(40px, 6vh, 64px) 5% 0; height: auto; min-height: 0; gap: 16px; }
+          /* The fixed nav is back at this width too, so the hero clears it again. The bar is
+             shorter here (.cl-nav drops to 14px padding around the 56px row = 84px). */
+          .cl-hero { padding: clamp(96px, 14vh, 116px) 5% 0; height: auto; min-height: 0; gap: 16px; }
           .cl-hero__title { line-height: 1.12; }
           .cl-hero__sub { font-size: 1.05rem; }
           .cl-hero__ctas { margin-top: 0px; }

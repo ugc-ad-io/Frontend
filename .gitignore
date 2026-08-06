@@ -22,3 +22,13 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# docker deploy secrets
+# `.env` above already matches deploy/.env at any depth, but NOT these — a
+# gitignore entry without wildcards is an exact filename match. deploy/.env.backend
+# holds MONGO_URL, JWT_SECRET and RESEND_API_KEY, so it must be named explicitly.
+# The .example templates stay tracked.
+.env.backend
+deploy/.env
+deploy/.env.backend
+

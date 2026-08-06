@@ -52,7 +52,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { motion, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, easeInOut } from 'framer-motion';
+import { motion, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, useReducedMotion, easeInOut } from 'framer-motion';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));
@@ -297,10 +297,19 @@ function LazyVideo(props) {
   return <LazyVideoEl {...props} />;
 }
 
-// Does this device actually have a pointer that can hover? Read once — a mouse doesn't
-// appear mid-session, and every card would otherwise re-run the same query.
-const CAN_HOVER = typeof window !== 'undefined' && !!window.matchMedia
-  && window.matchMedia('(hover: hover)').matches;
+// Should this visitor get HOVER-driven playback, or scroll-into-view playback?
+//
+// `(hover: hover)` on its own is not a good enough test, and relying on it is what left the
+// grid as a wall of black boxes on narrow screens: a desktop window dragged down to phone
+// width still reports hover:hover, and so do plenty of Android and hybrid browsers. Those
+// visitors took the hover path — which sets preload="none" and waits for a mouseenter that
+// never comes — so nothing ever loaded or played.
+//
+// So it also has to be a fine pointer AND wide enough to actually be a desktop. 769px is the
+// same boundary the showcase grid's own column rules use.
+const HOVER_PLAY_MQ = '(hover: hover) and (pointer: fine) and (min-width: 769px)';
+const matchesHoverPlay = () =>
+  typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(HOVER_PLAY_MQ).matches;
 
 // Showcase-grid clip: a poster still at rest, plays muted + looping while the visitor
 // hovers it, and rewinds to the poster on leave. NO player chrome at all — no play/pause,
@@ -310,10 +319,22 @@ const CAN_HOVER = typeof window !== 'undefined' && !!window.matchMedia
 function ShowcaseVideo({ src, poster, className }) {
   const ref = useRef(null);
   const [muted, setMuted] = useState(true);
-
-  // Touch only: play on screen, pause off screen.
+  // State, not a module constant read once: resizing a desktop window down past 768px has to
+  // hand playback over to the scroll-into-view path, otherwise the cards go black the moment
+  // the layout becomes a phone layout.
+  const [hoverPlay, setHoverPlay] = useState(matchesHoverPlay);
   useEffect(() => {
-    if (CAN_HOVER) return undefined;
+    if (!window.matchMedia) return undefined;
+    const mq = window.matchMedia(HOVER_PLAY_MQ);
+    const onChange = () => setHoverPlay(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // Phone / narrow / touch: play on screen, pause off screen. No hover involved.
+  useEffect(() => {
+    if (hoverPlay) return undefined;
     const v = ref.current;
     if (!v) return undefined;
     const io = new IntersectionObserver(
@@ -325,7 +346,7 @@ function ShowcaseVideo({ src, poster, className }) {
     );
     io.observe(v);
     return () => io.disconnect();
-  }, []);
+  }, [hoverPlay]);
 
   // ONE audible clip at a time. Ten cards are on screen together, so unmuting a
   // second without silencing the first would just stack overlapping audio.
@@ -361,7 +382,7 @@ function ShowcaseVideo({ src, poster, className }) {
 
   const onEnter = () => {
     const v = ref.current;
-    if (!v || !CAN_HOVER) return;
+    if (!v || !hoverPlay) return;
     // Only force-mute if the visitor hasn't deliberately turned sound ON for this card.
     // (Muting is what lets autoplay policy accept play() in the first place.)
     if (v.muted) v.muted = true;
@@ -369,7 +390,7 @@ function ShowcaseVideo({ src, poster, className }) {
   };
   const onLeave = () => {
     const v = ref.current;
-    if (!v || !CAN_HOVER) return;
+    if (!v || !hoverPlay) return;
     // If the visitor explicitly unmuted this card, leave it alone — pausing and
     // rewinding here would silently discard that choice. It also matters mechanically:
     // load() re-applies the `muted` attribute, so the element would go back to muted
@@ -393,8 +414,9 @@ function ShowcaseVideo({ src, poster, className }) {
         loop
         playsInline
         // Hover devices fetch nothing until the visitor actually hovers — the grid loads
-        // as 10 posters instead of 10 video streams.
-        preload={CAN_HOVER ? 'none' : 'metadata'}
+        // as 10 posters instead of 10 video streams. Everywhere else the clip plays on
+        // scroll, so it needs at least metadata up front.
+        preload={hoverPlay ? 'none' : 'metadata'}
         disablePictureInPicture
       />
       <button
@@ -522,38 +544,62 @@ const SVC_ARROW_D = 'M 257.8 160.5 L 270 168 L 256.4 172.5';
 //
 // Copy, colours and videos come from the SAME PROMISE_CARDS / PROMISE_VIDEOS as desktop —
 // this is a layout change only, so the two can never drift apart.
-function PromiseMobile({ cards, videos, navigate }) {
+function PromiseMobile({ cards, videos, navigate, progress }) {
   const [active, setActive] = useState(0);
-  const wrapRef = useRef(null);
   const card = cards[active];
-  const ICONS = [Sparkles, Users, Zap, Shield];
 
-  // SCROLL drives which card is open — the rows are not primarily tap targets.
-  // 'start center' → 'end center' means the cycle runs while the block is crossing the middle
-  // of the screen, so all four get their turn on the way past instead of the last one only
-  // arriving after the section has already left.
-  // This works WITHOUT a pinned runway because the accordion's height is near-constant: it is
-  // always one open card + three collapsed rows, so swapping the active index doesn't resize
-  // the element and feed back into its own scroll progress.
-  // Start point kept at 'start center' — that's when the card first becomes comfortably
-  // readable, and pushing it earlier (e.g. 'start end') would begin advancing the index
-  // before the section is even visible, skipping the reader straight past card 1. Only the
-  // END is pushed out, from 'end center' to 'end start' (element's bottom reaches the very
-  // top of the viewport instead of the middle) — that adds about half a viewport's worth of
-  // extra scroll distance across the 4 cards. The previous range only spanned the
-  // accordion's own height, split 4 ways that gave each card barely a quarter-screen of
-  // scroll before flipping to the next — too fast to actually read.
-  const { scrollYProgress: svcP } = useScroll({
-    target: wrapRef,
-    offset: ['start center', 'end start'],
-  });
+  // The index is driven by the SECTION's scroll progress, passed in — not by a useScroll on
+  // this element. That distinction is the whole fix for "it jumps to the last card / the
+  // section is gone before the cards finish":
+  //
+  //   * Measuring this element only ever spanned its own height. Split four ways that gave
+  //     each card a fraction of a screen, so a normal flick blew through all four at once.
+  //   * And once the deck is PINNED (see .lp-logo3d__sticky) the element stops moving relative
+  //     to the viewport, so its own scroll progress freezes and the cards would never advance
+  //     at all.
+  //
+  // The section itself is the tall runway that keeps scrolling behind the pin, so its progress
+  // is the thing that maps cleanly onto "which card should be showing".
+  const svcP = progress;
+  // A slide-and-tilt is exactly the kind of motion that triggers discomfort, and the page's
+  // CSS prefers-reduced-motion block only neutralises CSS animations/transitions — it cannot
+  // touch framer's inline transforms. Fall back to a plain fade when the OS asks for less.
+  const reduceMotion = useReducedMotion();
   useMotionValueEvent(svcP, 'change', (p) => {
     const i = Math.min(cards.length - 1, Math.max(0, Math.floor(p * cards.length)));
     setActive((cur) => (cur === i ? cur : i));   // no-op when unchanged, so no render churn
   });
 
+  // ── Scroll-SCRUBBED entry (not a fired animation) ──────────────────────────────────
+  // The swing is derived from scroll position every frame rather than played on a spring
+  // when the index flips. Two reasons:
+  //   * Stopping mid-scroll leaves the card genuinely halfway — tilted and part-way across —
+  //     because its transform IS the scroll position. A spring ignores the scroll once
+  //     triggered and always runs to the end, which is why it felt like it "went too fast".
+  //   * Scrubbing makes it reversible: easing back up un-swings the card instead of
+  //     re-triggering a fresh animation.
+  // ENTRY_SPAN is the fraction of each card's slice of the runway that the swing occupies.
+  // At 240vh / 4 cards = 60vh per card, 0.55 spends ~33vh settling the card — slow enough to
+  // watch, while leaving ~27vh of still, readable time before the next card takes over.
+  const ENTRY_SPAN = 0.55;
+  const n = cards.length;
+  // Where we are WITHIN the current card (0 = just arrived, 1 = about to hand over), and
+  // which side that card enters from (alternating, so 01 left / 02 right / 03 left / 04 right).
+  const swing = useTransform(svcP, (p) => {
+    if (reduceMotion) return 0;
+    const idx = Math.min(n - 1, Math.max(0, Math.floor(p * n)));
+    const local = Math.min(1, Math.max(0, p * n - idx));
+    const t = Math.min(1, local / ENTRY_SPAN);        // 0 -> 1 across the entry span
+    const eased = 1 - Math.pow(1 - t, 3);             // ease-out cubic: fast start, soft landing
+    const side = idx % 2 === 0 ? -1 : 1;
+    return side * (1 - eased);                        // ±1 -> 0
+  });
+  const cardX = useTransform(swing, (s) => s * 52);
+  const cardRotate = useTransform(swing, (s) => s * 4);
+  const cardOpacity = useTransform(swing, (s) => 1 - Math.min(0.85, Math.abs(s)));
+
   return (
-    <div className="lp-svcm" ref={wrapRef}>
+    <div className="lp-svcm">
       <span className="lp-svcm__eyebrow">Our Services</span>
       <h2 className="lp-svcm__title">
         We make content<br />
@@ -563,14 +609,55 @@ function PromiseMobile({ cards, videos, navigate }) {
         No fluff. No middlemen. Just content that connects and drives real results.
       </p>
 
-      {/* Single ordered list, 01..04 top to bottom always — whichever card is active
-          renders its open/expanded markup IN PLACE (not pulled to the top), so opening
-          card 03 shows 01 (collapsed), 02 (collapsed), 03 (open), 04 (collapsed). */}
-      <ul className="lp-svcm__rows">
+      {/* Stacked DECK, matching the desktop treatment: cards sit on top of one another and
+          scroll brings the next forward, instead of a column of separate rows.
+
+          The active card stays in NORMAL FLOW so it still defines the deck's height — that is
+          what keeps this content-driven and avoids the clipping the fixed-height version had.
+          The cards still to come are absolutely positioned boxes nudged down and scaled back,
+          so only a colour strip of each shows below the front one. They carry no content on
+          purpose: it would sit hidden behind the front card anyway, and rendering four card
+          bodies (each with a <video>) just to hide three is wasted work. */}
+      <div className="lp-svcm__deck">
         {cards.map((c, i) => {
+          const depth = i - active;
+          if (depth <= 0) return null;           // already passed — nothing left to peek
+          return (
+            <span
+              key={`ghost-${c.title}`}
+              className="lp-svcm__ghost"
+              aria-hidden="true"
+              style={{
+                background: c.color,
+                transform: `translateY(${depth * 13}px) scale(${1 - depth * 0.028})`,
+                zIndex: cards.length - depth,
+              }}
+            />
+          );
+        })}
+        {cards.map((c, i) => {
+          // Only the front card is built. The rest are the colour strips above; cards already
+          // scrolled past are gone entirely, exactly as they are on desktop once they slide
+          // away. (This replaced a full list of tappable collapsed rows — keeping both meant
+          // every upcoming card appeared twice: once as a strip behind, once as a row below.)
           if (i === active) {
             return (
-              <li key={c.title} className="lp-svcm__card" style={{ background: c.color }}>
+              // x / rotate / opacity are MOTION VALUES driven by scroll (see the swing
+              // transform above) — deliberately not initial/animate, which would fire a
+              // fixed-length animation on mount and run to completion no matter where the
+              // reader stopped. Passing them through `style` means the card's position is a
+              // direct function of scroll: stop halfway and it stays halfway, tilted.
+              // Side alternates by card (01 left, 02 right, 03 left, 04 right) — see `swing`.
+              <motion.div
+                key={c.title}
+                className="lp-svcm__card"
+                style={{
+                  background: c.color,
+                  x: cardX,
+                  rotate: cardRotate,
+                  opacity: cardOpacity,
+                }}
+              >
                 <div className="lp-svcm__card-top">
                   <span className="lp-svcm__num">{String(active + 1).padStart(2, '0')}</span>
                   <div className="lp-svcm__meter">
@@ -616,27 +703,12 @@ function PromiseMobile({ cards, videos, navigate }) {
                 >
                   Discover our approach <ArrowRight size={16} />
                 </button>
-              </li>
+              </motion.div>
             );
           }
-          const Icon = ICONS[i] || Sparkles;
-          return (
-            <li key={c.title}>
-              <button
-                type="button"
-                className="lp-svcm__row"
-                style={{ background: c.color }}
-                onClick={() => setActive(i)}
-                aria-expanded={false}
-              >
-                <span className="lp-svcm__row-num">{String(i + 1).padStart(2, '0')}</span>
-                <span className="lp-svcm__row-label">{c.title}</span>
-                <Icon className="lp-svcm__row-icon" size={18} strokeWidth={1.8} style={{ color: c.accent }} />
-              </button>
-            </li>
-          );
+          return null;
         })}
-      </ul>
+      </div>
     </div>
   );
 }
@@ -2040,7 +2112,18 @@ export default function Landing() {
     // of the row and the same proportional bump read as oversized against the middle 3.
     // Gentler edge-only ratio at ≤900px — centre depth (and therefore the shrink toward
     // the middle) is untouched, only how much the two edge cards balloon is reduced.
-    const Z_EDGE_RATIO_MOBILE = 0.078;
+    //
+    // 0.078 -> -0.03, a second pass on the same complaint. Measured at 390px, the old value
+    // rendered the corner cards 216px and 191px tall against 162-169px in the middle: a
+    // 1.34x spread, which is what reads as "the corner ones are too big".
+    // The maths, since the number looks arbitrary otherwise: perspective scale is
+    // P/(P-z), so centre (z = -0.2364P) sits at 0.809 and the edge at 0.078P sat at 1.085
+    // -> 1.085/0.809 = 1.34. A NEGATIVE edge ratio puts the edge card just behind the lens
+    // plane instead of in front of it: -0.03P gives 0.971, so the spread drops to ~1.20 and
+    // the corner cards come down roughly 10%. The cylinder still reads as curved (the edges
+    // are still the largest cards); they just stop dominating the row.
+    // Push this further toward -0.075 for a ~1.15 spread if they still feel heavy.
+    const Z_EDGE_RATIO_MOBILE = -0.03;
     let Z_CENTRE = -260;
     let Z_EDGE = 170;
     const MAX_TILT = 38;    // deg each card turns to stay tangent to the cylinder
@@ -2524,8 +2607,9 @@ export default function Landing() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.12 }}
         >
-          Top-notch UGC video ads in just a few clicks. Unlock serious growth
-          with <span className="nlp-sub-accent">high-performing UGC ads</span>.
+          Top-notch UGC video ads in just a few clicks.
+          <br className="nlp-sub-break" />
+          {' '}Unlock serious growth with <span className="nlp-sub-accent">high-performing UGC ads</span>.
         </motion.p>
 
         <div className="nlp-gallery-vp">
@@ -2601,7 +2685,7 @@ export default function Landing() {
                 Rendering one OR the other (not both hidden by CSS) means the phone never
                 mounts the deck's four scroll-driven cards or its 100vh runway at all. */}
             {heroStatic ? (
-              <PromiseMobile cards={PROMISE_CARDS} videos={PROMISE_VIDEOS} navigate={navigate} />
+              <PromiseMobile cards={PROMISE_CARDS} videos={PROMISE_VIDEOS} navigate={navigate} progress={logo3dProgress} />
             ) : (
             <>
             <h2 className="lp-promise-heading">Our Services</h2>
@@ -2638,36 +2722,60 @@ export default function Landing() {
       <motion.div style={{ position: 'relative', zIndex: 3 }}>
       <section className="lp-brandstrip" ref={brandStripRef}>
         <div className="lp-hero__strip">
-          <span className="lp-brandstrip__label">Trusted by leading<br /><span className="lp-brandstrip__label--accent">brands</span></span>
+          {/* Two labels, one per breakpoint — the wording differs, not just the styling,
+              so CSS alone can't switch between them. Exactly one is ever displayed (see
+              .lp-brandstrip__label--web / --mob). */}
+          <span className="lp-brandstrip__label lp-brandstrip__label--web">Trusted by leading<br /><span className="lp-brandstrip__label--accent">brands</span></span>
+          <span className="lp-brandstrip__label lp-brandstrip__label--mob">Supporting today's <span className="lp-brandstrip__label--accent">top brands</span></span>
           <div className="lp-brands__viewport">
             <div className="lp-brands__track lp-brands__track--single">
               {(() => {
-                // Full brand set from /public/brand (encodeURI handles the spaces in filenames).
+                // Full brand set from /public/brand (encodeURI handles the spaces and
+                // parentheses in the filenames). The names are export junk and say nothing
+                // about which brand they are, so each is labelled — otherwise reordering or
+                // pruning this list means opening all 16 files to find out what they show.
+                // Ordered to spread the recognisable marks through the loop rather than
+                // clustering them. Keep in sync with the folder: an entry with no matching
+                // file is hidden by the onError below, so a stale list fails SILENTLY —
+                // which is exactly how this list came to reference 13 files that no longer
+                // existed, leaving the strip running on 3 logos.
+                // `s` = optical scale, the fraction of the strip's logo height this mark
+                // renders at. It exists because a single height CANNOT size these evenly:
+                // every file has a different amount of transparent padding baked in, and a
+                // square icon at full height reads far heavier than a wordmark at the same
+                // height (Rapido and Amazon were dwarfing Myntra and Seltyca). Square/round
+                // marks therefore sit ~0.5-0.65 and wordmarks ~0.26-0.34, tuned by eye so
+                // every logo carries the same visual weight rather than the same box size.
+                // `faint` darkens artwork that is drawn in near-white grey and would
+                // otherwise disappear against the cream strip.
                 const brands = [
-                  'Rapido-logo.png',
-                  'amazon-icon-logo-png_seeklogo-405254.png',
-                  'images (1).png',
-                  'images (2).png',
-                  'images (3).png',
-                  'images (4).png',
-                  'images (5).png',
-                  'images (6).png',
-                  'logo-1-scaled.jpg',
-                  'images (7).png',
-                  'images (8).png',
-                  'images (1).jpg',
-                  'images (2).jpg',
-                  'images (3).jpg',
-                  'images (4).jpg',
-                  'images.png',
+                  { f: 'Rapido-logo-removebg-preview.png', s: 0.52 },                        // Rapido — square icon
+                  { f: 'images__5_-removebg-preview.png', s: 0.85 },                         // Myntra — wordmark
+                  { f: 'images-removebg-preview (1).png', s: 0.85, faint: true },            // Seltyca — pale wordmark
+                  { f: 'amazon-icon-logo-png_seeklogo-405254-removebg-preview.png', s: 0.68 }, // Amazon
+                  { f: 'images__2_-removebg-preview (1).png', s: 0.85 },                     // Cristello — wordmark
+                  { f: 'images (6).png', s: 0.52 },                                          // Swiggy — solid block
+                  { f: 'images__4_-removebg-preview (1).png', s: 0.7 },                     // Euler
+                  { f: 'images__1_-removebg-preview.png', s: 0.85 },                         // moder/ate — wordmark
+                  { f: 'images__7_-removebg-preview.png', s: 0.9, faint: true },            // Sephora — pale mark
+                  { f: 'images__3_-removebg-preview.png', s: 0.95 },                         // Paavi — circular
+                  { f: 'logo-1-scaled.jpg', s: 0.52 },                                       // Kuku FM — solid block
+                  { f: 'images__1_-removebg-preview (1).png', s: 0.62 },                     // red "a" mark
+                  { f: 'images__2_-removebg-preview.png', s: 0.8 },                         // ornate monogram
+                  { f: 'images-removebg-preview.png', s: 0.58 },                             // paper-plane mark
+                  { f: 'images (8).png', s: 0.52 },                                          // spaid. — solid block
+                  { f: 'images__4_-removebg-preview.png', s: 0.95 },                         // wreath/food mark
                 ];
                 // One duplicate of the whole set → a seamless -50% loop.
                 return [...brands, ...brands];
-              })().map((file, i) => (
+              })().map((b, i) => (
                 <div key={`B-${i}`} className="lp-brand-item">
-                  <div className="lp-brand-item__icon">
+                  <div
+                    className={`lp-brand-item__icon${b.faint ? ' lp-brand-item__icon--faint' : ''}`}
+                    style={{ '--logo-s': b.s }}
+                  >
                     <img
-                      src={encodeURI(`/brand/${file}`)}
+                      src={encodeURI(`/brand/${b.f}`)}
                       alt=""
                       loading="lazy"
                       onError={(e) => { const it = e.currentTarget.closest('.lp-brand-item'); if (it) it.style.display = 'none'; }}
@@ -2990,12 +3098,17 @@ export default function Landing() {
             you work with top-tier UGC creators.
           </p>
           <div className="lp-fh">
+            {/* The set is rendered TWICE. The second copy exists only to feed the mobile
+                marquee (a -50% translate loops seamlessly when the track holds exactly two
+                identical halves) and is display:none above 720px, where the layout is a
+                static grid — see .lp-fh__card--dup. */}
             <div className="lp-fh__videos">
-              {FIND_HIRE_VIDEOS.map((v, i) => (
+              {[...FIND_HIRE_VIDEOS, ...FIND_HIRE_VIDEOS].map((v, i) => (
                 <motion.div
-                  className="lp-fh__card"
-                  key={v.id}
-                  custom={i}
+                  className={`lp-fh__card${i >= FIND_HIRE_VIDEOS.length ? ' lp-fh__card--dup' : ''}`}
+                  key={`${v.id}-${i}`}
+                  aria-hidden={i >= FIND_HIRE_VIDEOS.length}
+                  custom={i % FIND_HIRE_VIDEOS.length}
                   variants={cardVariants}
                   initial="hidden"
                   animate={findHireCardsInView ? 'visible' : 'hidden'}
@@ -4020,24 +4133,36 @@ export default function Landing() {
           text-align: center; overflow: hidden;
         }
         /* Shiny pill: glossy gradient fill + a specular sweep that glints across every few
-           seconds + a four-point sparkle at each end. Keeps the badge's amber palette
-           (it sits on the cream hero) rather than the green of the reference. */
+           seconds + a four-point sparkle at each end.
+           Palette is the site accent (Periwinkle Pulse, --lp-purple-700) — the amber this
+           used to be belonged to no palette on the page, the same one-off the .nlp-cta
+           comment below describes shedding. Run DARK: a deep periwinkle→indigo fill with a
+           white label, which makes the sparkles and gloss read far harder than they did on
+           a light tint.
+           Every stop is chosen to clear WCAG AA against white at this 13.5px size — the
+           lightest, #5566e8, is 4.7:1. Do NOT lighten them toward the plain #7387FF accent:
+           that is only 3.2:1 and the label stops being compliant. */
         .nlp-badge {
           position: relative;
-          display: inline-block; color: #7a4711;
+          display: inline-block;
           /* Was a flat #f7d49b. The gradient alone already reads as a lit surface, so the
              pill still looks shiny in the frames between sweeps. */
-          background: linear-gradient(100deg, #f0c179 0%, #fce3b6 40%, #f7d49b 62%, #ecb968 100%);
+          background: linear-gradient(100deg, #3a49cf 0%, #5566e8 40%, #4452f0 62%, #2e3ab0 100%);
           font-weight: 700; font-size: 13.5px; letter-spacing: .1px;
           padding: 8px 22px; border-radius: 999px; margin: 0 auto 16px;
           font-family: var(--font-body);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.8),
-                      inset 0 -1px 0 rgba(150, 98, 20, 0.18),
-                      0 6px 18px rgba(196, 138, 45, 0.26);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.34),
+                      inset 0 -1px 0 rgba(4, 4, 40, 0.35),
+                      0 6px 20px rgba(68, 82, 240, 0.42);
           /* Creates a stacking context so ::before's z-index:-1 stays scoped to the badge:
              it then paints ABOVE this element's own background but BELOW the label. */
           isolation: isolate;
         }
+        /* Scoped under .lp-root deliberately, same as .nlp-cta / .nlp-title-accent below.
+           The blanket rule near the top (".lp-root h1, .lp-root span, … { color: var(--lp-text) }")
+           is specificity 0,1,1 and this badge IS a span, so a plain ".nlp-badge { color }" at
+           0,1,0 loses to it and the label rendered in navy --lp-text on the dark fill. */
+        .lp-root .nlp-badge { color: #ffffff; }
         /* Specular sweep. On ::before with border-radius: inherit so the pill's own shape
            clips it — overflow:hidden would have worked too, but it would equally have cut
            off the sparkles on ::after, which are meant to overhang the edge. */
@@ -4048,8 +4173,11 @@ export default function Landing() {
              positioning is the intuitive kind (0% = flush left, 100% = flush right), so the
              sweep travels predictably. At >100% the percentages resolve against negative
              free space and the band barely moves — which is what a 220% size did here. */
+          /* Held well below opaque. The label is white now, and the sweep passes UNDER it —
+             a near-white band would erase the text where the two cross. 0.38 still reads as
+             a bright gloss against the dark fill while the label stays legible throughout. */
           background: linear-gradient(100deg,
-            transparent 0%, rgba(255,255,255,0.92) 50%, transparent 100%);
+            transparent 0%, rgba(255,255,255,0.38) 50%, transparent 100%);
           background-size: 45% 100%;
           background-repeat: no-repeat;
           animation: nlpBadgeSheen 4.2s ease-in-out infinite;
@@ -4117,6 +4245,15 @@ export default function Landing() {
         /* Accent phrase inside the subline. nowrap so "high-performing UGC ads" can't be
            split across two lines — it's read as one term. */
         .lp-root .nlp-sub-accent { color: var(--lp-purple-700); font-weight: 600; white-space: nowrap; }
+        /* Off by default (desktop reflows naturally). On mobile the sentence was wrapping
+           to 3 lines, so a forced break right at the sentence boundary — "clicks." / "Unlock
+           serious growth with high-performing UGC ads." — turns it into a clean 2. The
+           smaller font-size is what keeps that second line from wrapping a 3rd time itself. */
+        .nlp-sub-break { display: none; }
+        @media (max-width: 640px) {
+          .nlp-sub-break { display: block; }
+          .nlp-sub { max-width: 340px; font-size: 12.5px; }
+        }
         /* Clipping viewport: hides the horizontal overflow of the scrolling track but
            leaves vertical room for the arched cards (padding reserves space for the CTA). */
         .nlp-gallery-vp {
@@ -4175,7 +4312,30 @@ export default function Landing() {
           transform-origin: center center; will-change: transform;
         }
         .nlp-card img, .nlp-card video { width: 100%; height: 100%; object-fit: cover; display: block; background: #e7e0d2; }
-        .nlp-cta-wrap { position: relative; display: inline-flex; gap: 12px; margin-top: -20px; }
+        /* margin-top was -20px, pulling the pair UP into the card row above so the buttons sat
+           tight against (and on small screens overlapping) the marquee. Positive now, so they
+           clear it. The gallery's own bottom padding is already reserved for the 3D cards'
+           overhang, so this adds separation rather than fighting it. */
+        /* align-self: center is what actually centres these. On mobile .nlp-hero becomes a
+           column flex container, and its default align-items:stretch widened this wrap to the
+           full column — so the buttons sat at its flex-start (left) edge and the hero's
+           text-align:center had no effect, because that centres inline content, not flex items.
+           align-self only overrides it for THIS item: adding align-items:center to the hero
+           instead would also shrink the full-bleed card marquee beside it.
+           Staying inline-flex (hugging its buttons) matters too — the "It's free" note is
+           absolutely positioned at right: calc(100% + 6px) of this box, so a full-width wrap
+           would fling it off to the far left. */
+        .nlp-cta-wrap {
+          position: relative;
+          display: inline-flex;
+          align-self: center;
+          justify-content: center;
+          gap: 12px;
+          /* Landed at 26px, between the -20px that had the buttons colliding with the card row
+             and the 34px that read as too loose. The gallery's own bottom padding already
+             reserves space for the 3D cards' overhang, so this is separation on top of that. */
+          margin-top: 26px;
+        }
         /* Primary hero CTA. Was a one-off orange (#ef6a4c) that belonged to no palette on this
            page — now the site accent, the same periwinkle every other primary fill uses (nav
            join pill, audit deck, proof cards). Flat: the coloured glow this used to cast has
@@ -4232,7 +4392,27 @@ export default function Landing() {
         .nlp-note--free { position: absolute; right: calc(100% + 6px); bottom: 2px; white-space: nowrap; transform: rotate(-8deg); }
         .nlp-note--free .nlp-note-arrow2 { position: absolute; right: -58px; top: 6px; width: 56px; height: 34px; }
         @media (max-width: 900px) {
-          .nlp-hero { padding: 108px 16px 72px; }
+          /* Fill the full mobile viewport height so the next section ("Our Services")
+             never peeks in until you actually scroll — it was falling short of the
+             screen, leaving a dead empty band before the next section's heading bled
+             into view. min-height (not height) so genuinely long content still pushes
+             the section taller rather than clipping. 100dvh (not vh) accounts for
+             mobile browser chrome (address bar) that vh ignores; 100vh sits right
+             after as a fallback for older browsers without dvh support. flex +
+             justify-content:center distributes the extra room evenly around the
+             existing content instead of dumping it all as one gap below the CTAs. */
+          .nlp-hero {
+            padding: 60px 16px 72px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+          }
+          /* Nudges just the badge up relative to the heading below it — a negative
+             margin on a flex item shifts it independent of its siblings, unlike
+             changing the container's padding (which moves the whole centered group). */
+          .nlp-badge { margin-top: -14px; }
           /* .nlp-hero's horizontal padding drops to 16px here — match it so the
              full-bleed cancellation stays exact (was hardcoded to the desktop 24px). */
           /* Horizontal padding 0 (was 4px) — cards run edge-to-edge here too.
@@ -4255,14 +4435,19 @@ export default function Landing() {
           /* transform:none !important is GONE — that pair of rules is what pinned the row
              flat on phones; the JS writes per-card transforms and !important beat them. */
           .nlp-gallery { gap: 14px; }
-          /* Exactly THREE cards across the viewport instead of desktop's seven — the two
-             beyond them are the ones curving out past the screen edges. The subtracted
-             56px is the two 14px gaps between the three plus a 14px bleed either side, so
-             the outer pair is visibly cut by the edge rather than sitting flush inside it.
-             Capped at 168px because the card is aspect-ratio 9/16 — an uncapped third of
-             a 900px viewport would be 281px wide and therefore 500px TALL, which would
-             push the CTA below the fold on the widest screens this breakpoint covers. */
-          .nlp-card { flex: 0 0 clamp(100px, calc((100vw - 56px) / 3), 168px); }
+          /* Divisor 3 -> 2.5: the whole row was reading small on a phone once the corner
+             cards stopped ballooning, so every card grows ~20% (at 390px: 111px -> 134px
+             wide, and 9/16 makes that 198px -> 238px tall). Fewer cards fit across as a
+             result — nearer three than the original "exactly three plus two curving out",
+             which is the trade for legible cards on a 390px screen.
+             The subtracted 56px is still two 14px gaps plus a 14px bleed either side, so
+             the outer pair stays visibly cut by the edge rather than sitting flush inside.
+             The 168px CAP IS DELIBERATELY UNCHANGED: the card is aspect-ratio 9/16, so an
+             uncapped card on the 900px-wide end of this breakpoint would be 500px tall and
+             push the CTA below the fold. With the new divisor the cap takes over at ~476px
+             viewport, so phones get the bigger cards and the 480-900px band renders exactly
+             as it did before. Raising the cap is what would cost you the fold. */
+          .nlp-card { flex: 0 0 clamp(110px, calc((100vw - 56px) / 2.5), 168px); }
           .nlp-note { display: none; }
           /* Hero CTAs on a phone. The desktop 15px/42px padding left the pair wider than the
              screen, so each label broke onto two lines and the pills grew to ~double height.
@@ -4277,6 +4462,16 @@ export default function Landing() {
             font-size: 14px;
             white-space: nowrap;
           }
+        }
+        /* SHORT phones (iPhone SE class), gated on HEIGHT not width. The +20% card growth
+           above is sized off viewport WIDTH, so a 390x667 screen got the same 239px-tall
+           cards as a 390x860 one — measured, that put the CTA pair's bottom edge at 681px in
+           a 667px viewport, i.e. just off the bottom of the screen. Falling back to the old
+           /3 divisor and trimming the gallery's vertical padding pulls it back above the
+           fold; tall phones are unaffected and keep the bigger cards. */
+        @media (max-width: 900px) and (max-height: 700px) {
+          .nlp-card { flex: 0 0 clamp(100px, calc((100vw - 56px) / 3), 150px); }
+          .nlp-gallery-vp { padding: 14px 0 14px; }
         }
         @media (max-width: 380px) {
           /* 320-360px phones: one more step down so both pills still clear the screen edge. */
@@ -4651,15 +4846,14 @@ export default function Landing() {
         }
         /* In the standalone section the strip flows normally (not pinned absolute).
            Side-by-side row: the label sits fixed on the left, the continuously-scrolling
-           logo track fills the remaining width to its right (was stacked/centered —
-           label above a full-bleed row — now matches the label-left, logos-right layout). */
+           logo track fills the remaining width to its right. */
         .lp-brandstrip .lp-hero__strip {
           position: relative;
           left: auto;
           bottom: auto;
           /* Same relational gutter as .lp-navbar / the content sections — see the note there.
              This row was the most visible victim: at 2560 its "TRUSTED BY LEADING brands"
-             label started 517px left of "We create the best UGC…" directly beneath it. */
+             label started 517px left of the showcase heading directly beneath it. */
           padding-inline: max(4%, calc((100% - var(--lp-maxw)) / 2));
           flex-direction: row;
           align-items: center;
@@ -4676,6 +4870,9 @@ export default function Landing() {
           color: rgba(var(--lp-fg), 0.5);
           line-height: 1.5;
         }
+        /* Desktop shows the stacked two-line label; the mobile one-liner is off. Swapped
+           in the ≤1024px block below. */
+        .lp-brandstrip__label--mob { display: none; }
         /* Two classes (not one) to out-specificity the global ".lp-root span { color:
            var(--lp-text) }" base-text-color rule — a single-class selector here loses
            to that class+element-type selector regardless of source order. */
@@ -4810,7 +5007,10 @@ export default function Landing() {
           justify-content: center;
         }
         .lp-brand-item__icon img {
-          height: 100%;
+          /* --logo-s is the per-logo optical scale set inline from the brands list; see the
+             comment there for why one flat height cannot size these evenly. Defaults to 1 so
+             a logo added without a scale still renders. */
+          height: calc(100% * var(--logo-s, 1));
           width: auto;
           max-width: 210px;
           /* contain, NOT cover. cover cropped a wide mark to a square centre slice — with
@@ -4818,18 +5018,24 @@ export default function Landing() {
           object-fit: contain;
           /* Baked-in white backgrounds blend into the cream page bg so logos float. */
           mix-blend-mode: multiply;
-          filter: grayscale(100%);
+          /* Grayscale-by-default was removed. It flattened the pale marks (Seltyca, Sephora)
+             into near-invisible grey on the cream strip, and it only ever applied on
+             hover-capable devices — the (hover: none) rule below already showed phones full
+             colour, so desktop and mobile disagreed. Now both show colour. */
           transition: filter 0.25s ease;
         }
-        .lp-brand-item:hover .lp-brand-item__icon img {
-          filter: grayscale(0%);
+        /* Artwork drawn in near-white grey needs darkening or it vanishes against the cream.
+           Scoped to the flagged logos only: this would wreck a coloured mark. */
+        .lp-brand-item__icon--faint img {
+          filter: brightness(0.42) contrast(1.5);
         }
-        /* Touch devices have no :hover, so the grayscale-by-default/color-on-hover pair
-           above would leave every logo permanently gray on mobile — show full color there
-           since there's no gesture that could ever reveal it otherwise. */
-        @media (hover: none) {
-          .lp-brand-item__icon img { filter: grayscale(0%); }
-        }
+        /* The (hover: none) override that used to sit here is gone with the grayscale it was
+           compensating for. Removing it matters: it set "filter" on the same
+           ".lp-brand-item__icon img" selector at EQUAL specificity but LATER in the sheet, so
+           it would have overridden the --faint darkening above — blanking the pale logos on
+           exactly the touch devices where the problem was reported.
+           (Backticks are deliberately avoided in these comments: this whole stylesheet is a
+           JS template literal, so a backtick here terminates the string.) */
 
         /* Center main logo — highlighted with glow */
         .lp-hero__brand-center {
@@ -5130,8 +5336,32 @@ export default function Landing() {
           margin: 10px auto 0; max-width: 34ch; font-family: var(--font-body);
           font-size: 13.5px; line-height: 1.6; color: rgba(23, 19, 52, .6);
         }
+        /* Deck: the front card sits in normal flow and therefore SETS the height; the strips
+           for upcoming cards are absolutely positioned to that same box and nudged down, so
+           only their lower edge shows. Keeping the front card in flow is what makes the deck
+           content-driven — an all-absolute stack would need a hardcoded height, which is what
+           clipped the card's lower half before. */
+        .lp-svcm__deck { position: relative; margin-top: 20px; }
+        .lp-svcm__ghost {
+          position: absolute;
+          inset: 0;
+          display: block;
+          border-radius: 22px;
+          /* Same origin as the scale() applied inline, so each strip shrinks toward the deck's
+             top edge and its offset below stays even. */
+          transform-origin: 50% 0;
+          pointer-events: none;
+          box-shadow: 0 10px 22px -14px rgba(23, 19, 52, 0.28);
+          transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s ease;
+        }
         .lp-svcm__card {
-          margin-top: 20px; border-radius: 22px; padding: 20px 18px 22px;
+          /* Above the strips. The card is static and they are absolute, so without an explicit
+             z-index (and position) they would paint over it. */
+          position: relative;
+          z-index: 5;
+          /* margin-top moved to .lp-svcm__deck — leaving it here would offset the card from
+             the strips, which are positioned against the deck box, and break their alignment. */
+          border-radius: 22px; padding: 20px 18px 22px;
           text-align: left; transition: background .35s ease;
         }
         .lp-svcm__card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -5176,31 +5406,42 @@ export default function Landing() {
           border: none; border-radius: 12px; padding: 13px 18px; cursor: pointer;
           font-family: var(--font-body); font-weight: 700; font-size: 13.5px;
         }
-        .lp-svcm__rows { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-        .lp-svcm__row {
-          width: 100%; display: flex; align-items: center; gap: 12px;
-          border: none; border-radius: 14px; padding: 15px 16px; cursor: pointer;
-          text-align: left; font-family: var(--font-body);
-          transition: transform .18s ease, filter .18s ease;
-        }
-        .lp-svcm__row:active { transform: scale(0.985); filter: brightness(0.97); }
-        .lp-svcm__row-num { flex-shrink: 0; font-family: var(--font-head); font-weight: 700; font-size: 15px; color: #171334; }
-        .lp-svcm__row-label { flex: 1; font-size: 13px; font-weight: 600; line-height: 1.35; color: rgba(23, 19, 52, .82); }
-        .lp-svcm__row-icon { flex-shrink: 0; }
         @media (max-width: 760px) {
-          /* Phones render PromiseMobile (an accordion) instead of the pinned scroll-deck, so
-             the pin and its scroll runway have nothing left to drive. Un-stick the inner and
-             let the section size to its content — otherwise the page kept 320vh of dead
-             scrolling (3+ screens) past a static accordion.
-             The 3D logo stage is hidden here for the same reason: it was choreographed
-             against the pinned runway (its transforms read that section's scroll progress),
-             and with no runway it has nothing to animate along. Say the word if you want it
-             back and I'll give it its own short runway. */
-          .lp-logo3d { height: auto !important; }
+          /* RUNWAY + PIN restored. PromiseMobile's deck is scroll-driven, so it needs scroll
+             distance to spend: 240vh gives each of the 4 cards ~60vh of travel, which is
+             roughly a comfortable flick per card. Without it the deck only had its own height
+             to work with — a single swipe blew through all four and left the reader at the last
+             one with the section already gone, which is exactly the reported symptom.
+             The pin is what makes those 240vh feel like one screen: the deck sticks at the top
+             of the viewport and stays put while the runway scrolls behind it, so all four cards
+             play out IN PLACE and only then does the page continue to the next section.
+             height:auto on the sticky (not 100vh) so a tall card is never cut off — the element
+             pins by its top edge and does not need a fixed height to do so. */
+          /* Negative margin pulls the whole services section up over the hero's dead tail.
+             Measured at 390x860: the hero is min-height:100vh but its content ends at 708px,
+             so it carries 152px of slack, and the sticky then added 72px of its own padding —
+             224px of blank between the hero CTA and "Our Services".
+             Trimming the hero itself is the wrong lever: the slack is min-height slack, not
+             padding, so shortening its padding would not move the section up at all (and a
+             sub-100vh hero is a different design decision). Overlapping the empty tail is
+             what actually closes the gap, and there is nothing painted there to collide with. */
+          .lp-logo3d { height: 240vh !important; margin-top: -140px; }
           .lp-logo3d__sticky {
-            position: static !important; height: auto !important; min-height: 0 !important;
-            display: block !important; padding: 0 !important;
+            position: sticky !important;
+            top: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            display: block !important;
+            /* DO NOT trim this to close the gap above the section — it is clearance, not
+               padding. The navbar is position:fixed at top:20px and 48px tall, so it covers
+               0-68px of the viewport; with the sticky pinned at top:0 anything under ~72px
+               renders BEHIND it. Dropping this to 28px put "Our Services" level with the logo
+               and hamburger. The gap is closed by the negative margin above instead, which
+               moves the section without changing where the heading sits once pinned. */
+            padding: 72px 0 24px !important;
           }
+          /* Still hidden: the 3D mark was choreographed to sit in the middle of a 100vh pinned
+             stage, and this pin is content-height, so it has nowhere to land. */
           .lp-logo3d__stage { display: none !important; }
           .lp-promise-wrap { width: 92%; }
           .lp-promise-heading { font-size: 24px; margin: 0 0 10px; text-align: center; }
@@ -6345,6 +6586,8 @@ export default function Landing() {
         .lp-fh__videos {
           display: contents;
         }
+        /* Duplicate marquee half — mobile-only (see the ≤720px block). */
+        .lp-fh__card--dup { display: none; }
         .lp-fh__card {
           display: flex;
           flex-direction: column;
@@ -6429,46 +6672,81 @@ export default function Landing() {
           .lp-fh__feature { flex: 1 1 240px; border-bottom: none; padding: 0; }
         }
         @media (max-width: 720px) {
-          /* Two across (was a single column, i.e. everything stacked). There are exactly
-             3 videos + the features card, and .lp-fh__videos is display:contents, so the
-             four boxes are direct grid items in DOM order — a 2-column track lays them out
-             as [video 1 | video 2] then [video 3 | features] with no explicit placement
-             needed. Gap trimmed from the 20px base because half of a phone width is not
-             much to give away. */
-          .lp-fh { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+          /* Phone layout is NOT a narrowed grid — it's two stacked blocks: one auto-
+             scrolling row of videos, then the full-width features card underneath.
+             (It was a 2x2 grid: [video 1 | video 2] / [video 3 | features]. That put the
+             copy in a ~170px column where every point wrapped to 3-4 lines, and the videos
+             were too small to read.)
+             .lp-fh becomes the marquee's clipping viewport — the track inside is
+             width:max-content and simply overflows it. */
+          .lp-fh {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow: hidden;
+          }
+          /* display:contents on the base rule made the cards direct grid items; here the
+             wrapper has to be a real box again, because it IS the moving track. */
+          .lp-fh__videos {
+            display: flex;
+            flex-direction: row;
+            width: max-content;
+            gap: 12px;
+            animation: fhMarquee 30s linear infinite;
+            will-change: transform;
+            backface-visibility: hidden;
+          }
+          /* The second half of the loop, hidden everywhere else. */
+          .lp-fh__card--dup { display: flex; }
+          /* Fixed width, so the track's total width is stable and the -50% loop lines up.
+             ~66vw shows one card plus the edge of the next, which is what reads as "this
+             row is moving" rather than a static hero clip. */
+          .lp-fh__card { flex: 0 0 66vw; max-width: 280px; }
           /* Undoes the ≤1100px rules, which are still in force here (that block is a wider
-             max-width, so it also matches at ≤720px). There, the card spanned the full row
-             and laid its features out sideways; in a half-width cell it has to go back to
-             the base vertical list with its dividers, so every one of those three
-             declarations needs an explicit counterpart. */
+             max-width, so it also matches at ≤720px). There, the card spanned the full grid
+             row and laid its features out sideways; stacked it goes back to the base
+             vertical list with its dividers, so each of those declarations needs an
+             explicit counterpart. */
           .lp-fh__side {
             grid-column: auto;
             flex-direction: column;
             gap: 0;
-            padding: 16px 14px;
+            padding: 18px 16px;
             border-radius: 14px;
+            /* MUST override the base align-self:start. There it meant "don't stretch to
+               the height of the video row" because the parent was a grid (block axis).
+               Here the parent is a flex COLUMN, so align-self is the horizontal axis —
+               start collapsed this card to the width of its icons and squeezed the copy
+               out entirely. stretch is what makes it a full-width block under the row. */
+            align-self: stretch;
           }
           .lp-fh__feature { flex: 0 1 auto; padding: 12px 0; gap: 9px; border-bottom: 1px solid rgba(var(--lp-fg), 0.1); }
           .lp-fh__feature:first-child { padding-top: 0; }
           .lp-fh__feature:last-of-type { border-bottom: none; }
-          /* Three points only on a phone. In this half-width cell the copy wraps to 3-4
-             lines each, so the fourth pushed the card far past the height of the video
-             sitting beside it and left a long dead gap down the other column. The 4th is
-             hidden rather than dropped from the data so the desktop layout still gets it. */
-          .lp-fh__feature:nth-child(4) { display: none; }
-          /* :last-of-type still matches the (hidden) 4th, so the 3rd needs its divider
-             removed explicitly — otherwise the list ends on a stray rule. */
-          .lp-fh__feature:nth-child(3) { border-bottom: none; }
-          /* Scaled down to survive a ~170px-wide column: at the desktop 42px icon and
-             1.05rem text, the copy wrapped to one or two words per line. */
-          .lp-fh__feature-icon { width: 32px; height: 32px; border-radius: 9px; }
-          .lp-fh__feature p { font-size: 0.82rem; line-height: 1.45; }
-          /* The video cards are ~170px wide in this layout, so their overlays need the
-             same treatment. "Fitness/Supplements" at the desktop 0.76rem badge overran the
-             card, and the meta line ("FitFuel By Noah") ran past it on one line — hence the
-             smaller type plus flex-wrap so it breaks instead of overflowing. */
+          /* Sized back up from the 32px/0.82rem the old half-width cell needed — the card
+             is full-width now, so the copy has a proper measure to run on. */
+          .lp-fh__feature-icon { width: 36px; height: 36px; border-radius: 10px; }
+          .lp-fh__feature p { font-size: 0.9rem; line-height: 1.5; }
+          /* Card overlays. The badge and meta line are still tuned smaller than desktop —
+             a 66vw card is wider than the old grid cell but "Fitness/Supplements" at the
+             desktop 0.76rem still crowds it — and flex-wrap lets the meta break instead of
+             overflowing. */
           .lp-fh__video-wrap { border-radius: 14px; }
           .lp-fh__badge { top: 8px; left: 8px; padding: 4px 9px; font-size: 0.64rem; }
+        }
+        /* -50% is exactly one of the two identical halves, so the track lands back on a
+           frame indistinguishable from where it started — no visible jump. */
+        @keyframes fhMarquee {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        /* Reduced motion: stop the scroll rather than hide the section. Killing the
+           animation alone would leave the track frozen inside an overflow:hidden box with
+           the later cards permanently unreachable, so the viewport is switched to a real
+           swipeable scroller at the same time. */
+        @media (prefers-reduced-motion: reduce) {
+          .lp-fh__videos { animation: none !important; }
+          .lp-fh { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         }
 
         /* ── Stacked-card scroll deck (mobile only) ────────────────────────────
@@ -7921,20 +8199,52 @@ export default function Landing() {
           /* Each sentence on ONE line (mobile only): nowrap + sized to fit the longest line. */
           .lp-hero__subtitle { font-size: clamp(0.72rem, 3.3vw, 0.95rem); line-height: 1.5; white-space: nowrap; }
           .lp-brand-item__icon { height: 65px; min-width: 46px; }
-          .lp-brand-item__icon img { height: 100%; width: auto; }
+          /* height comes from the base rule (100% * --logo-s, the per-logo optical
+             scale). Re-declaring height:100% here silently cancelled that scale —
+             equal specificity, later in the sheet — so every mark rendered at the
+             full box height again and the strip looked unsized at these widths. */
+          .lp-brand-item__icon img { width: auto; }
           .lp-hero__brand-center { width: 104px; height: 104px; }
           .lp-hero__brand-center img { width: 78px; height: 78px; }
-          /* The desktop layout puts the "TRUSTED BY LEADING BRANDS" label and the logo
-             row side by side (flex-direction:row) — on a narrow phone that squeezes the
-             whole scrolling logo track into a sliver next to the label. Stack them
-             instead: label on top (full width, centered), logo row below it. */
+          /* Brand strip, mobile treatment — a different layout from desktop, not a
+             squeezed version of it. Desktop is label-left / logos-right; at this width
+             that leaves the track a sliver, so the label becomes a centred caption with
+             the logo row full-bleed underneath. Desktop rules above are untouched. */
+          .lp-brandstrip { padding: 44px 0 36px; }
           .lp-brandstrip .lp-hero__strip {
             flex-direction: column;
             align-items: center;
-            gap: 14px;
-            padding: 0 5%;
+            gap: 26px;
+            /* No side padding here — the logo row runs edge to edge. The label carries
+               its own gutter instead (below). */
+            padding: 0;
           }
-          .lp-brandstrip__label { text-align: center; }
+          /* Swap which of the two labels is live (see the JSX): the stacked "TRUSTED BY
+             LEADING / brands" off, the one-line sentence on. */
+          .lp-brandstrip__label--web { display: none; }
+          .lp-brandstrip__label--mob { display: block; }
+          /* Sentence case rather than the desktop uppercase/letterspaced treatment — it
+             reads as a spoken caption over the row, with the accent phrase carrying the
+             emphasis. */
+          .lp-brandstrip .lp-brandstrip__label--mob {
+            font-size: 1.02rem;
+            font-weight: 500;
+            letter-spacing: -0.1px;
+            text-transform: none;
+            color: var(--lp-text);
+            text-align: center;
+            padding: 0 6%;
+          }
+          .lp-brandstrip .lp-brandstrip__label--mob .lp-brandstrip__label--accent { font-weight: 800; }
+          /* Full-bleed logo row. flex:none because the parent stacks vertically here — a
+             flex-grow of 1 would stretch this in HEIGHT; align-self:stretch + width:100%
+             beat the base rule's shrink-to-fit width:auto under align-items:center. */
+          .lp-brandstrip .lp-brands__viewport {
+            flex: none;
+            align-self: stretch;
+            width: 100%;
+            max-width: none;
+          }
           .lp-navbar__inner { height: 48px; padding: 0 5%; gap: 16px; }
           .lp-navbar__links { display: none; }
           .lp-nav-join { display: none; }
@@ -7983,7 +8293,11 @@ export default function Landing() {
           .lp-hero__title { font-size: clamp(2rem, 9vw, 2.8rem); }
           .lp-hero__subtitle { font-size: clamp(0.66rem, 3.4vw, 0.85rem); line-height: 1.5; white-space: nowrap; }
           .lp-brand-item__icon { height: 52px; min-width: 36px; }
-          .lp-brand-item__icon img { height: 100%; width: auto; }
+          /* height comes from the base rule (100% * --logo-s, the per-logo optical
+             scale). Re-declaring height:100% here silently cancelled that scale —
+             equal specificity, later in the sheet — so every mark rendered at the
+             full box height again and the strip looked unsized at these widths. */
+          .lp-brand-item__icon img { width: auto; }
           .lp-hero__brand-center { width: 82px; height: 82px; border-radius: 20px; }
           .lp-hero__brand-center img { width: 60px; height: 60px; }
           /* Even smaller on phones, and nudged to the top so it clears the copy. */
@@ -8130,7 +8444,11 @@ export default function Landing() {
           }
           .lp-hero__strip { padding: 16px 0 28px; }
           .lp-brand-item__icon { height: 65px; min-width: 46px; }
-          .lp-brand-item__icon img { height: 100%; width: auto; }
+          /* height comes from the base rule (100% * --logo-s, the per-logo optical
+             scale). Re-declaring height:100% here silently cancelled that scale —
+             equal specificity, later in the sheet — so every mark rendered at the
+             full box height again and the strip looked unsized at these widths. */
+          .lp-brand-item__icon img { width: auto; }
           .lp-hero__brand-center { width: 108px; height: 108px; }
           .lp-hero__brand-center img { width: 82px; height: 82px; }
         }
@@ -8273,7 +8591,7 @@ export default function Landing() {
           opacity: 1;
         }
         @media (max-width: 760px) {
-          .lp-faq { padding: 70px 5% 60px; }
+          .lp-faq { padding: 70px 5% 10px; }
           .lp-faq__head { flex-direction: column; gap: 20px; margin-bottom: 32px; }
           .lp-faq__grid { grid-template-columns: 1fr; }
           /* One column on mobile: dissolve the two column wrappers so all six cards
@@ -8281,6 +8599,11 @@ export default function Landing() {
              index) put them back in 0,1,2… reading order — DOM order here is
              0,2,4,1,3,5 because of the even/odd split above. */
           .lp-faq__col { display: contents; }
+          /* Desktop's 20px/22px padding was sized for a 2-column grid with real
+             horizontal room to spare — stacked full-width on a phone it just reads as
+             oversized empty space around short question text. Trimmed to match. */
+          .lp-faq__q { padding: 10px 16px; gap: 12px; font-size: 0.88rem; }
+          .lp-faq__answer { padding: 0 16px 15px; font-size: 0.86rem; }
         }
 
         /* ── Footer ─────────────────────────────────────────────────────────── */
@@ -8651,7 +8974,7 @@ export default function Landing() {
           .lp-footer__brand-col { grid-column: span 3; }
         }
         @media (max-width: 880px) {
-          .lp-footer { padding: 70px 6% 24px; }
+          .lp-footer { padding: 16px 6% 24px; }
           .lp-footer__main { grid-template-columns: 1fr; gap: 40px; }
           .lp-footer__links { grid-template-columns: repeat(3, 1fr); gap: 20px; }
         }
@@ -9426,7 +9749,13 @@ export default function Landing() {
           font-size: clamp(15px, 1.35vw, 20px); line-height: 1; color: #07074e;
         }
         .lp-proof .lpz-badge__label {
-          display: block; width: calc(100% + 20px); margin: 2px -10px 0;
+          /* Inset, not full-bleed. It was width:calc(100% + 20px) with margin:0 -10px, which
+             cancelled .lpz-badge's 10px side padding and ran the dark bar right out to the
+             shield's edges. In the reference the bar floats inside the white card with a
+             margin either side, and that white border is most of what makes it read as a
+             printed award shield rather than a striped chip. width:100% inside the existing
+             padding gives exactly that. */
+          display: block; width: 100%; margin: 3px 0 0;
           padding: 5px 6px;
           background: #1c1b4b; color: #fff;
           font-family: var(--font-body); font-weight: 600;
@@ -9441,7 +9770,14 @@ export default function Landing() {
           /* Single column: heading, copy, then the shield row underneath. The old
              "minmax(0,1fr) auto" existed to keep the badges as a side column, which they
              no longer are. */
-          .lpz { grid-template-columns: 1fr; gap: 26px clamp(24px, 3.5vw, 48px); }
+          /* minmax(0, 1fr), NOT 1fr. A bare 1fr means minmax(AUTO, 1fr), and an auto minimum
+             refuses to go below the track's min-content width — so the shield row (3 fixed
+             shields + gaps) widened the track past the panel, and .lpz's overflow:hidden
+             then sliced whatever hung off the RIGHT while the left padding stayed put. That
+             also dragged the paragraph out with it, since it shares the same over-wide
+             track, which is why its lines were cut mid-word. The base rule always used
+             minmax(0, ...) for exactly this reason; these overrides had quietly dropped it. */
+          .lpz { grid-template-columns: minmax(0, 1fr); gap: 26px clamp(24px, 3.5vw, 48px); }
           .lpz-col--text { grid-column: 1 / -1; }
           /* There is no track 2 in a single-column grid, so the base rule's grid-column: 2/-1
              would push the shields into an implicit column and out of the panel. The negative
@@ -9451,27 +9787,48 @@ export default function Landing() {
         }
         @media (max-width: 760px) {
           .lp-proof { padding: 90px 5% 100px; }
-          .lpz { grid-template-columns: 1fr; padding: 34px 24px 30px; gap: 24px; }
+          /* Taller, roomier card (was 34px 24px 30px / gap 24px). On a phone this panel is
+             the whole section — one tall rounded block holding heading, copy, both CTAs and
+             the shields — so it needs real internal margin or the content reads as crammed
+             against the gradient's edges. */
+          /* minmax(0, 1fr) for the same reason as the 1180px rule above — see the note there.
+             This is the breakpoint where it actually bit, because the panel is narrowest and
+             the shield row is closest to outgrowing it. */
+          .lpz { grid-template-columns: minmax(0, 1fr); padding: 40px 26px 34px; gap: 22px; }
           .lpz-col--text { grid-column: auto; }
+          /* Second half of the same fix. Track sizing alone is not enough: each .lpz-col is
+             itself a grid ITEM, and grid items also default to min-width:auto, so a column
+             whose contents can't shrink will still push past a correctly-sized track. */
+          .lpz-col { min-width: 0; }
           /* The heading's three hard-broken lines are what set the panel's minimum width,
              so its own floor drops below the desktop clamp's 30px — at 320px the line
              "to get great UGC" would otherwise be wider than the panel's content box. */
           .lp-proof .lpz-heading { font-size: clamp(25px, 7.2vw, 40px); letter-spacing: -0.6px; }
           .lp-proof .lpz-desc { max-width: none; margin-bottom: 22px; }
-          /* nowrap is what keeps "Sign up as Brand" on one line. flex: 1 1 140px packed both
-             pills onto a single row, which on a 360px screen left each ~151px — less than the
-             ~185px the longer label plus its arrow needs — so the text broke in two.
-             With nowrap the button can no longer shrink below its own min-content width, and
-             because .lpz-actions is already flex-wrap:wrap the pair simply drops onto separate
-             rows on the narrowest phones instead of squashing. Each then grows to the full row
-             width, so the label always has room. */
-          .lp-proof .lpz-cta { flex: 1 1 140px; padding: 14px 20px; white-space: nowrap; }
-          /* Row is now the base behaviour, so this only tightens the gap and lets the three
-             shields share the width evenly across a phone. */
-          /* Same .lp-proof scope as the base rule above, or this 0,1,0 selector would lose
+          /* Buttons STACK and hug their own labels, matching the reference card: one under
+             the other, both starting on the panel's left edge rather than sharing a row.
+             This also retires the squashing problem the old rule was working around — with
+             flex: 1 1 140px both pills sat on one row, leaving each ~151px on a 360px screen
+             against the ~185px "Sign up as Brand" plus its arrow needs, so the label broke in
+             two. Given a row of its own each, nothing has to shrink at all. nowrap is kept as
+             a belt-and-braces guard on that label. */
+          .lpz-actions { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .lp-proof .lpz-cta { flex: 0 0 auto; width: auto; padding: 14px 24px; white-space: nowrap; }
+          /* Left-aligned, not centred: everything else in the card starts at the same left
+             edge, and a centred shield row was the one element breaking that line.
+             Same .lp-proof scope as the base rule above, or this 0,1,0 selector would lose
              to it and the phone layout would silently keep the desktop gap. */
-          .lp-proof .lpz-col--badges { justify-content: center; gap: 10px; margin-top: 4px; }
-          .lpz-badge { flex: 1 1 0; width: auto; max-width: 118px; }
+          .lp-proof .lpz-col--badges { justify-content: flex-start; gap: 10px; margin-top: 4px; }
+          /* flex-grow 0 (was 1 1 0): growing to fill the row re-centred them visually and
+             stretched each shield wider than its artwork wants. They sit at their natural
+             size from the left instead.
+             The width is stated as "a third of the row, minus the two 10px gaps, capped at
+             112px" rather than a vw clamp. A vw value doesn't know about the panel's 26px
+             padding, so the old clamp(86px, 27vw, 112px) resolved to 97px at 360px — 3 of
+             those plus gaps is 312px against 308px of usable width, i.e. it overflowed again
+             on exactly the screens this was meant to fix. This form can't: it is derived
+             from the row's own width. */
+          .lpz-badge { flex: 0 1 auto; width: min(112px, calc((100% - 20px) / 3)); }
         }
 
         .lp-proof__header {
@@ -10508,8 +10865,14 @@ export default function Landing() {
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
-          /* Cheaper shadows on the cards that SCROLL/animate (big blur radii repaint every frame). */
-          .lp-showcase-card, .lp-audit-card, .lp-achieve-card, .lp-tcard, .lp-brand-item__icon {
+          /* Cheaper shadows on the cards that SCROLL/animate (big blur radii repaint every frame).
+             .lp-brand-item__icon is deliberately NOT in this list: it is not a card, it is a
+             transparent box holding a cut-out logo, and its base rule sets box-shadow:none on
+             purpose (see the comment there). Shadowing it drew an edge around every mark, so
+             each logo read as sitting on its own white tile — on mobile only, which is why the
+             desktop strip looked right. There is nothing to optimise here either: the rule was
+             REPLACING a shadow this element never had. */
+          .lp-showcase-card, .lp-audit-card, .lp-achieve-card, .lp-tcard {
             box-shadow: 0 4px 12px rgba(28, 27, 75, 0.20) !important;
           }
           /* content-visibility:auto = the browser skips rendering off-screen sections entirely (the
@@ -10536,11 +10899,12 @@ export default function Landing() {
           -webkit-backdrop-filter: none !important;
           backdrop-filter: none !important;
         }
+        /* .lp-brand-item__icon dropped here for the same reason as the mobile block above —
+           it has no shadow to make cheaper, and adding one tiles every logo. */
         .lp-perf-lite .lp-showcase-card,
         .lp-perf-lite .lp-audit-card,
         .lp-perf-lite .lp-achieve-card,
-        .lp-perf-lite .lp-tcard,
-        .lp-perf-lite .lp-brand-item__icon {
+        .lp-perf-lite .lp-tcard {
           box-shadow: 0 4px 12px rgba(28, 27, 75, 0.20) !important;
         }
 

@@ -1,0 +1,102 @@
+# Full stack: frontend + backend behind a Caddy reverse proxy.
+#
+#   cd deploy
+#   cp .env.example .env      # fill it in
+#   docker compose up -d --build
+#
+# Frontend and backend live in SEPARATE repos, so the build contexts are paths,
+# configurable via .env. The default assumes both are cloned side by side:
+#
+#   /srv/
+#     ├── Frontend/     <- this repo (compose lives in Frontend/deploy)
+#     └── Backend/
+#
+# Caddy terminates TLS and routes:
+#   /api/*, /uploads/*, /docs  -> backend
+#   everything else            -> frontend
+# so the browser only ever talks to one origin. That removes CORS entirely and
+# means the frontend can call /api/... relatively instead of hardcoding a host.
+
+services:
+  frontend:
+    build:
+      context: ${FRONTEND_PATH:-..}
+      dockerfile: Dockerfile
+      args:
+        # CRA bakes these into the bundle at BUILD time — see the Dockerfile.
+        # Empty by default ON PURPOSE: with Caddy proxying /api on the same
+        # origin, the app should call relative paths. Set it only if you keep
+        # the backend on a separate domain.
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-}
+        REACT_APP_GOOGLE_CLIENT_ID: ${REACT_APP_GOOGLE_CLIENT_ID:-}
+    image: ugcad-frontend:latest
+    restart: unless-stopped
+    # No ports: — only Caddy is publicly exposed. Reachable in-network as
+    # http://frontend:8080.
+    expose:
+      - "8080"
+    networks: [edge]
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    security_opt: [no-new-privileges:true]
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    build:
+      context: ${BACKEND_PATH:-../../Backend}
+      dockerfile: Dockerfile
+    image: ugcad-backend:latest
+    restart: unless-stopped
+    expose:
+      - "8000"
+    # Secrets stay in a file that is never committed and never baked into the
+    # image: MONGO_URL, JWT_SECRET, RESEND_API_KEY, CLOUDINARY_*, etc.
+    env_file:
+      - .env.backend
+    environment:
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      # storage.py falls back to local disk when Cloudinary is not configured.
+      # Without this named volume every redeploy would delete uploaded files.
+      - backend-uploads:/app/uploads
+    networks: [edge]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # The only service bound to the host.
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"     # HTTP/3
+    environment:
+      # Used by the Caddyfile. Set SITE_ADDRESS to your domain for automatic
+      # HTTPS, or leave it as :80 to run plain HTTP (local / behind another LB).
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and ACME account keys. Persisting these is what stops Caddy
+      # re-issuing on every restart and hitting Let's Encrypt rate limits.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [frontend, backend]
+    networks: [edge]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+
+networks:
+  edge:
+    driver: bridge
+
+volumes:
+  backend-uploads:
+  caddy-data:
+  caddy-config:

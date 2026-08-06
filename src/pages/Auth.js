@@ -102,10 +102,18 @@ export default function Auth() {
           callback: handleGoogleCredential
         });
         googleBtnRef.current.innerHTML = '';
+        // Google renders a FIXED-PIXEL button — it does not respond to CSS width, so a
+        // hardcoded 320 overflowed the card on small phones (a 360px viewport leaves the
+        // form column only ~304px) and got clipped by .ap-shell's overflow:hidden.
+        // Measure what the container actually offers instead. Google clamps this to
+        // 200..400 internally, so match that range rather than passing something it will
+        // silently ignore.
+        const avail = googleBtnRef.current.offsetWidth || 320;
+        const btnWidth = Math.round(Math.max(200, Math.min(400, avail)));
         window.google.accounts.id.renderButton(googleBtnRef.current, {
           theme: 'outline',
           size: 'large',
-          width: 320,
+          width: btnWidth,
           text: 'continue_with',
           logo_alignment: 'center'
         });
@@ -1258,7 +1266,34 @@ export default function Auth() {
           .ap-promo { display: none; }
           /* single column — never slide the form off-screen */
           .ap-shell.is-signin .ap-left, .ap-shell.is-signin .ap-promo { transform: none !important; }
-          .ap-left { padding: 40px 28px; align-items: center; }
+          /* Top padding 40 -> 28. Trimmed from the desktop value so the card doesn't waste
+             the fold, but not as tight as 18px — the back arrow needs a little clearance from
+             the card's top edge rather than sitting right against it. */
+          .ap-left { padding: 28px 28px 32px; align-items: center; }
+          /* Arrow moves OUT OF FLOW and onto the heading's own line — the usual mobile
+             pattern of a back control at the left with the title centred beside it. While it
+             was a flex child it occupied a full row of its own, so "Create account" could
+             never sit level with it however much the gap was trimmed.
+             .ap-left is position:relative, so these offsets resolve against it; matching its
+             padding keeps the arrow on the same left edge as the rest of the content.
+             The heading is centred and ~200px wide inside a ~324px column, so it starts well
+             clear of the 38px arrow — they share the line without colliding. */
+          .ap-back {
+            position: absolute;
+            top: 28px;
+            /* 28 -> 10. The 38px box is kept for the tap target even though the chip is now
+               invisible, so left is measured from the box edge, not the glyph — 10px puts
+               the arrow itself roughly on the content's left edge. */
+            left: 10px;
+            margin: 0;
+            /* Chrome removed: bare glyph, no grey circle or border. */
+            background: transparent;
+            border-color: transparent;
+          }
+          /* Hover would otherwise paint the chip back in on a hoverable narrow window
+             (.ap-back:hover is 0,2,0 and outranks the 0,1,0 rule above). */
+          .ap-back:hover { background: transparent; border-color: transparent; }
+          .ap-header { margin-bottom: 18px; }
           /* .ap-shell.is-signup .ap-left sets padding-left:106px to shift the form right
              in the desktop two-column split layout — that rule has no media guard, so on
              mobile it was ALSO eating 106px instead of the intended 28px, squeezing
@@ -1275,6 +1310,36 @@ export default function Auth() {
              padding to 28px above but never reset the negative margin, so the button was
              pulled past the card's left edge and clipped by .ap-shell's overflow:hidden. */
           .ap-back, .ap-shell.is-signup .ap-back { margin-left: 0; }
+        }
+
+        /* ── Narrow phones (<=400px) ──────────────────────────────────────────────
+           At 360px the form column offers ~304px, but the role pair's MIN-CONTENT width is
+           ~314px (icon 36 + gap 10 + label + 36px padding, twice, plus the 10px grid gap).
+           A 1fr track will not shrink below its content, so "Business" pushed past the card
+           edge and was clipped by .ap-shell's overflow:hidden — exactly the cut-off button.
+           Trimming the padding, icon and label brings min-content under the available width
+           so the pair fits side by side instead of overflowing. */
+        @media (max-width: 400px) {
+          .ap-left { padding: 24px 18px 26px; }
+          .ap-shell.is-signup .ap-left { padding-left: 18px; }
+          /* Track the tighter padding above so the arrow keeps sitting on the content's
+             left edge and level with the heading. */
+          .ap-back { top: 24px; left: 2px; }
+          .ap-role-options { gap: 8px; }
+          .ap-role-btn {
+            padding: 11px 10px;
+            gap: 8px;
+            font-size: 0.82rem;
+            /* Grid items default to min-width:auto, which is what pinned the track open.
+               Allowing 0 lets the label truncate as a last resort instead of overflowing. */
+            min-width: 0;
+          }
+          .ap-role-btn span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .ap-role-icon { width: 30px; height: 30px; flex-shrink: 0; }
         }
       `}</style>
     </div>

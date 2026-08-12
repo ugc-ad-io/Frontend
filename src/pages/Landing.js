@@ -5448,14 +5448,18 @@ export default function Landing() {
            Content-driven height throughout — no vh, no pinning. That is the whole point:
            the desktop deck needs a 100vh runway and clipped its open card on a phone. */
         .lp-svcm { display: block; text-align: center; }
+        /* Trimmed (10px/27px/1.18/12px margin -> 4px/21px/1.12/6px) so more of the card below
+           is visible without scrolling on a short phone — this section isn't pinned (see the
+           header comment above), so nothing here is ever unreachable, but a shorter heading
+           still means less scrolling to actually reach the video. */
         .lp-svcm__eyebrow {
           display: inline-block; font-family: var(--font-body);
           font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
-          color: #a3ba22; padding-top: 10px; border-top: 2px solid #a3ba22;
+          color: #a3ba22; padding-top: 4px; border-top: 2px solid #a3ba22;
         }
         .lp-svcm__title {
-          margin: 12px 0 0; font-family: var(--font-head); font-weight: var(--fw-head);
-          font-size: 27px; line-height: 1.18; letter-spacing: -0.5px; color: #171334;
+          margin: 6px 0 0; font-family: var(--font-head); font-weight: var(--fw-head);
+          font-size: 21px; line-height: 1.12; letter-spacing: -0.4px; color: #171334;
         }
         /* Serif italic matches the desktop aside's treatment of this same phrase. */
         .lp-svcm__title em {
@@ -5463,15 +5467,15 @@ export default function Landing() {
           transition: color .4s ease;
         }
         .lp-svcm__sub {
-          margin: 10px auto 0; max-width: 34ch; font-family: var(--font-body);
-          font-size: 13.5px; line-height: 1.6; color: rgba(23, 19, 52, .6);
+          margin: 6px auto 0; max-width: 34ch; font-family: var(--font-body);
+          font-size: 13.5px; line-height: 1.5; color: rgba(23, 19, 52, .6);
         }
         /* Deck: the front card sits in normal flow and therefore SETS the height; the strips
            for upcoming cards are absolutely positioned to that same box and nudged down, so
            only their lower edge shows. Keeping the front card in flow is what makes the deck
            content-driven — an all-absolute stack would need a hardcoded height, which is what
            clipped the card's lower half before. */
-        .lp-svcm__deck { position: relative; margin-top: 20px; }
+        .lp-svcm__deck { position: relative; margin-top: 10px; }
         .lp-svcm__ghost {
           position: absolute;
           /* Inset from the sides on top of the JS scale/translateY, so a strip always reads

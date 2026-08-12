@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Save, ShieldAlert, Mail, Check } from 'lucide-react';
+import { Save, ShieldAlert, Mail, Check, CreditCard, Plus, X } from 'lucide-react';
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
 import { isFounder as roleIsFounder } from '../utils/adminRoles';
@@ -30,6 +30,23 @@ export default function AdminSettings() {
   const [testTo, setTestTo] = useState(user?.email || '');
   const [testing, setTesting] = useState(false);
 
+  // Payment gateway keys (Razorpay/Cashfree) — previously only editable from an
+  // unlinked legacy URL (/dashboard/admin/payments). Same backend endpoints, now
+  // reachable from Settings where an admin would actually look for it.
+  const [gateways, setGateways] = useState([]);
+  const [gatewaysLoading, setGatewaysLoading] = useState(true);
+  const [editingGateway, setEditingGateway] = useState(null); // gateway_name being edited, or 'new'
+  const [gatewayDraft, setGatewayDraft] = useState({ gateway_name: 'razorpay', key_id: '', key_secret: '', enabled: true, is_default: true });
+  const [savingGateway, setSavingGateway] = useState(false);
+
+  const loadGateways = () => {
+    setGatewaysLoading(true);
+    axios.get(`${API}/admin/payment-gateways`)
+      .then((r) => setGateways(Array.isArray(r.data) ? r.data : []))
+      .catch((error) => toast.error(apiErrorMessage(error, 'Failed to load payment gateways')))
+      .finally(() => setGatewaysLoading(false));
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -45,6 +62,8 @@ export default function AdminSettings() {
     axios.get(`${API}/admin/email/health`)
       .then((r) => setEmailHealth(r.data))
       .catch(() => setEmailHealth({ configured: false, unreachable: true }));
+    loadGateways();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sends a REAL email and reports exactly what the provider said, so a failure is
@@ -62,6 +81,52 @@ export default function AdminSettings() {
   };
 
   const setField = (key, value) => setDraft((d) => ({ ...d, [key]: value }));
+
+  const openEditGateway = (g) => {
+    setGatewayDraft({ gateway_name: g.gateway_name, key_id: g.key_id || '', key_secret: '', enabled: g.enabled !== false, is_default: !!g.is_default });
+    setEditingGateway(g.gateway_name);
+  };
+
+  const openAddGateway = () => {
+    // Default to whichever of razorpay/cashfree isn't configured yet.
+    const taken = new Set(gateways.map((g) => g.gateway_name));
+    setGatewayDraft({ gateway_name: taken.has('razorpay') ? 'cashfree' : 'razorpay', key_id: '', key_secret: '', enabled: true, is_default: gateways.length === 0 });
+    setEditingGateway('new');
+  };
+
+  const saveGateway = async () => {
+    if (!gatewayDraft.key_id.trim() || !gatewayDraft.key_secret.trim()) {
+      toast.error('Key ID and Key Secret are both required');
+      return;
+    }
+    setSavingGateway(true);
+    try {
+      await axios.post(`${API}/admin/payment-gateway`, {
+        gateway_name: gatewayDraft.gateway_name,
+        key_id: gatewayDraft.key_id.trim(),
+        key_secret: gatewayDraft.key_secret.trim(),
+        enabled: gatewayDraft.enabled,
+        is_default: gatewayDraft.is_default,
+      });
+      toast.success(`${gatewayDraft.gateway_name} saved`);
+      setEditingGateway(null);
+      loadGateways();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to save gateway'));
+    } finally {
+      setSavingGateway(false);
+    }
+  };
+
+  // Quick toggle from the list — doesn't touch the keys, just enabled/is_default.
+  const toggleGatewayEnabled = async (g) => {
+    try {
+      await axios.patch(`${API}/admin/payment-gateway/${g.gateway_name}`, { enabled: !g.enabled });
+      loadGateways();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to update gateway'));
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -129,6 +194,81 @@ export default function AdminSettings() {
             {testing ? 'Sending…' : 'Send test email'}
           </button>
         </div>
+      </section>
+
+      <section className="as-card as-gateways">
+        <div className="as-gw-head">
+          <h3><CreditCard size={16} /> Payment gateways</h3>
+          {isFounder && editingGateway === null && (
+            <button type="button" className="as-gw-add" onClick={openAddGateway}><Plus size={14} /> Add gateway</button>
+          )}
+        </div>
+
+        {gatewaysLoading ? (
+          <p className="as-email-note">Loading…</p>
+        ) : gateways.length === 0 && editingGateway !== 'new' ? (
+          <p className="as-email-note bad">
+            <ShieldAlert size={14} /> No payment gateway configured — checkout can't take real payments. Add one below.
+          </p>
+        ) : (
+          <div className="as-gw-list">
+            {gateways.map((g) => (
+              <div className="as-gw-row" key={g.gateway_name}>
+                <div className="as-gw-info">
+                  <strong>{g.gateway_name}</strong>
+                  <span className="as-gw-keyid">{g.key_id || '—'}</span>
+                  {g.is_default && <span className="as-gw-tag default">Default</span>}
+                  <span className={`as-gw-tag ${g.enabled !== false ? 'on' : 'off'}`}>{g.enabled !== false ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                {isFounder && (
+                  <div className="as-gw-actions">
+                    <button type="button" className="as-gw-toggle" onClick={() => toggleGatewayEnabled(g)}>
+                      {g.enabled !== false ? 'Disable' : 'Enable'}
+                    </button>
+                    <button type="button" className="as-gw-edit" onClick={() => openEditGateway(g)}>Edit</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isFounder && editingGateway !== null && (
+          <div className="as-gw-form">
+            <div className="as-gw-form-head">
+              <strong>{editingGateway === 'new' ? 'Add gateway' : `Edit ${editingGateway}`}</strong>
+              <button type="button" className="as-gw-close" onClick={() => setEditingGateway(null)} aria-label="Cancel"><X size={15} /></button>
+            </div>
+            {editingGateway === 'new' && (
+              <div className="as-field">
+                <label>Provider</label>
+                <select value={gatewayDraft.gateway_name} onChange={(e) => setGatewayDraft((d) => ({ ...d, gateway_name: e.target.value }))}>
+                  <option value="razorpay">Razorpay</option>
+                  <option value="cashfree">Cashfree</option>
+                </select>
+              </div>
+            )}
+            <div className="as-field">
+              <label>Key ID / Client ID</label>
+              <input type="text" value={gatewayDraft.key_id} onChange={(e) => setGatewayDraft((d) => ({ ...d, key_id: e.target.value }))} placeholder="e.g. rzp_live_xxxxxxxx" />
+            </div>
+            <div className="as-field">
+              <label>Key Secret / Client Secret</label>
+              <input type="password" value={gatewayDraft.key_secret} onChange={(e) => setGatewayDraft((d) => ({ ...d, key_secret: e.target.value }))} placeholder="Paste the secret — it's never shown back" />
+            </div>
+            <label className="as-flag">
+              <input type="checkbox" checked={gatewayDraft.enabled} onChange={(e) => setGatewayDraft((d) => ({ ...d, enabled: e.target.checked }))} />
+              Enabled
+            </label>
+            <label className="as-flag">
+              <input type="checkbox" checked={gatewayDraft.is_default} onChange={(e) => setGatewayDraft((d) => ({ ...d, is_default: e.target.checked }))} />
+              Default gateway (used when a deal doesn't specify one)
+            </label>
+            <button type="button" className="as-gw-save" onClick={saveGateway} disabled={savingGateway}>
+              <Save size={14} /> {savingGateway ? 'Saving…' : 'Save gateway'}
+            </button>
+          </div>
+        )}
       </section>
 
       <div className="as-grid">
@@ -226,6 +366,34 @@ export default function AdminSettings() {
         .as-save { margin-top:18px; display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border:1px solid transparent; border-radius:10px; background:linear-gradient(100deg,#12124f,#07074e); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 12px 26px -12px rgba(7,7,78,.7); }
         .as-save:hover { transform:translateY(-1px); }
         .as-save:disabled { background:#c5c5cf; cursor:not-allowed; transform:none; box-shadow:none; }
+
+        /* Payment gateways */
+        .as-gateways { margin-bottom:16px; }
+        .as-gw-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .as-gw-head h3 { display:flex; align-items:center; gap:8px; margin:0; }
+        .as-gw-add { display:inline-flex; align-items:center; gap:6px; border:1px solid #d6dbff; background:#eef0ff; color:#3730a3; font-weight:700; font-size:12.5px; padding:7px 12px; border-radius:8px; cursor:pointer; }
+        .as-gw-add:hover { background:#e2e6ff; }
+        .as-gw-list { display:flex; flex-direction:column; gap:8px; }
+        .as-gw-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid #ececf1; border-radius:10px; flex-wrap:wrap; }
+        .as-gw-info { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .as-gw-info strong { text-transform:capitalize; color:#15163a; font-size:13.5px; }
+        .as-gw-keyid { font-family:monospace; font-size:12px; color:#6b6f8f; }
+        .as-gw-tag { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:.3px; }
+        .as-gw-tag.default { background:#eef0ff; color:#3730a3; }
+        .as-gw-tag.on { background:#ecfdf3; color:#067647; }
+        .as-gw-tag.off { background:#f1f5f9; color:#64748b; }
+        .as-gw-actions { display:flex; gap:8px; }
+        .as-gw-toggle, .as-gw-edit { border:1px solid #e2e4f0; background:#fff; color:#4b4b66; font-weight:600; font-size:12.5px; padding:6px 12px; border-radius:8px; cursor:pointer; }
+        .as-gw-toggle:hover, .as-gw-edit:hover { background:#f7f8ff; }
+        .as-gw-form { margin-top:14px; padding:14px; border:1px solid #e2e4f0; border-radius:10px; background:#fbfbfe; }
+        .as-gw-form-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+        .as-gw-form-head strong { text-transform:capitalize; font-size:13.5px; color:#15163a; }
+        .as-gw-close { border:none; background:none; cursor:pointer; color:#8a8fb0; padding:2px; }
+        .as-gw-form .as-field { flex-direction:column; align-items:stretch; }
+        .as-gw-form .as-field label { margin-bottom:5px; }
+        .as-gw-form .as-field input, .as-gw-form .as-field select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #e2e4f0; border-radius:8px; font-family:inherit; }
+        .as-gw-save { margin-top:6px; display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border:1px solid transparent; border-radius:9px; background:linear-gradient(100deg,#12124f,#07074e); color:#fff; font-weight:700; font-size:13px; cursor:pointer; }
+        .as-gw-save:disabled { background:#c5c5cf; cursor:not-allowed; }
       `}</style>
     </AdminLayout>
   );

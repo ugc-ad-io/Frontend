@@ -244,8 +244,8 @@ export default function PortfolioPage() {
     try {
       const uploadedUrls = [];
       for (const file of files) {
-        if (file.size > 50 * 1024 * 1024) {
-          toast.error(`${file.name} is too large. Maximum 50MB per file.`);
+        if (file.size > 100 * 1024 * 1024) {
+          toast.error(`${file.name} is too large. Maximum 100MB per file.`);
           continue;
         }
         const formDataUpload = new FormData();
@@ -453,7 +453,7 @@ export default function PortfolioPage() {
                     <label className="portfolio-upload-tile">
                       <Plus size={20} />
                       <span>{uploading ? 'Uploading...' : 'Add files'}</span>
-                      <small>Max 50MB each</small>
+                      <small>Max 100MB each</small>
                       <input
                         type="file"
                         accept="image/*,video/*"

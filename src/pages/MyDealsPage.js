@@ -1464,7 +1464,7 @@ function ContentSubmission({
       </div>
       {content.watermark_required_until_approval && <div className="deal-watermark">Watermarked preview until brand approval</div>}
       {!contentUnlocked && <div className="deal-locked-note"><ShieldAlert size={16} /> {lockReason}</div>}
-      <UploadZone icon={Play} label="Final Video Upload" accept="MP4 - MOV" uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
+      <UploadZone icon={Play} label="Final Video Upload" accept="MP4/MOV - Max 100MB" uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
       <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
       <div className="deal-asset-grid">
         {needsCaption && (
@@ -1484,7 +1484,7 @@ function ContentSubmission({
         {needsRaw && (
           <div>
             <label>Raw Footage Upload</label>
-            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4 - MOV" uploaded={Boolean(rawFootageUrl)} previewUrl={rawFootageUrl} previewType="video" onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} />
+            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4/MOV - Max 100MB" uploaded={Boolean(rawFootageUrl)} previewUrl={rawFootageUrl} previewType="video" onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} />
             <input type="file" id="raw-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setRawFootageUrl, 'raw')} hidden />
           </div>
         )}

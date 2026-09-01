@@ -144,13 +144,17 @@ const PLATFORMS = [
 ];
 // Platform link validators — only accept genuine links/handles for each network,
 // so a creator can't paste a random website where a specific profile is asked.
+// Share sheets append tracking params (?igsh=, ?si=, ?s=20) and these patterns
+// used to anchor right after the username, so a link copied straight from the
+// app was rejected. Each now allows an optional trailing slash plus any
+// query/fragment, while still pinning the host and profile path.
 const LINK_RE = {
-  youtube:   /^(https?:\/\/)?(www\.)?(youtube\.com\/(@[\w.-]+|channel\/|c\/|user\/)[\w./-]*|youtu\.be\/[\w-]+)\/?$/i,
-  linkedin:  /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|company|pub|school)\/[\w%.-]+\/?$/i,
-  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?$|^@[a-z0-9._]{1,30}$/i,
-  tiktok:    /^(https?:\/\/)?(www\.)?tiktok\.com\/@?[\w.-]+\/?$|^@[a-z0-9._]{1,30}$/i,
+  youtube:   /^(https?:\/\/)?(www\.)?(youtube\.com\/(@[\w.-]+|channel\/|c\/|user\/)[\w./-]*|youtu\.be\/[\w-]+)\/?(?:[?#][^\s]*)?$/i,
+  linkedin:  /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|company|pub|school)\/[\w%.-]+\/?(?:[?#][^\s]*)?$/i,
+  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?(?:[?#][^\s]*)?$|^@[a-z0-9._]{1,30}$/i,
+  tiktok:    /^(https?:\/\/)?(www\.)?tiktok\.com\/@?[\w.-]+\/?(?:[?#][^\s]*)?$|^@[a-z0-9._]{1,30}$/i,
   facebook:  /^(https?:\/\/)?(www\.|m\.)?(facebook\.com|fb\.com|fb\.me)\/[^\s]+$/i,
-  twitter:   /^(https?:\/\/)?(www\.)?(twitter\.com|x\.com)\/[a-z0-9_]{1,15}\/?$|^@[a-z0-9_]{1,15}$/i,
+  twitter:   /^(https?:\/\/)?(www\.)?(twitter\.com|x\.com)\/[a-z0-9_]{1,15}\/?(?:[?#][^\s]*)?$|^@[a-z0-9_]{1,15}$/i,
   // Website / custom platforms: at least a real URL or a @handle, not gibberish.
   generic:   /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+([/?#][^\s]*)?$|^@[a-z0-9._]{1,30}$/i,
 };

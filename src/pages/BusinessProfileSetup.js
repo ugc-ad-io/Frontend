@@ -17,6 +17,10 @@ const instagramHandle = (value) => String(value || '')
   .trim()
   .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
   .replace(/^@/, '')
+  // A link copied from the app carries ?igsh=/&utm_source= tracking params; drop
+  // them (and any /reel/... path) or the leftovers fail IG_HANDLE_RE.
+  .replace(/[?#].*$/, '')
+  .replace(/\/.*$/, '')
   .replace(/\/+$/, '');
 
 // iso = flagcdn country code (flags are image-based so they render on Windows too).

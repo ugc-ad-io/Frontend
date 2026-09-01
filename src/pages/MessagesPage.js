@@ -525,7 +525,7 @@ export default function MessagesPage() {
       if (!isImage && !isPdf && !isVideo) return 'Upload jpg, png, gif, pdf, or video files only.';
       if (isImage && file.size > 10 * 1024 * 1024) return 'Images must be 10 MB or smaller.';
       if (isPdf && file.size > 25 * 1024 * 1024) return 'PDFs must be 25 MB or smaller.';
-      if (isVideo && file.size > 50 * 1024 * 1024) return 'Videos must be 50 MB or smaller.';
+      if (isVideo && file.size > 100 * 1024 * 1024) return 'Videos must be 100 MB or smaller.';
     }
     return '';
   };

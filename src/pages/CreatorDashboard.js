@@ -244,8 +244,8 @@ export default function CreatorDashboard() {
     setUploadingPortfolio(true);
     try {
       const uploadedUrls = await Promise.all(files.map(async (file) => {
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large. Maximum 10MB per file.`);
+        if (file.size > 100 * 1024 * 1024) {
+          throw new Error(`${file.name} is too large. Maximum 100MB per file.`);
         }
         const formDataUpload = new FormData();
         formDataUpload.append('file', file);

@@ -74,6 +74,10 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
 
   // Upload a real file to the backend and return its stored URL.
   const uploadFile = async (file) => {
+    // Fail fast on oversized clips rather than after a full multipart upload.
+    if (file?.type?.startsWith('video/') && file.size > 100 * 1024 * 1024) {
+      throw new Error('Video is too large. Maximum 100MB.');
+    }
     const form = new FormData();
     form.append('file', file);
     const res = await axios.post(`${API}/upload/file`, form, {
@@ -723,7 +727,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
             <h2>Mark Shipment as Received</h2>
             <form onSubmit={handleReceiveShipment} className="receive-form">
               <div className="form-group">
-                <label htmlFor="unboxing-file">Unboxing Video (max 50 MB, up to 30s)</label>
+                <label htmlFor="unboxing-file">Unboxing Video (max 100 MB, up to 30s)</label>
                 <input
                   id="unboxing-file"
                   type="file"

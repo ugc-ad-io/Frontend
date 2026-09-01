@@ -757,8 +757,8 @@ export default function CreatorProfileSetup() {
   const onPickVideo = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video is too large. Maximum 50MB.');
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Video is too large. Maximum 100MB.');
       return;
     }
     // Show an instant local preview, then upload so a real server URL is persisted
@@ -794,7 +794,7 @@ export default function CreatorProfileSetup() {
   const onPickEditVideo = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { toast.error('Video is too large. Maximum 50MB.'); return; }
+    if (file.size > 100 * 1024 * 1024) { toast.error('Video is too large. Maximum 100MB.'); return; }
     setEditVideoUploading(true);
     setEditDraft((d) => ({ ...d, video: file.name, videoUrl: URL.createObjectURL(file) }));
     try {
@@ -1410,7 +1410,7 @@ export default function CreatorProfileSetup() {
                       </button>
                     </div>
                     <button type="button" className="ps-pf__upload" disabled={pfVideoUploading} onClick={() => pfFileRef.current?.click()}>
-                      <Upload size={15} /> {pfVideoUploading ? 'Uploading…' : <>Upload <span className="ps-muted">(max 50 MB)</span></>}
+                      <Upload size={15} /> {pfVideoUploading ? 'Uploading…' : <>Upload <span className="ps-muted">(max 100 MB)</span></>}
                     </button>
                   </>
                 )}

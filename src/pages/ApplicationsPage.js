@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2 } from 'lucide-react';
+import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2, Phone } from 'lucide-react';
 
 // Map a social-handle key/platform to its real brand logo (simpleicons slug + brand
 // colour). Falls back to a globe for unknown / custom links.
@@ -78,6 +78,20 @@ const collectUrls = (v) => {
   });
   else if (v && typeof v === 'object') fromObj(v);
   return out;
+};
+
+// The mobile number reaches us from two places: signup (top-level `phone_full`,
+// or `dial_code` + `phone`) and the profile-setup form (`profile.phone` +
+// `profile.dialCode`). Signup wins — it's the number ops verified the account with.
+const phoneOf = (u) => {
+  const pr = (u && u.profile) || {};
+  const full = String(u?.phone_full || '').trim();
+  if (full) return full;
+  const own = String(u?.phone || '').trim();
+  const num = own || String(pr.phone || pr.mobile || '').trim();
+  if (!num) return '';
+  const dial = String((own ? u?.dial_code : (pr.dialCode || pr.dial_code)) || '').trim();
+  return dial ? `${dial} ${num}` : num;
 };
 
 // A few keys read better with an explicit label than the auto-prettified key.
@@ -219,6 +233,7 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   const realName = brand ? (p.business_name || p.businessName) : (p.fullName || p.full_name);
   const displayName = (realName && String(realName).trim()) || String(profile.nickname || profile.username || '—').replace(/^@+/, '');
   const email = profile.email || p.business_email || '—';
+  const phone = phoneOf(profile) || '—';
   const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '—';
   const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
   const sla = slaInfo(submitted, nowMs, profile.approval_status);
@@ -233,11 +248,13 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   const cols = brand
     ? [
         ['Email', email],
+        ['Phone', phone],
         ['Category', category],
         ['GST', gstStatus(p).label],
         ['Submitted', formatDateSafe(submitted)],
       ]
     : [
+        ['Phone', phone],
         ['Category', category],
         ['Languages', [].concat(p.languages || p.language || []).filter(Boolean).join(', ') || '—'],
         ['Location', p.location || p.country || p.city || '—'],
@@ -384,6 +401,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   const realName = brand ? (p.business_name || p.businessName || full.business_name) : (p.fullName || p.full_name || full.full_name);
   const displayName = (realName && String(realName).trim()) || String(full.nickname || profile.nickname || uname || '—').replace(/^@+/, '');
   const headerEmail = full.email || p.business_email || profile.email;
+  const headerPhone = phoneOf(full) || phoneOf(profile);
   const flagName = !brand && looksLikeRealName(uname || '');
   const gst = gstStatus(p);
   const flags = brand ? brandFlags(p, headerEmail) : [];
@@ -414,6 +432,8 @@ function ProfileDetail({ profile, onBack, onDecide }) {
     .sort((a, b) => fieldRank(a[0]) - fieldRank(b[0]));
   function MEDIA_OR_META(k) {
     return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers',
+      // Shown as one combined number in the modal header — don't repeat the parts.
+      'phone_full', 'dial_code', 'dialCode',
       // Internal / not useful when reviewing a profile.
       'availability_calendar', 'curated_brand_visible', 'creator_directory_visible', 'topics', 'balance', 'deliverables_completed'].includes(k)
       || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);
@@ -445,6 +465,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
               </span>
             </div>
             <p>{headerEmail}</p>
+            {headerPhone && <p className="apps-modal-phone"><Phone size={13} /> {headerPhone}</p>}
           </div>
         </div>
 
@@ -707,7 +728,11 @@ function ApplicationsPage() {
       if (q) {
         const name = (a.username || a.nickname || p.fullName || p.business_name || '').toLowerCase();
         const email = (a.email || p.business_email || '').toLowerCase();
-        if (!name.includes(q) && !email.includes(q)) return false;
+        // Digits-only so "9406879532" matches a stored "+91 9406879532".
+        const phone = phoneOf(a).replace(/\D/g, '');
+        const qDigits = q.replace(/\D/g, '');
+        const phoneHit = qDigits.length >= 4 && phone.includes(qDigits);
+        if (!name.includes(q) && !email.includes(q) && !phoneHit) return false;
       }
       return true;
     });
@@ -754,7 +779,7 @@ function ApplicationsPage() {
         <div className="apps-controls">
           <div className="apps-search">
             <Search size={16} />
-            <input type="text" placeholder={`Search ${isBrands ? 'brands' : 'creators'}…`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <input type="text" placeholder={`Search ${isBrands ? 'brands' : 'creators'} or phone…`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
         </div>
       </div>

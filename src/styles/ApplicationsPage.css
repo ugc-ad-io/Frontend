@@ -1446,6 +1446,15 @@
   font-size: 0.88rem;
 }
 
+/* Mobile number under the email in the applicant header. */
+.apps-modal-phone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #334155 !important;
+}
+
 .apps-modal-body {
   flex: 1;
   overflow-y: auto;
@@ -1655,10 +1664,11 @@
 
 .apps-row-meta {
   display: grid;
-  /* Creator and brand rows both render four profile fields plus SLA. Keep all
-     five in the same desktop row instead of wrapping SLA onto a second line. */
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 20px;
+  /* Creator and brand rows both render five profile fields (phone included) plus
+     SLA. Keep all six in the same desktop row instead of wrapping SLA onto a
+     second line; values ellipsize rather than widening a column. */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
   min-width: 0;
 }
 

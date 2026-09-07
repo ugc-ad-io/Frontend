@@ -23,6 +23,8 @@ const HIDDEN_KEYS = new Set([
   'id', '_id', 'user_id', 'userId', 'password', '__v', 'token',
   'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed',
   'terms_agreed', 'receive_briefs',
+  // Shown as one combined number in the card head — don't repeat the parts.
+  'phone_full', 'dial_code', 'dialCode',
   // Internal / not useful when reviewing a profile.
   'availability_calendar', 'curated_brand_visible', 'creator_directory_visible',
   'topics', 'balance', 'deliverables_completed',
@@ -49,6 +51,20 @@ const isEmptyValue = (v) =>
 
 const isUrl = (v) => typeof v === 'string' && /^https?:\/\//i.test(v.trim());
 const isVideoUrl = (v) => typeof v === 'string' && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(v.trim());
+
+// The mobile number reaches us from two places: signup (top-level `phone_full`, or
+// `dial_code` + `phone`) and the profile-setup form (`profile.phone` +
+// `profile.dialCode`). Signup wins — it's the number the account was created with.
+const phoneOf = (u) => {
+  const pr = (u && u.profile) || {};
+  const full = String(u?.phone_full || '').trim();
+  if (full) return full;
+  const own = String(u?.phone || '').trim();
+  const num = own || String(pr.phone || pr.mobile || '').trim();
+  if (!num) return '';
+  const dial = String((own ? u?.dial_code : (pr.dialCode || pr.dial_code)) || '').trim();
+  return dial ? `${dial} ${num}` : num;
+};
 
 // A raw Cloudinary/asset URL is unreadable and wraps across the row — show a
 // short, clickable action instead ("Watch video" / "Open link") so admins can
@@ -171,6 +187,7 @@ function ProfileCard({ profile, onApprove, onReject }) {
 
       <div className="ap-card-body">
         <p><strong>Email:</strong> {profile.email || '—'}</p>
+        <p><strong>Phone:</strong> {phoneOf(profile) || '—'}</p>
 
         <button
           type="button"

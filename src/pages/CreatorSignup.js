@@ -9,6 +9,24 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+// Mobile number is compulsory at signup — collected and stored, never OTP-verified.
+// Same dial codes + length rules as /auth and the creator profile-setup form, so a
+// number accepted here stays valid downstream.
+const DIAL_CODES = ['+91', '+1', '+44', '+61'];
+const PHONE_LEN = { '+91': 10, '+1': 10, '+44': 10, '+61': 9 };
+const onlyDigits = (v) => String(v ?? '').replace(/\D/g, '');
+const phoneMax = (dial) => PHONE_LEN[dial] || 15;
+const phoneValid = (v, dial) => onlyDigits(v).length === phoneMax(dial);
+// Drop a pasted country code, but only when the number is otherwise too long, so a
+// legitimate 10-digit number that happens to start with "91" is left alone.
+const normalisePhone = (raw, dial) => {
+  const digits = onlyDigits(raw);
+  const cc = onlyDigits(dial);
+  const max = phoneMax(dial);
+  const national = digits.length > max && cc && digits.startsWith(cc) ? digits.slice(cc.length) : digits;
+  return national.slice(0, max);
+};
+
 // Multicolour Google "G" mark (inline so it matches the screenshot exactly).
 function GoogleIcon() {
   return (
@@ -26,6 +44,8 @@ export default function CreatorSignup() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dialCode, setDialCode] = useState('+91');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,9 +56,20 @@ export default function CreatorSignup() {
       toast.error('Password must be at least 8 characters');
       return;
     }
+    // `required` only catches an empty field — a half-typed number needs this.
+    if (!phoneValid(phone, dialCode)) {
+      toast.error(`Enter a valid ${phoneMax(dialCode)}-digit mobile number`);
+      return;
+    }
     setSubmitting(true);
     try {
-      const { data } = await axios.post(`${API}/auth/signup`, { email, password, role: 'creator' });
+      const { data } = await axios.post(`${API}/auth/signup`, {
+        email,
+        password,
+        role: 'creator',
+        phone: onlyDigits(phone),
+        dial_code: dialCode,
+      });
       const { token, ...userData } = data;
       login(token, userData);
       toast.success('Account created!');
@@ -91,6 +122,40 @@ export default function CreatorSignup() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+        </div>
+
+        {/* Mobile number — required, no OTP */}
+        <div className="cs-field">
+          <label className="cs-label" htmlFor="cs-phone">Mobile Number</label>
+          <div className="cs-phone-row">
+            <select
+              className="cs-dial"
+              value={dialCode}
+              onChange={(e) => {
+                const next = e.target.value;
+                setDialCode(next);
+                setPhone((cur) => normalisePhone(cur, next));
+              }}
+              aria-label="Country dial code"
+            >
+              {DIAL_CODES.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <input
+              id="cs-phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              className="cs-input"
+              maxLength={phoneMax(dialCode)}
+              placeholder={`${phoneMax(dialCode)}-digit number`}
+              value={phone}
+              onChange={(e) => setPhone(normalisePhone(e.target.value, dialCode))}
+              required
+            />
+          </div>
+          {phone && !phoneValid(phone, dialCode) && (
+            <p className="cs-hint cs-hint--error">Enter a valid {phoneMax(dialCode)}-digit mobile number.</p>
+          )}
         </div>
 
         {/* Password */}
@@ -269,6 +334,34 @@ export default function CreatorSignup() {
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
         .cs-input-wrap .cs-input { padding-right: 52px; }
+        /* Mobile number: dial-code select + national number on one row */
+        .cs-phone-row {
+          display: grid;
+          grid-template-columns: 96px minmax(0, 1fr);
+          gap: 8px;
+        }
+        .cs-dial {
+          background: rgba(255, 255, 255, 0.04);
+          border: 1.5px solid rgba(255, 255, 255, 0.14);
+          border-radius: 12px;
+          padding: 15px 10px;
+          font-size: 1rem;
+          font-weight: 600;
+          color: #ffffff;
+          font-family: var(--font-body);
+          cursor: pointer;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+        /* The dropdown list itself renders in the OS palette — force dark text on
+           light so the options stay readable on Windows/Chrome. */
+        .cs-dial option { color: #0f172a; background: #ffffff; }
+        .cs-dial:focus {
+          outline: none;
+          border-color: var(--cs-purple);
+          background: rgba(255, 255, 255, 0.06);
+          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.18);
+        }
+        .cs-hint--error { color: #f87171; }
         .cs-input::placeholder { color: rgba(255, 255, 255, 0.38); }
         .cs-input:focus {
           outline: none;

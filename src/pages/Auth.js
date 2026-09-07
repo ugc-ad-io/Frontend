@@ -4,12 +4,38 @@ import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { User, Building2, Lock, Mail, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { User, Building2, Lock, Mail, Phone, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+
+// Mobile number at signup — collected and stored, NOT OTP-verified. `iso` drives
+// the flag image (flagcdn.com); emoji flags don't render on Windows.
+const DIAL_CODES = [
+  { code: '+91', iso: 'in' },
+  { code: '+1', iso: 'us' },
+  { code: '+44', iso: 'gb' },
+  { code: '+61', iso: 'au' },
+];
+// Expected national-number length per dial code — caps the input AND validates it.
+// Same table the creator profile-setup form uses, so a number accepted here is
+// still valid when it prefills that step.
+const PHONE_LEN = { '+91': 10, '+1': 10, '+44': 10, '+61': 9 };
+const onlyDigits = (v) => String(v ?? '').replace(/\D/g, '');
+const phoneMax = (dial) => PHONE_LEN[dial] || 15;
+const phoneValid = (v, dial) => onlyDigits(v).length === phoneMax(dial);
+// Pasting a full international number ("+91 9406879532") would otherwise merge the
+// country code into the national part. Drop a leading dial code, but ONLY when the
+// result is too long — so a legitimate 10-digit number starting with "91" survives.
+const normalisePhone = (raw, dial) => {
+  const digits = onlyDigits(raw);
+  const cc = onlyDigits(dial);
+  const max = phoneMax(dial);
+  const national = digits.length > max && cc && digits.startsWith(cc) ? digits.slice(cc.length) : digits;
+  return national.slice(0, max);
+};
 
 // Load the Google Identity Services script once, shared across renders/mounts.
 let gisScriptPromise = null;
@@ -49,6 +75,9 @@ export default function Auth() {
   // instead of the sign-in box (where their old password still works).
   const [email, setEmail] = useState(searchParams.get('email') || '');
   const [password, setPassword] = useState('');
+  // Signup-only: mobile number + its dial code. Required, never OTP-verified.
+  const [phone, setPhone] = useState('');
+  const [dialCode, setDialCode] = useState('+91');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -125,11 +154,21 @@ export default function Auth() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Signup requires a valid mobile number. `required` on the input only catches
+    // an empty field — a half-typed number would still submit without this.
+    if (!isLogin && !phoneValid(phone, dialCode)) {
+      toast.error(`Enter a valid ${phoneMax(dialCode)}-digit mobile number`);
+      return;
+    }
+
     setLoading(true);
 
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/signup';
-      const payload = isLogin ? { email, password } : { email, password, role };
+      const payload = isLogin
+        ? { email, password }
+        : { email, password, role, phone: onlyDigits(phone), dial_code: dialCode };
 
       const { data } = await axios.post(`${API}${endpoint}`, payload);
 
@@ -393,6 +432,56 @@ export default function Auth() {
               data-testid="email-input"
             />
           </motion.div>
+
+          {/* Mobile number — signup only, required, no OTP */}
+          <AnimatePresence>
+            {!isLogin && (
+              <motion.div
+                className="ap-field"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <label className="ap-label" htmlFor="phone">
+                  <Phone size={15} /> Mobile Number
+                </label>
+                <div className="ap-phone-row">
+                  <select
+                    className="ap-dial"
+                    value={dialCode}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setDialCode(next);
+                      setPhone((cur) => normalisePhone(cur, next));
+                    }}
+                    aria-label="Country dial code"
+                    data-testid="dial-code-select"
+                  >
+                    {DIAL_CODES.map((d) => (
+                      <option key={d.code} value={d.code}>{d.code}</option>
+                    ))}
+                  </select>
+                  <input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    maxLength={phoneMax(dialCode)}
+                    value={phone}
+                    onChange={(e) => setPhone(normalisePhone(e.target.value, dialCode))}
+                    className="ap-input input-field"
+                    placeholder={`${phoneMax(dialCode)}-digit number`}
+                    required
+                    data-testid="phone-input"
+                  />
+                </div>
+                {phone && !phoneValid(phone, dialCode) && (
+                  <span className="ap-field-error">Enter a valid {phoneMax(dialCode)}-digit mobile number.</span>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Password */}
           <motion.div
@@ -938,6 +1027,35 @@ export default function Auth() {
           border-color: #6366F1 !important;
           background: #ffffff !important;
           box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+        }
+
+        /* Mobile number: dial-code select + national number, one row */
+        .ap-phone-row {
+          display: grid;
+          grid-template-columns: 92px minmax(0, 1fr);
+          gap: 8px;
+        }
+        .ap-dial {
+          background: #F8FAFC;
+          border: 1.5px solid #E2E8F0;
+          border-radius: 12px;
+          color: #0F172A;
+          font-family: var(--font-body);
+          font-size: 0.95rem;
+          font-weight: 600;
+          padding: 13px 10px;
+          cursor: pointer;
+          transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+        }
+        .ap-dial:focus {
+          outline: none;
+          border-color: #6366F1;
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+        .ap-field-error {
+          font-size: 0.78rem;
+          color: #DC2626;
         }
 
         /* Password field show/hide toggle */

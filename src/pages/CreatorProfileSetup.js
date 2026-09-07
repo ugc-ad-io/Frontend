@@ -501,6 +501,20 @@ export default function CreatorProfileSetup() {
   // for "more info" (or just re-editing) doesn't have to re-enter everything.
   // The submit spreads `...data` into the saved profile, so its keys line up
   // 1:1 with the form state; portfolio is restored from the structured items.
+  // The mobile number is captured at signup and stored on the user (not under
+  // `profile`), so carry it into the contact step instead of asking for it twice.
+  // Runs on its own — a fresh signup has no `profile` yet, so the prefill below
+  // never fires for them. Never overwrites a number already typed here.
+  useEffect(() => {
+    const signupPhone = user?.phone;
+    if (!signupPhone) return;
+    setData((d) => (d.phone ? d : {
+      ...d,
+      dialCode: user.dial_code || d.dialCode,
+      phone: normalisePhone(signupPhone, user.dial_code || d.dialCode),
+    }));
+  }, [user?.phone, user?.dial_code]);
+
   useEffect(() => {
     const pr = user?.profile;
     if (prefilledRef.current || !pr || typeof pr !== 'object' || !Object.keys(pr).length) return;

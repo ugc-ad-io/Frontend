@@ -3739,13 +3739,17 @@ export default function Landing() {
           <div className="lp-footer__main">
             <div className="lp-footer__brand">
               <div className="lp-footer__logo-wrap">
-                <img src="/newlogo.png" alt="UGCad" className="lp-footer__logo" />
+                {/* /newlogo.png is a partial export — it contains only the periwinkle
+                    "UGC" (no "ad.io", no mark) floating in a large empty margin, which is
+                    why the footer brand rendered as a stray "UGC". /ugcad-logo.png is the
+                    full lockup the navbar already uses. */}
+                <img src="/ugcad-logo.png" alt="UGCad.io" className="lp-footer__logo" />
               </div>
               <p className="lp-footer__tagline">
                 Built for brands who think long-term.
               </p>
               <div className="lp-footer__socials">
-                <a href="#" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
+                <a href="https://www.instagram.com/ugcad.app/" target="_blank" rel="noreferrer" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
                 <a href="#" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
                 <a href="#" aria-label="X" className="lp-footer__social-btn"><Twitter size={16} /></a>
                 <a href="#" aria-label="YouTube" className="lp-footer__social-btn"><Youtube size={16} /></a>
@@ -3974,6 +3978,31 @@ export default function Landing() {
         /* Fade mask removed — it was washing out the hero heading with a soft gradient
            ("shadow") as it scrolled up behind the nav. */
         .lp-navbar::before { display: none; }
+
+        /* .lp-navbar--scrolled had no paint at all, so past the hero the logo and the
+           Log in / Join buttons sat unboxed straight over the page and whatever scrolled
+           under them read through. The BAR still stays transparent (an edge-to-edge band
+           across the content is not wanted); the floating inner row becomes the painted
+           island instead, and the links pill drops its own background so the two do not
+           nest. Same treatment as the creator page, so the two headers stay identical. */
+        .lp-navbar--scrolled .lp-navbar__inner {
+          box-sizing: border-box;
+          background: rgba(255, 255, 255, 0.88);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(28, 27, 75, 0.08);
+          border-radius: 999px;
+          box-shadow: 0 12px 32px rgba(28, 27, 75, 0.12);
+          /* Bleed 14px outward and pay it back as padding so nothing in the bar shifts
+             sideways the moment the page starts scrolling (base padding is 0 4px). */
+          margin: 0 -14px;
+          width: calc(100% + 28px);
+          padding: 0 18px;
+        }
+        .lp-navbar--scrolled .lp-navbar__links {
+          background: transparent; border-color: transparent; box-shadow: none;
+          backdrop-filter: none; -webkit-backdrop-filter: none;
+        }
 
         .lp-navbar__inner {
           position: relative;
@@ -8412,6 +8441,18 @@ export default function Landing() {
             max-width: none;
           }
           .lp-navbar__inner { height: 48px; padding: 0 5%; gap: 16px; }
+          /* Opaque, not blurred: a fixed element with a live blur re-samples the page on
+             every scroll frame, the single biggest scroll cost on a phone. The 5% padding
+             above is left alone so the logo and burger do not move when the paint appears
+             — it just reads as breathing room inside the pill. */
+          .lp-navbar--scrolled .lp-navbar__inner {
+            background: #ffffff;
+            border: 1px solid rgba(28, 27, 75, 0.08);
+            border-radius: 999px;
+            box-shadow: 0 8px 24px rgba(28, 27, 75, 0.14);
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+            margin: 0; width: 100%;
+          }
           .lp-navbar__links { display: none; }
           .lp-nav-join { display: none; }
           .lp-navbar__actions { display: none; }

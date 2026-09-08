@@ -926,13 +926,17 @@ export default function CreatorLanding() {
           <div className="lp-footer__main">
             <div className="lp-footer__brand">
               <div className="lp-footer__logo-wrap">
-                <img src="/newlogo.png" alt="UGCad" className="lp-footer__logo" />
+                {/* /newlogo.png is a partial export — it contains only the periwinkle
+                    "UGC" (no "ad.io", no mark) floating in a large empty margin, which is
+                    why the footer brand rendered as a stray "UGC". /ugcad-logo.png is the
+                    full lockup the navbar already uses. */}
+                <img src="/ugcad-logo.png" alt="UGCad.io" className="lp-footer__logo" />
               </div>
               <p className="lp-footer__tagline">
                 Built for brands who think long-term.
               </p>
               <div className="lp-footer__socials">
-                <a href="#" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
+                <a href="https://www.instagram.com/ugcad.app/" target="_blank" rel="noreferrer" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
                 <a href="#" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
                 <a href="#" aria-label="X" className="lp-footer__social-btn"><Twitter size={16} /></a>
                 <a href="#" aria-label="YouTube" className="lp-footer__social-btn"><Youtube size={16} /></a>
@@ -1299,9 +1303,35 @@ export default function CreatorLanding() {
           padding-inline: max(4%, calc((100% - 1320px) / 2));
           transition: top 0.3s ease;
         }
-        /* Deliberately empty of paint: the pill below is the only background in the bar, so
-           there is nothing to fill in on scroll the way the old solid bar did. */
+        /* The BAR stays unpainted — an edge-to-edge cream band slicing across the content
+           is the thing that was removed here, and it is not coming back. What DID break:
+           with nothing painted at all, the logo and the Log in / Join as Creator buttons
+           sat unboxed directly over whatever scrolled beneath them, so page text read
+           straight through them (the FAQ cards showed through the bar). So once scrolled,
+           the floating INNER row becomes the painted island instead — same glass treatment
+           the links pill already had, now covering the whole row. The links pill drops its
+           own background at the same time so there is no pill-inside-a-pill. */
         .cl-nav--scrolled { background: transparent; border-bottom: none; backdrop-filter: none; }
+        .cl-nav--scrolled .cl-nav__inner {
+          box-sizing: border-box;
+          background: rgba(255, 255, 255, 0.88);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(28, 27, 75, 0.08);
+          border-radius: 999px;
+          box-shadow: 0 12px 32px rgba(28, 27, 75, 0.12);
+          /* Bleed the pill 14px outward and pay it back as padding, so the logo and the
+             buttons stay on the exact pixel they sit on at rest. Adding padding alone
+             would shove the whole row sideways the instant the page starts scrolling.
+             Base padding here is 0 4px, so -14 + 18 lands back on 4. */
+          margin: 0 -14px;
+          width: calc(100% + 28px);
+          padding: 0 18px;
+        }
+        .cl-nav--scrolled .cl-nav__links {
+          background: transparent; border-color: transparent; box-shadow: none;
+          backdrop-filter: none; -webkit-backdrop-filter: none;
+        }
         .cl-nav__inner {
           position: relative;
           display: grid; grid-template-columns: 1fr auto 1fr;
@@ -1854,6 +1884,24 @@ export default function CreatorLanding() {
             background: transparent;
             backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
           }
+          /* Same painted island as desktop, but OPAQUE instead of blurred. The perf
+             argument above still holds — a fixed element with a live blur re-samples
+             everything behind it on every scroll frame — and an opaque panel costs
+             nothing while still stopping section headings from reading through the
+             logo and the burger. */
+          .cl-nav--scrolled .cl-nav__inner {
+            box-sizing: border-box;
+            background: var(--cl-panel);
+            border: 1px solid rgba(var(--cl-fg), 0.10);
+            border-radius: 999px;
+            box-shadow: 0 8px 24px rgba(28, 27, 75, 0.14);
+            /* Base padding is 0 at this width, so -14 + 14 keeps the logo and the burger
+               exactly where they sit before the page scrolls. */
+            margin: 0 -14px;
+            width: calc(100% + 28px);
+            padding: 0 14px;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+          }
           /* The links pill is display:none at this width, but it carries its own blur(14px);
              killing it here too keeps the rule honest if the pill is ever shown on mobile. */
           .cl-nav__links {
@@ -1939,8 +1987,20 @@ export default function CreatorLanding() {
              phone off-screen — use a scaling % shift so the phone + product card fit. */
           /* Bottom-aligned content, so push the whole composition down with translateY. */
           .cl-hiw__visual--phone { min-height: 300px; transform: translateY(30px); }
-          .cl-hiw__phone { width: 60%; transform: translateX(34%); min-height: 300px; }
-          .cl-hiw__prodfront { left: 0; bottom: 60px; width: 56%; max-width: 200px; }
+          /* The phone is centred first, THEN translated, so its right edge lands at
+             50% + width/2 + width x shift. At width:60%/shift:34% that resolved to
+             100.4% — just past the card, which clips it (.cl-hiw__card is
+             overflow:hidden), so the brand grid was sliced down its right side. 26%
+             puts the edge at 95.6% and keeps a margin. The product card moves left by
+             the same amount so the layered overlap stays the size it was designed at
+             instead of growing over the "boAt" chip. */
+          .cl-hiw__phone { width: 60%; transform: translateX(26%); min-height: 300px; }
+          .cl-hiw__prodfront { left: -4%; bottom: 60px; width: 54%; max-width: 190px; }
+          /* 1.6rem needs ~160px; the phone is ~130px wide inside its padding at this
+             breakpoint, so "Choose brand" broke onto two lines and ate a grid row. */
+          .cl-hiw__choosehead { font-size: 1.15rem; }
+          .cl-hiw__brandcard { padding: 12px 6px; }
+          .cl-bc { font-size: 0.9rem; }
           .cl-hiw__text { font-size: 0.95rem; }
           .cl-hiw__chip { font-size: 0.7rem; padding: 6px 10px; }
           .cl-hiw__chip--likes { left: 4%; top: 5%; }

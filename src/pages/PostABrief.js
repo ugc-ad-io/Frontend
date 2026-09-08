@@ -17,20 +17,29 @@ const isUploadedUrl = (v) => typeof v === 'string' && /\/uploads?\//i.test(v);
 
 const DRAFT_KEY = 'ugcad-brand-brief-draft-v2';
 const DRAFT_ID_KEY = 'ugcad-brand-brief-draft-id-v2';
+// Which account the local draft belongs to. Browsers get shared / accounts get
+// switched, and a draft left behind by another brand can't be saved by this one
+// (the server 403s "You can only edit your own campaigns") and carries the wrong
+// brand name — so a draft from a different user is dropped, not loaded.
+const DRAFT_OWNER_KEY = 'ugcad-brand-brief-draft-owner-v2';
 const COMMISSION_RATE = 0.20;
 
-// Listing fee is tiered by the size of the brief. `deliverables` is the number of
-// deliverable rows (the wizard caps this at 5); `creators` is creators_wanted.
+// Listing fee, tiered by the size of the brief. `creators` is creators_wanted and
+// `deliverables` is the TOTAL number of assets asked for (the sum of every row's
+// quantity), so 1 creator x 3 Reels counts as 3 deliverables, not 1.
 //   1 creator,  1 deliverable      -> Rs. 500
-//   1 creator,  2–5 deliverables   -> Rs. 1,500
+//   1 creator,  2+ deliverables    -> Rs. 1,500
 //   2–10 creators                  -> Rs. 1,500
 //   11+ creators                   -> Rs. 3,000
+// Mirrors campaign_listing_fee() in the backend's server.py — keep the two in sync;
+// the backend is what actually debits the wallet.
 function listingFeeFor(creators, deliverables) {
-  // Flat listing fee — it does NOT multiply by the number of creators hired (the
-  // backend charges a single flat listing_fee setting). Only the deliverable count
-  // nudges it, matching the platform's one-time listing charge.
+  // Charged ONCE per brief — it never multiplies by the number of creators hired.
+  const c = Math.max(1, Number(creators) || 1);
   const d = Math.max(1, Number(deliverables) || 1);
-  return d <= 1 ? 500 : 1500;
+  if (c >= 11) return 3000;   // large multi-creator campaign
+  if (c > 1) return 1500;     // multi-creator campaign (2–10)
+  return d > 1 ? 1500 : 500;  // single creator: 1 deliverable vs 2+
 }
 
 const STEPS = [
@@ -66,15 +75,49 @@ const PRODUCT_TYPES = [
 ];
 const typeNeedsShipping = (t) => t === 'physical';
 
-const CATEGORIES = ['Beauty', 'Tech', 'Fitness', 'Fashion', 'Travel', 'Food', 'Gaming', 'Lifestyle', 'Home Decor', 'Wellness'];
+// Campaign categories. Grouped only so the <select> stays readable — CATEGORIES
+// (the flat list) is what validation and matching use. Picking OTHER_CATEGORY
+// opens a free-text box (form.customCategory) so a brand is never blocked by a
+// niche this list doesn't cover.
+const CATEGORY_GROUPS = [
+  { group: 'Beauty & Personal Care', items: ['Beauty', 'Skincare', 'Haircare', 'Makeup', 'Personal Care', 'Fragrance'] },
+  { group: 'Fashion & Accessories', items: ['Fashion', 'Footwear', 'Jewellery & Accessories', 'Watches & Eyewear', 'Bags & Luggage'] },
+  { group: 'Health & Fitness', items: ['Fitness', 'Wellness', 'Health & Supplements', 'Sports & Outdoors', 'Healthcare & Clinics'] },
+  { group: 'Food & Beverage', items: ['Food', 'Beverages', 'Restaurants & Cafes', 'Packaged Food & Snacks'] },
+  { group: 'Home & Living', items: ['Home Decor', 'Kitchen & Appliances', 'Furniture', 'Cleaning & Household', 'Garden & Outdoor'] },
+  { group: 'Tech & Digital', items: ['Tech', 'Mobile & Gadgets', 'Apps & Software', 'SaaS & B2B', 'Gaming', 'AI Tools'] },
+  { group: 'Money & Learning', items: ['Finance & Fintech', 'Insurance', 'Education & Edtech', 'Courses & Coaching', 'Books & Stationery', 'Jobs & Careers'] },
+  { group: 'Travel & Auto', items: ['Travel', 'Hotels & Stays', 'Automotive', 'Bikes & EV'] },
+  { group: 'Family & Pets', items: ['Baby & Kids', 'Parenting', 'Toys & Games', 'Pets'] },
+  { group: 'Lifestyle & Services', items: ['Lifestyle', 'Entertainment & Media', 'Events & Experiences', 'Real Estate', 'Astrology & Spiritual', 'NGO & Social Causes', 'Local Services'] },
+];
+const OTHER_CATEGORY = 'Other';
+const CATEGORIES = [...CATEGORY_GROUPS.flatMap((g) => g.items), OTHER_CATEGORY];
+// What actually gets stored / sent: the typed text when "Other" is picked.
+const resolvedCategory = (f) => (f.category === OTHER_CATEGORY ? f.customCategory.trim() : f.category);
+
+// The one place that decides which name a campaign is published under. Mirrors
+// the backend (create_campaign reads profile.business_name), so what the wizard
+// shows is what creators will see on the brief.
+const brandNameOf = (profile, user) => String(
+  (profile || {}).brand_name
+  || (user?.profile || {}).business_name
+  || user?.business_name
+  || user?.full_name
+  || user?.nickname
+  || ''
+).trim().replace(/^@+/, '');
 // Map a stored category (any case / phrasing) to one of CATEGORIES so the <select>
 // pre-selects it. e.g. "beauty" / "Beauty & Skincare" -> "Beauty".
 const matchCategory = (...raws) => {
+  const pool = CATEGORIES.filter((c) => c !== OTHER_CATEGORY);
   for (const raw of raws) {
     const s = String(raw || '').trim().toLowerCase();
     if (!s) continue;
-    const hit = CATEGORIES.find((c) => c.toLowerCase() === s)
-      || CATEGORIES.find((c) => s.includes(c.toLowerCase()) || c.toLowerCase().includes(s));
+    const hit = pool.find((c) => c.toLowerCase() === s)
+      // Fuzzy-match only on something long enough to be meaningful, else a very
+      // short stored value latches onto an unrelated category.
+      || (s.length >= 3 && pool.find((c) => s.includes(c.toLowerCase()) || c.toLowerCase().includes(s)));
     if (hit) return hit;
   }
   return '';
@@ -135,6 +178,7 @@ const initialForm = {
   image: '',
   brandName: '',
   category: '',
+  customCategory: '',         // free text when category === 'Other'
   productType: 'physical',     // physical | digital | service | promo | other
   customProductType: '',       // free text when productType === 'other'
   productName: '',
@@ -222,7 +266,14 @@ function mapCampaignToForm(c) {
   const put = (key, value) => { if (value !== undefined && value !== null && value !== '') out[key] = value; };
   put('campaignName', c.title);
   put('brandName', c.brand_name);
-  put('category', c.product_category || c.category);
+  // A stored category that isn't one of ours (older campaign, or an "Other"
+  // free-text one) still has to round-trip — park it in the Other box.
+  const storedCategory = String(c.product_category || c.category || '').trim();
+  if (storedCategory) {
+    const known = CATEGORIES.find((x) => x.toLowerCase() === storedCategory.toLowerCase() && x !== OTHER_CATEGORY);
+    if (known) { out.category = known; out.customCategory = ''; }
+    else { out.category = OTHER_CATEGORY; out.customCategory = storedCategory; }
+  }
   if (PRODUCT_TYPES.some(p => p.value === c.product_type)) put('productType', c.product_type);
   if (c.product_type_detail) put('customProductType', c.product_type_detail);
   put('productName', c.product_name);
@@ -352,6 +403,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const [subStep, setSubStep] = useState(0);
   const [reviewTab, setReviewTab] = useState(0);   // active section on Review & Publish
   const [form, setForm] = useState(initialForm);
+  // Name pulled from the brand profile; kept in a ref so the draft-resume effect
+  // can re-assert it over anything an older draft saved.
+  const brandFromProfile = useRef('');
   const subs = subsFor(step);
   useEffect(() => { setSubStep(0); }, [step]);
   const [moodUploading, setMoodUploading] = useState(false);
@@ -391,7 +445,18 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const [savingDraft, setSavingDraft] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(DRAFT_KEY);
+    const owner = localStorage.getItem(DRAFT_OWNER_KEY);
+    const foreignDraft = !!(user?.id && owner && owner !== String(user.id));
+    if (foreignDraft) {
+      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(DRAFT_ID_KEY);
+      localStorage.removeItem(DRAFT_OWNER_KEY);
+      setDraftId(null);
+      setForm(initialForm);
+    }
+    if (user?.id) localStorage.setItem(DRAFT_OWNER_KEY, String(user.id));
+
+    const saved = foreignDraft ? null : localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
         setForm({ ...initialForm, ...JSON.parse(saved) });
@@ -404,9 +469,16 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       .then(res => {
         const profile = res.data || {};
         const up = user?.profile || {};
+        // Brand name is not a free field: the published campaign always carries
+        // the brand profile's name (the server sets brand_name from
+        // profile.business_name and re-cascades it on every profile save). So the
+        // live profile value wins over whatever a stale localStorage draft holds —
+        // that mismatch is what used to show a different brand name here.
+        const fromProfile = brandNameOf(profile, user);
+        brandFromProfile.current = fromProfile;
         setForm(current => ({
           ...current,
-          brandName: current.brandName || profile.brand_name || user?.nickname || user?.full_name || '',
+          brandName: fromProfile || current.brandName,
           // Pre-select the brand's category by default (still changeable).
           category: current.category || matchCategory(
             profile.primary_category, profile.business_category, profile.industry_category,
@@ -416,7 +488,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         }));
       })
       .catch(() => {
-        setForm(current => ({ ...current, brandName: current.brandName || user?.business_name || user?.full_name || String(user?.nickname || '').replace(/^@+/, '') || '' }));
+        const fallback = brandNameOf(null, user);
+        brandFromProfile.current = fallback;
+        setForm(current => ({ ...current, brandName: fallback || current.brandName }));
       });
   }, [user?.id]);
 
@@ -432,7 +506,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       .then(res => {
         const mapped = mapCampaignToForm(res.data);
         if (Object.keys(mapped).length) {
-          setForm(current => ({ ...current, ...mapped }));
+          // Same rule as above: a draft's saved brand name never overrides the
+          // brand profile, which is what the published campaign will show.
+          setForm(current => ({ ...current, ...mapped, brandName: brandFromProfile.current || mapped.brandName || current.brandName }));
           toast.success('Draft loaded — continue where you left off');
         }
       })
@@ -456,7 +532,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         // source campaign was saved WITHOUT the structured brief (backend wasn't
         // running the strict:false Campaign model when it was created).
         console.log('[Duplicate] fields copied:', n, mapped, '\nraw campaign:', res.data);
-        setForm(current => ({ ...current, ...mapped }));
+        // Brand name stays the profile's, never the copied campaign's.
+        setForm(current => ({ ...current, ...mapped, brandName: brandFromProfile.current || mapped.brandName || current.brandName }));
         toast.success(`Copied brief loaded — ${n} field${n === 1 ? '' : 's'} carried over. Edit and publish.`);
       })
       .catch(() => toast.error('Could not load that brief to duplicate'));
@@ -483,7 +560,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const creatorsCount = Math.max(1, Number(form.creatorsWanted) || 1);
   const totalBudget = budget * creatorsCount;                 // e.g. ₹3,000 × 4 = ₹12,000
   const commission = Math.round(totalBudget * COMMISSION_RATE); // commission on the overall total
-  const listingFee = listingFeeFor(form.creatorsWanted, form.deliverables.length); // flat — not per creator
+  // Total assets the brief asks for = sum of every deliverable row's quantity. Same
+  // count the backend uses for escrow, so the fee tier shown here matches the debit.
+  const totalDeliverables = form.deliverables.reduce((sum, item) => sum + Math.max(1, Number(item.quantity) || 1), 0);
+  const listingFee = listingFeeFor(creatorsCount, totalDeliverables); // charged once — not per creator
   const totalDebit = totalBudget + commission + listingFee;
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
   // Only a physical product ships. Everything else skips shipping date + address + receipt.
@@ -574,7 +654,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   };
 
   const isStepValid = (target = step) => {
-    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && (form.productType !== 'other' || form.customProductType.trim().length > 0) && form.productName.trim().length > 0 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && form.category && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
+    if (target === 1) return form.campaignName.trim().length >= 3 && form.campaignName.trim().length <= 80 && (form.productType !== 'other' || form.customProductType.trim().length > 0) && form.productName.trim().length > 0 && form.productDescription.trim().length >= 20 && form.campaignHook.trim().length >= 10 && form.keyMessage.trim().length >= 10 && !!resolvedCategory(form) && form.objectives.length > 0 && form.targetAudience.trim().length >= 50 && form.targetAudience.trim().length <= 200;
     if (target === 2) return form.deliverables.length > 0 && form.deliverables.every(item => item.type && item.quantity >= 1 && item.quantity <= 5 && item.aspectRatios.length > 0 && (!isVideoDeliverable(item.type) || item.duration));
     if (target === 3) return (!form.productVisible || form.visibilitySeconds) && (!form.verbalMention || form.productNames) && form.callToAction && (form.callToAction !== 'Use code' || form.promoCode) && (!CTA_INPUT[form.callToAction] || ctaLinkValid(form.callToAction, form.ctaLink));
     if (target === 4) return form.avoidText.length <= 200;
@@ -595,7 +675,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const stepFillPct = () => {
     const f = form;
     const all = [
-      f.campaignName.trim().length >= 3, !!f.category, f.productName.trim().length > 0, f.campaignHook.trim().length >= 10,
+      f.campaignName.trim().length >= 3, !!resolvedCategory(f), f.productName.trim().length > 0, f.campaignHook.trim().length >= 10,
       f.productDescription.trim().length >= 20, f.keyMessage.trim().length >= 10,
       f.objectives.length > 0, f.targetAudience.trim().length >= 50,
       f.deliverables.length > 0 && f.deliverables.every(d => d.type), f.deliverables.every(d => d.aspectRatios.length > 0),
@@ -618,6 +698,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       if (form.campaignHook.trim().length < 10) m.push('Campaign hook (min 10 chars)');
       if (form.keyMessage.trim().length < 10) m.push('Key message (min 10 chars)');
       if (!form.category) m.push('Category');
+      else if (form.category === OTHER_CATEGORY && !form.customCategory.trim()) m.push('Type your category');
       if (form.objectives.length === 0) m.push('Campaign objective');
       const ta = form.targetAudience.trim().length;
       if (ta < 50 || ta > 200) m.push('Target audience (50–200 chars)');
@@ -675,22 +756,38 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     setStep(target);
   };
 
+  // Push the brief to the account as a draft. Updates the existing server draft
+  // when we have one, but a stale id — deleted draft, or one left in this browser
+  // by another account (403 "You can only edit your own campaigns") — creates a
+  // fresh draft instead of failing the save.
+  const pushDraft = async (payload) => {
+    if (draftId) {
+      try {
+        await axios.patch(`${API}/campaigns/${draftId}`, payload);
+        return draftId;
+      } catch (err) {
+        const code = err?.response?.status;
+        if (code !== 403 && code !== 404) throw err;
+        setDraftId(null);
+        localStorage.removeItem(DRAFT_ID_KEY);
+      }
+    }
+    const res = await axios.post(`${API}/campaigns/draft`, payload);
+    const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
+    if (newId) {
+      setDraftId(newId);
+      localStorage.setItem(DRAFT_ID_KEY, newId);
+      if (user?.id) localStorage.setItem(DRAFT_OWNER_KEY, String(user.id));
+    }
+    return newId;
+  };
+
   const saveDraft = async () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
     if (savingDraft) return;
     setSavingDraft(true);
     try {
-      const payload = buildPayload();
-      if (draftId) {
-        await axios.patch(`${API}/campaigns/${draftId}`, payload);
-      } else {
-        const res = await axios.post(`${API}/campaigns/draft`, payload);
-        const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
-        if (newId) {
-          setDraftId(newId);
-          localStorage.setItem(DRAFT_ID_KEY, newId);
-        }
-      }
+      await pushDraft(buildPayload());
       toast.success('Draft saved to your account');
       if (onDraftSaved) onDraftSaved();
     } catch (error) {
@@ -725,14 +822,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     if (snapshot === lastAutoSaveRef.current) return;   // nothing changed
     lastAutoSaveRef.current = snapshot;
     try {
-      const payload = buildPayload();
-      if (draftId) {
-        await axios.patch(`${API}/campaigns/${draftId}`, payload);
-      } else {
-        const res = await axios.post(`${API}/campaigns/draft`, payload);
-        const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
-        if (newId) { setDraftId(newId); localStorage.setItem(DRAFT_ID_KEY, newId); }
-      }
+      await pushDraft(buildPayload());
       setDraftSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch {
       // Server save failed — the localStorage copy still has everything.
@@ -765,14 +855,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     async saveDraftNow() {
       if (publishedRef.current || !briefHasContent(form)) return false;  // nothing worth keeping
       try {
-        const payload = buildPayload();
-        if (draftId) {
-          await axios.patch(`${API}/campaigns/${draftId}`, payload);
-        } else {
-          const res = await axios.post(`${API}/campaigns/draft`, payload);
-          const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
-          if (newId) { setDraftId(newId); localStorage.setItem(DRAFT_ID_KEY, newId); }
-        }
+        await pushDraft(buildPayload());
         // Stop the unmount handler re-sending the identical payload a tick later.
         lastAutoSaveRef.current = JSON.stringify(form);
         toast.success('Draft saved — pick it up from the Drafts tab.');
@@ -811,7 +894,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     return [
       `Campaign: ${form.campaignName}`,
       `Brand: ${form.brandName}`,
-      `Category: ${form.category}`,
+      `Category: ${resolvedCategory(form)}`,
       `Product: ${form.productName}`,
       `Product description: ${form.productDescription}`,
       `Hook: ${form.campaignHook}`,
@@ -856,8 +939,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       revision_limit: Number(form.revisions || 0),
       creators_wanted: Math.max(1, Number(form.creatorsWanted) || 1),
       product_name: form.productName,
-      category: form.category,
-      product_category: form.category,
+      category: resolvedCategory(form),
+      product_category: resolvedCategory(form),
       product_description: form.productDescription,
       brief_type: primaryDeliverable.type,
       campaign_hook: form.campaignHook,
@@ -929,6 +1012,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     publishedRef.current = true;   // brief published — don't auto-save on unmount
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(DRAFT_ID_KEY);
+    localStorage.removeItem(DRAFT_OWNER_KEY);
     setDraftId(null);
   };
 
@@ -957,8 +1041,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           await axios.post(`${API}/campaigns/${draftId}/submit`);
           promoted = true;
         } catch (err) {
-          // Stale/missing draft (e.g. already submitted) — fall back to a fresh brief.
-          if (err?.response?.status !== 404) throw err;
+          // Stale/missing draft (already submitted, deleted, or left behind by
+          // another account) — fall back to publishing a fresh brief.
+          const code = err?.response?.status;
+          if (code !== 404 && code !== 403) throw err;
         }
       }
       if (!promoted) {
@@ -1126,8 +1212,36 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 </div>
 
                 <div className="form-row">
-                  <div className="form-group"><label>Brand name</label><input className="input-field" value={form.brandName} disabled /></div>
-                  <div className="form-group"><label>Category *</label><select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}><option value="">Select category</option>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select></div>
+                  <div className="form-group">
+                    <label>Brand name</label>
+                    <input className="input-field" value={form.brandName} disabled />
+                    <small style={{ display: 'block', marginTop: 6, color: '#64748b', fontSize: 12 }}>
+                      {form.brandName
+                        ? 'Comes from your brand profile — every campaign is published under this name. '
+                        : 'No brand name on your profile yet. '}
+                      <button type="button" onClick={() => navigate('/settings')}
+                        style={{ background: 'none', border: 0, padding: 0, color: '#4f46e5', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
+                        {form.brandName ? 'Change it in Brand profile' : 'Add it in Brand profile'}
+                      </button>
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Category *</label>
+                    <select className="input-field" value={form.category} onChange={e => set('category', e.target.value)}>
+                      <option value="">Select category</option>
+                      {CATEGORY_GROUPS.map(g => (
+                        <optgroup key={g.group} label={g.group}>
+                          {g.items.map(item => <option key={item} value={item}>{item}</option>)}
+                        </optgroup>
+                      ))}
+                      <option value={OTHER_CATEGORY}>Other (type your own)</option>
+                    </select>
+                    {form.category === OTHER_CATEGORY && (
+                      <input className="input-field" style={{ marginTop: 10 }} maxLength={40}
+                        placeholder="Your category (e.g. Drones, Stationery, Solar)"
+                        value={form.customCategory} onChange={e => set('customCategory', e.target.value)} />
+                    )}
+                  </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group"><label>{needsShipping ? 'Product name *' : 'What are you promoting? (name) *'}</label><input className="input-field" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder={needsShipping ? 'Glow Serum 30ml' : 'e.g. FitTrack App, City Cafe, Summer Sale'} /></div>
@@ -1309,7 +1423,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   {creatorsCount > 1 && <p>Creators wanted <strong>× {creatorsCount}</strong></p>}
                   <p>Total budget{creatorsCount > 1 ? ` (${budget.toLocaleString('en-IN')} × ${creatorsCount})` : ''} <strong>Rs. {totalBudget.toLocaleString('en-IN')}</strong></p>
                   <p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p>
-                  <p>Listing fee (flat) <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p>
+                  <p>Listing fee (one-time) <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p>
                   <p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p>
                 </div>
               </>
@@ -1317,7 +1431,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
             {step === 8 && (() => {
               const reviewSections = [
-                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', form.category], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
+                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', resolvedCategory(form)], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
                 { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}`]) },
                 { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ...(CTA_INPUT[form.callToAction] ? [[CTA_INPUT[form.callToAction].label, form.ctaLink || 'None']] : []), ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
                 { title: 'Must-Avoid Checklist', rows: [['Restrictions', avoidRules]] },

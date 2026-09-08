@@ -184,7 +184,7 @@ flowchart LR
 ```
 
 **Key facts (verified in code):**
-- Platform commission ≈ **20–25%** + **₹500 listing fee** per brief (`AdminSettings`, PostABrief Step 7).
+- Platform commission ≈ **20–25%** + a one-time **tiered listing fee** per brief — ₹500 (1 creator, 1 deliverable), ₹1,500 (1 creator with 2+ deliverables, or 2–10 creators), ₹3,000 (11+ creators). Prices are editable in `AdminSettings`; shown in PostABrief Step 7.
 - **Revisions:** first 2 free; ₹500 each after; admin escalation past 5 (`creator_features.py`, `server.py:5610`).
 - **Late delivery penalty** ladder: minor 5% / moderate 10% / severe 15% (`server.py:5222`, `:5474`).
 - **Auto-approval:** unreviewed work auto-approves & pays creator after **5 days** (`server.py:5434`).

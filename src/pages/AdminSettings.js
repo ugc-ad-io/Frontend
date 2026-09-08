@@ -12,7 +12,11 @@ const API = `${BACKEND_URL}/api`;
 
 const NUMERIC_FIELDS = [
   ['commission_rate', 'Commission rate (%)'],
-  ['listing_fee', 'Listing fee (₹)'],
+  // Listing fee is tiered by brief size (see campaign_listing_fee() in the backend).
+  ['listing_fee', 'Listing fee — 1 creator, 1 deliverable (₹)'],
+  ['listing_fee_multi_deliverable', 'Listing fee — 1 creator, 2+ deliverables (₹)'],
+  ['listing_fee_multi_creator', 'Listing fee — 2–10 creators (₹)'],
+  ['listing_fee_large_campaign', 'Listing fee — 11+ creators (₹)'],
   ['revision_price', 'Revision price (₹)'],
   ['auto_approval_days', 'Auto-approval timer (days)'],
   ['late_ship_fee_per_day', 'Late-ship fee / day (₹)'],

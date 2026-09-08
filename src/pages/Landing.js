@@ -5522,18 +5522,24 @@ export default function Landing() {
           margin: 6px 0 0; font-family: var(--font-body);
           font-size: 13.5px; line-height: 1.5; color: rgba(23, 19, 52, .72);
         }
-        /* FULL-BLEED across the card. contain was letterboxing these portrait clips into a
-           landscape window, so most of the width showed card colour instead of video. cover
-           fills the box edge-to-edge; the 4/3 window (rather than a wider 16/10) keeps the
-           crop off a portrait source modest, and object-position biases upward so the crop
-           takes it off the bottom of frame rather than off the subject's head. */
+        /* TRUE RATIO. Every clip in this deck is 288x512 (9:16), so the previous
+           full-bleed 4/3 window threw away ~65% of each frame — cropped to a letterbox
+           strip of the creator's face with the product out of shot, which is what read as
+           "wrong ratio". The window is portrait now, so nothing is cropped at all; the
+           width is capped instead (rather than going full-bleed at 9/16, which would make
+           the card ~600px tall and push the CTA off a phone screen). */
         .lp-svcm__video {
-          margin-top: 14px; border-radius: 14px; overflow: hidden;
-          aspect-ratio: 4 / 3; background: rgba(0,0,0,.10);
+          /* Width is capped by BOTH the card (52%) and the viewport height (21vh), because
+             this deck is pinned: the whole card has to fit one screen or its CTA becomes
+             unreachable while the section is stuck. Height follows from the ratio, so a
+             short phone gets a smaller frame instead of a clipped card. */
+          margin: 14px auto 0; width: min(52%, 21vh);
+          border-radius: 14px; overflow: hidden;
+          aspect-ratio: 9 / 16; background: rgba(0,0,0,.10);
         }
         .lp-svcm__video video {
           width: 100%; height: 100%; display: block;
-          object-fit: cover; object-position: center 30%;
+          object-fit: cover; object-position: center center;
         }
         .lp-svcm__card-desc {
           margin: 14px 0 0; font-family: var(--font-body);
@@ -9946,7 +9952,13 @@ export default function Landing() {
           .lp-proof .lpz-col--badges { grid-column: 1 / -1; margin-left: 0; }
         }
         @media (max-width: 760px) {
-          .lp-proof { padding: 90px 5% 100px; }
+          /* 90px of section padding on top of the comparison section's own 70px bottom
+             padding left ~160px of blank page between the last "vs" card and this panel —
+             on a phone that reads as the page having ended. Trimmed to 36px here and 30px
+             there (66px total), which still separates the two sections without the void.
+             .lpv is set here, next to its other half, so the pair can't drift apart. */
+          .lpv { padding-bottom: 30px; }
+          .lp-proof { padding: 36px 5% 100px; }
           /* Taller, roomier card (was 34px 24px 30px / gap 24px). On a phone this panel is
              the whole section — one tall rounded block holding heading, copy, both CTAs and
              the shields — so it needs real internal margin or the content reads as crammed

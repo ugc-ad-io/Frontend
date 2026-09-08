@@ -679,11 +679,18 @@ export default function CreatorLanding() {
                     className={`cl-brands__logo${small ? ' cl-brands__logo--small' : ''}${large ? ' cl-brands__logo--large' : ''}${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
                     aria-hidden={i >= line.length}
                   >
+                    {/* NOT lazy. These sit in a translateX marquee inside overflow:hidden, so
+                        most of them are never in the viewport when the browser decides what to
+                        load — iOS Safari in particular then never loads them at all and the
+                        strip scrolls through visible holes. They are small transparent PNGs on
+                        a page that already streams video, so eager + async decode costs little
+                        and keeps every logo on screen. */}
                     <img
                       className="cl-brands__icon"
                       src={img}
                       alt={name}
-                      loading="lazy"
+                      loading="eager"
+                      decoding="async"
                       onError={(e) => { const t = e.currentTarget.closest('.cl-brands__logo'); if (t) t.style.display = 'none'; }}
                     />
                   </span>
@@ -1917,7 +1924,17 @@ export default function CreatorLanding() {
           .cl-brands__row { padding-top: 36px; gap: 22px; }
           .cl-hiw__card { padding: 24px 20px 0; }
           .cl-hiw__card--wide { padding: 24px 20px; }
-          .cl-hiw__paid { transform: rotate(4deg); }
+          .cl-hiw__paid { transform: rotate(4deg); padding: 24px 20px; gap: 11px; }
+          /* The product row is a 108px image + a 56px gap. Inside a phone-width card that
+             left ~120px for "Noise Canceling Earbuds", which broke it onto three lines and
+             pushed the price rows out of alignment. Shrink the thumb and the gap so the
+             label keeps its intended two lines. */
+          .cl-hiw__paidimg { width: 72px; height: 72px; }
+          .cl-hiw__paidrow--prod { gap: 18px; font-size: 1.05rem; }
+          .cl-hiw__paidrow--prod span { text-align: left; min-width: 0; }
+          .cl-hiw__paidh { font-size: 1.15rem; }
+          .cl-hiw__paidrow { font-size: 0.95rem; gap: 10px; }
+          .cl-hiw__check { width: 38px; height: 38px; font-size: 1rem; }
           /* "Pick a job" phone mockup: the desktop fixed translate(140px) overflowed the
              phone off-screen — use a scaling % shift so the phone + product card fit. */
           /* Bottom-aligned content, so push the whole composition down with translateY. */

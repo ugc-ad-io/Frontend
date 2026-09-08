@@ -2187,6 +2187,14 @@ export default function CreatorProfileSetup() {
         @media (max-width: 560px) {
           .ps-card { padding: 26px 22px; }
           .ps-row { grid-template-columns: 1fr; }
+          /* Compensation rows are label(130) + input(flex:1) + unit(120) + two 12px gaps
+             = 274px of fixed width. Inside a phone card that offers ~290px the input was
+             squeezed to a ~20px sliver you could not read what you typed in. Put the label
+             on its own line and let the input take the rest of the row beside the unit. */
+          .ps-comp { flex-wrap: wrap; row-gap: 8px; }
+          .ps-comp__label { width: 100%; }
+          .ps-comp .ps-input { flex: 1 1 0; min-width: 0; }
+          .ps-comp__period, .ps-comp__period--static { width: auto; min-width: 96px; }
           .ps-upload-row { grid-template-columns: 1fr; }
           .ps-upload__cta { display: none; }
           /* Portfolio upload: stack the upload box above the brand/description

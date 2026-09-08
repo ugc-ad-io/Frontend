@@ -1427,7 +1427,17 @@ export default function Auth() {
           .ap-shell.is-signup .ap-left { padding-left: 28px; }
           .ap-card { margin: 0 auto; width: 100%; }
           .ap-header { text-align: center; }
-          .ap-logo-wrap { justify-content: center; }
+          /* Single column: the shell now fills the screen, so the page-level brand mark
+             (absolute at 24/34 against .ap-root) landed INSIDE the card and sat on top of
+             the back arrow and the "Create account" heading. There is no free corner left
+             to put it in, so drop it here and bring back the card's own logo — centred
+             above the title, which is what the sibling justify-content rule below always
+             intended but could never do while .ap-logo-wrap was display:none. */
+          .ap-page-logo { display: none; }
+          .ap-logo-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+          /* 64px is the desktop card size; on a phone it crowds the heading. The 38px back
+             arrow sits at the same height on the far left, so the two share the row. */
+          .ap-logo { height: 40px; }
           /* .ap-back uses a negative margin-left (-34px, -66px on signup) to sit flush
              with the desktop form's wide left padding (74px/106px). Mobile resets that
              padding to 28px above but never reset the negative margin, so the button was

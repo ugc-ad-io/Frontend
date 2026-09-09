@@ -95,7 +95,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
     ] },
     { h: 'Deliverables', rows: deliverables.map((d, i) => [
       `Deliverable ${i + 1}`,
-      `${d.quantity || 1} x ${d.type || ''}${d.duration ? `; ${d.duration}` : ''}${d.aspect_ratios?.length ? `; ${d.aspect_ratios.join(', ')}` : ''}${d.raw_required ? '; raw files required' : ''}`,
+      `${d.quantity || 1} x ${d.type || ''}${d.duration ? `; ${d.duration}` : ''}${d.aspect_ratios?.length ? `; ${d.aspect_ratios.join(', ')}` : ''}; deliver ${d.edited_required ? 'raw footage + an edited cut' : 'raw footage only'}`,
     ]) },
     { h: 'Must include', rows: [
       ['Product visible', c.product_visible ? `${c.product_visible_seconds || ''}s minimum` : ''],

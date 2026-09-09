@@ -170,10 +170,10 @@ const createDeliverable = () => ({
   quantity: 1,
   duration: '',
   aspectRatios: ['9:16'],
-  // Creators hand over raw footage as a matter of course, so raw is the baseline.
-  // editedRequired is the brand additionally asking for a finished CUT - it is what
-  // opens the second upload slot on the creator's submission screen.
-  rawRequired: true,
+  // Raw footage is NOT a question: creators hand it over on every brief, so there is
+  // nothing for the brand to choose and the old "Raw file delivery required" toggle
+  // only ever produced a wrong answer. The single real question is whether a finished
+  // CUT is owed on top, and that is what opens the second upload slot at submission.
   editedRequired: false
 });
 
@@ -340,7 +340,6 @@ function mapCampaignToForm(c) {
       quantity: d.quantity || 1,
       duration: d.duration || '',
       aspectRatios: Array.isArray(d.aspect_ratios) && d.aspect_ratios.length ? d.aspect_ratios : ['9:16'],
-      rawRequired: Boolean(d.raw_required),
       editedRequired: Boolean(d.edited_required),
     }));
   } else {
@@ -909,7 +908,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       `Budget visibility: ${form.budgetVisible ? 'Visible to creators' : 'Hidden from creators - admin flag'}`,
       '',
       'Deliverables:',
-      ...form.deliverables.map((item, index) => `${index + 1}. ${item.quantity} x ${item.type}; duration ${item.duration || 'n/a'}; ratios ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}; edited file ${item.editedRequired ? 'required' : 'not required'}`),
+      ...form.deliverables.map((item, index) => `${index + 1}. ${item.quantity} x ${item.type}; duration ${item.duration || 'n/a'}; ratios ${item.aspectRatios.join(', ')}; deliver ${item.editedRequired ? 'raw footage + an edited cut' : 'raw footage only'}`),
       '',
       `Must include: product visible ${form.productVisible ? `${form.visibilitySeconds}s minimum` : 'no'}; verbal mention ${form.verbalMention ? form.productNames : 'no'}; CTA ${form.callToAction}; promo ${form.promoCode || 'n/a'}; hashtags ${form.hashtags || 'n/a'}; brand tag ${form.brandHandleTag ? 'yes' : 'no'}`,
       `Required phrases: ${form.requiredPhrases.filter(Boolean).join(', ') || 'none'}`,
@@ -977,7 +976,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         quantity: item.quantity,
         duration: item.duration,
         aspect_ratios: item.aspectRatios,
-        raw_required: item.rawRequired,
+        // Always true - every brief gets the raw footage. Kept in the payload because
+        // the backend model and the creator-facing brief still read this field.
+        raw_required: true,
         edited_required: item.editedRequired,
       })),
       product_visible: form.productVisible,
@@ -1284,7 +1285,6 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                     </div>
                     <div className="form-row">
                       <div className="form-group"><label>Duration {isVideoDeliverable(item.type) ? '*' : ''}</label><input className="input-field" value={item.duration} onChange={e => updateDeliverable(item.id, { duration: e.target.value })} placeholder="15-20 seconds" /></div>
-                      <div className="form-group"><label>Raw file delivery required *</label><div className="brief-segment"><button type="button" className={item.rawRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { rawRequired: true })}>Yes</button><button type="button" className={!item.rawRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { rawRequired: false })}>No</button></div></div>
                       <div className="form-group"><label>Edited file delivery required *</label><div className="brief-segment"><button type="button" className={item.editedRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedRequired: true })}>Yes</button><button type="button" className={!item.editedRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedRequired: false })}>No</button></div><small>{item.editedRequired ? 'The creator gets a second upload slot at submission and must deliver a finished cut as well as the raw footage.' : 'The creator delivers raw footage only.'}</small></div>
                     </div>
                     <div className="form-group"><label>Aspect ratio *</label><div className="brief-chip-grid compact">{ASPECTS.map(ratio => <ToggleChip key={ratio} active={item.aspectRatios.includes(ratio)} onClick={() => updateDeliverable(item.id, { aspectRatios: item.aspectRatios.includes(ratio) ? item.aspectRatios.filter(r => r !== ratio) : [...item.aspectRatios, ratio] })}>{ratio}</ToggleChip>)}</div></div>
@@ -1439,7 +1439,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             {step === 8 && (() => {
               const reviewSections = [
                 { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', resolvedCategory(form)], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
-                { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; raw files ${item.rawRequired ? 'required' : 'not required'}; edited file ${item.editedRequired ? 'required' : 'not required'}`]) },
+                { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; deliver ${item.editedRequired ? 'raw footage + an edited cut' : 'raw footage only'}`]) },
                 { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ...(CTA_INPUT[form.callToAction] ? [[CTA_INPUT[form.callToAction].label, form.ctaLink || 'None']] : []), ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
                 { title: 'Must-Avoid Checklist', rows: [['Restrictions', avoidRules]] },
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },

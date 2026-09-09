@@ -1897,6 +1897,15 @@ export default function CreatorLanding() {
           .cl-brand__logo { height: 34px; }
           /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
+          /* "Pick a job" mock: the tilted boAt card is layered OVER the phone, and at phone
+             width it covered the left half of the brand grid — the one thing this step is
+             actually showing (the grid's labels were squeezed so hard they wrapped one
+             letter per line). It is dropped rather than shrunk: there is no room for two
+             layered cards at this size. With it gone the phone no longer has to be shoved
+             right to clear it, so it sits centred and full width instead of 50-60%. */
+          .cl-hiw__prodfront { display: none; }
+          .cl-hiw__visual--phone { transform: none; }
+          .cl-hiw__phone { width: 100%; max-width: 360px; margin: 0 auto; transform: none; }
           /* PERF: a blurred blob that animates re-rasterizes the whole blur every frame — the
              single biggest jank source on phones. Freeze them (static, no animation) and shrink
              the blur radius so the one-time raster is cheap. Visual is unchanged at rest. */
@@ -2014,19 +2023,14 @@ export default function CreatorLanding() {
           .cl-hiw__paidh { font-size: 1.15rem; }
           .cl-hiw__paidrow { font-size: 0.95rem; gap: 10px; }
           .cl-hiw__check { width: 38px; height: 38px; font-size: 1rem; }
-          /* "Pick a job" phone mockup: the desktop fixed translate(140px) overflowed the
-             phone off-screen — use a scaling % shift so the phone + product card fit. */
-          /* Bottom-aligned content, so push the whole composition down with translateY. */
-          .cl-hiw__visual--phone { min-height: 300px; transform: translateY(30px); }
-          /* The phone is centred first, THEN translated, so its right edge lands at
-             50% + width/2 + width x shift. At width:60%/shift:34% that resolved to
-             100.4% — just past the card, which clips it (.cl-hiw__card is
-             overflow:hidden), so the brand grid was sliced down its right side. 26%
-             puts the edge at 95.6% and keeps a margin. The product card moves left by
-             the same amount so the layered overlap stays the size it was designed at
-             instead of growing over the "boAt" chip. */
-          .cl-hiw__phone { width: 60%; transform: translateX(26%); min-height: 300px; }
-          .cl-hiw__prodfront { left: -4%; bottom: 60px; width: 54%; max-width: 190px; }
+          /* "Pick a job" phone mockup. The width/shift juggling that used to live here
+             (60% wide, translateX(26%), and a matching nudge on the product card) was all
+             in service of fitting the layered boAt card beside the phone — that card is
+             display:none from 768px down now, so the phone just takes the full width from
+             the 768px block and there is nothing left to offset. Only the height floor is
+             kept, so a short mock still fills the step's visual area. */
+          .cl-hiw__visual--phone { min-height: 300px; }
+          .cl-hiw__phone { min-height: 300px; }
           /* Heading + chip sizing lives in the 620px block above, which covers this width
              too. Scoping it to 480px here was the bug: the mockup still burst its panel on
              anything wider than a small phone. */

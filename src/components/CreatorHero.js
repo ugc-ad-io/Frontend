@@ -204,7 +204,9 @@ export default function CreatorHero({
         </div>
 
         {tc && (
-          <>
+          /* On phones this wrapper stops being a passthrough and becomes the white
+             sheet under the clip - see the max-width:560px block below. */
+          <div className="chero-cards">
             <div className="chero-bubble chero-b1">
               <span className="chero-stars" style={{ display: 'inline-flex', gap: 1 }}>
                 {[1, 2, 3, 4, 5].map((n) => (
@@ -230,7 +232,7 @@ export default function CreatorHero({
                 <span className="chero-deal-rate"><Star size={12} fill="#f5b301" color="#f5b301" /> {Number(tc.rating || 0).toFixed(1)} · {tc.deals} deals</span>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -333,35 +335,44 @@ export default function CreatorHero({
           .chero-badge{margin-bottom:14px}
           .chero-rule{margin:16px 0 14px}
           .chero-photo{width:100%}
-          .chero-stage{min-height:300px}
-          /* Pin the floating cards to the stage's CORNERS in px, not in % of its
-             height. The stage is as tall as the portrait clip inside it (500-600px on a
-             phone), so top:20%/33% put the two bubbles 100px and 200px down - drifting
-             apart as the video got taller, landing over the subject's face, and leaving
-             the deal card floating in from the bottom edge. Fixed insets make the
-             composition identical whatever the clip's aspect ratio turns out to be. */
-          .chero-stat{top:10px;right:8px;min-width:120px;padding:12px 14px}
-          .chero-stat strong{font-size:24px}
-          .chero-bubble{padding:8px 12px;font-size:12.5px}
-          .chero-b1{top:10px;left:8px}
-          /* Stacked directly under b1 with a fixed gap instead of a second percentage. */
-          .chero-b2{top:52px;left:8px}
-          /* Full-width caption strip along the bottom rather than a 190px card covering
-             half the frame. left+right+width:auto lets it span the stage. */
-          .chero-deal{bottom:10px;left:8px;right:8px;width:auto;padding:11px}
+          .chero-stage{min-height:0}
+
+          /* PHONES: nothing sits ON the clip. Wherever the four cards are pinned, a
+             portrait video on a 360px screen leaves no clear space - they always land
+             on the creator's face or the product. So the wrapper stops being a
+             passthrough and becomes a white sheet tucked under the video (rounded top
+             corners, pulled up 18px so it reads as one unit), and the four cards flow
+             into it as ordinary content. */
+          .chero-cards{position:relative;z-index:4;margin:-18px 0 0;padding:15px 16px 14px;
+            background:#fff;border-radius:24px 24px 18px 18px;box-shadow:0 18px 40px -22px rgba(20,20,50,.45);
+            display:grid;grid-template-columns:1fr auto;gap:11px 10px;align-items:center;
+            grid-template-areas:"deal deal" "stat b1" "stat b2"}
+          /* Un-float the four: static flow, no glass, no shadow, no bobbing. Only DIRECT
+             children are reset, so .chero-deal-logo keeps its gradient. Specific rules
+             below re-add what each one still needs - they must stay AFTER this. */
+          .chero-cards > *{position:static;inset:auto;width:auto;max-width:none;min-width:0;
+            animation:none;background:none;border:none;box-shadow:none;backdrop-filter:none}
+
+          .chero-deal{grid-area:deal;gap:12px;padding:0 0 12px;border-bottom:1px solid #eeecf9}
           .chero-deal-logo{width:44px;height:44px;font-size:16px}
+          .chero-stat{grid-area:stat;padding:0}
+          .chero-stat strong{font-size:27px;margin:2px 0 1px}
+          /* Chips keep a tint so they still read as chips on the white sheet. */
+          .chero-bubble{justify-self:end;padding:7px 12px;font-size:12.5px;gap:7px;background:#f4f5fc;border-radius:20px}
+          .chero-b1{grid-area:b1}
+          .chero-b2{grid-area:b2}
+
           .chero-facts{flex-wrap:wrap;gap:8px 0}
           .chero-fact{padding:0 14px}
           .chero-fact:first-child{padding-left:0}
         }
         @media (max-width:380px){
           .chero-title{font-size:22px}
-          .chero-stat{min-width:104px}
-          /* Still a full-width strip here - only the internals shrink. Re-pinning a
-             fixed width would undo the rule above and bring the overlap back. */
-          .chero-deal{padding:9px;gap:10px}
+          .chero-cards{padding:13px 13px 12px;gap:9px 8px}
+          .chero-deal{gap:10px}
           .chero-deal-logo{width:38px;height:38px;font-size:15px}
-          .chero-b2{top:48px}
+          .chero-stat strong{font-size:23px}
+          .chero-bubble{padding:6px 10px;font-size:12px}
         }
         @media (prefers-reduced-motion:reduce){.chero-bubble,.chero-stat,.chero-deal,.chero-fade{animation:none}}
       `}</style>

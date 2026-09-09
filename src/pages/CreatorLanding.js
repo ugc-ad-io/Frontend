@@ -940,7 +940,7 @@ export default function CreatorLanding() {
               </p>
               <div className="lp-footer__socials">
                 <a href="https://www.instagram.com/ugcad.app/" target="_blank" rel="noreferrer" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
-                <a href="#" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
+                <a href="https://www.linkedin.com/company/ugcad-io/" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
                 <a href="#" aria-label="X" className="lp-footer__social-btn"><Twitter size={16} /></a>
                 <a href="#" aria-label="YouTube" className="lp-footer__social-btn"><Youtube size={16} /></a>
               </div>

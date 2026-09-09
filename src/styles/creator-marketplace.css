@@ -1865,12 +1865,23 @@
     color: #15163a;
   }
 
-  .cmk-mobile-item.is-active {
+  /* The active row paints a navy gradient, so its label and icon have to be white.
+     They were not: the shared drawer rules in the <=900px block above are written
+     as `.cmk-mobile-menu button.is-active` (and `... svg`), which outranks a plain
+     `.cmk-mobile-item.is-active` on class count and repainted both indigo — indigo
+     text on a navy row is what read as label and background being the same colour.
+     Matching that shape (menu + item + state) puts this back on top.
+     Scoped to .cmk-mobile-item deliberately: the brand drawer's rows don't carry
+     that class, so their active state stays indigo-on-white, where white text would
+     be invisible. :hover is in the selector because the shared rule repaints the
+     background too, and a tap-held row would otherwise lose the navy under it. */
+  .cmk-mobile-menu .cmk-mobile-item.is-active,
+  .cmk-mobile-menu .cmk-mobile-item.is-active:hover {
     background: linear-gradient(100deg, #23236a, #12124f);
     color: #fff;
   }
 
-  .cmk-mobile-item.is-active svg { color: #fff; }
+  .cmk-mobile-menu .cmk-mobile-item.is-active svg { color: #fff; }
 
   .cmk-mobile-sep {
     height: 1px;

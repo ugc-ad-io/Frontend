@@ -694,6 +694,16 @@ export default function MessagesPage() {
   );
 
   const openActionComposer = (type) => {
+    // Private Invitation is not an inline card - it opens the SAME brief wizard the
+    // brand uses from a creator's profile (PlanBrief, below). The six-field composer
+    // only ever posted a chat card: it created no campaign, so nothing reached the
+    // admin approval queue and the creator had no brief to work from. The wizard
+    // submits a real brief for review instead.
+    if (type === 'private_invitation') {
+      if (!selectedId) return;
+      setBriefTarget(selectedId);
+      return;
+    }
     setCounteringCardId(null); // a fresh card from the chips isn't tied to any offer
     setActionComposerType(type);
     setActionForm(getDefaultActionForm(type));

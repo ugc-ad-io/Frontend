@@ -340,8 +340,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
       const v0 = videos[0] || newVideo();
       const aspect = ASPECT_BY_ORIENTATION[v0.orientation] || '9:16';
       const hasProduct = videos.some((vd) => vd.product === 'Yes');
-      await axios.post(`${API}/campaigns`, {
-        title: `${brief.productName.trim()} — ${plan?.name || 'Creator Plan'}`,
+      const title = `${brief.productName.trim()} — ${plan?.name || 'Creator Plan'}`;
+      const created = await axios.post(`${API}/campaigns`, {
+        title,
         status: 'pending_approval',
         selected_creator: creatorId,
         // Sent to ONE creator. The backend keeps a private brief out of the public
@@ -391,6 +392,35 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         deadline: deliveryDate,
         delivery_slot: slot,
       });
+      // Drop a Private Invitation card into the chat with this creator. The brief on its
+      // own is invisible to them: it sits in the admin queue and, being private, never
+      // joins their browse list — so without this there is nothing anywhere for them to
+      // accept or reject. The card is what carries those buttons, and deal_id ties it to
+      // the campaign that was just created.
+      //
+      // Deliberately after the campaign call and in its own try: the brief IS created at
+      // this point, and a failure to post the card must not read as a failed submission.
+      const campaignId = created?.data?.campaign_id;
+      try {
+        await axios.post(`${API}/chat/action-cards`, {
+          recipient_id: creatorId,
+          type: 'private_invitation',
+          deal_id: campaignId,
+          fields: {
+            campaign_name: title,
+            deliverable_summary: `${videoCount} x ${videos[0]?.type || 'Reel'}`,
+            budget: total,
+            timeline: `${deliveryDate}${slot ? ` · ${slot}` : ''}`,
+            usage_rights: brief.platforms || brief.rightsDuration || 'Organic social',
+            brief_details: composeBrief(),
+          },
+        });
+      } catch (cardErr) {
+        toast.warning('Brief sent, but the creator was not notified in chat', {
+          description: apiErrorMessage(cardErr, 'Send them a message so they know it is coming.'),
+          duration: 9000,
+        });
+      }
       toast.success('Brief sent for review — our team approves it shortly. Funds are held on your wallet and released to the creator when the deal completes.');
       if (onPublished) onPublished();
     } catch (e) {

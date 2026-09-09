@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Star, Plus, Trash2, Save, Upload } from 'lucide-react';
+import { Star, Plus, Trash2, Save, Upload, Database } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
@@ -31,6 +31,7 @@ export default function AdminHomeShowcase() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState(null);
+  const [pulling, setPulling] = useState(false);
 
   // Upload a showcase video straight from the editor and set it as this card's video.
   const uploadVideo = async (idx, file) => {
@@ -62,6 +63,40 @@ export default function AdminHomeShowcase() {
       .catch((e) => toast.error(apiErrorMessage(e, 'Could not load the showcase')))
       .finally(() => setLoading(false));
   }, []);
+
+  // Seed the whole list from REAL payout data: GET /admin/top-earners/suggest ranks
+  // creators by released earnings and returns them in card shape. Nothing is written
+  // until Save, so this is a starting point the admin can still edit.
+  //
+  // This button was removed by 6426af4 when the per-card Name dropdown landed, which
+  // left the suggest endpoint live but unreachable - the per-card picker fills ONE
+  // card from a creator you already know, and there was no longer any way to ask
+  // "who are my actual top three?".
+  const pullFromData = async () => {
+    if (items.length && !window.confirm('Replace the current cards with your top earners from live data?')) return;
+    setPulling(true);
+    try {
+      const r = await axios.get(`${API}/admin/top-earners/suggest?limit=3`);
+      const suggested = Array.isArray(r.data?.items) ? r.data.items : [];
+      if (!suggested.length) {
+        toast.message('No paid earnings yet', { description: 'No creator has a released payout to rank. Add cards manually for now.' });
+        return;
+      }
+      setItems(suggested.map((i) => ({
+        ...BLANK,
+        ...i,
+        // Mark the card as coming from a real creator so the Name dropdown shows them
+        // selected rather than snapping back to "Custom", and normalise the level code
+        // the same way the per-card picker does ("l1" -> "L1").
+        source: i.id ? String(i.id) : 'custom',
+        level: prettyLevel(i.level),
+        videos: Array.isArray(i.videos) ? i.videos : (i.video_url ? [i.video_url] : []),
+      })));
+      toast.success(`Pulled ${suggested.length} top earner${suggested.length === 1 ? '' : 's'} — review and Save.`);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Could not pull from data'));
+    } finally { setPulling(false); }
+  };
 
   const setField = (idx, key, val) => setItems((cur) => cur.map((it, i) => (i === idx ? { ...it, [key]: val } : it)));
   const addRow = () => setItems((cur) => [...cur, { ...BLANK }]);
@@ -124,6 +159,7 @@ export default function AdminHomeShowcase() {
             <p>These cards rotate in the creator home hero. Leave the list empty to fall back to the built-in defaults.</p>
           </div>
           <div className="ahs-head-actions">
+            <button type="button" className="ahs-add" onClick={pullFromData} disabled={pulling}><Database size={15} /> {pulling ? 'Pulling…' : 'Pull top earners'}</button>
             <button type="button" className="ahs-add" onClick={addRow}><Plus size={15} /> Add card</button>
             <button type="button" className="ahs-save" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
           </div>
@@ -189,7 +225,7 @@ export default function AdminHomeShowcase() {
         .ahs-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
         .ahs-head h2{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:1.15rem;color:#07074e}
         .ahs-head p{margin:0;color:#718096;font-size:0.86rem;max-width:560px;line-height:1.5}
-        .ahs-head-actions{display:flex;gap:10px}
+        .ahs-head-actions{display:flex;gap:10px;flex-wrap:wrap}
         .ahs-add{display:inline-flex;align-items:center;gap:7px;border:1.5px solid #d6dbff;background:#fff;color:#4452f0;font:inherit;font-weight:600;font-size:13px;padding:9px 14px;border-radius:10px;cursor:pointer}
         .ahs-add:hover{background:#eef0ff}
         .ahs-save{display:inline-flex;align-items:center;gap:7px;border:0;background:#07074e;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:10px;cursor:pointer}

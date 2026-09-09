@@ -9,6 +9,61 @@ import { ArrowLeft, Upload, FileVideo, Image as ImageIcon, RefreshCw } from 'luc
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+/**
+ * One labelled upload zone. Extracted because a brief that asks for an edited cut
+ * needs TWO of these (edited + raw) and duplicating the markup three times is how
+ * the two zones would drift apart.
+ */
+function UploadZone({ id, title, hint, files, onUpload, onRemove, testIdPrefix, btnTestId }) {
+  return (
+    <div className="upload-section">
+      <h3><Upload size={20} /> {title}</h3>
+      <p className="hint">{hint}</p>
+
+      <input
+        id={id}
+        type="file"
+        multiple
+        accept="image/*,video/*"
+        onChange={onUpload}
+        style={{ display: 'none' }}
+        data-testid={`${testIdPrefix}-input`}
+      />
+      <button
+        type="button"
+        className="upload-btn"
+        onClick={() => document.getElementById(id).click()}
+        data-testid={btnTestId || `${testIdPrefix}-btn`}
+      >
+        <FileVideo size={24} />
+        Click to Upload Files
+      </button>
+
+      {files.length > 0 && (
+        <div className="files-list">
+          <h4>Uploaded Files:</h4>
+          {files.map((file, idx) => (
+            <div key={idx} className="file-item" data-testid={`${testIdPrefix}-${idx}`}>
+              <div className="file-info">
+                <ImageIcon size={20} />
+                <span>{file.split('/').pop()}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(idx)}
+                className="remove-btn"
+                data-testid={`remove-${testIdPrefix}-${idx}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function WorkSubmission() {
   const [searchParams] = useSearchParams();
   const campaignId = searchParams.get('campaign');
@@ -18,6 +73,18 @@ export default function WorkSubmission() {
   const [loading, setLoading] = useState(true);
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState([]);
+  // Only used when the brief asks for an edited cut (see needsEdited below). Kept
+  // separate from `files` so a brief that does NOT ask for one submits exactly as it
+  // always did, through the single generic zone.
+  const [editedFiles, setEditedFiles] = useState([]);
+  const [rawFiles, setRawFiles] = useState([]);
+
+  // Does this brief ask for a finished cut on top of the raw footage? Any ONE
+  // deliverable row asking for it is enough - the creator then owes both and gets the
+  // second upload slot. Read off `campaign` defensively: this runs before the fetch
+  // resolves, and an older brief saved before the field existed simply reads false, so
+  // nothing about its submission changes.
+  const needsEdited = (campaign?.deliverable_items || []).some((d) => d && d.edited_required);
 
   useEffect(() => {
     if (campaignId) {
@@ -36,7 +103,9 @@ export default function WorkSubmission() {
     }
   };
 
-  const handleFileUpload = async (e) => {
+  // Curried so each zone gets its own setter while sharing one upload path - the
+  // 100MB cap and the error handling must not diverge between zones.
+  const uploadInto = (setter) => async (e) => {
     const selectedFiles = Array.from(e.target.files || []);
     if (!selectedFiles.length) return;
 
@@ -53,7 +122,7 @@ export default function WorkSubmission() {
         return response.data.file_url;
       }));
 
-      setFiles([...files, ...uploadedUrls]);
+      setter((prev) => [...prev, ...uploadedUrls]);
       toast.success(`${uploadedUrls.length} file(s) uploaded successfully!`);
     } catch (error) {
       toast.error(error.message || 'Failed to upload files');
@@ -61,14 +130,28 @@ export default function WorkSubmission() {
     e.target.value = '';
   };
 
-  const handleRemoveFile = (index) => {
-    setFiles(files.filter((_, i) => i !== index));
+  const removeFrom = (setter) => (index) => {
+    setter((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (files.length === 0) {
+    // Edited cut first: the backend treats work_files[0] as the primary video (it is
+    // what gets watermarked and what the brand's review screen plays), so the finished
+    // cut has to lead - never the raw footage.
+    const allFiles = needsEdited ? [...editedFiles, ...rawFiles] : files;
+
+    if (needsEdited) {
+      if (editedFiles.length === 0) {
+        toast.error('This brief needs an edited file. Upload the finished cut.');
+        return;
+      }
+      if (rawFiles.length === 0) {
+        toast.error('Upload the raw footage as well.');
+        return;
+      }
+    } else if (allFiles.length === 0) {
       toast.error('Please upload at least one file');
       return;
     }
@@ -76,7 +159,9 @@ export default function WorkSubmission() {
     try {
       await axios.post(`${API}/work/submit`, {
         campaign_id: campaignId,
-        work_files: files,
+        work_files: allFiles,
+        edited_files: needsEdited ? editedFiles : [],
+        raw_files: needsEdited ? rawFiles : [],
         description
       });
       toast.success('Work submitted successfully!');
@@ -145,51 +230,41 @@ export default function WorkSubmission() {
         )}
 
         <form onSubmit={handleSubmit} className="submission-form">
-          <div className="upload-section">
-            <h3><Upload size={20} /> Upload Files</h3>
-            <p className="hint">Videos, images, or any deliverables</p>
-
-            <input
+          {needsEdited ? (
+            <>
+              <UploadZone
+                id="edited-upload"
+                title="Edited file"
+                hint="The finished cut, ready to publish. This brief asks for one."
+                files={editedFiles}
+                onUpload={uploadInto(setEditedFiles)}
+                onRemove={removeFrom(setEditedFiles)}
+                testIdPrefix="edited-file"
+              />
+              <UploadZone
+                id="raw-upload"
+                title="Raw file"
+                hint="The unedited source footage the cut was made from."
+                files={rawFiles}
+                onUpload={uploadInto(setRawFiles)}
+                onRemove={removeFrom(setRawFiles)}
+                testIdPrefix="raw-file"
+              />
+            </>
+          ) : (
+            <UploadZone
               id="file-upload"
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              onChange={handleFileUpload}
-              style={{ display: 'none' }}
-              data-testid="file-input"
+              title="Upload Files"
+              hint="Videos, images, or any deliverables"
+              files={files}
+              onUpload={uploadInto(setFiles)}
+              onRemove={removeFrom(setFiles)}
+              testIdPrefix="file"
+              /* Preserved verbatim: this zone is the unchanged single-upload path and
+                 something outside this file may still select on it. */
+              btnTestId="upload-file-btn"
             />
-            <button
-              type="button"
-              className="upload-btn"
-              onClick={() => document.getElementById('file-upload').click()}
-              data-testid="upload-file-btn"
-            >
-              <FileVideo size={24} />
-              Click to Upload Files
-            </button>
-
-            {files.length > 0 && (
-              <div className="files-list">
-                <h4>Uploaded Files:</h4>
-                {files.map((file, idx) => (
-                  <div key={idx} className="file-item" data-testid={`file-${idx}`}>
-                    <div className="file-info">
-                      <ImageIcon size={20} />
-                      <span>{file.split('/').pop()}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFile(idx)}
-                      className="remove-btn"
-                      data-testid={`remove-file-${idx}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="description">Work Description</label>

@@ -1659,7 +1659,13 @@ export default function CreatorLanding() {
         /* Pick a job â€” phone "Choose brand" mockup */
         .cl-hiw__visual--phone { flex-direction: column; align-items: center; justify-content: flex-end;
           gap: 14px; min-height: 240px; }
-        .cl-hiw__phone { position: relative; z-index: 1; width: 50%; transform: translate(140px, 0);
+        /* The shift MUST be a percentage. As a fixed 140px it was sized for a full-width
+           desktop card and never shrank: the phone is centred first, then translated, so its
+           right edge sits at 50% + width/2 + shift. At 140px that edge cleared the card
+           (which is overflow:hidden) at every width below ~1100px, slicing the brand grid.
+           42% of a 50%-wide phone puts that edge at 96% at ANY size, and works out to ~140px
+           at the width this was drawn for, so the desktop composition is unchanged. */
+        .cl-hiw__phone { position: relative; z-index: 1; width: 50%; transform: translateX(42%);
           min-height: 360px; border-radius: 20px 20px 0 0;
           padding: 14px 16px 22px; border: 1px solid rgba(var(--cl-fg),0.12); border-bottom: none;
           background: var(--cl-panel); box-shadow: 0 -12px 46px rgba(7,7,78,0.24);
@@ -1699,6 +1705,18 @@ export default function CreatorLanding() {
         .cl-hiw__phonepanel { flex: 1; border-radius: 14px; padding: 13px; margin-top: 2px;
           display: flex; flex-direction: column; gap: 13px;
           background: rgba(149,131,246,0.16); border: 1px solid rgba(109,74,240,0.12); }
+
+        /* Below this the phone is ~120-180px wide, which leaves each brand-chip track about
+           55px. "Choose brand" at 1.6rem needs ~165px and a chip at 1.02rem needs ~65px, so
+           the heading broke onto two lines and the chip labels pushed straight out through
+           the right-hand side of the panel. These sizes fit the track they sit in.
+           minmax(0,1fr) lets a track shrink below its content, so the chips also need
+           min-width:0 and a chance to wrap instead of overflowing. */
+        @media (max-width: 620px) {
+          .cl-hiw__choosehead { font-size: 1.15rem; }
+          .cl-hiw__brandcard { padding: 12px 6px; min-width: 0; overflow-wrap: anywhere; }
+          .cl-bc { font-size: 0.9rem; }
+        }
 
         /* Front "brand accessory" product card â€” large, white, tilted, layered over the phone
            (ref: two-card hero). White product shot so the headphone pops, like the mockup. */
@@ -1779,7 +1797,11 @@ export default function CreatorLanding() {
         .cl-hiw__paidimg { width: 108px; height: 108px; object-fit: contain; border-radius: 12px; flex-shrink: 0; }
         .cl-hiw__bags { text-align: center; font-size: 2.2rem; letter-spacing: 4px; margin-top: 4px; }
 
-        @media (max-width: 720px) {
+        /* Was 720px. In two columns each card is under 400px wide by 1000px, which leaves
+           the phone mockup inside it about 130px across - narrower than the two brand chips
+           it has to hold, so their labels spilled out of the chips and out of the panel.
+           The cards are readable at any width once they stack, so stack sooner. */
+        @media (max-width: 1000px) {
           .cl-hiw { grid-template-columns: 1fr; }
           .cl-hiw__card { min-height: auto; padding-bottom: 0; }
           .cl-hiw__card--wide { flex-direction: column; align-items: stretch; padding: 30px 26px; }
@@ -1996,11 +2018,9 @@ export default function CreatorLanding() {
              instead of growing over the "boAt" chip. */
           .cl-hiw__phone { width: 60%; transform: translateX(26%); min-height: 300px; }
           .cl-hiw__prodfront { left: -4%; bottom: 60px; width: 54%; max-width: 190px; }
-          /* 1.6rem needs ~160px; the phone is ~130px wide inside its padding at this
-             breakpoint, so "Choose brand" broke onto two lines and ate a grid row. */
-          .cl-hiw__choosehead { font-size: 1.15rem; }
-          .cl-hiw__brandcard { padding: 12px 6px; }
-          .cl-bc { font-size: 0.9rem; }
+          /* Heading + chip sizing lives in the 620px block above, which covers this width
+             too. Scoping it to 480px here was the bug: the mockup still burst its panel on
+             anything wider than a small phone. */
           .cl-hiw__text { font-size: 0.95rem; }
           .cl-hiw__chip { font-size: 0.7rem; padding: 6px 10px; }
           .cl-hiw__chip--likes { left: 4%; top: 5%; }

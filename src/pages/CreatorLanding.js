@@ -43,11 +43,14 @@ const BRANDS = [
   { name: 'Brand', img: '/bg/cropped-229x30-1-removebg-preview.png', small: true },
   { name: 'Brand', img: '/bg/cropped-og-1-removebg-preview.png', large: true },
   { name: 'Brand', img: '/bg/images__1___1_-removebg-preview.png', large: true },
-  { name: 'Brand', img: '/bg/images__2___1_-removebg-preview.png', large: true },
+  // White artwork on transparent (measured luminance ~250/255): invisible against the
+  // cream strip until it is knocked down to black. See .cl-brands__logo--dark.
+  { name: 'Brand', img: '/bg/images__2___1_-removebg-preview.png', large: true, dark: true },
   { name: 'Brand', img: '/bg/images__3___1_-removebg-preview.png' },
   { name: 'Brand', img: '/bg/images__5_-removebg-preview.png' },
   { name: 'Brand', img: '/bg/logo__1_-removebg-preview.png' },
-  { name: 'Brand', img: '/bg/unnamed-removebg-preview.png' },
+  // Same again - measured luminance ~253/255.
+  { name: 'Brand', img: '/bg/unnamed-removebg-preview.png', dark: true },
 ];
 
 // Portrait thumbs for the hero gallery row -- local UGC clips from /public/creator.
@@ -673,10 +676,10 @@ export default function CreatorLanding() {
               <div key={li} className={`cl-brands__line${li === 0 ? ' cl-brands__line--top' : ' cl-brands__line--bottom'}`}>
                 {/* Items are duplicated so the mobile marquee loops seamlessly (translateX -50%).
                     The second set is hidden on desktop via .cl-brands__logo--dup. */}
-                {[...line, ...line].map(({ name, img, small, large }, i) => (
+                {[...line, ...line].map(({ name, img, small, large, dark }, i) => (
                   <span
                     key={`${name}-${i}`}
-                    className={`cl-brands__logo${small ? ' cl-brands__logo--small' : ''}${large ? ' cl-brands__logo--large' : ''}${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
+                    className={`cl-brands__logo${small ? ' cl-brands__logo--small' : ''}${large ? ' cl-brands__logo--large' : ''}${dark ? ' cl-brands__logo--dark' : ''}${i >= line.length ? ' cl-brands__logo--dup' : ''}`}
                     aria-hidden={i >= line.length}
                   >
                     {/* NOT lazy. These sit in a translateX marquee inside overflow:hidden, so
@@ -1484,6 +1487,12 @@ export default function CreatorLanding() {
         .cl-brands__logo:hover { transform: translateY(-3px); }
         /* Duplicate logos exist only to feed the mobile marquee loop -- hidden on desktop. */
         .cl-brands__logo--dup { display: none; }
+        /* Two of the supplied files are white wordmarks on transparent, so they simply
+           did not exist against the cream strip. brightness(0) drives every opaque pixel
+           to black while leaving the alpha channel alone, which reads as a black wordmark
+           rather than a black box. Applied ONLY to those two - the other fifteen are dark
+           enough already and would lose their brand colour. */
+        .cl-brands__logo--dark .cl-brands__icon { filter: brightness(0); }
         @media (prefers-reduced-motion: reduce) { .cl-brands__line { animation: none !important; } }
 
         /* Hero -- highlighted word pill */

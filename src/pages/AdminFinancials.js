@@ -420,8 +420,11 @@ export default function AdminFinancials() {
                     {escrow.map((e) => (
                       <tr key={e.id || e.deal_id}>
                         <td className="afn-strong">{e.campaign_title || e.deal_id}</td>
-                        <td>{e.brand_handle || e.brand || '—'}</td>
-                        <td>{e.creator_handle || e.creator || '—'}</td>
+                        {/* Real NAME first, handle only as a fallback. The rest of the app
+                            follows person_display_name's rule that the website never
+                            surfaces a raw @handle where a company or person name exists. */}
+                        <td>{e.brand || e.brand_handle || '—'}</td>
+                        <td>{e.creator || e.creator_handle || '—'}</td>
                         <td className="afn-strong">{inr(e.amount || e.held_amount)}</td>
                         <td><span className="afn-badge info">{e.status || 'held'}</span></td>
                         <td className="afn-row-actions">

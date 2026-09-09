@@ -344,6 +344,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         title: `${brief.productName.trim()} — ${plan?.name || 'Creator Plan'}`,
         status: 'pending_approval',
         selected_creator: creatorId,
+        // Sent to ONE creator. The backend keeps a private brief out of the public
+        // browse list even after an admin approves it and it turns active, and 404s a
+        // direct fetch by any other creator - so it surfaces only in this creator's
+        // messages and deals. See PRIVATE_VISIBILITY in server.py.
+        visibility: 'private',
         product_name: brief.productName.trim(),
         category: 'Other',
         product_category: 'Other',

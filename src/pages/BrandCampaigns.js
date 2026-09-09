@@ -7,6 +7,8 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PostABrief from './PostABrief';
 import { Skeleton } from '../components/Skeleton';
 import { summarizeDeliverables } from '../utils/normalizeBrief';
+import { ownsCampaign } from '../utils/brandWorkspace';
+import { apiErrorMessage } from '../utils/apiError';
 import '../styles/creator-marketplace.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -48,6 +50,9 @@ export default function BrandCampaigns() {
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Non-empty when the last load FAILED, so a broken request can say so instead of
+  // masquerading as an empty account.
+  const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
   const [filterExpanded, setFilterExpanded] = useState(false); // desktop: click PINS the options open
@@ -109,11 +114,23 @@ export default function BrandCampaigns() {
       // Without it the "Drafts" tab filtered for status === 'draft' over a list that
       // could never contain one — so a saved draft was in the DB but nowhere on screen.
       const res = await axios.get(`${API}/campaigns?include_drafts=true&t=${Date.now()}`);
-      const mine = (res.data || []).filter((c) => String(c.business_id) === String(user?.id));
+      // GET /campaigns already scopes a business to its own workspace
+      // (query['business_id'] = _brand_ws_id(current_user)), so this filter can only ever
+      // REMOVE rows the backend already decided we own. It compared against user.id, which
+      // is NOT what business_id holds for a team member: their brand's campaigns carry the
+      // team OWNER's id, so every row was dropped and the page drew "No campaigns yet" over
+      // a live, approved campaign. Match the workspace instead.
+      const mine = (res.data || []).filter((c) => ownsCampaign(user, c));
       setCampaigns(mine);
-    } catch { /* ignore */ }
+      setLoadError('');
+    } catch (err) {
+      // Never swallow this. A failed request left campaigns as [] and the page rendered the
+      // same "No campaigns yet" empty state as a genuinely empty account, so a broken list
+      // was indistinguishable from an empty one - and undiagnosable from a screenshot.
+      setLoadError(apiErrorMessage(err, 'Could not load your campaigns.'));
+    }
     finally { setLoading(false); }
-  }, [user?.id]);
+  }, [user?.id, user?.team_of]);
 
   useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
 
@@ -228,6 +245,15 @@ export default function BrandCampaigns() {
               </div>
             </article>
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="bcam-empty">
+          <span className="bcam-empty-ic"><Megaphone size={30} /></span>
+          <h3>Couldn't load your campaigns</h3>
+          <p>{loadError}</p>
+          <button type="button" className="bcam-empty-btn" onClick={() => { setLoading(true); loadCampaigns(); }}>
+            Try again
+          </button>
         </div>
       ) : rows.length === 0 ? (
         <div className="bcam-empty">

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
+import { ownsCampaign } from '../utils/brandWorkspace';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -101,7 +102,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
     // Wait until BOTH campaign and the shipment lookup have resolved — otherwise
     // the form would flash open for an already-shipped deal (shipment still null).
     if (!autoShip || autoShipDone.current || loading || !shipmentLoaded || !campaign || !user) return;
-    const isBrand = user.role === 'business' && campaign.business_id === user.id;
+    const isBrand = user.role === 'business' && ownsCampaign(user, campaign);
     const status = String(shipment?.status || '').toLowerCase();
     const alreadyShipped = !!shipment && (
       !!shipment.requested || !!shipment.tracking_number || !!shipment.label_url ||
@@ -285,7 +286,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
   );
   if (!campaign) return <div className="error-page">Campaign not found</div>;
 
-  const isBusiness = user?.role === 'business' && campaign.business_id === user.id;
+  const isBusiness = user?.role === 'business' && ownsCampaign(user, campaign);
   const isCreator = user?.role === 'creator' && isSelectedCreator(campaign, user.id);
 
   // What-to-do-next guidance based on who is viewing and the shipment status.

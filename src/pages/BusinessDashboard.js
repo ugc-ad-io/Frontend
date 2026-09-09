@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { ownsCampaign } from '../utils/brandWorkspace';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -699,13 +700,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
       ]);
       const allCampaigns = response.data;
 
-      // Filter to only show this business's campaigns
-      const realCampaigns = allCampaigns.filter(c => c.business_id === user.id);
+      // Filter to only show this business's campaigns. Compare against the brand
+      // WORKSPACE, not user.id: a campaign's business_id is _brand_ws_id(user) =
+      // team_of || id, so a team member's own campaigns carry the owner's id and
+      // `c.business_id === user.id` dropped every one of them.
+      const realCampaigns = allCampaigns.filter(c => ownsCampaign(user, c));
       const myCampaigns = realCampaigns;
       setCampaigns(myCampaigns);
 
       setDashboardData(dashboardRes.data?.metrics ? dashboardRes.data : (dashboardRes.data || null));
-      setDrafts((draftsRes.data || []).filter(c => c.business_id === user.id));
+      setDrafts((draftsRes.data || []).filter(c => ownsCampaign(user, c)));
 
       // Get work submissions for campaigns with work_submitted status
       const workSubmittedCampaigns = myCampaigns.filter(c => c.status === 'work_submitted');

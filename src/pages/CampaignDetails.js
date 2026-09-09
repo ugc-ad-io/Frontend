@@ -1,6 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { ownsCampaign } from '../utils/brandWorkspace';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -69,7 +70,7 @@ export default function CampaignDetails({ embedId, onClose }) {
   // Brands on the "Request Matches" path get an ops-curated shortlist (PRD 5.4).
   useEffect(() => {
     if (!campaign || !user) return;
-    const owner = user.role === 'business' && campaign.business_id === user.id;
+    const owner = user.role === 'business' && ownsCampaign(user, campaign);
     if (owner && campaign.match_status) fetchShortlist();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign?.id, campaign?.match_status, user?.id]);
@@ -180,14 +181,14 @@ export default function CampaignDetails({ embedId, onClose }) {
       // Fetch past collaborations with this creator
       const campaignsRes = await axios.get(`${API}/campaigns`);
       const pastCollaborations = campaignsRes.data.filter(
-        c => c.business_id === user.id && 
+        c => ownsCampaign(user, c) && 
         c.selected_creator === creatorId && 
         c.status === 'completed'
       );
       
       // Fetch queued orders with this creator
       const queuedOrders = campaignsRes.data.filter(
-        c => c.business_id === user.id && 
+        c => ownsCampaign(user, c) && 
         c.selected_creator === creatorId && 
         (c.status === 'in_progress' || c.status === 'active')
       );
@@ -256,7 +257,7 @@ export default function CampaignDetails({ embedId, onClose }) {
     return <div className="error-page">Campaign not found</div>;
   }
 
-  const isBusiness = user?.role === 'business' && campaign.business_id === user.id;
+  const isBusiness = user?.role === 'business' && ownsCampaign(user, campaign);
 
   // When embedded in a modal, skip the CreatorShell chrome (the brand page already
   // provides the nav around the modal).

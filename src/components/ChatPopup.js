@@ -260,10 +260,17 @@ export default function ChatPopup({ user, onClose }) {
            align-self:stretch + min-width:0 are what stop it forcing the popup to scroll
            sideways; a brief with an unbroken 40-character word had been widening the whole
            column. overflow-wrap:anywhere breaks that word instead. */
-        .cpop-sys{align-self:stretch;width:100%;min-width:0;max-width:100%;text-align:left;
-          white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
-          background:none;border:none;border-radius:0;
-          color:#5b6070;font-size:12.5px;line-height:1.6;padding:6px 2px;margin:2px 0}
+        /* A card, but a RECTANGLE. The 999px radius was the whole problem: on a notice
+           carrying the full campaign brief - dozens of lines tall - a pill radius bends the
+           sides into an arch and eats the text at the corners. 12px keeps the card and
+           squares it off, so it looks the same whether it holds one line or fifty.
+           pre-wrap keeps the line breaks the brief is written with; overflow-wrap breaks an
+           unbroken 40-character word instead of widening the column and forcing the popup
+           to scroll sideways. */
+        .cpop-sys{align-self:stretch;width:100%;min-width:0;max-width:100%;box-sizing:border-box;
+          text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
+          background:#eef0ff;border:1px solid #e0e4ff;border-radius:12px;
+          color:#4a4f63;font-size:12.5px;line-height:1.6;padding:12px 14px;margin:2px 0}
         .cpop-card{align-self:stretch;background:#f7f8ff;border:1px solid #e5e8fb;border-radius:12px;padding:12px 14px;margin:2px 0}
         .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#15163a;font-size:12.5px;margin-bottom:8px}
         .cpop-card-badge{text-transform:capitalize;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f6;color:#585c7e}

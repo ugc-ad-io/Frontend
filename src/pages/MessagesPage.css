@@ -1186,12 +1186,13 @@
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.6;
-  /* Flat, not a card. Same reason as .cpop-sys: this carries the whole campaign brief,
-     and a rounded tinted box around dozens of lines reads as a wall of colour. */
-  background: none;
-  border: none;
-  border-radius: 0;
-  padding: 6px 2px;
+  /* A card, but a RECTANGLE - same reason as .cpop-sys. A pill radius on a notice
+     dozens of lines tall bends into an arch and eats the text at the corners. */
+  background: rgba(7, 7, 78, 0.06);
+  border: 1px solid rgba(7, 7, 78, 0.12);
+  border-radius: 12px;
+  box-sizing: border-box;
+  padding: 12px 14px;
   font-size: 0.85rem;
   color: #5b6070;
   margin: 10px 0;
@@ -1551,8 +1552,7 @@
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  /* Matches the flat desktop treatment - no padding box to reintroduce a card edge. */
-  .msg-system-pill { width: 100%; max-width: 100%; padding: 6px 2px; }
+  .msg-system-pill { width: 100%; max-width: 100%; padding: 12px 14px; }
   .msg-system-wrap { width: 100%; max-width: 100%; min-width: 0; }
   .msg-system-desktop { display: none; }
   .msg-system-mobile {

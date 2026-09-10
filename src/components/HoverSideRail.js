@@ -85,7 +85,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
       </button>
 
       <style>{`
-        .hsr{position:fixed;left:0;top:0;bottom:0;width:76px;z-index:120;display:flex;flex-direction:column;
+        .hsr{position:fixed;left:0;top:0;bottom:0;width:76px;z-index:1350;display:flex;flex-direction:column;
           background:#fff;color:#15163a;padding:14px;border-right:1px solid #eef0f6;
           overflow:hidden;transition:width .22s cubic-bezier(.2,.7,.2,1);box-shadow:6px 0 34px -18px rgba(15,22,58,.3)}
         .hsr.is-open{width:240px}
@@ -163,7 +163,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         .cmk-app.has-rail .cmk-wrap{margin:0 auto}
         /* the top bar spans the full width so the actions (Post a Campaign,
            bell, avatar) sit flush against the right edge, not the wrap's cap */
-        .cmk-app.has-rail .cmk-nav-inner{max-width:none}
+        .cmk-app.has-rail .cmk-nav-inner{max-width:none;padding-left:76px}
         /* shift ONLY the main body content right for breathing room from the
            rail — the header keeps its own (smaller) offset and is unaffected */
         .cmk-app.has-rail .cmk-page{padding-left:12px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
@@ -185,6 +185,8 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
              (it only uses .cmk-wrap, not .cmk-page). */
           .cmk-app.has-rail .cmk-page{padding-left:12px;padding-right:12px}
           .cmk-app.has-rail .cmk-wrap{margin:0 auto}
+          /* No rail at this width, so no rail-width offset on the top bar either. */
+          .cmk-app.has-rail .cmk-nav-inner{padding-left:0}
         }
       `}</style>
     </aside>

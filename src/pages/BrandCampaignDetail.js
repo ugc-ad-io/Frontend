@@ -1113,8 +1113,15 @@ export default function BrandCampaignDetail() {
         .bcd-dmsg.is-creator p{background:#f1f3fa;color:#2b2f52;border-bottom-left-radius:5px}
         .bcd-dmsg.is-brand{align-self:flex-end;align-items:flex-end}
         .bcd-dmsg.is-brand p{background:#15163a;color:#fff;border-bottom-right-radius:5px}
-        .bcd-dmsg.is-system{align-self:center;max-width:90%;text-align:center}
-        .bcd-dmsg.is-system p{background:#eef0ff;color:#5b6070;font-size:12.5px;line-height:1.4;padding:7px 15px;border-radius:999px;border:1px solid #e0e4ff}
+        /* Brand-side copy of the same system notice - it carries the full campaign
+           brief, and a 999px radius on something dozens of lines tall bends into an arch
+           that eats the text. Squared to 12px and left aligned, matching the creator's
+           deal chat and the Messages page. */
+        .bcd-dmsg.is-system{align-self:stretch;width:100%;min-width:0;max-width:100%;text-align:left}
+        .bcd-dmsg.is-system p{box-sizing:border-box;width:100%;min-width:0;max-width:100%;
+          white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
+          background:#eef0ff;color:#4a4f63;font-size:12.5px;line-height:1.6;
+          padding:12px 14px;border-radius:12px;border:1px solid #e0e4ff}
         .bcd-dchat-empty{margin:0;padding:18px 0;text-align:center;color:#9296ba;font-size:13px}
         .bcd-dchat-input{display:flex;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid #eef0f6}
         .bcd-dchat-input input{flex:1;min-width:0;border:1px solid #e4e7f2;border-radius:11px;padding:11px 14px;font-family:inherit;font-size:14px;color:#15163a;outline:none}

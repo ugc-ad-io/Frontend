@@ -173,7 +173,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           : (humanize(p.niche) || humanize(p.category) || 'UGC Content');
         setPlan({
           id: 'creator-plan',
-          name: p.plan_name || (p.category ? `${humanize(p.category)} Content` : 'Creator Plan'),
+          // The creator's own category is deliberately NOT used here. It used to
+          // become the plan name ("Fashion Content") and that name was appended to
+          // the brief's title, so every private brief ended up carrying the
+          // creator's niche instead of the brand's own product name.
+          name: p.plan_name || 'Creator Plan',
           price,
           tags,
         });
@@ -304,7 +308,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
   const composeBrief = () => {
     const lines = [];
-    lines.push(`Plan: ${plan?.name} (₹${plan?.price}/video) — ${plan?.tags}`);
+    lines.push(`Plan: ₹${plan?.price}/video — ${plan?.tags}`);
     lines.push(`Videos: ${videoCount}`);
     lines.push(`Delivery: ${dateLabel}, ${slot}`);
     videos.forEach((v, i) => {
@@ -340,7 +344,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
       const v0 = videos[0] || newVideo();
       const aspect = ASPECT_BY_ORIENTATION[v0.orientation] || '9:16';
       const hasProduct = videos.some((vd) => vd.product === 'Yes');
-      const title = `${brief.productName.trim()} — ${plan?.name || 'Creator Plan'}`;
+      // Just the product. Appending the plan name put the creator's category in the
+      // title of every private brief (see the plan fetch above).
+      const title = brief.productName.trim() || 'Private brief';
       await axios.post(`${API}/campaigns`, {
         title,
         status: 'pending_approval',
@@ -392,13 +398,15 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         deadline: deliveryDate,
         delivery_slot: slot,
       });
-      // The Private Invitation card that lets the creator accept or reject is created
-      // by the BACKEND as part of publishing a private brief. It cannot be posted from
-      // here: publishing holds the budget on the wallet, and POST /chat/action-cards
-      // refuses a brand whose balance is under MIN_BRAND_CHAT_BALANCE - which is exactly
-      // where the balance sits the instant after a publish, so the call was 403'd every
-      // time. See create_campaign in server.py.
-      toast.success('Brief sent for review — our team approves it shortly. Funds are held on your wallet and released to the creator when the deal completes.');
+      // Nothing reaches the creator yet. The Private Invitation card they accept or
+      // decline on is written by the BACKEND when an ADMIN APPROVES this brief
+      // (deliver_private_invitation in server.py) — not on publish, and not from here.
+      // Not from here because publishing holds the budget on the wallet and POST
+      // /chat/action-cards refuses a brand whose balance is under
+      // MIN_BRAND_CHAT_BALANCE, which is exactly where the balance sits the instant
+      // after a publish. Not on publish because the card IS the accept button: sending
+      // it at submit time let a creator start a deal on a brief no admin had cleared.
+      toast.success('Brief sent for review — once our team approves it, it goes to the creator to accept. Funds are held on your wallet and released to the creator when the deal completes.');
       if (onPublished) onPublished();
     } catch (e) {
       // Wallet too short to hold the budget → open the inline top-up sheet (no pay screen
@@ -767,7 +775,11 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
       </div>
 
       <style>{`
-        .pb-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 18px; }
+        /* z-index 1400 + blur to match .cmk-brief-overlay (the Post-a-Campaign modal).
+           At 1000 this sat UNDER the sticky top nav (.cmk-nav is z-index:1300), so the
+           header's search bar and Post-a-Campaign button stayed sharp and clickable on
+           top of an open modal while everything else behind it was dimmed. */
+        .pb-overlay { position: fixed; inset: 0; background: rgba(18,20,46,0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1400; padding: 18px; }
         .pb-modal { width: min(840px, calc(100% - 32px)); height: min(560px, 88vh); background: #fff; border-radius: 18px; display: grid; grid-template-columns: 250px 1fr; overflow: hidden; box-shadow: 0 30px 70px rgba(15,23,42,0.35); font-family: inherit; }
         @media (max-width: 760px) { .pb-modal { width: 100%; } }
         .pb-rail { background: #fafbfd; border-right: 1px solid #eef0f6; padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }

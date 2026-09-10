@@ -104,15 +104,15 @@ export default function WorkSubmission() {
   };
 
   // Curried so each zone gets its own setter while sharing one upload path - the
-  // 100MB cap and the error handling must not diverge between zones.
+  // 400MB cap and the error handling must not diverge between zones.
   const uploadInto = (setter) => async (e) => {
     const selectedFiles = Array.from(e.target.files || []);
     if (!selectedFiles.length) return;
 
     try {
       const uploadedUrls = await Promise.all(selectedFiles.map(async (file) => {
-        if (file.size > 100 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large. Maximum 100MB per file.`);
+        if (file.size > 400 * 1024 * 1024) {
+          throw new Error(`${file.name} is too large. Maximum 400MB per file.`);
         }
         const formData = new FormData();
         formData.append('file', file);

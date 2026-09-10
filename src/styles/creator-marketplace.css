@@ -431,8 +431,35 @@
 .cmk-awc-revision{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;border:1.5px solid #fcd9a4;border-radius:8px;background:#fff8ed;color:#b45309;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
 .cmk-awc-revision:hover{background:#fdefd8;border-color:#f8c471}
 
-/* segmented stage progress bar — label above each segment */
-.cmk-awc-steps{flex:1;min-width:0;display:flex;gap:12px;align-items:flex-end}
+/* Collapsible stage progress.
+   The summary row + track markup was added to MyActiveWorkPage without any CSS to go
+   with it, so every part of it rendered as raw inline content: "Start", the current
+   stage, "Payout" and "View stages" ran together on one line, the track's fill and knob
+   had nothing to position against, and the expanded step list showed permanently
+   underneath - which is the overlap that appeared on the card. */
+.cmk-awc-progress{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.cmk-awc-progress-summary{width:100%;display:flex;flex-direction:column;gap:6px;padding:0;border:0;
+  background:none;font:inherit;text-align:left;cursor:pointer}
+/* space-between is what separates Start / current / Payout; they were touching. */
+.cmk-awc-progress-labels{display:flex;justify-content:space-between;align-items:baseline;gap:10px;min-width:0}
+.cmk-awc-progress-labels strong{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+/* The middle label is the only one that can be long, so it is the only one that clips. */
+.cmk-awc-progress-labels em{flex:1;min-width:0;font-style:normal;font-size:11.5px;font-weight:800;color:var(--ink);
+  text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmk-awc-progress-track{position:relative;display:block;width:100%;height:7px;border-radius:6px;background:#e7e9f7}
+.cmk-awc-progress-track i{position:absolute;inset:0 auto 0 0;height:100%;border-radius:6px;background:#4452f0;transition:width .25s ease}
+.cmk-awc-progress-track b{position:absolute;top:50%;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;
+  background:#fff;border:2.5px solid #4452f0;transform:translateY(-50%);transition:left .25s ease}
+.cmk-awc-progress-summary small{display:inline-flex;align-items:center;gap:4px;align-self:flex-end;
+  font-size:11px;font-weight:600;color:var(--muted)}
+.cmk-awc-progress-summary small svg{transition:transform .2s ease}
+.cmk-awc-progress.is-expanded .cmk-awc-progress-summary small svg{transform:rotate(180deg)}
+
+/* segmented stage progress bar — label above each segment.
+   Hidden until the summary is expanded; it used to render at all times, stacked on top
+   of the summary row. */
+.cmk-awc-steps{display:none;min-width:0;gap:12px;align-items:flex-end}
+.cmk-awc-progress.is-expanded .cmk-awc-steps{display:flex}
 .awc-step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px}
 .awc-step-lbl{max-width:100%;font-size:11.5px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .awc-step-bar{width:100%;height:7px;border-radius:6px;background:#e7e9f7}
@@ -456,7 +483,7 @@
 @media (max-width:760px){
   .cmk-awc{flex-wrap:wrap;gap:14px}
   .cmk-awc-lead{width:auto;flex:1}
-  .cmk-awc-steps{flex:1 1 100%;order:3}
+  .cmk-awc-progress{flex:1 1 100%;order:3}
   .cmk-awc-reqcta{flex:1 1 100%;order:3;justify-content:space-between}
 }
 

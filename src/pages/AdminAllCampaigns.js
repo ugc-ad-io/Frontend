@@ -36,7 +36,7 @@ const MOD_ACTIONS = {
   },
   delete: {
     label: 'Delete', verb: 'Delete this campaign', destructive: true,
-    blurb: 'Permanently removes the brief and its child records. Blocked while escrow is still reserved or held - ban it and settle the money first.',
+    blurb: 'Permanently removes the brief and its child records. Any escrow still reserved or held is refunded to the brand first.',
   },
 };
 
@@ -88,7 +88,14 @@ export default function AdminAllCampaigns() {
           duration: 10000,
         });
       } else {
-        toast.success(res.data?.message || (action === 'delete' ? 'Campaign deleted' : 'Done'));
+        // Deleting refunds any live escrow. Say how much went back, so the admin is not
+        // left guessing whether the brand's money was handled.
+        const refunded = Number(res.data?.refunded_to_brand || 0);
+        if (action === 'delete' && refunded > 0) {
+          toast.success(`Campaign deleted - ₹${refunded.toLocaleString('en-IN')} refunded to the brand`);
+        } else {
+          toast.success(res.data?.message || (action === 'delete' ? 'Campaign deleted' : 'Done'));
+        }
       }
       setPending(null);
       setReason('');

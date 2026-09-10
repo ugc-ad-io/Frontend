@@ -1177,8 +1177,14 @@
   box-shadow: 0 8px 18px rgba(7, 7, 78, 0.22);
 }
 
+/* Same two-jobs-one-style problem as the chat popup: this carries both one-line
+   notices and the full campaign brief. Centred text with collapsed whitespace made the
+   brief unreadable and dropped the line breaks it is written with. */
 .msg-system-pill {
-  text-align: center;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
   background: rgba(7, 7, 78, 0.08);
   border-radius: 12px;
   padding: 14px 24px;

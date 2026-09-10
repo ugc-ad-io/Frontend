@@ -230,7 +230,7 @@ export default function ChatPopup({ user, onClose }) {
         .cpop-prof-body p{margin:0;color:#585c7e;font-size:13.5px;text-transform:capitalize}
         .cpop-prof-bio{display:block;margin-top:10px;color:#585c7e;font-size:13px;line-height:1.5}
 
-        .cpop{position:fixed;right:24px;bottom:24px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 48px);
+        .cpop{position:fixed;right:24px;bottom:24px;width:400px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 48px);
           background:#fff;border:1px solid #e9ebf4;border-radius:18px;box-shadow:0 28px 64px rgba(15,22,58,.32);
           display:flex;flex-direction:column;overflow:hidden;z-index:1200;animation:cpop-in .22s cubic-bezier(.2,.7,.2,1)}
         .cpop.is-behind{z-index:900}
@@ -246,7 +246,16 @@ export default function ChatPopup({ user, onClose }) {
         .cpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
         .cpop-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
         .cpop-empty{margin:auto;color:#9296ba;font-size:13.5px;text-align:center}
-        .cpop-sys{align-self:center;max-width:90%;text-align:center;background:#eef0ff;color:#5b6070;font-size:12.5px;line-height:1.4;padding:7px 15px;border-radius:999px;border:1px solid #e0e4ff}
+        /* System notices are two very different things sharing one style: one-liners like
+           "Both shipping addresses received", and the full campaign brief, which runs to
+           dozens of lines. As a centre-aligned 999px pill the brief became an unreadable
+           ragged blob on desktop - and text-align:center plus collapsed whitespace threw
+           away the line breaks the message is actually written with.
+           Left-aligned, pre-wrap, and a block radius. Short notices still read as a neat
+           rounded box; long ones are legible. */
+        .cpop-sys{align-self:center;max-width:96%;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;
+          background:#eef0ff;color:#4a4f63;font-size:12.5px;line-height:1.55;padding:10px 14px;
+          border-radius:14px;border:1px solid #e0e4ff}
         .cpop-card{align-self:stretch;background:#f7f8ff;border:1px solid #e5e8fb;border-radius:12px;padding:12px 14px;margin:2px 0}
         .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#15163a;font-size:12.5px;margin-bottom:8px}
         .cpop-card-badge{text-transform:capitalize;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f6;color:#585c7e}

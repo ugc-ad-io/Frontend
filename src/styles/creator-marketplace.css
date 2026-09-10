@@ -1454,9 +1454,20 @@
   border:none;border-radius:13px;padding:13px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
 
 @media (max-width:1080px){
-  .cmk-dr-body{grid-template-columns:1fr}
+  /* minmax(0,1fr), not 1fr: a 1fr track's automatic minimum is min-content, so one
+     wide child (a long id, a button row) stretches the track past the viewport and
+     every card in it gets cut off - .cmk-app is overflow-x:clip, so there is no
+     scrolling to what was pushed out. min-width:0 on the children is the other half
+     of the same guard, for the grid items themselves. */
+  .cmk-dr-body{grid-template-columns:minmax(0,1fr)}
+  .cmk-dr-body>*{min-width:0}
   .cmk-dr-aside{position:static}
-  .cmk-dr-head{gap:16px;flex-wrap:wrap}
+  /* NO flex-wrap here. .cmk-dr-head is flex-direction:column, and wrap makes a column
+     container size its line to the widest child's MAX-content instead of stretching
+     children to the container width - so the header block became 402px wide inside a
+     350px box on a 390px phone and everything to the right of the screen edge was
+     clipped away. Nothing can wrap in an auto-height column anyway. */
+  .cmk-dr-head{gap:16px}
   .cmk-dr-steps{overflow-x:auto}
   .cmk-dr-step{min-width:90px}
 }
@@ -1598,7 +1609,7 @@
   .cmk-awc-go{width:44px;height:44px}
 
   /* Deal Room */
-  .cmk-dr-head{gap:14px;padding:18px;flex-wrap:wrap}
+  .cmk-dr-head{gap:14px;padding:18px}   /* no flex-wrap - see the 1080px block */
   .cmk-dr-metacol{min-width:42%;white-space:normal}
   .cmk-dr-next{margin-left:0;width:100%;justify-content:center}
   .cmk-dr-ship-grid{grid-template-columns:1fr 1fr}

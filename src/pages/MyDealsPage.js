@@ -1406,7 +1406,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
           <label>Upload Unboxing Video</label>
           <p className="deal-helper-text">Upload a short unboxing video showing package condition, opening, and product received.</p>
           <input type="file" id="unboxing-upload" accept="video/mp4,video/quicktime" onChange={(event) => onUpload(event.target.files?.[0])} />
-          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 400MB - Max 2 minutes" uploaded={hasVideo} previewUrl={unboxingVideoUrl || receipt.unboxing_video_url} previewType="video" onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
+          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 400MB - Max 6 minutes" uploaded={hasVideo} previewUrl={unboxingVideoUrl || receipt.unboxing_video_url} previewType="video" onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
         </>
       )}
     </DealCard>

@@ -244,7 +244,7 @@ export default function ChatPopup({ user, onClose }) {
         .cpop-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block}
         .cpop-note{background:#eef0ff;border:1px solid #dfe2ff;color:#4452f0;font-size:11.5px;line-height:1.4;padding:8px 11px;border-radius:10px}
         .cpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
-        .cpop-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
+        .cpop-body{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
         .cpop-empty{margin:auto;color:#9296ba;font-size:13.5px;text-align:center}
         /* System notices are two very different things sharing one style: one-liners like
            "Both shipping addresses received", and the full campaign brief, which runs to
@@ -253,9 +253,17 @@ export default function ChatPopup({ user, onClose }) {
            away the line breaks the message is actually written with.
            Left-aligned, pre-wrap, and a block radius. Short notices still read as a neat
            rounded box; long ones are legible. */
-        .cpop-sys{align-self:center;max-width:96%;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;
-          background:#eef0ff;color:#4a4f63;font-size:12.5px;line-height:1.55;padding:10px 14px;
-          border-radius:14px;border:1px solid #e0e4ff}
+        /* No card, no pill, no curve. A system notice carries the full campaign brief -
+           dozens of lines - and wrapping that in a rounded box made a tall arch of colour
+           that swallowed the text. Flat block instead: it reads as text, and a long brief
+           looks the same as a short notice.
+           align-self:stretch + min-width:0 are what stop it forcing the popup to scroll
+           sideways; a brief with an unbroken 40-character word had been widening the whole
+           column. overflow-wrap:anywhere breaks that word instead. */
+        .cpop-sys{align-self:stretch;width:100%;min-width:0;max-width:100%;text-align:left;
+          white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
+          background:none;border:none;border-radius:0;
+          color:#5b6070;font-size:12.5px;line-height:1.6;padding:6px 2px;margin:2px 0}
         .cpop-card{align-self:stretch;background:#f7f8ff;border:1px solid #e5e8fb;border-radius:12px;padding:12px 14px;margin:2px 0}
         .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#15163a;font-size:12.5px;margin-bottom:8px}
         .cpop-card-badge{text-transform:capitalize;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f6;color:#585c7e}

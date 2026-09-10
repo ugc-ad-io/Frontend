@@ -1184,16 +1184,21 @@
   text-align: left;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  word-break: break-word;
   line-height: 1.6;
-  background: rgba(7, 7, 78, 0.08);
-  border-radius: 12px;
-  padding: 14px 24px;
+  /* Flat, not a card. Same reason as .cpop-sys: this carries the whole campaign brief,
+     and a rounded tinted box around dozens of lines reads as a wall of colour. */
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 6px 2px;
   font-size: 0.85rem;
-  color: #07074e;
-  margin: 16px auto;
-  align-self: center;
-  max-width: 85%;
-  border: 1px solid rgba(7, 7, 78, 0.15);
+  color: #5b6070;
+  margin: 10px 0;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   font-weight: 400;
   font-family: var(--font-body);
 }
@@ -1546,7 +1551,8 @@
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .msg-system-pill { width: auto; max-width: calc(100% - 20px); padding: 12px 14px; }
+  /* Matches the flat desktop treatment - no padding box to reintroduce a card edge. */
+  .msg-system-pill { width: 100%; max-width: 100%; padding: 6px 2px; }
   .msg-system-wrap { width: 100%; max-width: 100%; min-width: 0; }
   .msg-system-desktop { display: none; }
   .msg-system-mobile {

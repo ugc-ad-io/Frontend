@@ -100,7 +100,14 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         .hsr-close:hover{background:#f2f3fb;color:#15163a}
         .hsr-brand{display:flex;align-items:center;gap:12px;background:none;border:none;cursor:pointer;color:#15163a;
           padding:0 0 0 8px;white-space:nowrap;min-width:0}
+        /* The collapsed rail is 76px wide with 14px padding, so its content box is 48px, and
+           .hsr-brand's 8px left pad leaves 40px. A fixed 44px mark did not fit and the
+           rail's overflow:hidden sliced it - the logo showed as a thin bar in the corner.
+           Collapsed: no left pad, centred, and a mark that fits the 48px box. Open: the
+           original 44px beside the wordmark, where there is room for it. */
         .hsr-mark{width:44px;height:44px;flex:none;display:grid;place-items:center}
+        .hsr:not(.is-open) .hsr-brand{padding:0;width:100%;justify-content:center}
+        .hsr:not(.is-open) .hsr-mark{width:40px;height:40px}
         .hsr-mark img{width:100%;height:100%;object-fit:contain;display:block}
         /* wordmark colours match the official logo: "UGC" periwinkle, "ad.io" navy */
         .hsr-brand-txt{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-weight:800;font-size:19px;color:#5b6bff;letter-spacing:-.2px}

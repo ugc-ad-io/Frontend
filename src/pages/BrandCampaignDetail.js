@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
+import { findCreatorDeal, getDealMessages } from '../utils/dealMessages';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
@@ -212,9 +213,10 @@ function extractDeliverables(text) {
 // — the same thread the creator writes to in My Deals, including the backend's system
 // lines. Posting goes to POST /deals/{deal_id}/chat, which accepts either party.
 function DealChatPanel({ deal, onSent }) {
+  const { user } = useAuth();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const messages = deal?.chat_summary?.messages || [];
+  const messages = getDealMessages(deal, 'brand', user?.id);
   const listRef = useRef(null);
 
   // Keep the newest message in view as the thread grows.
@@ -303,8 +305,7 @@ export default function BrandCampaignDetail() {
   // per-creator panel — Creator card, chat, work review, review — pointed at the same
   // creator without threading a prop through each one.
   const creator = creators.find((c) => String(c?.id) === String(activeCreatorId)) || creators[0] || null;
-  const deal = deals.find((d) => String(d?.creator?.id) === String(activeCreatorId))
-    || deals.find((d) => String(d?.campaign?.id) === String(id)) || deals[0] || null;
+  const deal = findCreatorDeal(deals, id, creator?.id);
 
   const load = async () => {
     try {
@@ -810,7 +811,7 @@ export default function BrandCampaignDetail() {
                   separate threads (deal_messages vs messages), so every system line
                   ("Creator flagged the revision request…") and every message the creator
                   typed here was invisible to the brand. This reads the same thread. */}
-              {deal?.deal_id && <DealChatPanel deal={deal} onSent={load} />}
+              {deal?.deal_id && <DealChatPanel key={`${deal.deal_id}:${creator?.id}`} deal={deal} onSent={load} />}
             </div>
           ) : (
             <EmptyState

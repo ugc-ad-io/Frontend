@@ -1272,7 +1272,7 @@
 
 /* ── DEAL ROOM ───────────────────────────────────────────────────────────── */
 .cmk-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-soft)}
-.cmk-dr{padding-top:4px}
+.cmk-dr{padding-top:4px;min-width:0;max-width:100%}
 .cmk-dr-back{display:flex;align-items:center;gap:14px;margin:4px 0 16px}
 .cmk-dr-back button{display:inline-flex;align-items:center;gap:7px;background:none;border:none;color:var(--indigo);
   font-family:inherit;font-weight:600;font-size:14px;cursor:pointer}
@@ -1622,6 +1622,13 @@
   .cmk-awc-go{width:44px;height:44px}
 
   /* Deal Room */
+  .cmk-page.cmk-wrap:has(> .cmk-dr){box-sizing:border-box;width:100%;padding-inline:16px}
+  .cmk-dr>*{min-width:0;max-width:100%;box-sizing:border-box}
+  .cmk-dr-body{padding-inline:0}
+  .cmk-dr-metacol b{white-space:normal;overflow-wrap:anywhere}
+  .cmk-dr-id{flex-wrap:wrap}
+  .cmk-dr-chat-in input{min-width:0}
+  .cmk-dr-chat-in .send{flex-shrink:0}
   .cmk-dr-head{gap:14px;padding:18px}   /* no flex-wrap - see the 1080px block */
   .cmk-dr-metacol{min-width:42%;white-space:normal}
   .cmk-dr-next{margin-left:0;width:100%;justify-content:center}

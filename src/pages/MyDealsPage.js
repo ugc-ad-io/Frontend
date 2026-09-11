@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { getDealMessages } from '../utils/dealMessages';
 import BookingCard from '../components/BookingCard';
 import {
   AlertTriangle,
@@ -456,6 +457,9 @@ export default function MyDealsPage() {
     setBriefOpen(false);
     setFullBrief(null);
     setStepsExpanded(false);
+    setChatOpen(false);
+    setMessage('');
+    setMessageAttachments([]);
   }, [selectedDeal?.deal_id]);
 
   // Once a deal is paid + complete, ask the creator to rate the brand. Creators could
@@ -497,7 +501,10 @@ export default function MyDealsPage() {
   const fetchDeals = async () => {
     try {
       const res = await axios.get(`${API}/deals/my`);
-      const list = res.data || [];
+      const list = (res.data || []).filter((item) => {
+        const creatorId = item.creator?.id ?? item.creator_id;
+        return creatorId == null || String(creatorId) === String(user.id);
+      });
       setDeals(list);
       const campaignParam = searchParams.get('campaign');
       const dealParam = searchParams.get('deal');
@@ -923,14 +930,14 @@ export default function MyDealsPage() {
     : [deal?.campaign?.industry_type || 'UGC']).concat('UGC Video');
   const shipmentRequired = deal?.shipment?.required || deal?.campaign?.requires_shipment;
   const shipment = deal?.shipment || {};
-  const chatMessages = deal?.chat_summary?.messages || [];
+  const chatMessages = getDealMessages(deal, 'creator', user?.id);
   // Unread badge = inbound messages (from the brand / system, not the creator's
   // own) that haven't been seen. The badge used to show the TOTAL message count
   // and never cleared; now opening the chat marks everything seen (persisted per
   // deal in localStorage) so it drops to zero.
   const chatDealId = getDealId(deal);
   const inboundMsgCount = chatMessages.filter((m) => m.sender_type && m.sender_type !== 'creator').length;
-  const chatSeenKey = chatDealId ? `dealChatSeen:${chatDealId}` : null;
+  const chatSeenKey = chatDealId ? `dealChatSeen:${user?.id}:${chatDealId}` : null;
   let chatSeenCount = 0;
   try { chatSeenCount = chatSeenKey ? Number(localStorage.getItem(chatSeenKey) || 0) : 0; } catch { chatSeenCount = 0; }
   const unreadChatCount = Math.max(0, inboundMsgCount - chatSeenCount);
@@ -1774,11 +1781,11 @@ function RevisionTracker({ deal, submitting, onRevisionResponse, onDiscussWithBr
 }
 
 function RightPanel({ tab, setTab, deal, currentState, message, setMessage, messageAttachments, setMessageAttachments, onSendMessage, onActionCard }) {
+  const { user } = useAuth();
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [uploadingMessageFile, setUploadingMessageFile] = useState(false);
   const messageFileInputRef = useRef(null);
-  const chat = deal?.chat_summary || {};
-  const messages = chat.messages || [];
+  const messages = getDealMessages(deal, 'creator', user?.id);
   const escrow = deal?.escrow || {};
   const deductions = escrow.deductions || [];
   const damaged = isDamageState(currentState);

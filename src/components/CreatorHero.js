@@ -174,7 +174,12 @@ export default function CreatorHero({
                 src={reel.src}
                 autoPlay
                 muted
-                loop
+                // Only loop a SINGLE reel. With several, looping a clip shorter than
+                // CLIP_SECONDS reset its time before onTimeUpdate ever hit the advance
+                // threshold AND suppressed onEnded — so the carousel froze on reel 0.
+                // Without loop, a short reel fires onEnded → advance; a long one is
+                // capped by onTimeUpdate → advance.
+                loop={reels.length <= 1}
                 playsInline
                 preload="auto"
                 onTransitionEnd={layer === leaving ? () => setLeaving(null) : undefined}

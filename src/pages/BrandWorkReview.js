@@ -26,14 +26,18 @@ const fileExt = (f) => (f ? (String(f).split('?')[0].split('.').pop() || '').toU
 
 function Thumb({ file, onOpen, onDuration, watermark }) {
   const [d, setD] = useState('');
+  // A submission stored before Cloudinary was in place can point at a file
+  // that no longer exists (Render's disk is wiped on deploy) — show a clear
+  // "unavailable" tile instead of a silent black box.
+  const [broken, setBroken] = useState(false);
   const url = assetUrl(file);
   const vid = isVideo(url);
   return (
     <div className="bwr-thumb" onClick={onOpen}>
-      {url ? (vid
-        ? <video src={`${url}#t=0.5`} muted playsInline preload="metadata" onLoadedMetadata={(e) => { const v = fmtDur(e.target.duration); setD(v); onDuration?.(v); }} />
-        : <img src={url} alt="" />)
-        : <div className="bwr-thumb-fb"><FileText size={26} /></div>}
+      {url && !broken ? (vid
+        ? <video src={`${url}#t=0.5`} muted playsInline preload="metadata" onError={() => setBroken(true)} onLoadedMetadata={(e) => { const v = fmtDur(e.target.duration); setD(v); onDuration?.(v); }} />
+        : <img src={url} alt="" onError={() => setBroken(true)} />)
+        : <div className="bwr-thumb-fb"><FileText size={26} />{broken && <small style={{ display: 'block', marginTop: 6, opacity: 0.75 }}>File unavailable</small>}</div>}
       {watermark && <span className="bwr-wm" aria-hidden="true" />}
       <span className="bwr-play"><Play size={20} fill="currentColor" /></span>
       {d && <span className="bwr-dur">{d}</span>}
@@ -72,12 +76,16 @@ export default function BrandWorkReview() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [videoModal, setVideoModal] = useState(null);
+  const [videoErr, setVideoErr] = useState(false);   // current modal video failed to load
   const [revisionFor, setRevisionFor] = useState(null);
   const [videoReviewFor, setVideoReviewFor] = useState(null);   // { src, title, watermark }
   const [reviewFor, setReviewFor] = useState(null);   // row awaiting a post-approval rating
   const [trackers, setTrackers] = useState({});   // campaignId -> revision_tracker
   const [revSubmitting, setRevSubmitting] = useState(false);
   const busy = useRef(false);
+
+  // A fresh video in the modal starts from a clean error state.
+  useEffect(() => { setVideoErr(false); }, [videoModal?.src]);
 
   const load = async () => {
     try {
@@ -481,20 +489,29 @@ export default function BrandWorkReview() {
           <div className="bwr-vid-card" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="bwr-vid-close" aria-label="Close" onClick={() => setVideoModal(null)}>✕</button>
             <div className="bwr-vid-frame">
-              <video
-                src={videoModal.src}
-                controls
-                autoPlay
-                playsInline
-                className="bwr-vid-el"
-                // Until the deliverable is approved, strip the browser's native
-                // Download menu item and block right-click "Save video as…" so the
-                // brand can only preview (watermarked), not grab the raw file.
-                controlsList={videoModal.watermark ? 'nodownload noremoteplayback' : undefined}
-                disablePictureInPicture={videoModal.watermark}
-                onContextMenu={videoModal.watermark ? (e) => e.preventDefault() : undefined}
-              />
-              {videoModal.watermark && <span className="bwr-wm" aria-hidden="true" />}
+              {videoErr ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 260, padding: 24, color: '#fff', textAlign: 'center' }}>
+                  <FileVideo size={40} style={{ opacity: 0.6 }} />
+                  <strong>This video is no longer available</strong>
+                  <span style={{ fontSize: 13, opacity: 0.75 }}>The file couldn't be loaded from storage. Ask the creator to resubmit it.</span>
+                </div>
+              ) : (
+                <video
+                  src={videoModal.src}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="bwr-vid-el"
+                  onError={() => setVideoErr(true)}
+                  // Until the deliverable is approved, strip the browser's native
+                  // Download menu item and block right-click "Save video as…" so the
+                  // brand can only preview (watermarked), not grab the raw file.
+                  controlsList={videoModal.watermark ? 'nodownload noremoteplayback' : undefined}
+                  disablePictureInPicture={videoModal.watermark}
+                  onContextMenu={videoModal.watermark ? (e) => e.preventDefault() : undefined}
+                />
+              )}
+              {videoModal.watermark && !videoErr && <span className="bwr-wm" aria-hidden="true" />}
             </div>
             {videoModal.title && <div className="bwr-vid-name">{videoModal.title}</div>}
           </div>

@@ -79,34 +79,49 @@ export default function CreatorHero({
       .catch(() => { if (alive) setReels(DEFAULT_REELS); });
     return () => { alive = false; };
   }, []);
-  const advancingRef = useRef(false);         // guard so one clip advances only once
-  // Two stacked video layers so the next reel can load HIDDEN and crossfade in —
-  // this avoids the orange background flashing during a reel change.
-  const [layerReel, setLayerReel] = useState([0, null]); // reel index held by each layer
-  const [front, setFront] = useState(0);      // which layer is currently visible
-  const [leaving, setLeaving] = useState(null); // layer fading OUT on top (reveals new beneath)
+  // Reel carousel driven by a FIXED TIMER, not video events. The old dual-layer
+  // crossfade advanced only when the next clip fired onLoadedData / the current one
+  // fired onEnded — so a short looping clip, a slow load, or a dead Cloudinary URL
+  // froze it on one reel. Here each reel loops in its CLIP_SECONDS slot, a timer
+  // advances, and the incoming reel fades in over the outgoing one (kept underneath
+  // until the fade ends) so the background never flashes.
+  const [cur, setCur] = useState(0);           // reel currently shown
+  const [prev, setPrev] = useState(null);      // outgoing reel, held under the new one during the fade
   const [progress, setProgress] = useState(0); // 0→1 fill of the active reel dot
-  const idx = layerReel[front];               // the reel currently shown
+  const curRef = useRef(0);
+  useEffect(() => { curRef.current = cur; }, [cur]);
+  const idx = cur;                             // alias used by the dots + top-creator card
 
-  const startTransition = (nextI) => {
-    if (advancingRef.current || nextI === idx) return;
-    advancingRef.current = true;
-    const back = front ^ 1;
-    if (layerReel[back] === nextI) { promote(back); return; }   // already loaded → just crossfade
-    setLayerReel((lr) => { const n = [...lr]; n[back] = nextI; return n; }); // loads hidden
+  const goToReel = (i) => {
+    if (i !== curRef.current) { setPrev(curRef.current); setCur(i); }
   };
-  const nextReel = () => startTransition((idx + 1) % reels.length);
-  const goToReel = (i) => startTransition(i);
 
-  // Back layer finished loading the next reel → reveal it. The NEW reel sits fully
-  // opaque underneath; the OLD one fades out on top, so the orange bg never shows.
-  const promote = (layer) => {
-    if (layer === front) return;
-    setLeaving(front);
-    setFront(layer);
+  // Advance every CLIP_SECONDS. Recreated only when the reel count changes; reads the
+  // live index from a ref so it never advances from a stale one.
+  useEffect(() => {
+    if (reels.length <= 1) return undefined;
+    const t = setInterval(() => {
+      setPrev(curRef.current);
+      setCur((curRef.current + 1) % reels.length);
+    }, CLIP_SECONDS * 1000);
+    return () => clearInterval(t);
+  }, [reels.length]);
+
+  // Drop the outgoing reel once the fade is done (independent of any video event).
+  useEffect(() => {
+    if (prev == null) return undefined;
+    const t = setTimeout(() => setPrev(null), 550);
+    return () => clearTimeout(t);
+  }, [prev]);
+
+  // Time-based progress bar — fills smoothly even if the current clip failed to load.
+  useEffect(() => {
     setProgress(0);
-    advancingRef.current = false;
-  };
+    const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const started = now();
+    const t = setInterval(() => setProgress(Math.min(1, (now() - started) / (CLIP_SECONDS * 1000))), 100);
+    return () => clearInterval(t);
+  }, [cur, reels.length]);
 
   const tc = reels[idx] || reels[0] || null; // the top creator whose reel is currently playing (null until loaded)
   const photoSrc = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : null;
@@ -162,37 +177,34 @@ export default function CreatorHero({
       <div className="chero-stage">
         <div className="chero-photo">
           <div className="chero-photo-bg" />
-          {reels.length > 0 && [0, 1].map((layer) => {
-            const reel = layerReel[layer] == null ? null : reels[layerReel[layer]];
-            if (!reel || !reel.src) return null;
+          {/* Timer-driven crossfade: the outgoing reel sits underneath while the new
+              one fades in on top, so the background never flashes. Each reel LOOPS in
+              its slot — the timer, not the video, decides when to advance. */}
+          {reels.length > 0 && (() => {
+            const top = reels[cur];
+            const under = prev != null ? reels[prev] : null;
             return (
-              <video
-                // Key on the src so the element REMOUNTS (and reloads) when the reel
-                // changes — a bare src swap doesn't reload an already-playing <video>.
-                key={`${layer}-${reel.src}`}
-                className={`chero-reel ${layer === leaving ? 'is-leaving' : layer === front ? 'is-front' : 'is-back'}`}
-                src={reel.src}
-                autoPlay
-                muted
-                // Only loop a SINGLE reel. With several, looping a clip shorter than
-                // CLIP_SECONDS reset its time before onTimeUpdate ever hit the advance
-                // threshold AND suppressed onEnded — so the carousel froze on reel 0.
-                // Without loop, a short reel fires onEnded → advance; a long one is
-                // capped by onTimeUpdate → advance.
-                loop={reels.length <= 1}
-                playsInline
-                preload="auto"
-                onTransitionEnd={layer === leaving ? () => setLeaving(null) : undefined}
-                onLoadedData={() => { if (layer !== front) promote(layer); }}
-                onTimeUpdate={layer === front ? (e) => {
-                  const t = e.currentTarget.currentTime;
-                  if (t >= CLIP_SECONDS) { nextReel(); return; }
-                  setProgress(t / CLIP_SECONDS);
-                } : undefined}
-                onEnded={layer === front ? nextReel : undefined}
-              />
+              <>
+                {under && under.src && (
+                  <video
+                    key={`under-${prev}-${under.src}`}
+                    className="chero-reel is-under"
+                    src={under.src}
+                    autoPlay muted loop playsInline preload="auto"
+                  />
+                )}
+                {top && top.src && (
+                  <video
+                    // Keyed on the reel so the element remounts (and restarts) each change.
+                    key={`top-${cur}-${top.src}`}
+                    className="chero-reel is-top"
+                    src={top.src}
+                    autoPlay muted loop playsInline preload="auto"
+                  />
+                )}
+              </>
             );
-          })}
+          })()}
           <span className="chero-reel-dots">
             {reels.map((_, i) => (
               <i
@@ -286,9 +298,9 @@ export default function CreatorHero({
         .chero-photo{position:relative;width:74%;margin:0 auto;aspect-ratio:3/4;border-radius:26px;overflow:hidden;box-shadow:0 36px 70px -28px rgba(20,20,50,.5)}
         .chero-photo-bg{position:absolute;inset:0;background:linear-gradient(160deg,#20223f,#14152b 55%,#0d0e1f);z-index:0}
         .chero-reel{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1}
-        .chero-reel.is-front{z-index:2}
-        .chero-reel.is-back{z-index:1}
-        .chero-reel.is-leaving{z-index:3;opacity:0;transition:opacity .55s ease}
+        .chero-reel.is-under{z-index:1}
+        .chero-reel.is-top{z-index:2;animation:cheroReelIn .5s ease}
+        @keyframes cheroReelIn{from{opacity:0}to{opacity:1}}
         .chero-reel-dots{position:absolute;top:14px;left:0;right:0;z-index:3;display:flex;justify-content:center;gap:6px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
         .chero-reel-dots i{position:relative;overflow:hidden;width:18px;height:4px;border-radius:3px;background:rgba(255,255,255,.55);cursor:pointer;transition:width .35s ease}
         .chero-reel-dots i.done{background:#fff}

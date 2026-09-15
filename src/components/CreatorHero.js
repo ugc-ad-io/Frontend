@@ -90,7 +90,14 @@ export default function CreatorHero({
   const [progress, setProgress] = useState(0); // 0→1 fill of the active reel dot
   const curRef = useRef(0);
   useEffect(() => { curRef.current = cur; }, [cur]);
+  const deadSkipRef = useRef(0);               // consecutive reels that failed to load
   const idx = cur;                             // alias used by the dots + top-creator card
+
+  const advance = () => {
+    if (reels.length <= 1) return;
+    setPrev(curRef.current);
+    setCur((curRef.current + 1) % reels.length);
+  };
 
   const goToReel = (i) => {
     if (i !== curRef.current) { setPrev(curRef.current); setCur(i); }
@@ -200,6 +207,11 @@ export default function CreatorHero({
                     className="chero-reel is-top"
                     src={top.src}
                     autoPlay muted loop playsInline preload="auto"
+                    // A dead/missing video (e.g. an old file wiped from Render's ephemeral
+                    // disk) can't play — skip past it instead of showing a blank for the
+                    // whole slot. Stop skipping once we've tried every reel (all dead).
+                    onError={() => { if (deadSkipRef.current < reels.length) { deadSkipRef.current += 1; advance(); } }}
+                    onPlaying={() => { deadSkipRef.current = 0; }}
                   />
                 )}
               </>

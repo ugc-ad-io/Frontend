@@ -78,6 +78,10 @@ export default function BrandWorkReview() {
   const [videoModal, setVideoModal] = useState(null);
   const [videoErr, setVideoErr] = useState(false);   // current modal video failed to load
   const [revisionFor, setRevisionFor] = useState(null);
+  // trackers is keyed by the real campaign id, but revisionFor may be a
+  // "<campaignId>~<creatorId>" deal id on a multi-creator brief — track the
+  // bare campaign id alongside it just for the tracker lookup.
+  const [revisionCampaignId, setRevisionCampaignId] = useState(null);
   const [videoReviewFor, setVideoReviewFor] = useState(null);   // { src, title, watermark }
   const [reviewFor, setReviewFor] = useState(null);   // row awaiting a post-approval rating
   const [trackers, setTrackers] = useState({});   // campaignId -> revision_tracker
@@ -89,10 +93,12 @@ export default function BrandWorkReview() {
 
   const load = async () => {
     try {
-      const [camps, dir, dealList] = await Promise.all([
-        axios.get(`${API}/campaigns?t=${Date.now()}`),
-        axios.get(`${API}/business/creator-directory`).catch(() => ({ data: [] })),
-        // Carries revision_tracker (free left / next fee) — the campaigns list doesn't,
+      const [review, dealList] = await Promise.all([
+        // One row per (campaign, creator) — campaign.work_submission (the old source
+        // here) is a single field overwritten on every submit, so a second hired
+        // creator's work silently replaced the first's and never showed up.
+        axios.get(`${API}/business/work-review?t=${Date.now()}`).catch(() => ({ data: [] })),
+        // Carries revision_tracker (free left / next fee) — the review list doesn't,
         // so without this the modal can't warn the brand before a ₹500 debit.
         axios.get(`${API}/deals/business`).catch(() => ({ data: [] })),
       ]);
@@ -102,25 +108,7 @@ export default function BrandWorkReview() {
         if (cid) trackerMap[String(cid)] = d.revision_tracker || {};
       });
       setTrackers(trackerMap);
-      const nameMap = {};
-      const photoMap = {};
-      (Array.isArray(dir.data) ? dir.data : []).forEach((c) => { nameMap[String(c.id)] = c.name; photoMap[String(c.id)] = c.profile_photo; });
-      const list = (camps.data || []).filter((c) => c.work_submission).map((c) => {
-        const ws = c.work_submission;
-        const status = ws.status || (c.status === 'completed' ? 'approved' : 'pending_review');
-        return {
-          id: c.id || c._id,
-          title: c.title || 'Submitted content',
-          campaign: c.title || (c.category ? c.category.replace(/_/g, ' ') : 'Campaign'),
-          creatorId: ws.creator_id,
-          creator: nameMap[String(ws.creator_id)] || 'Creator',
-          photo: photoMap[String(ws.creator_id)] || '',
-          files: ws.work_files || [],
-          submittedAt: ws.submitted_at,
-          status,
-        };
-      });
-      setItems(list);
+      setItems(Array.isArray(review.data) ? review.data : []);
     } catch (e) {
       setItems([]);
     } finally { setLoading(false); }
@@ -159,9 +147,9 @@ export default function BrandWorkReview() {
   const start = (safePage - 1) * perPage;
   const pageRows = rows.slice(start, start + perPage);
 
-  // `id` here is the campaign/deal id (see load(): item.id = c.id). The deal
-  // endpoints resolve the latest work submission internally, so we use those
-  // instead of /work/{workId}/... (which expects a work_submission id and 404s).
+  // `id` here is the deal id — bare campaign id for the first/only creator, or
+  // "<campaignId>~<creatorId>" on a multi-creator brief (see /business/work-review).
+  // The deal endpoints resolve that suffix to the right creator's submission.
   const approve = async (id) => {
     if (busy.current) return; busy.current = true;
     // Capture the row BEFORE load() replaces the list — we need creatorId/name for the
@@ -183,7 +171,7 @@ export default function BrandWorkReview() {
   const submitReview = async ({ rating, review }) => {
     try {
       await axios.post(`${API}/reviews`, {
-        campaign_id: reviewFor.id, creator_id: reviewFor.creatorId, rating, review,
+        campaign_id: reviewFor.campaignId || reviewFor.id, creator_id: reviewFor.creatorId, rating, review,
       });
       toast.success('Review submitted — thanks for the feedback!');
       setReviewFor(null);
@@ -191,13 +179,17 @@ export default function BrandWorkReview() {
       toast.error(e?.response?.data?.detail || 'Could not submit your review');
     }
   };
-  const requestRevision = (id) => setRevisionFor(id);
+  const requestRevision = (id) => {
+    setRevisionFor(id);
+    setRevisionCampaignId(items.find((i) => i.id === id)?.campaignId || id);
+  };
   // Timestamped video review. Sets `revisionFor` too so submitRevision() (shared
   // with the text form) posts against the same work item.
   const openVideoReview = (it) => {
     const f = it.files.find((x) => isVideo(assetUrl(x)));
     if (!f) { toast.error('No video on this submission to review'); return; }
     setRevisionFor(it.id);
+    setRevisionCampaignId(it.campaignId || it.id);
     setVideoReviewFor({ src: assetUrl(f), title: it.title, watermark: it.status !== 'approved' });
   };
   const submitRevision = async (payload) => {
@@ -230,6 +222,7 @@ export default function BrandWorkReview() {
         ? `Revision requested — ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
         : 'Revision requested');
       setRevisionFor(null);
+      setRevisionCampaignId(null);
       setVideoReviewFor(null);
       await load();
     } catch (e) {
@@ -463,11 +456,11 @@ export default function BrandWorkReview() {
           form must stand down while the video review is open. */}
       {revisionFor && !videoReviewFor && (
         <RevisionRequestModal
-          onClose={() => setRevisionFor(null)}
+          onClose={() => { setRevisionFor(null); setRevisionCampaignId(null); }}
           onSubmit={submitRevision}
           submitting={revSubmitting}
-          freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
-          nextFee={trackers[String(revisionFor)]?.next_revision_fee}
+          freeRemaining={trackers[String(revisionCampaignId)]?.free_revisions_remaining}
+          nextFee={trackers[String(revisionCampaignId)]?.next_revision_fee}
         />
       )}
 
@@ -476,11 +469,11 @@ export default function BrandWorkReview() {
           src={videoReviewFor.src}
           title={videoReviewFor.title}
           watermark={videoReviewFor.watermark}
-          onClose={() => { setVideoReviewFor(null); setRevisionFor(null); }}
+          onClose={() => { setVideoReviewFor(null); setRevisionFor(null); setRevisionCampaignId(null); }}
           onSubmit={submitRevision}
           submitting={revSubmitting}
-          freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
-          nextFee={trackers[String(revisionFor)]?.next_revision_fee}
+          freeRemaining={trackers[String(revisionCampaignId)]?.free_revisions_remaining}
+          nextFee={trackers[String(revisionCampaignId)]?.next_revision_fee}
         />
       )}
 

@@ -53,6 +53,10 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
     items_damaged: false,
     dispute_reason: ''
   });
+  // Unboxing videos are frequently .mov — browsers can't render that inline and
+  // just download the file on click (even with target="_blank"), so it's shown
+  // in an in-app <video> modal instead of linking straight to the raw file.
+  const [unboxingModalUrl, setUnboxingModalUrl] = useState(null);
   const [unboxingFile, setUnboxingFile] = useState(null);
   const [courierFile, setCourierFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -494,9 +498,13 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
             {shipment.unboxing_video && (
               <div className="detail-card detail-card--row">
                 <h3>Unboxing Video</h3>
-                <a href={resolveMediaUrl(shipment.unboxing_video)} target="_blank" rel="noopener noreferrer" className="video-link">
+                <button
+                  type="button"
+                  className="video-link"
+                  onClick={() => setUnboxingModalUrl(resolveMediaUrl(shipment.unboxing_video))}
+                >
                   View Unboxing Video
-                </a>
+                </button>
               </div>
             )}
 
@@ -781,6 +789,22 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         </div>
       )}
 
+      {/* Unboxing Video Modal — portaled so it sits above everything, same as the
+          Ship Product modal. Playing it in-app avoids the browser downloading .mov
+          files it can't render inline. */}
+      {unboxingModalUrl && createPortal(
+        <div className="modal-overlay ship-portal-overlay" onClick={() => setUnboxingModalUrl(null)}>
+          <div className="modal-content video-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="video-modal-head">
+              <h2>Unboxing Video</h2>
+              <button type="button" className="video-modal-close" aria-label="Close" onClick={() => setUnboxingModalUrl(null)}>✕</button>
+            </div>
+            <video src={unboxingModalUrl} controls autoPlay playsInline className="video-modal-el" />
+          </div>
+        </div>,
+        document.body
+      )}
+
       <style>{`
         .shipment-page {
           min-height: 100vh;
@@ -1013,7 +1037,10 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           background: #667eea;
           color: white;
           border-radius: 12px;
+          border: none;
           text-decoration: none;
+          font: inherit;
+          cursor: pointer;
           font-weight: 600;
           transition: all 0.3s ease;
         }
@@ -1138,6 +1165,37 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           margin-bottom: 10px;
         }
 
+        .video-modal-content {
+          max-width: 720px;
+          padding: 20px;
+        }
+        .video-modal-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 14px;
+        }
+        .video-modal-head h2 { margin: 0; }
+        .video-modal-close {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: none;
+          background: #f1f2fb;
+          color: #4a5568;
+          font-size: 1rem;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .video-modal-close:hover { background: #e6e8f7; }
+        .video-modal-el {
+          width: 100%;
+          max-height: 70vh;
+          border-radius: 14px;
+          background: #000;
+          display: block;
+        }
+
         .shipment-form,
         .receive-form {
           display: flex;
@@ -1250,6 +1308,14 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         .shipment-page.is-embed .page-header {
           max-width: none;
           margin: 0 0 18px;
+        }
+
+        /* The modal/drawer background is near-white (#fdfdfe) — the button's default
+           white fill + faint #e2e8f0 border was blending straight into it, so the
+           "Back" control effectively disappeared inside the Manage Shipment drawer. */
+        .shipment-page.is-embed .back-btn {
+          background: #f1f2fb;
+          border-color: #d7daf0;
         }
 
         .shipment-page.is-embed .shipment-container {

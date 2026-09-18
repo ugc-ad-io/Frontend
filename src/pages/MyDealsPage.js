@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { getDealMessages } from '../utils/dealMessages';
+import { creatorName as resolveCreatorName } from '../utils/displayName';
 import BookingCard from '../components/BookingCard';
 import {
   AlertTriangle,
@@ -924,7 +925,7 @@ export default function MyDealsPage() {
   const dealSubList = dealSubs(hasShipping);
   const stepIndex = getDealStepIndex(selectedState, hasShipping);
   const brandName = deal?.brand?.name || getBrandHandle(deal);
-  const creatorName = user?.nickname || user?.full_name || (user?.username ? String(user.username).replace(/^@/, '') : 'You');
+  const creatorName = resolveCreatorName(user) === 'Creator' ? 'You' : resolveCreatorName(user);
   const dealTags = (Array.isArray(deal?.campaign?.objectives) && deal.campaign.objectives.length
     ? deal.campaign.objectives.slice(0, 2)
     : [deal?.campaign?.industry_type || 'UGC']).concat('UGC Video');

@@ -212,6 +212,14 @@ export default function CampaignDetails({ embedId, onClose }) {
 
   const handleSubmitBid = async (e) => {
     e.preventDefault();
+    // Profile form is no longer forced at login — this is where it actually matters,
+    // so send them to finish it instead of letting the bid 403 on the backend.
+    if (!user?.profile_completed) {
+      setShowBidModal(false);
+      toast.error('Finish your creator profile before bidding');
+      navigate('/profile-setup/creator');
+      return;
+    }
     const maximum = maxCampaignBid(campaign);
     if (maximum && Number(bidAmount) > maximum) {
       toast.error(bidOverBudgetMessage(maximum));

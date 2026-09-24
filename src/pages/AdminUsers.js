@@ -86,6 +86,7 @@ export default function AdminUsers({
   const [stateFilter, setStateFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [flaggedOnly, setFlaggedOnly] = useState(false);
+  const [formNotFilled, setFormNotFilled] = useState(false); // signed up, never submitted profile-setup
   const [verifyFilter, setVerifyFilter] = useState(''); // brand verification status
   const [walletMin, setWalletMin] = useState('');
   const [walletMax, setWalletMax] = useState('');
@@ -244,6 +245,7 @@ export default function AdminUsers({
     if (stateFilter && userState(u) !== stateFilter) return false;
     if (categoryFilter && category(u) !== categoryFilter) return false;
     if (flaggedOnly && !isFlagged(u)) return false;
+    if (formNotFilled && u.profile_completed) return false;
     if (verifyFilter && (u.approval_status || 'approved') !== verifyFilter) return false;
     if (walletMin !== '' && Number(u.balance || 0) < Number(walletMin)) return false;
     if (walletMax !== '' && Number(u.balance || 0) > Number(walletMax)) return false;
@@ -253,7 +255,7 @@ export default function AdminUsers({
       businessName(u), legalName(u), gstin(u),
     ].map((x) => String(x || '').toLowerCase());
     return hay.some((h) => h.includes(q) || h.replace(/^[#@]/, '').includes(qNoHash));
-  }), [allUsers, tab, stateFilter, categoryFilter, flaggedOnly, verifyFilter, walletMin, walletMax, q, qNoHash]);
+  }), [allUsers, tab, stateFilter, categoryFilter, flaggedOnly, formNotFilled, verifyFilter, walletMin, walletMax, q, qNoHash]);
 
   // ---- bulk selection ----------------------------------------------------------
   const toggleSelect = (id) => setSelectedIds((prev) => {
@@ -307,6 +309,7 @@ export default function AdminUsers({
     brands: allUsers.filter(isBrand).length,
     flagged: allUsers.filter(isFlagged).length,
     banned: allUsers.filter((u) => userState(u) === 'banned').length,
+    formNotFilled: allUsers.filter((u) => !u.profile_completed).length,
   };
 
   return (
@@ -331,6 +334,7 @@ export default function AdminUsers({
             <div className="au-stat"><span>Brands</span><strong>{counts.brands}</strong></div>
             <div className="au-stat au-stat-flag"><span>Flagged</span><strong>{counts.flagged}</strong></div>
             <div className="au-stat"><span>Banned</span><strong>{counts.banned}</strong></div>
+            <div className="au-stat"><span>Form Not Filled</span><strong>{counts.formNotFilled}</strong></div>
           </div>
         </div>
 
@@ -391,6 +395,11 @@ export default function AdminUsers({
             )}
             <button type="button" className={`au-flag-toggle ${flaggedOnly ? 'on' : ''}`} onClick={() => setFlaggedOnly((v) => !v)}>
               <Flag size={13} /> Flagged
+            </button>
+            {/* Signed up but never submitted the profile-setup form — same set the
+                24h/48h onboarding-reminder emails target (server.py). */}
+            <button type="button" className={`au-flag-toggle ${formNotFilled ? 'on' : ''}`} onClick={() => setFormNotFilled((v) => !v)}>
+              <AlertTriangle size={13} /> Form not filled
             </button>
           </div>
         </div>

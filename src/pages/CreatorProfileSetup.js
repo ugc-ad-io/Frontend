@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { isValidHandle } from '../utils/inputValidators';
 import { useAuth } from '../App';
-import { ImagePlus, ChevronDown, Check, ArrowRight, Upload, PartyPopper, Info } from 'lucide-react';
+import { ImagePlus, ChevronDown, Check, ArrowRight, Plus, PartyPopper, Info, Instagram } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
@@ -36,6 +35,19 @@ const NICHE_CATEGORIES = [
   { value: 'fmcg', label: 'FMCG & Consumer Goods' },
   { value: 'other', label: 'Others' },
 ];
+
+const PLATFORMS = [
+  { key: 'instagram', label: 'Instagram', Icon: Instagram, color: 'linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)' },
+];
+// Share-sheet tracking params (?igsh=, ?si=) are allowed after the profile path.
+const LINK_RE = {
+  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?(?:[?#][^\s]*)?$|^@?[a-z0-9._]{1,30}$/i,
+};
+const linkError = (key, value) => {
+  const v = String(value || '').trim();
+  if (!v) return '';
+  return LINK_RE[key].test(v) ? '' : `Enter a valid ${key} link or @handle`;
+};
 
 // Dropdown-with-checkboxes used for both content pickers.
 function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
@@ -90,12 +102,14 @@ export default function CreatorProfileSetup() {
     contentStyles: [], customStyle: '',
     contentCategories: [],
     videoName: '', videoPreview: '', videoUrl: '',
-    socialUrl: '',
+    pfCategory: '', pfPrice: '', pfDelivery: '',
+    links: { instagram: '' },
   });
   const set = (field, value) => setData((d) => ({ ...d, [field]: value }));
   const toggleIn = (field, value) => setData((d) => ({
     ...d, [field]: d[field].includes(value) ? d[field].filter((v) => v !== value) : [...d[field], value],
   }));
+  const setLink = (platform, value) => setData((d) => ({ ...d, links: { ...d.links, [platform]: value } }));
 
   // Prefill from a previous submission (e.g. asked for more info) so it isn't re-entered.
   useEffect(() => {
@@ -114,7 +128,10 @@ export default function CreatorProfileSetup() {
       contentCategories: pickKnown(pr.content_categories || pr.niche || pr.primary_category, nicheVals),
       videoUrl: pr.intro_video || d.videoUrl,
       videoPreview: pr.intro_video || d.videoPreview,
-      socialUrl: pr.social_links?.primary || Object.values(pr.social_links || {})[0] || d.socialUrl,
+      pfCategory: pr.portfolio_items?.[0]?.category || d.pfCategory,
+      pfPrice: pr.portfolio_items?.[0]?.price || d.pfPrice,
+      pfDelivery: pr.portfolio_items?.[0]?.delivery || d.pfDelivery,
+      links: { ...d.links, ...(pr.social_links || {}) },
     }));
   }, [user?.id, user?.profile]);
 
@@ -171,13 +188,18 @@ export default function CreatorProfileSetup() {
     }
   };
 
+  const linksFilled = Object.values(data.links).some((v) => v.trim());
+  const linksValid = Object.entries(data.links).every(([k, v]) => !linkError(k, v));
   const checks = {
     profilePicture: !!data.profilePicture,
     name: data.name.trim() !== '',
     contentStyles: data.contentStyles.length > 0,
     contentCategories: data.contentCategories.length > 0,
     videoUrl: !!data.videoUrl,
-    socialUrl: isValidHandle(data.socialUrl),
+    pfCategory: data.pfCategory.trim() !== '',
+    pfPrice: data.pfPrice.trim() !== '',
+    pfDelivery: data.pfDelivery.trim() !== '',
+    links: linksFilled && linksValid,
   };
   const err = (k) => showErrors && !checks[k];
 
@@ -186,7 +208,7 @@ export default function CreatorProfileSetup() {
     if (!Object.values(checks).every(Boolean)) {
       setShowErrors(true);
       setTimeout(() => {
-        document.querySelector('.ps-card .ps-input--error, .ps-card .ps-upload--error, .ps-card .ps-msel--error')
+        document.querySelector('.ps-card .ps-input--error, .ps-card .ps-upload--error, .ps-card .ps-msel--error, .ps-card .ps-pf--error, .ps-card .ps-link--error')
           ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 60);
       return;
@@ -208,7 +230,15 @@ export default function CreatorProfileSetup() {
         category: niches[0] || styles[0] || '',
         primary_category: niches[0] || styles[0] || '',
         intro_video: data.videoUrl,
-        social_links: { primary: data.socialUrl.trim() },
+        portfolio_items: [{
+          title: 'Portfolio Sample',
+          category: data.pfCategory.trim(),
+          price: data.pfPrice.trim(),
+          delivery: data.pfDelivery.trim(),
+          videoUrl: data.videoUrl,
+          url: data.videoUrl,
+        }],
+        social_links: Object.fromEntries(Object.entries(data.links).filter(([, v]) => v.trim())),
         receive_briefs: true,
         terms_agreed: true,
       });
@@ -316,30 +346,56 @@ export default function CreatorProfileSetup() {
 
               <div className="ps-field">
                 <label className="ps-label">Portfolio video</label>
-                <label className={`ps-upload${err('videoUrl') ? ' ps-upload--error' : ''}`}>
-                  <span className="ps-upload__icon">
-                    {data.videoPreview
-                      ? <video src={data.videoPreview} className="ps-upload__preview" muted />
-                      : <Upload size={22} />}
-                  </span>
-                  <span className="ps-upload__text">
-                    <span className="ps-upload__title">{videoUploading ? 'Uploading…' : (data.videoUrl ? 'Change video' : 'Upload a sample of your work')}</span>
-                    <span className="ps-upload__hint">MP4/MOV, up to 100MB</span>
-                  </span>
+                <div className={`ps-pf${err('videoUrl') ? ' ps-pf--error' : ''}`}>
+                  {data.videoPreview ? (
+                    <div className="ps-pf-preview">
+                      <video src={data.videoPreview} className="ps-pf-vid" muted controls />
+                      <button type="button" className="ps-pf-change" onClick={() => videoRef.current?.click()}>
+                        {videoUploading ? 'Uploading…' : 'Change video'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className="ps-pf-up" onClick={() => videoRef.current?.click()}>
+                      {videoUploading ? 'Uploading…' : <><Plus size={22} /> Upload video</>}
+                    </button>
+                  )}
                   <input ref={videoRef} type="file" accept="video/*" hidden onChange={onPickVideo} />
-                </label>
-                {err('videoUrl') && <span className="ps-error">A portfolio video is required</span>}
+                  <div className="ps-pf-fields">
+                    <div className="ps-pf-row">
+                      <input className={`ps-input${err('pfCategory') ? ' ps-input--error' : ''}`}
+                        placeholder="Category (e.g. Beauty)" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)} />
+                      <input className={`ps-input${err('pfPrice') ? ' ps-input--error' : ''}`}
+                        placeholder="Price / video (₹)" inputMode="numeric" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value)} />
+                    </div>
+                    <input className={`ps-input${err('pfDelivery') ? ' ps-input--error' : ''}`}
+                      placeholder="Delivered in (e.g. 2 days)" value={data.pfDelivery} onChange={(e) => set('pfDelivery', e.target.value)} />
+                  </div>
+                </div>
+                {(err('videoUrl') || err('pfCategory') || err('pfPrice') || err('pfDelivery')) && <span className="ps-error">Add your video, category, price, and delivery time</span>}
               </div>
 
               <div className="ps-field">
-                <label className="ps-label">Social link</label>
-                <input
-                  className={`ps-input${err('socialUrl') ? ' ps-input--error' : ''}`}
-                  placeholder="Instagram / YouTube / TikTok link or @handle"
-                  value={data.socialUrl}
-                  onChange={(e) => set('socialUrl', e.target.value)}
-                />
-                {err('socialUrl') && <span className="ps-error">Enter a valid link or @handle</span>}
+                <label className="ps-label">Instagram</label>
+                <div className="ps-links">
+                  {PLATFORMS.map(({ key, label, Icon, color }) => {
+                    const lerr = showErrors && linkError(key, data.links[key]);
+                    return (
+                      <div key={key}>
+                        <div className={`ps-link${lerr || err('links') ? ' ps-link--error' : ''}`}>
+                          <span className="ps-link__badge" style={{ background: color }}><Icon size={17} /></span>
+                          <input
+                            className="ps-link__input"
+                            placeholder={`${label} ID or profile link`}
+                            value={data.links[key]}
+                            onChange={(e) => setLink(key, e.target.value)}
+                          />
+                        </div>
+                        {lerr && <span className="ps-error ps-link-err">{lerr}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                {err('links') && !linkError('instagram', data.links.instagram) && <span className="ps-error">Your Instagram ID is required</span>}
               </div>
 
               <div className="ps-note"><Info size={15} /> You can edit this anytime from your profile settings.</div>
@@ -443,6 +499,35 @@ export default function CreatorProfileSetup() {
         .ps-msel__box { flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center;
           border: 1.5px solid rgba(255,255,255,0.4); color: #fff; }
         .ps-msel__opt.is-on .ps-msel__box { background: #6d7bff; border-color: #6d7bff; }
+
+        /* Portfolio video: upload on the left, category/price/delivery on the right */
+        .ps-pf { display: flex; gap: 16px; flex-wrap: wrap; padding: 16px; border-radius: 16px;
+          border: 1px dashed rgba(255,255,255,0.20); background: rgba(255,255,255,0.04); }
+        .ps-pf--error { border-color: #ef4444; }
+        .ps-pf-up { flex: none; width: 150px; aspect-ratio: 3/4; border-radius: 12px; border: 2px dashed rgba(109,123,255,0.5);
+          background: rgba(109,123,255,0.08); color: #6d7bff; font-weight: 700; font-size: 13px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; }
+        .ps-pf-up:hover { background: rgba(109,123,255,0.14); }
+        .ps-pf-preview { flex: none; width: 150px; display: flex; flex-direction: column; gap: 8px; }
+        .ps-pf-vid { width: 100%; aspect-ratio: 3/4; border-radius: 12px; object-fit: cover; background: #000; }
+        .ps-pf-change { border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.05); color: #fff;
+          border-radius: 9px; padding: 7px 10px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .ps-pf-change:hover { border-color: #6d7bff; color: #6d7bff; }
+        .ps-pf-fields { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 10px; }
+        .ps-pf-row { display: flex; gap: 10px; }
+        .ps-pf-row .ps-input { flex: 1; min-width: 0; }
+
+        /* Social platform rows */
+        .ps-links { display: flex; flex-direction: column; gap: 10px; }
+        .ps-link { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 12px; border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); }
+        .ps-link--error { border-color: #ef4444; }
+        .ps-link__badge { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; color: #fff;
+          display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; }
+        .ps-link__input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #ffffff;
+          font-family: inherit; font-size: 0.95rem; }
+        .ps-link__input::placeholder { color: rgba(255,255,255,0.4); }
+        .ps-link-err { margin-top: -4px; margin-left: 12px; }
 
         .ps-note { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; line-height: 1.5;
           color: rgba(255,255,255,0.6); padding: 12px 14px;

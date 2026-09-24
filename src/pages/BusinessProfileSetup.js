@@ -45,9 +45,13 @@ const COUNTRIES = [
 ];
 
 const INDUSTRIES = [
-  'Fashion & Apparel', 'Beauty & Cosmetics', 'Technology & Gadgets',
-  'Food & Beverage', 'Health & Fitness', 'Home & Lifestyle',
-  'Travel & Tourism', 'Education', 'Entertainment', 'Other',
+  'Fashion & Apparel', 'Beauty & Personal Care', 'Health & Wellness',
+  'Food & Beverages', 'Home & Living', 'Jewellery & Accessories',
+  'Electronics & Gadgets', 'Sports & Fitness', 'Baby, Kids & Family',
+  'Pets & Pet Care', 'Travel & Hospitality', 'Automotive & Accessories',
+  'Education & Learning', 'Technology & Software', 'Finance & Fintech',
+  'Entertainment & Media', 'Gaming & Esports', 'Luxury & Lifestyle',
+  'FMCG & Consumer Goods', 'Others',
 ];
 
 export default function BusinessProfileSetup() {

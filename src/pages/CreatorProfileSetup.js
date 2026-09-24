@@ -215,18 +215,28 @@ const ADDONS = [
 ];
 
 // The niche a creator makes content ABOUT (what) — separate from the content STYLE
-// (how, in CONTENT_CATEGORIES). Same 10 the brand signup uses, so both sides match.
+// (how, in CONTENT_CATEGORIES). Same 20 the brand signup uses, so both sides match.
 const NICHE_CATEGORIES = [
   { value: 'fashion', label: 'Fashion & Apparel' },
-  { value: 'beauty', label: 'Beauty & Cosmetics' },
-  { value: 'tech', label: 'Technology & Gadgets' },
-  { value: 'food', label: 'Food & Beverage' },
-  { value: 'fitness', label: 'Health & Fitness' },
-  { value: 'home', label: 'Home & Lifestyle' },
-  { value: 'travel', label: 'Travel & Tourism' },
-  { value: 'education', label: 'Education' },
-  { value: 'entertainment', label: 'Entertainment' },
-  { value: 'other', label: 'Other' },
+  { value: 'beauty', label: 'Beauty & Personal Care' },
+  { value: 'health', label: 'Health & Wellness' },
+  { value: 'food', label: 'Food & Beverages' },
+  { value: 'home', label: 'Home & Living' },
+  { value: 'jewellery', label: 'Jewellery & Accessories' },
+  { value: 'electronics', label: 'Electronics & Gadgets' },
+  { value: 'sports', label: 'Sports & Fitness' },
+  { value: 'baby_kids', label: 'Baby, Kids & Family' },
+  { value: 'pets', label: 'Pets & Pet Care' },
+  { value: 'travel', label: 'Travel & Hospitality' },
+  { value: 'automotive', label: 'Automotive & Accessories' },
+  { value: 'education', label: 'Education & Learning' },
+  { value: 'tech', label: 'Technology & Software' },
+  { value: 'finance', label: 'Finance & Fintech' },
+  { value: 'entertainment', label: 'Entertainment & Media' },
+  { value: 'gaming', label: 'Gaming & Esports' },
+  { value: 'luxury', label: 'Luxury & Lifestyle' },
+  { value: 'fmcg', label: 'FMCG & Consumer Goods' },
+  { value: 'other', label: 'Others' },
 ];
 
 // Required fields per step — every one must be filled to proceed, and each filled
@@ -2213,6 +2223,25 @@ export default function CreatorProfileSetup() {
             justify-content: center;
             margin-right: 0;
             padding: 13px 20px;
+          }
+          /* Compensation rows: on phones the fixed 130px label + 120px unit pill
+             squeezed the payout / delivery inputs down to a sliver, so the
+             placeholder was unreadable. Drop the label onto its own line and let
+             the input take the full width, with a smaller unit pill beside it. */
+          .ps-comp { flex-wrap: wrap; gap: 8px; }
+          .ps-comp__label { width: 100%; font-size: 0.82rem; }
+          .ps-comp .ps-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 0.8rem;
+            padding: 12px 12px;
+          }
+          .ps-comp .ps-input::placeholder { font-size: 0.8rem; }
+          .ps-comp__period, .ps-comp__period--static {
+            width: auto;
+            min-width: 78px;
+            padding: 12px 12px;
+            font-size: 0.8rem;
           }
         }
 

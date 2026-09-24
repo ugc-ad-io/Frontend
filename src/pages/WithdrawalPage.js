@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { decimalOnly } from '../utils/inputValidators';
 import {
   IndianRupee,
   TrendingUp,
@@ -696,12 +697,13 @@ export default function WithdrawalPage() {
                 <div className="flex items-center gap-2.5 bg-[#F3F3FF] rounded-[12px] px-4 py-3">
                   <IndianRupee strokeWidth={1.8} className="w-4 h-4 text-[#9F9FD1]" />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     min="10"
                     step="0.01"
                     placeholder="0.00"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => setAmount(decimalOnly(e.target.value))}
                     className="bg-transparent text-[14px] font-semibold text-[#07074E] placeholder-[#B7B7E6] outline-none w-full"
                     required
                   />

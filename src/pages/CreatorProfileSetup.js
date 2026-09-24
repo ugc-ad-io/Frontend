@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { useAuth } from '../App';
-import { ImagePlus, ChevronDown, Check, ArrowRight, Plus, PartyPopper, Info, Instagram, Music2, CloudUpload, Upload } from 'lucide-react';
+import { ImagePlus, ChevronDown, Check, ArrowRight, Plus, PartyPopper, Info, Instagram, CloudUpload, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
@@ -36,11 +36,10 @@ const NICHE_CATEGORIES = [
   { value: 'other', label: 'Others' },
 ];
 
+// Instagram only — YouTube/LinkedIn/TikTok rows removed by request. The keys
+// stay in LINK_RE and data.links so old submissions with those links still load.
 const PLATFORMS = [
-  { key: 'youtube', label: 'YouTube', badge: '▶', color: '#FF0000' },
-  { key: 'linkedin', label: 'LinkedIn', badge: 'in', color: '#0A66C2' },
   { key: 'instagram', label: 'Instagram', Icon: Instagram, color: 'linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)' },
-  { key: 'tiktok', label: 'TikTok', Icon: Music2, color: '#111111' },
 ];
 // Share-sheet tracking params (?igsh=, ?si=, ?s=20) are allowed after the profile path.
 const LINK_RE = {
@@ -415,7 +414,7 @@ export default function CreatorProfileSetup() {
               </div>
 
               <div className="ps-field">
-                <label className="ps-label">Social links <span className="ps-muted">(At least one)</span></label>
+                <label className="ps-label">Instagram profile <span className="ps-muted">(Required)</span></label>
                 <div className="ps-links">
                   {PLATFORMS.map(({ key, label, badge, Icon, color }) => {
                     const lerr = showErrors && linkError(key, data.links[key]);
@@ -456,7 +455,7 @@ export default function CreatorProfileSetup() {
                 <button type="button" className="ps-addlink" onClick={() => setExtraLinks((ls) => [...ls, { id: Date.now(), url: '' }])}>
                   <Plus size={15} /> Add another social link
                 </button>
-                {err('links') && <span className="ps-error">Add at least one valid social link</span>}
+                {err('links') && <span className="ps-error">Add your Instagram profile link or @handle</span>}
               </div>
 
               <div className="ps-field">

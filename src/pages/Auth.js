@@ -56,10 +56,9 @@ function loadGoogleScript() {
 
 // Route a freshly-authenticated user by role + onboarding state.
 function routeForUser(navigate, role, profileCompleted) {
-  // Creators go straight into the app now — the profile form only comes up when
-  // they try to bid/apply (gated there instead), not as a login roadblock.
-  if (!profileCompleted && role === 'business') {
-    return navigate('/profile-setup/business');
+  if (!profileCompleted) {
+    if (role === 'creator') return navigate('/profile-setup/creator');
+    if (role === 'business') return navigate('/profile-setup/business');
   }
   if (role === 'creator') return navigate('/dashboard/creator');
   if (role === 'business') return navigate('/dashboard/business/browse-creator');

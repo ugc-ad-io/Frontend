@@ -386,6 +386,7 @@ export default function BrowseBriefs() {
               <label>Bid Amount (₹)
                 <input type="number" min="1" max={maxCampaignBid(bidBrief) || undefined} required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
               </label>
+              <p className="bb-bid-fee-note">UGC.ad charges a 20% platform fee on this campaign.</p>
               <label>Estimated Delivery (days)
                 <input type="number" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />
               </label>
@@ -413,6 +414,7 @@ export default function BrowseBriefs() {
             .bb-bid-form input, .bb-bid-form textarea { border: 1px solid #e6e8f2; border-radius: 11px; padding: 11px 13px; font-size: .92rem; font-family: inherit; color: #15163a; outline: 0; font-weight: 400; }
             .bb-bid-form input:focus, .bb-bid-form textarea:focus { border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,.14); }
             .bb-bid-form textarea { resize: vertical; }
+            .bb-bid-fee-note { margin: -6px 0 0; font-size: .78rem; font-weight: 500; color: #8a8fb5; }
             .bb-bid-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
           `}</style>
         </div>

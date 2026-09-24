@@ -317,6 +317,13 @@ export default function WithdrawalPage() {
         )}
       </div>
 
+      <div className="max-w-[1440px] mx-auto w-full flex items-center gap-3 bg-[#F3F3FF] border border-[#E9EBEF] rounded-[14px] px-5 py-3">
+        <Wallet strokeWidth={1.8} className="w-4 h-4 text-[#9F9FD1] flex-shrink-0" />
+        <p className="text-[12.5px] text-[#4a5568] font-medium">
+          UGC.ad charges a <span className="font-semibold text-[#07074E]">20% platform fee</span> on every campaign/brief.
+        </p>
+      </div>
+
       {KYC_BANNER && (
         <div className={`max-w-[1440px] mx-auto w-full flex items-center gap-4 border rounded-[16px] px-5 py-4 ${KYC_BANNER.cls}`} data-testid="kyc-banner">
           <Shield strokeWidth={1.8} className="w-5 h-5 flex-shrink-0" />

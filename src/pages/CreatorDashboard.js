@@ -433,6 +433,7 @@ export default function CreatorDashboard() {
               Bid Amount
               <input type="number" inputMode="numeric" min="1" max={maxCampaignBid(selectedCampaign) || undefined} value={bidAmount} onKeyDown={blockNonDigitKey} onChange={(event) => setBidAmount(digitsOnly(event.target.value))} required />
             </label>
+            <p>UGC.ad charges a 20% platform fee on this campaign.</p>
             <label>
               Delivery Days
               <input type="text" inputMode="numeric" value={deliveryDays} onKeyDown={blockNonDigitKey} onChange={(event) => setDeliveryDays(digitsOnly(event.target.value))} required />

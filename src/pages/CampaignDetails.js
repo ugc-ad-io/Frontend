@@ -727,6 +727,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                 <small>{Number(campaign.budget_min) === Number(campaign.budget_max)
                   ? `Fixed budget: ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`
                   : `Budget range: ₹${Number(campaign.budget_min).toLocaleString('en-IN')} - ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`}</small>
+                <small>UGC.ad charges a 20% platform fee on this campaign.</small>
               </div>
               <div className="form-group">
                 <label htmlFor="deliveryDays">Estimated Delivery (days)</label>

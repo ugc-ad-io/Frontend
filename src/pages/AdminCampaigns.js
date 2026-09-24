@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, Briefcase, X, Eye } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -15,6 +16,10 @@ export default function AdminCampaigns() {
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  // Draft of the script an admin is writing for a "UGC.ad writes it" brief —
+  // separate from `selected.script_text` so typing doesn't need a round-trip.
+  const [scriptDraft, setScriptDraft] = useState('');
+  const openModal = (campaign) => { setSelected(campaign); setScriptDraft(campaign.script_text || ''); };
 
   useEffect(() => {
     fetchPendingCampaigns();
@@ -32,13 +37,15 @@ export default function AdminCampaigns() {
     }
   };
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (id, scriptText) => {
     try {
-      await axios.post(`${API}/admin/approve-campaign`, { item_id: id, action: 'approve' });
+      const body = { item_id: id, action: 'approve' };
+      if (scriptText !== undefined) body.script_text = scriptText;
+      await axios.post(`${API}/admin/approve-campaign`, body);
       toast.success('Campaign approved successfully');
       fetchPendingCampaigns();
-    } catch {
-      toast.error('Failed to approve campaign');
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to approve campaign'));
     }
   };
 
@@ -83,7 +90,7 @@ export default function AdminCampaigns() {
                 key={campaign.id}
                 className="ac-card"
                 data-testid={`campaign-${campaign.id}`}
-                onClick={() => setSelected(campaign)}
+                onClick={() => openModal(campaign)}
                 role="button"
                 tabIndex={0}
               >
@@ -99,12 +106,23 @@ export default function AdminCampaigns() {
                   <div className="ac-fact"><small>Category</small><strong>{campaign.product_category || campaign.category || '—'}</strong></div>
                   <div className="ac-fact"><small>Objective</small><strong>{campaign.objectives?.join(', ') || '—'}</strong></div>
                   <div className="ac-fact"><small>Shipment</small><strong>{campaign.requires_shipment ? 'Required' : 'Not required'}</strong></div>
+                  {campaign.script_provider === 'ugc' && !campaign.script_text && (
+                    <div className="ac-fact ac-fact-warn"><small>Script</small><strong>Needs script — open to add</strong></div>
+                  )}
                 </div>
                 <div className="ac-card-actions">
-                  <button type="button" className="ac-btn-view" title="View full brief" aria-label="View full brief" onClick={(e) => { e.stopPropagation(); setSelected(campaign); }}>
+                  <button type="button" className="ac-btn-view" title="View full brief" aria-label="View full brief" onClick={(e) => { e.stopPropagation(); openModal(campaign); }}>
                     <Eye size={18} />
                   </button>
-                  <button className="ac-btn ac-btn-approve" onClick={(e) => { e.stopPropagation(); handleApprove(campaign.id); }} data-testid={`approve-campaign-${campaign.id}`}>
+                  <button
+                    className="ac-btn ac-btn-approve"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (campaign.script_provider === 'ugc' && !campaign.script_text) { openModal(campaign); return; }
+                      handleApprove(campaign.id);
+                    }}
+                    data-testid={`approve-campaign-${campaign.id}`}
+                  >
                     <CheckCircle size={18} /> Approve
                   </button>
                   <button className="ac-btn ac-btn-reject" onClick={(e) => { e.stopPropagation(); handleReject(campaign.id); }} data-testid={`reject-campaign-${campaign.id}`}>
@@ -135,7 +153,24 @@ export default function AdminCampaigns() {
               {selected.key_message && <div className="ac-row"><label>Key message</label><span>{selected.key_message}</span></div>}
               {selected.objectives?.length > 0 && <div className="ac-row"><label>Objectives</label><span>{selected.objectives.join(', ')}</span></div>}
               {Array.isArray(selected.deliverable_items) && selected.deliverable_items.length > 0 && (
-                <div className="ac-row"><label>Deliverables</label><span>{selected.deliverable_items.map((d) => `${d.quantity || 1} × ${d.type || '—'}`).join(', ')}</span></div>
+                <div className="ac-row"><label>Deliverables</label><span>{selected.deliverable_items.map((d) => `${d.quantity || 1} × ${d.type || '—'}${d.edited_required ? ` (edited by ${d.edited_by === 'ugc' ? 'UGC.ad' : 'creator'})` : ''}`).join(', ')}</span></div>
+              )}
+              {selected.script_provider === 'ugc' ? (
+                <div className="ac-row">
+                  <label>Script *</label>
+                  <div>
+                    <textarea
+                      className="ac-script-input"
+                      rows={6}
+                      value={scriptDraft}
+                      onChange={(e) => setScriptDraft(e.target.value)}
+                      placeholder="Write the script for the creator..."
+                    />
+                    <small className="ac-script-hint">Required — this brief can't be approved until a script is added.</small>
+                  </div>
+                </div>
+              ) : (
+                <div className="ac-row"><label>Script</label><span>{selected.script_text || 'None entered'}</span></div>
               )}
               {Array.isArray(selected.usage_platforms) && selected.usage_platforms.length > 0 && (
                 <div className="ac-row"><label>Platforms</label><span>{selected.usage_platforms.join(', ')}</span></div>
@@ -156,7 +191,13 @@ export default function AdminCampaigns() {
               )}
             </div>
             <div className="ac-modal-actions">
-              <button className="ac-btn ac-btn-approve" onClick={() => { handleApprove(selected.id); setSelected(null); }}><CheckCircle size={18} /> Approve</button>
+              <button
+                className="ac-btn ac-btn-approve"
+                disabled={selected.script_provider === 'ugc' && !scriptDraft.trim()}
+                onClick={() => { handleApprove(selected.id, selected.script_provider === 'ugc' ? scriptDraft.trim() : undefined); setSelected(null); }}
+              >
+                <CheckCircle size={18} /> Approve
+              </button>
               <button className="ac-btn ac-btn-reject" onClick={() => { handleReject(selected.id); setSelected(null); }}><XCircle size={18} /> Reject</button>
             </div>
           </div>
@@ -189,6 +230,13 @@ export default function AdminCampaigns() {
         .ac-fact { min-width: 0; padding: 8px 10px; border-radius: 8px; background: #f8f9ff; }
         .ac-fact small { display: block; margin-bottom: 2px; color: #9296ba; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
         .ac-fact strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.76rem; }
+        .ac-fact-warn { background: #fef3c7; }
+        .ac-fact-warn strong { color: #92400e; }
+        .ac-script-input { width: 100%; border: 1px solid #dfe3f3; border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 0.9rem; color: #1a202c; resize: vertical; }
+        .ac-script-input:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,.14); }
+        .ac-script-hint { display: block; margin-top: 6px; color: #92400e; font-size: 0.75rem; }
+        .ac-btn-approve:disabled { opacity: .5; cursor: not-allowed; }
+        .ac-btn-approve:disabled:hover { background: #dcfce7; color: #166534; }
         .ac-brief { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .ac-view { grid-column: 1 / -1; width: max-content; display: inline-flex; padding: 0; margin-top: 2px; border: 0; background: transparent; font-family: inherit; font-size: 0.72rem; font-weight: 700; color: #5b6bff; cursor: pointer; }
         .ac-view:hover { color: #07074e; }

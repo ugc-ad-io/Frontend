@@ -474,6 +474,17 @@ export default function CampaignDetails({ embedId, onClose }) {
               <div className="brief-text">{renderBrief(campaign.brief_text)}</div>
             </div>
 
+            {(campaign.script_text || campaign.script_provider === 'ugc') && (
+              <div className="campaign-section">
+                <h3>Script</h3>
+                <div className="brief-text">
+                  {campaign.script_text
+                    ? <p className="brief-line">{campaign.script_text}</p>
+                    : <p className="brief-line">UGC.ad is preparing the script — check back before you start.</p>}
+                </div>
+              </div>
+            )}
+
             <div className="campaign-section">
               <h3>Objectives</h3>
               <div className="objectives-grid">

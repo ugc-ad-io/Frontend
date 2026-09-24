@@ -174,7 +174,8 @@ const createDeliverable = () => ({
   // nothing for the brand to choose and the old "Raw file delivery required" toggle
   // only ever produced a wrong answer. The single real question is whether a finished
   // CUT is owed on top, and that is what opens the second upload slot at submission.
-  editedRequired: false
+  editedRequired: false,
+  editedBy: 'creator'
 });
 
 const initialForm = {
@@ -193,6 +194,8 @@ const initialForm = {
   targetAudience: '',
   budgetVisible: true,
   deliverables: [createDeliverable()],
+  scriptProvider: 'brand',
+  scriptText: '',
   productVisible: true,
   visibilitySeconds: '',
   verbalMention: true,
@@ -341,6 +344,7 @@ function mapCampaignToForm(c) {
       duration: d.duration || '',
       aspectRatios: Array.isArray(d.aspect_ratios) && d.aspect_ratios.length ? d.aspect_ratios : ['9:16'],
       editedRequired: Boolean(d.edited_required),
+      editedBy: d.edited_by === 'ugc' ? 'ugc' : 'creator',
     }));
   } else {
     const primaryType = c.brief_type || c.video_format;
@@ -358,6 +362,8 @@ function mapCampaignToForm(c) {
       out.deliverables = [primary, ...extra];
     }
   }
+  put('scriptProvider', c.script_provider === 'ugc' ? 'ugc' : 'brand');
+  put('scriptText', c.script_text);
   put('finalDeliveryBy', futureOnly(c.final_delivery_by || c.due_date || c.deadline));
   put('creatorLevel', c.creator_level);
   put('qualityTier', c.content_quality_tier);
@@ -908,7 +914,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       `Budget visibility: ${form.budgetVisible ? 'Visible to creators' : 'Hidden from creators - admin flag'}`,
       '',
       'Deliverables:',
-      ...form.deliverables.map((item, index) => `${index + 1}. ${item.quantity} x ${item.type}; duration ${item.duration || 'n/a'}; ratios ${item.aspectRatios.join(', ')}; deliver ${item.editedRequired ? 'raw footage + an edited cut' : 'raw footage only'}`),
+      ...form.deliverables.map((item, index) => `${index + 1}. ${item.quantity} x ${item.type}; duration ${item.duration || 'n/a'}; ratios ${item.aspectRatios.join(', ')}; deliver ${item.editedRequired ? `raw footage + an edited cut (edited by ${item.editedBy === 'ugc' ? 'UGC.ad' : 'creator'})` : 'raw footage only'}`),
+      '',
+      `Script: ${form.scriptProvider === 'ugc' ? 'Provided by UGC.ad (added during brief review)' : (form.scriptText.trim() || 'none')}`,
       '',
       `Must include: product visible ${form.productVisible ? `${form.visibilitySeconds}s minimum` : 'no'}; verbal mention ${form.verbalMention ? form.productNames : 'no'}; CTA ${form.callToAction}; promo ${form.promoCode || 'n/a'}; hashtags ${form.hashtags || 'n/a'}; brand tag ${form.brandHandleTag ? 'yes' : 'no'}`,
       `Required phrases: ${form.requiredPhrases.filter(Boolean).join(', ') || 'none'}`,
@@ -980,7 +988,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         // the backend model and the creator-facing brief still read this field.
         raw_required: true,
         edited_required: item.editedRequired,
+        edited_by: item.editedBy,
       })),
+      script_provider: form.scriptProvider,
+      script_text: form.scriptProvider === 'ugc' ? '' : form.scriptText,
       product_visible: form.productVisible,
       product_visible_seconds: form.visibilitySeconds,
       verbal_mention: form.verbalMention,
@@ -1287,10 +1298,38 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                       <div className="form-group"><label>Duration {isVideoDeliverable(item.type) ? '*' : ''}</label><input className="input-field" value={item.duration} onChange={e => updateDeliverable(item.id, { duration: e.target.value })} placeholder="15-20 seconds" /></div>
                       <div className="form-group"><label>Edited file delivery required *</label><div className="brief-segment"><button type="button" className={item.editedRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedRequired: true })}>Yes</button><button type="button" className={!item.editedRequired ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedRequired: false })}>No</button></div><small>{item.editedRequired ? 'The creator gets a second upload slot at submission and must deliver a finished cut as well as the raw footage.' : 'The creator delivers raw footage only.'}</small></div>
                     </div>
+                    {item.editedRequired && (
+                      <div className="form-group">
+                        <label>Who edits this deliverable? *</label>
+                        <div className="brief-segment">
+                          <button type="button" className={item.editedBy !== 'ugc' ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedBy: 'creator' })}>Creator</button>
+                          <button type="button" className={item.editedBy === 'ugc' ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedBy: 'ugc' })}>UGC.ad</button>
+                        </div>
+                        <small>{item.editedBy === 'ugc' ? "UGC.ad's team edits this deliverable — our admin team is notified once you submit the brief." : 'The creator edits and delivers the finished cut themselves.'}</small>
+                      </div>
+                    )}
                     <div className="form-group"><label>Aspect ratio *</label><div className="brief-chip-grid compact">{ASPECTS.map(ratio => <ToggleChip key={ratio} active={item.aspectRatios.includes(ratio)} onClick={() => updateDeliverable(item.id, { aspectRatios: item.aspectRatios.includes(ratio) ? item.aspectRatios.filter(r => r !== ratio) : [...item.aspectRatios, ratio] })}>{ratio}</ToggleChip>)}</div></div>
                   </div>
                 ))}
                 <button type="button" className="brief-add-btn" onClick={addDeliverable}><Plus size={17} /> Add deliverable ({form.deliverables.length}/5)</button>
+
+                <div className="deliverable-card">
+                  <div className="deliverable-head"><strong>Script</strong></div>
+                  <div className="form-group">
+                    <label>Who writes the script? *</label>
+                    <div className="brief-segment">
+                      <button type="button" className={form.scriptProvider !== 'ugc' ? 'active' : ''} onClick={() => set('scriptProvider', 'brand')}>Us</button>
+                      <button type="button" className={form.scriptProvider === 'ugc' ? 'active' : ''} onClick={() => set('scriptProvider', 'ugc')}>UGC.ad</button>
+                    </div>
+                    <small>{form.scriptProvider === 'ugc' ? "UGC.ad's team writes the script during brief review — our admin team is notified once you submit the brief, and the script will appear in the brief before the creator starts." : 'Enter the script below. It will be shown to the creator as part of the brief.'}</small>
+                  </div>
+                  {form.scriptProvider !== 'ugc' && (
+                    <div className="form-group">
+                      <label>Script</label>
+                      <textarea className="textarea-field" rows={6} value={form.scriptText} onChange={e => set('scriptText', e.target.value)} placeholder="Write out the script for the creator to follow..." />
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
@@ -1439,7 +1478,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             {step === 8 && (() => {
               const reviewSections = [
                 { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', resolvedCategory(form)], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
-                { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; deliver ${item.editedRequired ? 'raw footage + an edited cut' : 'raw footage only'}`]) },
+                { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; deliver ${item.editedRequired ? `raw footage + an edited cut (edited by ${item.editedBy === 'ugc' ? 'UGC.ad' : 'creator'})` : 'raw footage only'}`]) },
+                { title: 'Script', rows: [['Written by', form.scriptProvider === 'ugc' ? 'UGC.ad (added during brief review)' : 'Us'], ...(form.scriptProvider === 'ugc' ? [] : [['Script', form.scriptText.trim() || 'None entered']])] },
                 { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ...(CTA_INPUT[form.callToAction] ? [[CTA_INPUT[form.callToAction].label, form.ctaLink || 'None']] : []), ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },
                 { title: 'Must-Avoid Checklist', rows: [['Restrictions', avoidRules]] },
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },

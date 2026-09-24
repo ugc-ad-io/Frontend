@@ -41,7 +41,7 @@ const CLIP_SECONDS = 4; // only show a short 4s snippet of each reel before movi
 export default function CreatorHero({
   name = 'Creator', photo, category = '', rating = 0,
   totalEarned = 0, nextPayout = 0, completedDeals = 0, level,
-  activeDeals = 0, newBriefs = 0, activeDeal = null,
+  activeDeals = 0, newBriefs = 0, activeDeal = null, profilePct = null,
 }) {
   const navigate = useNavigate();
   // Admin-curated showcase (falls back to DEFAULT_REELS). Maps the stored shape
@@ -178,6 +178,16 @@ export default function CreatorHero({
             My Deals <ArrowUpRight size={16} />
           </button>
         </div>
+
+        {profilePct != null && profilePct < 100 && (
+          <button type="button" className="chero-progress" onClick={() => navigate('/settings')}>
+            <span className="chero-progress-top">
+              <span>Profile {profilePct}% complete</span>
+              <span className="chero-progress-cta">Finish it <ArrowUpRight size={13} /></span>
+            </span>
+            <span className="chero-progress-track"><span className="chero-progress-fill" style={{ width: `${profilePct}%` }} /></span>
+          </button>
+        )}
       </div>
 
       {/* ── RIGHT — auto-playing reel + the creator's floating cards ── */}
@@ -304,6 +314,15 @@ export default function CreatorHero({
           background:#0c0c2e;color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.18s;box-shadow:0 16px 30px -14px rgba(12,12,46,.8)}
         .chero-btn-dark:hover{transform:translateY(-2px)}
         .chero-link{display:inline-flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font:inherit;font-size:15px;font-weight:700;color:#07074e;text-decoration:underline;text-underline-offset:3px}
+
+        .chero-progress{display:flex;flex-direction:column;gap:7px;width:100%;max-width:360px;margin-top:20px;
+          padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.6);border:1px solid #e9e7f6;
+          cursor:pointer;font:inherit;text-align:left;transition:.18s}
+        .chero-progress:hover{background:#fff;border-color:#c9c6ee}
+        .chero-progress-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;font-weight:700;color:#07074e}
+        .chero-progress-cta{display:inline-flex;align-items:center;gap:3px;color:#5b6bff}
+        .chero-progress-track{height:6px;border-radius:99px;background:#e2e0f5;overflow:hidden}
+        .chero-progress-fill{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#5b6bff,#07074e);transition:width .3s ease}
 
         /* ── right stage ── */
         .chero-stage{position:relative;z-index:1;min-height:430px}

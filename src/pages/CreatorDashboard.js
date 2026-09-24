@@ -9,6 +9,7 @@ import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
 import { creatorFirstName } from '../utils/displayName';
+import { getProfilePct } from '../utils/creatorProfileCompletion';
 import RejectedGate from '../components/RejectedGate';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { toggleSavedBrief, isBriefSaved } from '../utils/savedBriefs';
@@ -300,14 +301,6 @@ export default function CreatorDashboard() {
   const hasReceivedBriefs = activeCampaigns.length > 0 || myBids.length > 0;
   const isNewCreator = !loading && !hasReceivedBriefs && completedWorks === 0;
 
-  // Optional-but-encouraged profile completion nudges.
-  const profileChecklist = [
-    { key: 'avatar', label: 'Add a profile picture', hint: 'Optional — a default avatar is used otherwise', done: Boolean(user?.profile_picture || user?.avatar), icon: User, to: '/settings' },
-    { key: 'banner', label: 'Add a banner image', hint: 'Optional', done: Boolean(user?.banner || user?.banner_image), icon: ImageIcon, to: '/settings' },
-    { key: 'intro', label: 'Record a 30–60 second intro video', hint: 'Face + voice — builds brand trust', done: Boolean(user?.intro_video), icon: Video, to: '/settings' },
-    { key: 'availability', label: 'Review and adjust availability', hint: 'Set vacation mode if needed', done: Boolean(user?.availability_calendar || user?.weekly_availability), icon: CalendarClock, to: '/settings' }
-  ];
-  const profileDone = profileChecklist.filter((item) => item.done).length;
 
   const quickLinks = [
     { label: 'Profile', value: 'Edit details', icon: User, to: '/settings' },
@@ -390,7 +383,7 @@ export default function CreatorDashboard() {
     );
   }
 
-  const profilePct = Math.round((profileDone / profileChecklist.length) * 100);
+  const profilePct = getProfilePct(user);
   const heroName = creatorFirstName(user);
   // The primary content category the creator picked on the signup form (stored as
   // a value key like "product_demo"); resolve it to its human label for display.

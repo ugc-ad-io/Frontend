@@ -122,6 +122,11 @@ export default function PayoutWithLayout() {
         </button>
       </div>
 
+      <div className="pwl-fee-note">
+        <Wallet strokeWidth={1.8} size={16} />
+        <p>UGC.ad charges a <strong>20% platform fee</strong> on every campaign/brief.</p>
+      </div>
+
       {/* No inline gridTemplateColumns here: .cmk-stats-2l already defaults to 4 columns,
           and an inline style outranks stylesheet media queries — it silently defeated the
           1080px (→2 col) and 540px (→1 col) rules, so phones got four ~80px cards. */}
@@ -335,6 +340,9 @@ export default function PayoutWithLayout() {
 
       <style>{`
         .pwl-req-btn { display: inline-flex; align-items: center; gap: 8px; background: #07074e; color: #fff; border: none; border-radius: 11px; padding: 11px 18px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 10px 22px -12px rgba(7,7,78,0.5); }
+        .pwl-fee-note { display: flex; align-items: center; gap: 10px; background: #F3F3FF; border: 1px solid #E9EBEF; border-radius: 14px; padding: 12px 16px; margin-top: 14px; color: #9F9FD1; }
+        .pwl-fee-note p { margin: 0; font-size: 12.5px; font-weight: 500; color: #4a5568; }
+        .pwl-fee-note p strong { font-weight: 600; color: #07074e; }
         .pwl-req-short { display: none; }
         .pwl-req-btn:hover { background: #12124f; }
         .pwl-tabs { display: flex; gap: 6px; margin: 18px 0 12px; border-bottom: 1.5px solid #eef2f9; }

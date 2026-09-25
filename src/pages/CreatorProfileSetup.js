@@ -595,6 +595,12 @@ export default function CreatorProfileSetup() {
         .ps-input:focus { border-color: #6d7bff; background: rgba(255,255,255,0.06);
           box-shadow: 0 0 0 4px rgba(109,123,255,0.18); }
         .ps-input--error { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.16) !important; }
+        /* Native <select> popup ignores the dark theme by default — the browser
+           renders its own white dropdown, and our white input text on that white
+           background is invisible. Force dark rows so the options are readable. */
+        select.ps-input { cursor: pointer; }
+        select.ps-input option { background-color: #17171f; color: #eef; }
+        select.ps-input option:disabled { color: rgba(238, 238, 255, 0.45); }
 
         .ps-msel { position: relative; }
         .ps-msel__btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;

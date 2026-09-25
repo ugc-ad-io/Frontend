@@ -903,8 +903,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setWalletData(normalizeWalletData(response.data || {}));
       walletLoadedRef.current = true;
     } catch (error) {
+      // A failed load used to render silently as "Rs. 0 / empty history", which
+      // reads as missing money. Keep whatever was already on screen and SAY that
+      // the load failed instead.
       if (!walletLoadedRef.current) setWalletData(normalizeWalletData({}));
-      setWalletError('');
+      setWalletError(apiErrorMessage(error, 'Could not load your wallet. Check your connection and refresh — your balance is safe.'));
+      toast.error('Wallet failed to load — showing cached data.');
     } finally {
       setWalletLoading(false);
     }

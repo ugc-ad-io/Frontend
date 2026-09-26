@@ -144,11 +144,21 @@ const ctaLinkValid = (cta, v) => {
   return true;
 };
 const TONES = ['Casual', 'Energetic', 'Informative', 'Humorous', 'Aspirational', 'Authentic', 'Educational', 'Trustworthy'];
-const CREATOR_LEVELS = ['New', 'Verified', 'L1', 'L2', 'Elite'];
+// "Any" is the no-minimum option: the brief accepts bids from every level.
+// Listed first because it is the widest reach, and the field is required — so
+// without it a brand with no level preference had to invent one.
+const CREATOR_LEVELS = ['Any', 'New', 'Verified', 'L1', 'L2', 'Elite'];
 const QUALITY_TIERS = ['A', 'A+', 'A++'];
 const GENDER_OPTIONS = ['No Preference', 'Female', 'Male', 'Non-binary'];
 const CITIES = ['Any City', 'Mumbai', 'Delhi NCR', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot', 'Varanasi', 'Srinagar', 'Aurangabad', 'Amritsar', 'Navi Mumbai', 'Prayagraj', 'Ranchi', 'Coimbatore', 'Jabalpur', 'Gwalior', 'Vijayawada', 'Jodhpur', 'Madurai', 'Raipur', 'Kota', 'Guwahati', 'Chandigarh', 'Noida', 'Gurugram', 'Thiruvananthapuram', 'Kochi', 'Mysuru', 'Bhubaneswar', 'Dehradun', 'Mangaluru', 'Tiruchirappalli', 'Jamshedpur', 'Panaji (Goa)', 'Puducherry', 'Udaipur', 'Salem', 'Warangal', 'Guntur', 'Bhilai', 'Jalandhar', 'Bikaner', 'Siliguri', 'Nellore', 'Ajmer', 'Shimla', 'Other'];
-const NICHE_TAGS = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food', 'Lifestyle', 'Tech', 'Travel', 'Home Decor', 'Wellness', 'Parenting', 'Gaming'];
+// Picking "Any" means the brief is not niche-restricted. Stored as the only tag
+// rather than as an empty list so the choice is explicit — "they didn't pick"
+// and "they picked anyone" read the same otherwise.
+const ANY_NICHE = 'Any';
+// Niches follow the same taxonomy as the campaign category above, so a brand
+// targeting "Skincare" creators and a brief filed under "Skincare" use one
+// vocabulary. Keep in step with NICHE_TAGS in the app's BrandPostBrief.tsx.
+const NICHE_TAGS = [ANY_NICHE, ...CATEGORY_GROUPS.flatMap((g) => g.items)];
 const VIDEO_DELIVERABLES = ['Reel', 'Short-form', 'YouTube Short', 'Long-form video'];
 const PLATFORMS = [
   "Brand's own Instagram",
@@ -560,6 +570,19 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     setForm(current => {
       const values = current[field] || [];
       return { ...current, [field]: values.includes(value) ? values.filter(item => item !== value) : [...values, value] };
+    });
+  };
+
+  // Niches, where "Any" cannot coexist with a specific pick: choosing it clears
+  // the rest, and choosing anything else clears it.
+  const toggleNiche = (value) => {
+    setForm(current => {
+      const values = current.nicheTags || [];
+      if (value === ANY_NICHE) {
+        return { ...current, nicheTags: values.includes(value) ? [] : [ANY_NICHE] };
+      }
+      const without = values.filter(item => item !== value && item !== ANY_NICHE);
+      return { ...current, nicheTags: values.includes(value) ? without : [...without, value] };
     });
   };
 
@@ -1431,7 +1454,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   <div className="form-group"><label>Gender preference</label><select className="input-field" value={form.genderPreference} onChange={e => set('genderPreference', e.target.value)}>{GENDER_OPTIONS.map(item => <option key={item}>{item}</option>)}</select></div>
                   <div className="form-group"><label>City filter</label><select className="input-field" value={form.cityFilter} onChange={e => set('cityFilter', e.target.value)}>{CITIES.map(item => <option key={item}>{item}</option>)}</select></div>
                 </div>
-                <div className="form-group"><label>Creator niche tags</label><div className="brief-chip-grid">{NICHE_TAGS.map(item => <ToggleChip key={item} active={form.nicheTags.includes(item)} onClick={() => toggleArray('nicheTags', item)}>{item}</ToggleChip>)}</div></div>
+                <div className="form-group"><label>Creator niche tags</label><div className="brief-chip-grid" style={{ maxHeight: 190, overflowY: 'auto' }}>{NICHE_TAGS.map(item => <ToggleChip key={item} active={form.nicheTags.includes(item)} onClick={() => toggleNiche(item)}>{item}</ToggleChip>)}</div><small>Pick as many as fit, or Any to accept every niche.</small></div>
               </>
             )}
             {step === 7 && subStep === 1 && (

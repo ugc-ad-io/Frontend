@@ -114,6 +114,44 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+// ── Instant navigation: stale-while-revalidate cache for GET /api reads ──────
+// Every dashboard page mounts with loading=true and refetches from scratch, and
+// several bust the browser cache with `?t=Date.now()` — so switching tabs or
+// revisiting a page always waited on a fresh network round-trip, even for data
+// pulled seconds ago. We keep GET responses in memory keyed by URL (the volatile
+// t/_ cache-buster params stripped) and, on a repeat read within STALE_MS,
+// resolve INSTANTLY from cache while revalidating in the background, so the page
+// paints immediately and the cache is fresh next time. Any write clears the
+// cache so data can't go stale after an action. Realtime reads are never cached.
+const GET_CACHE = new Map(); // key -> { response, ts }
+const GET_CACHE_STALE_MS = 60_000; // within this window a repeat GET is served instantly
+const GET_CACHE_SKIP = /\/(chat|messages|typing|unread-count|notifications)\b/i;
+const baseAdapter = axios.getAdapter(axios.defaults.adapter);
+const getCacheKey = (config) =>
+  axios.getUri(config).replace(/([?&])(t|_)=\d+/g, '$1').replace(/[?&]+$/, '');
+
+axios.interceptors.request.use((config) => {
+  const method = (config.method || 'get').toLowerCase();
+  if (method !== 'get') { GET_CACHE.clear(); return config; } // a write invalidates cached reads
+  const url = String(config.url || '');
+  if (!url.includes('/api/') || GET_CACHE_SKIP.test(url) || config.responseType) return config;
+
+  const key = getCacheKey(config);
+  config.adapter = (cfg) => {
+    const live = () => baseAdapter(cfg).then((res) => {
+      if (res && res.status >= 200 && res.status < 300) GET_CACHE.set(key, { response: res, ts: Date.now() });
+      return res;
+    });
+    const hit = GET_CACHE.get(key);
+    if (hit && Date.now() - hit.ts < GET_CACHE_STALE_MS) {
+      live().catch(() => {}); // refresh in the background; ignore its errors
+      return Promise.resolve(hit.response); // instant paint from cache
+    }
+    return live();
+  };
+  return config;
+});
+
 // Normalise FastAPI validation errors before they reach any catch block. FastAPI returns 422s as
 // `detail: [{ loc, msg, type }, ...]` (an ARRAY of objects); many call sites do
 // `toast.error(error.response?.data?.detail || '...')`, so without this the array/object is passed

@@ -50,11 +50,84 @@ const STATUS_BADGE = {
   work_submitted: { label: 'In Review', cls: 'review' },
   completed: { label: 'Completed', cls: 'done' },
   pending_approval: { label: 'Pending Approval', cls: 'pending' },
+  awaiting_brand_confirmation: { label: 'Script Ready — Confirm', cls: 'pending' },
   rejected: { label: 'Rejected', cls: 'rejected' },
   cancelled: { label: 'Cancelled', cls: 'rejected' },
   draft: { label: 'Draft', cls: 'pending' },
 };
 const statusBadge = (s) => STATUS_BADGE[s] || { label: 'Live', cls: 'live' };
+
+/**
+ * The brand's gate on a UGC.ad-written script. The brief is parked at
+ * awaiting_brand_confirmation with the script attached; nothing reaches
+ * creators until the brand confirms here (or sends it back with a note).
+ */
+function ScriptConfirmCard({ campaign, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [changesOpen, setChangesOpen] = useState(false);
+  const [note, setNote] = useState('');
+
+  const act = async (action) => {
+    if (action === 'request_changes' && !note.trim()) {
+      toast.error('Tell the team what to change in the script.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/${campaign.id}/script-confirmation`, {
+        action, note: note.trim() || undefined,
+      });
+      toast.success(data?.message || 'Done');
+      onDone?.();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Could not submit — try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ background: '#fffdf4', border: '1px solid #e7d9a0', borderRadius: 12, padding: '18px 20px', margin: '14px 0' }}>
+      <strong style={{ display: 'block', fontSize: 16, marginBottom: 6 }}>📝 Your script is ready — review it before the brief goes live</strong>
+      <p style={{ margin: '0 0 12px', fontSize: 13.5, color: '#6b6236' }}>
+        UGC.ad wrote this script for your campaign. Creators will only see the brief after you confirm.
+      </p>
+      <div style={{ whiteSpace: 'pre-wrap', background: '#fff', border: '1px solid #eee4bd', borderRadius: 8, padding: '12px 14px', fontSize: 14, maxHeight: 320, overflowY: 'auto' }}>
+        {campaign.script_text || 'No script text attached — contact support.'}
+      </div>
+      {changesOpen && (
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="What should the team change? Be specific — tone, hook, product points…"
+          rows={3}
+          style={{ width: '100%', marginTop: 12, borderRadius: 8, border: '1px solid #ddd', padding: 10, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+        />
+      )}
+      <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+        {!changesOpen ? (
+          <>
+            <button className="cmk-btn-primary-sm" disabled={busy} onClick={() => act('confirm')}>
+              <Check size={15} /> {busy ? 'Publishing…' : 'Confirm — send to creators'}
+            </button>
+            <button className="cmk-btn-ghost-sm" disabled={busy} onClick={() => setChangesOpen(true)}>
+              Request changes
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="cmk-btn-primary-sm" disabled={busy} onClick={() => act('request_changes')}>
+              {busy ? 'Sending…' : 'Send change request'}
+            </button>
+            <button className="cmk-btn-ghost-sm" disabled={busy} onClick={() => { setChangesOpen(false); setNote(''); }}>
+              Back
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const WS_STATUS = {
   approved: { cls: 'ok', label: 'Approved', icon: CheckCircle2 },
@@ -647,6 +720,11 @@ export default function BrandCampaignDetail() {
             <button className="cmk-btn-ghost-sm bcd-action-details" onClick={() => setDetailsOpen(true)}>View Details</button>
           </div>
         </div>
+
+        {/* UGC.ad-scripted brief waiting on the brand's sign-off. */}
+        {campaign.status === 'awaiting_brand_confirmation' && (
+          <ScriptConfirmCard campaign={campaign} onDone={load} />
+        )}
 
         {/* Direct booking: answer the creator's price, or send the brief once accepted. */}
         <BookingCard deal={deal || { campaign }} role="brand" onDone={load} />

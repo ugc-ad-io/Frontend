@@ -64,6 +64,7 @@ const AdminFlaggedMessages = lazy(() => import('./pages/AdminFlaggedMessages'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
 const AdminDeals = lazy(() => import('./pages/AdminDeals'));
 const AdminShipping = lazy(() => import('./pages/AdminShipping'));
+const AdminEditing = lazy(() => import('./pages/AdminEditing'));
 const AdminFinancials = lazy(() => import('./pages/AdminFinancials'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminRoles = lazy(() => import('./pages/AdminRoles'));
@@ -685,6 +686,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminShipping />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/editing"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                  <AdminEditing />
                 </ProtectedRoute>
               }
             />

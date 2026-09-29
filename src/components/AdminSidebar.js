@@ -1,4 +1,4 @@
-import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck, BadgeCheck, ReceiptText, Star } from 'lucide-react';
+import { TrendingUp, FileText, Users, Briefcase, IndianRupee, MessageSquare, BarChart, Scale, Package, Settings, ScrollText, ShieldCheck, UserCheck, ClipboardCheck, BadgeCheck, ReceiptText, Star, Clapperboard } from 'lucide-react';
 import { can, isFounder } from '../utils/adminRoles';
 
 function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose }) {
@@ -13,6 +13,7 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
     { id: 'deals',        label: 'Deals',          icon: Briefcase,    testId: 'tab-deals',        slug: 'deals',        cap: 'manage_deals' },
     { id: 'disputes',     label: 'Disputes',       icon: Scale,        testId: 'tab-disputes',     slug: 'disputes',     cap: 'rule_disputes' },
     { id: 'shipping',     label: 'Shipping Queue', icon: Package,      testId: 'tab-shipping',     slug: 'shipping',     cap: 'manage_shipping' },
+    { id: 'editing',      label: 'Editing Queue',  icon: Clapperboard, testId: 'tab-editing',      slug: 'editing',      cap: 'manage_deals' },
     { id: 'financials',   label: 'Financials',     icon: IndianRupee,  testId: 'tab-financials',   slug: 'financials',   cap: 'view_financials' },
     { id: 'chat',         label: 'Chat Oversight', icon: MessageSquare,testId: 'tab-chat',         slug: 'chat-oversight', cap: 'content_moderation' },
     { id: 'reports',      label: 'Reports',        icon: BarChart,     testId: 'tab-reports',      slug: 'reports',      cap: 'generate_reports' },

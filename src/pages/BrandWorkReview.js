@@ -55,6 +55,8 @@ const TABS = [
 const STATUS = {
   approved: { cls: 'ok', label: 'Approved', icon: CheckCircle2 },
   pending_review: { cls: 'pending', label: 'Pending Review', icon: Hourglass },
+  // Raw footage with UGC.ad's editing team — not reviewable until the cut lands.
+  awaiting_edit: { cls: 'pending', label: 'With UGC.ad Editors', icon: Hourglass },
   revision_requested: { cls: 'warn', label: 'Revision', icon: RefreshCw },
 };
 

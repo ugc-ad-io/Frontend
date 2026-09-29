@@ -60,7 +60,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
   const [unboxingFile, setUnboxingFile] = useState(null);
   const [courierFile, setCourierFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  // "Ship Product" (Shiprocket) flow — brand enters product details + their pickup
+  // "Ship Product" (Delhivery) flow — brand enters product details + their pickup
   // address; the platform generates a pre-paid label. The creator's delivery address
   // is pulled server-side and never shown to the brand.
   const [showShipModal, setShowShipModal] = useState(false);

@@ -1539,7 +1539,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Is my shipping address shared with creators?',
-    a: 'Never. Products ship through masked Shiprocket delivery — your warehouse address, phone, and name stay private on every order.',
+    a: 'Never. Products ship through masked Delhivery delivery — your warehouse address, phone, and name stay private on every order.',
   },
   {
     q: 'What if I’m not happy with the content?',

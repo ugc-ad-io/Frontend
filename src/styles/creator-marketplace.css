@@ -854,7 +854,7 @@
 .bc-card:hover .bc-reel{transform:translateY(-5px);box-shadow:var(--shadow-card)}
 
 /* full-screen page modal (open pages in-place without navigation) */
-.pm-overlay{position:fixed;inset:0;z-index:200;background:rgba(15,16,40,.55);backdrop-filter:blur(3px);
+.pm-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,16,40,.55);backdrop-filter:blur(3px);
   display:flex;align-items:flex-start;justify-content:center;padding:28px 18px;overflow-y:auto}
 .pm-modal{position:relative;width:100%;background:var(--bg,#f6f7fc);border-radius:20px;
   box-shadow:0 30px 80px -20px rgba(0,0,0,.5);margin:auto}

@@ -9,7 +9,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const SLA_TARGET_HOURS = 4; // spec 11.9 — manual label SLA target
-const SHIPROCKET_URL = 'https://app.shiprocket.in/'; // V0.5 — labels generated manually in Shiprocket dashboard
+const DELHIVERY_URL = 'https://one.delhivery.com/'; // V0.5 — labels generated manually in the Delhivery dashboard
 
 const getId = (r) => r?.id || r?.request_id || r?.deal_id;
 const dealId = (r) => r?.deal_id || r?.dealId || r?.deal?.id || getId(r);
@@ -221,7 +221,7 @@ export default function AdminShipping() {
 
         <div className="ash-v1note" role="note">
           <Zap size={15} />
-          <span><strong>V1 preview:</strong> Shiprocket API integration will auto-generate labels in under 60s — this manual queue stays only for exceptions (missing address fields, oversize packages, restricted items).</span>
+          <span><strong>V1 preview:</strong> Delhivery API integration will auto-generate labels in under 60s — this manual queue stays only for exceptions (missing address fields, oversize packages, restricted items).</span>
         </div>
 
         <div className="ash-table-wrap">
@@ -309,13 +309,13 @@ export default function AdminShipping() {
               </div>
 
               <ol className="ash-steps">
-                <li>Generate the label in the Shiprocket dashboard using the addresses above.</li>
+                <li>Generate the label in the Delhivery dashboard using the addresses above.</li>
                 <li>Download the label PDF, then upload it below to attach it to the Deal Room.</li>
                 <li>The brand is notified automatically once the shipment is marked shipped.</li>
               </ol>
 
-              <a className="ash-shiprocket" href={SHIPROCKET_URL} target="_blank" rel="noopener noreferrer">
-                <Truck size={15} /> Generate Shiprocket Label <ExternalLink size={13} />
+              <a className="ash-shiprocket" href={DELHIVERY_URL} target="_blank" rel="noopener noreferrer">
+                <Truck size={15} /> Generate Delhivery Label <ExternalLink size={13} />
               </a>
 
               <label className="ash-field">

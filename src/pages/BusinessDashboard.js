@@ -444,6 +444,15 @@ const emptyInviteForm = {
   message: '',
 };
 
+// While the dashboard is still fetching, show skeleton rows instead of the
+// "No campaigns yet" empty state — otherwise the empty CTA flashes on every load
+// before the real data arrives, reading as "you have nothing" when you do.
+const PanelSkeleton = ({ rows = 3 }) => (
+  <div style={{ display: 'grid', gap: 8, padding: '4px 0' }}>
+    {Array.from({ length: rows }).map((_, i) => <Skeleton key={i} height={44} radius={10} />)}
+  </div>
+);
+
 const walletPresetAmounts = [10000, 25000, 50000];
 
 function normalizeCreatorDirectoryItem(item = {}) {
@@ -1354,7 +1363,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         </button>
                       ))}
                     </div>
-                  ) : <p className="empty-inline">{dashboardSearchTerm ? 'No matching campaigns' : 'No campaigns yet'}</p>}
+                  ) : loading ? <PanelSkeleton /> : <p className="empty-inline">{dashboardSearchTerm ? 'No matching campaigns' : 'No campaigns yet'}</p>}
                 </section>
                 <section className="brand-panel active-deals-panel">
                 <div className="panel-title-row">
@@ -1393,7 +1402,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       )}
                     </div>
                     );
-                  }) : (
+                  }) : loading ? (
+                    <PanelSkeleton rows={2} />
+                  ) : (
                     <div className="deals-empty">{dashboardSearchTerm ? 'No matching active deals' : 'No active deals yet'}</div>
                   )}
                 </div>
@@ -1423,7 +1434,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       {action.label} {Number(action.count || 0) > 0 ? `(${action.count})` : ''}
                     </button>
                     );
-                  }) : <p className="empty-inline">{dashboardSearchTerm ? 'No matching pending actions' : 'No pending actions'}</p>}
+                  }) : loading ? <PanelSkeleton rows={2} /> : <p className="empty-inline">{dashboardSearchTerm ? 'No matching pending actions' : 'No pending actions'}</p>}
                 </section>
 
                 <section className="brand-panel quick-actions-panel">

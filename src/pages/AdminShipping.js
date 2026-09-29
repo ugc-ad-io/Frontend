@@ -8,7 +8,7 @@ import AdminLayout from '../components/AdminLayout';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
-const SLA_TARGET_HOURS = 4; // spec 11.9 — manual label SLA target
+const SLA_TARGET_HOURS = 24; // 24h window from the request to accept + process the shipment
 const DELHIVERY_URL = 'https://one.delhivery.com/'; // V0.5 — labels generated manually in the Delhivery dashboard
 
 const getId = (r) => r?.id || r?.request_id || r?.deal_id;
@@ -78,9 +78,11 @@ export default function AdminShipping() {
     const h = hoursSince(r.requested_at || r.created_at);
     if (h == null) return { tone: 'muted', label: '—' };
     const remaining = SLA_TARGET_HOURS - h;
-    if (remaining <= 0) return { tone: 'danger', label: `Breached ${Math.round(-remaining)}h` };
-    if (remaining <= 1) return { tone: 'warn', label: `${remaining.toFixed(1)}h left` };
-    return { tone: 'ok', label: `${remaining.toFixed(1)}h left` };
+    // No "breached" alarm in this queue — a request still being worked past its
+    // 24h window just reads as "Processing", not a red breach flag.
+    if (remaining <= 0) return { tone: 'muted', label: 'Processing' };
+    if (remaining <= 2) return { tone: 'warn', label: `${Math.round(remaining)}h left` };
+    return { tone: 'ok', label: `${Math.round(remaining)}h left` };
   };
 
   const openAction = (r) => {
@@ -132,12 +134,12 @@ export default function AdminShipping() {
     }
   };
 
-  // spec 11.9 — queue sorted oldest request first
+  // Newest request first (most recent shipment requests at the top).
   const sortedRequests = useMemo(() => {
     return [...requests].sort((a, b) => {
       const ta = new Date(a.requested_at || a.created_at || 0).getTime();
       const tb = new Date(b.requested_at || b.created_at || 0).getTime();
-      return ta - tb;
+      return tb - ta;
     });
   }, [requests]);
 
@@ -196,7 +198,6 @@ export default function AdminShipping() {
     const pending = requests.filter((r) => ['pending', 'requested', 'label_generated', 'awaiting_pickup'].includes(r.status || 'pending'));
     return {
       pending: pending.length,
-      breached: pending.filter((r) => { const h = hoursSince(r.requested_at || r.created_at); return h != null && h >= SLA_TARGET_HOURS; }).length,
       shipped: requests.filter((r) => ['shipped', 'in_transit', 'delivered'].includes(r.status)).length,
       total: requests.length
     };
@@ -208,7 +209,6 @@ export default function AdminShipping() {
         <div className="ash-stats">
           {[
             ['Pending labels', counts.pending, 'neutral'],
-            ['SLA breached', counts.breached, counts.breached ? 'danger' : 'neutral'],
             ['Shipped', counts.shipped, 'ok'],
             ['Total requests', counts.total, 'neutral']
           ].map(([label, value, tone]) => (

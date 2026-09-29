@@ -166,7 +166,18 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         if (handle) setResolvedName(handle);
         const p = res.data?.profile || {};
         const rc = p.rate_card || {};
-        const price = parseInt(String(rc.expected_payout || rc.last_salary || '').replace(/[^0-9]/g, ''), 10) || 0;
+        // Prefer the flat rate_card; fall back to the cheapest portfolio-card price —
+        // web-onboarded creators only have per-card prices, no rate_card (matches the
+        // backend creator_plan_price fallback).
+        const digits = (v) => parseInt(String(v ?? '').replace(/[^0-9]/g, ''), 10) || 0;
+        let price = digits(rc.expected_payout || rc.last_salary);
+        if (!price) {
+          const cards = res.data?.portfolio || p.portfolio_items || p.portfolio || [];
+          const cardPrices = (Array.isArray(cards) ? cards : [])
+            .map((c) => digits(c?.price || c?.price_per_video))
+            .filter((n) => n > 0);
+          if (cardPrices.length) price = Math.min(...cardPrices);
+        }
         const humanize = (s) => String(s || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
         const tags = Array.isArray(p.tags) && p.tags.length
           ? p.tags.slice(0, 3).join(', ')

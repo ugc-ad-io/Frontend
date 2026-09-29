@@ -85,9 +85,9 @@ export default function AdminCampaigns() {
           </div>
         ) : (
           <div className="ac-grid">
-            {pendingCampaigns.map(campaign => (
+            {pendingCampaigns.map((campaign, i) => (
               <article
-                key={campaign.id}
+                key={campaign.id || campaign._id || `campaign-${i}`}
                 className="ac-card"
                 data-testid={`campaign-${campaign.id}`}
                 onClick={() => openModal(campaign)}

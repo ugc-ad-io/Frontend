@@ -140,6 +140,10 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         .hsr:not(.is-open) .hsr-brand{gap:0;padding:0;justify-content:center}
         .hsr:not(.is-open) .hsr-top{justify-content:center}
         .hsr:not(.is-open) .hsr-label{display:none}
+        /* Collapsed: with no label beside it, the light #585c7e slate icon washed out.
+           Darken + thicken the icon so it's clearly visible; the active item keeps its
+           white icon, and the open (labelled) state is unchanged. */
+        .hsr:not(.is-open) .hsr-item:not(.is-active) .hsr-ic svg{color:#2b2f52;stroke-width:2.1}
         .hsr-sep{height:1px;background:#eef0f6;margin:9px 10px}
         /* divider spans the full rail width (negative margins cancel the rail's
            14px padding) so it meets the top nav's bottom border in one line */

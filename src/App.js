@@ -5,6 +5,7 @@ import './App.css';
 import './styles/admin-theme.css';
 import Loader from './components/Loader';
 import AdminLayout from './components/AdminLayout';
+import AgreementGate from './components/AgreementGate';
 import { Toaster } from 'sonner';
 
 // ── Route-level code splitting ───────────────────────────────────────────────
@@ -271,6 +272,16 @@ function AuthProvider({ children }) {
         </div>
       )}
       {children}
+      {/* One-time Creator & Brand Agreement gate. Only creators/brands are asked,
+          and only until they accept the current version (tracked server-side, so
+          accepting on the app clears it here too). The gate double-checks with the
+          server, so it never shows for someone who already agreed. */}
+      {user &&
+        ['creator', 'business'].includes(user.role) &&
+        user.agreement_accepted !== true &&
+        !localStorage.getItem('ops_admin_token') && (
+          <AgreementGate onAccepted={() => setUser({ ...user, agreement_accepted: true })} />
+        )}
     </AuthContext.Provider>
   );
 }

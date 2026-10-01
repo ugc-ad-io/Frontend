@@ -601,7 +601,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const totalBudget = budget * totalVideos;
   const commission = Math.round(totalBudget * COMMISSION_RATE); // commission on the overall total
   // Only a deliverable that needs an edited cut has a separate "final" hand-off.
-  const anyEdited = form.deliverables.some(item => item.editedRequired);
+  // Two dates only when the CREATOR edits: raw first, then the edited cut after the raw is
+  // approved. Raw-only or UGC.ad-edited briefs need just one date from the creator.
+  const anyEdited = form.deliverables.some(item => item.editedRequired && item.editedBy !== 'ugc');
   const listingFee = listingFeeFor(creatorsCount, totalDeliverables); // charged once — not per creator
   const totalDebit = totalBudget + commission + listingFee;
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
@@ -761,7 +763,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       if (needsShipping && (!form.productShippingBy || form.productShippingBy < tomorrowStr)) m.push('Product shipping date (tomorrow or later)');
       const draftMin = needsShipping && form.productShippingBy ? form.productShippingBy : tomorrowStr;
       if (!form.draftDeliveryBy || form.draftDeliveryBy < draftMin) m.push(needsShipping ? 'Draft delivery date (on or after shipping)' : 'Draft delivery date (tomorrow or later)');
-      if (anyEdited && (!form.finalDeliveryBy || form.finalDeliveryBy < form.draftDeliveryBy)) m.push('Final delivery date (on or after draft delivery)');
+      if (anyEdited && (!form.finalDeliveryBy || form.finalDeliveryBy < form.draftDeliveryBy)) m.push('Edited video date (on or after the raw video date)');
       if (!(budget > 0)) m.push('Budget');
       if (!form.creatorLevel) m.push('Creator level');
       if (!form.qualityTier) m.push('Quality tier');
@@ -954,7 +956,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       `Style guidance: tones ${form.tones.join(', ')}; pacing ${form.pacing}; music ${form.musicPreference}; references ${form.referenceVideos.filter(Boolean).join(', ') || 'none'}`,
       `Usage rights: platforms ${form.platforms.join(', ')}; duration ${form.rightsDuration}; exclusivity ${form.exclusivity}; whitelisting ${form.whitelisting ? 'yes' : 'no'}; modification ${form.modificationRights}`,
       `Creator targeting: level ${form.creatorLevel}; quality ${form.qualityTier}; gender ${form.genderPreference}; city ${form.cityFilter}; niches ${form.nicheTags.join(', ') || 'none'}`,
-      `Timeline: ${needsShipping ? `ship by ${form.productShippingBy}; ` : ''}${anyEdited ? 'draft' : 'delivery'} by ${form.draftDeliveryBy}; revisions ${form.revisions}${anyEdited ? `; final by ${form.finalDeliveryBy}` : ''}`,
+      `Timeline: ${needsShipping ? `ship by ${form.productShippingBy}; ` : ''}${anyEdited ? 'raw video' : 'delivery'} by ${form.draftDeliveryBy}; revisions ${form.revisions}${anyEdited ? `; edited video by ${form.finalDeliveryBy}` : ''}`,
       `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
       `Commission: platform 20%, total wallet debit Rs. ${totalDebit} (Rs. ${budget} per video x ${totalVideos} videos), each creator receives Rs. ${budget * totalDeliverables} pre-tax`
     ].join('\n');
@@ -1051,7 +1053,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       modification_rights: form.modificationRights,
       product_shipping_by: needsShipping ? form.productShippingBy : '',
       draft_delivery_by: form.draftDeliveryBy,
-      final_delivery_by: form.finalDeliveryBy,
+      final_delivery_by: anyEdited ? form.finalDeliveryBy : form.draftDeliveryBy,
     };
   };
 
@@ -1469,9 +1471,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   {needsShipping && (
                     <div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today — earliest is tomorrow.</small></div>
                   )}
-                  <div className="form-group"><label>{anyEdited ? 'Content draft delivery by *' : 'Content delivery by *'}</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship — the creator starts as soon as they accept.'}</small></div>
+                  <div className="form-group"><label>{anyEdited ? 'Raw video delivery by *' : 'Content delivery by *'}</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship — the creator starts as soon as they accept.'}</small></div>
                 </div>
-                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 to the creator)</small></div>{anyEdited && <div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div>}</div>
+                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 to the creator)</small></div>{anyEdited && <div className="form-group"><label>Edited video delivery by *</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /><small>The creator edits after you approve the raw video.</small></div>}</div>
               </>
             )}
             {step === 7 && subStep === 2 && (
@@ -1514,7 +1516,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
                 { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
                 { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
-                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ...(anyEdited ? [['Final by', form.finalDeliveryBy]] : []), ['Budget per video', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Creators wanted', `${creatorsCount}`], ['Total videos', `${totalVideos}`], ['Total budget', `Rs. ${totalBudget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), [anyEdited ? 'Raw video by' : 'Delivery by', form.draftDeliveryBy], ['Revisions included', form.revisions], ...(anyEdited ? [['Edited video by', form.finalDeliveryBy]] : []), ['Budget per video', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Creators wanted', `${creatorsCount}`], ['Total videos', `${totalVideos}`], ['Total budget', `Rs. ${totalBudget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
               ];
               const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
               const active = reviewSections[activeIdx];

@@ -57,6 +57,8 @@ const STATUS = {
   pending_review: { cls: 'pending', label: 'Pending Review', icon: Hourglass },
   // Raw footage with UGC.ad's editing team — not reviewable until the cut lands.
   awaiting_edit: { cls: 'pending', label: 'With UGC.ad Editors', icon: Hourglass },
+  // Raw video approved — the creator is editing it (raw → edited flow).
+  awaiting_edited: { cls: 'pending', label: 'Creator Editing', icon: Hourglass },
   revision_requested: { cls: 'warn', label: 'Revision', icon: RefreshCw },
 };
 
@@ -158,8 +160,12 @@ export default function BrandWorkReview() {
     // rating prompt, and after the reload this row's status has flipped to 'approved'.
     const it = items.find((i) => i.id === id);
     try {
-      await axios.post(`${API}/deals/${id}/approve`);
-      toast.success('Approved — payment released to the creator');
+      const { data } = await axios.post(`${API}/deals/${id}/approve`);
+      toast.success(data?.payout_status === 'awaiting_edited'
+        ? 'Raw video approved — the creator will submit the edited video next'
+        : it?.stage === 'raw' && it?.editMode === 'ugc'
+          ? 'Raw video approved — creator paid, UGC.ad is editing it'
+          : 'Approved — payment released to the creator');
       await load();
       // Ask for a rating right after approval. This tab used to approve silently — only
       // the standalone /work-review/:id page prompted — so brands approving from here
@@ -357,6 +363,16 @@ export default function BrandWorkReview() {
 
                   <div className="bwr-body">
                     <h3 className="bwr-title">{it.title}</h3>
+                    {/* Every submitted file — raw AND edited — each opens on its own. */}
+                    {(it.labeledFiles || []).length > 1 && (
+                      <div className="bwr-meta">
+                        {it.labeledFiles.map((f) => (
+                          <button key={`${f.kind}-${f.url}`} type="button" className="bwr-btn" onClick={() => openFile({ ...it, files: [f.url] })}>
+                            <Play size={15} /> {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="bwr-by">
                       <span className="bwr-by-ava">{it.photo ? <img src={assetUrl(it.photo)} alt="" /> : '@'}</span>
                       by <b>{handleLabelSafe(it.creator)}</b>
@@ -408,7 +424,7 @@ export default function BrandWorkReview() {
                     )}
                     {it.status === 'pending_review' && (
                       <>
-                        <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> Approve</button>
+                        <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> {it.stage === 'raw' ? (it.editMode === 'ugc' ? 'Approve raw — UGC.ad edits next' : 'Approve raw — creator edits next') : 'Approve'}</button>
                         {/* Single revision path: the timestamped video-review flow, labelled
                             "Request Revision". Only shown when there's a video to scrub. */}
                         {it.files.some((f) => isVideo(assetUrl(f))) && (

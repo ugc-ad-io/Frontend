@@ -10,6 +10,8 @@ import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target,
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
+import { selectedCreators, isSelectedCreator, creatorsWanted, slotsLeft, needsEditSplit, bidSplitLabel } from '../utils/campaignCreators';
+import SplitBidFields, { EMPTY_SPLIT, splitPayload } from '../components/SplitBidFields';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -52,6 +54,7 @@ export default function CampaignDetails({ embedId, onClose }) {
   const [selectedCreator, setSelectedCreator] = useState(null);
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
+  const [split, setSplit] = useState(EMPTY_SPLIT);
   const [proposal, setProposal] = useState('');
   const [deliveryDays, setDeliveryDays] = useState('');
   const [showCreatorModal, setShowCreatorModal] = useState(false);
@@ -141,12 +144,30 @@ export default function CampaignDetails({ embedId, onClose }) {
     }
   };
 
+  const handleFinishHiring = async () => {
+    const hired = selectedCreators(campaign).length;
+    if (!window.confirm(`Stop hiring with ${hired} creator(s)? The budget for the ${slotsLeft(campaign)} unfilled slot(s) is refunded to your wallet.`)) return;
+    try {
+      await axios.post(`${API}/campaigns/${id}/finish-hiring`);
+      toast.success('Hiring closed. Unused budget refunded to your wallet.');
+      await fetchCampaign();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to finish hiring'));
+    }
+  };
+
   // Selecting a creator SPENDS the brand's credits — the bid amount plus the
   // platform fee is debited and held in escrow until the content is approved.
   const handleSelectCreator = async (creatorId) => {
     try {
       const response = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${creatorId}`);
       const held = Number(response.data?.amount) || 0;
+      // A multi-creator brief with slots still open: stay so the brand can keep hiring.
+      if (slotsLeft(campaign) > 1) {
+        toast.success(`${firstName({ nickname: response.data.creator_nickname }, 'Creator')} hired — ₹${held.toLocaleString('en-IN')} held in escrow. You can hire ${slotsLeft(campaign) - 1} more.`);
+        await fetchCampaign();
+        return;
+      }
       toast.success(`🎉 ${firstName({ nickname: response.data.creator_nickname }, 'Creator')} selected! Payment of ₹${held.toLocaleString('en-IN')} held in escrow. Opening chat...`);
 
       // Wait a moment for the toast to be visible
@@ -182,14 +203,14 @@ export default function CampaignDetails({ embedId, onClose }) {
       const campaignsRes = await axios.get(`${API}/campaigns`);
       const pastCollaborations = campaignsRes.data.filter(
         c => ownsCampaign(user, c) && 
-        c.selected_creator === creatorId && 
+        isSelectedCreator(c, creatorId) && 
         c.status === 'completed'
       );
       
       // Fetch queued orders with this creator
       const queuedOrders = campaignsRes.data.filter(
         c => ownsCampaign(user, c) && 
-        c.selected_creator === creatorId && 
+        isSelectedCreator(c, creatorId) && 
         (c.status === 'in_progress' || c.status === 'active')
       );
       
@@ -229,12 +250,14 @@ export default function CampaignDetails({ embedId, onClose }) {
       await axios.post(`${API}/campaigns/${id}/bid`, {
         campaign_id: id,
         amount: parseFloat(bidAmount),
+        ...(needsEditSplit(campaign) ? splitPayload(split) : {}),
         proposal,
         estimated_delivery_days: parseInt(deliveryDays)
       });
       toast.success('Bid submitted successfully!');
       setShowBidModal(false);
       setBidAmount('');
+      setSplit(EMPTY_SPLIT);
       setProposal('');
       setDeliveryDays('');
       // Small delay to ensure DB write completes, then refresh campaign data
@@ -587,13 +610,18 @@ export default function CampaignDetails({ embedId, onClose }) {
               <div className="bids-card">
                 <div className="bids-header">
                   <h3>Bids Received ({campaign.bids.length})</h3>
-                  <span className="bids-hint">Showing all bids • Scroll to view more</span>
+                  <span className="bids-hint">
+                    Hired {selectedCreators(campaign).length} of {creatorsWanted(campaign)} creator{creatorsWanted(campaign) === 1 ? '' : 's'}
+                    {selectedCreators(campaign).length > 0 && slotsLeft(campaign) > 0 && campaign.status === 'active' && (
+                      <> • <button type="button" className="btn-action-small" onClick={handleFinishHiring}>Finish hiring with {selectedCreators(campaign).length}</button></>
+                    )}
+                  </span>
                 </div>
               <div className="bids-list-compact">
                 {campaign.bids.map((bid, idx) => (
                   <div 
                     key={bid.id} 
-                    className={`bid-row ${campaign.selected_creator === bid.creator_id ? 'selected' : ''}`}
+                    className={`bid-row ${isSelectedCreator(campaign, bid.creator_id) ? 'selected' : ''}`}
                     data-testid={`bid-${idx}`}
                   >
                     <div className="bid-row-main">
@@ -603,13 +631,14 @@ export default function CampaignDetails({ embedId, onClose }) {
                           <div className="bid-creator-name">{String(bid.creator_name || bid.creator_nickname || 'Creator').replace(/^@+/, '').trim().split(/\s+/)[0]}</div>
                           <div className="bid-meta-inline">
                             <span className="bid-amount-inline">₹{bid.amount}</span>
+                            {bidSplitLabel(bid) && <small> ({bidSplitLabel(bid)})</small>}
                             <span className="bid-separator">•</span>
                             <span className="bid-delivery"><Calendar size={14} /> {bid.estimated_delivery_days} days</span>
                           </div>
                         </div>
                       </div>
                       <div className="bid-row-actions">
-                        {campaign.selected_creator === bid.creator_id ? (
+                        {isSelectedCreator(campaign, bid.creator_id) ? (
                           <span className="selected-badge-inline">✓ Selected</span>
                         ) : (
                           <>
@@ -629,13 +658,15 @@ export default function CampaignDetails({ embedId, onClose }) {
                             >
                               <MessageSquare size={16} />
                             </button>
-                            <button
-                              className="btn-select-small"
-                              onClick={() => handleSelectCreator(bid.creator_id)}
-                              data-testid={`select-creator-${idx}`}
-                            >
-                              Select
-                            </button>
+                            {slotsLeft(campaign) > 0 && campaign.status === 'active' && (
+                              <button
+                                className="btn-select-small"
+                                onClick={() => handleSelectCreator(bid.creator_id)}
+                                data-testid={`select-creator-${idx}`}
+                              >
+                                Select
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -723,6 +754,10 @@ export default function CampaignDetails({ embedId, onClose }) {
             </div>
             <form onSubmit={handleSubmitBid} className="bid-form">
               <div className="form-group">
+                {needsEditSplit(campaign) ? (
+                  <SplitBidFields value={split} max={maxCampaignBid(campaign)} onChange={(v, total) => { setSplit(v); setBidAmount(String(total)); }} />
+                ) : (
+                <>
                 <label htmlFor="bidAmount">Bid Amount (₹)</label>
                 <input
                   id="bidAmount"
@@ -735,6 +770,8 @@ export default function CampaignDetails({ embedId, onClose }) {
                   required
                   data-testid="bid-amount-input"
                 />
+                </>
+                )}
                 <small>{Number(campaign.budget_min) === Number(campaign.budget_max)
                   ? `Fixed budget: ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`
                   : `Budget range: ₹${Number(campaign.budget_min).toLocaleString('en-IN')} - ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`}</small>

@@ -29,3 +29,19 @@ export const slotsLeft = (campaign) =>
  */
 export const isOpenForBids = (campaign) =>
   campaign?.status === 'active' && slotsLeft(campaign) > 0;
+
+/**
+ * The creator (not UGC.ad's editors) cuts the edited file, so their bid is quoted
+ * as two payouts: raw video + edited video (sent as raw_amount / edited_amount;
+ * the backend recomputes `amount` as their sum).
+ */
+export const needsEditSplit = (campaign) =>
+  (campaign?.deliverable_items || []).some(
+    (d) => d?.edited_required && (d?.edited_by || 'creator') === 'creator'
+  );
+
+/** "Raw ₹X + Edited ₹Y" for a bid quoted as a split, else ''. */
+export const bidSplitLabel = (bid) =>
+  bid?.raw_amount != null
+    ? `Raw ₹${Number(bid.raw_amount).toLocaleString('en-IN')} + Edited ₹${Number(bid.edited_amount || 0).toLocaleString('en-IN')}`
+    : '';

@@ -8,6 +8,7 @@ import PostABrief from './PostABrief';
 import { Skeleton } from '../components/Skeleton';
 import { summarizeDeliverables } from '../utils/normalizeBrief';
 import { ownsCampaign } from '../utils/brandWorkspace';
+import { selectedCreators } from '../utils/campaignCreators';
 import { apiErrorMessage } from '../utils/apiError';
 import '../styles/creator-marketplace.css';
 
@@ -37,7 +38,8 @@ const TABS = [
 ];
 
 function subLine(c) {
-  const creators = (c.bids || []).length || (c.selected_creator ? 1 : 0);
+  // Hired creators once anyone is hired; before that, how many have bid.
+  const creators = selectedCreators(c).length || (c.bids || []).length;
   if (c.status === 'draft') return `Draft · Created ${fmtDate(c.createdAt || c.created_at)}`;
   if (c.status === 'completed') return `${creators} creators · Completed`;
   if (c.status === 'work_submitted') return `${creators} creators · Submitted`;

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { firstName } from '../utils/displayName';
-import { isOpenForBids, selectedCreators } from '../utils/campaignCreators';
+import { isOpenForBids, selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X, ChevronDown } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -81,8 +81,12 @@ const monthKey = (value) => {
 };
 
 const campaignFundsAmount = (campaign = {}) => {
-  const selectedBid = (campaign.bids || []).find((bid) => bid.creator_id === campaign.selected_creator);
-  return Number(campaign.escrow_amount || campaign.held_amount || selectedBid?.amount || campaign.budget_max || campaign.budget_min || 0);
+  // Every hired creator's accepted bid, not just the first pick.
+  const hired = selectedCreators(campaign);
+  const hiredTotal = (campaign.bids || [])
+    .filter((bid) => hired.includes(String(bid.creator_id)))
+    .reduce((sum, bid) => sum + Number(bid.amount || 0), 0);
+  return Number(campaign.escrow_amount || campaign.held_amount || hiredTotal || campaign.budget_max || campaign.budget_min || 0);
 };
 
 const campaignActivityDate = (campaign = {}) => (
@@ -128,7 +132,7 @@ const formatBudget = (min, max) => {
 };
 
 // Creator Bids review block for a single campaign — header + filter tabs + bid rows.
-function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile }) {
+function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, onFinishHiring }) {
   // On a multi-creator brief, hired creators stay in campaign.bids — keep them
   // visible under their own "Accepted" tab (rather than dropping them entirely)
   // so the brand can still see who they picked, same as "Declined" stays visible.
@@ -247,8 +251,11 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
         <div className="cb-campaign-thumb">{(campaign.title || 'C').trim().charAt(0).toUpperCase()}</div>
         <div className="cb-campaign-info">
           <h3>{campaign.title || 'Untitled Campaign'}</h3>
-          <p>Budget: {formatBudget(campaign.budget_min, campaign.budget_max)} • {bids.length} Application{bids.length === 1 ? '' : 's'}</p>
+          <p>Budget: {formatBudget(campaign.budget_min, campaign.budget_max)} • {bids.length} Application{bids.length === 1 ? '' : 's'} • Hired {hiredIds.length} of {creatorsWanted(campaign)}</p>
         </div>
+        {hiredIds.length > 0 && slotsLeft(campaign) > 0 && onFinishHiring && (
+          <button type="button" className="cb-view-campaign" onClick={() => onFinishHiring(campaign)}>Finish hiring with {hiredIds.length}</button>
+        )}
         <button type="button" className="cb-view-campaign" onClick={() => onViewCampaign(campaign.id)}>View Campaign</button>
       </div>
 
@@ -325,6 +332,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile })
               <div className="cb-bid-collapsible cb-bid-stat">
                 <strong>{formatMoney(bid.amount)}</strong>
                 <span>Price / video</span>
+                {bidSplitLabel(bid) && <span>{bidSplitLabel(bid)}</span>}
               </div>
               <div className="cb-bid-collapsible cb-bid-stat">
                 <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} Days` : '—'}</strong>
@@ -1905,6 +1913,18 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       key={current.id}
                       campaign={current}
                       onAccept={handleAcceptBid}
+                      onFinishHiring={async (c) => {
+                        const hired = selectedCreators(c).length;
+                        if (!window.confirm(`Stop hiring with ${hired} creator(s)? The budget for the ${slotsLeft(c)} unfilled slot(s) is refunded to your wallet.`)) return;
+                        try {
+                          await axios.post(`${API}/campaigns/${c.id}/finish-hiring`);
+                          toast.success('Hiring closed. Unused budget refunded to your wallet.');
+                          fetchCampaigns();
+                          fetchWallet();
+                        } catch (error) {
+                          toast.error(error?.response?.data?.detail || 'Failed to finish hiring');
+                        }
+                      }}
                       onViewCampaign={(id) => setModalView({ type: 'campaign', id })}
                       onViewProfile={(id, bid) => {
                         const creatorId = bid?.creator_id || bid?.public_creator_id || bid?.id;

@@ -10,7 +10,8 @@ import EmptyState from '../components/EmptyState';
 import BriefDetailDrawer from '../components/BriefDetailDrawer';
 import { Skeleton } from '../components/Skeleton';
 import normalizeBrief, { timeAgo } from '../utils/normalizeBrief';
-import { isOpenForBids } from '../utils/campaignCreators';
+import { isOpenForBids, isSelectedCreator, needsEditSplit } from '../utils/campaignCreators';
+import SplitBidFields, { EMPTY_SPLIT, splitPayload } from '../components/SplitBidFields';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
 import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 
@@ -41,12 +42,13 @@ export default function BrowseBriefs() {
   // Bid form — opened straight from the drawer so no redirect to the detail page.
   const [bidBrief, setBidBrief] = useState(null);   // brief being bid on
   const [bidAmount, setBidAmount] = useState('');
+  const [split, setSplit] = useState(EMPTY_SPLIT);
   const [deliveryDays, setDeliveryDays] = useState('');
   const [proposal, setProposal] = useState('');
   const [submittingBid, setSubmittingBid] = useState(false);
 
   const openBidForm = (b) => {
-    setBidAmount(''); setDeliveryDays(''); setProposal('');
+    setBidAmount(''); setSplit(EMPTY_SPLIT); setDeliveryDays(''); setProposal('');
     setBidBrief(b);
   };
 
@@ -62,6 +64,7 @@ export default function BrowseBriefs() {
       await axios.post(`${API}/campaigns/${bidBrief.id}/bid`, {
         campaign_id: bidBrief.id,
         amount: parseFloat(bidAmount),
+        ...(needsEditSplit(bidBrief.campaign || bidBrief) ? splitPayload(split) : {}),
         proposal,
         estimated_delivery_days: parseInt(deliveryDays, 10),
       });
@@ -102,7 +105,8 @@ export default function BrowseBriefs() {
       const all = res.data;
       // Stay listed while the brief still has creator slots open — hiding it on the
       // first hire meant a 5-creator brief could only ever fill one slot.
-      setAvailableCampaigns(all.filter(isOpenForBids));
+      // ...but not to a creator already hired on it (same rule as the creator dashboard).
+      setAvailableCampaigns(all.filter((c) => isOpenForBids(c) && !isSelectedCreator(c, user?.id)));
       setMyBids(all.filter((c) => c.bids?.some((b) => b.creator_id === user?.id)));
     } catch {
       toast.error('Failed to load campaigns');
@@ -383,9 +387,13 @@ export default function BrowseBriefs() {
             </div>
             <p className="bb-bid-sub">{bidBrief.title || 'Campaign'} · {bidBrief.brand || 'Brand'}</p>
             <form onSubmit={handleSubmitBid} className="bb-bid-form">
+              {needsEditSplit(bidBrief.campaign || bidBrief) ? (
+                <SplitBidFields value={split} max={maxCampaignBid(bidBrief)} onChange={(v, total) => { setSplit(v); setBidAmount(String(total)); }} />
+              ) : (
               <label>Bid Amount (₹)
                 <input type="number" min="1" max={maxCampaignBid(bidBrief) || undefined} required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
               </label>
+              )}
               <p className="bb-bid-fee-note">UGC.ad charges a 20% platform fee on this campaign.</p>
               <label>Estimated Delivery (days)
                 <input type="number" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />

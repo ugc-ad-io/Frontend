@@ -21,7 +21,7 @@ import CampaignDetails from './CampaignDetails';
 import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
-import { selectedCreators, creatorsWanted, slotsLeft } from '../utils/campaignCreators';
+import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
 import { creatorFirstName } from '../utils/displayName';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -1084,7 +1084,7 @@ export default function BrandCampaignDetail() {
                         <strong>{String(b.creator_name || b.creator_nickname || 'Creator').replace(/^@+/, '').trim().split(/\s+/)[0]}</strong>
                         <small>{b.estimated_delivery_days ? `${b.estimated_delivery_days} day delivery` : 'Delivery not specified'}</small>
                       </div>
-                      <b className="bcd-bid-amt">{inr(b.amount)}</b>
+                      <b className="bcd-bid-amt">{inr(b.amount)}{bidSplitLabel(b) && <small style={{ display: 'block', fontWeight: 500 }}>{bidSplitLabel(b)}</small>}</b>
                     </div>
                     {b.proposal && <p className="bcd-bid-msg">{b.proposal}</p>}
                     <div className="bcd-bid-actions">

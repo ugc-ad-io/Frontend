@@ -63,10 +63,13 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
         </div>
 
         {typeof nextFee === 'number' && nextFee > 0 && (
-          <div className="rrm-fee">This is a paid revision — ₹{nextFee} will be charged from your wallet.</div>
+          <div className="rrm-fee">This is a paid revision — ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
         )}
-        {typeof freeRemaining === 'number' && freeRemaining > 0 && (
-          <div className="rrm-free">{freeRemaining} free revision{freeRemaining > 1 ? 's' : ''} remaining.</div>
+        {freeRemaining === 1 && (
+          <div className="rrm-fee">This is your last free revision — include all your changes now. Every revision after this costs ₹500 (₹300 goes to the creator).</div>
+        )}
+        {typeof freeRemaining === 'number' && freeRemaining > 1 && (
+          <div className="rrm-free">{freeRemaining} free revisions remaining.</div>
         )}
         {contactHit && (
           <div className="rrm-warn">

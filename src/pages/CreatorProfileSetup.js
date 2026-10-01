@@ -6,35 +6,11 @@ import { apiErrorMessage } from '../utils/apiError';
 import { useAuth } from '../App';
 import { ImagePlus, ChevronDown, Check, ArrowRight, Plus, PartyPopper, Info, Instagram, CloudUpload, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { CONTENT_CATEGORIES } from '../constants/contentCategories';
+import { NICHE_CATEGORIES, CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
-// The niche a creator makes content ABOUT (what) — separate from the content STYLE
-// (how, in CONTENT_CATEGORIES). Same 20 the brand signup uses, so both sides match.
-const NICHE_CATEGORIES = [
-  { value: 'fashion', label: 'Fashion & Apparel' },
-  { value: 'beauty', label: 'Beauty & Personal Care' },
-  { value: 'health', label: 'Health & Wellness' },
-  { value: 'food', label: 'Food & Beverages' },
-  { value: 'home', label: 'Home & Living' },
-  { value: 'jewellery', label: 'Jewellery & Accessories' },
-  { value: 'electronics', label: 'Electronics & Gadgets' },
-  { value: 'sports', label: 'Sports & Fitness' },
-  { value: 'baby_kids', label: 'Baby, Kids & Family' },
-  { value: 'pets', label: 'Pets & Pet Care' },
-  { value: 'travel', label: 'Travel & Hospitality' },
-  { value: 'automotive', label: 'Automotive & Accessories' },
-  { value: 'education', label: 'Education & Learning' },
-  { value: 'tech', label: 'Technology & Software' },
-  { value: 'finance', label: 'Finance & Fintech' },
-  { value: 'entertainment', label: 'Entertainment & Media' },
-  { value: 'gaming', label: 'Gaming & Esports' },
-  { value: 'luxury', label: 'Luxury & Lifestyle' },
-  { value: 'fmcg', label: 'FMCG & Consumer Goods' },
-  { value: 'other', label: 'Others' },
-];
 
 // Instagram only — YouTube/LinkedIn/TikTok rows removed by request. The keys
 // stay in LINK_RE and data.links so old submissions with those links still load.

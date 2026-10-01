@@ -207,10 +207,13 @@ export default function VideoReviewModal({
             <div className="vrm-free">Tap a timestamp to jump to the exact moment the brand marked for a change.</div>
           )}
           {!readOnly && typeof nextFee === 'number' && nextFee > 0 && (
-            <div className="vrm-fee">Paid revision — ₹{nextFee} will be charged from your wallet.</div>
+            <div className="vrm-fee">Paid revision — ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
           )}
-          {!readOnly && typeof freeRemaining === 'number' && freeRemaining > 0 && (
-            <div className="vrm-free">{freeRemaining} free revision{freeRemaining > 1 ? 's' : ''} remaining.</div>
+          {!readOnly && freeRemaining === 1 && (
+            <div className="vrm-fee">This is your last free revision — include all your changes now. Every revision after this costs ₹500 (₹300 goes to the creator).</div>
+          )}
+          {!readOnly && typeof freeRemaining === 'number' && freeRemaining > 1 && (
+            <div className="vrm-free">{freeRemaining} free revisions remaining.</div>
           )}
           {!readOnly && contactHit && (
             <div className="vrm-warn">

@@ -78,7 +78,7 @@ export default function WorkReview({ embedId, onClose }) {
     }
 
     try {
-      await axios.post(`${API}/work/${workId}/request-revision?feedback=${encodeURIComponent(revisionFeedback)}`);
+      await axios.post(`${API}/work/${workId}/request-revision`, { feedback: revisionFeedback });
       toast.success('Revision requested');
       setShowRevisionModal(false);
       navigate('/dashboard/business');

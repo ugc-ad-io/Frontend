@@ -52,7 +52,8 @@ import {
   Zap
 } from 'lucide-react';
 import './CreatorDashboard.css';
-import { isSelectedCreator, isOpenForBids } from '../utils/campaignCreators';
+import { isSelectedCreator, isOpenForBids, needsEditSplit } from '../utils/campaignCreators';
+import SplitBidFields, { EMPTY_SPLIT, splitPayload } from '../components/SplitBidFields';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -138,6 +139,7 @@ export default function CreatorDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [bidAmount, setBidAmount] = useState('');
+  const [split, setSplit] = useState(EMPTY_SPLIT);
   const [proposal, setProposal] = useState('');
   const [deliveryDays, setDeliveryDays] = useState('');
   const [portfolio, setPortfolio] = useState([]);
@@ -224,12 +226,14 @@ export default function CreatorDashboard() {
       await axios.post(`${API}/campaigns/${selectedCampaign.id}/bid`, {
         campaign_id: selectedCampaign.id,
         amount: parseFloat(bidAmount),
+        ...(needsEditSplit(selectedCampaign) ? splitPayload(split) : {}),
         proposal,
         estimated_delivery_days: parseInt(deliveryDays, 10)
       });
       toast.success('Bid submitted successfully');
       setSelectedCampaign(null);
       setBidAmount('');
+      setSplit(EMPTY_SPLIT);
       setProposal('');
       setDeliveryDays('');
       fetchAllData();
@@ -422,10 +426,14 @@ export default function CreatorDashboard() {
           <form className="pcd-modal" onSubmit={handleBidSubmit}>
             <h2 id="bid-modal-title">Submit Bid</h2>
             <p>{selectedCampaign.title}</p>
+            {needsEditSplit(selectedCampaign) ? (
+              <SplitBidFields value={split} max={maxCampaignBid(selectedCampaign)} onChange={(v, total) => { setSplit(v); setBidAmount(String(total)); }} />
+            ) : (
             <label>
               Bid Amount
               <input type="number" inputMode="numeric" min="1" max={maxCampaignBid(selectedCampaign) || undefined} value={bidAmount} onKeyDown={blockNonDigitKey} onChange={(event) => setBidAmount(digitsOnly(event.target.value))} required />
             </label>
+            )}
             <p>UGC.ad charges a 20% platform fee on this campaign.</p>
             <label>
               Delivery Days

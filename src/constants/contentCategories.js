@@ -20,3 +20,28 @@ export const CONTENT_CATEGORIES = [
 // Resolve the stored category string from a {category, customCategory} pair.
 export const resolveCategory = (category, customCategory) =>
   category === 'custom' ? (String(customCategory || '').trim() || 'Custom') : category;
+
+// The niche a creator makes content ABOUT (what) — separate from the content STYLE
+// (how, in CONTENT_CATEGORIES). Same 20 the brand signup uses, so both sides match.
+export const NICHE_CATEGORIES = [
+  { value: 'fashion', label: 'Fashion & Apparel' },
+  { value: 'beauty', label: 'Beauty & Personal Care' },
+  { value: 'health', label: 'Health & Wellness' },
+  { value: 'food', label: 'Food & Beverages' },
+  { value: 'home', label: 'Home & Living' },
+  { value: 'jewellery', label: 'Jewellery & Accessories' },
+  { value: 'electronics', label: 'Electronics & Gadgets' },
+  { value: 'sports', label: 'Sports & Fitness' },
+  { value: 'baby_kids', label: 'Baby, Kids & Family' },
+  { value: 'pets', label: 'Pets & Pet Care' },
+  { value: 'travel', label: 'Travel & Hospitality' },
+  { value: 'automotive', label: 'Automotive & Accessories' },
+  { value: 'education', label: 'Education & Learning' },
+  { value: 'tech', label: 'Technology & Software' },
+  { value: 'finance', label: 'Finance & Fintech' },
+  { value: 'entertainment', label: 'Entertainment & Media' },
+  { value: 'gaming', label: 'Gaming & Esports' },
+  { value: 'luxury', label: 'Luxury & Lifestyle' },
+  { value: 'fmcg', label: 'FMCG & Consumer Goods' },
+  { value: 'other', label: 'Others' },
+];

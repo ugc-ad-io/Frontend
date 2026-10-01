@@ -122,8 +122,8 @@ const matchCategory = (...raws) => {
   }
   return '';
 };
-const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial', 'Tutorial', 'Unboxing', 'Comparison', 'Sale promotion', 'Customer education', 'Other'];
-const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)'];
+const OBJECTIVES = ['Awareness', 'Product launch', 'Seasonal push', 'Testimonial', 'Tutorial', 'Unboxing', 'Comparison', 'Sale promotion', 'Customer education', 'Lead generation', 'Other'];
+const DELIVERABLE_TYPES = ['Reel (9:16, under 30s)', 'Short-form (30-60s)', 'YouTube Short (9:16, 60s max)', 'Long-form video (2+ minutes)', 'Static post', 'Carousel post', 'Story set (3-5 frames)', 'Amazon listing video'];
 const ASPECTS = ['9:16', '1:1', '16:9', '4:5'];
 const CTAS = ['Visit website', 'Use code', 'Swipe up', 'Follow brand', 'None'];
 // CTAs that need a link/handle value (Use code has its own promoCode field; None needs nothing).
@@ -159,7 +159,7 @@ const ANY_NICHE = 'Any';
 // targeting "Skincare" creators and a brief filed under "Skincare" use one
 // vocabulary. Keep in step with NICHE_TAGS in the app's BrandPostBrief.tsx.
 const NICHE_TAGS = [ANY_NICHE, ...CATEGORY_GROUPS.flatMap((g) => g.items)];
-const VIDEO_DELIVERABLES = ['Reel', 'Short-form', 'YouTube Short', 'Long-form video'];
+const VIDEO_DELIVERABLES = ['Reel', 'Short-form', 'YouTube Short', 'Long-form video', 'Amazon listing video'];
 const PLATFORMS = [
   "Brand's own Instagram",
   "Brand's own TikTok / Reels",
@@ -591,11 +591,17 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   // creator the brief hires, so the money shown on hold multiplies by that count.
   const budget = Number(form.budgetMode === 'fixed' ? form.fixedBudget : form.budgetMax) || 0;
   const creatorsCount = Math.max(1, Number(form.creatorsWanted) || 1);
-  const totalBudget = budget * creatorsCount;                 // e.g. ₹3,000 × 4 = ₹12,000
-  const commission = Math.round(totalBudget * COMMISSION_RATE); // commission on the overall total
   // Total assets the brief asks for = sum of every deliverable row's quantity. Same
   // count the backend uses for escrow, so the fee tier shown here matches the debit.
   const totalDeliverables = form.deliverables.reduce((sum, item) => sum + Math.max(1, Number(item.quantity) || 1), 0);
+  // `budget` is per VIDEO: the backend holds it for every video of every creator
+  // (campaign_slot_budget x creators_wanted). Leaving out the quantity understated
+  // the hold, e.g. Rs. 5,000 x 3 videos showed Rs. 5,000 but Rs. 15,000 was held.
+  const totalVideos = totalDeliverables * creatorsCount;
+  const totalBudget = budget * totalVideos;
+  const commission = Math.round(totalBudget * COMMISSION_RATE); // commission on the overall total
+  // Only a deliverable that needs an edited cut has a separate "final" hand-off.
+  const anyEdited = form.deliverables.some(item => item.editedRequired);
   const listingFee = listingFeeFor(creatorsCount, totalDeliverables); // charged once — not per creator
   const totalDebit = totalBudget + commission + listingFee;
   const paidAdsSelected = form.platforms.some(platform => platform.toLowerCase().includes('paid ads'));
@@ -697,7 +703,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       const shipOk = !needsShipping || (form.productShippingBy && form.productShippingBy >= tomorrowStr);
       const draftMin = needsShipping && form.productShippingBy ? form.productShippingBy : tomorrowStr;
       const draftOk = form.draftDeliveryBy && form.draftDeliveryBy >= draftMin;
-      const finalOk = form.finalDeliveryBy && form.finalDeliveryBy >= form.draftDeliveryBy;
+      const finalOk = !anyEdited || (form.finalDeliveryBy && form.finalDeliveryBy >= form.draftDeliveryBy);
       return shipOk && draftOk && finalOk && budget > 0 && form.creatorLevel && form.qualityTier;
     }
     return true;
@@ -715,7 +721,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       !f.productVisible || !!f.visibilitySeconds, !f.verbalMention || !!f.productNames, !!f.callToAction,
       f.tones.length > 0, !!f.pacing,
       f.platforms.length > 0, !!f.rightsDuration, !!f.exclusivity, !!f.modificationRights,
-      !!f.creatorLevel, !!f.qualityTier, (!typeNeedsShipping(f.productType) || !!f.productShippingBy), !!f.draftDeliveryBy, !!f.finalDeliveryBy, budget > 0,
+      !!f.creatorLevel, !!f.qualityTier, (!typeNeedsShipping(f.productType) || !!f.productShippingBy), !!f.draftDeliveryBy, (!anyEdited || !!f.finalDeliveryBy), budget > 0,
     ];
     return Math.round((all.filter(Boolean).length / all.length) * 100);
   };
@@ -755,7 +761,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       if (needsShipping && (!form.productShippingBy || form.productShippingBy < tomorrowStr)) m.push('Product shipping date (tomorrow or later)');
       const draftMin = needsShipping && form.productShippingBy ? form.productShippingBy : tomorrowStr;
       if (!form.draftDeliveryBy || form.draftDeliveryBy < draftMin) m.push(needsShipping ? 'Draft delivery date (on or after shipping)' : 'Draft delivery date (tomorrow or later)');
-      if (!form.finalDeliveryBy || form.finalDeliveryBy < form.draftDeliveryBy) m.push('Final delivery date (on or after draft delivery)');
+      if (anyEdited && (!form.finalDeliveryBy || form.finalDeliveryBy < form.draftDeliveryBy)) m.push('Final delivery date (on or after draft delivery)');
       if (!(budget > 0)) m.push('Budget');
       if (!form.creatorLevel) m.push('Creator level');
       if (!form.qualityTier) m.push('Quality tier');
@@ -948,9 +954,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       `Style guidance: tones ${form.tones.join(', ')}; pacing ${form.pacing}; music ${form.musicPreference}; references ${form.referenceVideos.filter(Boolean).join(', ') || 'none'}`,
       `Usage rights: platforms ${form.platforms.join(', ')}; duration ${form.rightsDuration}; exclusivity ${form.exclusivity}; whitelisting ${form.whitelisting ? 'yes' : 'no'}; modification ${form.modificationRights}`,
       `Creator targeting: level ${form.creatorLevel}; quality ${form.qualityTier}; gender ${form.genderPreference}; city ${form.cityFilter}; niches ${form.nicheTags.join(', ') || 'none'}`,
-      `Timeline: ${needsShipping ? `ship by ${form.productShippingBy}; ` : ''}draft by ${form.draftDeliveryBy}; revisions ${form.revisions}; final by ${form.finalDeliveryBy}`,
+      `Timeline: ${needsShipping ? `ship by ${form.productShippingBy}; ` : ''}${anyEdited ? 'draft' : 'delivery'} by ${form.draftDeliveryBy}; revisions ${form.revisions}${anyEdited ? `; final by ${form.finalDeliveryBy}` : ''}`,
       `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
-      `Commission: platform 20%, total wallet debit Rs. ${totalDebit}, creator receives Rs. ${budget} pre-tax`
+      `Commission: platform 20%, total wallet debit Rs. ${totalDebit} (Rs. ${budget} per video x ${totalVideos} videos), each creator receives Rs. ${budget * totalDeliverables} pre-tax`
     ].join('\n');
   };
 
@@ -969,8 +975,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       shipment_option: needsShipping ? 'yes' : 'no',
       product_type: form.productType,
       product_type_detail: form.productType === 'other' ? form.customProductType.trim() : '',
-      due_date: form.finalDeliveryBy,
-      deadline: form.finalDeliveryBy,
+      due_date: anyEdited ? form.finalDeliveryBy : form.draftDeliveryBy,
+      deadline: anyEdited ? form.finalDeliveryBy : form.draftDeliveryBy,
       revision_limit: Number(form.revisions || 0),
       creators_wanted: Math.max(1, Number(form.creatorsWanted) || 1),
       product_name: form.productName,
@@ -1358,9 +1364,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
             {step === 3 && subStep === 0 && (
               <>
-                <div className="brief-switch-row"><div><strong>Product visible on camera *</strong><p>If yes, specify minimum visibility duration.</p></div><button type="button" className={form.productVisible ? 'is-on' : ''} onClick={() => set('productVisible', !form.productVisible)}>{form.productVisible ? 'Yes' : 'No'}</button></div>
+                <div className="brief-switch-row"><div><strong>Product visible on camera *</strong><p>If yes, specify minimum visibility duration.</p></div><div className="brief-segment"><button type="button" className={form.productVisible ? 'active' : ''} onClick={() => set('productVisible', true)}>Yes</button><button type="button" className={!form.productVisible ? 'active' : ''} onClick={() => set('productVisible', false)}>No</button></div></div>
                 {form.productVisible && <div className="form-group"><label>Minimum visibility duration (seconds)</label><input className="input-field" value={form.visibilitySeconds} onChange={e => set('visibilitySeconds', e.target.value)} placeholder="5" /></div>}
-                <div className="brief-switch-row"><div><strong>Verbal product mention *</strong><p>List exact product names to be spoken.</p></div><button type="button" className={form.verbalMention ? 'is-on' : ''} onClick={() => set('verbalMention', !form.verbalMention)}>{form.verbalMention ? 'Yes' : 'No'}</button></div>
+                <div className="brief-switch-row"><div><strong>Verbal product mention *</strong><p>List exact product names to be spoken.</p></div><div className="brief-segment"><button type="button" className={form.verbalMention ? 'active' : ''} onClick={() => set('verbalMention', true)}>Yes</button><button type="button" className={!form.verbalMention ? 'active' : ''} onClick={() => set('verbalMention', false)}>No</button></div></div>
                 {form.verbalMention && <div className="form-group"><label>Exact product name(s)</label><input className="input-field" value={form.productNames} onChange={e => set('productNames', e.target.value)} /></div>}
               </>
             )}
@@ -1463,9 +1469,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   {needsShipping && (
                     <div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today — earliest is tomorrow.</small></div>
                   )}
-                  <div className="form-group"><label>Content draft delivery by *</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship — the creator starts as soon as they accept.'}</small></div>
+                  <div className="form-group"><label>{anyEdited ? 'Content draft delivery by *' : 'Content delivery by *'}</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship — the creator starts as soon as they accept.'}</small></div>
                 </div>
-                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each</small></div><div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div></div>
+                <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 to the creator)</small></div>{anyEdited && <div className="form-group"><label>Final content delivery by</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /></div>}</div>
               </>
             )}
             {step === 7 && subStep === 2 && (
@@ -1481,16 +1487,16 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                     onChange={e => set('creatorsWanted', Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
                   />
                   <small>
-                    You’re charged per creator, only when you select them — nothing is held
-                    when you post this brief. The brief stays open until all {Math.max(1, Number(form.creatorsWanted) || 1)} are picked.
+                    The budget for all {creatorsCount} creator{creatorsCount === 1 ? '' : 's'} is placed on hold in your wallet when the
+                    brief is published. If you finish hiring early, the unused slots are refunded.
                   </small>
                 </div>
                 <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
                 {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="commission-card">
-                  <p>Budget per creator <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p>
-                  {creatorsCount > 1 && <p>Creators wanted <strong>× {creatorsCount}</strong></p>}
-                  <p>Total budget{creatorsCount > 1 ? ` (${budget.toLocaleString('en-IN')} × ${creatorsCount})` : ''} <strong>Rs. {totalBudget.toLocaleString('en-IN')}</strong></p>
+                  <p>Budget per video <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p>
+                  {totalVideos > 1 && <p>Total videos ({totalDeliverables} per creator × {creatorsCount} creator{creatorsCount === 1 ? '' : 's'}) <strong>{totalVideos}</strong></p>}
+                  <p>Total budget{totalVideos > 1 ? ` (${budget.toLocaleString('en-IN')} × ${totalVideos})` : ''} <strong>Rs. {totalBudget.toLocaleString('en-IN')}</strong></p>
                   <p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p>
                   <p>Listing fee (one-time) <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p>
                   <p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p>
@@ -1508,7 +1514,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
                 { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
                 { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
-                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ['Final by', form.finalDeliveryBy], ['Budget per creator', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Creators wanted', `${creatorsCount}`], ['Total budget', `Rs. ${totalBudget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), ['Draft by', form.draftDeliveryBy], ['Revisions included', form.revisions], ...(anyEdited ? [['Final by', form.finalDeliveryBy]] : []), ['Budget per video', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Creators wanted', `${creatorsCount}`], ['Total videos', `${totalVideos}`], ['Total budget', `Rs. ${totalBudget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
               ];
               const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
               const active = reviewSections[activeIdx];
@@ -1553,6 +1559,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             <h3>Confirm publishing</h3>
             <p className="brief-hold-callout">
               <strong>Rs. {totalDebit.toLocaleString('en-IN')} will be placed ON HOLD</strong> in your wallet, locked in secure escrow — this money is <strong>held, not spent</strong>.
+            </p>
+            <p className="brief-hold-breakdown">
+              Rs. {budget.toLocaleString('en-IN')} per video{totalVideos > 1 ? ` × ${totalVideos} videos = Rs. ${totalBudget.toLocaleString('en-IN')}` : ''}
+              {' '}+ Rs. {commission.toLocaleString('en-IN')} platform commission (20%) + Rs. {listingFee.toLocaleString('en-IN')} listing fee.
             </p>
             <div>
               <button type="button" className="btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>

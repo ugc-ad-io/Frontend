@@ -5,7 +5,17 @@ import { toast } from 'sonner';
 import { useAuth } from '../App';
 import { creatorName, brandName, creatorFirstName } from '../utils/displayName';
 import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star, BadgeCheck } from 'lucide-react';
-import { CONTENT_CATEGORIES } from '../constants/contentCategories';
+import { CONTENT_CATEGORIES, NICHE_CATEGORIES } from '../constants/contentCategories';
+
+const STYLE_VALUES = new Set(CONTENT_CATEGORIES.map((o) => o.value));
+const NICHE_VALUES = new Set(NICHE_CATEGORIES.map((o) => o.value));
+const asList = (...sources) => {
+  for (const s of sources) {
+    const list = (Array.isArray(s) ? s : s ? [s] : []).map(String).filter(Boolean);
+    if (list.length) return list;
+  }
+  return [];
+};
 import { apiErrorMessage } from '../utils/apiError';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
 import { getProfilePct } from '../utils/creatorProfileCompletion';
@@ -367,7 +377,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     setForm({
       fullName: pr.fullName || '', age: pr.age || '', gender: pr.gender || '',
       bodyType: pr.bodyType || '', skinTone: pr.skinTone || '',
-      bio: pr.bio || '', category: pr.customCategory || pr.category || '',
+      bio: pr.bio || '',
+      // Same fields signup writes, with its fallbacks for older single-value profiles.
+      // Styles keep any custom text the creator typed at signup (not in the list).
+      contentStyles: asList(pr.content_styles, pr.content_style, STYLE_VALUES.has(pr.category) ? pr.category : ''),
+      contentCategories: asList(pr.content_categories, pr.niche, pr.primary_category).filter((v) => NICHE_VALUES.has(v)),
       country: pr.country || '', state: pr.state || '', city: pr.city || '',
       pincode: pr.pincode || '', phone: pr.phone || '', address: pr.address || '',
       languages: Array.isArray(pr.languages) ? pr.languages : [],
@@ -510,7 +524,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         ...pr,
         fullName: form.fullName, age: form.age, gender: form.gender,
         bodyType: form.bodyType, skinTone: form.skinTone,
-        bio: form.bio, category: form.category,
+        bio: form.bio,
+        ...(() => {
+          const styles = Array.isArray(form.contentStyles) ? form.contentStyles : [];
+          const niches = Array.isArray(form.contentCategories) ? form.contentCategories : [];
+          return {
+            content_styles: styles, content_style: styles[0] || '',
+            content_categories: niches, niche: niches[0] || '',
+            category: niches[0] || styles[0] || '', primary_category: niches[0] || styles[0] || '',
+          };
+        })(),
         country: form.country, state: form.state, city: form.city,
         pincode: form.pincode, phone: form.phone, address: form.address,
         languages: Array.isArray(form.languages) ? form.languages : [], skills, tags: skills, social_links,
@@ -935,8 +958,19 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       <Sel label="Gender" value={form.gender} onChange={set('gender')} options={GENDERS} />
                       <Sel label="Body Type" value={form.bodyType} onChange={set('bodyType')} options={BODY_TYPES} />
                       <Sel label="Skin Tone" value={form.skinTone} onChange={set('skinTone')} options={SKIN_TONES} />
-                      <Sel label="Primary Category" value={form.category} onChange={set('category')} options={CONTENT_CATEGORIES} />
                     </div>
+                    <ChipsPick
+                      label="Content categories (pick all that apply)"
+                      values={NICHE_CATEGORIES.filter((o) => (form.contentCategories || []).includes(o.value)).map((o) => o.label)}
+                      options={NICHE_CATEGORIES.map((o) => o.label)}
+                      onToggle={(l) => toggle('contentCategories')(NICHE_CATEGORIES.find((o) => o.label === l).value)}
+                    />
+                    <ChipsPick
+                      label="Content styles (pick all that apply)"
+                      values={CONTENT_CATEGORIES.filter((o) => (form.contentStyles || []).includes(o.value)).map((o) => o.label)}
+                      options={CONTENT_CATEGORIES.map((o) => o.label)}
+                      onToggle={(l) => toggle('contentStyles')(CONTENT_CATEGORIES.find((o) => o.label === l).value)}
+                    />
                     <label className="cpm-ef-bio">Bio<textarea rows={3} {...fld('bio')} /></label>
 
                     <h5 className="cpm-ef-sec">Location &amp; Contact</h5>

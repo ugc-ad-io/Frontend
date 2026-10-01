@@ -68,6 +68,22 @@ const DEAL_STATES = [
 
 const EXCEPTION_STATES = ['Disputed', 'Damaged/Wrong Product Reported'];
 
+// Raw → edited flow: the raw video is reviewed first, then the edited cut (by the
+// creator, or by UGC.ad's editors). Extra steps only for briefs that need an edit.
+function dealStatesFor(deal) {
+  const mode = deal?.edit_flow?.mode;
+  if (!mode) return DEAL_STATES;
+  const extra = mode === 'ugc' ? 'Raw Approved - UGC.ad Editing' : 'Raw Approved - Edited Video Due';
+  const at = DEAL_STATES.indexOf('Revision Requested') + 1;
+  return [...DEAL_STATES.slice(0, at), extra, ...DEAL_STATES.slice(at)];
+}
+
+// Which file this upload is for: 'raw' or 'edited' (raw → edited flow), else null.
+function uploadStage(deal) {
+  const stage = deal?.edit_flow?.stage;
+  return stage === 'raw' || stage === 'edited' ? stage : null;
+}
+
 const ACTION_CARD_TYPES = {
   'Milestone Update': 'milestone_update',
   'Add Evidence': 'damage_report',
@@ -250,7 +266,7 @@ function canSubmitUploadedAssets(deal, uploads) {
   if (!uploads.finalVideoUrl) return false;
   if (required.caption_script && !uploads.captionUrl) return false;
   if (required.thumbnail && !uploads.thumbnailUrl) return false;
-  if (required.raw_footage && !uploads.rawFootageUrl) return false;
+  if (required.raw_footage && !uploads.rawFootageUrl && !uploadStage(deal)) return false;
   return Boolean(deal?.can_submit_content);
 }
 
@@ -273,9 +289,10 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
       type: 'receipt'
     };
   }
-  if (isState(deal, 'Received - Content in Progress') || isState(deal, 'Revision Requested')) {
+  if (isState(deal, 'Received - Content in Progress') || isState(deal, 'Revision Requested') || isState(deal, 'Raw Approved - Edited Video Due')) {
+    const stage = uploadStage(deal);
     return {
-      label: submitting ? 'Submitting...' : isState(deal, 'Revision Requested') ? 'Submit Revision' : 'Submit Content',
+      label: submitting ? 'Submitting...' : isState(deal, 'Revision Requested') ? 'Submit Revision' : stage === 'raw' ? 'Submit Raw Video' : stage === 'edited' ? 'Submit Edited Video' : 'Submit Content',
       disabled: submitting || !canSubmitUploadedAssets(deal, uploads),
       type: 'content'
     };
@@ -352,6 +369,8 @@ function getDealStepIndex(state, hasShipping) {
   const steps = dealSteps(hasShipping);
   const at = (label) => Math.max(0, steps.indexOf(label));
   if (s.includes('paid')) return at('Paid');
+  // Raw approved but the edited video is still being made — still "working on it".
+  if (s.includes('raw approved')) return at('In Progress');
   if (s.includes('approved')) return at('Approved');
   if (s.includes('await') && s.includes('review')) return at('In Review');
   if (s.includes('content submitted')) return at('Submitted');
@@ -369,6 +388,19 @@ function buildDeliverables(deal) {
   const versions = content.versions || [];
   const latest = versions.length ? versions[versions.length - 1] : null;
   const videoMeta = latest ? versionStatusMeta(latest.status) : { label: 'Pending', tone: 'warn' };
+  const mode = deal?.edit_flow?.mode;
+  if (mode) {
+    // Raw → edited flow: two steps with their own due dates.
+    const last = (stage) => [...versions].reverse().find((v) => v.stage === stage);
+    const row = (name, meta, v) => ({ name, meta, status: v ? versionStatusMeta(v.status) : { label: 'Pending', tone: 'warn' }, done: v?.status === 'approved' });
+    const due = (d) => (d ? ` · due ${formatDateTime(d)}` : '');
+    return [
+      row('Raw video', `Step 1 — brand approves this first${due(deal.edit_flow.raw_due)}`, last('raw')),
+      mode === 'ugc'
+        ? row('Edited video', 'Step 2 — edited by UGC.ad after your raw is approved', last('edited'))
+        : row('Edited video', `Step 2 — after the raw is approved${due(deal.edit_flow.edited_due)}`, last('edited')),
+    ];
+  }
   const rows = [{ name: 'Final Video', meta: 'Format: MP4 · Platform: Reels', status: videoMeta, done: latest?.status === 'approved' }];
   if (required.caption_script) rows.push({ name: 'Caption / Script', meta: '.txt / .docx', status: { label: 'Pending', tone: 'warn' }, done: false });
   if (required.thumbnail) rows.push({ name: 'Thumbnail', meta: 'JPG / PNG', status: { label: 'Pending', tone: 'warn' }, done: false });
@@ -583,10 +615,11 @@ export default function MyDealsPage() {
     if (uploadingFile) { toast.error('Please wait — a file is still uploading.'); return; }
     const required = getRequiredAssets(selectedDeal);
     const missing = [];
-    if (!finalVideoUrl) missing.push('final video');
+    const stage = uploadStage(selectedDeal);
+    if (!finalVideoUrl) missing.push(stage === 'raw' ? 'raw video' : stage === 'edited' ? 'edited video' : 'final video');
     if (required.caption_script && !captionUrl) missing.push('caption/script');
     if (required.thumbnail && !thumbnailUrl) missing.push('thumbnail');
-    if (required.raw_footage && !rawFootageUrl) missing.push('raw footage');
+    if (required.raw_footage && !rawFootageUrl && !stage) missing.push('raw footage');
     if (missing.length) {
       toast.error(`Missing required asset: ${missing.join(', ')}`);
       return;
@@ -598,10 +631,10 @@ export default function MyDealsPage() {
         video_url: finalVideoUrl,
         caption_url: captionUrl,
         thumbnail_url: thumbnailUrl,
-        raw_footage_url: rawFootageUrl,
+        raw_footage_url: stage ? null : rawFootageUrl,
         creator_note: 'Submitted from creator deal room'
       });
-      toast.success('Content submitted for brand review');
+      toast.success(stage === 'raw' ? 'Raw video submitted for brand review' : stage === 'edited' ? 'Edited video submitted for brand review' : 'Content submitted for brand review');
       setFinalVideoUrl(null);
       setCaptionUrl(null);
       setThumbnailUrl(null);
@@ -1058,7 +1091,7 @@ export default function MyDealsPage() {
                     {primaryAction.type !== 'track_shipment' && primaryAction.type !== 'passive' && (
                       <button type="button" className="cmk-dr-upload" disabled={primaryAction.type === 'content' ? submitting : primaryAction.disabled} onClick={handleOverviewPrimary}>
                         {primaryAction.type === 'archive' ? <Archive size={16} /> : <Upload size={16} />}
-                        {' '}{primaryAction.type === 'content' ? 'Upload / Submit Work' : uploadLabel}
+                        {' '}{primaryAction.type === 'content' ? (uploadStage(selectedDeal) ? primaryAction.label : 'Upload / Submit Work') : uploadLabel}
                       </button>
                     )}
                   </div>
@@ -1441,7 +1474,9 @@ function ContentSubmission({
   const versions = content.versions || [];
   const needsCaption = Boolean(required.caption_script);
   const needsThumbnail = Boolean(required.thumbnail);
-  const needsRaw = Boolean(required.raw_footage);
+  const stage = uploadStage(deal);
+  const needsRaw = Boolean(required.raw_footage) && !stage;
+  const stageDue = stage === 'raw' ? deal?.edit_flow?.raw_due : stage === 'edited' ? deal?.edit_flow?.edited_due : null;
   const canSubmit = canSubmitUploadedAssets(deal, { finalVideoUrl, captionUrl, thumbnailUrl, rawFootageUrl });
   // Content production only begins once the deal reaches the content stage
   // (for shipment deals that means the product must be received first).
@@ -1452,6 +1487,8 @@ function ContentSubmission({
   let lockReason;
   if (isCancelledDeal(deal)) {
     lockReason = 'This deal was cancelled by the brand — no content can be submitted.';
+  } else if (isState(deal, 'Raw Approved - UGC.ad Editing')) {
+    lockReason = 'Your raw video was approved — UGC.ad’s team is editing it. Nothing more to upload.';
   } else if (awaitingReceipt) {
     lockReason = 'Confirm you’ve received the product (in Shipping / Receipt above) before uploading your content.';
   } else if (currentState.includes('Awaiting Review') || latestVersion?.status === 'submitted') {
@@ -1472,7 +1509,14 @@ function ContentSubmission({
       </div>
       {content.watermark_required_until_approval && <div className="deal-watermark">Watermarked preview until brand approval</div>}
       {!contentUnlocked && <div className="deal-locked-note"><ShieldAlert size={16} /> {lockReason}</div>}
-      <UploadZone icon={Play} label="Final Video Upload" accept="MP4/MOV - Max 400MB" uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
+      {stage && contentUnlocked && (
+        <div className="deal-locked-note">
+          {stage === 'raw'
+            ? `Step 1 of 2: upload the RAW video${stageDue ? ` by ${formatDateTime(stageDue)}` : ''}. ${deal?.edit_flow?.mode === 'ugc' ? 'Once the brand approves it you’re paid and UGC.ad edits it.' : 'Once the brand approves it you’ll upload the edited video.'}`
+            : `Step 2 of 2: the brand approved your raw video — upload the EDITED video${stageDue ? ` by ${formatDateTime(stageDue)}` : ''}.`}
+        </div>
+      )}
+      <UploadZone icon={Play} label={stage === 'raw' ? 'Raw Video Upload' : stage === 'edited' ? 'Edited Video Upload' : 'Final Video Upload'} accept="MP4/MOV - Max 400MB" uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
       <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
       <div className="deal-asset-grid">
         {needsCaption && (
@@ -1501,7 +1545,7 @@ function ContentSubmission({
         {versions.length ? versions.map((version) => {
           const { label: statusLabel, tone: statusTone } = versionStatusMeta(version.status);
           return (
-            <article key={version.version}>
+            <article key={`${version.stage || ''}${version.version}`}>
               <div className="deal-preview-tile">
                 {version.thumbnail_url ? (
                   <img src={getAssetUrl(version.thumbnail_url)} alt={`v${version.version} thumbnail`} />
@@ -1524,7 +1568,7 @@ function ContentSubmission({
                 )}
               </div>
               <div className="deal-version-meta">
-                <strong>v{version.version}</strong>
+                <strong>{version.stage === 'raw' ? 'Raw ' : version.stage === 'edited' ? 'Edited ' : ''}v{version.version}</strong>
                 <small>{formatDateTime(version.submitted_at)}</small>
                 <span className={`deal-version-status is-${statusTone}`}>{statusLabel}</span>
               </div>
@@ -1542,7 +1586,7 @@ function ContentSubmission({
         )}
       </div>
       <button type="button" className="deal-submit" disabled={!canSubmit || submitting} onClick={onSubmit}>
-        <Upload size={17} /> {submitting ? 'Submitting...' : 'Submit Delivery'}
+        <Upload size={17} /> {submitting ? 'Submitting...' : stage === 'raw' ? 'Submit Raw Video' : stage === 'edited' ? 'Submit Edited Video' : 'Submit Delivery'}
       </button>
     </DealCard>
   );
@@ -1890,9 +1934,9 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, mess
         )}
         {tab === 'progress' && (
           <div className="deal-progress-tab">
-            {[...DEAL_STATES, ...EXCEPTION_STATES].map((state) => {
-              const currentIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(currentState));
-              const itemIndex = DEAL_STATES.findIndex((item) => stateKey(item) === stateKey(state));
+            {[...dealStatesFor(deal), ...EXCEPTION_STATES].map((state) => {
+              const currentIndex = dealStatesFor(deal).findIndex((item) => stateKey(item) === stateKey(currentState));
+              const itemIndex = dealStatesFor(deal).findIndex((item) => stateKey(item) === stateKey(state));
               const isCurrent = stateKey(state) === stateKey(currentState);
               const isDone = itemIndex !== -1 && currentIndex !== -1 && itemIndex < currentIndex;
               return (

@@ -133,14 +133,26 @@ const WS_STATUS = {
   approved: { cls: 'ok', label: 'Approved', icon: CheckCircle2 },
   pending_review: { cls: 'pending', label: 'Pending Review', icon: Hourglass },
   revision_requested: { cls: 'warn', label: 'Revision', icon: RefreshCw },
+  awaiting_edited: { cls: 'pending', label: 'Creator Editing', icon: Hourglass },
+  awaiting_edit: { cls: 'pending', label: 'With UGC.ad Editors', icon: Hourglass },
+};
+// Who cuts the edited video: 'creator', 'ugc', or null (no edited file on the brief).
+const editModeOf = (c) => {
+  const items = Array.isArray(c?.deliverable_items) ? c.deliverable_items : [];
+  if (items.some((d) => d?.edited_required && d?.edited_by !== 'ugc')) return 'creator';
+  if (items.some((d) => d?.edited_required && d?.edited_by === 'ugc')) return 'ugc';
+  return null;
 };
 const DEAL_ORDER = ['Accepted - Awaiting Shipment', 'Shipped - In Transit', 'Delivered - Awaiting Receipt Confirmation', 'Received - Content in Progress', 'Content Submitted - Awaiting Review', 'Approved - Payment Processing', 'Paid - Complete'];
+// Raw → edited flow states sit between review and approval on the tracker.
+const EDIT_STATES = ['Raw Approved - Edited Video Due', 'Raw Approved - UGC.ad Editing'];
 // The backend emits these states with an EM-dash ("Shipped — In Transit") while the
 // list above uses a hyphen. Without normalising, indexOf() is always -1 and the
 // progress tracker never advances. (AdminDeals/MyDealsPage do the same.)
 const normalizeDash = (v) => String(v || '').replace(/\s*(?:—|–|-)\s*/g, ' - ');
 const dealStateIndex = (state) => {
   const key = normalizeDash(state);
+  if (EDIT_STATES.some((s) => normalizeDash(s) === key)) return DEAL_ORDER.indexOf('Content Submitted - Awaiting Review');
   return DEAL_ORDER.findIndex((s) => normalizeDash(s) === key);
 };
 // Revision items are stored as flat strings like "[must-fix] change the dress
@@ -526,8 +538,12 @@ export default function BrandCampaignDetail() {
     try {
       const wid = await resolveWorkId();
       if (!wid) return toast.error('No submitted work to approve yet');
-      await axios.post(`${API}/work/${wid}/approve`);
-      toast.success('Approved — payment released to the creator');
+      const { data } = await axios.post(`${API}/work/${wid}/approve`);
+      toast.success(data?.payout_status === 'awaiting_edited'
+        ? 'Raw video approved — the creator will submit the edited video next'
+        : ws?.stage === 'raw' && editModeOf(campaign) === 'ugc'
+          ? 'Raw video approved — creator paid, UGC.ad is editing it'
+          : 'Approved — payment released to the creator');
       refresh();
     } catch (e) { toast.error(e?.response?.data?.detail || 'Failed to approve'); }
   };
@@ -634,7 +650,15 @@ export default function BrandCampaignDetail() {
 
   // Multi-creator: the active creator's own submission drives the Work Review tab.
   const ws = creators.length > 1 ? activeWork : campaign.work_submission;
-  const wsStatus = ws ? (ws.status || (campaign.status === 'completed' ? 'approved' : 'pending_review')) : null;
+  const wsStatus = !ws ? null
+    : ws.status === 'awaiting_edit' ? 'awaiting_edit'
+    : ws.status === 'approved' && ws.stage === 'raw' && editModeOf(campaign) === 'creator' ? 'awaiting_edited'
+    : (ws.status || (campaign.status === 'completed' ? 'approved' : 'pending_review'));
+  // Every submitted file, labelled (raw AND edited) — the card used to open only the first.
+  const wsLabeled = ws ? (ws.files || [
+    ...(ws.edited_files || []).map((url) => ({ kind: 'edited', label: 'Edited video', url })),
+    ...(ws.raw_files || []).map((url) => ({ kind: 'raw', label: 'Raw video', url })),
+  ]) : [];
   // The deal is done however it got there — brand approval OR a dispute ruling —
   // so the review CTA doesn't depend on the approve button being the last step.
   const dealCompleted = wsStatus === 'approved'
@@ -767,6 +791,16 @@ export default function BrandCampaignDetail() {
                             the card looked identical every round, so revisions read as "never arrived". */}
                         {ws.version > 1 && <span className="bwr-ver">Revision v{ws.version}</span>}
                       </h3>
+                      {wsLabeled.length > 1 && (
+                        <div className="bwr-meta">
+                          {wsLabeled.map((f) => (
+                            <button key={`${f.kind}-${f.url}`} type="button" className="bwr-btn"
+                              onClick={() => (isVideo(assetUrl(f.url)) ? setVideoModal({ src: assetUrl(f.url), watermark: wsStatus !== 'approved', title: `${campaign.title} — ${f.label}` }) : window.open(assetUrl(f.url), '_blank'))}>
+                              <Play size={15} /> {f.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <div className="bwr-by">
                         <span className="bwr-by-ava">{photo ? <img src={photo} alt="" /> : '@'}</span>
                         by <b>{creatorLabel}</b>
@@ -817,7 +851,7 @@ export default function BrandCampaignDetail() {
                         : <button type="button" className="bwr-btn" onClick={() => setReviewOpen(true)}><Star size={16} /> Add a review</button>
                       )}
                       {wsStatus === 'pending_review' && (<>
-                        <button type="button" className="bwr-btn approve" onClick={approveWork}><CheckCircle2 size={16} /> Approve</button>
+                        <button type="button" className="bwr-btn approve" onClick={approveWork}><CheckCircle2 size={16} /> {ws.stage === 'raw' ? (editModeOf(campaign) === 'ugc' ? 'Approve raw — UGC.ad edits next' : 'Approve raw — creator edits next') : 'Approve'}</button>
                         <button type="button" className="bwr-btn" onClick={requestRevision}><RefreshCw size={16} /> Request Revision</button>
                       </>)}
                       {wsStatus === 'revision_requested' && (

@@ -10,13 +10,26 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
-const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
+const isVideo = (u) => {
+  const value = String(u || '');
+  const path = value.split(/[?#]/, 1)[0];
+  if (/\.(jpe?g|png|gif|webp|avif|svg|bmp|heic)$/i.test(path)) return false;
+  return /\.(mp4|webm|mov|m4v|avi|mkv|3gp)$/i.test(path) || /\/video\/upload\//i.test(value);
+};
+const videoUrlOf = (creator) => creator?.portfolio_video || (isVideo(creator?.portfolio_preview) ? creator.portfolio_preview : '');
+const browserCompatibleVideoUrl = (url) => {
+  const media = assetUrl(url);
+  if (!/^https?:\/\/res\.cloudinary\.com\//i.test(media) ||
+      !/\/video\/upload\//i.test(media) ||
+      /\/video\/upload\/f_mp4,vc_h264,/i.test(media)) return media;
+  return media.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto:good,h_480,c_scale,ac_none,du_2/');
+};
 const creatorName = (c) => firstName(c, 'Creator');
 const initial = (c) => (creatorName(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 
 function CreatorCard({ c, onMessage }) {
   const ref = useRef(null);
-  const media = assetUrl(c.portfolio_preview);
+  const media = browserCompatibleVideoUrl(videoUrlOf(c));
   const photo = assetUrl(c.profile_photo);
   // Only the creator's own uploaded reel (the showcase is pre-filtered to those who have one).
   const videoSrc = `${media}#t=0.4`;
@@ -66,7 +79,7 @@ export default function BrandOverview() {
 
   const messageCreator = (c) => setChatWith({ id: c.id, name: creatorName(c).replace('@', ''), photo: c.profile_photo });
   // Showcase only creators who have their OWN uploaded reel — no stock/sample videos.
-  const withVideo = creators.filter((c) => { const m = assetUrl(c.portfolio_preview); return m && isVideo(m); });
+  const withVideo = creators.filter((c) => !!videoUrlOf(c));
   // A single showcase row. If fewer than 6 such creators exist, repeat them to fill the row.
   const TARGET = 6;
   const shown = withVideo.length

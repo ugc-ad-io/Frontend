@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark } from 'lucide-react';
+import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark, MessageSquare } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
@@ -110,7 +110,7 @@ const priceTextOf = (c) => {
 // measures its offset to know exactly where one full pass ends (see gridRef below).
 // Exported so Saved Creators renders the SAME reel card as Browse Creators
 // (video preview + tier + avatar/name/price) instead of a separate banner card.
-export function ReelCard({ c, onView, onExpand, cloneStart }) {
+export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
   const vref = useRef(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -229,6 +229,17 @@ export function ReelCard({ c, onView, onExpand, cloneStart }) {
           </span>
           <small className="bc-price-txt">{priceText}</small>
         </button>
+        {onMessage && (
+          <button
+            type="button"
+            className="bc-message-btn"
+            onClick={() => onMessage(c)}
+            aria-label={`Message ${fullName}`}
+            title={`Message ${fullName}`}
+          >
+            <MessageSquare size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

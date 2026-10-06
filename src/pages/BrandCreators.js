@@ -130,7 +130,32 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
   // Only ever show a creator's OWN uploaded video — never a stock/sample fallback.
   const hasVideo = !!(media && isVideo(media));
   const videoSrc = hasVideo ? `${media}#t=0.5` : '';
-  const poster = cloudinaryVideoPoster(originalVideo);
+  const [posterFailed, setPosterFailed] = useState(false);
+  const poster = posterFailed ? '' : cloudinaryVideoPoster(originalVideo);
+
+  useEffect(() => { setPosterFailed(false); }, [originalVideo]);
+
+  useEffect(() => {
+    const video = vref.current;
+    if (!video || !hasVideo) return;
+    // Metadata alone does not reliably decode a frame. Buffer visible cards
+    // without starting playback, including uploads with no generated poster.
+    const loadThumbnail = () => {
+      video.preload = 'auto';
+      video.load();
+    };
+    if (typeof IntersectionObserver === 'undefined') {
+      loadThumbnail();
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      loadThumbnail();
+      observer.disconnect();
+    }, { rootMargin: '150px' });
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [videoSrc, hasVideo]);
   // Creator level (admin-assigned): New / Verified / L1 / L2 / Elite.
   const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
   const levelKey = LEVEL_LABEL[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new';
@@ -156,7 +181,9 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
       }
     });
     video.muted = true;
-    video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    video.play().then(() => {
+      if (!video.parentElement?.matches(':hover')) video.pause();
+    }).catch(() => setPlaying(false));
   };
 
   const hoverPause = () => {
@@ -186,10 +213,16 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
               loop
               playsInline
               preload="none"
-              onPlay={() => setPlaying(true)}
+              onLoadedMetadata={(event) => {
+                const video = event.currentTarget;
+                if (video.paused && Number.isFinite(video.duration) && video.duration > 0) {
+                  video.currentTime = Math.min(0.1, video.duration / 2);
+                }
+              }}
+              onPlaying={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
             />
-            {!playing && poster && <img src={poster} alt="" aria-hidden="true" />}
+            {!playing && poster && <img src={poster} alt="" aria-hidden="true" onError={() => setPosterFailed(true)} />}
             {!playing && <span className="bc-play"><Play size={20} fill="currentColor" /></span>}
             <button type="button" className="bc-mute" aria-label={muted ? 'Unmute' : 'Mute'} onClick={(e) => {
               e.stopPropagation();

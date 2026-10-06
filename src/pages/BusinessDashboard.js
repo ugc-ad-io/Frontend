@@ -5859,8 +5859,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
         .creator-directory-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 12px;
         }
         /* Two creator cards side by side are too cramped on a phone — one column. */
         @media (max-width: 560px) {

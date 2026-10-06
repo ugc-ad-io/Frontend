@@ -218,28 +218,32 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
         <button type="button" className="bc-ava bc-ava-btn" onClick={() => onView(c)} aria-label="View profile">
           {assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}
         </button>
-        <button type="button" className="bc-name bc-name-btn" onClick={() => onView(c)}>
-          <span className="bc-name-top">
-            <strong>{fullName}</strong>
-            {/* Identity verified (admin-approved KYC) — a real, verified person. */}
-            {c.kyc_verified && (
-              <span className="bc-verified" title="Identity verified (KYC)"><BadgeCheck size={14} /></span>
-            )}
-            <span className={`bc-cat ${catClass(category)}`}>{category}</span>
-          </span>
-          <small className="bc-price-txt">{priceText}</small>
-        </button>
-        {onMessage && (
-          <button
-            type="button"
-            className="bc-message-btn"
-            onClick={() => onMessage(c)}
-            aria-label={`Message ${fullName}`}
-            title={`Message ${fullName}`}
-          >
-            <MessageSquare size={16} />
+        <div className="bc-name">
+          <button type="button" className="bc-name-btn" onClick={() => onView(c)}>
+            <span className="bc-name-top">
+              <strong>{fullName}</strong>
+              {/* Identity verified (admin-approved KYC) — a real, verified person. */}
+              {c.kyc_verified && (
+                <span className="bc-verified" title="Identity verified (KYC)"><BadgeCheck size={14} /></span>
+              )}
+              <span className={`bc-cat ${catClass(category)}`}>{category}</span>
+            </span>
           </button>
-        )}
+          <div className="bc-price-row">
+            <small className="bc-price-txt">{priceText}</small>
+            {onMessage && (
+              <button
+                type="button"
+                className="bc-message-btn"
+                onClick={() => onMessage(c)}
+                aria-label={`Message ${fullName}`}
+                title={`Message ${fullName}`}
+              >
+                <MessageSquare size={16} />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

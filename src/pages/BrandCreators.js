@@ -31,12 +31,38 @@ const creatorListFrom = (payload) => {
   }
   return [];
 };
-const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
+const isVideo = (u) => {
+  const value = String(u || '');
+  const path = value.split(/[?#]/, 1)[0];
+  if (/\.(jpe?g|png|gif|webp|avif|svg|bmp|heic)$/i.test(path)) return false;
+  return /\.(mp4|webm|mov|m4v|avi|mkv|3gp)$/i.test(path) || /\/video\/upload\//i.test(path);
+};
 // Portfolio items may be plain URL strings or rich objects ({ urls, videoUrl, ... }).
 const pfUrl = (it) => {
   if (!it) return '';
   if (typeof it === 'string') return it;
-  return (Array.isArray(it.urls) && it.urls[0]) || it.original_url || it.url || it.video || it.videoUrl || it.link || '';
+  return it.video_url || it.videoUrl || it.link || it.original_url ||
+    (Array.isArray(it.urls) && it.urls.find(isVideo)) ||
+    it.url || (typeof it.video === 'string' && /^(https?:\/\/|\/)/i.test(it.video) ? it.video : '') || '';
+};
+const creatorVideoUrl = (creator) => {
+  if (creator?.portfolio_video && playable(creator.portfolio_video)) return creator.portfolio_video;
+  const clips = (Array.isArray(creator?.portfolio) ? creator.portfolio : [])
+    .map(pfUrl)
+    .filter((url) => url && (isVideo(url) || playable(url)));
+  if (clips.length) return clips[0];
+  const preview = creator?.portfolio_preview;
+  return preview && isVideo(preview) ? preview : '';
+};
+const browserCompatibleVideoUrl = (url) => {
+  const media = assetUrl(url);
+  if (!/^https?:\/\/res\.cloudinary\.com\//i.test(media) ||
+      !/\/video\/upload\//i.test(media) ||
+      /\/video\/upload\/f_mp4,vc_h264,/i.test(media)) return media;
+  return media.replace(
+    '/video/upload/',
+    '/video/upload/f_mp4,vc_h264,q_auto:good,h_480,c_scale,ac_none,du_2/',
+  );
 };
 // Anything we can hand to a <video>: a known clip extension, or an extensionless /
 // CDN URL (signed links often carry no suffix). Images and blob: URLs are out.
@@ -88,7 +114,7 @@ export function ReelCard({ c, onView, onExpand, cloneStart }) {
   const vref = useRef(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
-  const media = assetUrl(c.portfolio_preview);
+  const media = browserCompatibleVideoUrl(creatorVideoUrl(c));
   // Only ever show a creator's OWN uploaded video — never a stock/sample fallback.
   const hasVideo = !!(media && isVideo(media));
   const videoSrc = hasVideo ? `${media}#t=0.5` : '';
@@ -235,13 +261,13 @@ export function ReelCard({ c, onView, onExpand, cloneStart }) {
 function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const name = nameOf(c).replace('@', '');
   const category = catOf(c);
-  const media = assetUrl(c.portfolio_preview);
+  const media = browserCompatibleVideoUrl(creatorVideoUrl(c));
   // Real uploaded clips only — never stock fallbacks. Portfolio items arrive as
   // plain URLs or as rich objects, so unwrap both before rendering.
   const realClips = (Array.isArray(c.portfolio) ? c.portfolio : [])
     .map(pfUrl)
-    .map(assetUrl)
-    .filter((u) => u && playable(u));
+    .filter((u) => u && (isVideo(u) || playable(u)))
+    .map(browserCompatibleVideoUrl);
   const previewClip = (media && playable(media)) ? media : (realClips[0] || '');
   const hasVideo = !!previewClip;
   const baseVid = hasVideo ? `${previewClip}#t=0.5` : '';

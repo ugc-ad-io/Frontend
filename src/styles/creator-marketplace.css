@@ -820,9 +820,8 @@
 .bc-cats button{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink-2);font-weight:600;font-size:13.5px;
   padding:8px 18px;border-radius:30px;cursor:pointer;font-family:inherit;text-transform:capitalize}
 .bc-cats button.is-active{background:linear-gradient(135deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(7,7,78,.6)}
-/* 6 compact reel-ratio cards per row — cap the column width so the 9:16 reels
-   stay small instead of stretching tall; centre the row so it's balanced. */
-.bc-grid{display:grid;grid-template-columns:repeat(6,minmax(0,215px));gap:36px 28px;justify-content:start}
+/* Six equal columns keep every creator card visible within the available width. */
+.bc-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:36px 20px}
 @media (max-width:1200px){.bc-grid{grid-template-columns:repeat(4,minmax(0,215px))}}
 @media (max-width:1000px){.bc-grid{grid-template-columns:repeat(3,minmax(0,215px))}}
 /* Phone: two ROWS that scroll sideways instead of a tall 2-column column-scroll.

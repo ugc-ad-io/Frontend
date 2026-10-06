@@ -127,73 +127,51 @@ export function ReelCard({ c, onView, onExpand, cloneStart }) {
   const priceText = priceTextOf(c);
   const category = catOf(c);
 
-  // Autoplay all real creator reels, whether the creator is verified or not.
-  // Pause only while off-screen to avoid decoding the entire directory at once.
-  useEffect(() => {
-    const video = vref.current;
-    if (!video || !hasVideo) return undefined;
-
-    video.defaultMuted = true;
-    video.muted = true;
-    const play = () => video.play()
-      .then(() => setPlaying(true))
-      .catch(() => setPlaying(false));
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) play();
-      else {
-        video.pause();
-        setPlaying(false);
-      }
-    }, { threshold: 0.15 });
-
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [hasVideo, videoSrc]);
-
   const togglePlay = () => {
     if (!vref.current) return;
     if (vref.current.paused) { vref.current.play().then(() => setPlaying(true)).catch(() => {}); }
     else { vref.current.pause(); setPlaying(false); }
   };
 
-  const hoverUnmute = () => {
+  const hoverPlay = () => {
     if (!window.matchMedia('(hover: hover)').matches || !vref.current) return;
     const video = vref.current;
     document.querySelectorAll('.bc-reel video').forEach((other) => {
-      if (other !== video) other.muted = true;
+      if (other !== video) {
+        other.pause();
+        other.muted = true;
+      }
     });
-    video.muted = false;
-    video.volume = 1;
-    setMuted(false);
+    video.muted = true;
+    video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
   };
 
-  const hoverMute = () => {
+  const hoverPause = () => {
     if (!window.matchMedia('(hover: hover)').matches || !vref.current) return;
+    vref.current.pause();
     vref.current.muted = true;
     setMuted(true);
+    setPlaying(false);
   };
 
-  // Hover to preview — DESKTOP ONLY. On touch devices a tap fires mouseenter, which
-  // made reels auto-play while just scrolling/tapping; there, the clip plays only on
-  // an explicit tap (togglePlay). `hover: hover` is false on touchscreens.
+  // Desktop previews play only while hovered. On touch devices, play is explicit.
   return (
     <div className="bc-card" data-clone-start={cloneStart ? 'true' : undefined}>
       <div
         className="bc-reel"
         onClick={hasVideo ? togglePlay : undefined}
-        onMouseEnter={hasVideo ? hoverUnmute : undefined}
-        onMouseLeave={hasVideo ? hoverMute : undefined}
+        onMouseEnter={hasVideo ? hoverPlay : undefined}
+        onMouseLeave={hasVideo ? hoverPause : undefined}
       >
         {hasVideo ? (
           <>
             <video
               ref={vref}
               src={videoSrc}
-              autoPlay
               muted={muted}
               loop
               playsInline
-              preload="metadata"
+              preload="none"
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
             />
@@ -275,11 +253,11 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const thumbs = Array.from(new Set(clips)).slice(0, 6);
   const rating = c.avg_rating || c.rating;
   const [bigVid, setBigVid] = useState(baseVid);
+  const [bigPlaying, setBigPlaying] = useState(false);
   const bigRef = useRef(null);
   const thumbsRef = useRef(null); // Recent-work row (mobile auto-scroll)
   const [saved, setSaved] = useState(() => isCreatorSaved(c.id));
-  // The big auto-playing preview is desktop-only. On phones it's just a heavy
-  // header nobody can hover, so drop it entirely — tap a "Recent work" thumb to play.
+  // Keep the large preview idle until hover; on phones, tap a recent-work thumb.
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 560px)').matches);
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 560px)');
@@ -334,16 +312,30 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
   };
 
-  useEffect(() => { const v = bigRef.current; if (v) { v.play().catch(() => {}); } }, [bigVid]);
+  useEffect(() => {
+    const video = bigRef.current;
+    if (!video) return;
+    if (bigPlaying) video.play().catch(() => setBigPlaying(false));
+    else video.pause();
+  }, [bigVid, bigPlaying]);
+
+  const previewBigVideo = (src) => {
+    setBigVid(src);
+    setBigPlaying(true);
+  };
+  const stopBigVideo = () => {
+    setBigPlaying(false);
+    setBigVid(baseVid);
+  };
 
   return (
     <div className="bcq-overlay" onClick={onClose}>
       <div className="bcq-card" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="bcq-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
         {!isMobile && (
-          <div className="bcq-video">
+          <div className="bcq-video" onMouseEnter={() => setBigPlaying(true)} onMouseLeave={stopBigVideo}>
             {hasVideo ? (
-              <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} autoPlay muted loop playsInline />
+              <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} muted loop playsInline preload="none" />
             ) : (
               <div className="bc-novideo"><VideoOff size={30} /><span>No video yet</span></div>
             )}
@@ -380,11 +372,11 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
                       type="button"
                       key={k}
                       className={`bcq-thumb ${bigVid === src ? 'on' : ''}`}
-                      onMouseEnter={isMobile ? undefined : () => setBigVid(src)}
-                      onMouseLeave={isMobile ? undefined : () => setBigVid(baseVid)}
+                      onMouseEnter={isMobile ? undefined : () => previewBigVideo(src)}
+                      onMouseLeave={isMobile ? undefined : stopBigVideo}
                       onClick={() => onExpand({ src: tv, name })}
                     >
-                      <video src={src} muted playsInline preload="metadata" />
+                      <video src={src} muted playsInline preload="none" />
                     </button>
                   );
                 })}

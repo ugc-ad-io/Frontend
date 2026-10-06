@@ -54,6 +54,17 @@ const creatorVideoUrl = (creator) => {
   const preview = creator?.portfolio_preview;
   return preview && isVideo(preview) ? preview : '';
 };
+const cloudinaryVideoPoster = (url) => {
+  const match = String(url || '').match(
+    /^(https?:\/\/res\.cloudinary\.com\/[^/]+\/video\/upload\/)(.*)$/i,
+  );
+  if (!match) return '';
+  const rest = match[2].replace(
+    /\.(mp4|mov|webm|m4v|avi|mkv|3gp)(\?.*)?$/i,
+    '.jpg',
+  );
+  return `${match[1]}so_0/${rest}`;
+};
 const browserCompatibleVideoUrl = (url) => {
   const media = assetUrl(url);
   if (!/^https?:\/\/res\.cloudinary\.com\//i.test(media) ||
@@ -114,10 +125,12 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
   const vref = useRef(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
-  const media = browserCompatibleVideoUrl(creatorVideoUrl(c));
+  const originalVideo = creatorVideoUrl(c);
+  const media = browserCompatibleVideoUrl(originalVideo);
   // Only ever show a creator's OWN uploaded video — never a stock/sample fallback.
   const hasVideo = !!(media && isVideo(media));
   const videoSrc = hasVideo ? `${media}#t=0.5` : '';
+  const poster = cloudinaryVideoPoster(originalVideo);
   // Creator level (admin-assigned): New / Verified / L1 / L2 / Elite.
   const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
   const levelKey = LEVEL_LABEL[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new';
@@ -168,6 +181,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
             <video
               ref={vref}
               src={videoSrc}
+              poster={poster || undefined}
               muted={muted}
               loop
               playsInline
@@ -175,6 +189,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
             />
+            {!playing && poster && <img src={poster} alt="" aria-hidden="true" />}
             {!playing && <span className="bc-play"><Play size={20} fill="currentColor" /></span>}
             <button type="button" className="bc-mute" aria-label={muted ? 'Unmute' : 'Mute'} onClick={(e) => {
               e.stopPropagation();
@@ -259,12 +274,13 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   // plain URLs or as rich objects, so unwrap both before rendering.
   const realClips = (Array.isArray(c.portfolio) ? c.portfolio : [])
     .map(pfUrl)
-    .filter((u) => u && (isVideo(u) || playable(u)))
-    .map(browserCompatibleVideoUrl);
-  const previewClip = (media && playable(media)) ? media : (realClips[0] || '');
+    .filter((u) => u && (isVideo(u) || playable(u)));
+  const previewClip = (media && playable(media))
+    ? media
+    : (realClips[0] ? browserCompatibleVideoUrl(realClips[0]) : '');
   const hasVideo = !!previewClip;
   const baseVid = hasVideo ? `${previewClip}#t=0.5` : '';
-  const clips = realClips.length ? realClips : (previewClip ? [previewClip] : []);
+  const clips = realClips.length ? realClips : (previewClip ? [creatorVideoUrl(c)] : []);
   const thumbs = Array.from(new Set(clips)).slice(0, 6);
   const rating = c.avg_rating || c.rating;
   const [bigVid, setBigVid] = useState(baseVid);
@@ -342,6 +358,10 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     setBigPlaying(false);
     setBigVid(baseVid);
   };
+  const bigVideoOriginal = realClips.find(
+    (clip) => browserCompatibleVideoUrl(clip) === bigVid.split('#')[0],
+  ) || creatorVideoUrl(c) || realClips[0] || '';
+  const bigPoster = cloudinaryVideoPoster(bigVideoOriginal);
 
   return (
     <div className="bcq-overlay" onClick={onClose}>
@@ -350,7 +370,16 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
         {!isMobile && (
           <div className="bcq-video" onMouseEnter={() => setBigPlaying(true)} onMouseLeave={stopBigVideo}>
             {hasVideo ? (
-              <video key={bigVid} ref={bigRef} src={`${bigVid.split('#')[0]}#t=0.1`} muted loop playsInline preload="none" />
+              <video
+                key={bigVid}
+                ref={bigRef}
+                src={`${bigVid.split('#')[0]}#t=0.1`}
+                poster={bigPoster || undefined}
+                muted
+                loop
+                playsInline
+                preload="none"
+              />
             ) : (
               <div className="bc-novideo"><VideoOff size={30} /><span>No video yet</span></div>
             )}
@@ -381,7 +410,8 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
               <label>Recent work {!isMobile && <small>· hover to preview</small>}</label>
               <div className="bcq-thumbs" ref={thumbsRef}>
                 {thumbs.map((tv, k) => {
-                  const src = `${tv}#t=0.5`;
+                  const src = `${browserCompatibleVideoUrl(tv)}#t=0.5`;
+                  const poster = cloudinaryVideoPoster(tv);
                   return (
                     <button
                       type="button"
@@ -389,9 +419,15 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
                       className={`bcq-thumb ${bigVid === src ? 'on' : ''}`}
                       onMouseEnter={isMobile ? undefined : () => previewBigVideo(src)}
                       onMouseLeave={isMobile ? undefined : stopBigVideo}
-                      onClick={() => onExpand({ src: tv, name })}
+                      onClick={() => onExpand({ src: browserCompatibleVideoUrl(tv), name })}
                     >
-                      <video src={src} muted playsInline preload="none" />
+                      {poster ? (
+                        <img src={poster} alt="" loading="lazy" />
+                      ) : (
+                        <span className="bcq-thumb-empty">
+                          <Play size={18} fill="currentColor" />
+                        </span>
+                      )}
                     </button>
                   );
                 })}

@@ -17,6 +17,17 @@ const isVideo = (u) => {
   return /\.(mp4|webm|mov|m4v|avi|mkv|3gp)$/i.test(path) || /\/video\/upload\//i.test(value);
 };
 const videoUrlOf = (creator) => creator?.portfolio_video || (isVideo(creator?.portfolio_preview) ? creator.portfolio_preview : '');
+const cloudinaryVideoPoster = (url) => {
+  const match = String(url || '').match(
+    /^(https?:\/\/res\.cloudinary\.com\/[^/]+\/video\/upload\/)(.*)$/i,
+  );
+  if (!match) return '';
+  const rest = match[2].replace(
+    /\.(mp4|mov|webm|m4v|avi|mkv|3gp)(\?.*)?$/i,
+    '.jpg',
+  );
+  return `${match[1]}so_0/${rest}`;
+};
 const browserCompatibleVideoUrl = (url) => {
   const media = assetUrl(url);
   if (!/^https?:\/\/res\.cloudinary\.com\//i.test(media) ||
@@ -29,7 +40,10 @@ const initial = (c) => (creatorName(c).replace('@', '').charAt(0) || 'C').toUppe
 
 function CreatorCard({ c, onMessage }) {
   const ref = useRef(null);
-  const media = browserCompatibleVideoUrl(videoUrlOf(c));
+  const [playing, setPlaying] = useState(false);
+  const originalVideo = videoUrlOf(c);
+  const media = browserCompatibleVideoUrl(originalVideo);
+  const poster = cloudinaryVideoPoster(originalVideo);
   const photo = assetUrl(c.profile_photo);
   // Only the creator's own uploaded reel (the showcase is pre-filtered to those who have one).
   const videoSrc = `${media}#t=0.4`;
@@ -38,12 +52,32 @@ function CreatorCard({ c, onMessage }) {
     <div className="bo-cre-item">
       <article
         className="bo-cre-card"
-        onMouseEnter={() => { if (ref.current) ref.current.play?.().catch(() => {}); }}
-        onMouseLeave={() => { if (ref.current) { ref.current.pause?.(); ref.current.currentTime = 0; } }}
+        onMouseEnter={() => {
+          if (window.matchMedia('(hover: hover)').matches && ref.current) {
+            ref.current.play?.().catch(() => {});
+          }
+        }}
+        onMouseLeave={() => {
+          if (window.matchMedia('(hover: hover)').matches && ref.current) {
+            ref.current.pause?.();
+            ref.current.currentTime = 0;
+          }
+        }}
         onClick={() => onMessage(c)}
       >
         <div className="bo-cre-media">
-          <video ref={ref} src={videoSrc} muted loop playsInline preload="metadata" />
+          <video
+            ref={ref}
+            src={videoSrc}
+            poster={poster || undefined}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+          />
+          {!playing && poster && <img src={poster} alt="" aria-hidden="true" />}
         </div>
         <div className="bo-cre-shade" />
         {c.premium && <span className="bo-cre-premium">Premium</span>}

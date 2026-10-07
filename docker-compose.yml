@@ -18,7 +18,7 @@ services:
       args:
         # Read from your shell / .env at build time, with the current production
         # backend as the default so a bare `docker compose build` still works.
-        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-https://backend-chq9.onrender.com}
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-https://app.ugcad.io}
         REACT_APP_GOOGLE_CLIENT_ID: ${REACT_APP_GOOGLE_CLIENT_ID:-}
     image: ugcad-frontend:latest
     container_name: ugcad-frontend

@@ -205,6 +205,7 @@ function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -273,11 +274,15 @@ function AuthProvider({ children }) {
       )}
       {children}
       {/* One-time Creator & Brand Agreement gate. Only creators/brands are asked,
-          and only until they accept the current version (tracked server-side, so
-          accepting on the app clears it here too). The gate double-checks with the
-          server, so it never shows for someone who already agreed. */}
+          only once their profile is approved and they reach the dashboard (never on
+          signup or the profile form), and only until they accept the current version
+          (tracked server-side, so accepting on the app clears it here too). The gate
+          double-checks with the server, so it never shows for someone who already agreed. */}
       {user &&
         ['creator', 'business'].includes(user.role) &&
+        user.approval_status === 'approved' &&
+        pathname.startsWith('/dashboard') &&
+        !window.ReactNativeWebView && // inside the mobile app, its native gate handles it
         user.agreement_accepted !== true &&
         !localStorage.getItem('ops_admin_token') && (
           <AgreementGate onAccepted={() => setUser({ ...user, agreement_accepted: true })} />

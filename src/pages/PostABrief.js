@@ -2004,27 +2004,50 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         }
 
         .brief-segment {
+          display: inline-flex;
+          flex-shrink: 0;
+          gap: 4px;
+          padding: 4px;
+          border: 1px solid #DCDDFA;
+          border-radius: 12px;
+          background: #F4F5FF;
+        }
+
+        .form-group > .brief-segment {
           display: flex;
-          padding: 5px;
-          border-radius: 13px;
-          background: #EEF0FF;
         }
 
         .brief-segment button {
           flex: 1;
+          min-width: 72px;
           min-height: 38px;
+          padding: 0 18px;
           border: 0;
-          border-radius: 10px;
+          border-radius: 9px;
           background: transparent;
-          color: #7777B7;
-          font-weight: 400;
+          color: #5A5A9A;
+          font-size: 14px;
+          font-weight: 500;
+          white-space: nowrap;
           cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .brief-segment button:hover:not(.active) {
+          background: #E6E8FF;
+          color: #07074E;
+        }
+
+        .brief-segment button:focus-visible {
+          outline: 2px solid #07074E;
+          outline-offset: 2px;
         }
 
         .brief-segment button.active {
-          background: white;
-          color: #07074E;
-          box-shadow: 0 6px 14px rgba(7, 7, 78, 0.06);
+          background: #07074E;
+          color: white;
+          font-weight: 600;
+          box-shadow: 0 4px 10px rgba(7, 7, 78, 0.18);
         }
 
         .deliverable-card {

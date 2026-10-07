@@ -46,7 +46,8 @@ const realName = (u) =>
 const businessName = (u) => p(u, 'business_name', 'company_name', 'brand_name') || u.nickname || '—';
 const legalName = (u) => p(u, 'legal_name', 'registered_name') || '—';
 const gstin = (u) => p(u, 'gstin', 'gst', 'gst_number') || '—';
-const phone = (u) => p(u, 'phone', 'phone_number', 'mobile', 'contact_number') || '—';
+// Phone signup stores the number on the user itself, not under profile.
+const phone = (u) => p(u, 'phone', 'phone_number', 'mobile', 'contact_number') || u.phone || u.phone_number || '—';
 const handleOf = (u) => (u.username ? `@${u.username}` : (u.public_creator_id ? `#${u.public_creator_id}` : (u.nickname || '—')));
 // Primary NAME to show anywhere in admin. Show the real/legal name if we have one;
 // only fall back to the handle when there's genuinely no real name — never surface a
@@ -438,6 +439,7 @@ export default function AdminUsers({
                     panel — the table was too dense to scan. */}
                 <th>{tab === 'brands' ? 'Business' : 'Handle / Creator ID'}</th>
                 <th>Email</th>
+                <th>Mobile</th>
                 <th>Role</th>
                 <th>Balance</th>
                 <th>Actions</th>
@@ -445,15 +447,15 @@ export default function AdminUsers({
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 6 }).map((_, r) => (
+                Array.from({ length: 7 }).map((_, r) => (
                   <tr key={`sk-${r}`}>
-                    {Array.from({ length: 6 }).map((_, c) => (
+                    {Array.from({ length: 7 }).map((_, c) => (
                       <td key={c}><Skeleton height={13} width={c === 0 ? '75%' : '55%'} /></td>
                     ))}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="au-empty-row">{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</td></tr>
+                <tr><td colSpan={7} className="au-empty-row">{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</td></tr>
               ) : (
                 filtered.map((u) => {
                   const st = userState(u);
@@ -467,6 +469,7 @@ export default function AdminUsers({
                         {st === 'banned' && <span className="au-ban-badge">BANNED</span>}
                       </td>
                       <td>{u.email}</td>
+                      <td>{phone(u)}</td>
                       <td>
                         <span className="au-badge">{isBrand(u) ? 'brand' : (isAdmin(u) ? 'admin' : u.role)}</span>
                         {isCreator(u) && (
@@ -823,6 +826,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                   <Row label="Handle" value={handleOf(u)} />
                 )}
                 <Row label="Email" value={u.email} />
+                <Row label="Mobile" value={phone(u)} />
                 <Row label="Joined" value={dateShort(u.created_at || u.createdAt)} />
                 {/* Flags moved off the table into here — not relevant to staff accounts. */}
                 {!admin && <Row label="Flags / strikes" value={strikes(u).length ? `${strikes(u).length}` : '0'} />}

@@ -16,7 +16,21 @@ const BACKGROUNDS = ['Green Screen', 'Home', 'Studio', 'Outdoor', 'Office', 'Pla
 const PRODUCTS = ['Yes', 'No'];
 const LOGO_POSITIONS = ['No Preference', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right', 'Center'];
 const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
-const PLATFORM_OPTIONS = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter / X', 'LinkedIn', 'Snapchat', 'Pinterest'];
+// Same canonical list as PostABrief's Usage Rights > Platforms chips — both forms
+// feed the same `usage_platforms` backend field, so they should share one vocabulary.
+const PLATFORM_OPTIONS = [
+  "Brand's own Instagram",
+  "Brand's own TikTok / Reels",
+  "Brand's own YouTube",
+  "Brand's own website",
+  "Brand's email marketing",
+  'Paid ads on Meta platforms',
+  'Paid ads on Google / YouTube',
+  'Paid ads on other platforms',
+  'Out-of-home (billboards, print)',
+  'B2B sales materials (pitch decks, demos)',
+  'Third-party aggregators / marketplaces',
+];
 
 // Derive the campaign fields the review flow needs from the plan's video specs, so the
 // brand doesn't re-enter them. Mirrors PostABrief's proven payload shape.
@@ -88,13 +102,13 @@ function Select({ value, onChange, options, placeholder }) {
   );
 }
 
-// Dropdown checklist for picking multiple platforms. Keeps the same comma-joined
-// string the field already stores (and the submit payload already splits on ','),
-// so nothing downstream needs to change.
+// Dropdown checklist for picking multiple platforms. Stores a real array — some
+// option labels contain literal commas ("Out-of-home (billboards, print)"), so a
+// comma-joined string can't round-trip through split(',') without corrupting them.
 function PlatformSelect({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const selected = value ? value.split(',').map((p) => p.trim()).filter(Boolean) : [];
+  const selected = value || [];
   useEffect(() => {
     if (!open) return undefined;
     const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -102,8 +116,7 @@ function PlatformSelect({ value, onChange, options, placeholder }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
   const toggle = (opt) => {
-    const next = selected.includes(opt) ? selected.filter((p) => p !== opt) : [...selected, opt];
-    onChange(next.join(', '));
+    onChange(selected.includes(opt) ? selected.filter((p) => p !== opt) : [...selected, opt]);
   };
   return (
     <div className="pb-msel" ref={ref}>
@@ -150,7 +163,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     // Must-avoid
     noCompetitors: false, competitors: '', noOtherProducts: false, noProfanity: true, avoidText: '',
     // Usage rights + timeline
-    platforms: '', rightsDuration: 'Organic social', exclusivity: false, revisions: '1',
+    platforms: [], rightsDuration: 'Organic social', exclusivity: false, revisions: '1',
   });
   const setBriefField = (k) => (e) => setBrief((b) => ({ ...b, [k]: e.target.value }));
   const setBriefVal = (k, val) => setBrief((b) => ({ ...b, [k]: val }));
@@ -440,7 +453,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         no_profanity: brief.noProfanity,
         avoid_text: brief.avoidText.trim(),
         // Usage rights + timeline
-        usage_platforms: brief.platforms.split(',').map((p) => p.trim()).filter(Boolean),
+        usage_platforms: brief.platforms,
         rights_duration: brief.rightsDuration,
         exclusivity: brief.exclusivity,
         revision_limit: Number(brief.revisions) || 0,
@@ -707,7 +720,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
           <div className="pb-scroll">
             <div className="pb-brief-fields">
-              <Field label="Platforms"><PlatformSelect value={brief.platforms} onChange={(val) => setBriefVal('platforms', val)} options={PLATFORM_OPTIONS} placeholder="Instagram, TikTok, YouTube…" /></Field>
+              <Field label="Platforms where content can be posted"><PlatformSelect value={brief.platforms} onChange={(val) => setBriefVal('platforms', val)} options={PLATFORM_OPTIONS} placeholder="Select platforms" /></Field>
               <Field label="Rights duration"><Select value={brief.rightsDuration} onChange={(val) => setBriefVal('rightsDuration', val)} options={RIGHTS_OPTIONS} /></Field>
               <label className="pb-check"><input type="checkbox" checked={brief.exclusivity} onChange={() => toggleBrief('exclusivity')} /> Exclusive (creator can’t post similar for competitors)</label>
               <Field label="Revisions included"><Select value={String(brief.revisions)} onChange={(val) => setBriefVal('revisions', val)} options={REVISION_OPTIONS} /></Field>

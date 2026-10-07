@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ const BACKGROUNDS = ['Green Screen', 'Home', 'Studio', 'Outdoor', 'Office', 'Pla
 const PRODUCTS = ['Yes', 'No'];
 const LOGO_POSITIONS = ['No Preference', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right', 'Center'];
 const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
+const PLATFORM_OPTIONS = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter / X', 'LinkedIn', 'Snapchat', 'Pinterest'];
 
 // Derive the campaign fields the review flow needs from the plan's video specs, so the
 // brand doesn't re-enter them. Mirrors PostABrief's proven payload shape.
@@ -83,6 +84,47 @@ function Select({ value, onChange, options, placeholder }) {
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
       <ChevronDown size={16} />
+    </div>
+  );
+}
+
+// Dropdown checklist for picking multiple platforms. Keeps the same comma-joined
+// string the field already stores (and the submit payload already splits on ','),
+// so nothing downstream needs to change.
+function PlatformSelect({ value, onChange, options, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selected = value ? value.split(',').map((p) => p.trim()).filter(Boolean) : [];
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+  const toggle = (opt) => {
+    const next = selected.includes(opt) ? selected.filter((p) => p !== opt) : [...selected, opt];
+    onChange(next.join(', '));
+  };
+  return (
+    <div className="pb-msel" ref={ref}>
+      <button type="button" className={`pb-msel__btn${open ? ' is-open' : ''}`} onClick={() => setOpen((v) => !v)}>
+        <span className={selected.length ? '' : 'pb-msel__ph'}>{selected.length ? selected.join(', ') : (placeholder || 'Select')}</span>
+        <ChevronDown size={16} />
+      </button>
+      {open && (
+        <div className="pb-msel__menu" role="listbox">
+          {options.map((o) => {
+            const on = selected.includes(o);
+            return (
+              <button key={o} type="button" role="option" aria-selected={on}
+                className={`pb-msel__opt${on ? ' is-on' : ''}`} onClick={() => toggle(o)}>
+                <span className="pb-msel__box">{on && <Check size={12} />}</span>
+                {o}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -665,7 +707,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
           <div className="pb-scroll">
             <div className="pb-brief-fields">
-              <Field label="Platforms"><input type="text" value={brief.platforms} onChange={setBriefField('platforms')} placeholder="Instagram, TikTok, YouTube…" /></Field>
+              <Field label="Platforms"><PlatformSelect value={brief.platforms} onChange={(val) => setBriefVal('platforms', val)} options={PLATFORM_OPTIONS} placeholder="Instagram, TikTok, YouTube…" /></Field>
               <Field label="Rights duration"><Select value={brief.rightsDuration} onChange={(val) => setBriefVal('rightsDuration', val)} options={RIGHTS_OPTIONS} /></Field>
               <label className="pb-check"><input type="checkbox" checked={brief.exclusivity} onChange={() => toggleBrief('exclusivity')} /> Exclusive (creator can’t post similar for competitors)</label>
               <Field label="Revisions included"><Select value={String(brief.revisions)} onChange={(val) => setBriefVal('revisions', val)} options={REVISION_OPTIONS} /></Field>
@@ -880,6 +922,20 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-select { position: relative; }
         .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 400; }
         .pb-select svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
+        .pb-msel { position: relative; }
+        .pb-msel__btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; text-align: left; }
+        .pb-msel__btn.is-open { border-color: #4C5BF3; box-shadow: 0 0 0 3px rgba(76,91,243,0.15); }
+        .pb-msel__btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pb-msel__ph { color: #94a3b8; }
+        .pb-msel__menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30; max-height: 220px; overflow-y: auto;
+          background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 12px 28px rgba(15,23,42,0.12); padding: 6px; }
+        .pb-msel__opt { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer;
+          border: none; background: transparent; font: inherit; color: #0f172a; text-align: left; }
+        .pb-msel__opt:hover { background: #f1f5f9; }
+        .pb-msel__opt.is-on { background: rgba(76,91,243,0.10); }
+        .pb-msel__box { flex-shrink: 0; width: 16px; height: 16px; border-radius: 4px; display: grid; place-items: center; border: 1px solid #cbd5e1; color: #fff; }
+        .pb-msel__opt.is-on .pb-msel__box { background: #4C5BF3; border-color: #4C5BF3; }
         .pb-guidelines-toggle { margin-top: 18px; background: none; border: 0; color: #07074e; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 0; }
         .pb-guidelines-toggle.is-added { color: #15a35b; }
         .pb-guidelines { margin-top: 16px; display: grid; gap: 16px; }

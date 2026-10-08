@@ -196,7 +196,7 @@ function VideoTile({ url, onRemove, onEdit }) {
                 : <img src={src} alt="" className="cpm-clip-vid" />}
               <div className="cpm-clip-wm" aria-hidden="true">
                 <img src="/watermark.jpeg" alt="" />
-                <span>UGC.io</span>
+                <span>UGCAD.io</span>
               </div>
             </div>
           </div>
@@ -226,7 +226,7 @@ function RevClip({ src: rawSrc }) {
               <video src={src} controls autoPlay playsInline className="cpm-clip-vid" />
               <div className="cpm-clip-wm" aria-hidden="true">
                 <img src="/watermark.jpeg" alt="" />
-                <span>UGC.io</span>
+                <span>UGCAD.io</span>
               </div>
             </div>
           </div>
@@ -1041,7 +1041,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                         <input ref={workRef} type="file" accept="video/*" hidden onChange={onPickWork} />
                         <div className="cpm-aw-fields">
                           <div className="cpm-aw-row">
-                            <input placeholder="Category (e.g. Beauty)" value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))} />
+                            <select value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))}>
+                              <option value="">Category</option>
+                              {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
+                            </select>
                             <input placeholder="Price / video (₹)" inputMode="numeric" value={addForm.price} onChange={(e) => setAddForm((f) => ({ ...f, price: e.target.value }))} />
                           </div>
                           <input placeholder="Delivered in (e.g. 2 days)" value={addForm.delivery} onChange={(e) => setAddForm((f) => ({ ...f, delivery: e.target.value }))} />
@@ -1405,8 +1408,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-aw-fields{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px}
         .cpm-aw-row{display:flex;gap:10px}
         .cpm-aw-row input{flex:1;min-width:0}
-        .cpm-aw-fields input,.cpm-aw-fields textarea{border:1px solid #e6e8f3;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;color:#15163a;background:#fff;outline:none}
-        .cpm-aw-fields input:focus,.cpm-aw-fields textarea:focus{border-color:#5b6bff}
+        .cpm-aw-fields input,.cpm-aw-fields textarea,.cpm-aw-fields select{border:1px solid #e6e8f3;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;color:#15163a;background:#fff;outline:none}
+        .cpm-aw-fields input:focus,.cpm-aw-fields textarea:focus,.cpm-aw-fields select:focus{border-color:#5b6bff}
         .cpm-aw-actions{display:flex;gap:10px;margin-top:2px}
         .cpm-editform{display:flex;flex-direction:column;gap:14px}
         .cpm-ef-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}

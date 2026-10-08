@@ -21,13 +21,16 @@ const PLATFORMS = [
 const LINK_RE = {
   youtube:   /^(https?:\/\/)?(www\.)?(youtube\.com\/(@[\w.-]+|channel\/|c\/|user\/)[\w./-]*|youtu\.be\/[\w-]+)\/?(?:[?#][^\s]*)?$/i,
   linkedin:  /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|company|pub|school)\/[\w%.-]+\/?(?:[?#][^\s]*)?$/i,
-  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?(?:[?#][^\s]*)?$|^@?[a-z0-9._]{1,30}$/i,
+  // Full profile link only, no bare @handle — a handle alone can't actually be
+  // opened to verify the account is real, which is the whole point of asking.
+  instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-z0-9._]+\/?(?:[?#][^\s]*)?$/i,
   tiktok:    /^(https?:\/\/)?(www\.)?tiktok\.com\/@?[\w.-]+\/?(?:[?#][^\s]*)?$|^@?[a-z0-9._]{1,30}$/i,
 };
 const linkError = (key, value) => {
   const v = String(value || '').trim();
   if (!v) return '';
-  return LINK_RE[key].test(v) ? '' : `Enter a valid ${key} link or @handle`;
+  if (LINK_RE[key].test(v)) return '';
+  return key === 'instagram' ? 'Enter your full Instagram profile link (e.g. https://instagram.com/yourhandle)' : `Enter a valid ${key} link or @handle`;
 };
 
 // Dropdown-with-checkboxes used for both content pickers.
@@ -403,7 +406,7 @@ export default function CreatorProfileSetup() {
                           <input
                             ref={(el) => { linkRefs.current[key] = el; }}
                             className="ps-link__input"
-                            placeholder={`${label} profile`}
+                            placeholder={key === 'instagram' ? 'https://instagram.com/yourhandle' : `${label} profile`}
                             value={data.links[key]}
                             onChange={(e) => setLink(key, e.target.value)}
                           />
@@ -431,7 +434,7 @@ export default function CreatorProfileSetup() {
                 <button type="button" className="ps-addlink" onClick={() => setExtraLinks((ls) => [...ls, { id: Date.now(), url: '' }])}>
                   <Plus size={15} /> Add another social link
                 </button>
-                {err('links') && <span className="ps-error">Add your Instagram profile link or @handle</span>}
+                {err('links') && <span className="ps-error">Add your full Instagram profile link</span>}
               </div>
 
               <div className="ps-field">

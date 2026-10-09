@@ -1201,6 +1201,14 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         {/* Mobile-only persistent bottom CTA — Send Message is always reachable while
             the profile is open. Rendered separately from the header actions so it
             can't disturb their layout. */}
+        {/* Mobile-only Save/Cancel pinned to the bottom while editing, so a long form
+            doesn't need a scroll back to the header to save. */}
+        {editable && editing && (
+          <div className="cpm-editbar">
+            <button type="button" className="cpm-ghost" onClick={() => setEditing(false)}>Cancel</button>
+            <button type="button" className="cpm-msg" onClick={saveDetails} disabled={saving}><Check size={16} /> {saving ? 'Saving…' : 'Save'}</button>
+          </div>
+        )}
         {!editable && !onEdit && onMessage && (
           <div className="cpm-mobilebar">
             <button type="button" className="cpm-msg" onClick={onMessage} style={{ width: '100%' }}>
@@ -1260,6 +1268,18 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-complete-track{height:6px;border-radius:99px;background:#e2e0f5;overflow:hidden}
         .cpm-complete-fill{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#5b6bff,#07074e);transition:width .3s ease}
         @media (max-width:520px){.cpm-complete{margin:12px 16px 0;width:calc(100% - 32px);max-width:calc(100% - 32px)}}
+        .cpm-editbar{display:none}
+        @media (max-width:640px){
+          /* The page wrapper (.cmk-wrap/.cmk-page) adds 16px side gutters and a top pad
+             around the profile; on phones the profile should fill the screen instead. */
+          .cmk-wrap.cmk-page:has(> .cpm-page){padding:0 0 96px}
+          .cpm-editbar{display:flex;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:1500;
+            padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #eef0f6;box-shadow:0 -6px 20px rgba(15,22,58,.12)}
+          .cpm-editbar .cpm-msg{flex:1}
+          .cpm-editbar .cpm-ghost{flex:0 0 auto}
+          /* Same actions already sit in the bottom bar; keep the header uncluttered. */
+          .cpm-phead.is-editable .cpm-actions .cpm-ghost{display:none}
+        }
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}

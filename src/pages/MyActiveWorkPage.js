@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw, Inbox, IndianRupee, ListFilter, ChevronDown } from 'lucide-react';
+import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw, Inbox, IndianRupee, ChevronDown } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -94,8 +94,6 @@ export default function MyActiveWorkPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('active');
   const [expandedProgress, setExpandedProgress] = useState(() => new Set());
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const mobileFilterRef = useRef(null);
   // Land on the Requests tab once if there's a booking waiting on the creator — the
   // whole point of the "New booking request" notification is to not miss it. Only
   // fires on the first load that has requests; manual tab switches stick after that.
@@ -127,14 +125,6 @@ export default function MyActiveWorkPage() {
     }
   }, [campaigns, loading]);
 
-  useEffect(() => {
-    const closeMobileFilter = (event) => {
-      if (!mobileFilterRef.current?.contains(event.target)) setMobileFilterOpen(false);
-    };
-    document.addEventListener('pointerdown', closeMobileFilter);
-    return () => document.removeEventListener('pointerdown', closeMobileFilter);
-  }, []);
-
   const counts = useMemo(() => {
     const o = {};
     TABS.forEach((t) => { o[t.key] = campaigns.filter(t.match).length; });
@@ -156,26 +146,10 @@ export default function MyActiveWorkPage() {
       <div className="cmk-tabs-row">
         <div className="cmk-tabs">
           {TABS.map((t) => (
-            <button key={t.key} type="button" className={`${tab === t.key ? 'is-active' : ''} ${['requests', 'completed', 'cancelled'].includes(t.key) ? 'cmk-aw-mobile-filtered' : ''}`} onClick={() => setTab(t.key)}>
+            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
               {t.label} <em>({counts[t.key] || 0})</em>
             </button>
           ))}
-        </div>
-        <div className="cmk-aw-mobile-filter" ref={mobileFilterRef}>
-          <button type="button" className={`cmk-aw-filter-btn ${['requests', 'completed', 'cancelled'].includes(tab) ? 'is-active' : ''}`} onClick={() => setMobileFilterOpen((open) => !open)} aria-haspopup="menu" aria-expanded={mobileFilterOpen}>
-            <ListFilter size={16} />
-            {['requests', 'completed', 'cancelled'].includes(tab) ? TABS.find((item) => item.key === tab).label : 'Filter'}
-            <ChevronDown size={15} />
-          </button>
-          {mobileFilterOpen && (
-            <div className="cmk-aw-filter-menu" role="menu">
-              {TABS.filter((item) => ['requests', 'completed', 'cancelled'].includes(item.key)).map((item) => (
-                <button key={item.key} type="button" role="menuitem" className={tab === item.key ? 'is-active' : ''} onClick={() => { setTab(item.key); setMobileFilterOpen(false); }}>
-                  <span>{item.label}</span><em>({counts[item.key] || 0})</em>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 

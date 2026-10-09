@@ -19,7 +19,7 @@ const asList = (...sources) => {
 };
 import { apiErrorMessage } from '../utils/apiError';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
-import { getProfilePct } from '../utils/creatorProfileCompletion';
+import { getProfilePct, getProfileMissing } from '../utils/creatorProfileCompletion';
 import { Skeleton } from './Skeleton';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
@@ -892,6 +892,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
               <span className="cpm-complete-cta">Finish it</span>
             </span>
             <span className="cpm-complete-track"><span className="cpm-complete-fill" style={{ width: `${getProfilePct(data)}%` }} /></span>
+            <span className="cpm-complete-missing">Still needed: {getProfileMissing(data).join(' · ')}</span>
           </button>
         )}
 
@@ -1250,14 +1251,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         @media (max-width:520px){.cpm-highlights{grid-template-columns:auto auto auto;justify-content:space-between;gap:10px}
           .cpm-hl label{font-size:10px}.cpm-hl strong{font-size:14px}}
 
-        .cpm-complete{display:flex;flex-direction:column;gap:7px;width:100%;margin:14px 28px 0;padding:12px 16px;
+        .cpm-complete{box-sizing:border-box;display:flex;flex-direction:column;gap:7px;width:calc(100% - 56px);max-width:calc(100% - 56px);margin:14px 28px 0;padding:12px 16px;
           border-radius:14px;background:#fbfbff;border:1px solid #ebedfb;cursor:pointer;font:inherit;text-align:left;transition:.15s}
         .cpm-complete:hover{background:#f4f5ff;border-color:#cdd4ff}
         .cpm-complete-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:#07074e}
-        .cpm-complete-cta{color:#5b6bff}
+        .cpm-complete-cta{color:#5b6bff;white-space:nowrap}
+        .cpm-complete-missing{font-size:11.5px;font-weight:500;color:#6b6f8e;line-height:1.4}
         .cpm-complete-track{height:6px;border-radius:99px;background:#e2e0f5;overflow:hidden}
         .cpm-complete-fill{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#5b6bff,#07074e);transition:width .3s ease}
-        @media (max-width:520px){.cpm-complete{margin:12px 16px 0}}
+        @media (max-width:520px){.cpm-complete{margin:12px 16px 0;width:calc(100% - 32px);max-width:calc(100% - 32px)}}
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
         .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}

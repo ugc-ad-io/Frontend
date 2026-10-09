@@ -8,7 +8,7 @@ export function getProfileChecklist(user) {
     // `mandatory` items are what the % below is based on — things a brand actually
     // needs to decide whether to hire this creator. The rest are shown as helpful
     // suggestions but never block reaching 100%.
-    { key: 'avatar', label: 'Add a profile picture', to: '/settings', mandatory: true, done: Boolean(user?.profile_picture || user?.avatar) },
+    { key: 'avatar', label: 'Add a profile picture', to: '/settings', mandatory: true, done: Boolean(user?.profile_picture || user?.profile_photo || user?.avatar || p.profile_picture || p.profile_photo) },
     { key: 'banner', label: 'Add a banner image', to: '/settings', mandatory: false, done: Boolean(user?.banner || user?.banner_image) },
     { key: 'availability', label: 'Review and adjust availability', to: '/settings', mandatory: false, done: Boolean(user?.availability_calendar || user?.weekly_availability) },
     { key: 'bio', label: 'Add a short bio', to: '/settings', mandatory: true, done: Boolean((p.bio || '').trim()) },
@@ -20,11 +20,16 @@ export function getProfileChecklist(user) {
     { key: 'languages', label: 'Add languages you create in', to: '/settings', mandatory: true, done: Array.isArray(p.languages) && p.languages.length > 0 },
     { key: 'equipment', label: 'Add your recording setup', to: '/settings', mandatory: false, done: Array.isArray(p.coreSetup) && p.coreSetup.length > 0 },
     { key: 'delivery', label: 'Set your typical delivery time', to: '/settings', mandatory: false, done: Boolean(p.deliveryDays || p.delivery_days) },
-    { key: 'intro', label: 'Record a 30-60 second intro video', to: '/settings', mandatory: true, done: Boolean(user?.intro_video || p.intro_video) },
+    { key: 'intro', label: 'Record a 30-60 second intro video', to: '/settings', mandatory: true, done: Boolean(user?.intro_video || p.intro_video || (Array.isArray(user?.portfolio) && user.portfolio.length > 0)) },  // onboarding saves the first portfolio video as the intro
   ];
 }
 
 export function getProfilePct(user) {
   const list = getProfileChecklist(user).filter((item) => item.mandatory);
   return Math.round((list.filter((item) => item.done).length / list.length) * 100);
+}
+
+// Labels of what is still missing from the % (shown on the profile card).
+export function getProfileMissing(user) {
+  return getProfileChecklist(user).filter((item) => item.mandatory && !item.done).map((item) => item.label);
 }

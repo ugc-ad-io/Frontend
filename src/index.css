@@ -208,6 +208,18 @@ main,
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
+
+/* ── Creator & brand app (.cmk-app): ONE gutter on phones, not two ─────────────────
+   On phones #root (14px) and main (14px, from the rule above) stacked into a 28px
+   inset on every page, so nothing reached the screen edge. The .cmk-app shell already
+   gets its content gutter from main, so #root adds nothing but the extra inset — drop
+   it. The top bar then spans the full width and content keeps a single gutter. */
+@media (max-width: 768px) {
+    #root:has(.cmk-app) {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+}
 .lp-root {
     padding-left: 0 !important;
     padding-right: 0 !important;

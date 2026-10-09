@@ -378,7 +378,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     setForm({
       fullName: pr.fullName || '', age: pr.age || '', gender: pr.gender || '',
       bodyType: pr.bodyType || '', skinTone: pr.skinTone || '',
-      bio: pr.bio || '',
       // Same fields signup writes, with its fallbacks for older single-value profiles.
       // Styles keep any custom text the creator typed at signup (not in the list).
       contentStyles: asList(pr.content_styles, pr.content_style, STYLE_VALUES.has(pr.category) ? pr.category : ''),
@@ -387,7 +386,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       pincode: pr.pincode || '', phone: pr.phone || '', address: pr.address || '',
       languages: Array.isArray(pr.languages) ? pr.languages : [],
       skills: Array.isArray(pr.skills) ? pr.skills : (Array.isArray(data.tags) ? data.tags : []),
-      youtube: sl.youtube || '', instagram: sl.instagram || '', linkedin: sl.linkedin || '', tiktok: sl.tiktok || '',
+      youtube: sl.youtube || '', instagram: sl.instagram || '', linkedin: sl.linkedin || '',
       coreSetup: Array.isArray(pr.coreSetup) ? pr.coreSetup : [], appearIn: Array.isArray(pr.appearIn) ? pr.appearIn : [], bring: pr.bring || '',
       weekly: pr.weekly || (pr.availability_calendar && pr.availability_calendar.weekly) || '',
       flexible: !!pr.flexible, topics: Array.isArray(pr.topics) ? pr.topics : [],
@@ -522,12 +521,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       const pr = data.profile || {};
       const skills = Array.isArray(form.skills) ? form.skills : [];
       const social_links = { ...(pr.social_links || {}) };
-      ['youtube', 'instagram', 'linkedin', 'tiktok'].forEach((k) => { if (form[k]) social_links[k] = form[k]; else delete social_links[k]; });
+      ['youtube', 'instagram', 'linkedin'].forEach((k) => { if (form[k]) social_links[k] = form[k]; else delete social_links[k]; });
       const payload = {
         ...pr,
         fullName: form.fullName, age: form.age, gender: form.gender,
         bodyType: form.bodyType, skinTone: form.skinTone,
-        bio: form.bio,
         ...(() => {
           const styles = Array.isArray(form.contentStyles) ? form.contentStyles : [];
           const niches = Array.isArray(form.contentCategories) ? form.contentCategories : [];
@@ -699,7 +697,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // Details tab never shows a wall of blank cards.
   const detailSections = [
     {
-      title: 'Basic Information', Icon: User, bio: p.bio,
+      title: 'Basic Information', Icon: User,
       rows: [
         canSeePrivate ? Row('Full Name', p.fullName) : null,
         Row('Age', p.age), Row('Gender', p.gender),
@@ -738,7 +736,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         Row('Budget Range', data?.budget_range || p.budget_range),
       ].filter(Boolean),
     },
-  ].filter((s) => s.rows.length > 0 || s.bio);
+  ].filter((s) => s.rows.length > 0);
 
   // Scroll-spy: highlight the tab for whichever stacked section the reader is on.
   useEffect(() => {
@@ -975,7 +973,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       options={CONTENT_CATEGORIES.map((o) => o.label)}
                       onToggle={(l) => toggle('contentStyles')(CONTENT_CATEGORIES.find((o) => o.label === l).value)}
                     />
-                    <label className="cpm-ef-bio">Bio<textarea rows={3} {...fld('bio')} /></label>
 
                     <h5 className="cpm-ef-sec">Location &amp; Contact</h5>
                     <div className="cpm-ef-grid">
@@ -994,7 +991,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                       <label>YouTube<input {...fld('youtube')} /></label>
                       <label>Instagram<input {...fld('instagram')} /></label>
                       <label>LinkedIn<input {...fld('linkedin')} /></label>
-                      <label>TikTok<input {...fld('tiktok')} /></label>
                     </div>
 
                     <h5 className="cpm-ef-sec">Recording Setup</h5>
@@ -1117,7 +1113,6 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                     {detailSections.map((s) => (
                       <section key={s.title}>
                         <div className="cpm-sec-h"><span className="cpm-sec-ic"><s.Icon size={15} /></span><h4>{s.title}</h4></div>
-                        {s.bio && <p className="cpm-bio">{s.bio}</p>}
                         {s.rows.length > 0 && <div className="cpm-grid">{s.rows}</div>}
                       </section>
                     ))}

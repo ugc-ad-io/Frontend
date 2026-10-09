@@ -11,7 +11,6 @@ export function getProfileChecklist(user) {
     { key: 'avatar', label: 'Add a profile picture', to: '/settings', mandatory: true, done: Boolean(user?.profile_picture || user?.profile_photo || user?.avatar || p.profile_picture || p.profile_photo) },
     { key: 'banner', label: 'Add a banner image', to: '/settings', mandatory: false, done: Boolean(user?.banner || user?.banner_image) },
     { key: 'availability', label: 'Review and adjust availability', to: '/settings', mandatory: false, done: Boolean(user?.availability_calendar || user?.weekly_availability) },
-    { key: 'bio', label: 'Add a short bio', to: '/settings', mandatory: true, done: Boolean((p.bio || '').trim()) },
     { key: 'identity', label: 'Add your age, gender, body type & skin tone', to: '/settings', mandatory: true,
       done: Boolean(p.age && p.gender && p.bodyType && p.skinTone) },
     { key: 'location', label: 'Add your city, state & pincode', to: '/settings', mandatory: true,

@@ -1273,6 +1273,11 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           /* The page wrapper (.cmk-wrap/.cmk-page) adds 16px side gutters and a top pad
              around the profile; on phones the profile should fill the screen instead. */
           .cmk-wrap.cmk-page:has(> .cpm-page){padding:0 0 96px}
+          /* index.css puts a !important --site-h-pad gutter on BOTH #root and main on phones
+             (14px + 14px), which is what the rule above can't beat. Zero both, only while
+             this page is open. */
+          #root:has(.cpm-page){padding-left:0!important;padding-right:0!important}
+          main:has(> .cpm-page){padding-left:0!important;padding-right:0!important}
           .cpm-editbar{display:flex;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:1500;
             padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #eef0f6;box-shadow:0 -6px 20px rgba(15,22,58,.12)}
           .cpm-editbar .cpm-msg{flex:1}

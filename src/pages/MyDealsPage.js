@@ -4,6 +4,8 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { uploadMedia, MAX_UPLOAD_MB } from '../utils/upload';
+import UploadProgress from '../components/UploadProgress';
 import { getDealMessages } from '../utils/dealMessages';
 import { creatorName as resolveCreatorName } from '../utils/displayName';
 import BookingCard from '../components/BookingCard';
@@ -97,7 +99,7 @@ function DealCard({ children, className = '' }) {
   return <section className={`deal-card ${className}`}>{children}</section>;
 }
 
-function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled, previewUrl, previewType, watermark }) {
+function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled, previewUrl, previewType, watermark, progress = null }) {
   const showPreview = uploaded && previewUrl;
   return (
     <button type="button" className={`deal-upload ${uploaded ? 'is-uploaded' : ''} ${showPreview ? 'has-preview' : ''}`} onClick={onClick} disabled={disabled}>
@@ -110,12 +112,14 @@ function UploadZone({ icon: Icon, label, accept, uploaded, onClick, disabled, pr
             <img src={getAssetUrl(previewUrl)} alt="Uploaded preview" />
           )}
           {watermark && <span className="deal-upload-watermark" aria-hidden="true" />}
+          <UploadProgress percent={progress} />
         </div>
       ) : (
         <>
           <span><Icon size={22} strokeWidth={1.6} /></span>
           <strong>{uploaded ? 'File uploaded successfully' : label}</strong>
           <small>{uploaded ? 'Ready for submission' : accept}</small>
+          <UploadProgress percent={progress} />
         </>
       )}
     </button>
@@ -439,6 +443,7 @@ export default function MyDealsPage() {
   const [rawFootageUrl, setRawFootageUrl] = useState(null);
   const [unboxingVideoUrl, setUnboxingVideoUrl] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(null);
+  const [uploadPercent, setUploadPercent] = useState(null);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mobileSection, setMobileSection] = useState('workspace');
@@ -565,23 +570,19 @@ export default function MyDealsPage() {
 
   const handleFileUpload = async (file, setUrlFn, fileType) => {
     if (!file) return;
-    // Guard before the request so an oversized clip fails instantly instead of
-    // after a full upload — labels advertise 400MB and the backend rejects past it.
-    if (file.type?.startsWith('video/') && file.size > 400 * 1024 * 1024) {
-      toast.error('Video is too large. Maximum 400MB.');
-      return;
-    }
     setUploadingFile(fileType);
+    setUploadPercent(0);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setUrlFn(res.data.file_url);
+      // uploadMedia refuses an oversized video up front with a readable message
+      // and reports progress; a dropped connection no longer reads "Network Error".
+      const data = await uploadMedia(file, API, { onProgress: setUploadPercent });
+      setUrlFn(data.file_url);
       toast.success('File uploaded');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Upload failed'));
     } finally {
       setUploadingFile(null);
+      setUploadPercent(null);
     }
   };
 
@@ -1175,10 +1176,10 @@ export default function MyDealsPage() {
             {leftTab === 'deliverables' && (
               <div className="cmk-dr-legacy">
                 {shipmentRequired && (
-                  <ShippingBlock deal={deal} unboxingVideoUrl={unboxingVideoUrl} onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')} onSubmitReceipt={handleSubmitReceipt} uploading={uploadingFile === 'unboxing'} onActionCard={handleActionCardRequest} />
+                  <ShippingBlock deal={deal} unboxingVideoUrl={unboxingVideoUrl} onUpload={(file) => handleFileUpload(file, setUnboxingVideoUrl, 'unboxing')} onSubmitReceipt={handleSubmitReceipt} uploading={uploadingFile === 'unboxing'} uploadPercent={uploadingFile === 'unboxing' ? uploadPercent : null} onActionCard={handleActionCardRequest} />
                 )}
                 {isDamageState(deal) && <DamageReportCard deal={deal} onActionCard={handleActionCardRequest} />}
-                <ContentSubmission deal={deal} finalVideoUrl={finalVideoUrl} captionUrl={captionUrl} thumbnailUrl={thumbnailUrl} rawFootageUrl={rawFootageUrl} onUpload={handleFileUpload} setFinalVideoUrl={setFinalVideoUrl} setCaptionUrl={setCaptionUrl} setThumbnailUrl={setThumbnailUrl} setRawFootageUrl={setRawFootageUrl} uploadingFile={uploadingFile} onSubmit={handleSubmitContent} submitting={submitting} />
+                <ContentSubmission deal={deal} finalVideoUrl={finalVideoUrl} captionUrl={captionUrl} thumbnailUrl={thumbnailUrl} rawFootageUrl={rawFootageUrl} onUpload={handleFileUpload} setFinalVideoUrl={setFinalVideoUrl} setCaptionUrl={setCaptionUrl} setThumbnailUrl={setThumbnailUrl} setRawFootageUrl={setRawFootageUrl} uploadingFile={uploadingFile} uploadPercent={uploadPercent} onSubmit={handleSubmitContent} submitting={submitting} />
                 <RevisionTracker deal={deal} submitting={revisionSubmitting} onRevisionResponse={handleRevisionResponse} onDiscussWithBrand={handleDiscussRevision} onEscalate={() => handleActionCardRequest('Escalate to Admin')} />
               </div>
             )}
@@ -1385,7 +1386,7 @@ function DealNavigation({ groups, selectedDeal, onSelect }) {
   );
 }
 
-function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uploading, onActionCard }) {
+function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uploading, uploadPercent = null, onActionCard }) {
   const shipment = deal?.shipment || {};
   const receipt = deal?.receipt || {};
   const damaged = isDamageState(deal);
@@ -1447,7 +1448,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
           <label>Upload Unboxing Video</label>
           <p className="deal-helper-text">Upload a short unboxing video showing package condition, opening, and product received.</p>
           <input type="file" id="unboxing-upload" accept="video/mp4,video/quicktime" onChange={(event) => onUpload(event.target.files?.[0])} />
-          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept="MP4/MOV - Max 400MB - Max 6 minutes" uploaded={hasVideo} previewUrl={unboxingVideoUrl || receipt.unboxing_video_url} previewType="video" onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} />
+          <UploadZone icon={Paperclip} label="Upload Unboxing Video" accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB - Max 6 minutes`} uploaded={hasVideo} previewUrl={unboxingVideoUrl || receipt.unboxing_video_url} previewType="video" onClick={() => document.getElementById('unboxing-upload').click()} disabled={uploading} progress={uploading ? uploadPercent : null} />
         </>
       )}
     </DealCard>
@@ -1466,6 +1467,7 @@ function ContentSubmission({
   setThumbnailUrl,
   setRawFootageUrl,
   uploadingFile,
+  uploadPercent = null,
   onSubmit,
   submitting
 }) {
@@ -1516,7 +1518,7 @@ function ContentSubmission({
             : `Step 2 of 2: the brand approved your raw video — upload the EDITED video${stageDue ? ` by ${formatDateTime(stageDue)}` : ''}.`}
         </div>
       )}
-      <UploadZone icon={Play} label={stage === 'raw' ? 'Raw Video Upload' : stage === 'edited' ? 'Edited Video Upload' : 'Final Video Upload'} accept="MP4/MOV - Max 400MB" uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} />
+      <UploadZone icon={Play} label={stage === 'raw' ? 'Raw Video Upload' : stage === 'edited' ? 'Edited Video Upload' : 'Final Video Upload'} accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB`} uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} progress={uploadingFile === 'video' ? uploadPercent : null} />
       <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
       <div className="deal-asset-grid">
         {needsCaption && (
@@ -1536,7 +1538,7 @@ function ContentSubmission({
         {needsRaw && (
           <div>
             <label>Raw Footage Upload</label>
-            <UploadZone icon={Paperclip} label="Raw Footage" accept="MP4/MOV - Max 400MB" uploaded={Boolean(rawFootageUrl)} previewUrl={rawFootageUrl} previewType="video" onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} />
+            <UploadZone icon={Paperclip} label="Raw Footage" accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB`} uploaded={Boolean(rawFootageUrl)} previewUrl={rawFootageUrl} previewType="video" onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} progress={uploadingFile === 'raw' ? uploadPercent : null} />
             <input type="file" id="raw-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setRawFootageUrl, 'raw')} hidden />
           </div>
         )}

@@ -677,7 +677,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
   const uploadRefVideo = async (index, file) => {
     if (!file) return;
-    if (file.size > 200 * 1024 * 1024) { toast.error(`${file.name} is too large. Max 200MB.`); return; }
+    if (file.size > 100 * 1024 * 1024) { toast.error(`${file.name} is too large (${Math.round(file.size / 1048576)} MB). Max 100MB.`); return; }
     setUploadingKey(`ref-${index}`);
     try {
       const fd = new FormData();

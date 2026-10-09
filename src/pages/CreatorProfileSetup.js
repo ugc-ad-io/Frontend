@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { uploadMedia, tooLargeMessage, MAX_UPLOAD_MB } from '../utils/upload';
+import UploadProgress from '../components/UploadProgress';
 import { useAuth } from '../App';
 import { ImagePlus, ChevronDown, Check, ArrowRight, Plus, PartyPopper, Info, Instagram, CloudUpload, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -77,6 +79,7 @@ export default function CreatorProfileSetup() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(null);
   const photoRef = useRef(null);
   const bannerRef = useRef(null);
   const videoRef = useRef(null);
@@ -186,14 +189,13 @@ export default function CreatorProfileSetup() {
   const uploadVideoFile = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) { toast.error('Please drop a video file.'); return; }
-    if (file.size > 100 * 1024 * 1024) { toast.error('Video is too large. Maximum 100MB.'); return; }
+    if (file.size > MAX_UPLOAD_MB * 1048576) { toast.error(tooLargeMessage(file)); return; }
     setVideoUploading(true);
+    setVideoProgress(0);
     setData((d) => ({ ...d, videoName: file.name, videoPreview: URL.createObjectURL(file) }));
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      let url = res.data?.file_url || res.data?.url;
+      const res = await uploadMedia(file, API, { onProgress: setVideoProgress });
+      let url = res?.file_url || res?.url;
       if (url && url.startsWith('/')) url = `${BACKEND_URL}${url}`;
       if (url) setData((d) => ({ ...d, videoUrl: url }));
       else { toast.error('Video upload failed. Please try again.'); setData((d) => ({ ...d, videoName: '', videoPreview: '' })); }
@@ -202,6 +204,7 @@ export default function CreatorProfileSetup() {
       setData((d) => ({ ...d, videoName: '', videoPreview: '' }));
     } finally {
       setVideoUploading(false);
+      setVideoProgress(null);
     }
   };
   const onPickVideo = (e) => { uploadVideoFile(e.target.files?.[0]); e.target.value = ''; };
@@ -447,6 +450,7 @@ export default function CreatorProfileSetup() {
                       <button type="button" className="ps-pf-change" onClick={() => videoRef.current?.click()}>
                         {videoUploading ? 'Uploading…' : 'Change video'}
                       </button>
+                      <UploadProgress percent={videoUploading ? videoProgress : null} />
                     </div>
                   ) : (
                     <div
@@ -459,7 +463,8 @@ export default function CreatorProfileSetup() {
                       <CloudUpload size={26} className="ps-pf-cloud" />
                       <strong>{videoUploading ? 'Uploading…' : 'Drag & drop video'}</strong>
                       <span className="ps-pf-upload-cta"><Upload size={13} /> Upload</span>
-                      <span className="ps-pf-max">(max 100 MB)</span>
+                      <span className="ps-pf-max">(max {MAX_UPLOAD_MB} MB)</span>
+                      <UploadProgress percent={videoUploading ? videoProgress : null} />
                     </div>
                   )}
                   <input ref={videoRef} type="file" accept="video/*" hidden onChange={onPickVideo} />

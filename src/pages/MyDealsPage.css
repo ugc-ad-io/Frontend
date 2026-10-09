@@ -19,7 +19,7 @@
 .deal-more > button,
 .deal-section-title > span,
 .deal-brief-toggle span,
-.deal-upload span,
+.deal-upload > span,
 .deal-preview-tile a,
 .deal-timeline-item > span,
 .deal-chat-input button,
@@ -916,7 +916,10 @@
   margin-bottom: 12px;
 }
 
-.deal-upload span {
+/* Direct child only: the icon box. The watermark <span> lives inside
+   .deal-upload-preview and must not pick this up (it showed as a stray
+   lavender square in the corner of an uploaded video). */
+.deal-upload > span {
   width: 48px;
   height: 48px;
   display: grid;

@@ -1281,9 +1281,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           .cpm-phead.is-editable .cpm-actions .cpm-ghost{display:none}
         }
         .cpm-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
-        .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
+        .cpm-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px;white-space:nowrap}
         .cpm-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
-        .cpm-tabs .cpm-tab-add{display:inline-flex;align-items:center;gap:4px;margin-left:auto;margin-bottom:7px;padding:7px 10px;border:1px solid #dfe2f0;border-radius:999px;color:#15163a;font-size:11.5px;white-space:nowrap}
+        .cpm-tabs .cpm-tab-add{display:inline-flex;align-items:center;gap:4px;margin-left:auto;align-self:center;margin-bottom:0;padding:7px 12px;border:1px solid #dfe2f0;border-radius:999px;color:#15163a;font-size:11.5px;white-space:nowrap}
         .cpm-tabs .cpm-tab-add:hover{border-color:#bfc6f5;background:#f8f9ff}
         .cpm-tabs .cpm-tab-add:disabled{opacity:.45;cursor:not-allowed;background:#f5f6fa;border-color:#e6e8f1}
         .cpm-tab-body{padding:22px 28px 4px}
@@ -1512,7 +1512,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           .cpm-phead.is-editable .cpm-actions .cpm-msg{min-height:34px;padding:7px 15px;font-size:12.5px}
           .cpm-phead.is-editable .cpm-actions .cpm-msg svg{width:14px;height:14px}
           .cpm-phead.is-editable .cpm-name{padding-right:132px}
-          .cpm-tabs{gap:16px;padding:0 20px}
+          .cpm-tabs{gap:14px;padding:0 16px}
+          .cpm-tabs button{font-size:14px}
+          .cpm-tabs .cpm-tab-add{font-size:11.5px;padding:6px 11px}
           /* Persistent bottom Send Message bar. */
           .cpm-mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:1500;
             padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));

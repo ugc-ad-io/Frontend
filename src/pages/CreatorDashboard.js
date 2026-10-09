@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
@@ -249,15 +250,8 @@ export default function CreatorDashboard() {
     setUploadingPortfolio(true);
     try {
       const uploadedUrls = await Promise.all(files.map(async (file) => {
-        if (file.size > 100 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large. Maximum 100MB per file.`);
-        }
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', file);
-        const response = await axios.post(`${API}/upload/file`, formDataUpload, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        return response.data.file_url;
+        const data = await uploadMedia(file, API);
+        return data.file_url;
       }));
 
       const nextPortfolio = [...portfolio, ...uploadedUrls];

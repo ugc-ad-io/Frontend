@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
@@ -358,10 +359,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
     try {
       const urls = [];
       for (const file of files) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        urls.push({ name: file.name, url: res.data.file_url });
+        const data = await uploadMedia(file, API);
+        urls.push({ name: file.name, url: data.file_url });
       }
       updateVideo({ files: [...(videos[activeVideo].files || []), ...urls] });
       toast.success('Files uploaded');

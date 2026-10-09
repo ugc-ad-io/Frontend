@@ -715,12 +715,7 @@ export default function MyDealsPage() {
 
     setUploadingEvidence(true);
     try {
-      const uploadedUrls = await Promise.all(files.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        return res.data.file_url;
-      }));
+      const uploadedUrls = await Promise.all(files.map(async (file) => (await uploadMedia(file, API)).file_url));
       await handleCreateActionCard('Add Evidence', uploadedUrls);
       toast.success(`${uploadedUrls.length} evidence file${uploadedUrls.length > 1 ? 's' : ''} uploaded`);
     } catch (err) {
@@ -1851,12 +1846,7 @@ function RightPanel({ tab, setTab, deal, currentState, message, setMessage, mess
 
     setUploadingMessageFile(true);
     try {
-      const uploadedUrls = await Promise.all(files.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        return res.data.file_url;
-      }));
+      const uploadedUrls = await Promise.all(files.map(async (file) => (await uploadMedia(file, API)).file_url));
       setMessageAttachments((current) => [...current, ...uploadedUrls]);
       toast.success(`${uploadedUrls.length} file${uploadedUrls.length > 1 ? 's' : ''} attached`);
     } catch (err) {

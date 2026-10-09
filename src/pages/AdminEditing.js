@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { Clapperboard, Upload, CheckCircle, Play } from 'lucide-react';
@@ -42,9 +43,7 @@ export default function AdminEditing() {
     if (!file) { toast.error('Choose the edited video file first.'); return; }
     setWorking(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const up = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const up = { data: await uploadMedia(file, API) };
       const url = up.data?.file_url || up.data?.url;
       if (!url) throw new Error('Upload did not return a file URL');
       await axios.post(`${API}/admin/editing-queue/${workId}/complete`, {

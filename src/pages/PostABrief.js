@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef, forwardRef, useImperativeHandle }
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
@@ -677,12 +678,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
   const uploadRefVideo = async (index, file) => {
     if (!file) return;
-    if (file.size > 100 * 1024 * 1024) { toast.error(`${file.name} is too large (${Math.round(file.size / 1048576)} MB). Max 100MB.`); return; }
     setUploadingKey(`ref-${index}`);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const { data } = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const data = await uploadMedia(file, API);
       const url = data.file_url || data.url || '';
       if (!url) throw new Error('No URL returned');
       updateTextItem('referenceVideos', index, url);

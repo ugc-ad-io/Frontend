@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
 import { creatorName, brandName, creatorFirstName } from '../utils/displayName';
@@ -399,6 +400,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   }, [data]);
 
   const uploadFile = async (file, endpoint) => {
+    // The generic uploader (portfolio videos) must not send big videos through the server.
+    if (endpoint === '/upload/file') return uploadMedia(file, API);
     const fd = new FormData();
     fd.append('file', file);
     const r = await axios.post(`${API}${endpoint}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import {
@@ -244,20 +245,17 @@ export default function PortfolioPage() {
     try {
       const uploadedUrls = [];
       for (const file of files) {
-        if (file.size > 100 * 1024 * 1024) {
-          toast.error(`${file.name} is too large. Maximum 100MB per file.`);
-          continue;
+        try {
+          const data = await uploadMedia(file, API);
+          let fileUrl = data?.file_url || data?.url;
+          if (fileUrl && fileUrl.startsWith('/')) {
+            fileUrl = `${BACKEND_URL}${fileUrl}`;
+          }
+          if (fileUrl) uploadedUrls.push(fileUrl);
+        } catch (err) {
+          // One bad file (too big, interrupted) must not lose the others.
+          toast.error(`${file.name}: ${apiErrorMessage(err, 'upload failed')}`);
         }
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', file);
-        const response = await axios.post(`${API}/upload/file`, formDataUpload, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        let fileUrl = response.data?.file_url || response.data?.url;
-        if (fileUrl && fileUrl.startsWith('/')) {
-          fileUrl = `${BACKEND_URL}${fileUrl}`;
-        }
-        if (fileUrl) uploadedUrls.push(fileUrl);
       }
 
       if (uploadedUrls.length) {
@@ -453,7 +451,7 @@ export default function PortfolioPage() {
                     <label className="portfolio-upload-tile">
                       <Plus size={20} />
                       <span>{uploading ? 'Uploading...' : 'Add files'}</span>
-                      <small>Max 100MB each</small>
+                      <small>Max 400MB each</small>
                       <input
                         type="file"
                         accept="image/*,video/*"

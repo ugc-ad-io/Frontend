@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ArrowLeft, Upload, FileVideo, Image as ImageIcon, RefreshCw } from 'lucide-react';
@@ -111,15 +112,10 @@ export default function WorkSubmission() {
 
     try {
       const uploadedUrls = await Promise.all(selectedFiles.map(async (file) => {
-        if (file.size > 400 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large. Maximum 400MB per file.`);
-        }
-        const formData = new FormData();
-        formData.append('file', file);
-        const response = await axios.post(`${API}/upload/file`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        return response.data.file_url;
+        // uploadMedia refuses a video over 400 MB with a readable message and sends
+        // anything big straight to S3 instead of through the size-limited server.
+        const data = await uploadMedia(file, API);
+        return data.file_url;
       }));
 
       setter((prev) => [...prev, ...uploadedUrls]);

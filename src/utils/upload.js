@@ -3,10 +3,11 @@ import axios from 'axios';
 // Biggest video a user can upload. Must match VIDEO_MAX_BYTES on the server.
 export const MAX_UPLOAD_MB = 400;
 
-// Up to this size a video goes through our own server (/upload/file). The hosting
-// proxy in front of the server cuts requests past ~100 MB (the browser then only
-// says "Network Error"), so anything larger goes straight to S3 instead.
-const SERVER_UPLOAD_MB = 90;
+// Up to this size a video goes through our own server (/upload/file). The web
+// front of the server refuses any request of 50 MB or more (and a proxy in front of
+// it cuts ~100 MB), and the browser then only says "Network Error". So anything
+// bigger goes straight to S3 instead; 25 MB leaves a wide margin.
+const SERVER_UPLOAD_MB = 25;
 
 const POLL_EVERY_MS = 2000;
 const POLL_GIVE_UP_MS = 30 * 60 * 1000;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { Star, Plus, Trash2, Save, Upload, Database } from 'lucide-react';
@@ -39,9 +40,7 @@ export default function AdminHomeShowcase() {
     if (file.size > 100 * 1024 * 1024) { toast.error('Video too large. Maximum 100MB.'); return; }
     setUploadingIdx(idx);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const r = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const r = { data: await uploadMedia(file, API) };
       const url = r.data?.file_url || r.data?.url || '';
       if (!url) throw new Error('No URL returned');
       setField(idx, 'video_url', url);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { AlertTriangle, ArrowLeft, Clock, Paperclip, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../App';
@@ -73,10 +74,8 @@ export default function DisputeDetailPage() {
     try {
       const urls = [];
       for (const file of files) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await axios.post(`${API}/upload/file`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        if (res.data?.file_url) urls.push(res.data.file_url);
+        const data = await uploadMedia(file, API);
+        if (data?.file_url) urls.push(data.file_url);
       }
       setEvidence((prev) => [...prev, ...urls]);
     } catch (err) {

@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
+import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { AlertTriangle, BellOff, CheckCheck, ChevronLeft, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
@@ -491,9 +492,7 @@ export default function MessagesPage() {
 
     setUploadingFiles(true);
     Promise.all(files.map(async (file) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await axios.post(`${API}/upload/file`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = { data: await uploadMedia(file, API) };
       const fileUrl = res.data.file_url || res.data.url || res.data.path;
       if (!fileUrl) throw new Error(`${file.name} uploaded but no file URL was returned`);
       return { name: file.name, url: fileUrl };

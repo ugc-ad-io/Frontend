@@ -659,6 +659,16 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     || (Array.isArray(p.categories) ? p.categories[0] : '')
     || (skills[0] || '');
   const hlCategory = (nicheTxt || 'General').replace(/_/g, ' ');
+  // The highlight row lists EVERY category the creator picked at signup
+  // (profile.content_categories; older builds saved contentCategories), not just the
+  // first, so a brand sees "Fashion, Beauty, Home" rather than "Fashion" alone.
+  const pickedCategories = [...new Map(
+    [...(Array.isArray(p.content_categories) ? p.content_categories : []),
+     ...(Array.isArray(p.contentCategories) ? p.contentCategories : [])]
+      .map((v) => String(v || '').replace(/_/g, ' ').trim()).filter(Boolean)
+      .map((v) => [v.toLowerCase(), v.replace(/\b\w/g, (ch) => ch.toUpperCase())]),
+  ).values()];
+  const hlCategories = pickedCategories.length ? pickedCategories.join(', ') : hlCategory;
   // The creator's configured rate, shown to the brand as well as the creator —
   // a brand shouldn't have to message someone just to learn their price.
   // Fallback used by the video cards when an item carries no price of its own.
@@ -884,7 +894,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           </div>
 
           <div className="cpm-highlights">
-            <div className="cpm-hl"><label>Category</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlCategory}</strong>}</div>
+            <div className="cpm-hl"><label>{pickedCategories.length > 1 ? 'Categories' : 'Category'}</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlCategories}</strong>}</div>
             <div className="cpm-hl"><label>Price / video</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlPrice}</strong>}</div>
             <div className="cpm-hl"><label>Delivery</label>{loading ? <Skeleton width="65%" height={16} /> : <strong>{hlDelivery}</strong>}</div>
           </div>

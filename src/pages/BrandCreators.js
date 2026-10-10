@@ -90,6 +90,10 @@ const playable = (u) => {
 const nameOf = (c) => creatorFirstName(c);
 const initialOf = (c) => (nameOf(c).replace('@', '').charAt(0) || 'C').toUpperCase();
 const catOf = (c) => (c.primary_category || c.category || c.niche || 'UGC').replace(/_/g, ' ');
+// Every category the creator picked (the API's `categories`), lowercased, so a
+// multi-category creator shows under each tab instead of only their first.
+const catsOf = (c) => (c.categories?.length ? c.categories : [c.primary_category])
+  .map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
 const catClass = (cat) => {
   const s = String(cat || '').toLowerCase();
   if (/beauty|skin|makeup|cosmet/.test(s)) return 'c-beauty';
@@ -532,7 +536,7 @@ export default function BrandCreators() {
   }, [searchParams]);
 
   const categories = useMemo(() => {
-    const set = new Set(creators.map((c) => (c.primary_category || '').trim().toLowerCase()).filter(Boolean));
+    const set = new Set(creators.flatMap(catsOf));
     return ['all', ...Array.from(set)];
   }, [creators]);
 
@@ -545,9 +549,9 @@ export default function BrandCreators() {
   }, [filterOpen]);
 
   const filtered = useMemo(() => creators.filter((c) => {
-    const catv = (c.primary_category || '').toLowerCase();
-    if (cat !== 'all' && catv !== cat) return false;
-    if (q) { const t = q.toLowerCase(); if (!nameOf(c).toLowerCase().includes(t) && !catv.includes(t)) return false; }
+    const cats = catsOf(c);
+    if (cat !== 'all' && !cats.includes(cat)) return false;
+    if (q) { const t = q.toLowerCase(); if (!nameOf(c).toLowerCase().includes(t) && !cats.some((v) => v.includes(t))) return false; }
     return true;
   }), [creators, cat, q]);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { createPortal } from 'react-dom';
 import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark, MessageSquare } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
@@ -743,14 +744,17 @@ export default function BrandCreators() {
         </div>
       )}
 
-      {videoCard && (
+      {/* Portaled to <body> so the expanded video always sits above the quick-preview
+          card (.bc-modal-ov), the nav and every other fixed layer. */}
+      {videoCard && createPortal(
         <div className="bc-vid-overlay" onClick={() => setVideoCard(null)}>
           <div className="bc-vid-card" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="bc-vid-close" aria-label="Close" onClick={() => setVideoCard(null)}><X size={20} /></button>
             <video src={videoCard.src} controls autoPlay playsInline className="bc-vid-el" />
             {videoCard.name && <div className="bc-vid-name">{videoCard.name}</div>}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {preview && (

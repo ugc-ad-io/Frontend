@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
@@ -187,7 +188,7 @@ function VideoTile({ url, onRemove, onEdit }) {
         {onEdit && <button type="button" className="cpm-vid-edit" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit"><Pencil size={14} /></button>}
         {onRemove && <button type="button" className="cpm-vid-remove" onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="Remove"><Trash2 size={15} /></button>}
       </div>
-      {open && (
+      {open && createPortal(
         <div className="cpm-clip-ov" onClick={() => setOpen(false)}>
           <div className="cpm-clip-box" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="cpm-clip-x" onClick={() => setOpen(false)} aria-label="Close"><X size={18} /></button>
@@ -201,7 +202,8 @@ function VideoTile({ url, onRemove, onEdit }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
@@ -219,7 +221,7 @@ function RevClip({ src: rawSrc }) {
         <span className="cpm-rev-wm" aria-hidden="true" />
         <span className="cpm-rev-clip-play"><Play size={16} fill="currentColor" /></span>
       </button>
-      {open && (
+      {open && createPortal(
         <div className="cpm-clip-ov" onClick={() => setOpen(false)}>
           <div className="cpm-clip-box" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="cpm-clip-x" onClick={() => setOpen(false)} aria-label="Close"><X size={18} /></button>
@@ -231,7 +233,8 @@ function RevClip({ src: rawSrc }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
@@ -1354,7 +1357,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-rev-wm{position:absolute;inset:0;pointer-events:none;background-repeat:no-repeat;background-position:top 8px right 10px;background-size:44px auto;background-image:url("/ugcad-logo_-_Edited-removebg-preview.png")}
         /* small clip thumbnail keeps the subtle tiled text watermark (badge is too big here) */
         .cpm-rev-clip .cpm-rev-wm{opacity:.5;background-repeat:repeat;background-position:0 0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80'%3E%3Ctext x='0' y='50' transform='rotate(-28 60 40)' fill='%23ffffff' fill-opacity='0.55' font-family='Arial' font-size='12' font-weight='700'%3EUGCad.io%3C/text%3E%3C/svg%3E")}
-        .cpm-clip-ov{position:fixed;inset:0;z-index:1600;background:rgba(8,10,30,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
+        .cpm-clip-ov{position:fixed;inset:0;z-index:2500;background:rgba(8,10,30,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
         .cpm-clip-box{position:relative;width:min(900px,96vw)}
         .cpm-clip-frame{position:relative;border-radius:16px;overflow:hidden;background:#000;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
         .cpm-clip-vid{display:block;width:100%;max-height:82vh;background:#000}

@@ -893,7 +893,7 @@
 .bc-mute{left:10px}.bc-expand{right:10px}
 
 /* expanded reel — opens as a card overlay (not native fullscreen / new page) */
-.bc-vid-overlay{position:fixed;inset:0;z-index:200;background:rgba(8,10,30,.72);backdrop-filter:blur(6px);
+.bc-vid-overlay{position:fixed;inset:0;z-index:2500;background:rgba(8,10,30,.72);backdrop-filter:blur(6px);
   display:flex;align-items:center;justify-content:center;padding:24px}
 .bc-vid-card{position:relative;background:#0b1020;border-radius:20px;overflow:hidden;
   box-shadow:0 30px 80px -20px rgba(0,0,0,.6);width:min(92vw,420px)}

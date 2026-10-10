@@ -212,8 +212,9 @@ export default function BusinessProfileSetup() {
       gstin: form.gstin,
     };
     try {
-      await axios.put(`${API}/profile/business`, payload);
-      setUser({ ...user, profile_completed: true, approval_status: 'pending' });
+      const res = await axios.put(`${API}/profile/business`, payload);
+      // Trust the server: an already-approved brand stays approved, a new one goes to review.
+      setUser({ ...user, profile_completed: true, approval_status: res.data?.approval_status || 'pending' });
       navigate('/dashboard/business', { replace: true });
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to submit profile'));

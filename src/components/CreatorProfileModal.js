@@ -567,7 +567,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       const r = await axios.put(`${API}/profile/creator`, payload);
       setData((d) => ({ ...d, profile: { ...payload } }));
       setEditing(false);
-      toast.success('Profile saved' + (r.data ? ' — submitted for review' : ''));
+      // An approved creator's edit applies immediately; the server says so in `message`.
+      toast.success(r.data?.message === 'Profile submitted for review' ? 'Profile submitted for review' : 'Profile updated');
     } catch { toast.error('Could not save profile'); }
     finally { setSaving(false); }
   };

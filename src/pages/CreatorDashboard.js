@@ -10,7 +10,7 @@ import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorHero from '../components/CreatorHero';
 import { creatorFirstName } from '../utils/displayName';
-import { getProfilePct } from '../utils/creatorProfileCompletion';
+import { getProfilePct, getProfileNudge } from '../utils/creatorProfileCompletion';
 import RejectedGate from '../components/RejectedGate';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { toggleSavedBrief, isBriefSaved } from '../utils/savedBriefs';
@@ -146,6 +146,10 @@ export default function CreatorDashboard() {
   const [portfolio, setPortfolio] = useState([]);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
   const [completedWorks, setCompletedWorks] = useState(0);
+  // "Later" on the complete-your-profile pop-up hides it for this browser session only.
+  const [nudgeLater, setNudgeLater] = useState(() => {
+    try { return sessionStorage.getItem('profileNudgeLater') === '1'; } catch { return false; }
+  });
 
   useEffect(() => {
     // Only skip if approval_status is explicitly set and not 'approved'
@@ -382,6 +386,7 @@ export default function CreatorDashboard() {
   }
 
   const profilePct = getProfilePct(user);
+  const nudge = getProfileNudge(user);
   const heroName = creatorFirstName(user);
   // The primary content category the creator picked on the signup form (stored as
   // a value key like "product_demo"); resolve it to its human label for display.
@@ -414,6 +419,27 @@ export default function CreatorDashboard() {
             profilePct={profilePct}
             activeDeal={heroActiveDeal}
           />
+
+      {nudge.left.length > 0 && !nudgeLater && !selectedCampaign && (
+        <div className="pcd-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="nudge-modal-title">
+          <div className="pcd-modal">
+            <h2 id="nudge-modal-title">Complete your profile</h2>
+            <p>Add your {nudge.text} to finish setting up. Brands check these first before sending you deals.</p>
+            <div>
+              <button type="button" className="pcd-primary" autoFocus onClick={() => navigate(nudge.to)}>Complete now</button>
+              <button
+                type="button"
+                onClick={() => {
+                  try { sessionStorage.setItem('profileNudgeLater', '1'); } catch { /* private mode */ }
+                  setNudgeLater(true);
+                }}
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedCampaign && (
         <div className="pcd-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bid-modal-title">

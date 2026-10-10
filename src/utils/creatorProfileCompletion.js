@@ -23,6 +23,29 @@ export function getProfileChecklist(user) {
   ];
 }
 
+// Items the team asked this creator to add (user.profile_nudge.items, set server-side)
+// that are still empty. Each one drops off by itself once the creator fills it in.
+const NUDGE_LABELS = {
+  photo: ['profile photo'],
+  banner: ['banner image'],
+  intro: ['intro video'],
+  kyc: ['PAN card', 'Aadhaar card (front and back)'],
+};
+export function getProfileNudge(user) {
+  const p = user?.profile || {};
+  const done = {
+    photo: Boolean(user?.profile_photo || user?.profile_picture || p.profile_photo || p.profile_picture),
+    banner: Boolean(user?.banner || user?.banner_image || p.banner),
+    // A video added on /profile lands in `portfolio`; signup put it in intro_video.
+    intro: Boolean(user?.intro_video || p.intro_video || user?.portfolio?.length || p.portfolio_items?.length),
+    kyc: ['pending', 'verified'].includes(user?.kyc?.status),
+  };
+  const left = (user?.profile_nudge?.items || []).filter((k) => k in done && !done[k]);
+  const labels = left.flatMap((k) => NUDGE_LABELS[k]);
+  const text = labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}` : (labels[0] || '');
+  return { left, text, to: left.every((k) => k === 'kyc') ? '/kyc' : '/profile' };
+}
+
 export function getProfilePct(user) {
   const list = getProfileChecklist(user).filter((item) => item.mandatory);
   return Math.round((list.filter((item) => item.done).length / list.length) * 100);

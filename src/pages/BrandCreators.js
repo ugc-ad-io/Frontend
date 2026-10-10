@@ -126,6 +126,41 @@ const priceTextOf = (c) => {
   return 'Rate on request';
 };
 
+// All of a creator's categories in the space one chip used to take: swipe it by
+// hand, and it steps to the next chip on its own while they don't all fit.
+const CAT_STEP_MS = 2500;
+function CategoryChips({ c, chipClass, railClass }) {
+  const ref = useRef(null);
+  const paused = useRef(false);
+  const cats = catsOf(c).map((v) => v.replace(/_/g, ' '));
+  const list = cats.length ? cats : [catOf(c)];
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || list.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const id = setInterval(() => {
+      if (paused.current || el.scrollWidth <= el.clientWidth + 1) return;
+      const chips = Array.from(el.children);
+      const next = chips.find((chip) => chip.offsetLeft > el.scrollLeft + 1);
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+      el.scrollTo({ left: atEnd || !next ? 0 : next.offsetLeft, behavior: 'smooth' });
+    }, CAT_STEP_MS);
+    return () => clearInterval(id);
+  }, [list.length]);
+  const hold = () => { paused.current = true; };
+  const release = () => { setTimeout(() => { paused.current = false; }, CAT_STEP_MS); };
+  return (
+    <span
+      ref={ref}
+      className={`cat-rail ${railClass || ''}`}
+      onMouseEnter={hold} onMouseLeave={release}
+      onTouchStart={hold} onTouchEnd={release}
+      aria-label={`Categories: ${list.join(', ')}`}
+    >
+      {list.map((cat) => <span key={cat} className={`${chipClass} ${catClass(cat)}`}>{cat}</span>)}
+    </span>
+  );
+}
+
 // `cloneStart` marks the first card of the mobile loop's cloned tail — the auto-scroll
 // measures its offset to know exactly where one full pass ends (see gridRef below).
 // Exported so Saved Creators renders the SAME reel card as Browse Creators
@@ -174,7 +209,6 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
   const fullName = nameOf(c).replace('@', '');
   const location = c.city_tier || c.location_region || 'India';
   const priceText = priceTextOf(c);
-  const category = catOf(c);
 
   const togglePlay = () => {
     if (!vref.current) return;
@@ -286,7 +320,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
               {c.kyc_verified && (
                 <span className="bc-verified" title="Identity verified (KYC)"><BadgeCheck size={14} /></span>
               )}
-              <span className={`bc-cat ${catClass(category)}`}>{category}</span>
+              <CategoryChips c={c} chipClass="bc-cat" railClass="cat-rail-card" />
             </span>
           </button>
           <div className="bc-price-row">
@@ -446,7 +480,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
                   <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
                 </button>
               </div>
-              <span className={`bcq-cat ${catClass(category)}`}>{category}</span>
+              <CategoryChips c={c} chipClass="bcq-cat" railClass="cat-rail-quick" />
             </div>
           </div>
           <p className="bcq-bio">{c.bio || c.description || `${category} creator crafting scroll-stopping UGC for brands. Authentic, on-brief, and delivered fast.`}</p>

@@ -1968,3 +1968,11 @@
 
   .cmk-mobile-logout:hover { background: #fdeaef; }
 }
+
+/* Category chip rail (BrandCreators CategoryChips): every category in one chip's
+   space, swipeable, auto-advancing. Cards show one chip at a time. */
+.cat-rail{position:relative;display:flex;gap:6px;min-width:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.cat-rail::-webkit-scrollbar{display:none}
+.cat-rail > *{flex:none;scroll-snap-align:start;margin:0!important}
+.cat-rail-card{flex:0 1 auto;margin-left:auto;max-width:96px}
+.cat-rail-quick{margin-top:4px;max-width:100%}

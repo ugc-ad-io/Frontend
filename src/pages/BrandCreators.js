@@ -12,6 +12,7 @@ import { Skeleton } from '../components/Skeleton';
 import { creatorFirstName } from '../utils/displayName';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
 import { toast } from 'sonner';
+import { s3Preview } from '../utils/mediaPreview';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -55,7 +56,8 @@ const creatorVideoUrl = (creator) => {
   const preview = creator?.portfolio_preview;
   return preview && isVideo(preview) ? preview : '';
 };
-const cloudinaryVideoPoster = (url) => {
+const videoPoster = (url) => s3Preview(url, 'jpg') || cloudinaryPoster(url);
+const cloudinaryPoster = (url) => {
   const match = String(url || '').match(
     /^(https?:\/\/res\.cloudinary\.com\/[^/]+\/video\/upload\/)(.*)$/i,
   );
@@ -66,6 +68,8 @@ const cloudinaryVideoPoster = (url) => {
   );
   return `${match[1]}so_0/${rest}`;
 };
+// The small clip for hover/inline play; full-size playback keeps the original.
+const previewVideoUrl = (url) => s3Preview(url, 'mp4') || browserCompatibleVideoUrl(url);
 const browserCompatibleVideoUrl = (url) => {
   const media = assetUrl(url);
   if (!/^https?:\/\/res\.cloudinary\.com\//i.test(media) ||
@@ -131,14 +135,16 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const originalVideo = creatorVideoUrl(c);
-  const media = browserCompatibleVideoUrl(originalVideo);
+  // A video uploaded seconds ago may not have its small clip yet: fall back to the original.
+  const [clipFailed, setClipFailed] = useState(false);
+  const media = clipFailed ? browserCompatibleVideoUrl(originalVideo) : previewVideoUrl(originalVideo);
   // Only ever show a creator's OWN uploaded video — never a stock/sample fallback.
   const hasVideo = !!(media && isVideo(media));
   const videoSrc = hasVideo ? `${media}#t=0.5` : '';
   const [posterFailed, setPosterFailed] = useState(false);
-  const poster = posterFailed ? '' : cloudinaryVideoPoster(originalVideo);
+  const poster = posterFailed ? '' : videoPoster(originalVideo);
 
-  useEffect(() => { setPosterFailed(false); }, [originalVideo]);
+  useEffect(() => { setPosterFailed(false); setClipFailed(false); }, [originalVideo]);
 
   useEffect(() => {
     const video = vref.current;
@@ -214,6 +220,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
               ref={vref}
               src={videoSrc}
               poster={poster || undefined}
+              onError={() => setClipFailed(true)}
               muted={muted}
               loop
               playsInline
@@ -251,7 +258,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
             <button type="button" className="bc-expand" aria-label="Expand video" onClick={(e) => {
               e.stopPropagation();
               if (vref.current) { vref.current.pause(); setPlaying(false); }
-              onExpand?.({ src: videoSrc, name: fullName });
+              onExpand?.({ src: browserCompatibleVideoUrl(originalVideo), name: fullName });
             }}>
               <Maximize2 size={14} />
             </button>
@@ -307,7 +314,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
 function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const name = nameOf(c).replace('@', '');
   const category = catOf(c);
-  const media = browserCompatibleVideoUrl(creatorVideoUrl(c));
+  const media = previewVideoUrl(creatorVideoUrl(c));
   // Real uploaded clips only — never stock fallbacks. Portfolio items arrive as
   // plain URLs or as rich objects, so unwrap both before rendering.
   const realClips = (Array.isArray(c.portfolio) ? c.portfolio : [])
@@ -315,7 +322,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     .filter((u) => u && (isVideo(u) || playable(u)));
   const previewClip = (media && playable(media))
     ? media
-    : (realClips[0] ? browserCompatibleVideoUrl(realClips[0]) : '');
+    : (realClips[0] ? previewVideoUrl(realClips[0]) : '');
   const hasVideo = !!previewClip;
   const baseVid = hasVideo ? `${previewClip}#t=0.5` : '';
   const clips = realClips.length ? realClips : (previewClip ? [creatorVideoUrl(c)] : []);
@@ -396,10 +403,15 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     setBigPlaying(false);
     setBigVid(baseVid);
   };
-  const bigVideoOriginal = realClips.find(
-    (clip) => browserCompatibleVideoUrl(clip) === bigVid.split('#')[0],
+  const bigVideoOriginal = [...realClips, creatorVideoUrl(c)].find(
+    (clip) => clip && [previewVideoUrl(clip), browserCompatibleVideoUrl(clip)].includes(bigVid.split('#')[0]),
   ) || creatorVideoUrl(c) || realClips[0] || '';
-  const bigPoster = cloudinaryVideoPoster(bigVideoOriginal);
+  const bigPoster = videoPoster(bigVideoOriginal);
+  // No small clip yet (just uploaded): play the original instead of a black box.
+  const bigFallback = () => {
+    const original = `${browserCompatibleVideoUrl(bigVideoOriginal)}#t=0.5`;
+    if (bigVideoOriginal && original !== bigVid) setBigVid(original);
+  };
 
   return (
     <div className="bcq-overlay" onClick={onClose}>
@@ -413,6 +425,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
                 ref={bigRef}
                 src={`${bigVid.split('#')[0]}#t=0.1`}
                 poster={bigPoster || undefined}
+                onError={bigFallback}
                 muted
                 loop
                 playsInline
@@ -448,8 +461,8 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
               <label>Recent work {!isMobile && <small>· hover to preview</small>}</label>
               <div className="bcq-thumbs" ref={thumbsRef}>
                 {thumbs.map((tv, k) => {
-                  const src = `${browserCompatibleVideoUrl(tv)}#t=0.5`;
-                  const poster = cloudinaryVideoPoster(tv);
+                  const src = `${previewVideoUrl(tv)}#t=0.5`;
+                  const poster = videoPoster(tv);
                   return (
                     <button
                       type="button"
@@ -460,7 +473,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
                       onClick={() => onExpand({ src: browserCompatibleVideoUrl(tv), name })}
                     >
                       {poster ? (
-                        <img src={poster} alt="" loading="lazy" />
+                        <img src={poster} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
                       ) : (
                         <span className="bcq-thumb-empty">
                           <Play size={18} fill="currentColor" />

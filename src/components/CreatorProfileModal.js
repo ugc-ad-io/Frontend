@@ -22,6 +22,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
 import { getProfilePct, getProfileMissing } from '../utils/creatorProfileCompletion';
 import { Skeleton } from './Skeleton';
+import { s3Preview } from '../utils/mediaPreview';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
 // uses the exact same choices instead of free text.
@@ -168,6 +169,10 @@ function VideoTile({ url, onRemove, onEdit }) {
   const [failed, setFailed] = useState(false); // broken / removed media URL
   const src = mediaUrl(url);   // signed with ?token= so gated deliverable videos play
   const video = isVideo(url);  // classify on the raw url (the token contains dots)
+  // The tile uses the small preview clip + poster; the lightbox below plays the original.
+  const [clipFailed, setClipFailed] = useState(false);
+  const previewClip = video && !clipFailed ? s3Preview(url, 'mp4') : '';
+  const poster = video ? s3Preview(url, 'jpg') : '';
   // Hover to preview — DESKTOP ONLY. On touch a tap fires mouseenter, which made the
   // clip auto-play while scrolling/tapping; there it plays only via the big lightbox.
   const canHover = typeof window !== 'undefined' && window.matchMedia
@@ -180,7 +185,8 @@ function VideoTile({ url, onRemove, onEdit }) {
         {failed ? (
           <span className="cpm-vid-broken"><Camera size={20} /> Media unavailable</span>
         ) : video ? (
-          <video ref={ref} src={`${src}#t=0.5`} muted playsInline loop onError={() => setFailed(true)} />
+          <video ref={ref} src={previewClip || `${src}#t=0.5`} poster={poster || undefined} muted playsInline loop
+            onError={() => (previewClip ? setClipFailed(true) : setFailed(true))} />
         ) : (
           <img src={src} alt="" onError={() => setFailed(true)} />
         )}

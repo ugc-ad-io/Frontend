@@ -225,7 +225,12 @@ function AuthProvider({ children }) {
 
   const login = (token, userData) => {
     localStorage.setItem('token', token);
-    setUser(userData);
+    // Login/signup/Google/Apple replies name the id `user_id`; /auth/me and every page
+    // read `user.id`. Without it, straight after login every page matched nothing
+    // (brand: "No campaigns yet") until a reload. Set it now, then load the full
+    // profile /auth/me returns, exactly as on a fresh visit.
+    setUser({ ...userData, id: userData?.id || userData?.user_id });
+    axios.get(`${API}/auth/me`).then((res) => setUser(res.data)).catch(() => {});
   };
 
   const startBrandSession = (token, brandUser) => {

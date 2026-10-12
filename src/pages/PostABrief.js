@@ -144,6 +144,8 @@ const ctaLinkValid = (cta, v) => {
   if (t === 'handle') return CTA_HANDLE_RE.test(s) || CTA_URL_RE.test(s);
   return true;
 };
+// Same list the private brief (PlanBrief) offers.
+const LANGUAGES = ['Hinglish', 'Hindi', 'English', 'Tamil', 'Telugu', 'Marathi', 'Bengali'];
 const TONES = ['Casual', 'Energetic', 'Informative', 'Humorous', 'Aspirational', 'Authentic', 'Educational', 'Trustworthy'];
 // "Any" is the no-minimum option: the brief accepts bids from every level.
 // Listed first because it is the widest reach, and the field is required — so
@@ -203,6 +205,7 @@ const initialForm = {
   keyMessage: '',
   objectives: [],
   targetAudience: '',
+  language: 'Hinglish',
   budgetVisible: true,
   deliverables: [createDeliverable()],
   scriptProvider: 'brand',
@@ -300,6 +303,7 @@ function mapCampaignToForm(c) {
   put('keyMessage', c.key_message);
   put('pacing', c.pacing || c.tone_reference);
   put('targetAudience', c.target_audience);
+  put('language', c.language);
   if (Array.isArray(c.objectives) && c.objectives.length) out.objectives = c.objectives;
 
   const putBool = (key, value) => { if (typeof value === 'boolean') out[key] = value; };
@@ -940,6 +944,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       `Key message: ${form.keyMessage}`,
       `Objectives: ${form.objectives.join(', ')}`,
       `Target audience: ${form.targetAudience}`,
+      `Video language: ${form.language}`,
       `Budget visibility: ${form.budgetVisible ? 'Visible to creators' : 'Hidden from creators - admin flag'}`,
       '',
       'Deliverables:',
@@ -1006,6 +1011,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       // Full structured brief so a duplicate can be rebuilt exactly (the backend
       // persists all of these via BriefSectionsMixin).
       target_audience: form.targetAudience,
+      language: form.language,
       budget_visible: form.budgetVisible,
       budget_mode: form.budgetMode,
       deliverable_items: form.deliverables.map(item => ({
@@ -1310,6 +1316,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
               <>
                 <div className="form-group"><label>Campaign objective *</label><div className="brief-chip-grid">{OBJECTIVES.map(item => <ToggleChip key={item} active={form.objectives.includes(item)} onClick={() => set('objectives', [item])}>{item}</ToggleChip>)}</div></div>
                 <div className="form-group"><label>Target audience * (50-200 characters)</label><textarea className="textarea-field" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value.slice(0, 200))} placeholder="Urban women 25-35 interested in clean skincare." rows={3} /><FieldCount value={form.targetAudience} min={50} max={200} /></div>
+                <div className="form-group"><label>Video language *</label><select className="input-field" value={form.language} onChange={e => set('language', e.target.value)}>{LANGUAGES.map(item => <option key={item}>{item}</option>)}</select></div>
                 <div className="brief-switch-row"><div><strong>Budget visibility</strong><p>Show or hide budget from creators. Hidden budgets are flagged to admin.</p></div><button type="button" className={form.budgetVisible ? 'is-on' : ''} onClick={() => set('budgetVisible', !form.budgetVisible)}>{form.budgetVisible ? 'Show' : 'Hide'}</button></div>
               </>
             )}
@@ -1506,7 +1513,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
             {step === 8 && (() => {
               const reviewSections = [
-                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', resolvedCategory(form)], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
+                { title: 'Campaign Basics', rows: [['Campaign', form.campaignName], ['Brand', form.brandName], ['Category', resolvedCategory(form)], ['Type', form.productType === 'other' ? (form.customProductType || 'Other') : (PRODUCT_TYPES.find(p => p.value === form.productType)?.label || form.productType)], ['Product', form.productName], ['Product description', form.productDescription], ['Hook', form.campaignHook], ['Key message', form.keyMessage], ['Objectives', form.objectives.join(', ')], ['Video language', form.language], ['Audience', form.targetAudience], ['Budget visibility', form.budgetVisible ? 'Visible to creators' : 'Hidden from creators; flagged to admin']] },
                 { title: 'Deliverables', rows: form.deliverables.map((item, index) => [`Deliverable ${index + 1}`, `${item.quantity} x ${item.type}; ${item.duration || 'no duration'}; ${item.aspectRatios.join(', ')}; deliver ${item.editedRequired ? `raw footage + an edited cut (edited by ${item.editedBy === 'ugc' ? 'UGC.ad' : 'creator'})` : 'raw footage only'}`]) },
                 { title: 'Script', rows: [['Written by', form.scriptProvider === 'ugc' ? 'UGC.ad (added during brief review)' : 'Brand'], ...(form.scriptProvider === 'ugc' ? [] : [['Script', form.scriptText.trim() || 'None entered']])] },
                 { title: 'Must-Include Checklist', rows: [['Product visible', form.productVisible ? `${form.visibilitySeconds}s minimum` : 'No'], ['Verbal mention', form.verbalMention ? form.productNames : 'No'], ['Required phrases', requiredPhrases], ['Required shots', requiredShots], ['CTA', form.callToAction], ...(CTA_INPUT[form.callToAction] ? [[CTA_INPUT[form.callToAction].label, form.ctaLink || 'None']] : []), ['Promo code', form.promoCode || 'None'], ['Required hashtags', form.hashtags || 'None'], ['Brand tag', form.brandHandleTag ? 'Yes' : 'No']] },

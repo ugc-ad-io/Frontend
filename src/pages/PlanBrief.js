@@ -15,7 +15,6 @@ const LANGUAGES = ['Hinglish', 'Hindi', 'English', 'Tamil', 'Telugu', 'Marathi',
 const ORIENTATIONS = ['Portrait', 'Landscape', 'Square'];
 const BACKGROUNDS = ['Green Screen', 'Home', 'Studio', 'Outdoor', 'Office', 'Plain Wall'];
 const PRODUCTS = ['Yes', 'No'];
-const LOGO_POSITIONS = ['No Preference', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right', 'Center'];
 const SLOTS = ['11:00 - 17:00', '17:00 - 23:00'];
 // Same canonical list as PostABrief's Usage Rights > Platforms chips — both forms
 // feed the same `usage_platforms` backend field, so they should share one vocabulary.
@@ -72,7 +71,6 @@ const newVideo = () => ({
   background: 'Green Screen',
   product: '',
   guidelinesOpen: false,
-  logoPosition: 'No Preference',
   pronunciation: '',
   files: [],
   links: '',
@@ -381,7 +379,6 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
       lines.push(`— Video ${i + 1} —`);
       lines.push(`Duration: ${v.duration} | Language: ${v.language} | Orientation: ${v.orientation} | Background: ${v.background}`);
       if (v.product) lines.push(`Features a product: ${v.product}`);
-      if (v.logoPosition && v.logoPosition !== 'No Preference') lines.push(`Logo position: ${v.logoPosition}`);
       if (v.pronunciation) lines.push(`Brand name pronunciation: ${v.pronunciation}`);
       if ((v.files || []).length) lines.push(`Brand files: ${v.files.map((f) => f.url).join(', ')}`);
       if (v.links) lines.push(`Links: ${v.links}`);
@@ -751,8 +748,6 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
 
               <div className="pb-or"><span>or</span></div>
               <Field label="Supporting links"><input type="text" value={v.links} onChange={(e) => updateVideo({ links: e.target.value })} placeholder="Paste reference / asset links" /></Field>
-
-              <Field label="Preferred logo position in Video"><Select value={v.logoPosition} onChange={(val) => updateVideo({ logoPosition: val })} options={LOGO_POSITIONS} /></Field>
 
               <div className="pb-field">
                 <span>Add Brand Name Pronunciation (Optional)</span>

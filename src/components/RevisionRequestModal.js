@@ -23,7 +23,7 @@ export function findContactInfo(text) {
  * severity + optional brief reference, optional notes, and a required timeline.
  * onSubmit({ items, notes, deadline_at }) — parent handles the API call.
  */
-export default function RevisionRequestModal({ onClose, onSubmit, submitting = false, freeRemaining, nextFee }) {
+export default function RevisionRequestModal({ onClose, onSubmit, submitting = false, freeRemaining, nextFee, paidFee = 500 }) {
   // `severity` and `brief_reference` are no longer chosen by the brand (the
   // toggle + reference input were removed) but stay on each item as fixed
   // defaults so the submitted payload — and the "[must-fix] …" text the creator's
@@ -66,7 +66,7 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           <div className="rrm-fee">This is a paid revision — ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
         )}
         {freeRemaining === 1 && (
-          <div className="rrm-fee">This is your last free revision — include all your changes now. Every revision after this costs ₹500 (₹300 goes to the creator).</div>
+          <div className="rrm-fee">This is your SECOND revision — the last free one. Put every change you need in this request: from the third revision onward ₹{paidFee} is deducted from your wallet for each revision (₹300 of it goes to the creator).</div>
         )}
         {typeof freeRemaining === 'number' && freeRemaining > 1 && (
           <div className="rrm-free">{freeRemaining} free revisions remaining.</div>

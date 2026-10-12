@@ -470,6 +470,7 @@ export default function BrandWorkReview() {
           submitting={revSubmitting}
           freeRemaining={trackers[String(revisionCampaignId)]?.free_revisions_remaining}
           nextFee={trackers[String(revisionCampaignId)]?.next_revision_fee}
+          paidFee={trackers[String(revisionCampaignId)]?.paid_revision_fee || 500}
         />
       )}
 
@@ -483,6 +484,7 @@ export default function BrandWorkReview() {
           submitting={revSubmitting}
           freeRemaining={trackers[String(revisionCampaignId)]?.free_revisions_remaining}
           nextFee={trackers[String(revisionCampaignId)]?.next_revision_fee}
+          paidFee={trackers[String(revisionCampaignId)]?.paid_revision_fee || 500}
         />
       )}
 

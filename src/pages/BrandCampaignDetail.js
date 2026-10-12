@@ -1173,6 +1173,7 @@ export default function BrandCampaignDetail() {
           submitting={revSubmitting}
           freeRemaining={deal?.revision_tracker?.free_revisions_remaining}
           nextFee={deal?.revision_tracker?.next_revision_fee}
+          paidFee={deal?.revision_tracker?.paid_revision_fee || 500}
         />
       )}
 

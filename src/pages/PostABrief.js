@@ -1498,8 +1498,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                     brief is published. If you finish hiring early, the unused slots are refunded.
                   </small>
                 </div>
-                <div className="form-group"><label>Budget *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div></div>
-                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Fixed budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
+                <div className="form-group"><label>Budget per video *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div><small>This is the amount for ONE video. The total for all videos, the 20% commission and the listing fee are added up below.</small></div>
+                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="commission-card">
                   <p>Budget per video <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p>
                   {totalVideos > 1 && <p>Total videos ({totalDeliverables} per creator × {creatorsCount} creator{creatorsCount === 1 ? '' : 's'}) <strong>{totalVideos}</strong></p>}
@@ -2027,10 +2027,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           min-width: 72px;
           min-height: 38px;
           padding: 0 18px;
-          border: 0;
+          border: 1px solid #DCDDFA;
           border-radius: 9px;
-          background: transparent;
-          color: #5A5A9A;
+          background: #fff;
+          color: #3B3B7A;
           font-size: 14px;
           font-weight: 500;
           white-space: nowrap;
@@ -2050,6 +2050,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
         .brief-segment button.active {
           background: #07074E;
+          border-color: #07074E;
           color: white;
           font-weight: 600;
           box-shadow: 0 4px 10px rgba(7, 7, 78, 0.18);

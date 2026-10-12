@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { downloadDeliverable } from '../utils/downloadDeliverable';
+import { apiErrorMessage } from '../utils/apiError';
 import {
   SlidersHorizontal, MessageSquare, FileText, Download, Play, Clock, Calendar,
   FileVideo, CheckCircle2, Hourglass, RefreshCw, ListChecks, MoreHorizontal,
@@ -239,21 +241,10 @@ export default function BrandWorkReview() {
   };
   const download = async (id, title) => {
     try {
-      const res = await axios.get(`${API}/work/${id}/download`, { responseType: 'blob' });
-      const u = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a'); a.href = u; a.download = `${title || 'deliverable'}.mp4`;
-      document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(u);
+      await downloadDeliverable(API, id, title);
     } catch (err) {
-      // The server sends the reason (not approved / no file / not authorized). With a
-      // blob responseType, the error body is a Blob — read it so we stop showing the
-      // misleading "unlocks after approval" for every failure.
-      let msg = 'Download failed';
-      try {
-        const body = err?.response?.data;
-        const text = body instanceof Blob ? await body.text() : JSON.stringify(body);
-        msg = JSON.parse(text)?.detail || msg;
-      } catch { /* keep fallback */ }
-      toast.error(msg);
+      // The server sends the reason (not approved / no file / not authorized).
+      toast.error(apiErrorMessage(err, 'Download failed'));
     }
   };
   const openFile = (it) => {

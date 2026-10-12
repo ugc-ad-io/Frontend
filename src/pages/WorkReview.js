@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { downloadDeliverable } from '../utils/downloadDeliverable';
 import { ArrowLeft, CheckCircle, MessageCircle, Star, Download } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -55,17 +56,7 @@ export default function WorkReview({ embedId, onClose }) {
 
   const handleDownload = async () => {
     try {
-      const res = await axios.get(`${API}/work/${workId}/download`, { responseType: 'blob' });
-      const blobUrl = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      const cd = res.headers['content-disposition'] || '';
-      const match = cd.match(/filename="?([^"]+)"?/);
-      a.download = match ? match[1] : `${work?.campaign_title || 'deliverable'}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      await downloadDeliverable(API, workId, work?.campaign_title);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Download failed'));
     }

@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import { findCreatorDeal, getDealMessages } from '../utils/dealMessages';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { downloadDeliverable } from '../utils/downloadDeliverable';
 import {
   ArrowLeft, ChevronRight, Check, FileText, Send, MessageSquare, User, CheckCircle, Download,
   Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy, Truck, Star,
@@ -614,13 +615,8 @@ export default function BrandCampaignDetail() {
     try {
       const wid = await resolveWorkId();
       if (!wid) return toast.error('No submitted work to download yet');
-      const res = await axios.get(`${API}/work/${wid}/download`, { responseType: 'blob' });
-      // Derive the real extension from the blob type (deliverables may be mp4/mov/png/pdf).
-      const type = res.data?.type || '';
-      const ext = type.includes('/') ? type.split('/')[1].split(';')[0] : 'mp4';
-      const u = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a'); a.href = u; a.download = `${campaign.title || 'deliverable'}.${ext}`;
-      document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(u);
+      // The server names the file with its real extension (mp4/mov/png/pdf).
+      await downloadDeliverable(API, wid, campaign.title);
     } catch (e) {
       toast.error(e?.response?.status === 403 ? 'Download unlocks after you approve the work' : 'Could not download the deliverable');
     }

@@ -54,6 +54,9 @@ const STATUS_BADGE = {
   awaiting_brand_confirmation: { label: 'Script Ready — Confirm', cls: 'pending' },
   rejected: { label: 'Rejected', cls: 'rejected' },
   cancelled: { label: 'Cancelled', cls: 'rejected' },
+  // Admin moderation — an on-hold/banned brief must not fall through to "Live".
+  paused: { label: 'On Hold', cls: 'pending' },
+  banned: { label: 'Removed', cls: 'rejected' },
   draft: { label: 'Draft', cls: 'pending' },
 };
 const statusBadge = (s) => STATUS_BADGE[s] || { label: 'Live', cls: 'live' };

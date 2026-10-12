@@ -1323,7 +1323,7 @@
 
 .deal-right-tabs {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(, minmax(0, 1fr));
   gap: 4px;
   padding: 5px;
   border: 1px solid rgba(226, 232, 240, 0.74);
@@ -1513,7 +1513,7 @@
   z-index: 5;
   width: 188px;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(, minmax(0, 1fr));
   gap: 6px;
   padding: 8px;
   border: 1px solid rgba(226, 232, 240, 0.9);
@@ -1611,7 +1611,7 @@
 }
 
 .deal-payout-tab p {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .deal-payout-tab em {
@@ -1731,11 +1731,11 @@
 
 @media (max-width: 1500px) {
   .deal-room-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .deal-status-header {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
       "logo copy"
       "metrics metrics"
@@ -1773,7 +1773,7 @@
     top: 0;
     z-index: 4;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(, minmax(0, 1fr));
     gap: 6px;
     margin-bottom: 14px;
     padding: 6px;
@@ -1835,13 +1835,13 @@
   .deal-receipt-grid,
   .deal-asset-grid,
   .deal-version-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .deal-status-header {
     gap: 12px;
     padding: 16px;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
       "logo copy"
       "metrics metrics"
@@ -1879,11 +1879,34 @@
 
   .deal-damage-card .deal-revision-box,
   .deal-revisions .deal-revision-box {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .deal-damage-card .deal-revision-box p:nth-child(5),
   .deal-damage-card .deal-revision-box p:nth-child(6) {
     grid-column: auto;
   }
+}
+
+/* Media inside the deal room may never be wider than its card: an intrinsic-width video
+   in a grid track used to widen the whole page, and phones then zoomed out (content
+   looked "not full screen" with a lavender strip down the right). */
+.deal-card video,
+.deal-card img,
+.deal-upload-preview video,
+.deal-upload-preview img,
+.deal-preview-tile video,
+.deal-preview-tile img {
+  max-width: 100%;
+}
+.deal-receipt-grid > *,
+.deal-asset-grid > *,
+.deal-version-row > * {
+  min-width: 0;
+}
+
+/* Label above the unboxing upload used to flow inline beside the Mark Received button. */
+.deal-shipping-card > label {
+  display: block;
+  margin: 18px 0 6px;
 }

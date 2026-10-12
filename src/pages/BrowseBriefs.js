@@ -141,6 +141,7 @@ export default function BrowseBriefs() {
       }
     };
     const inDelivery = (d) => {
+      if (d == null) return true;   // brief states no deadline — don't hide it behind a filter
       switch (deliveryFilter) {
         case '3': return d <= 3;
         case '5': return d <= 5;

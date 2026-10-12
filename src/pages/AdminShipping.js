@@ -38,6 +38,7 @@ export default function AdminShipping() {
   const [active, setActive] = useState(null); // request being actioned
   const [courier, setCourier] = useState('');
   const [tracking, setTracking] = useState('');
+  const [expectedDelivery, setExpectedDelivery] = useState('');   // optional; shown to the creator
   const [labelFile, setLabelFile] = useState(null);
   const [working, setWorking] = useState(false);
   const [expandedIds, setExpandedIds] = useState(() => new Set()); // campaign ids showing their per-creator rows
@@ -89,6 +90,7 @@ export default function AdminShipping() {
     setActive(r);
     setCourier(r.courier || '');
     setTracking(r.tracking_number || '');
+    setExpectedDelivery('');
     setLabelFile(null);
   };
 
@@ -122,6 +124,7 @@ export default function AdminShipping() {
       await axios.post(`${API}/admin/shipping/${getId(active)}/ship${qs}`, {
         courier: courier.trim(),
         tracking_number: tracking.trim(),
+        expected_delivery_at: expectedDelivery || undefined,
         label_url: typeof labelFile === 'string' ? labelFile : undefined
       });
       toast.success('Marked as shipped');
@@ -334,6 +337,10 @@ export default function AdminShipping() {
               <label className="ash-field">
                 <span>Tracking number</span>
                 <input value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Tracking / AWB number" data-testid="ship-tracking" />
+              </label>
+              <label className="ash-field">
+                <span>Expected delivery <em>(optional — shown to the creator)</em></span>
+                <input type="date" value={expectedDelivery} onChange={(e) => setExpectedDelivery(e.target.value)} data-testid="ship-expected" />
               </label>
             </div>
             <footer className="ash-modal-foot">

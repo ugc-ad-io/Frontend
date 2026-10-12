@@ -65,12 +65,23 @@ export function summarizeDeliverables(c) {
   return parts.join(' · ');
 }
 
+// Days the creator has left to deliver: the brief's own delivery deadline, else a
+// bid-style estimate. null = the brief states neither (never guess a number — a made-up
+// default of 5 made "Within 3 days" match nothing and "Within 5 days" match everything).
+export function deliveryWindowDays(c) {
+  const due = c.final_delivery_by || c.draft_delivery_by || c.due_date || c.deadline;
+  const ms = due ? new Date(due).getTime() : NaN;
+  if (Number.isFinite(ms)) return Math.max(0, Math.ceil((ms - Date.now()) / 86400000));
+  const est = Number(c.estimated_delivery_days || c.delivery_days);
+  return est > 0 ? est : null;
+}
+
 export default function normalizeBrief(c, index = 0, myBids = []) {
   const objectives = Array.isArray(c.objectives) ? c.objectives.filter(Boolean) : [];
   const hasBid = myBids.some((b) => b.id === c.id);
   const budgetMax = Number(c.budget_max ?? c.budget ?? 0);
   const matchScore = Math.min(98, 76 + objectives.length * 4 + (c.requires_shipment ? 3 : 0) + (index % 3) * 2);
-  const d = c.estimated_delivery_days || c.delivery_days;
+  const d = deliveryWindowDays(c);
   return {
     campaign: c,
     id: c.id || c._id,
@@ -87,8 +98,8 @@ export default function normalizeBrief(c, index = 0, myBids = []) {
     tags: objectives.length ? objectives.slice(0, 2) : [(c.industry_type || 'UGC'), 'UGC Video'],
     budget: getCampaignBudget(c),
     budgetMax,
-    deliveryLabel: d ? `${d} Days` : '3 - 5 Days',
-    deliveryDays: Number(d) || 5,
+    deliveryLabel: d == null ? 'See brief' : `${d} ${d === 1 ? 'Day' : 'Days'}`,
+    deliveryDays: d,
     deliverables: summarizeDeliverables(c),
     matchScore,
     hasBid,

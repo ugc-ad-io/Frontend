@@ -52,7 +52,7 @@ function ActionCardMini({ card }) {
  * Floating in-page chat popup. Opens a conversation with `user` (the creator)
  * without leaving the current page. `user` = { id, name, photo }.
  */
-export default function ChatPopup({ user, onClose }) {
+export default function ChatPopup({ user, onClose, dealId = null, title = '' }) {
   const { user: me } = useAuth();
   // The opener sometimes passes a bare { id } (e.g. from a deal/conversation row)
   // with no name/photo — fetch the peer's profile to fill both in.
@@ -104,13 +104,16 @@ export default function ChatPopup({ user, onClose }) {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      try { const r = await axios.get(`${API}/chat/${user.id}`); if (active) setMessages(r.data || []); }
-      catch { /* thread may not exist yet */ }
+      try {
+        // Per-campaign mode reads that deal's own chat; otherwise the 1:1 thread.
+        const r = dealId ? await axios.get(`${API}/deals/${dealId}/chat`) : await axios.get(`${API}/chat/${user.id}`);
+        if (active) setMessages(dealId ? (r.data?.messages || []) : (r.data || []));
+      } catch { /* thread may not exist yet */ }
     };
     load();
     const t = setInterval(load, 4000);
     return () => { active = false; clearInterval(t); };
-  }, [user.id]);
+  }, [user.id, dealId]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -129,14 +132,21 @@ export default function ChatPopup({ user, onClose }) {
     }
     setSending(true);
     try {
-      const res = await axios.post(`${API}/chat/send`, { recipient_id: user.id, message: text.trim() });
-      // Backend may still flag/redact; surface it instead of silently "sending".
-      if (res.data?.filtered) {
-        toast.warning(`Message filtered for sharing contact details${res.data.warning_count ? ` — warning ${res.data.warning_count}/3` : ''}.`);
+      if (dealId) {
+        await axios.post(`${API}/deals/${dealId}/chat`, { message: text.trim(), attachment_urls: [] });
+        setText('');
+        const r = await axios.get(`${API}/deals/${dealId}/chat`);
+        setMessages(r.data?.messages || []);
+      } else {
+        const res = await axios.post(`${API}/chat/send`, { recipient_id: user.id, message: text.trim() });
+        // Backend may still flag/redact; surface it instead of silently "sending".
+        if (res.data?.filtered) {
+          toast.warning(`Message filtered for sharing contact details${res.data.warning_count ? ` — warning ${res.data.warning_count}/3` : ''}.`);
+        }
+        setText('');
+        const r = await axios.get(`${API}/chat/${user.id}`);
+        setMessages(r.data || []);
       }
-      setText('');
-      const r = await axios.get(`${API}/chat/${user.id}`);
-      setMessages(r.data || []);
     } catch (err) {
       // 400 with a contact-info reason from the server → show its message, not a generic one.
       toast.error(apiErrorMessage(err, 'Failed to send message'));
@@ -150,7 +160,12 @@ export default function ChatPopup({ user, onClose }) {
     <div className={`cpop ${briefOpen ? 'is-behind' : ''}`}>
       <div className="cpop-head">
         <span className="cpop-ava">{photo ? <img src={photo} alt="" /> : initial(peerName)}</span>
-        <div className="cpop-head-id"><strong>{peerName}</strong><small><i className="cpop-dot" /> Responds in ~30 min</small></div>
+        <div className="cpop-head-id">
+          <strong>{title || peerName}</strong>
+          {title
+            ? <small>with {peerName}</small>
+            : <small><i className="cpop-dot" /> Responds in ~30 min</small>}
+        </div>
         <button type="button" className="cpop-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
       </div>
 
@@ -175,7 +190,10 @@ export default function ChatPopup({ user, onClose }) {
             if (m.item_type === 'action_card') return <ActionCardMini key={m.id || i} card={m} />;
             const sys = m.system_message || m.sender_type === 'system' || m.sender_id === 'system';
             if (sys) return <div key={m.id || i} className="cpop-sys">{m.message}</div>;
-            const own = String(m.sender_id) === String(me?.id);
+            // Deal messages carry sender_type (creator/brand), not the sender's user id.
+            const own = dealId
+              ? m.sender_type === (me?.role === 'business' ? 'brand' : 'creator')
+              : String(m.sender_id) === String(me?.id);
             return (
               <div key={m.id || i} className={`cpop-row ${own ? 'own' : ''}`}>
                 <div className="cpop-bub">{m.message}</div>

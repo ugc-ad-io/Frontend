@@ -211,6 +211,24 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
     return () => { cancelled = true; };
   }, [shipForm.pincode]);
 
+  // Pre-fill the pickup address from the brand's account (Settings → Company) so it is
+  // never retyped. Editable — the pickup can be elsewhere than the billing address.
+  const [pickupFromAccount, setPickupFromAccount] = useState(false);
+  useEffect(() => {
+    if (!showShipModal) return undefined;
+    let alive = true;
+    axios.get(`${API}/shipping/account-address`).then(({ data }) => {
+      const a = data?.address;
+      if (!alive || !a) return;
+      setShipForm((f) => (f.line1 || f.pincode ? f : {
+        ...f, full_name: a.full_name || '', phone: a.phone || '', line1: a.line1 || '', line2: a.line2 || '',
+        city: a.city || '', state: a.state || '', pincode: a.pincode || '',
+      }));
+      setPickupFromAccount(true);
+    }).catch(() => { /* no saved address — the brand types it */ });
+    return () => { alive = false; };
+  }, [showShipModal]);
+
   const handleShipProduct = async (e) => {
     e.preventDefault();
     setUploading(true);
@@ -580,6 +598,9 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
               </div>
 
               <div className="ship-divider">Pickup address</div>
+              {pickupFromAccount && (
+                <p className="ship-help">Filled in from your account (Settings → Company). Change anything if the pickup is from a different place.</p>
+              )}
 
               <div className="ship-row">
                 <div className="form-group">

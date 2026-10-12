@@ -11,6 +11,15 @@ import { useAuth } from '../App';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+
+// Browser storage can throw (blocked site data, in-app browsers, private tabs, full quota).
+// The brief form read it during render and in effects, so one SecurityError/QuotaExceeded
+// blanked the whole form on phones. Drafts are a convenience — the form must load without.
+const safeStore = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* draft just isn't kept locally */ } },
+  remove: (k) => { try { localStorage.removeItem(k); } catch { /* nothing to clear */ } },
+};
 // A reference that we hosted ourselves (came from /upload/file) rather than a
 // pasted third-party link — used to label the button "Replace" and to render it
 // as playable media instead of a bare link.
@@ -466,27 +475,27 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const [showConfirm, setShowConfirm] = useState(false);
   const [publishMode, setPublishMode] = useState('matches');
   const [draftSavedAt, setDraftSavedAt] = useState('');
-  const [draftId, setDraftId] = useState(() => localStorage.getItem(DRAFT_ID_KEY) || null);
+  const [draftId, setDraftId] = useState(() => safeStore.get(DRAFT_ID_KEY) || null);
   const [savingDraft, setSavingDraft] = useState(false);
 
   useEffect(() => {
-    const owner = localStorage.getItem(DRAFT_OWNER_KEY);
+    const owner = safeStore.get(DRAFT_OWNER_KEY);
     const foreignDraft = !!(user?.id && owner && owner !== String(user.id));
     if (foreignDraft) {
-      localStorage.removeItem(DRAFT_KEY);
-      localStorage.removeItem(DRAFT_ID_KEY);
-      localStorage.removeItem(DRAFT_OWNER_KEY);
+      safeStore.remove(DRAFT_KEY);
+      safeStore.remove(DRAFT_ID_KEY);
+      safeStore.remove(DRAFT_OWNER_KEY);
       setDraftId(null);
       setForm(initialForm);
     }
-    if (user?.id) localStorage.setItem(DRAFT_OWNER_KEY, String(user.id));
+    if (user?.id) safeStore.set(DRAFT_OWNER_KEY, String(user.id));
 
-    const saved = foreignDraft ? null : localStorage.getItem(DRAFT_KEY);
+    const saved = foreignDraft ? null : safeStore.get(DRAFT_KEY);
     if (saved) {
       try {
         setForm({ ...initialForm, ...JSON.parse(saved) });
       } catch {
-        localStorage.removeItem(DRAFT_KEY);
+        safeStore.remove(DRAFT_KEY);
       }
     }
 
@@ -526,7 +535,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     const resumeId = resumeDraftId || searchParams.get('draft');
     if (!resumeId) return;
     setDraftId(resumeId);
-    localStorage.setItem(DRAFT_ID_KEY, resumeId);
+    safeStore.set(DRAFT_ID_KEY, resumeId);
     axios.get(`${API}/campaigns/${resumeId}`)
       .then(res => {
         const mapped = mapCampaignToForm(res.data);
@@ -548,7 +557,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
     const dupId = duplicateId || searchParams.get('duplicate');
     if (!dupId) return;
     setDraftId(null);
-    localStorage.removeItem(DRAFT_ID_KEY);
+    safeStore.remove(DRAFT_ID_KEY);
     axios.get(`${API}/campaigns/${dupId}`)
       .then(res => {
         const mapped = mapCampaignToForm(res.data);
@@ -566,7 +575,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   }, [searchParams, duplicateId]);
 
   useEffect(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    safeStore.set(DRAFT_KEY, JSON.stringify(form));
     setDraftSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   }, [form]);
 
@@ -812,21 +821,21 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         const code = err?.response?.status;
         if (code !== 403 && code !== 404) throw err;
         setDraftId(null);
-        localStorage.removeItem(DRAFT_ID_KEY);
+        safeStore.remove(DRAFT_ID_KEY);
       }
     }
     const res = await axios.post(`${API}/campaigns/draft`, payload);
     const newId = res.data?.campaign_id || res.data?.id || res.data?._id;
     if (newId) {
       setDraftId(newId);
-      localStorage.setItem(DRAFT_ID_KEY, newId);
-      if (user?.id) localStorage.setItem(DRAFT_OWNER_KEY, String(user.id));
+      safeStore.set(DRAFT_ID_KEY, newId);
+      if (user?.id) safeStore.set(DRAFT_OWNER_KEY, String(user.id));
     }
     return newId;
   };
 
   const saveDraft = async () => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    safeStore.set(DRAFT_KEY, JSON.stringify(form));
     if (savingDraft) return;
     setSavingDraft(true);
     try {
@@ -1063,9 +1072,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
   const clearDraftStorage = () => {
     publishedRef.current = true;   // brief published — don't auto-save on unmount
-    localStorage.removeItem(DRAFT_KEY);
-    localStorage.removeItem(DRAFT_ID_KEY);
-    localStorage.removeItem(DRAFT_OWNER_KEY);
+    safeStore.remove(DRAFT_KEY);
+    safeStore.remove(DRAFT_ID_KEY);
+    safeStore.remove(DRAFT_OWNER_KEY);
     setDraftId(null);
   };
 

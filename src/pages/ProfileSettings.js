@@ -304,6 +304,7 @@ const defaultCompany = {
   billing_address: '',
   city: '',
   state: '',
+  pincode: '',
   kyb_status: 'pending'
 };
 
@@ -1104,6 +1105,7 @@ export default function ProfileSettings() {
             {renderBrandField('Billing Address', company.billing_address, value => setCompany(current => ({ ...current, billing_address: value })), { full: true, textarea: true })}
             {renderBrandField('City', company.city, value => setCompany(current => ({ ...current, city: value })))}
             {renderBrandField('State', company.state, value => setCompany(current => ({ ...current, state: value })), { options: INDIAN_STATES, placeholder: 'Select state' })}
+            {renderBrandField('Pincode', company.pincode, value => setCompany(current => ({ ...current, pincode: String(value || '').replace(/\D/g, '').slice(0, 6) })), { placeholder: '6-digit pincode' })}
           </div>
           <div className="bs-card-actions">
             <button type="button" className="bs-primary dark" onClick={saveCompany} disabled={loading}>{loading ? 'Saving...' : 'Save Company Details'}</button>

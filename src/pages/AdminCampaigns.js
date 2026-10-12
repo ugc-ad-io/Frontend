@@ -84,53 +84,63 @@ export default function AdminCampaigns() {
             <span>All caught up — new submissions will appear here.</span>
           </div>
         ) : (
-          <div className="ac-grid">
-            {pendingCampaigns.map((campaign, i) => (
-              <article
-                key={campaign.id || campaign._id || `campaign-${i}`}
-                className="ac-card"
-                data-testid={`campaign-${campaign.id}`}
-                onClick={() => openModal(campaign)}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="ac-card-head">
-                  <div>
-                    <h3>{campaign.title}</h3>
-                    <small>{brandName(campaign)}</small>
-                  </div>
-                  <span className="ac-badge">{campaign.status.replace('_', ' ')}</span>
-                </div>
-                <div className="ac-card-body">
-                  <div className="ac-fact"><small>Budget</small><strong>₹{campaign.budget_min} - ₹{campaign.budget_max}</strong></div>
-                  <div className="ac-fact"><small>Category</small><strong>{campaign.product_category || campaign.category || '—'}</strong></div>
-                  <div className="ac-fact"><small>Objective</small><strong>{campaign.objectives?.join(', ') || '—'}</strong></div>
-                  <div className="ac-fact"><small>Shipment</small><strong>{campaign.requires_shipment ? 'Required' : 'Not required'}</strong></div>
-                  {campaign.script_provider === 'ugc' && !campaign.script_text && (
-                    <div className="ac-fact ac-fact-warn"><small>Script</small><strong>Needs script — open to add</strong></div>
-                  )}
-                </div>
-                <div className="ac-card-actions">
-                  <button type="button" className="ac-btn-view" title="View full brief" aria-label="View full brief" onClick={(e) => { e.stopPropagation(); openModal(campaign); }}>
-                    <Eye size={18} />
-                  </button>
-                  <button
-                    className="ac-btn ac-btn-approve"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (campaign.script_provider === 'ugc' && !campaign.script_text) { openModal(campaign); return; }
-                      handleApprove(campaign.id);
-                    }}
-                    data-testid={`approve-campaign-${campaign.id}`}
+          <div className="ac-table-wrap">
+            <table className="ac-table">
+              <thead>
+                <tr>
+                  <th>Campaign</th>
+                  <th>Budget</th>
+                  <th>Category</th>
+                  <th>Objective</th>
+                  <th>Shipment</th>
+                  <th>Status</th>
+                  <th className="ac-th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingCampaigns.map((campaign, i) => (
+                  <tr
+                    key={campaign.id || campaign._id || `campaign-${i}`}
+                    data-testid={`campaign-${campaign.id}`}
+                    onClick={() => openModal(campaign)}
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter') openModal(campaign); }}
                   >
-                    <CheckCircle size={18} /> Approve
-                  </button>
-                  <button className="ac-btn ac-btn-reject" onClick={(e) => { e.stopPropagation(); handleReject(campaign.id); }} data-testid={`reject-campaign-${campaign.id}`}>
-                    <XCircle size={18} /> Reject
-                  </button>
-                </div>
-              </article>
-            ))}
+                    <td className="ac-td-title" data-label="Campaign">
+                      <strong>{campaign.title}</strong>
+                      <small>{brandName(campaign)}</small>
+                      {campaign.script_provider === 'ugc' && !campaign.script_text && (
+                        <em className="ac-needs-script">Needs script — open to add</em>
+                      )}
+                    </td>
+                    <td data-label="Budget">₹{campaign.budget_min} - ₹{campaign.budget_max}</td>
+                    <td data-label="Category">{campaign.product_category || campaign.category || '—'}</td>
+                    <td data-label="Objective">{campaign.objectives?.join(', ') || '—'}</td>
+                    <td data-label="Shipment">{campaign.requires_shipment ? 'Required' : 'Not required'}</td>
+                    <td data-label="Status"><span className="ac-badge">{String(campaign.status || '').replace('_', ' ')}</span></td>
+                    <td className="ac-td-actions">
+                      <button type="button" className="ac-btn-view" title="View full brief" aria-label="View full brief" onClick={(e) => { e.stopPropagation(); openModal(campaign); }}>
+                        <Eye size={18} />
+                      </button>
+                      <button
+                        className="ac-btn ac-btn-approve"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (campaign.script_provider === 'ugc' && !campaign.script_text) { openModal(campaign); return; }
+                          handleApprove(campaign.id);
+                        }}
+                        data-testid={`approve-campaign-${campaign.id}`}
+                      >
+                        <CheckCircle size={18} /> Approve
+                      </button>
+                      <button className="ac-btn ac-btn-reject" onClick={(e) => { e.stopPropagation(); handleReject(campaign.id); }} data-testid={`reject-campaign-${campaign.id}`}>
+                        <XCircle size={18} /> Reject
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -216,32 +226,28 @@ export default function AdminCampaigns() {
         .ac-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px 24px; background: white; border-radius: 16px; color: #4a5568; text-align: center; }
         .ac-empty p { margin: 0; font-size: 1.1rem; font-weight: 600; color: #1a202c; }
         .ac-empty span { color: #94a3b8; font-size: 0.9rem; }
-        .ac-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .ac-card { background: white; border: 1px solid #e8ecff; border-left: 4px solid #f59e0b; border-radius: 12px; padding: 15px 17px; display: grid; grid-template-columns: minmax(190px,.75fr) minmax(0,2fr) 260px; align-items: center; gap: 22px; transition: all 0.2s ease; cursor: pointer; min-width: 0; overflow: hidden; }
-        .ac-card:hover { border-color: #c5c5e0; box-shadow: 0 4px 16px rgba(7,7,78,0.08); transform: translateY(-2px); }
-        .ac-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-        .ac-card-head h3 { font-size: 1rem; font-weight: 700; color: #07074e; margin: 0; min-width: 0; overflow-wrap: anywhere; }
-        .ac-card-head small { display: block; margin-top: 4px; color: #718096; font-size: 0.75rem; }
-        .ac-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; flex: none; }
-        .ac-card-body { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; row-gap: 5px; font-size: 0.78rem; color: #4a5568; line-height: 1.4; min-width: 0; }
-        /* wrap long unbroken strings so text never spills out of the card */
-        .ac-card-body p { margin: 0; overflow-wrap: anywhere; word-break: break-word; }
-        .ac-card-body strong { color: #1a202c; font-weight: 600; }
-        .ac-fact { min-width: 0; padding: 8px 10px; border-radius: 8px; background: #f8f9ff; }
-        .ac-fact small { display: block; margin-bottom: 2px; color: #9296ba; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-        .ac-fact strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.76rem; }
-        .ac-fact-warn { background: #fef3c7; }
-        .ac-fact-warn strong { color: #92400e; }
+        .ac-table-wrap { width: 100%; min-width: 0; background: #fff; border: 1px solid #e8ecff; border-radius: 13px; overflow: hidden; }
+        .ac-table { width: 100%; border-collapse: collapse; table-layout: auto; }
+        .ac-table th { text-align: left; padding: 11px 14px; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #9296ba; background: #fafbff; border-bottom: 1px solid #e8ecff; white-space: nowrap; }
+        .ac-table td { padding: 13px 14px; font-size: 0.82rem; color: #1a202c; border-bottom: 1px solid #f0f2fb; vertical-align: middle; overflow-wrap: anywhere; }
+        .ac-table tbody tr { cursor: pointer; border-left: 4px solid #f59e0b; }
+        .ac-table tbody tr:hover { background: #f8f9ff; }
+        .ac-table tbody tr:last-child td { border-bottom: 0; }
+        .ac-td-title strong { display: block; font-size: 0.95rem; font-weight: 700; color: #07074e; }
+        .ac-td-title small { display: block; margin-top: 3px; color: #718096; font-size: 0.75rem; }
+        .ac-needs-script { display: inline-block; margin-top: 6px; font-style: normal; font-size: 0.7rem; font-weight: 700; color: #92400e; background: #fef3c7; padding: 2px 8px; border-radius: 6px; }
+        .ac-th-actions { text-align: right; }
+        .ac-td-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+        .ac-td-actions .ac-btn { flex: 0 0 auto; padding: 9px 13px; }
+        .ac-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
         .ac-script-input { width: 100%; border: 1px solid #dfe3f3; border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 0.9rem; color: #1a202c; resize: vertical; }
         .ac-script-input:focus { outline: none; border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,.14); }
         .ac-script-hint { display: block; margin-top: 6px; color: #92400e; font-size: 0.75rem; }
         .ac-btn-approve:disabled { opacity: .5; cursor: not-allowed; }
         .ac-btn-approve:disabled:hover { background: #dcfce7; color: #166534; }
-        .ac-brief { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .ac-view { grid-column: 1 / -1; width: max-content; display: inline-flex; padding: 0; margin-top: 2px; border: 0; background: transparent; font-family: inherit; font-size: 0.72rem; font-weight: 700; color: #5b6bff; cursor: pointer; }
         .ac-view:hover { color: #07074e; }
         .ac-list { margin: 4px 0 6px; padding-left: 18px; }
-        .ac-card-actions { display: flex; gap: 8px; margin: 0; }
         .ac-btn-view { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #dfe3f3; border-radius: 10px; background: #fff; color: #07074e; cursor: pointer; }
         .ac-btn-view:hover { border-color: #5b6bff; background: #f3f4ff; }
 
@@ -270,13 +276,22 @@ export default function AdminCampaigns() {
         .ac-btn-approve:hover { background: #16a34a; color: #fff; }
         .ac-btn-reject { background: #fee2e2; color: #991b1b; }
         .ac-btn-reject:hover { background: #dc2626; color: #fff; }
-        @media (max-width: 720px) {
-          .ac-container { padding: 20px; }
+        .ac-container { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        @media (max-width: 860px) {
+          .ac-container { padding: 14px 12px 28px; }
           .ac-header { flex-direction: column; align-items: stretch; }
-          .ac-card { grid-template-columns: 1fr; gap: 12px; }
-          .ac-card-head { flex-direction: row; justify-content: space-between; align-items: flex-start; }
-          .ac-card-body { grid-template-columns: 1fr; }
-          .ac-brief,.ac-view { grid-column: auto; }
+          /* Table -> one full-width block per brief; each cell carries its own label. */
+          .ac-table-wrap { border-left: 0; border-right: 0; border-radius: 0; background: transparent; }
+          .ac-table, .ac-table tbody, .ac-table tr, .ac-table td { display: block; width: 100%; box-sizing: border-box; }
+          .ac-table thead { display: none; }
+          .ac-table tbody tr { background: #fff; border-left: 4px solid #f59e0b; border-bottom: 1px solid #e8ecff; padding: 12px 14px; }
+          .ac-table td { border: 0; padding: 5px 0; display: flex; justify-content: space-between; gap: 14px; text-align: right; }
+          .ac-table td::before { content: attr(data-label); flex: none; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #9296ba; text-align: left; padding-top: 2px; }
+          .ac-table td.ac-td-title { display: block; text-align: left; padding-bottom: 8px; }
+          .ac-table td.ac-td-title::before { content: none; }
+          .ac-table td.ac-td-actions { display: flex; flex-wrap: wrap; justify-content: stretch; padding-top: 10px; }
+          .ac-table td.ac-td-actions::before { content: none; }
+          .ac-td-actions .ac-btn { flex: 1 1 110px; }
         }
       `}</style>
     </AdminLayout>

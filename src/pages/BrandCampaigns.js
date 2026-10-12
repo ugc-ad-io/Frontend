@@ -25,6 +25,10 @@ const STATUS = {
   draft: { badge: 'Draft', cls: 'draft', pct: 0 },
   pending_approval: { badge: 'Pending', cls: 'pending', pct: 15 },
   rejected: { badge: 'Rejected', cls: 'draft', pct: 0 },
+  // Admin moderation: an on-hold or banned brief must never read "Live" to the brand.
+  paused: { badge: 'On Hold', cls: 'pending', pct: 0 },
+  banned: { badge: 'Removed', cls: 'draft', pct: 0 },
+  cancelled: { badge: 'Cancelled', cls: 'draft', pct: 0 },
 };
 
 const TABS = [
@@ -33,6 +37,7 @@ const TABS = [
   { key: 'live', label: 'Live', match: (s) => ['active', 'in_progress'].includes(s) },
   { key: 'review', label: 'In Review', match: (s) => s === 'work_submitted' },
   { key: 'completed', label: 'Completed', match: (s) => s === 'completed' },
+  { key: 'hold', label: 'On Hold', match: (s) => s === 'paused' },
   { key: 'rejected', label: 'Rejected', match: (s) => s === 'rejected' },
   { key: 'drafts', label: 'Drafts', match: (s) => s === 'draft' },
 ];
@@ -44,6 +49,7 @@ function subLine(c) {
   if (c.status === 'completed') return `${creators} creators · Completed`;
   if (c.status === 'work_submitted') return `${creators} creators · Submitted`;
   if (c.status === 'pending_approval') return 'Awaiting approval';
+  if (c.status === 'paused') return 'On hold by UGC.ad — contact support for details';
   return `${creators} ${creators === 1 ? 'creator' : 'creators'} · ${creators ? `${creators} bids` : 'No bids yet'}`;
 }
 

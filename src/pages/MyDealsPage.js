@@ -296,7 +296,7 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
   if (isState(deal, 'Received - Content in Progress') || isState(deal, 'Revision Requested') || isState(deal, 'Raw Approved - Edited Video Due')) {
     const stage = uploadStage(deal);
     return {
-      label: submitting ? 'Submitting...' : isState(deal, 'Revision Requested') ? 'Submit Revision' : stage === 'raw' ? 'Submit Raw Video' : stage === 'edited' ? 'Submit Edited Video' : 'Submit Content',
+      label: submitting ? 'Submitting...' : isState(deal, 'Revision Requested') ? 'Submit Revision' : stage === 'raw' || getRequiredAssets(deal).raw_only ? 'Submit Raw Video' : stage === 'edited' ? 'Submit Edited Video' : 'Submit Content',
       disabled: submitting || !canSubmitUploadedAssets(deal, uploads),
       type: 'content'
     };
@@ -405,7 +405,8 @@ function buildDeliverables(deal) {
         : row('Edited video', `Step 2 — after the raw is approved${due(deal.edit_flow.edited_due)}`, last('edited')),
     ];
   }
-  const rows = [{ name: 'Final Video', meta: 'Format: MP4 · Platform: Reels', status: videoMeta, done: latest?.status === 'approved' }];
+  // Raw-only brief: the single file IS the raw video — no "Final Video" + "Raw Footage" pair.
+  const rows = [{ name: required.raw_only ? 'Raw Video' : 'Final Video', meta: required.raw_only ? 'Raw footage · MP4 / MOV' : 'Format: MP4 · Platform: Reels', status: videoMeta, done: latest?.status === 'approved' }];
   if (required.caption_script) rows.push({ name: 'Caption / Script', meta: '.txt / .docx', status: { label: 'Pending', tone: 'warn' }, done: false });
   if (required.thumbnail) rows.push({ name: 'Thumbnail', meta: 'JPG / PNG', status: { label: 'Pending', tone: 'warn' }, done: false });
   if (required.raw_footage) rows.push({ name: 'Raw Footage', meta: 'MP4 / MOV', status: { label: 'Pending', tone: 'warn' }, done: false });
@@ -617,7 +618,7 @@ export default function MyDealsPage() {
     const required = getRequiredAssets(selectedDeal);
     const missing = [];
     const stage = uploadStage(selectedDeal);
-    if (!finalVideoUrl) missing.push(stage === 'raw' ? 'raw video' : stage === 'edited' ? 'edited video' : 'final video');
+    if (!finalVideoUrl) missing.push(stage === 'raw' || required.raw_only ? 'raw video' : stage === 'edited' ? 'edited video' : 'final video');
     if (required.caption_script && !captionUrl) missing.push('caption/script');
     if (required.thumbnail && !thumbnailUrl) missing.push('thumbnail');
     if (required.raw_footage && !rawFootageUrl && !stage) missing.push('raw footage');
@@ -1120,7 +1121,7 @@ export default function MyDealsPage() {
                           <div><small>Courier Partner</small><p>{shipment.courier_partner || shipment.courier_name || 'Not assigned'}</p></div>
                           <div><small>Tracking ID</small><p>{shipment.tracking_id || 'Pending'}</p>{shipment.courier_tracking_url && <a href={shipment.courier_tracking_url} target="_blank" rel="noreferrer" className="lnk">Track Package ↗</a>}</div>
                           <div><small>Status</small><p className="stat">● {shipment.courier_status || 'Pending'}</p></div>
-                          <div><small>Expected Delivery</small><p>{formatDate(shipment.expected_delivery_at)}</p></div>
+                          <div><small>Expected Delivery</small><p>{shipment.expected_delivery_at ? formatDate(shipment.expected_delivery_at) : 'Awaiting courier update'}</p></div>
                         </div>
                       </div>
                     </>
@@ -1404,8 +1405,10 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
         <div className="deal-receipt-grid">
           <p><small>Tracking ID</small>{shipment.courier_tracking_url ? <a href={shipment.courier_tracking_url} target="_blank" rel="noreferrer">{shipment.tracking_id || 'Tracking link'}</a> : <strong>{shipment.tracking_id || 'Not available'}</strong>}</p>
           <p><small>Courier Status</small><strong>{shipment.courier_status || 'Not available'}</strong></p>
-          <p><small>Expected Delivery</small><strong>{formatDate(shipment.expected_delivery_at)}</strong></p>
-          <p><small>Date Received</small><strong>{formatDate(receipt.received_at)}</strong></p>
+          {/* The courier date only exists once the team/courier records it, and "received"
+              only after the creator taps Mark Received — say that, not a bare "Not available". */}
+          <p><small>Expected Delivery</small><strong>{shipment.expected_delivery_at ? formatDate(shipment.expected_delivery_at) : received ? 'Delivered' : 'Awaiting courier update'}</strong></p>
+          <p><small>Date Received</small><strong>{received ? formatDate(receipt.received_at) : 'Not received yet'}</strong></p>
         </div>
       ) : damaged ? (
         <div className="deal-pause-note">Product issue has been reported. Shipping/content workflow is paused until admin resolution.</div>
@@ -1474,6 +1477,7 @@ function ContentSubmission({
   const needsThumbnail = Boolean(required.thumbnail);
   const stage = uploadStage(deal);
   const needsRaw = Boolean(required.raw_footage) && !stage;
+  const rawOnly = Boolean(required.raw_only) && !stage;
   const stageDue = stage === 'raw' ? deal?.edit_flow?.raw_due : stage === 'edited' ? deal?.edit_flow?.edited_due : null;
   const canSubmit = canSubmitUploadedAssets(deal, { finalVideoUrl, captionUrl, thumbnailUrl, rawFootageUrl });
   // Content production only begins once the deal reaches the content stage
@@ -1514,8 +1518,11 @@ function ContentSubmission({
             : `Step 2 of 2: the brand approved your raw video — upload the EDITED video${stageDue ? ` by ${formatDateTime(stageDue)}` : ''}.`}
         </div>
       )}
-      <UploadZone icon={Play} label={stage === 'raw' ? 'Raw Video Upload' : stage === 'edited' ? 'Edited Video Upload' : 'Final Video Upload'} accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB`} uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} progress={uploadingFile === 'video' ? uploadPercent : null} />
+      <UploadZone icon={Play} label={stage === 'raw' || rawOnly ? 'Raw Video Upload' : stage === 'edited' ? 'Edited Video Upload' : 'Final Video Upload'} accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB`} uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} progress={uploadingFile === 'video' ? uploadPercent : null} />
       <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
+      {rawOnly && contentUnlocked && (
+        <div className="deal-locked-note">The brand asked for the raw video only — upload it once and submit. Nothing else is needed.</div>
+      )}
       <div className="deal-asset-grid">
         {needsCaption && (
           <div>
@@ -1534,7 +1541,7 @@ function ContentSubmission({
         {needsRaw && (
           <div>
             <label>Raw Footage Upload</label>
-            <UploadZone icon={Paperclip} label="Raw Footage" accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB`} uploaded={Boolean(rawFootageUrl)} previewUrl={rawFootageUrl} previewType="video" onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} progress={uploadingFile === 'raw' ? uploadPercent : null} />
+            <UploadZone icon={Paperclip} label="Raw Footage" accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB`} uploaded={Boolean(rawFootageUrl)} previewUrl={rawFootageUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('raw-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'raw'} progress={uploadingFile === 'raw' ? uploadPercent : null} />
             <input type="file" id="raw-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setRawFootageUrl, 'raw')} hidden />
           </div>
         )}
@@ -1584,7 +1591,7 @@ function ContentSubmission({
         )}
       </div>
       <button type="button" className="deal-submit" disabled={!canSubmit || submitting} onClick={onSubmit}>
-        <Upload size={17} /> {submitting ? 'Submitting...' : stage === 'raw' ? 'Submit Raw Video' : stage === 'edited' ? 'Submit Edited Video' : 'Submit Delivery'}
+        <Upload size={17} /> {submitting ? 'Submitting...' : stage === 'raw' || rawOnly ? 'Submit Raw Video' : stage === 'edited' ? 'Submit Edited Video' : 'Submit Delivery'}
       </button>
     </DealCard>
   );

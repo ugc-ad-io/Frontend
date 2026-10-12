@@ -55,7 +55,8 @@ export default function MessagesPopup({ onClose }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
-  const [active, setActive] = useState(null); // { id, name, photo }
+  const [active, setActive] = useState(null); // { id, name, photo, dealId?, title? }
+  const [deals, setDeals] = useState([]);        // one chat per campaign/deal
   // A brand sees a creator by FIRST NAME only; a creator keeps the brand's full name.
   const nameOf = (c) => (user?.role === 'business' ? creatorFirstName(c) : displayName(c, 'User'));
 
@@ -75,20 +76,54 @@ export default function MessagesPopup({ onClose }) {
       } catch { /* thread list may be empty / offline */ }
       finally { if (alive) setLoading(false); }
     };
+    // Each campaign gets its own chat; the 1:1 thread merged every campaign together.
+    const loadDeals = async () => {
+      try {
+        const r = await axios.get(`${API}/deals/${user?.role === 'business' ? 'business' : 'my'}`);
+        if (alive) setDeals(Array.isArray(r.data) ? r.data : []);
+      } catch { /* deals are optional here — the people list still works */ }
+    };
     load();
+    loadDeals();
     const t = setInterval(load, 5000);
-    return () => { alive = false; clearInterval(t); };
-  }, []);
+    // Deals are heavier to build server-side, so they refresh far less often.
+    const td = setInterval(loadDeals, 20000);
+    return () => { alive = false; clearInterval(t); clearInterval(td); };
+  }, [user?.role]);
 
   // When a conversation is picked, reuse ChatPopup for the thread view. Its
   // close returns to the list rather than closing the whole launcher.
   if (active) {
-    return <ChatPopup user={active} onClose={() => setActive(null)} />;
+    return <ChatPopup user={active} dealId={active.dealId} title={active.title} onClose={() => setActive(null)} />;
   }
 
-
+  const needle = q.trim().toLowerCase();
+  const isBrand = user?.role === 'business';
+  const campaignRows = deals.map((d) => {
+    const msgs = d.chat_summary?.messages || [];
+    const last = [...msgs].reverse().find((m) => m.sender_type !== 'system') || msgs[msgs.length - 1] || null;
+    const partner = isBrand ? d.creator : d.brand;
+    const partnerName = isBrand
+      ? (String(partner?.name || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator')
+      : String(partner?.name || 'Brand').replace(/^@/, '').trim();
+    return {
+      key: d.deal_id,
+      dealId: d.deal_id,
+      title: d.campaign?.title || 'Campaign',
+      partnerId: partner?.id,
+      partnerName,
+      photo: isBrand ? (partner?.profile_photo || '') : (partner?.logo_url || ''),
+      last,
+      ts: last?.created_at || '',
+      unread: Number(d.unread_count || 0),
+    };
+  }).filter((r) => r.partnerId
+    && `${r.title} ${r.partnerName}`.toLowerCase().includes(needle))
+    .sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+  // People you already have a campaign chat with are shown under that campaign, not again.
+  const dealPartners = new Set(deals.map((d) => String((isBrand ? d.creator : d.brand)?.id || '')));
   const filtered = conversations.filter((c) =>
-    nameOf(c).toLowerCase().includes(q.trim().toLowerCase()));
+    !dealPartners.has(String(c.user_id)) && nameOf(c).toLowerCase().includes(needle));
 
   return (
     <>
@@ -124,10 +159,38 @@ export default function MessagesPopup({ onClose }) {
               </span>
             </div>
           ))
-        ) : filtered.length === 0 ? (
-          <div className="mpop-empty">{conversations.length ? 'No matches' : 'No conversations yet'}</div>
+        ) : filtered.length === 0 && campaignRows.length === 0 ? (
+          <div className="mpop-empty">{conversations.length || deals.length ? 'No matches' : 'No conversations yet'}</div>
         ) : (
-          filtered.map((c) => (
+          <>
+          {campaignRows.length > 0 && <div className="mpop-sec">Campaigns</div>}
+          {campaignRows.map((r) => (
+            <button
+              key={r.key}
+              type="button"
+              className="mpop-item"
+              onClick={() => setActive({ id: r.partnerId, name: r.partnerName, photo: r.photo, dealId: r.dealId, title: r.title })}
+            >
+              <span className="mpop-ava" style={{ background: avatarColor(r.title) }}>
+                {getInitial(r.title)}
+                {assetUrl(r.photo) && (
+                  <img src={assetUrl(r.photo)} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </span>
+              <span className="mpop-body">
+                <span className="mpop-top">
+                  <strong>{r.title}</strong>
+                  <small>{timeAgo(r.ts)}</small>
+                </span>
+                <span className="mpop-prev">
+                  {r.partnerName}{r.last?.message ? ` · ${String(r.last.message).startsWith(ATTACHMENT_MESSAGE_PREFIX) ? 'File attachment' : String(r.last.message).slice(0, 36)}` : ''}
+                </span>
+              </span>
+              {r.unread > 0 && <span className="mpop-badge">{r.unread}</span>}
+            </button>
+          ))}
+          {filtered.length > 0 && campaignRows.length > 0 && <div className="mpop-sec">Direct messages</div>}
+          {filtered.map((c) => (
             <button
               key={c.user_id}
               type="button"
@@ -149,7 +212,8 @@ export default function MessagesPopup({ onClose }) {
               </span>
               {c.unread_count > 0 && <span className="mpop-badge">{c.unread_count}</span>}
             </button>
-          ))
+          ))}
+          </>
         )}
       </div>
 
@@ -168,6 +232,7 @@ export default function MessagesPopup({ onClose }) {
           background:#f5f6fc;border:1px solid #eef0f6;border-radius:12px;color:#9296ba}
         .mpop-search input{flex:1;border:none;background:none;outline:none;font-family:inherit;font-size:13.5px;color:#15163a}
         .mpop-list{flex:1;overflow-y:auto;padding:4px 8px 10px}
+        .mpop-sec{padding:8px 10px 4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#9296ba}
         .mpop-empty{margin:40px 0;text-align:center;color:#9296ba;font-size:13.5px}
         .mpop-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px;border:none;background:none;cursor:pointer;
           border-radius:12px;text-align:left;font-family:inherit;transition:background .15s}

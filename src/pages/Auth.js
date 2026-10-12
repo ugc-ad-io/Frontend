@@ -1165,6 +1165,10 @@ export default function Auth() {
           display: flex;
           justify-content: center;
           min-height: 40px;
+          /* .ap-oauth centres its children, which shrank this empty box to 0px wide, so
+             the width measured before Google renders fell back to 320 — wider than the
+             form on small phones. Full width gives that measurement the real column. */
+          width: 100%;
         }
 
         /* Forgot-password link (login only) */
@@ -1241,7 +1245,8 @@ export default function Auth() {
           grid-template-columns: 1fr 1fr;
           width: 100%;
           max-width: 980px;
-          max-height: calc(100vh - 52px);
+          /* No max-height: capping the shell at the viewport clipped the bottom of the form
+             (Google button, "Sign Up" link) on short laptop screens. The page scrolls instead. */
           background: #f2f3f7;
           border-radius: 26px;
           overflow: hidden;
@@ -1389,6 +1394,60 @@ export default function Auth() {
           font-size: 12px; font-weight: 700; align-items: center; justify-content: center;
         }
 
+        /* The title and description sit on cards painted INTO the hero image (860×1075,
+           drawn with background-size: cover, centred). Percentages of the panel only
+           matched those cards at one panel shape — on a shorter or taller panel the image
+           crops differently and the text slid off its card. Position them in image pixels
+           instead: one image px = --s screen px, image offset by --ox/--oy. Browsers
+           without container units keep the percentage positions above. */
+        @supports (width: 1cqw) {
+          .ap-promo { container-type: size; }
+          .ap-promo-inner {
+            --s: max(calc(100cqw / 860), calc(100cqh / 1075));
+            --ox: calc((100cqw - 860 * var(--s)) / 2);
+            --oy: calc((100cqh - 1075 * var(--s)) / 2);
+          }
+          .ap-shell .ap-promo .ap-promo-title {
+            left: calc(var(--ox) + 100 * var(--s));
+            top: calc(var(--oy) + 107 * var(--s));
+            width: auto;
+            font-size: clamp(13px, calc(31 * var(--s)), 22px);
+          }
+          .ap-shell .ap-promo .ap-promo-text {
+            left: calc(var(--ox) + 450 * var(--s));
+            top: calc(var(--oy) + 795 * var(--s));
+            /* A tall panel (sign-up) crops the image's sides, cutting off the card's right
+               end — wrap inside what is still visible rather than run off the panel. */
+            width: min(calc(355 * var(--s)), calc(100cqw - var(--ox) - 450 * var(--s) - 22px));
+            font-size: clamp(10.5px, calc(22.5 * var(--s)), 15px);
+            line-height: 1.5;
+          }
+        }
+
+        /* Corner logo needs ~210px free beside the card (980px login / 1120px sign-up).
+           Below that it sat on top of the card and the back arrow — put it in the flow,
+           centred above the card. */
+        @media (min-width: 861px) and (max-width: 1539px) {
+          .ap-root { flex-direction: column; }
+          .ap-page-logo { position: static; margin-bottom: 16px; }
+        }
+
+        /* Short laptop screens (720p, 768p, scaled 1080p): tighten vertical spacing so the
+           whole login card fits without scrolling. */
+        @media (min-width: 861px) and (max-height: 760px) {
+          .ap-root { padding: 12px 26px; }
+          .ap-page-logo { margin-bottom: 10px; }
+          .ap-left { padding-top: 18px; padding-bottom: 18px; }
+          .ap-back { margin-bottom: 4px; }
+          .ap-header { margin-bottom: 12px; }
+          .ap-form { gap: 14px; }
+          .ap-oauth { margin-top: 12px; gap: 10px; }
+          .ap-footer { margin-top: 12px; }
+          /* A short panel crops the image so its light card reaches the bottom edge,
+             right where this line sits — drop it rather than print over the card. */
+          .ap-promo-stat { display: none; }
+        }
+
         @media (max-width: 860px) {
           .ap-shell { grid-template-columns: 1fr; max-width: 420px; max-height: none; }
           .ap-promo { display: none; }
@@ -1458,6 +1517,8 @@ export default function Auth() {
            Trimming the padding, icon and label brings min-content under the available width
            so the pair fits side by side instead of overflowing. */
         @media (max-width: 400px) {
+          /* 26px around the card ate 52px of a 360px screen; 16px is the app's phone gutter. */
+          .ap-root { padding: 16px; }
           .ap-left { padding: 24px 18px 26px; }
           .ap-shell.is-signup .ap-left { padding-left: 18px; }
           /* Track the tighter padding above so the arrow keeps sitting on the content's

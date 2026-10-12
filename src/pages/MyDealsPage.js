@@ -936,6 +936,7 @@ export default function MyDealsPage() {
     ['Product description', fb.product_description],
     ['Campaign hook', fb.campaign_hook],
     ['Key message', fb.key_message],
+    ['Video language', fb.language],
     ['Objectives', Array.isArray(fb.objectives) ? fb.objectives.join(', ') : fb.objectives],
     ['Format', [fb.video_format, fb.duration_seconds ? `${fb.duration_seconds} sec` : null, fb.aspect_ratio].filter(Boolean).join(' · ')],
     ['Tone', Array.isArray(fb.tone_tags) ? fb.tone_tags.join(', ') : (fb.tone_reference || fb.tone_tags)],

@@ -92,6 +92,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       ['Hook', c.campaign_hook],
       ['Key message', c.key_message],
       ['Target audience', c.target_audience],
+      ['Video language', c.language],
     ] },
     { h: 'Deliverables', rows: deliverables.map((d, i) => [
       `Deliverable ${i + 1}`,

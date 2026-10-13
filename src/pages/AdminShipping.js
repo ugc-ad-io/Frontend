@@ -9,18 +9,17 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const SLA_TARGET_HOURS = 24; // 24h window from the request to accept + process the shipment
-const DELHIVERY_URL = 'https://one.delhivery.com/'; // V0.5 — labels generated manually in the Delhivery dashboard
 
 const getId = (r) => r?.id || r?.request_id || r?.deal_id;
 const dealId = (r) => r?.deal_id || r?.dealId || r?.deal?.id || getId(r);
 const productSummary = (r) =>
-  r?.product_summary || r?.product || r?.product_name || r?.deal?.product || '—';
+  r?.product_summary || r?.product || r?.product_name || r?.deal?.product || '-';
 const weightDims = (r) => {
   const w = r?.weight || r?.package_weight;
   const d = r?.dimensions || r?.package_dimensions ||
     (r?.length && r?.width && r?.height ? `${r.length}×${r.width}×${r.height}` : '');
   const parts = [w ? `${w}${String(w).match(/[a-z]/i) ? '' : ' kg'}` : '', d ? `${d} cm` : ''].filter(Boolean);
-  return parts.length ? parts.join(' · ') : '—';
+  return parts.length ? parts.join(' · ') : '-';
 };
 const hoursSince = (iso) => {
   if (!iso) return null;
@@ -38,7 +37,6 @@ export default function AdminShipping() {
   const [active, setActive] = useState(null); // request being actioned
   const [courier, setCourier] = useState('');
   const [tracking, setTracking] = useState('');
-  const [expectedDelivery, setExpectedDelivery] = useState('');   // optional; shown to the creator
   const [labelFile, setLabelFile] = useState(null);
   const [working, setWorking] = useState(false);
   const [expandedIds, setExpandedIds] = useState(() => new Set()); // campaign ids showing their per-creator rows
@@ -77,7 +75,7 @@ export default function AdminShipping() {
       return { tone: 'ok', label: 'On time' };
     }
     const h = hoursSince(r.requested_at || r.created_at);
-    if (h == null) return { tone: 'muted', label: '—' };
+    if (h == null) return { tone: 'muted', label: '-' };
     const remaining = SLA_TARGET_HOURS - h;
     // No "breached" alarm in this queue — a request still being worked past its
     // 24h window just reads as "Processing", not a red breach flag.
@@ -90,8 +88,26 @@ export default function AdminShipping() {
     setActive(r);
     setCourier(r.courier || '');
     setTracking(r.tracking_number || '');
-    setExpectedDelivery('');
-    setLabelFile(null);
+    setLabelFile(r.label_url || null);
+  };
+
+  const handleGenerateLabel = async () => {
+    if (!active || working) return;
+    setWorking(true);
+    try {
+      const qs = active.creator_id ? `?creator_id=${encodeURIComponent(active.creator_id)}` : '';
+      const { data } = await axios.post(`${API}/admin/shipping/${getId(active)}/generate-label${qs}`);
+      setTracking(data.tracking_number || '');
+      setCourier(data.courier_name || 'Delhivery');
+      setLabelFile(data.label_url || null);
+      setActive(prev => ({ ...prev, ...data }));
+      toast.success(data.label_url ? 'Delhivery label generated and attached to the Deal Room' : 'Shipment created. Label PDF is not yet available.');
+      fetchRequests();
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Label generation failed'));
+    } finally {
+      setWorking(false);
+    }
   };
 
   const handleLabelUpload = async (file) => {
@@ -124,7 +140,6 @@ export default function AdminShipping() {
       await axios.post(`${API}/admin/shipping/${getId(active)}/ship${qs}`, {
         courier: courier.trim(),
         tracking_number: tracking.trim(),
-        expected_delivery_at: expectedDelivery || undefined,
         label_url: typeof labelFile === 'string' ? labelFile : undefined
       });
       toast.success('Marked as shipped');
@@ -179,11 +194,11 @@ export default function AdminShipping() {
       >
         <td className="ash-mono">{nested ? '' : `#${dealId(r)}`}</td>
         <td className="ash-strong">{nested ? `↳ ${r.creator_handle || r.creator || 'Creator'}` : (r.campaign_title || r.campaign?.title || 'Campaign')}</td>
-        <td>{(r.brand_handle || r.brand || '—')} → {(r.creator_handle || r.creator || '—')}</td>
+        <td>{(r.brand_handle || r.brand || '-')} → {(r.creator_handle || r.creator || '-')}</td>
         <td className="ash-prod" title={productSummary(r)}>{productSummary(r)}</td>
         <td className="ash-dims"><Boxes size={13} /> {weightDims(r)}</td>
         <td className="ash-addr"><MapPin size={13} /> {r.ship_city || r.address?.city || r.shipping_city || 'Hidden until action'}</td>
-        <td>{(r.requested_at || r.created_at) ? new Date(r.requested_at || r.created_at).toLocaleString() : '—'}</td>
+        <td>{(r.requested_at || r.created_at) ? new Date(r.requested_at || r.created_at).toLocaleString() : '-'}</td>
         <td><span className={`ash-sla ${sla.tone}`}>{sla.label}</span></td>
         <td><span className={`ash-badge ${['shipped','in_transit','delivered'].includes(status) ? 'ok' : 'warn'}`}>{status.replace('_', ' ')}</span></td>
         <td>
@@ -224,7 +239,7 @@ export default function AdminShipping() {
 
         <div className="ash-v1note" role="note">
           <Zap size={15} />
-          <span><strong>V1 preview:</strong> Delhivery API integration will auto-generate labels in under 60s — this manual queue stays only for exceptions (missing address fields, oversize packages, restricted items).</span>
+          <span>Generate Delhivery labels from saved shipping details, then mark the shipment shipped after courier pickup.</span>
         </div>
 
         <div className="ash-table-wrap">
@@ -234,7 +249,7 @@ export default function AdminShipping() {
             <div className="ash-empty">
               <Package size={56} />
               <p>No label requests in the queue</p>
-              <span>When a brand requests a manual shipping label it lands here. Target SLA: {SLA_TARGET_HOURS} hours.</span>
+              <span>Shipment requests appear here. Target SLA: {SLA_TARGET_HOURS} hours.</span>
             </div>
           ) : (
             <table className="ash-table">
@@ -264,10 +279,10 @@ export default function AdminShipping() {
                             {first.campaign_title || 'Campaign'}
                           </span>
                         </td>
-                        <td><Users size={13} /> {(first.brand_handle || first.brand || '—')} → {rows.length} creators</td>
+                        <td><Users size={13} /> {(first.brand_handle || first.brand || '-')} → {rows.length} creators</td>
                         <td className="ash-prod" colSpan={2}>{pendingCount} of {rows.length} pending shipment</td>
                         <td className="ash-addr">Multiple</td>
-                        <td>{(first.requested_at || first.created_at) ? new Date(first.requested_at || first.created_at).toLocaleString() : '—'}</td>
+                        <td>{(first.requested_at || first.created_at) ? new Date(first.requested_at || first.created_at).toLocaleString() : '-'}</td>
                         <td><span className={`ash-sla ${sla.tone}`}>{sla.label}</span></td>
                         <td><span className={`ash-badge ${pendingCount === 0 ? 'ok' : 'warn'}`}>{pendingCount === 0 ? 'all shipped' : `${pendingCount} pending`}</span></td>
                         <td className="ash-group-chev">{isOpen ? 'Hide' : 'Show'}</td>
@@ -296,30 +311,31 @@ export default function AdminShipping() {
                 <p><strong>Deal:</strong> #{dealId(active)}</p>
                 <p><strong>Product:</strong> {productSummary(active)}</p>
                 <p><strong>Weight / dims:</strong> {weightDims(active)}</p>
-                <p className="ash-sla-line"><Clock3 size={13} /> Requested {(active.requested_at || active.created_at) ? new Date(active.requested_at || active.created_at).toLocaleString() : '—'} · SLA target {SLA_TARGET_HOURS}h</p>
+                <p className="ash-sla-line"><Clock3 size={13} /> Requested {(active.requested_at || active.created_at) ? new Date(active.requested_at || active.created_at).toLocaleString() : '-'} · SLA target {SLA_TARGET_HOURS}h</p>
               </div>
 
               <div className="ash-addrbox">
                 <span className="ash-internal">Internal only</span>
                 <div className="ash-addrcol">
                   <span className="ash-addrlabel"><MapPin size={12} /> Brand pickup address</span>
-                  <p>{active.pickup_address || active.brand_address || active.brand?.pickup_address || '—'}</p>
+                  <p>{active.pickup_address || active.brand_address || active.brand?.pickup_address || '-'}</p>
                 </div>
                 <div className="ash-addrcol">
                   <span className="ash-addrlabel"><MapPin size={12} /> Creator shipping address</span>
-                  <p>{active.ship_address || active.address?.full || `${active.ship_city || active.shipping_city || ''}` || '—'}</p>
+                  <p>{active.ship_address || active.address?.full || `${active.ship_city || active.shipping_city || ''}` || '-'}</p>
                 </div>
               </div>
 
               <ol className="ash-steps">
-                <li>Generate the label in the Delhivery dashboard using the addresses above.</li>
-                <li>Download the label PDF, then upload it below to attach it to the Deal Room.</li>
+                <li>Generate the Delhivery label using the saved addresses and product details.</li>
+                <li>The tracking number and available label PDF are saved automatically to the Deal Room.</li>
                 <li>The brand is notified automatically once the shipment is marked shipped.</li>
               </ol>
 
-              <a className="ash-shiprocket" href={DELHIVERY_URL} target="_blank" rel="noopener noreferrer">
-                <Truck size={15} /> Generate Delhivery Label <ExternalLink size={13} />
-              </a>
+              <button type="button" className="ash-shiprocket" onClick={handleGenerateLabel} disabled={working}>
+                <Truck size={15} /> {working ? 'Generating...' : 'Generate Delhivery Label'}
+              </button>
+              {typeof labelFile === 'string' && <a className="ash-shiprocket" href={labelFile.startsWith('http') ? labelFile : `${BACKEND_URL}${labelFile}`} target="_blank" rel="noopener noreferrer">Download label <ExternalLink size={13} /></a>}
 
               <label className="ash-field">
                 <span>Shipping label PDF (uploads to Deal Room)</span>
@@ -331,21 +347,13 @@ export default function AdminShipping() {
               </label>
 
               <label className="ash-field">
-                <span>Courier</span>
-                <input value={courier} onChange={(e) => setCourier(e.target.value)} placeholder="e.g. Delhivery, Bluedart" data-testid="ship-courier" />
-              </label>
-              <label className="ash-field">
                 <span>Tracking number</span>
                 <input value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Tracking / AWB number" data-testid="ship-tracking" />
-              </label>
-              <label className="ash-field">
-                <span>Expected delivery <em>(optional — shown to the creator)</em></span>
-                <input type="date" value={expectedDelivery} onChange={(e) => setExpectedDelivery(e.target.value)} data-testid="ship-expected" />
               </label>
             </div>
             <footer className="ash-modal-foot">
               <button className="ash-ghost" onClick={() => setActive(null)}>Cancel</button>
-              <button className="ash-primary" disabled={working} onClick={handleMarkShipped} data-testid="ship-submit">
+              <button className="ash-primary" disabled={working || !tracking.trim() || !courier.trim()} onClick={handleMarkShipped} data-testid="ship-submit">
                 <Truck size={16} /> Mark shipped
               </button>
             </footer>

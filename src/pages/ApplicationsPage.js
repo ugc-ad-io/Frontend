@@ -256,7 +256,6 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
     : [
         ['Phone', phone],
         ['Category', category],
-        ['Languages', [].concat(p.languages || p.language || []).filter(Boolean).join(', ') || '—'],
         ['Location', p.location || p.country || p.city || '—'],
         ['Submitted', formatDateSafe(submitted)],
       ];
@@ -279,7 +278,7 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
         </div>
       </div>
 
-      <div className="apps-row-meta">
+      <div className={`apps-row-meta${cols.length < 5 ? ' apps-row-meta--5' : ''}`}>
         {cols.map(([label, val]) => (
           <div className="apps-meta" key={label}>
             <span className="apps-meta-label">{label}</span>

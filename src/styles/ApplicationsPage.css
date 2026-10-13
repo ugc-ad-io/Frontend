@@ -1671,6 +1671,11 @@
   gap: 14px;
   min-width: 0;
 }
+/* Creator rows have four profile fields + SLA: five even columns, no empty slot.
+   Kept above the responsive rules so they still collapse to 2 / 1 columns. */
+.apps-row-meta--5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
 
 .apps-meta {
   display: flex;

@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import PlanBrief from '../pages/PlanBrief';
 import CreatorProfileModal from './CreatorProfileModal';
 import { findContactInfo } from './RevisionRequestModal';
+import PhotoOrInitial from './PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -159,7 +160,7 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
     <>
     <div className={`cpop ${briefOpen ? 'is-behind' : ''}`}>
       <div className="cpop-head">
-        <span className="cpop-ava">{photo ? <img src={photo} alt="" /> : initial(peerName)}</span>
+        <span className="cpop-ava"><PhotoOrInitial src={photo} initial={initial(peerName)} /></span>
         <div className="cpop-head-id">
           <strong>{title || peerName}</strong>
           {title

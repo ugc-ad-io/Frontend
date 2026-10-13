@@ -9,6 +9,7 @@ import { creatorFirstName } from '../utils/displayName';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
+import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -242,7 +243,7 @@ export default function BrandReviewsPage() {
                         onKeyDown={(e) => { if (creatorId && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openProfile(); } }}
                         title={creatorId ? `View ${creatorName}'s profile` : undefined}
                       >
-                        {photo ? <img src={photo} alt="" /> : creatorName.charAt(0).toUpperCase()}
+                        <PhotoOrInitial src={photo} initial={creatorName.charAt(0).toUpperCase()} />
                       </span>
                       <div className="cmk-rr-main">
                         <div className="cmk-rr-top">

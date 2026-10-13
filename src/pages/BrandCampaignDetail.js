@@ -24,6 +24,7 @@ import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
 import { creatorFirstName } from '../utils/displayName';
+import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -801,7 +802,7 @@ export default function BrandCampaignDetail() {
                         </div>
                       )}
                       <div className="bwr-by">
-                        <span className="bwr-by-ava">{photo ? <img src={photo} alt="" /> : '@'}</span>
+                        <span className="bwr-by-ava"><PhotoOrInitial src={photo} initial="@" /></span>
                         by <b>{creatorLabel}</b>
                         <i className="bwr-by-dot" />
                         <Calendar size={14} /> Submitted on {fmtDate(ws.submitted_at)}

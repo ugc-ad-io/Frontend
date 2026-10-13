@@ -5,6 +5,7 @@ import ChatPopup from '../components/ChatPopup';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { firstName } from '../utils/displayName';
+import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -84,7 +85,7 @@ function CreatorCard({ c, onMessage }) {
       </article>
       <button type="button" className="bo-cre-send" onClick={() => onMessage(c)}>
         <span className="bo-cre-msg-ava">
-          {photo ? <img src={photo} alt="" /> : initial(c)}
+          <PhotoOrInitial src={photo} initial={initial(c)} />
           <i />
         </span>
         <span>Message {creatorName(c).replace('@', '')}</span>

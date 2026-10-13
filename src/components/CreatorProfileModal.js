@@ -8,6 +8,7 @@ import { useAuth } from '../App';
 import { creatorName, brandName, creatorFirstName } from '../utils/displayName';
 import { X, Play, MessageSquare, ChevronLeft, Bookmark, User, MapPin, Sparkles, Clapperboard, Wallet, Pencil, Plus, Trash2, Camera, Check, Star, BadgeCheck } from 'lucide-react';
 import { CONTENT_CATEGORIES, NICHE_CATEGORIES } from '../constants/contentCategories';
+import PhotoOrInitial from './PhotoOrInitial';
 
 const STYLE_VALUES = new Set(CONTENT_CATEGORIES.map((o) => o.value));
 const NICHE_VALUES = new Set(NICHE_CATEGORIES.map((o) => o.value));
@@ -820,7 +821,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         <div className={`cpm-phead ${editable ? 'is-editable' : ''}`}>
           <div className="cpm-avatar-wrap">
             <span className={`cpm-avatar-lg ${editable ? 'is-editable' : ''}`} onClick={editable ? () => photoRef.current?.click() : undefined}>
-              {avatar ? <img src={avatar} alt="" /> : (loading ? null : name.replace('@', '').charAt(0).toUpperCase())}
+              <PhotoOrInitial src={avatar} initial={loading ? null : name.replace('@', '').charAt(0).toUpperCase()} />
             </span>
             {editable && <button type="button" className="cpm-avatar-cam" onClick={() => photoRef.current?.click()} aria-label="Change photo"><Camera size={16} /></button>}
             {editable && <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />}
@@ -919,7 +920,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         {!editable && (
           <div className={`cpm-fixedhead ${stuck ? 'is-shown' : ''}`} aria-hidden={!stuck}>
             <span className="cpm-sh-ava">
-              {avatar ? <img src={avatar} alt="" /> : name.replace('@', '').charAt(0).toUpperCase()}
+              <PhotoOrInitial src={avatar} initial={name.replace('@', '').charAt(0).toUpperCase()} />
             </span>
             <div className="cpm-sh-id">
               <strong>

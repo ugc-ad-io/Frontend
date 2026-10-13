@@ -22,6 +22,7 @@ import ShipmentTracking from './ShipmentTracking';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
 import '../styles/creator-marketplace.css';
+import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -2395,7 +2396,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                               <tr key={c.id} data-testid={`shipment-${c.id}`}>
                                 <td>
                                   <span className="ship-cr">
-                                    <span className="ship-ava">{photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt="" /> : cinit(c)}</span>
+                                    <span className="ship-ava"><PhotoOrInitial src={photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : ''} initial={cinit(c)} /></span>
                                     {cname(c)}
                                   </span>
                                 </td>

@@ -17,6 +17,7 @@ import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
+import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -365,7 +366,7 @@ export default function BrandWorkReview() {
                       </div>
                     )}
                     <div className="bwr-by">
-                      <span className="bwr-by-ava">{it.photo ? <img src={assetUrl(it.photo)} alt="" /> : '@'}</span>
+                      <span className="bwr-by-ava"><PhotoOrInitial src={it.photo ? assetUrl(it.photo) : ''} initial="@" /></span>
                       by <b>{handleLabelSafe(it.creator)}</b>
                       <i className="bwr-by-dot" />
                       <Calendar size={14} /> Submitted on {fmtDate(it.submittedAt)}

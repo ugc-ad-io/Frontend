@@ -13,6 +13,7 @@ import { creatorFirstName } from '../utils/displayName';
 import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
 import { toast } from 'sonner';
 import { s3Preview } from '../utils/mediaPreview';
+import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -310,7 +311,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
 
       <div className="bc-meta">
         <button type="button" className="bc-ava bc-ava-btn" onClick={() => onView(c)} aria-label="View profile">
-          {assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}
+          <PhotoOrInitial src={assetUrl(c.profile_photo)} initial={initialOf(c)} />
         </button>
         <div className="bc-name">
           <button type="button" className="bc-name-btn" onClick={() => onView(c)}>
@@ -472,7 +473,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
         )}
         <div className="bcq-body">
           <div className="bcq-head">
-            <span className="bcq-ava">{assetUrl(c.profile_photo) ? <img src={assetUrl(c.profile_photo)} alt="" /> : initialOf(c)}</span>
+            <span className="bcq-ava"><PhotoOrInitial src={assetUrl(c.profile_photo)} initial={initialOf(c)} /></span>
             <div className="bcq-id">
               <div className="bcq-name-row">
                 <strong>{name}</strong>

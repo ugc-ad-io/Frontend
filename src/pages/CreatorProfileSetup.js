@@ -95,6 +95,7 @@ export default function CreatorProfileSetup() {
     contentCategories: [],
     videoName: '', videoPreview: '', videoUrl: '',
     pfCategory: '', pfPrice: '', pfDelivery: '',
+    rawPayout: '', editingPayout: '',
     portfolio: [], // saved video cards: { id, category, price, delivery, videoUrl }
     links: { youtube: '', linkedin: '', instagram: '', tiktok: '' },
   });
@@ -124,6 +125,8 @@ export default function CreatorProfileSetup() {
       contentCategories: pickKnown(pr.content_categories || pr.niche || pr.primary_category, nicheVals),
       videoUrl: pr.intro_video || d.videoUrl,
       videoPreview: pr.intro_video || d.videoPreview,
+      rawPayout: String(pr.rate_card?.raw_payout || pr.rate_card?.expected_payout || ''),
+      editingPayout: String(pr.rate_card?.editing_payout || ''),
       portfolio: Array.isArray(pr.portfolio_items) && pr.portfolio_items.length
         ? pr.portfolio_items.map((it, i) => ({
             id: i + 1, category: it.category || '', price: it.price || '', delivery: it.delivery || '',
@@ -235,6 +238,7 @@ export default function CreatorProfileSetup() {
     contentStyles: data.contentStyles.length > 0,
     contentCategories: data.contentCategories.length > 0,
     portfolio: data.portfolio.length > 0,
+    rawPayout: Number(data.rawPayout) > 0,
     links: linksFilled && linksValid,
   };
   const err = (k) => showErrors && !checks[k];
@@ -276,6 +280,7 @@ export default function CreatorProfileSetup() {
           ...Object.fromEntries(Object.entries(data.links).filter(([, v]) => v.trim())),
           ...Object.fromEntries(extraLinks.filter((l) => l.url.trim()).map((l, i) => [`link_${i + 1}`, l.url.trim()])),
         },
+        rate_card: { raw_payout: data.rawPayout, expected_payout: data.rawPayout, editing_payout: data.editingPayout || 0 },
         receive_briefs: true,
         terms_agreed: true,
       });
@@ -501,6 +506,14 @@ export default function CreatorProfileSetup() {
               <div className="ps-note"><Info size={15} /> You can edit this anytime from your profile settings.</div>
             </div>
 
+            <div className="ps-field">
+              <label className="ps-label" htmlFor="raw-payout">Raw video payout per video (₹)</label>
+              <input id="raw-payout" className="ps-input" type="number" min="1" required value={data.rawPayout} onChange={e => set('rawPayout', e.target.value)} />
+            </div>
+            <div className="ps-field">
+              <label className="ps-label" htmlFor="editing-payout">Additional editing payout per video (₹)</label>
+              <input id="editing-payout" className="ps-input" type="number" min="0" value={data.editingPayout} onChange={e => set('editingPayout', e.target.value)} />
+            </div>
             <div className="ps-actions">
               <button type="submit" className="ps-btn-primary" disabled={submitting || photoUploading || videoUploading}>
                 {submitting ? <><span className="ps-spin" /> Submitting…</> : <>Submit Profile <ArrowRight size={18} /></>}

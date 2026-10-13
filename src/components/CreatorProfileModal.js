@@ -400,7 +400,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       coreSetup: Array.isArray(pr.coreSetup) ? pr.coreSetup : [], appearIn: Array.isArray(pr.appearIn) ? pr.appearIn : [], bring: pr.bring || '',
       weekly: pr.weekly || (pr.availability_calendar && pr.availability_calendar.weekly) || '',
       flexible: !!pr.flexible, topics: Array.isArray(pr.topics) ? pr.topics : [],
-      expectedPayout: (pr.rate_card && pr.rate_card.expected_payout) || pr.expectedPayout || '',
+      expectedPayout: pr.rate_card?.raw_payout || pr.rate_card?.expected_payout || pr.expectedPayout || '',
+      editingPayout: pr.rate_card?.editing_payout || '',
       payoutPeriod: (pr.rate_card && pr.rate_card.payout_period) || pr.payoutPeriod || '',
       budgetRange: data.budget_range || pr.budget_range || '',
       deliveryDays: String(pr.delivery_days || (pr.rate_card && pr.rate_card.delivery_days) || ''),
@@ -556,6 +557,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         rate_card: {
           ...(pr.rate_card || {}),
           expected_payout: form.expectedPayout,
+          raw_payout: form.expectedPayout,
+          editing_payout: form.editingPayout || 0,
           payout_period: form.payoutPeriod,
           delivery_days: form.deliveryDays ? Number(form.deliveryDays) : '',
         },
@@ -1025,7 +1028,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
                     <h5 className="cpm-ef-sec">Pricing &amp; Delivery</h5>
                     <div className="cpm-ef-grid">
-                      <label>Expected Payout<input {...fld('expectedPayout')} /></label>
+                      <label>Raw video payout per video (₹)<input type="number" min="1" {...fld('expectedPayout')} /></label><label>Additional editing payout per video (₹)<input type="number" min="0" {...fld('editingPayout')} /></label>
                       <label>Payout Period<input value="Per Video" readOnly /></label>
                       <label>
                         Typical Delivery (days) *

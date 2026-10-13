@@ -257,6 +257,7 @@ const initialForm = {
   finalDeliveryBy: '',
   budgetMode: 'fixed',
   fixedBudget: '',
+  editingFee: '',
   budgetMin: '',
   budgetMax: '',
   creatorLevel: '',
@@ -401,6 +402,7 @@ function mapCampaignToForm(c) {
     out.creatorsWanted = Math.max(1, Number(c.creators_wanted) || 1);
   }
   const bMin = Number(c.budget_min || 0);
+  out.editingFee = String(c.editing_fee_per_video || '');
   const bMax = Number(c.per_video_budget || c.budget_max || 0);
   if (bMax > 0) {
     if (bMin && bMin !== bMax) {
@@ -437,6 +439,25 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   const [subStep, setSubStep] = useState(0);
   const [reviewTab, setReviewTab] = useState(0);   // active section on Review & Publish
   const [form, setForm] = useState(initialForm);
+  const privateCreatorId = embeddedCreatorId || searchParams.get('creator');
+  const [privateRates, setPrivateRates] = useState(null);
+  useEffect(() => {
+    if (!privateCreatorId) return;
+    let active = true;
+    setPrivateRates(null);
+    axios.get(`${API}/profile/${encodeURIComponent(privateCreatorId)}`).then(({ data }) => {
+      const profile = data.profile || data;
+      const rates = profile.rate_card || {};
+      const flat = Number(String(rates.raw_payout || rates.expected_payout || profile.expectedPayout || '').replace(/[^0-9.]/g, ''));
+      const samples = data.portfolio || profile.portfolio_items || profile.portfolio || [];
+      const prices = (Array.isArray(samples) ? samples : []).map(sample => Number(sample?.price || sample?.price_per_video || 0)).filter(price => price > 0);
+      const raw = flat || (prices.length ? Math.min(...prices) : 0);
+      if (!active) return;
+      setPrivateRates({ raw, editing: Number(rates.editing_payout || 0) });
+      setForm(current => ({ ...current, creatorsWanted: 1, budgetMode: 'fixed', fixedBudget: String(raw || ''), editingFee: String(rates.editing_payout || 0) }));
+    }).catch(() => { if (active) toast.error('Unable to load creator rates. Reopen the brief to retry.'); });
+    return () => { active = false; };
+  }, [privateCreatorId]);
   // Name pulled from the brand profile; kept in a ref so the draft-resume effect
   // can re-assert it over anything an older draft saved.
   const brandFromProfile = useRef('');
@@ -603,8 +624,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   // `budget` is the per-creator figure (what one creator is paid) — it feeds the
   // per_video_budget / budget_max payload fields. The wallet holds it for EVERY
   // creator the brief hires, so the money shown on hold multiplies by that count.
-  const budget = Number(form.budgetMode === 'fixed' ? form.fixedBudget : form.budgetMax) || 0;
-  const creatorsCount = Math.max(1, Number(form.creatorsWanted) || 1);
+  const budget = privateCreatorId ? (privateRates?.raw || 0) : Number(form.budgetMode === 'fixed' ? form.fixedBudget : form.budgetMax) || 0;
+  const creatorsCount = privateCreatorId ? 1 : Math.max(1, Number(form.creatorsWanted) || 1);
   // Total assets the brief asks for = sum of every deliverable row's quantity. Same
   // count the backend uses for escrow, so the fee tier shown here matches the debit.
   const totalDeliverables = form.deliverables.reduce((sum, item) => sum + Math.max(1, Number(item.quantity) || 1), 0);
@@ -612,7 +633,10 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
   // (campaign_slot_budget x creators_wanted). Leaving out the quantity understated
   // the hold, e.g. Rs. 5,000 x 3 videos showed Rs. 5,000 but Rs. 15,000 was held.
   const totalVideos = totalDeliverables * creatorsCount;
-  const totalBudget = budget * totalVideos;
+  const editedQuantity = form.deliverables.reduce((sum, item) => sum + (item.editedRequired && item.editedBy !== 'ugc' ? Number(item.quantity) || 1 : 0), 0);
+  const editingRate = privateCreatorId ? (privateRates?.editing || 0) : Math.max(0, Number(form.editingFee) || 0);
+  const editingTotal = editingRate * editedQuantity * creatorsCount;
+  const totalBudget = budget * totalVideos + editingTotal;
   const commission = Math.round(totalBudget * COMMISSION_RATE); // commission on the overall total
   // Only a deliverable that needs an edited cut has a separate "final" hand-off.
   // Two dates only when the CREATOR edits: raw first, then the edited cut after the raw is
@@ -970,7 +994,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       `Creator targeting: level ${form.creatorLevel}; quality ${form.qualityTier}; gender ${form.genderPreference}; city ${form.cityFilter}; niches ${form.nicheTags.join(', ') || 'none'}`,
       `Timeline: ${needsShipping ? `ship by ${form.productShippingBy}; ` : ''}${anyEdited ? 'raw video' : 'delivery'} by ${form.draftDeliveryBy}; revisions ${form.revisions}${anyEdited ? `; edited video by ${form.finalDeliveryBy}` : ''}`,
       `Budget: ${form.budgetMode === 'fixed' ? `fixed Rs. ${form.fixedBudget}` : `range Rs. ${form.budgetMin} - Rs. ${form.budgetMax}`}`,
-      `Commission: platform 20%, total wallet debit Rs. ${totalDebit} (Rs. ${budget} per video x ${totalVideos} videos), each creator receives Rs. ${budget * totalDeliverables} pre-tax`
+      `Commission: platform 20%, total wallet debit Rs. ${totalDebit} (Rs. ${budget} per raw video x ${totalVideos} videos, editing Rs. ${editingTotal}), each creator receives Rs. ${budget * totalDeliverables + editingTotal / creatorsCount} pre-tax`
     ].join('\n');
   };
 
@@ -1014,6 +1038,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       city_filter: form.cityFilter,
       creator_niche_tags: form.nicheTags,
       per_video_budget: budget,
+      editing_fee_per_video: editingRate,
+      ...(privateCreatorId ? { selected_creator: privateCreatorId, visibility: 'private', creators_wanted: 1 } : {}),
       total_budget: totalBudget,
       currency: 'INR',
 
@@ -1080,15 +1106,16 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
   const publish = async () => {
     try {
+      if (privateCreatorId && (!privateRates || privateRates.raw <= 0)) { toast.error('The creator must set their raw video rate before sending a brief.'); return; }
       setSubmitting(true);
 
       // Direct brief for a creator who accepted a private invitation: skip the
       // matches/approval path — publish straight to a deal with that creator.
       const directCreator = embeddedCreatorId || searchParams.get('creator');
       if (directCreator) {
-        await axios.post(`${API}/campaigns`, { ...buildPayload(), selected_creator: directCreator });
+        await axios.post(`${API}/campaigns`, { ...buildPayload(), selected_creator: directCreator, visibility: 'private', status: 'pending_approval' });
         clearDraftStorage();
-        toast.success('Brief sent — the deal has started with the creator');
+        toast.success('Private brief submitted for approval');
         if (onPublished) onPublished(); else navigate('/dashboard/business');
         return;
       }
@@ -1508,11 +1535,14 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   </small>
                 </div>
                 <div className="form-group"><label>Budget per video *</label><div className="brief-segment"><button className={form.budgetMode === 'fixed' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'fixed')}>Fixed amount</button><button className={form.budgetMode === 'range' ? 'active' : ''} type="button" onClick={() => set('budgetMode', 'range')}>Range</button></div><small>This is the amount for ONE video. The total for all videos, the 20% commission and the listing fee are added up below.</small></div>
-                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
+                {form.budgetMode === 'fixed' ? <div className="form-group"><label>Budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" readOnly={Boolean(privateCreatorId)} value={form.fixedBudget} onKeyDown={blockNonDigitKey} onChange={e => set('fixedBudget', digitsOnly(e.target.value))} /></div> : <div className="form-row"><div className="form-group"><label>Min budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMin} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMin', digitsOnly(e.target.value))} /></div><div className="form-group"><label>Max budget per video (Rs.)</label><input className="input-field" type="text" inputMode="numeric" value={form.budgetMax} onKeyDown={blockNonDigitKey} onChange={e => set('budgetMax', digitsOnly(e.target.value))} /></div></div>}
                 <div className="commission-card">
+                  {editedQuantity > 0 && <div className="form-group"><label>Additional editing payout per video (₹)</label><input className="input-field" type="number" min="0" readOnly={Boolean(privateCreatorId)} value={form.editingFee} onChange={e => set('editingFee', digitsOnly(e.target.value))} /></div>}
+                  <p>Raw videos: Rs. {budget.toLocaleString('en-IN')} × {totalDeliverables} videos × {creatorsCount} creator(s)</p>
+                  {editedQuantity > 0 && <p>Creator editing: Rs. {Number(form.editingFee || 0)} × {editedQuantity} videos × {creatorsCount} creator(s) <strong>Rs. {editingTotal.toLocaleString('en-IN')}</strong></p>}
                   <p>Budget per video <strong>Rs. {budget.toLocaleString('en-IN')}</strong></p>
                   {totalVideos > 1 && <p>Total videos ({totalDeliverables} per creator × {creatorsCount} creator{creatorsCount === 1 ? '' : 's'}) <strong>{totalVideos}</strong></p>}
-                  <p>Total budget{totalVideos > 1 ? ` (${budget.toLocaleString('en-IN')} × ${totalVideos})` : ''} <strong>Rs. {totalBudget.toLocaleString('en-IN')}</strong></p>
+                  <p>Total creator budget (raw videos + editing) <strong>Rs. {totalBudget.toLocaleString('en-IN')}</strong></p>
                   <p>Platform commission (20%) <strong>Rs. {commission.toLocaleString('en-IN')}</strong></p>
                   <p>Listing fee (one-time) <strong>Rs. {listingFee.toLocaleString('en-IN')}</strong></p>
                   <p>Total wallet debit <strong>Rs. {totalDebit.toLocaleString('en-IN')}</strong></p>
@@ -1530,7 +1560,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 { title: 'Style Guidance', rows: [['Tone', form.tones.join(', ')], ['Pacing', form.pacing], ['Mood board images', form.moodImages.join(', ') || 'None'], ['Reference videos', referenceVideos], ['Music preference', form.musicPreference], ['Note', 'Guidance only; not grounds for dispute.']] },
                 { title: 'Usage Rights', rows: [['Platforms', form.platforms.join(', ')], ['Rights duration', form.rightsDuration], ['Exclusivity', form.exclusivity], ['Whitelisting', form.whitelisting ? 'Yes' : 'No'], ['Modification', form.modificationRights]] },
                 { title: 'Creator Targeting', rows: [['Minimum level', form.creatorLevel], ['Quality tier', form.qualityTier], ['Gender preference', form.genderPreference], ['City filter', form.cityFilter], ['Niche tags', form.nicheTags.join(', ') || 'None']] },
-                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), [anyEdited ? 'Raw video by' : 'Delivery by', form.draftDeliveryBy], ['Revisions included', form.revisions], ...(anyEdited ? [['Edited video by', form.finalDeliveryBy]] : []), ['Budget per video', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Creators wanted', `${creatorsCount}`], ['Total videos', `${totalVideos}`], ['Total budget', `Rs. ${totalBudget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
+                { title: 'Timeline & Budget', rows: [...(needsShipping ? [['Ship by', form.productShippingBy]] : []), [anyEdited ? 'Raw video by' : 'Delivery by', form.draftDeliveryBy], ['Revisions included', form.revisions], ...(anyEdited ? [['Edited video by', form.finalDeliveryBy]] : []), ['Budget per video', form.budgetMode === 'fixed' ? `Rs. ${budget.toLocaleString('en-IN')}` : `Rs. ${Number(form.budgetMin || 0).toLocaleString('en-IN')} - Rs. ${budget.toLocaleString('en-IN')}`], ['Creators wanted', `${creatorsCount}`], ['Total videos', `${totalVideos}`], ['Raw video total', `Rs. ${(budget * totalVideos).toLocaleString('en-IN')}`], ...(editedQuantity > 0 ? [['Creator editing total', `Rs. ${editingTotal.toLocaleString('en-IN')}`]] : []), ['Total budget', `Rs. ${totalBudget.toLocaleString('en-IN')}`], ['Platform commission', `Rs. ${commission.toLocaleString('en-IN')}`], ['Listing fee', `Rs. ${listingFee.toLocaleString('en-IN')}`], ['Total wallet debit', `Rs. ${totalDebit.toLocaleString('en-IN')}`]] },
               ];
               const activeIdx = Math.min(reviewTab, reviewSections.length - 1);
               const active = reviewSections[activeIdx];
@@ -1559,7 +1589,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
               {step < 8 ? (
                 <button type="button" className="btn-primary" onClick={() => { if (subStep < subs.length - 1) setSubStep(s => s + 1); else goNext(); }}>Next <ChevronRight size={18} /></button>
               ) : (embeddedCreatorId || searchParams.get('creator')) ? (
-                <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}><Send size={16} /> Publish & Start Deal</button>
+                <button type="button" className="btn-primary" onClick={() => setShowConfirm(true)} disabled={submitting}><Send size={16} /> Submit Private Brief</button>
               ) : (
                 <button type="button" className="btn-primary" onClick={() => { setPublishMode('matches'); setShowConfirm(true); }} disabled={submitting}><Send size={16} /> Publish Campaign</button>
               )}
@@ -1577,7 +1607,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
               <strong>Rs. {totalDebit.toLocaleString('en-IN')} will be placed ON HOLD</strong> in your wallet, locked in secure escrow — this money is <strong>held, not spent</strong>.
             </p>
             <p className="brief-hold-breakdown">
-              Rs. {budget.toLocaleString('en-IN')} per video{totalVideos > 1 ? ` × ${totalVideos} videos = Rs. ${totalBudget.toLocaleString('en-IN')}` : ''}
+              Rs. {budget.toLocaleString('en-IN')} per raw video × {totalVideos} videos = Rs. {(budget * totalVideos).toLocaleString('en-IN')}
+              {editedQuantity > 0 && <> + Rs. {editingTotal.toLocaleString('en-IN')} creator editing</>}
               {' '}+ Rs. {commission.toLocaleString('en-IN')} platform commission (20%) + Rs. {listingFee.toLocaleString('en-IN')} listing fee.
             </p>
             <div>

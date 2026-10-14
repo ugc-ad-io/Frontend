@@ -14,6 +14,7 @@ export default class AppErrorBoundary extends Component {
         <h1>UGCad.io</h1>
         <p>This page could not load. Please try again.</p>
         <button type="button" onClick={() => window.location.reload()}>Retry loading page</button>
+        <p><a href="/">Go to home</a></p>
       </main>
     );
     return this.props.children;

@@ -40,9 +40,9 @@ export default function Loader({ fullscreen = true, size = 120, label }) {
         playsInline
         style={{ width: size, height: size, objectFit: 'contain' }}
       />
-      {label && (
+      {(
         <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>
-          {label}
+          {label || 'Loading...'}
         </span>
       )}
     </div>

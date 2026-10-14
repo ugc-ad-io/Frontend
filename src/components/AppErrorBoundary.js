@@ -1,0 +1,17 @@
+import { Component } from 'react';
+
+export default class AppErrorBoundary extends Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error) { console.error('Website failed to load', error); }
+  render() {
+    if (this.state.failed) return (
+      <main role="alert" style={{ padding: 32, textAlign: 'center', fontFamily: 'sans-serif' }}>
+        <h1>UGCad.io</h1>
+        <p>This page could not load. Please try again.</p>
+        <button type="button" onClick={() => window.location.reload()}>Retry loading page</button>
+      </main>
+    );
+    return this.props.children;
+  }
+}

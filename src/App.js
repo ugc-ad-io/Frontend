@@ -1,4 +1,5 @@
-import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
+import { useState, useEffect, createContext, useContext, Suspense } from 'react';
+import lazy from './lib/retryLazy';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
@@ -213,7 +214,7 @@ function AuthProvider({ children }) {
   useLiveEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get(`${API}/auth/me`)
+      axios.get(`${API}/auth/me`, { timeout: 15000 })
         .then(res => {
           setUser(res.data);
         })
@@ -269,7 +270,7 @@ function AuthProvider({ children }) {
     setUser(null);
   };
 
-  if (loading) {
+  if (loading && pathname !== '/' && pathname !== '/auth') {
     return <Loader />;
   }
 

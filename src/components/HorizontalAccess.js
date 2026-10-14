@@ -8,7 +8,7 @@ export default function HorizontalAccess() {
   const [position, setPosition] = useState(0);
   const [maximum, setMaximum] = useState(0);
   useEffect(() => {
-    if (!pathname.startsWith('/dashboard/admin') && !pathname.includes('browse-creator')) return;
+    if (!pathname.startsWith('/dashboard/admin')) return;
     let active;
     const candidates = () => {
       const found = new Set();
@@ -45,7 +45,7 @@ export default function HorizontalAccess() {
       document.removeEventListener('pointerover', choose);
     };
   }, [pathname]);
-  if (!target || !maximum) return null;
+  if (!pathname.startsWith('/dashboard/admin') || !target || !maximum) return null;
   const move = value => { target.scrollLeft = value; setPosition(target.scrollLeft); };
   return <div className="horizontal-access" aria-label="Horizontal scrolling" style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 1200, display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 32px)', padding: '10px 14px', borderRadius: 12, background: '#fff', border: '1px solid #dfe3ee', boxShadow: '0 4px 20px #0002' }}>
     <button type="button" aria-label="Scroll left" onClick={() => move(position - 240)}>←</button>

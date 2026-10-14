@@ -696,10 +696,9 @@ export default function AdminDashboard() {
       <AdminSidebar activeTab={activeTab} onTabClick={handleAdminTabClick} user={user} />
 
       <main className="admin-main">
-      <AdminTopbar />
+      <AdminTopbar showDashboardBack={activeTab !== 'stats'} />
 
       <div className="dashboard-content">
-        {activeTab !== 'stats' && <button type="button" className="btn-secondary" onClick={() => navigate('/dashboard/admin')}>← Back to dashboard</button>}
         {(() => {
           const titles = {
             stats: ['Overview', 'A snapshot of the platform.'],

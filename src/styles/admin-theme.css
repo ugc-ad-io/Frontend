@@ -515,6 +515,22 @@
   z-index: 20;
 }
 .admin-dashboard .admin-user { position: relative; }
+.admin-dashboard .admin-dashboard-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ad-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.admin-dashboard .admin-dashboard-back:hover { text-decoration: underline; }
+.admin-dashboard .admin-dashboard-back:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 .admin-dashboard .admin-user-btn {
   display: flex;
   align-items: center;

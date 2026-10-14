@@ -48,10 +48,9 @@ function AdminLayout({ children }) {
       <AdminSidebar activeTab={activeTab} onTabClick={handleTabClick} user={user} mobileOpen={navOpen} onClose={() => setNavOpen(false)} />
 
       <main className="admin-main">
-        <AdminTopbar onMenuToggle={() => setNavOpen((v) => !v)} />
+        <AdminTopbar onMenuToggle={() => setNavOpen((v) => !v)} showDashboardBack />
 
         <div className="dashboard-content">
-          <button type="button" className="btn-secondary" onClick={() => navigate('/dashboard/admin')}>← Back to dashboard</button>
           {(() => {
             const titles = {
               applications: ['Applications',   'Creator, brand applications and profile approvals'],

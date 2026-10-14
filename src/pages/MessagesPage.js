@@ -111,7 +111,7 @@ const ACTION_CARD_FORM_FIELDS = {
   counter_offer: [
     ['modified_price', 'Modified price', 'number', '5000'],
     ['revisions', 'Revisions', 'text', '1'],
-    ['timeline', 'Timeline', 'text', '7 days'],
+    ['timeline', 'Delivery date', 'date', ''],
     ['usage_rights', 'Usage rights', 'text', 'Organic social'],
     ['diff_vs_original', 'Reason', 'textarea', 'Why are you countering? e.g. budget is too low for 3 videos']
   ],
@@ -626,7 +626,7 @@ export default function MessagesPage() {
         </div>
         <div className="msg-action-card-fields">
           {Object.entries(fields).slice(0, 6).map(([key, value]) => (
-            <p key={key}><span>{key.replaceAll('_', ' ')}</span><strong>{formatActionValue(value)}</strong></p>
+            <p key={key}><span>{item.type === 'counter_offer' && key === 'timeline' && /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? 'Delivery date' : key.replaceAll('_', ' ')}</span><strong>{formatActionValue(value)}</strong></p>
           ))}
         </div>
         {!isOwn && item.status === 'open' && item.available_actions?.length ? (
@@ -720,7 +720,7 @@ export default function MessagesPage() {
     setActionForm({
       modified_price: price != null && String(price).trim() !== '' ? String(price) : '5000',
       revisions: f.revisions != null ? String(f.revisions) : '1',
-      timeline: f.timeline || '7 days',
+      timeline: /^\d{4}-\d{2}-\d{2}$/.test(f.timeline || '') ? f.timeline : '',
       usage_rights: f.usage_rights || 'Organic social',
       diff_vs_original: '',
     });

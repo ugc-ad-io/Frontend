@@ -10,9 +10,77 @@ import { Users, Briefcase, CheckCircle, XCircle, TrendingUp, MessageSquare, Cred
 import AdminSidebar from '../components/AdminSidebar';
 import AdminTopbar from '../components/AdminTopbar';
 import { can } from '../utils/adminRoles';
+import '../components/Skeleton.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+
+// Loading placeholder for the Overview tab. It is built from the loaded layout's own elements and
+// classes, with a shimmer where each piece of text will be, and it shows as many tiles / queue rows
+// / quick actions as this role will actually see. Same boxes, so nothing jumps when the numbers arrive.
+const GHOST = { color: 'transparent', borderRadius: 4, userSelect: 'none', verticalAlign: 'top' };
+const Ghost = ({ children }) => <span className="sk" style={GHOST} aria-hidden="true">{children}</span>;
+
+function OverviewSkeleton({ user }) {
+  const has = (cap) => can(user, cap);
+  const tiles = ['review_applications', 'manage_briefs', 'manage_shipping', 'manage_kyc', 'manage_gst', 'release_payouts', 'manage_deals', 'view_financials'].filter(has).length;
+  const queue = ['review_applications', 'manage_briefs', 'manage_shipping', 'manage_kyc', 'manage_gst', 'release_payouts'].filter(has).length;
+  const actionLabels = [
+    has('review_applications') && 'Review applications',
+    has('manage_deals') && 'View all campaigns',
+    (has('user_management') || has('adjust_wallet')) && 'Manage users & wallets',
+    has('user_management') && 'Send announcement',
+  ].filter(Boolean);
+  const tileLabels = ['Pending profiles', 'Pending campaigns', 'Pending shipments', 'Pending KYC', 'Pending GST', 'Withdrawals', 'Active campaigns', 'Platform earnings'];
+  const queueLabels = ['Profile approvals', 'Campaign approvals', 'Shipment queue', 'KYC approvals', 'GST approvals', 'Withdrawal requests'];
+  return (
+    <div className="admin-overview" role="status" aria-label="Loading dashboard">
+      {tiles > 0 && (
+        <div className="stat-tiles">
+          {tileLabels.slice(0, tiles).map((label) => (
+            <div className="stat-tile" key={label}>
+              <div className="stat-tile-label"><Ghost>{label}</Ghost></div>
+              <div className="stat-tile-value"><Ghost>00</Ghost></div>
+              <div className="stat-tile-hint"><Ghost>Awaiting review</Ghost></div>
+            </div>
+          ))}
+        </div>
+      )}
+      {(queue > 0 || actionLabels.length > 0) && (
+        <div className="admin-overview-row">
+          {queue > 0 && (
+            <div className="admin-panel" style={{ flex: 1, minWidth: 320 }}>
+              <div className="admin-panel-head"><h3><Ghost>Review queue</Ghost></h3></div>
+              <ul className="admin-feed">
+                {queueLabels.slice(0, queue).map((label) => (
+                  <li key={label}>
+                    <span className="sk" style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0 }} aria-hidden="true" />
+                    <span className="admin-feed-text"><Ghost>{label}</Ghost></span>
+                    <Ghost>00</Ghost>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {actionLabels.length > 0 && (
+            <div className="admin-panel" style={{ width: 280 }}>
+              <div className="admin-panel-head"><h3><Ghost>Quick actions</Ghost></h3></div>
+              <div className="admin-panel-body">
+                <div className="admin-quick-actions">
+                  {actionLabels.map((label) => (
+                    <button type="button" key={label} tabIndex={-1} disabled style={{ pointerEvents: 'none', cursor: 'default' }}>
+                      <Ghost>{label}</Ghost>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -709,7 +777,7 @@ export default function AdminDashboard() {
           );
         })()}
         <div className="tab-content">
-          {activeTab === 'stats' && !stats && statsStatus === 'loading' && <div role="status">Loading dashboard...</div>}
+          {activeTab === 'stats' && !stats && statsStatus === 'loading' && <OverviewSkeleton user={user} />}
           {activeTab === 'stats' && statsStatus === 'error' && <div role="alert" style={{ padding: 20 }}><p>Dashboard data could not be loaded. Please try again.</p><button type="button" className="btn-secondary" onClick={fetchStats}>Retry</button></div>}
           {activeTab === 'stats' && stats && (() => {
             // The Overview mirrors the role's capabilities (Team & Roles): a member only

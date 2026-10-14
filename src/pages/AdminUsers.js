@@ -518,11 +518,6 @@ export default function AdminUsers({
                             ><BadgeCheck size={14} /></button>
                           )}
                           <button className="au-btn au-btn-edit" onClick={() => handleEdit(u)}>Edit</button>
-                          {caps.ban && (
-                            <button className={`au-btn ${isInactive(u) ? 'au-btn-unban' : 'au-btn-ban'}`} onClick={() => openBan(u)}>
-                              {isInactive(u) ? 'Unban' : 'Ban'}
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>

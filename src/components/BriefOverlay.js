@@ -9,9 +9,8 @@ export default function BriefOverlay({ children, className, onClick, ...props })
     const header = document.querySelector('.cmk-nav');
     const update = () => {
       const railBox = rail?.getBoundingClientRect();
-      const headerBox = header?.getBoundingClientRect();
       const left = window.innerWidth > 760 && railBox?.width ? Math.max(0, railBox.right) : 0;
-      const top = headerBox?.height ? Math.max(0, headerBox.bottom) : 0;
+      const top = 0; // Cover the header too so search stays behind the blurred backdrop.
       setBounds(previous => previous.left === left && previous.top === top ? previous : { left, top });
     };
     update();

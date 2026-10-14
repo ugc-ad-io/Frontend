@@ -26,3 +26,24 @@ test('navigation replaces the previous page while the new admin page downloads',
     expect(container.textContent).toContain('Applications loaded');
   } finally { await act(async () => root.unmount()); container.remove(); }
 });
+
+test('a page that fails does not leave the error screen on the next tab', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  function Broken() { throw new TypeError('Cannot read properties of undefined'); }
+  function Pages({ broken }) {
+    return <RouteLoadingBoundary>{broken ? <Broken /> : <div>Healthy tab</div>}</RouteLoadingBoundary>;
+  }
+  const container = document.createElement('div');
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    mockPathname = '/broken';
+    await act(async () => root.render(<Pages broken />));
+    expect(container.textContent).toContain('This page could not load');
+    mockPathname = '/healthy';
+    await act(async () => root.render(<Pages />));
+    expect(container.textContent).toContain('Healthy tab');
+    expect(container.textContent).not.toContain('This page could not load');
+  } finally { spy.mockRestore(); await act(async () => root.unmount()); container.remove(); }
+});

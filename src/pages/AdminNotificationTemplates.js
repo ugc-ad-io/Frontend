@@ -145,20 +145,33 @@ function TemplateCard({ ev, samples, onChanged }) {
 
 export default function AdminNotificationTemplates() {
   const [data, setData] = useState(null);
+  const [failed, setFailed] = useState(false);
   const [audience, setAudience] = useState('All');
   const [q, setQ] = useState('');
 
   const load = useCallback(async () => {
     try {
       const { data: d } = await axios.get(`${API}/admin/notification-templates`);
+      // Never trust the shape: a proxy/error page or older backend must not crash the page.
+      if (!d || !Array.isArray(d.events)) throw new Error('unexpected response');
       setData(d);
+      setFailed(false);
     } catch (e) {
+      setFailed(true);
       toast.error(e.response?.data?.detail || 'Could not load notification templates');
     }
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  if (!data) return <AdminLayout><p>Loading notifications...</p></AdminLayout>;
+  if (!data) {
+    return (
+      <AdminLayout>
+        {failed
+          ? <p>Could not load the notification templates. <button type="button" onClick={load}>Try again</button></p>
+          : <p>Loading notifications...</p>}
+      </AdminLayout>
+    );
+  }
   const shown = data.events.filter((ev) =>
     (audience === 'All' || ev.to === audience) &&
     (!q || `${ev.label} ${ev.title} ${ev.message}`.toLowerCase().includes(q.toLowerCase())));

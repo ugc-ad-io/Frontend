@@ -71,6 +71,7 @@ const AdminShipping = lazy(() => import('./pages/AdminShipping'));
 const AdminEditing = lazy(() => import('./pages/AdminEditing'));
 const AdminFinancials = lazy(() => import('./pages/AdminFinancials'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const AdminNotificationTemplates = lazy(() => import('./pages/AdminNotificationTemplates'));
 const AdminRoles = lazy(() => import('./pages/AdminRoles'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog'));
@@ -816,6 +817,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
                   <AdminAuditLog />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/notification-templates"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminNotificationTemplates />
                 </ProtectedRoute>
               }
             />

@@ -27,6 +27,7 @@ function AdminLayout({ children }) {
     '/dashboard/admin/reports':       'reports',
     '/dashboard/admin/audit-log':     'audit',
     '/dashboard/admin/settings':      'settings',
+    '/dashboard/admin/notification-templates': 'notifications',
     '/dashboard/admin/roles':         'roles',
   };
 
@@ -68,6 +69,7 @@ function AdminLayout({ children }) {
               chat:         ['Chat Oversight', 'Flagged messages and contact-info filter log'],
               reports:      ['Reports',        'Exports, metrics and platform summaries'],
               audit:        ['Audit Log',      'Immutable record of every admin action - retained 7 years'],
+              notifications: ['Notifications', 'Edit the wording of every automatic notification and email'],
               settings:     ['Settings',       'Platform config - founder access only'],
               roles:        ['Team & Roles',   'Admin role structure and staff access - founder manages'],
             };

@@ -13,6 +13,7 @@ import '../styles/creator-marketplace.css';
 import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 import { selectedCreators, isSelectedCreator, creatorsWanted, slotsLeft, needsEditSplit, bidSplitLabel } from '../utils/campaignCreators';
 import SplitBidFields, { EMPTY_SPLIT, splitPayload } from '../components/SplitBidFields';
+import { useBidGate, BidFeeNotice } from '../components/BidGate';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -50,6 +51,7 @@ export default function CampaignDetails({ embedId, onClose }) {
   const navigate = useNavigate();
   const goBack = () => (onClose ? onClose() : navigate(-1));
   const { user } = useAuth();
+  const bidGate = useBidGate(user);
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedCreator, setSelectedCreator] = useState(null);
@@ -234,14 +236,6 @@ export default function CampaignDetails({ embedId, onClose }) {
 
   const handleSubmitBid = async (e) => {
     e.preventDefault();
-    // Profile form is no longer forced at login — this is where it actually matters,
-    // so send them to finish it instead of letting the bid 403 on the backend.
-    if (!user?.profile_completed) {
-      setShowBidModal(false);
-      toast.error('Finish your creator profile before bidding');
-      navigate('/settings?tab=profile');
-      return;
-    }
     const maximum = maxCampaignBid(campaign);
     if (maximum && Number(bidAmount) > maximum) {
       toast.error(bidOverBudgetMessage(maximum));
@@ -436,7 +430,11 @@ export default function CampaignDetails({ embedId, onClose }) {
                   <h3>Interested in this campaign?</h3>
                   <p>Submit your bid and proposal to work with this brand</p>
                 </div>
-                <button className="btn-bid-now" onClick={() => setShowBidModal(true)} data-testid="submit-bid-btn">
+                <button className="btn-bid-now" onClick={async () => {
+                  // Incomplete profile → pop-up listing what's missing; else the fee pop-up, then the form.
+                  if (!(await bidGate.ensureProfile())) return;
+                  bidGate.showFee(() => setShowBidModal(true));
+                }} data-testid="submit-bid-btn">
                   Submit Your Bid
                 </button>
               </div>
@@ -776,7 +774,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                 <small>{Number(campaign.budget_min) === Number(campaign.budget_max)
                   ? `Fixed budget: ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`
                   : `Budget range: ₹${Number(campaign.budget_min).toLocaleString('en-IN')} - ₹${Number(campaign.budget_max).toLocaleString('en-IN')}`}</small>
-                <small>UGC.ad charges a 20% platform fee on this campaign.</small>
+                <BidFeeNotice amount={bidAmount} percent={bidGate.percent} />
               </div>
               <div className="form-group">
                 <label htmlFor="deliveryDays">Estimated Delivery (days)</label>
@@ -2074,6 +2072,7 @@ export default function CampaignDetails({ embedId, onClose }) {
           }
         }
       `}</style>
+      {bidGate.ui}
     </div>
     </Wrap>
   );

@@ -13,6 +13,7 @@ import { Skeleton } from '../components/Skeleton';
 import normalizeBrief, { timeAgo } from '../utils/normalizeBrief';
 import { isOpenForBids, isSelectedCreator, needsEditSplit } from '../utils/campaignCreators';
 import SplitBidFields, { EMPTY_SPLIT, splitPayload } from '../components/SplitBidFields';
+import { useBidGate, BidFeeNotice } from '../components/BidGate';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
 import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
 
@@ -47,6 +48,8 @@ export default function BrowseBriefs() {
   const [deliveryDays, setDeliveryDays] = useState('');
   const [proposal, setProposal] = useState('');
   const [submittingBid, setSubmittingBid] = useState(false);
+  // Profile-complete check + the platform-fee pop-up, both before the bid form opens.
+  const bidGate = useBidGate(user);
 
   const openBidForm = (b) => {
     setBidAmount(''); setSplit(EMPTY_SPLIT); setDeliveryDays(''); setProposal('');
@@ -313,19 +316,20 @@ export default function BrowseBriefs() {
       <BriefDetailDrawer
         brief={openBrief}
         onClose={() => setOpenBrief(null)}
-        onBid={(b) => {
+        onBid={async (b) => {
           if (b.hasBid) {
             setOpenBrief(null);
             setViewBid(b);
             return;
           }
+          // An incomplete profile can't bid: list what's missing instead of opening the form.
+          if (!(await bidGate.ensureProfile())) return;
           // KYC gate: unverified creators can't bid — nudge them to verify first.
           if (user?.kyc?.status !== 'verified' && !user?.kyc_verified) {
             toast.error('Verify your KYC before submitting a bid.');
             return navigate('/kyc');
           }
-          if (!user?.profile_completed) { toast.error('Complete your creator profile before bidding.'); return navigate('/settings?tab=profile'); }
-          openBidForm(b);
+          bidGate.showFee(() => openBidForm(b));
         }}
       />
 
@@ -397,7 +401,7 @@ export default function BrowseBriefs() {
                 <input type="number" min="1" max={maxCampaignBid(bidBrief) || undefined} required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
               </label>
               )}
-              <p className="bb-bid-fee-note">UGC.ad charges a 20% platform fee on this campaign.</p>
+              <BidFeeNotice amount={bidAmount} percent={bidGate.percent} />
               <label>Estimated Delivery (days)
                 <input type="number" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />
               </label>
@@ -430,6 +434,7 @@ export default function BrowseBriefs() {
           `}</style>
         </div>
       )}
+      {bidGate.ui}
     </CreatorTopNavLayout>
   );
 }

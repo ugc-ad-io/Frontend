@@ -816,6 +816,28 @@
 .bc-cats{display:flex;flex-wrap:nowrap;gap:10px;justify-content:flex-start;padding:2px 2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
 .bc-cats::-webkit-scrollbar{display:none}
 @media (max-width:760px){.bc-head-row{align-items:flex-start}.bc-cats{justify-content:flex-start;flex:1 1 100%}}
+/* "Meet Creators Approved by Our UGCAD Team": a plain text link on the subtitle line, right side.
+   The category chips drop to their own row below so nothing overlaps. Look unchanged otherwise. */
+.bc-head-row--approved{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:14px 24px}
+.bc-head-row--approved .bc-cats{grid-column:1 / -1;flex:none}
+.bc-approved-link{display:inline-flex;align-items:center;gap:8px;justify-self:end;align-self:end;max-width:100%;
+  color:var(--ink);font-family:inherit;font-weight:500;font-size:14.5px;line-height:1.35;text-align:right;text-decoration:none}
+.bc-approved-link span{min-width:0}
+.bc-approved-link__check{color:var(--ok);flex:none}
+.bc-approved-link__arrow{flex:none;transition:transform .18s ease}
+.bc-approved-link:hover{text-decoration:underline;text-underline-offset:3px}
+.bc-approved-link:hover .bc-approved-link__arrow{transform:translateX(3px)}
+.bc-approved-link:focus-visible,.bc-back-link:focus-visible{outline:2px solid var(--indigo);outline-offset:3px;border-radius:4px}
+@media (max-width:760px){
+  .bc-head-row--approved{grid-template-columns:minmax(0,1fr)}
+  .bc-approved-link{justify-self:start;text-align:left;align-items:flex-start}
+  .bc-approved-link__check,.bc-approved-link__arrow{margin-top:2px}
+}
+/* The collection: back action above the title, then the same cards. */
+.bc-approved-head{margin-bottom:18px}
+.bc-approved-head .cmk-page-head{margin-bottom:0}
+.bc-back-link{display:inline-flex;align-items:center;gap:6px;margin:4px 0 10px;color:var(--ink);font-weight:600;font-size:14px;text-decoration:none}
+.bc-back-link:hover{text-decoration:underline;text-underline-offset:3px}
 .bc-cats::-webkit-scrollbar{display:none}
 .bc-cats button{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink-2);font-weight:600;font-size:13.5px;
   padding:8px 18px;border-radius:30px;cursor:pointer;font-family:inherit;text-transform:capitalize}

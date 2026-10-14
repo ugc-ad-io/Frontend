@@ -320,8 +320,33 @@ function ProtectedRoute({ children, allowedRoles }) {
 // one path means every existing Deal Room deep link and notification keeps working.
 function CreatorDealsRoute() {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const isDetail = searchParams.get('campaign') || searchParams.get('deal');
+  if (user?.role === 'business') return <BrandNotificationDealRoute />;
   return isDetail ? <MyDealsPage /> : <MyDealsHubPage />;
+}
+
+function BrandNotificationDealRoute() {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const dealId = params.get('deal');
+  const campaignId = params.get('campaign');
+  useEffect(() => {
+    let cancelled = false;
+    if (campaignId) {
+      navigate(`/dashboard/business/campaign/${encodeURIComponent(campaignId)}`, { replace: true });
+      return;
+    }
+    axios.get(`${API}/deals/business`).then(({ data }) => {
+      if (cancelled) return;
+      const deal = (data || []).find(item => item.deal_id === dealId);
+      const target = deal?.campaign?.id;
+      const creatorId = deal?.creator?.id || deal?.creator_id;
+      navigate(target ? `/dashboard/business/campaign/${encodeURIComponent(target)}${creatorId ? `?creator=${encodeURIComponent(creatorId)}` : ''}` : '/dashboard/business/all-campaigns', { replace: true });
+    }).catch(() => { if (!cancelled) navigate('/dashboard/business/all-campaigns', { replace: true }); });
+    return () => { cancelled = true; };
+  }, [dealId, campaignId, navigate]);
+  return <Loader />;
 }
 
 // Resets scroll to the top on every route change so a new page never opens
@@ -441,7 +466,7 @@ function App() {
             <Route
               path="/my-deals"
               element={
-                <ProtectedRoute allowedRoles={['creator']}>
+                <ProtectedRoute allowedRoles={['creator', 'business']}>
                   <CreatorDealsRoute />
                 </ProtectedRoute>
               }

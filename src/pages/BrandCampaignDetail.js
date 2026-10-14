@@ -1,6 +1,6 @@
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import { findCreatorDeal, getDealMessages } from '../utils/dealMessages';
 import axios from 'axios';
@@ -359,6 +359,8 @@ function DealChatPanel({ deal, onSent }) {
 
 export default function BrandCampaignDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedCreatorId = searchParams.get('creator');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
@@ -419,7 +421,7 @@ export default function BrandCampaignDetail() {
         );
         setCreators(profiles);
         // Keep the brand's current selection across reloads; default to the first pick.
-        setActiveCreatorId((prev) => (prev && ids.includes(prev) ? prev : profiles[0]?.id || null));
+        setActiveCreatorId((prev) => (requestedCreatorId && ids.includes(requestedCreatorId) ? requestedCreatorId : prev && ids.includes(prev) ? prev : profiles[0]?.id || null));
       } else {
         setCreators([]);
         setActiveCreatorId(null);
@@ -428,7 +430,7 @@ export default function BrandCampaignDetail() {
     finally { setLoading(false); }
   };
 
-  useLiveEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLiveEffect(() => { load(); }, [id, requestedCreatorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Whose review am I looking at? Re-fetch when the brand switches creators so the
   // "Add a review" vs "Rated ★" state on a completed deal follows the active creator.

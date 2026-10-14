@@ -35,7 +35,10 @@ const userState = (u) => (u.banned ? 'banned' : (u.active === false ? 'suspended
 const isInactive = (u) => u.banned === true || u.active === false;
 const strikes = (u) => (u.chat?.strikes || []);
 const isFlagged = (u) => strikes(u).length > 0;
-const category = (u) => p(u, 'category', 'industry', 'niche', 'primary_category') || '-';
+const category = (u) => {
+  const value = p(u, 'category', 'industry', 'niche', 'primary_category');
+  return Array.isArray(value) ? value.filter(item => typeof item === 'string').join(', ') || '-' : typeof value === 'string' ? value || '-' : '-';
+};
 // Real human name. Prefers what the person/KYC actually provided over the
 // auto-generated @handle. Also reads the verified KYC legal name (creators who
 // never set a display name still have their legal name on file — e.g. "Arushi Khare").
@@ -133,10 +136,10 @@ export default function AdminUsers({
     try {
       const { data } = await axios.get(`${API}${endpoint}`);
       if (Array.isArray(data)) {
-        setAllUsers(data);
+        setAllUsers(data.filter(user => user && typeof user === 'object' && user.id));
         setAssignedCats(null);
       } else {
-        setAllUsers(data?.users || []);
+        setAllUsers(Array.isArray(data?.users) ? data.users.filter(user => user && typeof user === 'object' && user.id) : []);
         setAssignedCats(data?.assigned_categories || []);
       }
     } catch {

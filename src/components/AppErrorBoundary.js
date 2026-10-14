@@ -1,9 +1,13 @@
 import { Component } from 'react';
+import { shouldRecoverChunk } from '../utils/chunkRecovery';
 
 export default class AppErrorBoundary extends Component {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(error) { console.error('Website failed to load', error); }
+  componentDidCatch(error) {
+    console.error('Website failed to load', error);
+    if (shouldRecoverChunk(error, window.sessionStorage)) window.location.reload();
+  }
   render() {
     if (this.state.failed) return (
       <main role="alert" style={{ padding: 32, textAlign: 'center', fontFamily: 'sans-serif' }}>

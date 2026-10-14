@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef, forwardRef, useImperativeHandle }
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import publishPrivateBrief from '../utils/publishPrivateBrief';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
@@ -1113,7 +1114,8 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       // matches/approval path — publish straight to a deal with that creator.
       const directCreator = embeddedCreatorId || searchParams.get('creator');
       if (directCreator) {
-        await axios.post(`${API}/campaigns`, { ...buildPayload(), selected_creator: directCreator, visibility: 'private', status: 'pending_approval' });
+        const privatePayload = { ...buildPayload(), selected_creator: directCreator, visibility: 'private' };
+        await publishPrivateBrief(axios, API, draftId, privatePayload);
         clearDraftStorage();
         toast.success('Private brief submitted for approval');
         if (onPublished) onPublished(); else navigate('/dashboard/business');

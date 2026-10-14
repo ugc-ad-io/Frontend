@@ -1,10 +1,11 @@
-import { useState, useEffect, createContext, useContext, Suspense } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import lazy from './lib/retryLazy';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import './styles/admin-theme.css';
 import Loader from './components/Loader';
+import RouteLoadingBoundary from './components/RouteLoadingBoundary';
 import AdminLayout from './components/AdminLayout';
 import AgreementGate from './components/AgreementGate';
 import { Toaster } from 'sonner';
@@ -418,7 +419,7 @@ function App() {
         <AuthProvider>
           <ScrollToTop />
           <Toaster position="top-right" richColors closeButton />
-          <Suspense fallback={<Loader />}>
+          <RouteLoadingBoundary>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/creator" element={<CreatorLanding />} />
@@ -925,7 +926,7 @@ function App() {
               }
             />
           </Routes>
-          </Suspense>
+          </RouteLoadingBoundary>
         </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

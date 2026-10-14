@@ -36,7 +36,7 @@ export default function AdminDashboard() {
     analytics: 'analytics'
   };
   const tabIdToSlug = Object.fromEntries(Object.entries(tabSlugToId).map(([slug, id]) => [id, slug]));
-  const [activeTab, setActiveTab] = useState(tabSlugToId[adminPage] || 'stats');
+  const activeTab = tabSlugToId[adminPage] || 'stats';
   const { stats, status: statsStatus, reload: fetchStats } = useAdminStats(API, user?.id || user?.user_id);
   const [pendingProfiles, setPendingProfiles] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
@@ -130,7 +130,6 @@ export default function AdminDashboard() {
 
   useLiveEffect(() => {
     const nextTab = tabSlugToId[adminPage] || 'stats';
-    setActiveTab(nextTab);
 
     if (nextTab === 'chats') fetchAllChats();
     if (nextTab === 'flagged') fetchAllChats();
@@ -677,7 +676,6 @@ export default function AdminDashboard() {
     if (tab.id === 'applications') {
       navigate('/dashboard/admin/applications');
     } else {
-      setActiveTab(tab.id);
       tab.onOpen?.();
       navigate(`/dashboard/admin/${tab.slug || tabIdToSlug[tab.id] || 'overview'}`);
     }

@@ -824,9 +824,14 @@
   color:var(--ink);font-family:inherit;font-weight:500;font-size:14.5px;line-height:1.35;text-align:right;text-decoration:none}
 .bc-approved-link span{min-width:0}
 .bc-approved-link__check{color:var(--ok);flex:none}
-.bc-approved-link__arrow{flex:none;transition:transform .18s ease}
+.bc-approved-link__arrow{flex:none}
 .bc-approved-link:hover{text-decoration:underline;text-underline-offset:3px}
-.bc-approved-link:hover .bc-approved-link__arrow{transform:translateX(3px)}
+/* Hover: the tick fills green with a white check. The arrow stays exactly where it is. */
+.bc-approved-link__check path{transition:fill .18s ease,stroke .18s ease}
+.bc-approved-link:hover .bc-approved-link__check path:first-child,
+.bc-approved-link:focus-visible .bc-approved-link__check path:first-child{fill:var(--ok);stroke:var(--ok)}
+.bc-approved-link:hover .bc-approved-link__check path:last-child,
+.bc-approved-link:focus-visible .bc-approved-link__check path:last-child{stroke:#fff}
 .bc-approved-link:focus-visible,.bc-back-link:focus-visible{outline:2px solid var(--indigo);outline-offset:3px;border-radius:4px}
 @media (max-width:760px){
   .bc-head-row--approved{grid-template-columns:minmax(0,1fr)}

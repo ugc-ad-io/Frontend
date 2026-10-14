@@ -7,3 +7,9 @@ export function shouldRecoverChunk(error, storage, now = Date.now()) {
     return true;
   } catch { return false; }
 }
+
+export function freshPageUrl(href, now = Date.now()) {
+  const url = new URL(href);
+  url.searchParams.set('_ugcad_reload', String(now));
+  return url.toString();
+}

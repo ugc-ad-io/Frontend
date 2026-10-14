@@ -7,7 +7,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import {
   Users, Search, X, Eye, Download, Send, Ban, ShieldAlert, AlertTriangle,
   ArrowUpCircle, ArrowDownCircle, Wallet, Percent, MessageSquare,
-  FileText, CreditCard, CalendarClock, Flag, Trash2, ShieldCheck,
+  FileText, CreditCard, CalendarClock, Flag, Trash2, ShieldCheck, BadgeCheck,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { Skeleton } from '../components/Skeleton';
@@ -103,6 +103,10 @@ export default function AdminUsers({
 
   // profile detail drawer (admin view) + per-user activity
   const [detailUser, setDetailUser] = useState(null);
+  // After an action refetches the list keep the open drawer in step with it.
+  useEffect(() => {
+    setDetailUser((d) => (d ? (allUsers.find((x) => x.id === d.id) || d) : d));
+  }, [allUsers]);
   const [detailTab, setDetailTab] = useState('profile');
   const [revealBank, setRevealBank] = useState(false);
   const [deals, setDeals] = useState(null);
@@ -478,6 +482,9 @@ export default function AdminUsers({
                             {levelLabelOf(u.level_key ?? u.level)}
                           </span>
                         )}
+                        {isCreator(u) && u.ugcad_approved && (
+                          <span className="au-badge au-badge-ugcad" title="Shown in the UGCAD Approved collection">UGCAD approved</span>
+                        )}
                         {isAdmin(u) && u.admin_role && (
                           <span className="au-badge au-badge-admin" title="Admin role">
                             {ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin'}
@@ -622,6 +629,7 @@ export default function AdminUsers({
         .au-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #1e1e7e; text-transform: capitalize; }
         .au-badge-level { margin-left: 6px; background: #f0fdf4; color: #15803d; }
         .au-badge-admin { margin-left: 6px; background: #fef3c7; color: #92400e; }
+        .au-badge-ugcad { margin-left: 6px; background: #dcfce7; color: #166534; }
         .aud-actions-note { font-size: 0.78rem; color: #94a3b8; align-self: center; }
         .au-state-active { background: #dcfce7; color: #166534; }
         .au-state-suspended { background: #fef3c7; color: #92400e; }
@@ -988,6 +996,11 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                 <button className="aud-action-btn" onClick={() => onAction('commission')}><Percent size={14} /> Adjust Commission</button>
               </>}
               {brand && caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust Wallet</button>}
+              {isCreator(u) && caps.userMgmt && (
+                <button className="aud-action-btn" onClick={() => onAction(u.ugcad_approved ? 'ugcadUnapprove' : 'ugcadApprove')}>
+                  <BadgeCheck size={14} /> {u.ugcad_approved ? 'Remove UGCAD Approved' : 'Mark UGCAD Approved'}
+                </button>
+              )}
               {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote</button>}
               {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('demote')}><ArrowDownCircle size={14} /> Demote</button>}
               {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('payout')}><CalendarClock size={14} /> Payout Schedule</button>}
@@ -1040,6 +1053,8 @@ const ACTION_META = {
   payout: { title: 'Adjust Payout Schedule', kind: 'payout', btn: 'Save', icon: CalendarClock },
   promote: { title: 'Promote Level', kind: 'confirm', btn: 'Promote', icon: ArrowUpCircle, msg: 'Promote this creator one level? (New → Verified → L1 → L2 → Elite. Shown on their public profile.)' },
   demote: { title: 'Demote Level', kind: 'confirm', btn: 'Demote', icon: ArrowDownCircle, msg: 'Demote this creator one level?' },
+  ugcadApprove: { title: 'Mark UGCAD Approved', kind: 'confirm', btn: 'Mark approved', icon: BadgeCheck, msg: 'Add this creator to "Meet Creators Approved by Our UGCAD Team"? Brands will see them in that collection on Browse Creators.' },
+  ugcadUnapprove: { title: 'Remove UGCAD Approved', kind: 'confirm', btn: 'Remove', icon: BadgeCheck, msg: 'Remove this creator from the UGCAD Approved collection that brands see?' },
   announce: { title: 'Send Announcement', label: 'Announcement', kind: 'text', btn: 'Send to selected', icon: Send },
   delete: { title: 'Delete User', kind: 'confirm', btn: 'Delete Permanently', icon: Trash2, msg: 'This permanently deletes the user and all their data. This cannot be undone.' },
   unsuspend: { title: 'Lift Suspension', kind: 'confirm', btn: 'Unsuspend', icon: ShieldCheck, msg: 'Lift this user’s suspension and restore their account access?' },
@@ -1160,6 +1175,11 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
         break;
       case 'payout':
         ok = await adminPost('/admin/user/payout-schedule', { user_id: u.id, schedule }, `Payout schedule set to ${schedule}`);
+        break;
+      case 'ugcadApprove':
+      case 'ugcadUnapprove':
+        ok = await adminPost('/admin/user/ugcad-approved', { user_id: u.id, approved: action.type === 'ugcadApprove' },
+          action.type === 'ugcadApprove' ? 'Marked as UGCAD approved' : 'Removed from UGCAD approved');
         break;
       case 'promote':
       case 'demote':

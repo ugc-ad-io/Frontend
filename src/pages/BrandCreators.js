@@ -1,9 +1,9 @@
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark, MessageSquare } from 'lucide-react';
+import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
@@ -535,6 +535,14 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
 export default function BrandCreators() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  // The team's hand picked shortlist (admin: Users > creator > Mark UGCAD Approved).
+  const approvedMode = searchParams.get('collection') === 'ugcad-approved';
+  const collectionSearch = (on) => {
+    const p = new URLSearchParams(searchParams);
+    if (on) p.set('collection', 'ugcad-approved'); else p.delete('collection');
+    const s = p.toString();
+    return s ? `?${s}` : '';
+  };
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -599,11 +607,12 @@ export default function BrandCreators() {
   }, [filterOpen]);
 
   const filtered = useMemo(() => creators.filter((c) => {
+    if (approvedMode && !c.ugcad_approved) return false;
     const cats = catsOf(c);
-    if (cat !== 'all' && !cats.includes(cat)) return false;
+    if (!approvedMode && cat !== 'all' && !cats.includes(cat)) return false;
     if (!matchesCreatorSearch(c, q, cats)) return false;
     return true;
-  }), [creators, cat, q]);
+  }), [creators, cat, q, approvedMode]);
 
   const openChat = (c) => { setChatWith({ id: c.id, name: nameOf(c).replace('@', ''), photo: c.profile_photo }); };
 
@@ -718,7 +727,18 @@ export default function BrandCreators() {
 
   return (
     <BrandTopNavLayout>
-      <div className="bc-head-row">
+      {approvedMode ? (
+        <div className="bc-approved-head">
+          <Link className="bc-back-link" to={{ search: collectionSearch(false) }}>
+            <ArrowLeft size={16} aria-hidden="true" /> Back to All Creators
+          </Link>
+          <div className="cmk-page-head">
+            <h1>Creators Approved by Our UGCAD Team</h1>
+            <p>Every creator here has been reviewed and approved by the UGCAD team.</p>
+          </div>
+        </div>
+      ) : (
+      <div className="bc-head-row bc-head-row--approved">
         <div className="cmk-page-head cmk-page-head--filter">
           <div>
             <h1>Browse Creators</h1>
@@ -748,12 +768,20 @@ export default function BrandCreators() {
           </div>
         </div>
 
+        {/* Plain text link on the subtitle line, above the category row. */}
+        <Link className="bc-approved-link" to={{ search: collectionSearch(true) }}>
+          <BadgeCheck size={17} className="bc-approved-link__check" aria-hidden="true" />
+          <span>Meet Creators Approved by Our UGCAD Team</span>
+          <ArrowRight size={16} className="bc-approved-link__arrow" aria-hidden="true" />
+        </Link>
+
         <div className="bc-cats bc-cats--select">
           {categories.map((k) => (
             <button key={k} type="button" className={cat === k ? 'is-active' : ''} onClick={() => setCat(k)}>{k === 'all' ? 'All' : k.replace(/_/g, ' ')}</button>
           ))}
         </div>
       </div>
+      )}
 
       {loading ? (
         <div className="bc-grid">
@@ -776,6 +804,12 @@ export default function BrandCreators() {
           title="Could not load creators"
           message={loadError}
           action={{ label: 'Try again', onClick: () => setReloadKey((v) => v + 1) }}
+        />
+      ) : filtered.length === 0 && approvedMode ? (
+        <EmptyState
+          title="No approved creators to show"
+          message={q ? 'None of the UGCAD approved creators match your search.' : 'The UGCAD team has not approved any creators for this collection yet. Check back soon.'}
+          action={{ label: 'Back to All Creators', onClick: () => navigate({ search: collectionSearch(false) }) }}
         />
       ) : filtered.length === 0 ? (
         <EmptyState title="No creators found" message="No creators match your current search or filters. Try clearing them to see everyone." />

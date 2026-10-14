@@ -1,4 +1,5 @@
 import { useLiveEffect } from '../lib/liveUpdates';
+import useAdminStats from '../lib/useAdminStats';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
   };
   const tabIdToSlug = Object.fromEntries(Object.entries(tabSlugToId).map(([slug, id]) => [id, slug]));
   const [activeTab, setActiveTab] = useState(tabSlugToId[adminPage] || 'stats');
-  const [stats, setStats] = useState(null);
+  const { stats, status: statsStatus, reload: fetchStats } = useAdminStats(API, user?.id || user?.user_id);
   const [pendingProfiles, setPendingProfiles] = useState([]);
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -115,7 +116,6 @@ export default function AdminDashboard() {
     // Only request what this member's role is actually allowed to read. Firing every
     // admin endpoint regardless of capability makes the backend 403 each one and
     // floods the console with errors for limited roles (Team & Roles).
-    fetchStats();          // no capability required
     fetchAllCampaigns();   // no capability required
     if (user?.role === 'admin') fetchAnalytics();
 
@@ -179,14 +179,6 @@ export default function AdminDashboard() {
   // handlers called (/admin/applications/*) never existed on the deployed backend, so
   // they 404'd and only threw a "Failed to load applications" toast on every load.
 
-  const fetchStats = async () => {
-    try {
-      const response = await axios.get(`${API}/admin/stats`);
-      setStats(response.data);
-    } catch (error) {
-      toast.error('Failed to load stats');
-    }
-  };
 
   const fetchPendingProfiles = async () => {
     try {
@@ -719,6 +711,8 @@ export default function AdminDashboard() {
           );
         })()}
         <div className="tab-content">
+          {activeTab === 'stats' && !stats && statsStatus === 'loading' && <div role="status">Loading dashboard...</div>}
+          {activeTab === 'stats' && statsStatus === 'error' && <div role="alert" style={{ padding: 20 }}><p>Dashboard data could not be loaded. Please try again.</p><button type="button" className="btn-secondary" onClick={fetchStats}>Retry</button></div>}
           {activeTab === 'stats' && stats && (() => {
             // The Overview mirrors the role's capabilities (Team & Roles): a member only
             // sees the tiles, queues and actions they're actually allowed to act on.

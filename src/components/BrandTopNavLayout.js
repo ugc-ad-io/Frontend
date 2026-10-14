@@ -9,6 +9,7 @@ import RejectedGate from './RejectedGate';
 import MoreInfoGate from './MoreInfoGate';
 import { brandName } from '../utils/displayName';
 import PostABrief from '../pages/PostABrief';
+import BriefOverlay from './BriefOverlay';
 import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
 
@@ -277,7 +278,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       {briefOpen && (
         // Save the half-written brief as a draft on the way out — clicking the
         // backdrop by accident shouldn't bin it.
-        <div className="cmk-brief-overlay" onClick={closeBrief}>
+        <BriefOverlay className="cmk-brief-overlay" onClick={closeBrief}>
           <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
@@ -293,7 +294,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
               onPublished={() => setBriefOpen(false)}
             />
           </div>
-        </div>
+        </BriefOverlay>
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import BriefOverlay from '../components/BriefOverlay';
 import PostABrief from './PostABrief';
 
 // Private invitations use the same complete brief and admin review as campaigns.
@@ -9,8 +9,8 @@ export default function PlanBrief({ creatorId, onClose, onPublished }) {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = previous; };
   }, []);
-  return createPortal(
-    <div className="private-brief-overlay" role="dialog" aria-modal="true" aria-label="Private campaign brief">
+  return (
+    <BriefOverlay className="private-brief-overlay" role="dialog" aria-modal="true" aria-label="Private campaign brief">
       <div className="private-brief-content">
         <PostABrief embeddedCreatorId={creatorId} onClose={onClose} onPublished={onPublished} />
       </div>
@@ -21,6 +21,6 @@ export default function PlanBrief({ creatorId, onClose, onPublished }) {
         @media (max-width: 640px) { .private-brief-content .brief-builder-page { width: 100%; max-width: 100%; margin: 0; } }
         @media (max-width: 600px) { .private-brief-overlay { padding: 16px 12px; } }
       `}</style>
-    </div>, document.body,
+    </BriefOverlay>
   );
 }

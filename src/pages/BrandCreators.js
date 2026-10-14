@@ -7,6 +7,7 @@ import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, Slide
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
+import { matchesCreatorSearch } from '../utils/creatorSearch';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
@@ -581,7 +582,7 @@ export default function BrandCreators() {
   // Sync the search box when the nav-bar search updates the ?q= param.
   useEffect(() => {
     const p = searchParams.get('q');
-    if (p !== null) setQ(p);
+    setQ(p || '');
   }, [searchParams]);
 
   const categories = useMemo(() => {
@@ -600,7 +601,7 @@ export default function BrandCreators() {
   const filtered = useMemo(() => creators.filter((c) => {
     const cats = catsOf(c);
     if (cat !== 'all' && !cats.includes(cat)) return false;
-    if (q) { const t = q.toLowerCase(); if (!nameOf(c).toLowerCase().includes(t) && !cats.some((v) => v.includes(t))) return false; }
+    if (!matchesCreatorSearch(c, q, cats)) return false;
     return true;
   }), [creators, cat, q]);
 

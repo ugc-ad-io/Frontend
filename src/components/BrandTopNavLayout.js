@@ -9,6 +9,7 @@ import RejectedGate from './RejectedGate';
 import MoreInfoGate from './MoreInfoGate';
 import { brandName } from '../utils/displayName';
 import PostABrief from '../pages/PostABrief';
+import { creatorSearchUrl } from '../utils/creatorSearch';
 import BriefOverlay from './BriefOverlay';
 import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
@@ -50,7 +51,9 @@ const ACCOUNT_LINKS = [
 export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const [searchText, setSearchText] = useState(() => new URLSearchParams(search).get('q') || '');
+  useEffect(() => { setSearchText(new URLSearchParams(search).get('q') || ''); }, [pathname, search]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
@@ -166,10 +169,16 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
               type="search"
               placeholder="Search creators by name, niche..."
               aria-label="Search creators"
+              value={searchText}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSearchText(value);
+                if (pathname.includes('browse-creator')) navigate(creatorSearchUrl(search, value), { replace: true });
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const v = e.target.value.trim();
-                  navigate(`/dashboard/business/browse-creator${v ? `?q=${encodeURIComponent(v)}` : ''}`);
+                  navigate(creatorSearchUrl(pathname.includes('browse-creator') ? search : '', v));
                 }
               }}
             />

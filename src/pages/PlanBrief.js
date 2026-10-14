@@ -146,7 +146,13 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const navigate = useNavigate();
   const [stage, setStage] = useState('setup'); // 'setup' | 'payment'
   const [productType, setProductType] = useState('physical');
-  const [plan, setPlan] = useState(null); // the creator's single plan, fetched from their profile
+  const [deliveryType, setDeliveryType] = useState('raw');
+  const [editedBy, setEditedBy] = useState('creator');
+  const [scriptProvider, setScriptProvider] = useState('brand');
+  const [scriptText, setScriptText] = useState('');
+  const [targeting, setTargeting] = useState({ level: 'Any', quality: 'A', gender: 'No Preference', city: '' });
+  const [basePlan, setPlan] = useState(null); // the creator's single plan, fetched from their profile
+  const plan = basePlan && { ...basePlan, price: basePlan.price + (deliveryType !== 'raw' && editedBy === 'creator' ? basePlan.editingPrice || 0 : 0) };
   const [planLoading, setPlanLoading] = useState(true);
   const [dateChoice, setDateChoice] = useState(isoDay(dayAfter(0)));   // Today by default
   const [customDate, setCustomDate] = useState(isoDay(dayAfter(2)));   // used when "Custom" is picked
@@ -246,6 +252,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           // creator's niche instead of the brand's own product name.
           name: p.plan_name || 'Creator Plan',
           price,
+          editingPrice: digits(rc.editing_payout) || 0,
           tags,
         });
       })
@@ -422,6 +429,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         visibility: 'private',
         product_name: brief.productName.trim(),
         product_type: productType,
+        product_type_detail: productType === 'other' ? (brief.customProductType || '').trim() : '',
         category: 'Other',
         product_category: 'Other',
         product_description: brief.productDescription.trim(),
@@ -431,11 +439,18 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         video_format: 'Reel',
         aspect_ratio: aspect,
         duration_seconds: durationToSeconds(v0.duration),
-        creator_level: 'New',
-        deliverable_items: [{ type: 'Reel', quantity: videoCount, duration: v0.duration, aspect_ratios: [aspect], raw_required: true, edited_required: false }],
+        creator_level: targeting.level,
+        content_quality_tier: targeting.quality,
+        gender_preference: targeting.gender,
+        city_filter: targeting.city.trim(),
+        script_provider: scriptProvider,
+        script_text: scriptProvider === 'brand' ? scriptText.trim() : '',
+        deliverable_items: [{ type: 'Reel', quantity: videoCount, duration: v0.duration, aspect_ratios: [aspect], raw_required: deliveryType !== 'edited', edited_required: deliveryType !== 'raw', edited_by: editedBy }],
         budget_min: plan?.price || 0,
         budget_max: plan?.price || 0,
         per_video_budget: plan?.price || 0,
+        editing_fee_per_video: deliveryType !== 'raw' && editedBy === 'creator' ? basePlan?.editingPrice || 0 : 0,
+        raw_payout_per_video: basePlan?.price || 0,
         // Basics
         target_audience: brief.targetAudience.trim(),
         // Must-include
@@ -674,7 +689,16 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
           </div>
           <div className="pb-scroll">
             <div className="pb-brief-fields">
-              <Field label="Product type"><select value={productType} onChange={(event) => setProductType(event.target.value)}><option value="physical">Physical product - shipment required</option><option value="digital">Digital / App - no shipment</option><option value="service">Service - no shipment</option></select></Field>
+              <Field label="Product type"><select value={productType} onChange={(event) => setProductType(event.target.value)}><option value="physical">Physical product - shipment required</option><option value="digital">Digital / App - no shipment</option><option value="service">Service - no shipment</option><option value="other">Other - no shipment</option></select></Field>
+              {productType === 'other' && <Field label="Describe the product type"><input value={brief.customProductType || ''} onChange={setBriefField('customProductType')} /></Field>}
+              <Field label="Delivery type"><select value={deliveryType} onChange={event => setDeliveryType(event.target.value)}><option value="raw">Raw video</option><option value="edited">Edited video</option><option value="both">Raw + Edited video</option></select></Field>
+              {deliveryType !== 'raw' && <Field label="Who edits the video?"><select value={editedBy} onChange={event => setEditedBy(event.target.value)}><option value="creator">Creator</option><option value="ugc">UGC.ad</option></select></Field>}
+              <Field label="Who writes the script?"><select value={scriptProvider} onChange={event => setScriptProvider(event.target.value)}><option value="brand">Brand</option><option value="ugc">UGC.ad</option></select></Field>
+              {scriptProvider === 'brand' && <Field label="Script"><textarea rows={3} value={scriptText} onChange={event => setScriptText(event.target.value)} placeholder="Script for the creator to follow" /></Field>}
+              <Field label="Creator level"><select value={targeting.level} onChange={event => setTargeting(t => ({ ...t, level: event.target.value }))}>{['Any', 'New', 'Verified', 'L1', 'L2', 'Elite'].map(value => <option key={value}>{value}</option>)}</select></Field>
+              <Field label="Content quality"><select value={targeting.quality} onChange={event => setTargeting(t => ({ ...t, quality: event.target.value }))}>{['A', 'A+', 'A++'].map(value => <option key={value}>{value}</option>)}</select></Field>
+              <Field label="Gender preference"><select value={targeting.gender} onChange={event => setTargeting(t => ({ ...t, gender: event.target.value }))}>{['No Preference', 'Female', 'Male', 'Other'].map(value => <option key={value}>{value}</option>)}</select></Field>
+              <Field label="Creator location"><input value={targeting.city} onChange={event => setTargeting(t => ({ ...t, city: event.target.value }))} placeholder="City, or leave blank for any location" /></Field>
               <Field label="Product / brand name *"><input type="text" value={brief.productName} onChange={setBriefField('productName')} placeholder="e.g. Nova Running Shoes" /></Field>
               <Field label="What are you promoting? *" hint="min 10 characters"><textarea rows={2} value={brief.productDescription} onChange={setBriefField('productDescription')} placeholder="Describe the product/service in a line or two" /></Field>
               <Field label="Hook / main idea *"><input type="text" value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
@@ -930,6 +954,8 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
            to a normal weight so entered text isn't bold. */
         .pb-field input, .pb-field textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font: inherit; font-weight: 400; color: #0f172a; background: #fff; resize: vertical; box-sizing: border-box; }
         .pb-field input:focus, .pb-field textarea:focus { outline: none; border-color: #07074e; }
+        .pb-field > select { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 34px 10px 12px; background: #fff; color: #0f172a; font: inherit; font-weight: 400; }
+        .pb-field > select:focus { outline: 2px solid #c7d2fe; border-color: #07074e; }
         .pb-select { position: relative; }
         .pb-select select { width: 100%; appearance: none; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 34px 10px 12px; font: inherit; color: #0f172a; background: #fff; cursor: pointer; font-weight: 400; }
         .pb-select svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }

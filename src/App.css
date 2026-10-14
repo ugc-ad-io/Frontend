@@ -11,6 +11,23 @@
    color-scheme on form controls keeps them readable on the light forms. */
 input, select, textarea { color-scheme: light; }
 
+/* Dropdown arrow spacing, whole site.
+   A native <select> paints its arrow flush against the right border and padding does not
+   move it, so the arrow looked glued to the end of every filter. Draw our own chevron
+   12px in from the edge and reserve room for it so it can never touch the border.
+   !important because dozens of page styles set their own `background:` and `padding:` on
+   selects. Multi-row lists (multiple / size) keep their native look. */
+select:not([multiple]):not([size]) {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%237a8299' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6l4 4 4-4'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px 14px !important;
+  padding-right: 34px !important;
+}
+
 /* ── Brand typography (single source of truth) ───────────────────────────────
    Display / headlines  → Readex Pro (500 medium, 600 bold) — loaded from Google Fonts.
    Body / UI / labels   → Just Sans, with Inter as the loaded web fallback.

@@ -1,4 +1,5 @@
 import { useLiveEffect } from '../lib/liveUpdates';
+import briefDeliveryLabel from '../utils/briefDeliveryLabel';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -935,6 +936,10 @@ export default function MyDealsPage() {
   const fb = fullBrief || {};
   const fullBriefRows = [
     ['Product', fb.product_name],
+    ['Product type', [fb.product_type, fb.product_type_detail].filter(Boolean).join(' - ')],
+    ['Delivery type', (fb.deliverable_items || []).map(briefDeliveryLabel).join('; ')],
+    ['Script provider', fb.script_provider === 'ugc' ? 'UGC.ad' : fb.script_provider === 'brand' ? 'Brand' : ''],
+    ['Script', fb.script_text || (fb.script_provider === 'ugc' ? 'UGC.ad is preparing the script.' : '')],
     ['Product description', fb.product_description],
     ['Campaign hook', fb.campaign_hook],
     ['Key message', fb.key_message],
@@ -947,6 +952,8 @@ export default function MyDealsPage() {
     ['Revisions included', fb.revision_limit ?? fb.free_revisions],
     ['Creator level', fb.creator_level],
     ['Quality tier', fb.content_quality_tier],
+    ['Gender preference', fb.gender_preference],
+    ['Creator location', fb.city_filter || 'Any location'],
     ['Niche', Array.isArray(fb.creator_niche_tags) ? fb.creator_niche_tags.join(', ') : fb.creator_niche_tags],
     ['Budget', (fb.budget_min || fb.budget_max) ? formatMoney(fb.budget_max || fb.budget_min) : null],
   ].filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '').map(([label, value]) => ({ label, value: String(value) }));

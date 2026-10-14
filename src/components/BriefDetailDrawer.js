@@ -1,4 +1,5 @@
 import { X, Send, Wallet, Clock, Star, Target, Download } from 'lucide-react';
+import briefDeliveryLabel from '../utils/briefDeliveryLabel';
 
 // Full campaign-brief detail drawer. Shared by Browse Campaigns and Saved
 // Campaigns so both open the same view in place instead of redirecting.
@@ -87,6 +88,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
   const detailSections = [
     { h: 'Product', rows: [
       ['Product', c.product_name],
+      ['Product type', [c.product_type, c.product_type_detail].filter(Boolean).join(' - ')],
       ['Category', c.product_category || c.category],
       ['Description', c.product_description],
       ['Hook', c.campaign_hook],
@@ -96,10 +98,17 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
     ] },
     { h: 'Deliverables', rows: deliverables.map((d, i) => [
       `Deliverable ${i + 1}`,
-      `${d.quantity || 1} x ${d.type || ''}${d.duration ? `; ${d.duration}` : ''}${d.aspect_ratios?.length ? `; ${d.aspect_ratios.join(', ')}` : ''}; deliver ${d.edited_required ? `raw footage + an edited cut (edited by ${d.edited_by === 'ugc' ? 'UGC.ad' : 'you'})` : 'raw footage only'}`,
+      `${d.quantity || 1} x ${d.type || ''}${d.duration ? `; ${d.duration}` : ''}${d.aspect_ratios?.length ? `; ${d.aspect_ratios.join(', ')}` : ''}; deliver ${briefDeliveryLabel(d)}`,
     ]) },
     { h: 'Script', rows: [
+      ['Script provider', c.script_provider === 'ugc' ? 'UGC.ad' : c.script_provider === 'brand' ? 'Brand' : ''],
       ['Script', c.script_text || (c.script_provider === 'ugc' ? 'UGC.ad is preparing the script - check back before you start.' : '')],
+    ] },
+    { h: 'Creator targeting', rows: [
+      ['Creator level', c.creator_level],
+      ['Quality tier', c.content_quality_tier],
+      ['Gender preference', c.gender_preference],
+      ['Location', c.city_filter || 'Any location'],
     ] },
     { h: 'Must include', rows: [
       ['Product visible', c.product_visible ? `${c.product_visible_seconds || ''}s minimum` : ''],
